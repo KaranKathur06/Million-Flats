@@ -1,77 +1,120 @@
-'use client'
+ 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { UAE_CITIES } from '@/lib/mockData'
+import { useCountry } from '@/components/CountryProvider'
+import { CITIES_BY_COUNTRY, COUNTRY_META, type CountryCode } from '@/lib/country'
 
 export default function HeroSearch() {
   const router = useRouter()
-  const [location, setLocation] = useState('')
+  const { country, setCountry } = useCountry()
+  const [city, setCity] = useState('')
   const [propertyType, setPropertyType] = useState('')
-  const [price, setPrice] = useState('5000000')
+  const [minPrice, setMinPrice] = useState('')
+  const [maxPrice, setMaxPrice] = useState('')
+
+  const cities = useMemo(() => CITIES_BY_COUNTRY[country], [country])
+  const countryMeta = COUNTRY_META[country]
+
+  useEffect(() => {
+    setCity('')
+  }, [country])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     const params = new URLSearchParams()
-    if (location) params.set('location', location)
+    params.set('country', country)
+    if (city) params.set('location', city)
     if (propertyType) params.set('type', propertyType)
-    if (price) params.set('maxPrice', price)
+    if (minPrice) params.set('minPrice', minPrice)
+    if (maxPrice) params.set('maxPrice', maxPrice)
     router.push(`/properties?${params.toString()}`)
   }
 
   return (
-    <form onSubmit={handleSearch} className="bg-white rounded-lg p-4 shadow-xl">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="flex items-center space-x-2">
-          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
+    <form onSubmit={handleSearch} className="bg-dark-blue/80 backdrop-blur-md border border-white/10 rounded-2xl p-5 md:p-7 shadow-2xl">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 md:gap-5 items-stretch">
+        <div className="md:col-span-1">
+          <label className="block text-xs font-medium text-white/80 mb-2">Country</label>
           <select
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            className="flex-1 outline-none text-gray-700 bg-transparent border-none"
+            value={country}
+            onChange={(e) => setCountry(e.target.value as CountryCode)}
+            className="w-full h-14 px-4 rounded-xl bg-white/10 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent-yellow/70"
           >
-            <option value="">All UAE Locations</option>
-            {UAE_CITIES.map((city) => (
-              <option key={city} value={city}>{city}</option>
+            <option value="UAE" className="text-gray-900">UAE</option>
+            <option value="India" className="text-gray-900">India</option>
+          </select>
+        </div>
+
+        <div className="md:col-span-1">
+          <label className="block text-xs font-medium text-white/80 mb-2">City</label>
+          <select
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            className="w-full h-14 px-4 rounded-xl bg-white/10 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent-yellow/70"
+          >
+            <option value="" className="text-gray-900">Select City</option>
+            {cities.map((c) => (
+              <option key={c} value={c} className="text-gray-900">{c}</option>
             ))}
           </select>
         </div>
-        <div>
+
+        <div className="md:col-span-1">
+          <label className="block text-xs font-medium text-white/80 mb-2">Property Type</label>
           <select
             value={propertyType}
             onChange={(e) => setPropertyType(e.target.value)}
-            className="w-full outline-none text-gray-700 bg-transparent border-none"
+            className="w-full h-14 px-4 rounded-xl bg-white/10 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent-yellow/70"
           >
-            <option value="">All Types</option>
-            <option value="Apartment">Apartment</option>
-            <option value="Villa">Villa</option>
-            <option value="Penthouse">Penthouse</option>
-            <option value="Townhouse">Townhouse</option>
+            <option value="" className="text-gray-900">All Types</option>
+            <option value="Apartment" className="text-gray-900">Apartment</option>
+            <option value="Villa" className="text-gray-900">Villa</option>
+            <option value="Penthouse" className="text-gray-900">Penthouse</option>
+            <option value="Townhouse" className="text-gray-900">Townhouse</option>
+            <option value="Plot" className="text-gray-900">Plot</option>
+            <option value="Commercial" className="text-gray-900">Commercial</option>
           </select>
         </div>
-        <div className="flex items-center space-x-2">
-          <span className="text-gray-400">AED</span>
+
+        <div className="md:col-span-1">
+          <label className="block text-xs font-medium text-white/80 mb-2">Min Price</label>
           <input
             type="number"
-            placeholder="Max Price"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className="flex-1 outline-none text-gray-700"
+            inputMode="numeric"
+            value={minPrice}
+            onChange={(e) => setMinPrice(e.target.value)}
+            placeholder={country === 'UAE' ? '500000' : '5000000'}
+            className="w-full h-14 px-4 rounded-xl bg-white/10 text-white placeholder:text-white/40 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent-yellow/70"
           />
         </div>
-        <button
-          type="submit"
-          className="bg-dark-blue text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center space-x-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <span>Search</span>
-        </button>
+
+        <div className="md:col-span-1">
+          <label className="block text-xs font-medium text-white/80 mb-2">Max Price</label>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 text-sm">
+              {countryMeta.currencyLabel}
+            </span>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+              placeholder={country === 'UAE' ? '5000000' : '50000000'}
+              className="w-full h-14 pl-12 pr-4 rounded-xl bg-white/10 text-white placeholder:text-white/40 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent-yellow/70"
+            />
+          </div>
+        </div>
+
+        <div className="md:col-span-1 flex items-end">
+          <button
+            type="submit"
+            className="w-full h-14 bg-accent-yellow text-dark-blue rounded-xl font-semibold hover:bg-accent-yellow/90 transition-colors"
+          >
+            Browse Properties
+          </button>
+        </div>
       </div>
     </form>
   )
 }
-

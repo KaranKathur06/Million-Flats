@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { mockProperties, Property } from '@/lib/mockData'
+import { DEFAULT_COUNTRY, isCountryCode, uiPriceToAed } from '@/lib/country'
 
 export default function handler(
   req: NextApiRequest,
@@ -11,6 +12,11 @@ export default function handler(
 
   try {
     let filtered = [...mockProperties]
+
+    const requestedCountry = req.query.country
+    const country = isCountryCode(requestedCountry) ? requestedCountry : DEFAULT_COUNTRY
+
+    filtered = filtered.filter((p) => p.country === country)
 
     // Filter by location
     if (req.query.location) {
@@ -28,11 +34,11 @@ export default function handler(
 
     // Filter by price range
     if (req.query.minPrice) {
-      const minPrice = parseInt(req.query.minPrice as string)
+      const minPrice = uiPriceToAed(country, parseInt(req.query.minPrice as string))
       filtered = filtered.filter(p => p.price >= minPrice)
     }
     if (req.query.maxPrice) {
-      const maxPrice = parseInt(req.query.maxPrice as string)
+      const maxPrice = uiPriceToAed(country, parseInt(req.query.maxPrice as string))
       filtered = filtered.filter(p => p.price <= maxPrice)
     }
 

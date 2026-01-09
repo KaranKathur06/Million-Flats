@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import Image from 'next/image'
 
 export default function Header() {
   const pathname = usePathname()
@@ -11,11 +12,16 @@ export default function Header() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-dark-blue flex items-center justify-center rounded">
-              <span className="text-white font-bold text-xl">M</span>
-            </div>
-            <span className="text-dark-blue font-semibold text-xl">millionflats</span>
+          <Link href="/" className="flex items-center gap-3">
+            <Image
+              src="/LOGO.jpeg"
+              alt="Millionflats"
+              width={34}
+              height={34}
+              className="rounded-md"
+              priority
+            />
+            <span className="text-dark-blue font-semibold text-lg tracking-wide">millionflats</span>
           </Link>
 
           {/* Navigation */}

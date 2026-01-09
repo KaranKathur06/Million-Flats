@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { UAE_CITIES } from '@/lib/mockData'
+import { useMemo, useState, useRef, useEffect } from 'react'
+import { CITIES_BY_COUNTRY, COUNTRY_META, type CountryCode } from '@/lib/country'
 
 interface Filters {
+  country: CountryCode
   location: string
   type: string
   minPrice: string
@@ -19,10 +20,11 @@ interface PropertyFiltersProps {
 }
 
 // Format AED currency
-const formatAED = (amount: number) => {
-  return new Intl.NumberFormat('en-AE', {
+const formatAED = (country: CountryCode, amount: number) => {
+  const meta = COUNTRY_META[country]
+  return new Intl.NumberFormat(meta.locale, {
     style: 'currency',
-    currency: 'AED',
+    currency: meta.currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount)
@@ -33,11 +35,17 @@ export default function PropertyFilters({ filters, onFilterChange }: PropertyFil
   const [locationSearch, setLocationSearch] = useState('')
   const locationRef = useRef<HTMLDivElement>(null)
 
-  const MIN_PRICE = 100000
-  const MAX_PRICE = 50000000
+  const meta = useMemo(() => COUNTRY_META[filters.country], [filters.country])
+  const cities = useMemo(() => CITIES_BY_COUNTRY[filters.country], [filters.country])
+
+  const MIN_PRICE = meta.minPrice
+  const MAX_PRICE = meta.maxPrice
+
+  const SHOW_MANUAL_PRICE_INPUTS = false
 
   const handleReset = () => {
     onFilterChange({
+      country: filters.country,
       location: '',
       type: '',
       minPrice: MIN_PRICE.toString(),
@@ -61,9 +69,7 @@ export default function PropertyFilters({ filters, onFilterChange }: PropertyFil
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const filteredCities = UAE_CITIES.filter(city =>
-    city.toLowerCase().includes(locationSearch.toLowerCase())
-  )
+  const filteredCities = cities.filter(city => city.toLowerCase().includes(locationSearch.toLowerCase()))
 
   const handlePriceChange = (type: 'min' | 'max', value: string) => {
     const numValue = parseInt(value) || (type === 'min' ? MIN_PRICE : MAX_PRICE)
@@ -94,6 +100,18 @@ export default function PropertyFilters({ filters, onFilterChange }: PropertyFil
       </div>
 
       <div className="space-y-5">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
+          <select
+            value={filters.country}
+            onChange={(e) => onFilterChange({ country: e.target.value as CountryCode })}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dark-blue focus:border-dark-blue bg-white hover:border-gray-400 transition-colors appearance-none cursor-pointer"
+          >
+            <option value="UAE">UAE</option>
+            <option value="India">India</option>
+          </select>
+        </div>
+
         {/* Location - Searchable Dropdown */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
@@ -103,7 +121,7 @@ export default function PropertyFilters({ filters, onFilterChange }: PropertyFil
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-dark-blue focus-within:border-dark-blue cursor-pointer bg-white flex items-center justify-between hover:border-gray-400 transition-colors"
             >
               <span className={filters.location ? 'text-gray-900' : 'text-gray-500'}>
-                {filters.location || 'All UAE Locations'}
+                {filters.location || 'All Locations'}
               </span>
               <svg
                 className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
@@ -134,7 +152,7 @@ export default function PropertyFilters({ filters, onFilterChange }: PropertyFil
                   }}
                   className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b"
                 >
-                  <span className="text-gray-900">All UAE Locations</span>
+                  <span className="text-gray-900">All Locations</span>
                 </div>
                 {filteredCities.map((city) => (
                   <div
@@ -182,11 +200,11 @@ export default function PropertyFilters({ filters, onFilterChange }: PropertyFil
           <div className="mb-4 p-3 bg-gray-50 rounded-lg">
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium text-dark-blue">
-                {formatAED(parseInt(filters.minPrice || MIN_PRICE.toString()))}
+                {formatAED(filters.country, parseInt(filters.minPrice || MIN_PRICE.toString()))}
               </span>
               <span className="text-gray-400 mx-2">—</span>
               <span className="font-medium text-dark-blue">
-                {formatAED(parseInt(filters.maxPrice || MAX_PRICE.toString()))}
+                {formatAED(filters.country, parseInt(filters.maxPrice || MAX_PRICE.toString()))}
               </span>
             </div>
           </div>
@@ -197,7 +215,7 @@ export default function PropertyFilters({ filters, onFilterChange }: PropertyFil
               type="range"
               min={MIN_PRICE}
               max={MAX_PRICE}
-              step={100000}
+              step={meta.priceStep}
               value={filters.minPrice || MIN_PRICE}
               onChange={(e) => handlePriceChange('min', e.target.value)}
               className="absolute w-full h-2 bg-transparent appearance-none cursor-pointer z-10"
@@ -209,7 +227,7 @@ export default function PropertyFilters({ filters, onFilterChange }: PropertyFil
               type="range"
               min={MIN_PRICE}
               max={MAX_PRICE}
-              step={100000}
+              step={meta.priceStep}
               value={filters.maxPrice || MAX_PRICE}
               onChange={(e) => handlePriceChange('max', e.target.value)}
               className="absolute w-full h-2 bg-transparent appearance-none cursor-pointer z-10"
@@ -242,32 +260,34 @@ export default function PropertyFilters({ filters, onFilterChange }: PropertyFil
           </div>
 
           {/* Manual Input Fields */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-gray-600 mb-1">Min (AED)</label>
-              <input
-                type="number"
-                min={MIN_PRICE}
-                max={MAX_PRICE}
-                step={100000}
-                value={parseInt(filters.minPrice || MIN_PRICE.toString())}
-                onChange={(e) => handlePriceChange('min', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-dark-blue focus:border-dark-blue"
-              />
+          {SHOW_MANUAL_PRICE_INPUTS && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Min (AED)</label>
+                <input
+                  type="number"
+                  min={MIN_PRICE}
+                  max={MAX_PRICE}
+                  step={meta.priceStep}
+                  value={parseInt(filters.minPrice || MIN_PRICE.toString())}
+                  onChange={(e) => handlePriceChange('min', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-dark-blue focus:border-dark-blue"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Max (AED)</label>
+                <input
+                  type="number"
+                  min={MIN_PRICE}
+                  max={MAX_PRICE}
+                  step={meta.priceStep}
+                  value={parseInt(filters.maxPrice || MAX_PRICE.toString())}
+                  onChange={(e) => handlePriceChange('max', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-dark-blue focus:border-dark-blue"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs text-gray-600 mb-1">Max (AED)</label>
-              <input
-                type="number"
-                min={MIN_PRICE}
-                max={MAX_PRICE}
-                step={100000}
-                value={parseInt(filters.maxPrice || MAX_PRICE.toString())}
-                onChange={(e) => handlePriceChange('max', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-dark-blue focus:border-dark-blue"
-              />
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Bedrooms */}
@@ -279,10 +299,11 @@ export default function PropertyFilters({ filters, onFilterChange }: PropertyFil
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dark-blue focus:border-dark-blue bg-white hover:border-gray-400 transition-colors appearance-none cursor-pointer"
           >
             <option value="">Any</option>
-            <option value="1">1+</option>
-            <option value="2">2+</option>
-            <option value="3">3+</option>
-            <option value="4">4+</option>
+            <option value="0">Studio</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
             <option value="5">5+</option>
           </select>
         </div>
@@ -296,11 +317,10 @@ export default function PropertyFilters({ filters, onFilterChange }: PropertyFil
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dark-blue focus:border-dark-blue bg-white hover:border-gray-400 transition-colors appearance-none cursor-pointer"
           >
             <option value="">Any</option>
-            <option value="1">1+</option>
-            <option value="2">2+</option>
-            <option value="3">3+</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
             <option value="4">4+</option>
-            <option value="5">5+</option>
           </select>
         </div>
 

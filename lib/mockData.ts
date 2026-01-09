@@ -1,5 +1,6 @@
 export interface Property {
   id: string
+  country: 'UAE' | 'India'
   title: string
   location: string
   price: number // Price in AED
@@ -41,6 +42,7 @@ export const UAE_CITIES = [
 export const mockProperties: Property[] = [
   {
     id: '1',
+    country: 'UAE',
     title: 'Luxury Penthouse in Downtown Dubai',
     location: 'Dubai',
     price: 9200000, // AED 9.2M
@@ -69,6 +71,7 @@ export const mockProperties: Property[] = [
   },
   {
     id: '2',
+    country: 'UAE',
     title: 'Beachfront Villa with Private Pool',
     location: 'Dubai',
     price: 19500000, // AED 19.5M
@@ -97,6 +100,7 @@ export const mockProperties: Property[] = [
   },
   {
     id: '3',
+    country: 'UAE',
     title: 'Modern Minimalist Mansion',
     location: 'Abu Dhabi',
     price: 14200000, // AED 14.2M
@@ -125,6 +129,7 @@ export const mockProperties: Property[] = [
   },
   {
     id: '4',
+    country: 'UAE',
     title: 'Elegant Villa in Al Reem Island',
     location: 'Abu Dhabi',
     price: 11800000, // AED 11.8M
@@ -153,6 +158,7 @@ export const mockProperties: Property[] = [
   },
   {
     id: '5',
+    country: 'UAE',
     title: 'Luxury Apartment in Business Bay',
     location: 'Dubai',
     price: 5900000, // AED 5.9M
@@ -180,6 +186,7 @@ export const mockProperties: Property[] = [
   },
   {
     id: '6',
+    country: 'UAE',
     title: 'Waterfront Penthouse with Marina Views',
     location: 'Dubai',
     price: 12500000, // AED 12.5M
@@ -207,6 +214,7 @@ export const mockProperties: Property[] = [
   },
   {
     id: '7',
+    country: 'UAE',
     title: 'Modern Apartment in Sharjah',
     location: 'Sharjah',
     price: 3200000, // AED 3.2M
@@ -234,6 +242,7 @@ export const mockProperties: Property[] = [
   },
   {
     id: '8',
+    country: 'UAE',
     title: 'Luxury Villa in Ajman',
     location: 'Ajman',
     price: 4800000, // AED 4.8M
@@ -257,6 +266,90 @@ export const mockProperties: Property[] = [
       phone: '+971 6 555 0108',
       bio: 'Ajman real estate expert specializing in luxury villas and family properties.',
       propertiesSold: 62,
+    },
+  },
+  {
+    id: '9',
+    country: 'India',
+    title: 'Skyline Penthouse in Mumbai',
+    location: 'Mumbai',
+    price: 4444444,
+    bedrooms: 4,
+    bathrooms: 4,
+    squareFeet: 2800,
+    images: [
+      'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1200&q=80',
+      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80',
+    ],
+    featured: true,
+    description: 'Premium penthouse in South Mumbai with expansive skyline views and refined interiors designed for luxury living.',
+    propertyType: 'Penthouse',
+    yearBuilt: 2022,
+    features: ['Sea Link Views', 'Private Deck', 'Concierge', 'High-End Finishes', 'Private Elevator'],
+    coordinates: { lat: 19.0760, lng: 72.8777 },
+    agent: {
+      id: '9',
+      name: 'Arjun Mehta',
+      email: 'arjun.mehta@millionflats.com',
+      phone: '+91 22 5550 0109',
+      bio: 'Luxury real estate advisor specializing in premium high-rise residences across Mumbai.',
+      propertiesSold: 74,
+    },
+  },
+  {
+    id: '10',
+    country: 'India',
+    title: 'Modern Villa in Bangalore',
+    location: 'Bangalore',
+    price: 2666667,
+    bedrooms: 5,
+    bathrooms: 5,
+    squareFeet: 5200,
+    images: [
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&q=80',
+      'https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=1200&q=80',
+    ],
+    featured: false,
+    description: 'Contemporary private villa with calm interiors, landscaped outdoor spaces, and premium amenities in a prime Bangalore community.',
+    propertyType: 'Villa',
+    yearBuilt: 2021,
+    features: ['Private Garden', 'Home Office', 'Smart Home', 'Premium Security', 'Club Access'],
+    coordinates: { lat: 12.9716, lng: 77.5946 },
+    agent: {
+      id: '10',
+      name: 'Nisha Rao',
+      email: 'nisha.rao@millionflats.com',
+      phone: '+91 80 5550 0110',
+      bio: 'Bangalore luxury residential specialist with expertise in villa communities and high-end apartments.',
+      propertiesSold: 58,
+    },
+  },
+  {
+    id: '11',
+    country: 'India',
+    title: 'Luxury Apartment in Gurgaon',
+    location: 'Gurgaon',
+    price: 1555556,
+    bedrooms: 3,
+    bathrooms: 3,
+    squareFeet: 2100,
+    images: [
+      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80',
+      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&q=80',
+    ],
+    featured: false,
+    description: 'Investor-grade residence in a prime Gurgaon address, offering premium finishes, amenities, and excellent connectivity.',
+    propertyType: 'Apartment',
+    yearBuilt: 2020,
+    features: ['Clubhouse', 'Gym & Spa', 'Concierge', 'High-Speed Elevators', 'Gated Community'],
+    coordinates: { lat: 28.4595, lng: 77.0266 },
+    agent: {
+      id: '11',
+      name: 'Karan Singh',
+      email: 'karan.singh@millionflats.com',
+      phone: '+91 124 5550 0111',
+      bio: 'Delhi NCR premium real estate consultant focused on luxury high-rise communities and investor portfolios.',
+      propertiesSold: 91,
     },
   },
 ]

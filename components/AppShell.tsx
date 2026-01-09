@@ -1,0 +1,25 @@
+'use client'
+
+import React from 'react'
+import { usePathname } from 'next/navigation'
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
+
+const AUTH_PREFIXES = ['/user/login', '/user/register', '/agent/login', '/agent/register']
+
+export default function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const isAuthRoute = AUTH_PREFIXES.some((p) => pathname?.startsWith(p))
+
+  if (isAuthRoute) {
+    return <main className="min-h-screen">{children}</main>
+  }
+
+  return (
+    <>
+      <Header />
+      <main className="min-h-screen">{children}</main>
+      <Footer />
+    </>
+  )
+}

@@ -22,14 +22,18 @@ export default function Home() {
           <div className="absolute inset-0 bg-black/40"></div>
         </div>
         <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-center">
-          <div className="max-w-3xl">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white mb-6">
-              Find Your Next Million-Dollar Home
-            </h1>
-            <p className="text-lg md:text-xl text-white/90 mb-8">
-              Discover exceptional luxury properties across the UAE, curated for discerning investors and buyers.
-            </p>
-            <HeroSearch />
+          <div className="w-full">
+            <div className="max-w-3xl">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white mb-6">
+                Find Your Next Million-Dollar Home
+              </h1>
+              <p className="text-lg md:text-xl text-white/90 mb-8">
+                Discover exceptional luxury properties across the UAE, curated for discerning investors and buyers.
+              </p>
+            </div>
+            <div className="w-full max-w-[1400px] mx-auto">
+              <HeroSearch />
+            </div>
           </div>
         </div>
       </section>
