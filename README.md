@@ -177,7 +177,7 @@ For production, set these environment variables:
 
 ## License
 
-This project is created for demonstration purposes.
+
 
 ## Support
 
