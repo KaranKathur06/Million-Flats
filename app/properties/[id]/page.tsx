@@ -34,22 +34,57 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
       {/* Gallery Section */}
       <PropertyGallery images={resolvedImages} title={property.title} />
 
+      <div className="md:hidden sticky top-14 z-40 bg-white/95 backdrop-blur border-b border-gray-200">
+        <div className="px-4 py-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-lg font-bold text-dark-blue leading-tight truncate">
+              {formatCountryPrice(property.country, property.price)}
+            </p>
+            <p className="text-xs text-gray-600 truncate">{property.location}, {property.country}</p>
+          </div>
+          <div className="shrink-0">
+            <span className="text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1 rounded-full">
+              {property.propertyType}
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Details Section */}
-      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-10">
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-10 pb-28 md:pb-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="lg:col-span-8">
             <div className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
-              <p className="text-4xl md:text-5xl font-bold text-dark-blue tracking-tight">
+              <p className="hidden md:block text-4xl md:text-5xl font-bold text-dark-blue tracking-tight">
                 {formatCountryPrice(property.country, property.price)}
               </p>
-              <h1 className="mt-3 text-3xl md:text-4xl font-serif font-bold text-dark-blue">
+              <h1 className="mt-0 md:mt-3 text-2xl md:text-4xl font-serif font-bold text-dark-blue">
                 {property.title}
               </h1>
               <p className="mt-2 text-gray-600">
                 {property.location}, {property.country}
               </p>
 
-              <div className="mt-6 grid grid-cols-3 gap-4">
+              <div className="mt-6 grid grid-cols-2 gap-4 md:hidden">
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                  <p className="text-xs text-gray-600">Beds</p>
+                  <p className="text-2xl font-semibold text-dark-blue mt-1">{property.bedrooms}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                  <p className="text-xs text-gray-600">Baths</p>
+                  <p className="text-2xl font-semibold text-dark-blue mt-1">{property.bathrooms}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                  <p className="text-xs text-gray-600">Area</p>
+                  <p className="text-2xl font-semibold text-dark-blue mt-1">{property.squareFeet.toLocaleString()}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                  <p className="text-xs text-gray-600">Type</p>
+                  <p className="text-2xl font-semibold text-dark-blue mt-1">{property.propertyType}</p>
+                </div>
+              </div>
+
+              <div className="mt-6 hidden md:grid grid-cols-3 gap-4">
                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                   <p className="text-xs text-gray-600">Bedrooms</p>
                   <p className="text-2xl font-semibold text-dark-blue mt-1">{property.bedrooms}</p>
@@ -180,6 +215,30 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
 
               <AgentCard agent={property.agent} />
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="md:hidden fixed left-0 right-0 bottom-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur">
+        <div className="px-4 py-3 pb-[env(safe-area-inset-bottom)]">
+          <div className="grid grid-cols-3 gap-3">
+            <a
+              href={`tel:${property.agent?.phone || ''}`}
+              className="h-12 rounded-xl bg-dark-blue text-white font-semibold inline-flex items-center justify-center"
+            >
+              Call
+            </a>
+            <a
+              href={whatsappHref || undefined}
+              target={whatsappHref ? '_blank' : undefined}
+              rel={whatsappHref ? 'noreferrer' : undefined}
+              className="h-12 rounded-xl bg-gray-100 text-dark-blue font-semibold inline-flex items-center justify-center"
+            >
+              WhatsApp
+            </a>
+            <button className="h-12 rounded-xl bg-accent-yellow text-dark-blue font-semibold">
+              Book Viewing
+            </button>
           </div>
         </div>
       </div>

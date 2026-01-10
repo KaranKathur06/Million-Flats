@@ -102,14 +102,24 @@ export default function PropertyFilters({ filters, onFilterChange }: PropertyFil
       <div className="space-y-5">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
-          <select
-            value={filters.country}
-            onChange={(e) => onFilterChange({ country: e.target.value as CountryCode })}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dark-blue focus:border-dark-blue bg-white hover:border-gray-400 transition-colors appearance-none cursor-pointer"
-          >
-            <option value="UAE">UAE</option>
-            <option value="India">India</option>
-          </select>
+          <div className="relative">
+            <select
+              value={filters.country}
+              onChange={(e) => onFilterChange({ country: e.target.value as CountryCode })}
+              className="mf-select w-full px-4 py-3 pr-11 border border-gray-300 rounded-lg bg-white cursor-pointer hover:border-[#2b4d72] hover:bg-gray-50 focus:outline-none"
+            >
+              <option value="UAE">UAE</option>
+              <option value="India">India</option>
+            </select>
+            <svg
+              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
         </div>
 
         {/* Location - Searchable Dropdown */}
@@ -179,17 +189,27 @@ export default function PropertyFilters({ filters, onFilterChange }: PropertyFil
         {/* Property Type */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Property Type</label>
-          <select
-            value={filters.type}
-            onChange={(e) => onFilterChange({ type: e.target.value })}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dark-blue focus:border-dark-blue bg-white hover:border-gray-400 transition-colors appearance-none cursor-pointer"
-          >
-            <option value="">All Types</option>
-            <option value="Apartment">Apartment</option>
-            <option value="Villa">Villa</option>
-            <option value="Penthouse">Penthouse</option>
-            <option value="Townhouse">Townhouse</option>
-          </select>
+          <div className="relative">
+            <select
+              value={filters.type}
+              onChange={(e) => onFilterChange({ type: e.target.value })}
+              className="mf-select w-full px-4 py-3 pr-11 border border-gray-300 rounded-lg bg-white cursor-pointer hover:border-[#2b4d72] hover:bg-gray-50 focus:outline-none"
+            >
+              <option value="">All Types</option>
+              <option value="Apartment">Apartment</option>
+              <option value="Villa">Villa</option>
+              <option value="Penthouse">Penthouse</option>
+              <option value="Townhouse">Townhouse</option>
+            </select>
+            <svg
+              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
         </div>
 
         {/* Price Range - Dual Handle Slider */}
@@ -293,50 +313,80 @@ export default function PropertyFilters({ filters, onFilterChange }: PropertyFil
         {/* Bedrooms */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Bedrooms</label>
-          <select
-            value={filters.bedrooms}
-            onChange={(e) => onFilterChange({ bedrooms: e.target.value })}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dark-blue focus:border-dark-blue bg-white hover:border-gray-400 transition-colors appearance-none cursor-pointer"
-          >
-            <option value="">Any</option>
-            <option value="0">Studio</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5+</option>
-          </select>
+          <div className="relative">
+            <select
+              value={filters.bedrooms}
+              onChange={(e) => onFilterChange({ bedrooms: e.target.value })}
+              className="mf-select w-full px-4 py-3 pr-11 border border-gray-300 rounded-lg bg-white cursor-pointer hover:border-[#2b4d72] hover:bg-gray-50 focus:outline-none"
+            >
+              <option value="">Any</option>
+              <option value="0">Studio</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5+</option>
+            </select>
+            <svg
+              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
         </div>
 
         {/* Bathrooms */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Bathrooms</label>
-          <select
-            value={filters.bathrooms}
-            onChange={(e) => onFilterChange({ bathrooms: e.target.value })}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dark-blue focus:border-dark-blue bg-white hover:border-gray-400 transition-colors appearance-none cursor-pointer"
-          >
-            <option value="">Any</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4+</option>
-          </select>
+          <div className="relative">
+            <select
+              value={filters.bathrooms}
+              onChange={(e) => onFilterChange({ bathrooms: e.target.value })}
+              className="mf-select w-full px-4 py-3 pr-11 border border-gray-300 rounded-lg bg-white cursor-pointer hover:border-[#2b4d72] hover:bg-gray-50 focus:outline-none"
+            >
+              <option value="">Any</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4+</option>
+            </select>
+            <svg
+              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
         </div>
 
         {/* Sort By */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
-          <select
-            value={filters.sortBy}
-            onChange={(e) => onFilterChange({ sortBy: e.target.value })}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dark-blue focus:border-dark-blue bg-white hover:border-gray-400 transition-colors appearance-none cursor-pointer"
-          >
-            <option value="featured">Featured</option>
-            <option value="price-low">Price: Low to High</option>
-            <option value="price-high">Price: High to Low</option>
-            <option value="newest">Newest First</option>
-          </select>
+          <div className="relative">
+            <select
+              value={filters.sortBy}
+              onChange={(e) => onFilterChange({ sortBy: e.target.value })}
+              className="mf-select w-full px-4 py-3 pr-11 border border-gray-300 rounded-lg bg-white cursor-pointer hover:border-[#2b4d72] hover:bg-gray-50 focus:outline-none"
+            >
+              <option value="featured">Featured</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+              <option value="newest">Newest First</option>
+            </select>
+            <svg
+              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
         </div>
       </div>
     </div>

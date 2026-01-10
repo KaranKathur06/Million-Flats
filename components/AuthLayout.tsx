@@ -9,7 +9,19 @@ interface AuthLayoutProps {
 
 export default function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      <div className="lg:hidden relative h-[40vh] min-h-[280px]">
+        <Image
+          src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1920&q=80"
+          alt="Luxury Real Estate"
+          fill
+          className="object-cover"
+          priority
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-dark-blue/90 via-dark-blue/70 to-black/70" />
+      </div>
+
       {/* Left Section - Visual/Branding */}
       <div className="hidden lg:flex lg:w-1/2 relative">
         <Image
@@ -39,18 +51,16 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
       </div>
 
       {/* Right Section - Auth Card */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-12 bg-gradient-to-br from-gray-50 to-white">
-        <div className="w-full max-w-md">
+      <div className="w-full lg:w-1/2 flex items-start lg:items-center justify-center px-4 sm:px-6 lg:p-12 bg-gradient-to-br from-gray-50 to-white">
+        <div className="w-full max-w-md -mt-10 lg:mt-0 pb-10 lg:pb-0">
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center space-x-2 mb-8">
-            <div className="w-10 h-10 bg-dark-blue flex items-center justify-center rounded-lg">
-              <span className="text-white font-bold text-xl">M</span>
-            </div>
+            <Image src="/LOGO.jpeg" alt="Millionflats" width={36} height={36} className="rounded-lg" priority />
             <span className="text-dark-blue font-semibold text-xl">millionflats</span>
           </div>
 
           {/* Auth Card */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl p-8 sm:p-10 border border-white/20">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 sm:p-8 border border-white/20">
             <div className="mb-8">
               <h2 className="text-3xl md:text-4xl font-serif font-bold text-dark-blue mb-2">
                 {title}

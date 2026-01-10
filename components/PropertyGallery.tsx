@@ -10,19 +10,38 @@ interface PropertyGalleryProps {
 
 export default function PropertyGallery({ images, title }: PropertyGalleryProps) {
   const [selectedImage, setSelectedImage] = useState(0)
+  const [touchStartX, setTouchStartX] = useState<number | null>(null)
 
   if (!images || images.length === 0) {
     images = ['https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1200&q=80']
   }
 
   return (
-    <div className="relative h-[500px] md:h-[600px]">
+    <div
+      className="relative h-[280px] sm:h-[360px] md:h-[600px]"
+      onTouchStart={(e) => setTouchStartX(e.touches[0]?.clientX ?? null)}
+      onTouchEnd={(e) => {
+        if (touchStartX == null) return
+        const endX = e.changedTouches[0]?.clientX ?? touchStartX
+        const delta = endX - touchStartX
+        if (Math.abs(delta) < 50) {
+          setTouchStartX(null)
+          return
+        }
+
+        if (delta < 0) {
+          setSelectedImage((prev) => (prev + 1) % images.length)
+        } else {
+          setSelectedImage((prev) => (prev - 1 + images.length) % images.length)
+        }
+        setTouchStartX(null)
+      }}
+    >
       <Image
         src={images[selectedImage] || images[0]}
         alt={title}
         fill
         className="object-cover"
-        priority
         sizes="100vw"
       />
       {images.length > 1 && (
