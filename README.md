@@ -175,7 +175,7 @@ For production, set these environment variables:
 - Contact form submissions are logged - implement email service for production
 - Map integration uses placeholder - implement real map service (Google Maps, Mapbox) for production
 
-## License
+
 
 
 
