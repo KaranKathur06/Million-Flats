@@ -25,10 +25,10 @@ export default function Home() {
           <div className="w-full">
             <div className="max-w-3xl">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white mb-6 drop-shadow-[0_2px_18px_rgba(0,0,0,0.55)]">
-                Find Your Next Million-Dollar Home
+                Intelligent Property. Intelligent Choice.
               </h1>
               <p className="text-lg md:text-xl text-white/90 mb-8 drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)]">
-                Discover exceptional luxury properties across the UAE, curated for discerning investors and buyers.
+                We’re your digital sales engine, not just another marketplace. We deliver qualified buyers and transaction-ready technology, connecting your properties with serious investors, buyers and sellers.
               </p>
             </div>
             <div className="w-full max-w-[1400px] mx-auto">
