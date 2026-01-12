@@ -332,6 +332,41 @@ export default function PropertiesClient() {
     handleFilterChange(draftFilters)
   }
 
+  const resetFilters = () => {
+    const nextCountry = country || DEFAULT_COUNTRY
+    const next: Filters = {
+      country: nextCountry,
+      search: '',
+      location: '',
+      community: '',
+      type: '',
+      minPrice: COUNTRY_META[nextCountry].minPrice.toString(),
+      maxPrice: COUNTRY_META[nextCountry].maxPrice.toString(),
+      bedrooms: '',
+      bathrooms: '',
+      sortBy: 'featured',
+      offPlanOnly: false,
+      readyHomesOnly: false,
+      soldOnly: false,
+      features: [],
+    }
+
+    setPurpose('buy')
+    if (nextCountry !== country) setCountry(nextCountry)
+    setFilters(next)
+    setDraftFilters(next)
+
+    setCityQuery('')
+    setCommunityQuery('')
+    setCityOpen(false)
+    setCommunityOpen(false)
+
+    setMoreFiltersVisible(false)
+    setMoreFiltersOpen(false)
+    setMobileFiltersVisible(false)
+    setMobileFiltersOpen(false)
+  }
+
   const filteredCities = useMemo(() => {
     const q = cityQuery.trim().toLowerCase()
     if (!q) return cities
@@ -732,6 +767,14 @@ export default function PropertiesClient() {
                   More Filters
                 </button>
 
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="h-11 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue hover:bg-gray-50"
+                >
+                  Reset
+                </button>
+
                 <div className="relative group">
                   <select
                     value={draftFilters.sortBy}
@@ -1104,16 +1147,25 @@ export default function PropertiesClient() {
             </div>
 
             <div className="fixed left-0 right-0 bottom-0 p-4 bg-white border-t border-gray-200">
-              <button
-                type="button"
-                onClick={() => {
-                  closeMobileFilters()
-                  applyDraft()
-                }}
-                className="h-12 w-full rounded-xl bg-dark-blue text-white text-sm font-semibold"
-              >
-                Apply Filters
-              </button>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="h-12 w-full rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue"
+                >
+                  Reset
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeMobileFilters()
+                    applyDraft()
+                  }}
+                  className="h-12 w-full rounded-xl bg-dark-blue text-white text-sm font-semibold"
+                >
+                  Apply Filters
+                </button>
+              </div>
             </div>
             </div>
           </div>
