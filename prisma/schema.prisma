@@ -1,0 +1,143 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  AGENT
+  ADMIN
+}
+
+enum CountryCode {
+  UAE
+  India
+}
+
+model User {
+  id        String   @id @default(uuid())
+  role      Role
+  name      String?
+  email     String   @unique
+  password  String?  @map("password_hash")
+  googleId  String?  @unique @map("google_id")
+  phone     String?
+  verified  Boolean  @default(false) @map("is_verified")
+
+  agent Agent?
+
+  savedProperties SavedProperty[]
+  propertyLeads   PropertyLead[]
+  preference      UserPreference?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Agent {
+  id       String  @id @default(uuid())
+  userId   String  @unique @map("user_id")
+  company  String? @map("company_name")
+  license  String? @map("license_number")
+  whatsapp String? @map("whatsapp_number")
+  approved Boolean @default(false)
+
+  user  User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leads PropertyLead[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("agents")
+}
+
+model SavedProperty {
+  id         String      @id @default(uuid())
+  userId     String      @map("user_id")
+  externalId String      @map("external_property_id")
+
+  countryCode CountryCode @map("country")
+  city        String      @map("city")
+  community   String?     @map("community")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([externalId])
+  @@index([countryCode])
+  @@index([countryCode, city])
+  @@unique([userId, externalId])
+  @@map("saved_properties")
+}
+
+model PropertyLead {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  agentId    String   @map("agent_id")
+  externalId String   @map("external_property_id")
+  message    String?
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agent Agent @relation(fields: [agentId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([agentId])
+  @@index([externalId])
+  @@map("property_leads")
+}
+
+model UserPreference {
+  id     String @id @default(uuid())
+  userId String @unique @map("user_id")
+
+  countryCode CountryCode @map("country")
+  city        String?     @map("city")
+  community   String?     @map("community")
+  filters     Json?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_preferences")
+}
+
+model City {
+  id          String      @id @default(uuid())
+  countryCode CountryCode @map("country")
+  name        String
+  communities Community[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([countryCode, name])
+  @@index([countryCode])
+  @@map("cities")
+}
+
+model Community {
+  id     String @id @default(uuid())
+  cityId String @map("city_id")
+  name   String
+
+  city City @relation(fields: [cityId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([cityId, name])
+  @@index([cityId])
+  @@map("communities")
+}

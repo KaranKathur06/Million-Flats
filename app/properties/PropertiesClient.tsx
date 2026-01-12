@@ -141,10 +141,15 @@ export default function PropertiesClient() {
   const { country, setCountry } = useCountry()
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
-  const [locationOpen, setLocationOpen] = useState(false)
-  const [locationQuery, setLocationQuery] = useState('')
-  const locationRefMobile = useRef<HTMLDivElement>(null)
-  const locationRefDesktop = useRef<HTMLDivElement>(null)
+  const [cityOpen, setCityOpen] = useState(false)
+  const [cityQuery, setCityQuery] = useState('')
+  const cityRefMobile = useRef<HTMLDivElement>(null)
+  const cityRefDesktop = useRef<HTMLDivElement>(null)
+
+  const [communityOpen, setCommunityOpen] = useState(false)
+  const [communityQuery, setCommunityQuery] = useState('')
+  const communityRefMobile = useRef<HTMLDivElement>(null)
+  const communityRefDesktop = useRef<HTMLDivElement>(null)
 
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false)
   const [moreFiltersVisible, setMoreFiltersVisible] = useState(false)
@@ -243,10 +248,14 @@ export default function PropertiesClient() {
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       const target = e.target as Node
-      const inMobile = locationRefMobile.current?.contains(target) ?? false
-      const inDesktop = locationRefDesktop.current?.contains(target) ?? false
-      if (!inMobile && !inDesktop) {
-        setLocationOpen(false)
+      const inCityMobile = cityRefMobile.current?.contains(target) ?? false
+      const inCityDesktop = cityRefDesktop.current?.contains(target) ?? false
+      const inCommunityMobile = communityRefMobile.current?.contains(target) ?? false
+      const inCommunityDesktop = communityRefDesktop.current?.contains(target) ?? false
+      const inside = inCityMobile || inCityDesktop || inCommunityMobile || inCommunityDesktop
+      if (!inside) {
+        setCityOpen(false)
+        setCommunityOpen(false)
       }
     }
     document.addEventListener('mousedown', onDown)
@@ -324,10 +333,16 @@ export default function PropertiesClient() {
   }
 
   const filteredCities = useMemo(() => {
-    const q = locationQuery.trim().toLowerCase()
+    const q = cityQuery.trim().toLowerCase()
     if (!q) return cities
     return cities.filter((c) => c.toLowerCase().includes(q))
-  }, [cities, locationQuery])
+  }, [cities, cityQuery])
+
+  const filteredCommunities = useMemo(() => {
+    const q = communityQuery.trim().toLowerCase()
+    if (!q) return communityOptions
+    return communityOptions.filter((c) => c.toLowerCase().includes(q))
+  }, [communityOptions, communityQuery])
 
   const displayedProperties = useMemo(() => {
     const countryForFilter = filters.country
@@ -441,306 +456,321 @@ export default function PropertiesClient() {
         </div>
 
         <div className="sticky top-14 md:top-20 z-30 mb-6 md:mb-10">
-          <div className="md:hidden bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl shadow-sm p-3">
-            <div className="flex gap-2">
-              <div className="flex-1 relative" ref={locationRefMobile}>
-                <input
-                  value={locationQuery !== '' ? locationQuery : draftFilters.location || draftFilters.search}
-                  onChange={(e) => {
-                    const v = e.target.value
-                    setLocationQuery(v)
-                    setDraftFilters((prev) => ({ ...prev, search: v }))
-                    setLocationOpen(true)
-                  }}
-                  onFocus={() => {
-                    setLocationOpen(true)
-                  }}
-                  placeholder="City, building or community"
-                  className="w-full h-12 px-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-dark-blue/30"
-                />
-                {locationOpen && filteredCities.length > 0 && (
-                  <div className="absolute z-40 mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                    {filteredCities.slice(0, 8).map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => {
-                          setDraftFilters((prev) => ({ ...prev, location: c, community: '', search: '' }))
-                          setLocationQuery('')
-                          setLocationOpen(false)
-                        }}
-                        className="w-full text-left px-4 py-3 hover:bg-gray-50"
-                      >
-                        {c}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+          <div className="space-y-3">
+            <div className="relative z-20 bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl shadow-sm p-3">
+              <div className="flex flex-col md:flex-row md:items-center gap-3">
+                <div className="relative group w-full md:w-[150px]">
+                  <select
+                    value={draftFilters.country}
+                    onChange={(e) => {
+                      const next = e.target.value
+                      if (!isCountryCode(next)) return
+                      setDraftFilters((prev) => ({
+                        ...prev,
+                        country: next,
+                        location: '',
+                        community: '',
+                      }))
+                      setCityQuery('')
+                      setCommunityQuery('')
+                      setCityOpen(false)
+                      setCommunityOpen(false)
+                    }}
+                    className="mf-select w-full h-12 md:h-11 px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
+                  >
+                    <option value="UAE">UAE</option>
+                    <option value="India">India</option>
+                  </select>
+                  <svg
+                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
 
-              <button
-                type="button"
-                onClick={openMobileFilters}
-                className="h-12 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue hover:bg-gray-50"
-              >
-                Filters
-              </button>
-
-              <button
-                type="button"
-                onClick={applyDraft}
-                className="h-12 w-12 rounded-full bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 transition-colors inline-flex items-center justify-center"
-                aria-label="Search"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m1.35-5.65a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <div className="hidden md:block bg-white/85 backdrop-blur-md border border-gray-200 rounded-2xl shadow-sm p-3">
-            <div className="flex items-center gap-2">
-              <div className="inline-flex items-center rounded-xl border border-gray-200 bg-white p-1">
-                <button
-                  type="button"
-                  onClick={() => setPurpose('buy')}
-                  className={`h-10 px-4 rounded-lg text-sm font-semibold transition-colors ${
-                    purpose === 'buy' ? 'bg-dark-blue text-white' : 'text-dark-blue hover:bg-gray-50'
-                  }`}
-                >
-                  Buy
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPurpose('rent')}
-                  className={`h-10 px-4 rounded-lg text-sm font-semibold transition-colors ${
-                    purpose === 'rent' ? 'bg-dark-blue text-white' : 'text-dark-blue hover:bg-gray-50'
-                  }`}
-                >
-                  Rent
-                </button>
-              </div>
-
-              <div className="flex-1 relative" ref={locationRefDesktop}>
-                <input
-                  value={locationQuery !== '' ? locationQuery : draftFilters.location || draftFilters.search}
-                  onChange={(e) => {
-                    const v = e.target.value
-                    setLocationQuery(v)
-                    setDraftFilters((prev) => ({ ...prev, search: v }))
-                    setLocationOpen(true)
-                  }}
-                  onFocus={() => {
-                    setLocationOpen(true)
-                  }}
-                  placeholder="City, building or community"
-                  className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-dark-blue/30"
-                />
-                {locationOpen && filteredCities.length > 0 && (
-                  <div className="absolute z-40 mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                    {filteredCities.slice(0, 8).map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => {
-                          setDraftFilters((prev) => ({ ...prev, location: c, community: '', search: '' }))
-                          setLocationQuery('')
-                          setLocationOpen(false)
-                        }}
-                        className="w-full text-left px-4 py-3 hover:bg-gray-50"
-                      >
-                        {c}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="relative group">
-                <select
-                  value={draftFilters.community}
-                  disabled={!draftFilters.location || communityOptions.length === 0}
-                  onChange={(e) => setDraftFilters((prev) => ({ ...prev, community: e.target.value }))}
-                  className="mf-select h-11 min-w-[180px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {!draftFilters.location ? (
-                    <option value="">Community</option>
-                  ) : (
-                    <>
-                      <option value="">Community</option>
-                      {communityOptions.map((c) => (
-                        <option key={c} value={c}>
+                <div className="relative w-full md:w-[240px]" ref={cityRefDesktop}>
+                  <input
+                    value={cityQuery !== '' ? cityQuery : draftFilters.location}
+                    onChange={(e) => {
+                      setCityQuery(e.target.value)
+                      setCityOpen(true)
+                    }}
+                    onFocus={() => setCityOpen(true)}
+                    placeholder="City"
+                    className="w-full h-12 md:h-11 px-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-dark-blue/30"
+                  />
+                  {cityOpen && filteredCities.length > 0 && (
+                    <div className="absolute z-[70] mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                      {filteredCities.slice(0, 10).map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => {
+                            setDraftFilters((prev) => ({ ...prev, location: c, community: '' }))
+                            setCityQuery('')
+                            setCommunityQuery('')
+                            setCityOpen(false)
+                            setCommunityOpen(false)
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-gray-50"
+                        >
                           {c}
-                        </option>
+                        </button>
                       ))}
-                    </>
+                    </div>
                   )}
-                </select>
-                <svg
-                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                </div>
+
+                <div className="relative w-full md:flex-1" ref={communityRefDesktop}>
+                  <input
+                    value={communityQuery !== '' ? communityQuery : draftFilters.community}
+                    onChange={(e) => {
+                      setCommunityQuery(e.target.value)
+                      setCommunityOpen(true)
+                    }}
+                    onFocus={() => {
+                      if (!draftFilters.location) return
+                      setCommunityOpen(true)
+                    }}
+                    placeholder={draftFilters.location ? 'Community / Area' : 'Select City First'}
+                    disabled={!draftFilters.location || communityOptions.length === 0}
+                    className="w-full h-12 md:h-11 px-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-dark-blue/30 disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
+                  {communityOpen && filteredCommunities.length > 0 && (
+                    <div className="absolute z-[70] mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                      {filteredCommunities.slice(0, 10).map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => {
+                            setDraftFilters((prev) => ({ ...prev, community: c }))
+                            setCommunityQuery('')
+                            setCommunityOpen(false)
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-gray-50"
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="md:hidden flex gap-2">
+                  <button
+                    type="button"
+                    onClick={openMobileFilters}
+                    className="h-12 flex-1 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue hover:bg-gray-50"
+                  >
+                    Filters
+                  </button>
+                  <button
+                    type="button"
+                    onClick={applyDraft}
+                    className="h-12 w-12 rounded-full bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 transition-colors inline-flex items-center justify-center"
+                    aria-label="Search"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-4.35-4.35m1.35-5.65a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                  </button>
+                </div>
               </div>
+            </div>
 
-              <div className="relative group">
-                <select
-                  value={draftFilters.type}
-                  onChange={(e) => setDraftFilters((prev) => ({ ...prev, type: e.target.value }))}
-                  className="mf-select h-11 min-w-[160px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
+            <div className="relative z-10 hidden md:block bg-white/85 backdrop-blur-md border border-gray-200 rounded-2xl shadow-sm p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center rounded-xl border border-gray-200 bg-white p-1">
+                  <button
+                    type="button"
+                    onClick={() => setPurpose('buy')}
+                    className={`h-10 px-4 rounded-lg text-sm font-semibold transition-colors ${
+                      purpose === 'buy' ? 'bg-dark-blue text-white' : 'text-dark-blue hover:bg-gray-50'
+                    }`}
+                  >
+                    Buy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPurpose('rent')}
+                    className={`h-10 px-4 rounded-lg text-sm font-semibold transition-colors ${
+                      purpose === 'rent' ? 'bg-dark-blue text-white' : 'text-dark-blue hover:bg-gray-50'
+                    }`}
+                  >
+                    Rent
+                  </button>
+                </div>
+
+                <div className="relative group">
+                  <select
+                    value={draftFilters.type}
+                    onChange={(e) => setDraftFilters((prev) => ({ ...prev, type: e.target.value }))}
+                    className="mf-select h-11 min-w-[170px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
+                  >
+                    <option value="">Property Type</option>
+                    <option value="Apartment">Apartment</option>
+                    <option value="Villa">Villa</option>
+                    <option value="Penthouse">Penthouse</option>
+                    <option value="Townhouse">Townhouse</option>
+                    <option value="Plot">Plot</option>
+                  </select>
+                  <svg
+                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+
+                <div className="relative group">
+                  <select
+                    value={draftFilters.minPrice}
+                    onChange={(e) => setDraftFilters((prev) => ({ ...prev, minPrice: e.target.value }))}
+                    className="mf-select h-11 min-w-[150px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
+                  >
+                    <option value="">Min Price</option>
+                    {priceOptions.map((p) => (
+                      <option key={p} value={p.toString()}>
+                        {COUNTRY_META[draftFilters.country].currencyLabel} {p.toLocaleString()}
+                      </option>
+                    ))}
+                  </select>
+                  <svg
+                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+
+                <div className="relative group">
+                  <select
+                    value={draftFilters.maxPrice}
+                    onChange={(e) => setDraftFilters((prev) => ({ ...prev, maxPrice: e.target.value }))}
+                    className="mf-select h-11 min-w-[150px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
+                  >
+                    <option value="">Max Price</option>
+                    {priceOptions.map((p) => (
+                      <option key={p} value={p.toString()}>
+                        {COUNTRY_META[draftFilters.country].currencyLabel} {p.toLocaleString()}
+                      </option>
+                    ))}
+                  </select>
+                  <svg
+                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+
+                <div className="relative group">
+                  <select
+                    value={draftFilters.bedrooms}
+                    onChange={(e) => setDraftFilters((prev) => ({ ...prev, bedrooms: e.target.value }))}
+                    className="mf-select h-11 min-w-[120px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
+                  >
+                    <option value="">Beds</option>
+                    <option value="0">Studio</option>
+                    <option value="1">1+</option>
+                    <option value="2">2+</option>
+                    <option value="3">3+</option>
+                    <option value="4">4+</option>
+                    <option value="5">5+</option>
+                  </select>
+                  <svg
+                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+
+                <div className="relative group">
+                  <select
+                    value={draftFilters.bathrooms}
+                    onChange={(e) => setDraftFilters((prev) => ({ ...prev, bathrooms: e.target.value }))}
+                    className="mf-select h-11 min-w-[120px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
+                  >
+                    <option value="">Baths</option>
+                    <option value="1">1+</option>
+                    <option value="2">2+</option>
+                    <option value="3">3+</option>
+                    <option value="4">4+</option>
+                  </select>
+                  <svg
+                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={openMoreFilters}
+                  className="h-11 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue hover:bg-gray-50"
                 >
-                  <option value="">Property Type</option>
-                  <option value="Apartment">Apartment</option>
-                  <option value="Villa">Villa</option>
-                  <option value="Penthouse">Penthouse</option>
-                  <option value="Townhouse">Townhouse</option>
-                  <option value="Plot">Plot</option>
-                </select>
-                <svg
-                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                  More Filters
+                </button>
+
+                <div className="relative group">
+                  <select
+                    value={draftFilters.sortBy}
+                    onChange={(e) => setDraftFilters((prev) => ({ ...prev, sortBy: e.target.value }))}
+                    className="mf-select h-11 min-w-[160px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
+                  >
+                    <option value="featured">Featured</option>
+                    <option value="price-low">Price (Low)</option>
+                    <option value="price-high">Price (High)</option>
+                    <option value="newest">Newest</option>
+                  </select>
+                  <svg
+                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+
+                <div className="flex-1" />
+
+                <button
+                  type="button"
+                  onClick={applyDraft}
+                  className="h-11 w-11 rounded-full bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 transition-colors inline-flex items-center justify-center"
+                  aria-label="Search"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-4.35-4.35m1.35-5.65a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </button>
               </div>
-
-              <div className="relative group">
-                <select
-                  value={draftFilters.minPrice}
-                  onChange={(e) => setDraftFilters((prev) => ({ ...prev, minPrice: e.target.value }))}
-                  className="mf-select h-11 min-w-[150px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
-                >
-                  <option value="">Min Price</option>
-                  {priceOptions.map((p) => (
-                    <option key={p} value={p.toString()}>
-                      {COUNTRY_META[draftFilters.country].currencyLabel} {p.toLocaleString()}
-                    </option>
-                  ))}
-                </select>
-                <svg
-                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-
-              <div className="relative group">
-                <select
-                  value={draftFilters.maxPrice}
-                  onChange={(e) => setDraftFilters((prev) => ({ ...prev, maxPrice: e.target.value }))}
-                  className="mf-select h-11 min-w-[150px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
-                >
-                  <option value="">Max Price</option>
-                  {priceOptions.map((p) => (
-                    <option key={p} value={p.toString()}>
-                      {COUNTRY_META[draftFilters.country].currencyLabel} {p.toLocaleString()}
-                    </option>
-                  ))}
-                </select>
-                <svg
-                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-
-              <div className="relative group">
-                <select
-                  value={draftFilters.bedrooms}
-                  onChange={(e) => setDraftFilters((prev) => ({ ...prev, bedrooms: e.target.value }))}
-                  className="mf-select h-11 min-w-[120px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
-                >
-                  <option value="">Beds</option>
-                  <option value="0">Studio</option>
-                  <option value="1">1+</option>
-                  <option value="2">2+</option>
-                  <option value="3">3+</option>
-                  <option value="4">4+</option>
-                  <option value="5">5+</option>
-                </select>
-                <svg
-                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-
-              <div className="relative group">
-                <select
-                  value={draftFilters.bathrooms}
-                  onChange={(e) => setDraftFilters((prev) => ({ ...prev, bathrooms: e.target.value }))}
-                  className="mf-select h-11 min-w-[120px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
-                >
-                  <option value="">Baths</option>
-                  <option value="1">1+</option>
-                  <option value="2">2+</option>
-                  <option value="3">3+</option>
-                  <option value="4">4+</option>
-                </select>
-                <svg
-                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-
-              <button
-                type="button"
-                onClick={openMoreFilters}
-                className="h-11 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue hover:bg-gray-50"
-              >
-                More Filters
-              </button>
-
-              <div className="relative group">
-                <select
-                  value={draftFilters.sortBy}
-                  onChange={(e) => setDraftFilters((prev) => ({ ...prev, sortBy: e.target.value }))}
-                  className="mf-select h-11 min-w-[160px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
-                >
-                  <option value="featured">Featured</option>
-                  <option value="price-low">Price (Low)</option>
-                  <option value="price-high">Price (High)</option>
-                  <option value="newest">Newest</option>
-                </select>
-                <svg
-                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-
-              <button
-                type="button"
-                onClick={applyDraft}
-                className="h-11 w-11 rounded-full bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 transition-colors inline-flex items-center justify-center"
-                aria-label="Search"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m1.35-5.65a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </button>
             </div>
           </div>
         </div>
@@ -859,25 +889,30 @@ export default function PropertiesClient() {
               onClick={closeMobileFilters}
             />
             <div
-              className={`absolute inset-x-0 bottom-0 top-0 bg-white transition-transform duration-200 ${
-                mobileFiltersVisible ? 'translate-y-0' : 'translate-y-4'
+              className={`absolute inset-x-0 bottom-0 bg-white rounded-t-3xl border border-gray-200 transition-transform duration-200 ${
+                mobileFiltersVisible ? 'translate-y-0' : 'translate-y-6'
               }`}
             >
-            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-dark-blue">Filters</h2>
-              <button
-                type="button"
-                onClick={closeMobileFilters}
-                className="h-10 w-10 rounded-xl border border-gray-200 inline-flex items-center justify-center"
-                aria-label="Close"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+            <div className="px-4 pt-4 pb-24 space-y-4 overflow-auto max-h-[75vh]">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold text-dark-blue">Property Filters</h2>
+                <button
+                  type="button"
+                  onClick={closeMobileFilters}
+                  className="h-10 w-10 rounded-xl border border-gray-200 inline-flex items-center justify-center"
+                  aria-label="Close"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
 
-            <div className="px-4 py-4 pb-24 space-y-4 overflow-auto max-h-[calc(100vh-72px)]">
               <div className="inline-flex items-center rounded-xl border border-gray-200 bg-white p-1 w-fit">
                 <button
                   type="button"
@@ -897,39 +932,6 @@ export default function PropertiesClient() {
                 >
                   Rent
                 </button>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-2">Community (Area)</label>
-                <div className="relative group">
-                  <select
-                    value={draftFilters.community}
-                    disabled={!draftFilters.location || communityOptions.length === 0}
-                    onChange={(e) => setDraftFilters((prev) => ({ ...prev, community: e.target.value }))}
-                    className="mf-select w-full h-12 px-4 pr-11 rounded-xl border border-gray-200 bg-white"
-                  >
-                    {!draftFilters.location ? (
-                      <option value="">Select City First</option>
-                    ) : (
-                      <>
-                        <option value="">All Communities</option>
-                        {communityOptions.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </>
-                    )}
-                  </select>
-                  <svg
-                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
               </div>
 
               <div>
