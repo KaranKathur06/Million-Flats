@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import PropertyListCard from '@/components/PropertyListCard'
 import { useCountry } from '@/components/CountryProvider'
-import { CITIES_BY_COUNTRY, COUNTRY_META, DEFAULT_COUNTRY, isCountryCode, type CountryCode } from '@/lib/country'
+import { CITIES_BY_COUNTRY, COUNTRY_META, DEFAULT_COUNTRY, isCountryCode, uiPriceToAed, type CountryCode } from '@/lib/country'
 
 interface Property {
   id: string
@@ -12,6 +12,7 @@ interface Property {
   title: string
   location: string
   price: number
+  yearBuilt?: number
   bedrooms: number
   bathrooms: number
   squareFeet: number
@@ -30,6 +31,7 @@ interface Property {
 type Filters = {
   country: CountryCode
   location: string
+  community: string
   type: string
   minPrice: string
   maxPrice: string
@@ -38,7 +40,50 @@ type Filters = {
   sortBy: string
 }
 
-type SheetKey = 'country' | 'city' | 'type' | 'price' | 'beds' | 'baths' | 'sort' | null
+type SheetKey = 'country' | 'city' | 'community' | 'type' | 'price' | 'beds' | 'baths' | 'sort' | null
+
+const COMMUNITIES_BY_CITY: Record<string, readonly string[]> = {
+  Dubai: [
+    'Jumeirah Village Circle',
+    'Business Bay',
+    'Dubai Marina',
+    'Dubai South',
+    'Dubai Hills Estate',
+    'DAMAC Hills',
+    'Al Furjan',
+    'Wadi Al Safa 5',
+  ],
+  'Abu Dhabi': [
+    'Mohammed Bin Zayed City',
+    'Al Raha Beach',
+    'Khalifa City A & B',
+    'Al Maryah Island',
+    'Yas Island',
+    'Al Ghadeer',
+  ],
+  Sharjah: ['Al Nahda (Sharjah)', 'Muwaileh Commercial'],
+  Ajman: ['Al Nuaimiya', 'Ajman Downtown', 'Emirates City', 'Al Rawda'],
+  'Ras Al Khaimah': ['Al Hamra Village', 'Al Nakheel'],
+}
+
+function hashToIndex(input: string, length: number) {
+  let h = 2166136261
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return length === 0 ? 0 : Math.abs(h) % length
+}
+
+function deriveCommunity(location: string, propertyId: string) {
+  const opts = COMMUNITIES_BY_CITY[location] || []
+  if (opts.length === 0) return ''
+  return opts[hashToIndex(`${location}:${propertyId}`, opts.length)]
+}
+
+function deriveAnnualRentAed(salePriceAed: number) {
+  return Math.max(1, Math.round(salePriceAed * 0.06))
+}
 
 export default function PropertiesClient() {
   const searchParams = useSearchParams()
@@ -54,6 +99,11 @@ export default function PropertiesClient() {
   const [sheetDragStartY, setSheetDragStartY] = useState<number | null>(null)
   const [sheetDragY, setSheetDragY] = useState(0)
 
+  const [purpose, setPurpose] = useState<'buy' | 'rent'>(() => {
+    const fromUrl = searchParams?.get('purpose')
+    return fromUrl === 'rent' ? 'rent' : 'buy'
+  })
+
   const getParam = useCallback((key: string) => searchParams?.get(key) ?? '', [searchParams])
 
   const initialCountry = useMemo(() => {
@@ -65,6 +115,7 @@ export default function PropertiesClient() {
   const [filters, setFilters] = useState<Filters>({
     country: initialCountry,
     location: getParam('location'),
+    community: getParam('community'),
     type: getParam('type'),
     minPrice: getParam('minPrice') || COUNTRY_META[initialCountry].minPrice.toString(),
     maxPrice: getParam('maxPrice') || COUNTRY_META[initialCountry].maxPrice.toString(),
@@ -74,6 +125,36 @@ export default function PropertiesClient() {
   })
 
   const [draftFilters, setDraftFilters] = useState<Filters>(filters)
+
+  const syncUrl = useCallback((nextFilters: Filters, nextPurpose: 'buy' | 'rent') => {
+    const params = new URLSearchParams(window.location.search)
+    params.set('purpose', nextPurpose)
+
+    params.set('country', nextFilters.country)
+    if (nextFilters.location) params.set('location', nextFilters.location)
+    else params.delete('location')
+    if (nextFilters.community) params.set('community', nextFilters.community)
+    else params.delete('community')
+    if (nextFilters.type) params.set('type', nextFilters.type)
+    else params.delete('type')
+
+    if (nextFilters.minPrice) params.set('minPrice', nextFilters.minPrice)
+    else params.delete('minPrice')
+    if (nextFilters.maxPrice) params.set('maxPrice', nextFilters.maxPrice)
+    else params.delete('maxPrice')
+    if (nextFilters.bedrooms) params.set('bedrooms', nextFilters.bedrooms)
+    else params.delete('bedrooms')
+    if (nextFilters.bathrooms) params.set('bathrooms', nextFilters.bathrooms)
+    else params.delete('bathrooms')
+    if (nextFilters.sortBy) params.set('sortBy', nextFilters.sortBy)
+    else params.delete('sortBy')
+
+    window.history.replaceState(null, '', `?${params.toString()}`)
+  }, [])
+
+  useEffect(() => {
+    syncUrl(filters, purpose)
+  }, [filters, purpose, syncUrl])
 
   useEffect(() => {
     const fromUrl = getParam('country')
@@ -88,6 +169,7 @@ export default function PropertiesClient() {
         ...prev,
         country,
         location: '',
+        community: '',
         minPrice: COUNTRY_META[country].minPrice.toString(),
         maxPrice: COUNTRY_META[country].maxPrice.toString(),
       }))
@@ -112,9 +194,7 @@ export default function PropertiesClient() {
     setLoading(true)
     try {
       const params = new URLSearchParams()
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.set(key, value.toString())
-      })
+      params.set('country', filters.country)
       const res = await fetch(`/api/properties?${params.toString()}`)
       const data = await res.json()
       setProperties(data)
@@ -123,7 +203,7 @@ export default function PropertiesClient() {
     } finally {
       setLoading(false)
     }
-  }, [filters])
+  }, [filters.country])
 
   useEffect(() => {
     fetchProperties()
@@ -137,16 +217,26 @@ export default function PropertiesClient() {
         ...filters,
         ...newFilters,
         location: '',
+        community: '',
         minPrice: COUNTRY_META[nextCountry].minPrice.toString(),
         maxPrice: COUNTRY_META[nextCountry].maxPrice.toString(),
       })
       return
     }
 
-    setFilters({ ...filters, ...newFilters })
+    const next: Filters = {
+      ...filters,
+      ...newFilters,
+      community: newFilters.location !== undefined ? '' : filters.community,
+    }
+    setFilters(next)
   }
 
   const cities = useMemo(() => CITIES_BY_COUNTRY[draftFilters.country], [draftFilters.country])
+
+  const communityOptions = useMemo(() => {
+    return COMMUNITIES_BY_CITY[draftFilters.location] || []
+  }, [draftFilters.location])
 
   const applyDraft = () => {
     handleFilterChange(draftFilters)
@@ -181,6 +271,8 @@ export default function PropertiesClient() {
         return 'Country'
       case 'city':
         return 'City'
+      case 'community':
+        return 'Community (Area)'
       case 'type':
         return 'Property Type'
       case 'price':
@@ -206,12 +298,105 @@ export default function PropertiesClient() {
     return `${cur} Up to ${max}`
   }, [draftFilters.country, draftFilters.maxPrice, draftFilters.minPrice])
 
+  const displayedProperties = useMemo(() => {
+    const countryForFilter = filters.country
+    const minUi = parseInt(filters.minPrice)
+    const maxUi = parseInt(filters.maxPrice)
+    const minAed = Number.isFinite(minUi) ? uiPriceToAed(countryForFilter, minUi) : undefined
+    const maxAed = Number.isFinite(maxUi) ? uiPriceToAed(countryForFilter, maxUi) : undefined
+
+    let filtered = properties
+
+    if (filters.location) {
+      const q = filters.location.toLowerCase()
+      filtered = filtered.filter((p) => p.location.toLowerCase().includes(q))
+    }
+
+    if (filters.community) {
+      filtered = filtered.filter((p) => deriveCommunity(p.location, p.id) === filters.community)
+    }
+
+    if (filters.type) {
+      const t = filters.type.toLowerCase()
+      filtered = filtered.filter((p) => p.propertyType.toLowerCase() === t)
+    }
+
+    if (minAed != null) {
+      filtered = filtered.filter((p) => (purpose === 'rent' ? deriveAnnualRentAed(p.price) : p.price) >= minAed)
+    }
+    if (maxAed != null) {
+      filtered = filtered.filter((p) => (purpose === 'rent' ? deriveAnnualRentAed(p.price) : p.price) <= maxAed)
+    }
+
+    if (filters.bedrooms) {
+      const b = parseInt(filters.bedrooms)
+      if (Number.isFinite(b)) filtered = filtered.filter((p) => p.bedrooms >= b)
+    }
+
+    if (filters.bathrooms) {
+      const b = parseInt(filters.bathrooms)
+      if (Number.isFinite(b)) filtered = filtered.filter((p) => p.bathrooms >= b)
+    }
+
+    const sortBy = filters.sortBy || 'featured'
+    switch (sortBy) {
+      case 'price-low':
+        filtered = [...filtered].sort((a, b) => {
+          const ap = purpose === 'rent' ? deriveAnnualRentAed(a.price) : a.price
+          const bp = purpose === 'rent' ? deriveAnnualRentAed(b.price) : b.price
+          return ap - bp
+        })
+        break
+      case 'price-high':
+        filtered = [...filtered].sort((a, b) => {
+          const ap = purpose === 'rent' ? deriveAnnualRentAed(a.price) : a.price
+          const bp = purpose === 'rent' ? deriveAnnualRentAed(b.price) : b.price
+          return bp - ap
+        })
+        break
+      case 'newest':
+        filtered = [...filtered].sort((a, b) => (b.yearBuilt || 0) - (a.yearBuilt || 0))
+        break
+      case 'featured':
+      default:
+        filtered = [...filtered].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0))
+        break
+    }
+
+    if (purpose === 'rent') {
+      return filtered.map((p) => ({ ...p, price: deriveAnnualRentAed(p.price) }))
+    }
+    return filtered
+  }, [filters, properties, purpose])
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-[1800px] px-4 sm:px-6 lg:px-8 pt-10 pb-14">
         <div className="mb-8">
           <h1 className="text-4xl font-serif font-bold text-dark-blue mb-2">Properties</h1>
-          <p className="text-gray-600">{properties.length} properties found</p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-gray-600">{displayedProperties.length} properties found</p>
+            <div className="inline-flex items-center rounded-xl border border-gray-200 bg-white p-1 w-fit">
+              <button
+                type="button"
+                onClick={() => setPurpose('buy')}
+                className={`h-10 px-4 rounded-lg text-sm font-semibold transition-colors ${
+                  purpose === 'buy' ? 'bg-dark-blue text-white' : 'text-dark-blue hover:bg-gray-50'
+                }`}
+              >
+                Buy
+              </button>
+              <button
+                type="button"
+                onClick={() => setPurpose('rent')}
+                className={`h-10 px-4 rounded-lg text-sm font-semibold transition-colors ${
+                  purpose === 'rent' ? 'bg-dark-blue text-white' : 'text-dark-blue hover:bg-gray-50'
+                }`}
+              >
+                Rent
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="sticky top-14 md:top-20 z-30 mb-6 md:mb-10">
@@ -231,6 +416,14 @@ export default function PropertiesClient() {
                   className="shrink-0 h-11 px-3 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue"
                 >
                   {draftFilters.location || 'City'}
+                </button>
+                <button
+                  type="button"
+                  disabled={!draftFilters.location || (COMMUNITIES_BY_CITY[draftFilters.location] || []).length === 0}
+                  onClick={() => openSheet('community')}
+                  className="shrink-0 h-11 px-3 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {!draftFilters.location ? 'Select City First' : draftFilters.community || 'Community'}
                 </button>
                 <button
                   type="button"
@@ -279,7 +472,7 @@ export default function PropertiesClient() {
 
           <div className="hidden md:block bg-white/85 backdrop-blur-md border border-gray-200 rounded-2xl shadow-sm">
             <div className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-[repeat(15,minmax(0,1fr))] gap-3 items-end">
+              <div className="grid grid-cols-1 md:grid-cols-[repeat(17,minmax(0,1fr))] gap-3 items-end">
                 <div className="md:col-span-2">
                   <label className="block text-xs font-medium text-gray-600 mb-2">Country</label>
                   <div className="relative">
@@ -292,6 +485,7 @@ export default function PropertiesClient() {
                           ...draftFilters,
                           country: nextCountry,
                           location: '',
+                          community: '',
                           minPrice: meta.minPrice.toString(),
                           maxPrice: meta.maxPrice.toString(),
                         }
@@ -340,7 +534,7 @@ export default function PropertiesClient() {
                           <button
                             type="button"
                             onClick={() => {
-                              setDraftFilters((prev) => ({ ...prev, location: '' }))
+                              setDraftFilters((prev) => ({ ...prev, location: '', community: '' }))
                               setCityOpen(false)
                             }}
                             className="w-full text-left px-4 py-3 hover:bg-gray-50"
@@ -352,7 +546,7 @@ export default function PropertiesClient() {
                               key={c}
                               type="button"
                               onClick={() => {
-                                setDraftFilters((prev) => ({ ...prev, location: c }))
+                                setDraftFilters((prev) => ({ ...prev, location: c, community: '' }))
                                 setCityOpen(false)
                               }}
                               className="w-full text-left px-4 py-3 hover:bg-gray-50"
@@ -366,6 +560,36 @@ export default function PropertiesClient() {
                         </div>
                       </div>
                     )}
+                  </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-gray-600 mb-2">Community (Area)</label>
+                  <div className="relative">
+                    <select
+                      value={draftFilters.community}
+                      disabled={!draftFilters.location || communityOptions.length === 0}
+                      onChange={(e) => setDraftFilters((prev) => ({ ...prev, community: e.target.value }))}
+                      className="mf-select w-full h-11 px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {!draftFilters.location ? (
+                        <option value="">Select City First</option>
+                      ) : communityOptions.length === 0 ? (
+                        <option value="">No Communities</option>
+                      ) : (
+                        <>
+                          <option value="">All Communities</option>
+                          {communityOptions.map((c) => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </>
+                      )}
+                    </select>
+                    <svg className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
                   </div>
                 </div>
 
@@ -574,6 +798,7 @@ export default function PropertiesClient() {
                             ...draftFilters,
                             country: c,
                             location: '',
+                            community: '',
                             minPrice: meta.minPrice.toString(),
                             maxPrice: meta.maxPrice.toString(),
                           }
@@ -607,7 +832,7 @@ export default function PropertiesClient() {
                       <button
                         type="button"
                         onClick={() => {
-                          const next = { ...draftFilters, location: '' }
+                          const next = { ...draftFilters, location: '', community: '' }
                           setDraftFilters(next)
                           handleFilterChange({ location: '' })
                           closeSheet()
@@ -625,7 +850,7 @@ export default function PropertiesClient() {
                           key={c}
                           type="button"
                           onClick={() => {
-                            const next = { ...draftFilters, location: c }
+                            const next = { ...draftFilters, location: c, community: '' }
                             setDraftFilters(next)
                             handleFilterChange({ location: c })
                             closeSheet()
@@ -640,6 +865,54 @@ export default function PropertiesClient() {
                         </button>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {activeSheet === 'community' && (
+                  <div>
+                    {!draftFilters.location ? (
+                      <div className="text-sm text-gray-600">Select City First</div>
+                    ) : communityOptions.length === 0 ? (
+                      <div className="text-sm text-gray-600">No Communities</div>
+                    ) : (
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = { ...draftFilters, community: '' }
+                            setDraftFilters(next)
+                            handleFilterChange({ community: '' })
+                            closeSheet()
+                          }}
+                          className={`w-full h-12 rounded-xl border px-4 text-left font-semibold ${
+                            !draftFilters.community
+                              ? 'border-dark-blue bg-dark-blue text-white'
+                              : 'border-gray-200 bg-white text-dark-blue'
+                          }`}
+                        >
+                          All Communities
+                        </button>
+                        {communityOptions.map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => {
+                              const next = { ...draftFilters, community: c }
+                              setDraftFilters(next)
+                              handleFilterChange({ community: c })
+                              closeSheet()
+                            }}
+                            className={`w-full h-12 rounded-xl border px-4 text-left font-semibold ${
+                              draftFilters.community === c
+                                ? 'border-dark-blue bg-dark-blue text-white'
+                                : 'border-gray-200 bg-white text-dark-blue'
+                            }`}
+                          >
+                            {c}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -798,13 +1071,13 @@ export default function PropertiesClient() {
           <div className="text-center py-12">
             <p className="text-gray-600">Loading properties...</p>
           </div>
-        ) : properties.length === 0 ? (
+        ) : displayedProperties.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600">No properties found matching your criteria.</p>
           </div>
         ) : (
           <div className="space-y-6">
-            {properties.map((property) => (
+            {displayedProperties.map((property) => (
               <PropertyListCard key={property.id} property={property} />
             ))}
           </div>

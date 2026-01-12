@@ -34,8 +34,8 @@ export default function ContactInfo() {
           <div>
             <h3 className="font-semibold text-dark-blue mb-1">Phone</h3>
             <p className="text-sm text-gray-600 mb-2">Call us directly</p>
-            <a href="tel:+18005550123" className="text-dark-blue hover:underline">
-              +1 (800) 555-0123
+            <a href="tel:+919510155835" className="text-dark-blue hover:underline">
+              +91 9510155835
             </a>
           </div>
         </div>
