@@ -157,3 +157,12 @@ model Community {
   @@index([cityId])
   @@map("communities")
 }
+
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  message   String
+  createdAt DateTime @default(now())
+}

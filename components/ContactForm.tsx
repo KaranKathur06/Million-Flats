@@ -6,15 +6,18 @@ export default function ContactForm() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     subject: '',
     message: '',
   })
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
+    setError('')
 
     try {
       const res = await fetch('/api/contact', {
@@ -23,12 +26,16 @@ export default function ContactForm() {
         body: JSON.stringify(formData),
       })
 
+      const data = (await res.json()) as { success?: boolean; message?: string }
+
       if (res.ok) {
         setSubmitted(true)
-        setFormData({ name: '', email: '', subject: '', message: '' })
+        setFormData({ name: '', email: '', phone: '', subject: '', message: '' })
+      } else {
+        setError(data?.message || 'Failed to submit. Please try again.')
       }
     } catch (error) {
-      console.error('Error submitting form:', error)
+      setError('An error occurred. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -54,6 +61,11 @@ export default function ContactForm() {
     <div className="bg-white rounded-lg p-8 shadow-md">
       <h2 className="text-2xl font-semibold text-dark-blue mb-6">Send us a Message</h2>
       <form onSubmit={handleSubmit} className="space-y-6">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
@@ -83,6 +95,20 @@ export default function ContactForm() {
               placeholder="your@email.com"
             />
           </div>
+        </div>
+
+        <div>
+          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+            Phone (optional)
+          </label>
+          <input
+            type="tel"
+            id="phone"
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dark-blue focus:border-transparent"
+            placeholder="+91 ..."
+          />
         </div>
 
         <div>
