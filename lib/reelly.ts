@@ -55,7 +55,7 @@ export async function reellyFetch<T>(
 
   const res = await fetch(url, {
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      'X-API-Key': apiKey,
       Accept: 'application/json',
       'Content-Type': 'application/json',
     },
