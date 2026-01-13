@@ -22,7 +22,7 @@ model User {
   id        String   @id @default(uuid())
   role      Role     @default(USER)
   name      String?
-  email     String   @unique @db.Citext
+  email     String   @unique
   password  String?  @map("password_hash")
   googleId  String?  @unique @map("google_id")
   phone     String?
