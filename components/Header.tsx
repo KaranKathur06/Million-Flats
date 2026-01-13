@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useEffect, useState } from 'react'
 
 export default function Header() {
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ''
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const isActive = (href: string) => {

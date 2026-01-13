@@ -5,13 +5,16 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 
-function requireEnv(name: string) {
+function getEnv(name: string) {
   const v = process.env[name]
-  if (!v) throw new Error(`Missing ${name}`)
-  return v
+  return v && v.length > 0 ? v : undefined
 }
 
-export const authOptions: NextAuthOptions = {
+const nextAuthSecret = getEnv('NEXTAUTH_SECRET')
+const googleClientId = getEnv('GOOGLE_CLIENT_ID')
+const googleClientSecret = getEnv('GOOGLE_CLIENT_SECRET')
+
+const authOptions: NextAuthOptions = {
   adapter: {
     ...PrismaAdapter(prisma),
     async createUser(data: any) {
@@ -31,17 +34,21 @@ export const authOptions: NextAuthOptions = {
       return (await prisma.user.findUnique({ where: { email: normalized } })) as any
     },
   } as any,
-  secret: requireEnv('NEXTAUTH_SECRET'),
+  secret: nextAuthSecret,
   session: {
     strategy: 'jwt',
   },
   providers: [
-    GoogleProvider({
-      clientId: requireEnv('GOOGLE_CLIENT_ID'),
-      clientSecret: requireEnv('GOOGLE_CLIENT_SECRET'),
-      // Identity linking is enforced in callbacks.signIn (email-first)
-      allowDangerousEmailAccountLinking: true,
-    }),
+    ...(googleClientId && googleClientSecret
+      ? [
+          GoogleProvider({
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
+            // Identity linking is enforced in callbacks.signIn (email-first)
+            allowDangerousEmailAccountLinking: true,
+          }),
+        ]
+      : []),
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
