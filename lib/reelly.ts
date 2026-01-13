@@ -56,6 +56,7 @@ export async function reellyFetch<T>(
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${apiKey}`,
+      Accept: 'application/json',
       'Content-Type': 'application/json',
     },
     cache: 'no-store',
@@ -76,9 +77,9 @@ export async function reellyFetch<T>(
 }
 
 export async function reellyListProjects<T>(params: Record<string, unknown> = {}) {
-  return reellyFetch<T>('/projects', params, { cacheTtlMs: 5 * 60 * 1000 })
+  return reellyFetch<T>('/api/v2/clients/projects', params, { cacheTtlMs: 5 * 60 * 1000 })
 }
 
 export async function reellyGetProject<T>(id: string) {
-  return reellyFetch<T>(`/projects/${encodeURIComponent(id)}`, {}, { cacheTtlMs: 10 * 60 * 1000 })
+  return reellyFetch<T>(`/api/v2/clients/projects/${encodeURIComponent(id)}`, {}, { cacheTtlMs: 10 * 60 * 1000 })
 }
