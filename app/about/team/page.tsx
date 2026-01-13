@@ -1,3 +1,5 @@
+import TeamMemberAvatar from '@/components/TeamMemberAvatar'
+
 export const metadata = {
   title: 'Our Leadership & Core Team - millionflats',
   description: 'Meet the leadership and core team driving innovation across global real estate, technology, and intelligence.',
@@ -23,13 +25,13 @@ const sections: TeamSection[] = [
         name: 'Tarique Mansuri',
         role: 'CEO',
         bio: 'With over 20 years of experience in Business Development and 10+ years in blockchain, AI, and global markets, Tarique drives MillionFlats’ strategic vision and growth.',
-        image: '/team/tarique.jpg',
+        image: '/team/tarique.jpeg',
       },
       {
         name: 'Hardik Vyas',
         role: 'COO',
         bio: 'Marketing and networking leader with 15+ years of global experience, including leadership roles at Falcon Company, Rajkot, as Export Manager.',
-        image: '/team/hardik.jpg',
+        image: '/team/hardik.jpeg',
       },
     ],
   },
@@ -40,13 +42,13 @@ const sections: TeamSection[] = [
         name: 'Rahul Virani',
         role: 'GTM & Strategic Advisor',
         bio: 'Brings deep cross-market expertise, driving early partnerships and revenue pipelines across India and the UAE.',
-        image: '/team/rahul.jpg',
+        image: '/team/rahul.jpeg',
       },
       {
         name: 'Carel de Wet',
         role: 'Advisor – UAE',
         bio: 'Provides strong regional market expertise to accelerate launch strategy and secure anchor clients in the UAE.',
-        image: '/team/carel.jpg',
+        image: '/team/carel.jpeg',
       },
     ],
   },
@@ -57,19 +59,19 @@ const sections: TeamSection[] = [
         name: 'Kushal Bhatt',
         role: '3D Specialist',
         bio: 'Expert in Unreal Engine development, real-time 3D environments, simulations, and gamified user experiences.',
-        image: '/team/kushal.jpg',
+        image: '/team/kushal.jpeg',
       },
       {
         name: 'Dharami Shanmugam',
         role: 'Full Stack Developer',
         bio: 'Specialist in React.js, TypeScript, Node.js, and blockchain platforms, building scalable, data-driven applications.',
-        image: '/team/dharami.jpg',
+        image: '/team/dharani.jpg',
       },
       {
         name: 'Karan Kathur',
         role: 'AI Lead',
         bio: 'Strong foundation in Python, PostgreSQL, and task orchestration, contributing to real-time analytics and intelligent dashboards.',
-        image: '/team/karan.jpg',
+        image: '/team/karan%20.jpeg',
       },
     ],
   },
@@ -112,17 +114,7 @@ export default function TeamPage() {
                       key={member.name}
                       className="bg-white rounded-2xl border border-gray-200 shadow-sm p-7 text-center transition-transform duration-200 hover:-translate-y-1 hover:shadow-md"
                     >
-                      <div className="mx-auto mb-5 h-28 w-28 rounded-full bg-gray-100 overflow-hidden shadow-sm">
-                        <img
-                          src={member.image}
-                          alt={member.name}
-                          loading="lazy"
-                          className="h-full w-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.src = '/image-placeholder.svg'
-                          }}
-                        />
-                      </div>
+                      <TeamMemberAvatar src={member.image} alt={member.name} />
 
                       <h3 className="text-xl font-semibold text-dark-blue">{member.name}</h3>
                       <p className="text-accent-orange font-medium mt-1 mb-3">{member.role}</p>
