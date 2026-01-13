@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { signIn } from 'next-auth/react'
 import AuthLayout from '@/components/AuthLayout'
 
 export default function AgentLoginPage() {
@@ -21,6 +22,18 @@ export default function AgentLoginPage() {
     setError('')
 
     try {
+      const result = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+        callbackUrl: '/agent/dashboard',
+      })
+
+      if (result?.ok) {
+        router.push('/agent/dashboard')
+        return
+      }
+
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -28,12 +41,7 @@ export default function AgentLoginPage() {
       })
 
       const data = await res.json()
-
-      if (res.ok) {
-        router.push('/agent/dashboard')
-      } else {
-        setError(data.message || 'Login failed')
-      }
+      setError((result as any)?.error || data.message || 'Login failed')
     } catch (error) {
       setError('An error occurred. Please try again.')
     } finally {
@@ -42,8 +50,7 @@ export default function AgentLoginPage() {
   }
 
   const handleGoogleLogin = () => {
-    // Google OAuth integration would go here
-    console.log('Google login clicked')
+    signIn('google', { callbackUrl: '/agent/dashboard' })
   }
 
   return (

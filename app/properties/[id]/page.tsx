@@ -2,49 +2,89 @@ import { notFound } from 'next/navigation'
 import PropertyGallery from '@/components/PropertyGallery'
 import AgentCard from '@/components/AgentCard'
 import { formatCountryPrice } from '@/lib/country'
-import { mockProperties } from '@/lib/mockData'
-import { resolveImagesForProperty } from '@/lib/propertyImages'
+import { reellyGetProject } from '@/lib/reelly'
 
 export default async function PropertyDetailPage({ params }: { params: { id: string } }) {
-  const property = mockProperties.find((p) => p.id === params.id)
-
-  if (!property) {
+  let item: any
+  try {
+    item = await reellyGetProject<any>(params.id)
+  } catch {
     notFound()
   }
 
-  const whatsappNumber = property.agent?.phone?.replace(/[^\d]/g, '') || ''
+  const title = String(item?.title ?? item?.name ?? 'Property')
+  const price = Number(item?.price ?? item?.min_price ?? item?.starting_price ?? item?.price_from ?? 0)
+  const bedrooms = Number(item?.beds ?? item?.bedrooms ?? 0)
+  const bathrooms = Number(item?.baths ?? item?.bathrooms ?? 0)
+  const squareFeet = Number(item?.area ?? item?.size ?? item?.square_feet ?? 0)
+  const propertyType = String(item?.type ?? item?.property_type ?? 'Property')
+
+  const city = String(item?.city ?? item?.location?.city ?? '')
+  const country = String(item?.country ?? item?.location?.country ?? 'UAE')
+  const location = String(item?.community ?? item?.location?.community ?? city)
+
+  const images: string[] = Array.isArray(item?.images)
+    ? item.images
+    : Array.isArray(item?.gallery)
+      ? item.gallery
+      : item?.cover_image
+        ? [String(item.cover_image)]
+        : []
+
+  const description = String(item?.description ?? item?.about ?? '')
+  const features: string[] = Array.isArray(item?.amenities)
+    ? item.amenities.map((a: any) => String(a))
+    : Array.isArray(item?.features)
+      ? item.features.map((f: any) => String(f))
+      : []
+
+  const agent = item?.agent || item?.broker || null
+  const agentPhone = String(agent?.phone ?? agent?.whatsapp ?? '')
+  const agentCardAgent = agent
+    ? {
+        id: String(agent?.id ?? agent?.email ?? agent?.phone ?? 'external-agent'),
+        name: String(agent?.name ?? agent?.full_name ?? 'Agent'),
+        email: String(agent?.email ?? ''),
+        phone: agentPhone,
+        avatar: agent?.avatar ? String(agent.avatar) : undefined,
+        bio: agent?.bio ? String(agent.bio) : undefined,
+        propertiesSold: typeof agent?.propertiesSold === 'number' ? agent.propertiesSold : undefined,
+      }
+    : null
+  const whatsappNumber = agentPhone.replace(/[^\d]/g, '')
   const whatsappHref = whatsappNumber ? `https://wa.me/${whatsappNumber}` : ''
-  const resolvedImages = resolveImagesForProperty(property)
+
+  const resolvedImages = images
   const loanTermYears = 25
   const annualRate = 0.065
   const monthlyRate = annualRate / 12
   const downPaymentPct = 0.2
-  const principal = property.price * (1 - downPaymentPct)
+  const principal = price * (1 - downPaymentPct)
   const totalPayments = loanTermYears * 12
   const monthlyPayment =
     monthlyRate === 0
       ? principal / totalPayments
       : (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -totalPayments))
 
-  const estimatedAnnualRent = property.price * 0.055
-  const grossYield = (estimatedAnnualRent / property.price) * 100
+  const estimatedAnnualRent = price * 0.055
+  const grossYield = price ? (estimatedAnnualRent / price) * 100 : 0
 
   return (
     <div className="min-h-screen bg-white">
       {/* Gallery Section */}
-      <PropertyGallery images={resolvedImages} title={property.title} />
+      <PropertyGallery images={resolvedImages} title={title} />
 
       <div className="md:hidden sticky top-14 z-40 bg-white/95 backdrop-blur border-b border-gray-200">
         <div className="px-4 py-3 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-lg font-bold text-dark-blue leading-tight truncate">
-              {formatCountryPrice(property.country, property.price)}
+              {formatCountryPrice(country === 'India' ? 'India' : 'UAE', price)}
             </p>
-            <p className="text-xs text-gray-600 truncate">{property.location}, {property.country}</p>
+            <p className="text-xs text-gray-600 truncate">{location}, {country}</p>
           </div>
           <div className="shrink-0">
             <span className="text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1 rounded-full">
-              {property.propertyType}
+              {propertyType}
             </span>
           </div>
         </div>
@@ -56,58 +96,58 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
           <div className="lg:col-span-8">
             <div className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
               <p className="hidden md:block text-4xl md:text-5xl font-bold text-dark-blue tracking-tight">
-                {formatCountryPrice(property.country, property.price)}
+                {formatCountryPrice(country === 'India' ? 'India' : 'UAE', price)}
               </p>
               <h1 className="mt-0 md:mt-3 text-2xl md:text-4xl font-serif font-bold text-dark-blue">
-                {property.title}
+                {title}
               </h1>
               <p className="mt-2 text-gray-600">
-                {property.location}, {property.country}
+                {location}, {country}
               </p>
 
               <div className="mt-6 grid grid-cols-2 gap-4 md:hidden">
                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                   <p className="text-xs text-gray-600">Beds</p>
-                  <p className="text-2xl font-semibold text-dark-blue mt-1">{property.bedrooms}</p>
+                  <p className="text-2xl font-semibold text-dark-blue mt-1">{bedrooms}</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                   <p className="text-xs text-gray-600">Baths</p>
-                  <p className="text-2xl font-semibold text-dark-blue mt-1">{property.bathrooms}</p>
+                  <p className="text-2xl font-semibold text-dark-blue mt-1">{bathrooms}</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                   <p className="text-xs text-gray-600">Area</p>
-                  <p className="text-2xl font-semibold text-dark-blue mt-1">{property.squareFeet.toLocaleString()}</p>
+                  <p className="text-2xl font-semibold text-dark-blue mt-1">{Math.round(squareFeet).toLocaleString()}</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                   <p className="text-xs text-gray-600">Type</p>
-                  <p className="text-2xl font-semibold text-dark-blue mt-1">{property.propertyType}</p>
+                  <p className="text-2xl font-semibold text-dark-blue mt-1">{propertyType}</p>
                 </div>
               </div>
 
               <div className="mt-6 hidden md:grid grid-cols-3 gap-4">
                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                   <p className="text-xs text-gray-600">Bedrooms</p>
-                  <p className="text-2xl font-semibold text-dark-blue mt-1">{property.bedrooms}</p>
+                  <p className="text-2xl font-semibold text-dark-blue mt-1">{bedrooms}</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                   <p className="text-xs text-gray-600">Bathrooms</p>
-                  <p className="text-2xl font-semibold text-dark-blue mt-1">{property.bathrooms}</p>
+                  <p className="text-2xl font-semibold text-dark-blue mt-1">{bathrooms}</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                   <p className="text-xs text-gray-600">Built-up Area</p>
-                  <p className="text-2xl font-semibold text-dark-blue mt-1">{property.squareFeet.toLocaleString()} sq ft</p>
+                  <p className="text-2xl font-semibold text-dark-blue mt-1">{Math.round(squareFeet).toLocaleString()} sq ft</p>
                 </div>
               </div>
 
               <div className="mt-8">
                 <h2 className="text-2xl font-serif font-bold text-dark-blue mb-4">Description</h2>
-                <p className="text-gray-700 leading-relaxed whitespace-pre-line">{property.description}</p>
+                <p className="text-gray-700 leading-relaxed whitespace-pre-line">{description}</p>
               </div>
 
               <div className="mt-8">
                 <h2 className="text-2xl font-serif font-bold text-dark-blue mb-4">Features</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {(property.features || []).map((f, idx) => (
+                  {(features || []).map((f, idx) => (
                     <div key={idx} className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">
                       <span className="w-2 h-2 rounded-full bg-accent-yellow" />
                       <span className="text-sm text-gray-700">{f}</span>
@@ -134,7 +174,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
                   <div className="mt-4 space-y-3 text-sm text-gray-700">
                     <div className="flex items-center justify-between">
                       <span>Price</span>
-                      <span className="font-semibold">{formatCountryPrice(property.country, property.price)}</span>
+                      <span className="font-semibold">{formatCountryPrice(country === 'India' ? 'India' : 'UAE', price)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span>Down payment</span>
@@ -151,7 +191,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
                     <div className="pt-3 border-t border-gray-200 flex items-center justify-between">
                       <span className="text-gray-600">Estimated monthly</span>
                       <span className="text-lg font-bold text-dark-blue">
-                        {formatCountryPrice(property.country, Math.round(monthlyPayment))}
+                        {formatCountryPrice(country === 'India' ? 'India' : 'UAE', Math.round(monthlyPayment))}
                       </span>
                     </div>
                   </div>
@@ -162,7 +202,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
                   <div className="mt-4 space-y-3 text-sm text-gray-700">
                     <div className="flex items-center justify-between">
                       <span>Est. annual rent</span>
-                      <span className="font-semibold">{formatCountryPrice(property.country, Math.round(estimatedAnnualRent))}</span>
+                      <span className="font-semibold">{formatCountryPrice(country === 'India' ? 'India' : 'UAE', Math.round(estimatedAnnualRent))}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span>Gross yield</span>
@@ -188,13 +228,13 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
             <div className="sticky top-24 space-y-6">
               <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                 <div className="mb-4">
-                  <p className="text-2xl font-bold text-dark-blue">{formatCountryPrice(property.country, property.price)}</p>
-                  <p className="text-sm text-gray-600 mt-1">{property.location}, {property.country}</p>
+                  <p className="text-2xl font-bold text-dark-blue">{formatCountryPrice(country === 'India' ? 'India' : 'UAE', price)}</p>
+                  <p className="text-sm text-gray-600 mt-1">{location}, {country}</p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
                   <a
-                    href={`tel:${property.agent?.phone || ''}`}
+                    href={`tel:${agentPhone || ''}`}
                     className="w-full bg-dark-blue text-white py-3 rounded-xl font-semibold hover:bg-dark-blue/90 transition-colors text-center"
                   >
                     Call
@@ -213,7 +253,9 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
                 </div>
               </div>
 
-              <AgentCard agent={property.agent} />
+              {agentCardAgent && agentCardAgent.email && agentCardAgent.phone ? (
+                <AgentCard agent={agentCardAgent} />
+              ) : null}
             </div>
           </div>
         </div>
@@ -223,7 +265,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
         <div className="px-4 py-3 pb-[env(safe-area-inset-bottom)]">
           <div className="grid grid-cols-3 gap-3">
             <a
-              href={`tel:${property.agent?.phone || ''}`}
+              href={`tel:${agentPhone || ''}`}
               className="h-12 rounded-xl bg-dark-blue text-white font-semibold inline-flex items-center justify-center"
             >
               Call

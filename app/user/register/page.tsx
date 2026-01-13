@@ -46,7 +46,11 @@ export default function UserRegisterPage() {
       const data = await res.json()
 
       if (res.ok) {
-        router.push(`/user/verify?email=${encodeURIComponent(formData.email)}`)
+        if (data.requiresVerification) {
+          router.push(`/user/verify?email=${encodeURIComponent(formData.email)}`)
+        } else {
+          router.push('/user/dashboard')
+        }
       } else {
         setError(data.message || 'Registration failed')
       }
@@ -59,7 +63,7 @@ export default function UserRegisterPage() {
 
   const handleGoogleSignup = () => {
     // Google OAuth integration would go here
-    console.log('Google signup clicked')
+    window.location.href = '/api/auth/google?type=user&redirectTo=/user/dashboard'
   }
 
   return (

@@ -1,10 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { mockUsers, mockOTPs } from '@/lib/mockData'
 import jwt from 'jsonwebtoken'
+import { serialize } from 'cookie'
+import { prisma } from '@/lib/prisma'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
-export default function handler(
+export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<{ success: boolean; message: string; token?: string }>
 ) {
@@ -15,53 +16,65 @@ export default function handler(
   try {
     const { email, otp, type } = req.body
 
-    if (!email || !otp || !type) {
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : ''
+    const normalizedOtp = typeof otp === 'string' ? otp.trim() : ''
+
+    if (!normalizedEmail || !normalizedOtp || !type) {
       return res.status(400).json({ success: false, message: 'Missing required fields' })
     }
 
-    if (type === 'user') {
-      // Verify OTP
-      const storedOTP = mockOTPs.get(email)
-      if (!storedOTP) {
-        return res.status(400).json({ success: false, message: 'OTP not found or expired' })
-      }
-
-      if (Date.now() > storedOTP.expires) {
-        mockOTPs.delete(email)
-        return res.status(400).json({ success: false, message: 'OTP expired' })
-      }
-
-      if (storedOTP.otp !== otp) {
-        return res.status(400).json({ success: false, message: 'Invalid OTP' })
-      }
-
-      // OTP verified, update user and generate token
-      const user = mockUsers.find((u: any) => u.email === email)
-      if (user) {
-        user.verified = true
-      }
-
-      // Remove OTP
-      mockOTPs.delete(email)
-
-      // Generate JWT token
-      const token = jwt.sign(
-        { id: user?.id || email, email, type: 'user' },
-        JWT_SECRET,
-        { expiresIn: '7d' }
-      )
-
-      // Set cookie
-      res.setHeader('Set-Cookie', `token=${token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Strict`)
-
-      return res.status(200).json({
-        success: true,
-        message: 'Verification successful',
-        token,
-      })
-    } else {
+    if (type !== 'user') {
       return res.status(400).json({ success: false, message: 'Invalid user type' })
     }
+
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } })
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'User not found' })
+    }
+
+    const tokenRow = await prisma.emailVerificationToken.findFirst({
+      where: { userId: user.id, token: normalizedOtp },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (!tokenRow) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP' })
+    }
+
+    if (tokenRow.expiresAt.getTime() < Date.now()) {
+      await prisma.emailVerificationToken.delete({ where: { id: tokenRow.id } })
+      return res.status(400).json({ success: false, message: 'OTP expired' })
+    }
+
+    const verifiedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { verified: true },
+    })
+
+    await prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } })
+
+    const jwtToken = jwt.sign(
+      { id: verifiedUser.id, email: verifiedUser.email, role: verifiedUser.role },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    )
+
+    res.setHeader(
+      'Set-Cookie',
+      serialize('token', jwtToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7,
+      })
+    )
+
+    return res.status(200).json({
+      success: true,
+      message: 'Verification successful',
+      token: jwtToken,
+    })
   } catch (error) {
     console.error('Verification error:', error)
     return res.status(500).json({ success: false, message: 'Internal server error' })

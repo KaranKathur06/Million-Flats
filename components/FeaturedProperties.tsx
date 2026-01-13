@@ -12,10 +12,37 @@ export default function FeaturedProperties() {
   const { country } = useCountry()
 
   useEffect(() => {
-    fetch(`/api/properties?featured=true&limit=4&country=${encodeURIComponent(country)}`)
-      .then(res => res.json())
-      .then(data => setProperties(data))
-      .catch(err => console.error('Error fetching properties:', err))
+    const params = new URLSearchParams()
+    params.set('country', country === 'India' ? 'India' : 'UAE')
+    params.set('limit', '4')
+    fetch(`/api/properties/reelly?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const items = Array.isArray(data?.items) ? data.items : []
+        const mapped = items
+          .map((item: any) => {
+            const id = String(item?.id ?? item?.project_id ?? item?.external_id ?? '')
+            if (!id) return null
+            return {
+              id,
+              title: String(item?.title ?? item?.name ?? 'Property'),
+              location: String(item?.community ?? item?.location?.community ?? item?.city ?? item?.location?.city ?? ''),
+              price: Number(item?.price ?? item?.min_price ?? item?.starting_price ?? item?.price_from ?? 0),
+              images: Array.isArray(item?.images)
+                ? item.images
+                : Array.isArray(item?.gallery)
+                  ? item.gallery
+                  : item?.cover_image
+                    ? [String(item.cover_image)]
+                    : [],
+              featured: Boolean(item?.featured ?? false),
+              propertyType: String(item?.type ?? item?.property_type ?? 'Apartment'),
+            }
+          })
+          .filter(Boolean)
+        setProperties(mapped)
+      })
+      .catch((err) => console.error('Error fetching properties:', err))
   }, [country])
 
   return (

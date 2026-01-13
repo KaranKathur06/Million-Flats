@@ -70,7 +70,7 @@ export default function AgentRegisterPage() {
 
   const handleGoogleSignup = () => {
     // Google OAuth integration would go here
-    console.log('Google signup clicked')
+    window.location.href = '/api/auth/google?type=agent&redirectTo=/agent/dashboard'
   }
 
   return (

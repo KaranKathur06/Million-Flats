@@ -20,15 +20,17 @@ enum CountryCode {
 
 model User {
   id        String   @id @default(uuid())
-  role      Role
+  role      Role     @default(USER)
   name      String?
-  email     String   @unique
+  email     String   @unique @db.Citext
   password  String?  @map("password_hash")
   googleId  String?  @unique @map("google_id")
   phone     String?
   verified  Boolean  @default(false) @map("is_verified")
 
   agent Agent?
+
+  emailVerificationTokens EmailVerificationToken[]
 
   savedProperties SavedProperty[]
   propertyLeads   PropertyLead[]
@@ -38,6 +40,20 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("users")
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("email_verification_tokens")
 }
 
 model Agent {

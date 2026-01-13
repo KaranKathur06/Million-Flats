@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { signIn } from 'next-auth/react'
 import AuthLayout from '@/components/AuthLayout'
 
 export default function UserLoginPage() {
@@ -19,6 +20,19 @@ export default function UserLoginPage() {
     setError('')
 
     try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+        callbackUrl: '/user/dashboard',
+      })
+
+      if (result?.ok) {
+        router.push('/user/dashboard')
+        return
+      }
+
+      // Fallback to legacy OTP flow for unverified users (until verification is fully migrated to NextAuth).
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -27,15 +41,12 @@ export default function UserLoginPage() {
 
       const data = await res.json()
 
-      if (res.ok) {
-        if (data.requiresVerification) {
-          router.push(`/user/verify?email=${encodeURIComponent(email)}`)
-        } else {
-          router.push('/user/dashboard')
-        }
-      } else {
-        setError(data.message || 'Login failed')
+      if (res.ok && data.requiresVerification) {
+        router.push(`/user/verify?email=${encodeURIComponent(email)}`)
+        return
       }
+
+      setError((result as any)?.error || data.message || 'Login failed')
     } catch (error) {
       setError('An error occurred. Please try again.')
     } finally {
@@ -44,8 +55,7 @@ export default function UserLoginPage() {
   }
 
   const handleGoogleLogin = () => {
-    // Google OAuth integration would go here
-    console.log('Google login clicked')
+    signIn('google', { callbackUrl: '/user/dashboard' })
   }
 
   return (

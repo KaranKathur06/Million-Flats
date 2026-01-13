@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation'
 import PropertyListCard from '@/components/PropertyListCard'
 import { useCountry } from '@/components/CountryProvider'
 import { CITIES_BY_COUNTRY, COUNTRY_META, DEFAULT_COUNTRY, isCountryCode, uiPriceToAed, type CountryCode } from '@/lib/country'
-import { mockProperties } from '@/lib/mockData'
 
 interface Property {
   id: string
@@ -141,6 +140,7 @@ export default function PropertiesClient() {
   const { country, setCountry } = useCountry()
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
+  const [apiError, setApiError] = useState<string>('')
   const [cityOpen, setCityOpen] = useState(false)
   const [cityQuery, setCityQuery] = useState('')
   const cityRefMobile = useRef<HTMLDivElement>(null)
@@ -284,12 +284,90 @@ export default function PropertiesClient() {
 
   const fetchProperties = useCallback(async () => {
     setLoading(true)
+    setApiError('')
     try {
-      setProperties(mockProperties.filter((p) => p.country === filters.country))
+      const params = new URLSearchParams()
+
+      // IMPORTANT: Partner API is source of truth. We still keep existing client-side
+      // filtering/sorting logic as a fallback and for UI consistency.
+      // Map UI -> proxy query.
+      params.set('country', filters.country)
+      if (filters.location) params.set('city', filters.location)
+      if (filters.community) params.set('community', filters.community)
+      if (filters.type) params.set('type', filters.type)
+      if (filters.minPrice) params.set('minPrice', filters.minPrice)
+      if (filters.maxPrice) params.set('maxPrice', filters.maxPrice)
+      if (filters.bedrooms) params.set('bedrooms', filters.bedrooms)
+      if (filters.bathrooms) params.set('bathrooms', filters.bathrooms)
+      params.set('purpose', purpose)
+
+      const res = await fetch(`/api/properties/reelly?${params.toString()}`)
+      if (!res.ok) {
+        const text = await res.text().catch(() => '')
+        throw new Error(text || `Failed to fetch properties: ${res.status}`)
+      }
+
+      const json = (await res.json()) as { items: unknown[] }
+
+      if (!json?.items || !Array.isArray(json.items)) {
+        setProperties([])
+        setApiError('Property feed is unavailable right now.')
+        return
+      }
+
+      // Best-effort mapping (keeps architecture: no DB persistence).
+      // If fields differ, UI will still work due to fallback images/prices.
+      const mapped = json.items
+        .map((item: any) => {
+          const externalId = String(item?.id ?? item?.project_id ?? item?.external_id ?? '')
+          if (!externalId) return null
+
+          const title = String(item?.title ?? item?.name ?? 'Property')
+          const city = String(item?.city ?? item?.location?.city ?? filters.location ?? '')
+          const community = String(item?.community ?? item?.location?.community ?? '')
+          const propertyType = String(item?.type ?? item?.property_type ?? 'Apartment')
+
+          const price = Number(item?.price ?? item?.min_price ?? item?.starting_price ?? item?.price_from ?? 0)
+          const bedrooms = Number(item?.beds ?? item?.bedrooms ?? 0)
+          const bathrooms = Number(item?.baths ?? item?.bathrooms ?? 0)
+          const squareFeet = Number(item?.area ?? item?.size ?? item?.square_feet ?? 0)
+
+          const images: string[] = Array.isArray(item?.images)
+            ? item.images
+            : Array.isArray(item?.gallery)
+              ? item.gallery
+              : item?.cover_image
+                ? [String(item.cover_image)]
+                : []
+
+          return {
+            id: externalId,
+            country: filters.country === 'India' ? 'India' : 'UAE',
+            title,
+            location: community ? `${city} · ${community}` : city,
+            price: Number.isFinite(price) ? price : 0,
+            bedrooms: Number.isFinite(bedrooms) ? bedrooms : 0,
+            bathrooms: Number.isFinite(bathrooms) ? bathrooms : 0,
+            squareFeet: Number.isFinite(squareFeet) ? squareFeet : 0,
+            images,
+            featured: Boolean(item?.featured ?? false),
+            propertyType,
+          } satisfies Property
+        })
+        .filter(Boolean) as Property[]
+
+      setProperties(mapped)
+      if (mapped.length === 0) {
+        setApiError('No properties found for the selected filters.')
+      }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Failed to fetch properties.'
+      setProperties([])
+      setApiError(message)
     } finally {
       setLoading(false)
     }
-  }, [filters.country])
+  }, [filters.bathrooms, filters.bedrooms, filters.community, filters.country, filters.location, filters.maxPrice, filters.minPrice, filters.type, purpose])
 
   useEffect(() => {
     fetchProperties()
@@ -1171,7 +1249,11 @@ export default function PropertiesClient() {
           </div>
         )}
 
-        {loading ? (
+        {apiError ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600">{apiError}</p>
+          </div>
+        ) : loading ? (
           <div className="text-center py-12">
             <p className="text-gray-600">Loading properties...</p>
           </div>
