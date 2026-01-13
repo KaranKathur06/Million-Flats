@@ -6,8 +6,8 @@ type CacheEntry<T> = {
 }
 
 function getEnv() {
-  const baseUrl = process.env.REELLY_API_BASE_URL
-  const apiKey = process.env.REELLY_API_KEY
+  const baseUrl = process.env.REELLY_API_BASE_URL?.trim()
+  const apiKey = process.env.REELLY_API_KEY?.trim()
 
   if (!baseUrl) {
     throw new Error('Missing REELLY_API_BASE_URL')
