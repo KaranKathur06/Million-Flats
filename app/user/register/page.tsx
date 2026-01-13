@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { signIn } from 'next-auth/react'
 import AuthLayout from '@/components/AuthLayout'
 
 export default function UserRegisterPage() {
@@ -62,8 +63,7 @@ export default function UserRegisterPage() {
   }
 
   const handleGoogleSignup = () => {
-    // Google OAuth integration would go here
-    window.location.href = '/api/auth/google?type=user&redirectTo=/user/dashboard'
+    signIn('google', { callbackUrl: '/user/dashboard' })
   }
 
   return (

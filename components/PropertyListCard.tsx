@@ -66,9 +66,11 @@ export default function PropertyListCard({ property }: { property: Property }) {
     return shuffleWithSeed(imgs, `${property.id}:${sessionSeed}`)
   }, [baseImages, property.id, sessionSeed])
 
-  const mainImage = resolvedImages?.[0] || 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1200&q=80'
+  const mainImage = resolvedImages?.[0] || '/image-placeholder.svg'
+  const unoptimizedMain = mainImage.startsWith('http')
 
   const thumbs = (resolvedImages || []).slice(1, 4)
+  const unoptimizedThumbs = thumbs.map((src) => src.startsWith('http'))
 
   const phone = property.agent?.phone || ''
   const whatsappNumber = phone.replace(/[^\d]/g, '')
@@ -78,7 +80,14 @@ export default function PropertyListCard({ property }: { property: Property }) {
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
       <div className="md:hidden">
         <div className="relative aspect-[16/9]">
-          <Image src={mainImage} alt={property.title} fill className="object-cover" sizes="100vw" />
+          <Image
+            src={mainImage}
+            alt={property.title}
+            fill
+            className="object-cover"
+            sizes="100vw"
+            unoptimized={mainImage.startsWith('http')}
+          />
           {property.featured && (
             <div className="absolute top-3 left-3 bg-accent-yellow text-dark-blue px-3 py-1 rounded-full text-xs font-semibold">
               Featured
@@ -139,7 +148,14 @@ export default function PropertyListCard({ property }: { property: Property }) {
       <div className="hidden md:grid grid-cols-1 lg:grid-cols-12">
         <div className="lg:col-span-5">
           <div className="relative h-72 lg:h-full min-h-[280px]">
-            <Image src={mainImage} alt={property.title} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 40vw" />
+            <Image
+              src={mainImage}
+              alt={property.title}
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 40vw"
+              unoptimized={unoptimizedMain}
+            />
             {property.featured && (
               <div className="absolute top-4 left-4 bg-accent-yellow text-dark-blue px-3 py-1 rounded-full text-xs font-semibold">
                 Featured
@@ -150,7 +166,14 @@ export default function PropertyListCard({ property }: { property: Property }) {
             <div className="grid grid-cols-3 gap-2 p-3 bg-gray-50 border-t border-gray-200">
               {thumbs.map((src, idx) => (
                 <div key={idx} className="relative h-20 rounded-lg overflow-hidden">
-                  <Image src={src} alt={property.title} fill className="object-cover" sizes="120px" />
+                  <Image
+                    src={src}
+                    alt={property.title}
+                    fill
+                    className="object-cover"
+                    sizes="120px"
+                    unoptimized={unoptimizedThumbs[idx]}
+                  />
                 </div>
               ))}
             </div>

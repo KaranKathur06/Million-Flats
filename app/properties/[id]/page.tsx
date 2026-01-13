@@ -1,13 +1,30 @@
 import { notFound } from 'next/navigation'
+import { headers } from 'next/headers'
 import PropertyGallery from '@/components/PropertyGallery'
 import AgentCard from '@/components/AgentCard'
 import { formatCountryPrice } from '@/lib/country'
-import { reellyGetProject } from '@/lib/reelly'
 
 export default async function PropertyDetailPage({ params }: { params: { id: string } }) {
   let item: any
   try {
-    item = await reellyGetProject<any>(params.id)
+    const h = headers()
+    const host = h.get('host')
+    const proto = h.get('x-forwarded-proto') || 'http'
+    if (!host) {
+      notFound()
+    }
+
+    const url = `${proto}://${host}/api/properties/${encodeURIComponent(params.id)}`
+    const res = await fetch(url, { cache: 'no-store' })
+    if (!res.ok) {
+      notFound()
+    }
+
+    const json = (await res.json()) as { item?: any }
+    item = json?.item
+    if (!item) {
+      notFound()
+    }
   } catch {
     notFound()
   }

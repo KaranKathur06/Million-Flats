@@ -1,6 +1,7 @@
 import NextAuth, { type NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import CredentialsProvider from 'next-auth/providers/credentials'
+import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 
@@ -11,6 +12,25 @@ function requireEnv(name: string) {
 }
 
 export const authOptions: NextAuthOptions = {
+  adapter: {
+    ...PrismaAdapter(prisma),
+    async createUser(data: any) {
+      const email = typeof data?.email === 'string' ? data.email.trim().toLowerCase() : ''
+      if (!email) {
+        return prisma.user.create({ data }) as any
+      }
+
+      const existing = await prisma.user.findUnique({ where: { email } })
+      if (existing) return existing as any
+
+      return prisma.user.create({ data: { ...data, email } }) as any
+    },
+    async getUserByEmail(email: string) {
+      const normalized = (email || '').trim().toLowerCase()
+      if (!normalized) return null
+      return (await prisma.user.findUnique({ where: { email: normalized } })) as any
+    },
+  } as any,
   secret: requireEnv('NEXTAUTH_SECRET'),
   session: {
     strategy: 'jwt',
@@ -73,7 +93,8 @@ export const authOptions: NextAuthOptions = {
             googleId: existing.googleId || googleId,
             verified: true,
             name: existing.name || (user?.name ?? null),
-          },
+            emailVerified: new Date(),
+          } as any,
         })
 
         ;(user as any).id = existing.id
@@ -81,18 +102,19 @@ export const authOptions: NextAuthOptions = {
         return true
       }
 
-      const created = await prisma.user.create({
-        data: {
-          email,
-          googleId,
-          verified: true,
-          name: user?.name ?? null,
-          role: 'USER',
-        },
-      })
-
-      ;(user as any).id = created.id
-      ;(user as any).role = created.role
+      const createdId = (user as any)?.id
+      if (createdId) {
+        const updated = await prisma.user.update({
+          where: { id: createdId },
+          data: {
+            googleId,
+            verified: true,
+            emailVerified: new Date(),
+            name: user?.name ?? null,
+          } as any,
+        })
+        ;(user as any).role = updated.role
+      }
       return true
     },
     async jwt({ token, user }: any) {

@@ -4,6 +4,9 @@ import HeroSearch from '@/components/HeroSearch'
 import FeaturedProperties from '@/components/FeaturedProperties'
 import WhyMillionflats from '@/components/WhyMillionflats'
 import FeaturedLocations from '@/components/FeaturedLocations'
+import FeaturedAgencies from '@/components/FeaturedAgencies'
+import FeaturedDevelopers from '@/components/FeaturedDevelopers'
+import FeaturedAgents from '@/components/FeaturedAgents'
 
 export default function Home() {
   return (
@@ -46,6 +49,12 @@ export default function Home() {
 
       {/* Featured Locations */}
       <FeaturedLocations />
+
+      <FeaturedAgencies />
+
+      <FeaturedDevelopers />
+
+      <FeaturedAgents />
 
       {/* CTA Section */}
       <section className="bg-dark-blue py-20">

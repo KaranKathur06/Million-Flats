@@ -15,16 +15,26 @@ export const UAE_CITIES = [
 ] as const
 
 export const INDIA_CITIES = [
-  'Mumbai',
-  'Delhi NCR',
   'Bangalore',
+  'Pune',
   'Hyderabad',
   'Chennai',
-  'Pune',
-  'Kolkata',
+  'Mumbai',
   'Ahmedabad',
   'Gurgaon',
   'Noida',
+  'Kochi',
+  'Trivandrum',
+  'Coimbatore',
+  'Rajkot',
+  'Surat',
+  'Vadodara',
+  'Indore',
+  'Jaipur',
+  'Lucknow',
+  'Chandigarh',
+  'Kolkata',
+  'Nagpur',
 ] as const
 
 export const CITIES_BY_COUNTRY: Record<CountryCode, readonly string[]> = {

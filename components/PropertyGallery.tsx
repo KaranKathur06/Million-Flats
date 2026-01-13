@@ -13,7 +13,7 @@ export default function PropertyGallery({ images, title }: PropertyGalleryProps)
   const [touchStartX, setTouchStartX] = useState<number | null>(null)
 
   if (!images || images.length === 0) {
-    images = ['https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1200&q=80']
+    images = ['/image-placeholder.svg']
   }
 
   return (
@@ -43,6 +43,7 @@ export default function PropertyGallery({ images, title }: PropertyGalleryProps)
         fill
         className="object-cover"
         sizes="100vw"
+        unoptimized={(images[selectedImage] || images[0]).startsWith('http')}
       />
       {images.length > 1 && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">

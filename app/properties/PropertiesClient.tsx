@@ -288,9 +288,6 @@ export default function PropertiesClient() {
     try {
       const params = new URLSearchParams()
 
-      // IMPORTANT: Partner API is source of truth. We still keep existing client-side
-      // filtering/sorting logic as a fallback and for UI consistency.
-      // Map UI -> proxy query.
       params.set('country', filters.country)
       if (filters.location) params.set('city', filters.location)
       if (filters.community) params.set('community', filters.community)
@@ -301,7 +298,7 @@ export default function PropertiesClient() {
       if (filters.bathrooms) params.set('bathrooms', filters.bathrooms)
       params.set('purpose', purpose)
 
-      const res = await fetch(`/api/properties/reelly?${params.toString()}`)
+      const res = await fetch(`/api/properties?${params.toString()}`)
       if (!res.ok) {
         const text = await res.text().catch(() => '')
         throw new Error(text || `Failed to fetch properties: ${res.status}`)

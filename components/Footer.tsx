@@ -18,23 +18,43 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* Quick Links */}
+          {/* Ecosystem Partners */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Quick Links</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">Ecosystem Partners</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
-                  Home
+                <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                  Home Loans &amp; Finance
                 </Link>
               </li>
               <li>
-                <Link href="/properties" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
-                  Properties
+                <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                  Legal &amp; Documentation
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
-                  About
+                <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                  Property Insurance
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                  Interior Design &amp; Renovation
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                  Packers &amp; Movers
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                  Property Management
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                  Vastu / Feng Shui Consultants
                 </Link>
               </li>
             </ul>

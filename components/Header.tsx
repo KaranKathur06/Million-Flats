@@ -9,6 +9,11 @@ export default function Header() {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
 
+  const isActive = (href: string) => {
+    if (href === '/') return pathname === '/'
+    return pathname === href || pathname.startsWith(`${href}/`)
+  }
+
   useEffect(() => {
     if (!mobileOpen) return
     const onKeyDown = (e: KeyboardEvent) => {
@@ -40,7 +45,7 @@ export default function Header() {
             <Link
               href="/"
               className={`text-sm font-medium transition-colors ${
-                pathname === '/' ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+                isActive('/') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
               }`}
             >
               Home
@@ -48,15 +53,63 @@ export default function Header() {
             <Link
               href="/properties"
               className={`text-sm font-medium transition-colors ${
-                pathname === '/properties' ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+                isActive('/properties') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
               }`}
             >
               Properties
             </Link>
             <Link
+              href="/sell"
+              className={`text-sm font-medium transition-colors ${
+                isActive('/sell') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+              }`}
+            >
+              Sell
+            </Link>
+            <Link
+              href="/buy"
+              className={`text-sm font-medium transition-colors ${
+                isActive('/buy') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+              }`}
+            >
+              Buy
+            </Link>
+            <Link
+              href="/rent"
+              className={`text-sm font-medium transition-colors ${
+                isActive('/rent') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+              }`}
+            >
+              Rent
+            </Link>
+            <Link
+              href="/market-analysis"
+              className={`text-sm font-medium transition-colors ${
+                isActive('/market-analysis') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+              }`}
+            >
+              Market Analysis
+            </Link>
+            <Link
+              href="/explore-3d"
+              className={`text-sm font-medium transition-colors ${
+                isActive('/explore-3d') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+              }`}
+            >
+              Explore in 3D
+            </Link>
+            <Link
+              href="/tokenized"
+              className={`text-sm font-medium transition-colors ${
+                isActive('/tokenized') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+              }`}
+            >
+              Tokenized
+            </Link>
+            <Link
               href="/about"
               className={`text-sm font-medium transition-colors ${
-                pathname === '/about' ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+                isActive('/about') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
               }`}
             >
               About
@@ -64,7 +117,7 @@ export default function Header() {
             <Link
               href="/contact"
               className={`text-sm font-medium transition-colors ${
-                pathname === '/contact' ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+                isActive('/contact') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
               }`}
             >
               Contact
@@ -129,7 +182,7 @@ export default function Header() {
             <Link
               href="/"
               className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                pathname === '/' ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+                isActive('/') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
               }`}
               onClick={() => setMobileOpen(false)}
             >
@@ -138,16 +191,70 @@ export default function Header() {
             <Link
               href="/properties"
               className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                pathname === '/properties' ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+                isActive('/properties') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
               }`}
               onClick={() => setMobileOpen(false)}
             >
               Properties
             </Link>
             <Link
+              href="/sell"
+              className={`block px-4 py-3 rounded-xl text-sm font-medium ${
+                isActive('/sell') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+              }`}
+              onClick={() => setMobileOpen(false)}
+            >
+              Sell
+            </Link>
+            <Link
+              href="/buy"
+              className={`block px-4 py-3 rounded-xl text-sm font-medium ${
+                isActive('/buy') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+              }`}
+              onClick={() => setMobileOpen(false)}
+            >
+              Buy
+            </Link>
+            <Link
+              href="/rent"
+              className={`block px-4 py-3 rounded-xl text-sm font-medium ${
+                isActive('/rent') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+              }`}
+              onClick={() => setMobileOpen(false)}
+            >
+              Rent
+            </Link>
+            <Link
+              href="/market-analysis"
+              className={`block px-4 py-3 rounded-xl text-sm font-medium ${
+                isActive('/market-analysis') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+              }`}
+              onClick={() => setMobileOpen(false)}
+            >
+              Market Analysis
+            </Link>
+            <Link
+              href="/explore-3d"
+              className={`block px-4 py-3 rounded-xl text-sm font-medium ${
+                isActive('/explore-3d') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+              }`}
+              onClick={() => setMobileOpen(false)}
+            >
+              Explore in 3D
+            </Link>
+            <Link
+              href="/tokenized"
+              className={`block px-4 py-3 rounded-xl text-sm font-medium ${
+                isActive('/tokenized') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+              }`}
+              onClick={() => setMobileOpen(false)}
+            >
+              Tokenized
+            </Link>
+            <Link
               href="/about"
               className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                pathname === '/about' ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+                isActive('/about') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
               }`}
               onClick={() => setMobileOpen(false)}
             >
@@ -156,7 +263,7 @@ export default function Header() {
             <Link
               href="/contact"
               className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                pathname === '/contact' ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+                isActive('/contact') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
               }`}
               onClick={() => setMobileOpen(false)}
             >

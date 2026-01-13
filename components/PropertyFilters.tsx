@@ -69,6 +69,14 @@ export default function PropertyFilters({ filters, onFilterChange }: PropertyFil
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  useEffect(() => {
+    setIsOpen(false)
+    setLocationSearch('')
+    if (filters.location) {
+      onFilterChange({ location: '' })
+    }
+  }, [filters.country])
+
   const filteredCities = cities.filter(city => city.toLowerCase().includes(locationSearch.toLowerCase()))
 
   const handlePriceChange = (type: 'min' | 'max', value: string) => {

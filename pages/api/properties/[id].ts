@@ -1,9 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { mockProperties, Property } from '@/lib/mockData'
+import { reellyGetProject } from '@/lib/reelly'
 
-export default function handler(
+export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<Property | { error: string }>
+  res: NextApiResponse<any>
 ) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -11,16 +11,17 @@ export default function handler(
 
   try {
     const { id } = req.query
-    const property = mockProperties.find(p => p.id === id)
-
-    if (!property) {
-      return res.status(404).json({ error: 'Property not found' })
+    const pid = typeof id === 'string' ? id : Array.isArray(id) ? id[0] : ''
+    if (!pid) {
+      return res.status(400).json({ error: 'missing_id' })
     }
 
-    res.status(200).json(property)
+    const item = await reellyGetProject<any>(pid)
+    return res.status(200).json({ item, raw: item })
   } catch (error) {
     console.error('Error fetching property:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    const message = error instanceof Error ? error.message : 'Internal server error'
+    return res.status(502).json({ error: 'reelly_failed', message })
   }
 }
 

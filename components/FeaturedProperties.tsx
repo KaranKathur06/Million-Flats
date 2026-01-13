@@ -15,7 +15,7 @@ export default function FeaturedProperties() {
     const params = new URLSearchParams()
     params.set('country', country === 'India' ? 'India' : 'UAE')
     params.set('limit', '4')
-    fetch(`/api/properties/reelly?${params.toString()}`)
+    fetch(`/api/properties?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
         const items = Array.isArray(data?.items) ? data.items : []
@@ -68,6 +68,9 @@ export default function FeaturedProperties() {
               seed: property.id,
             })
 
+            const mainImage = images[0] || '/image-placeholder.svg'
+            const unoptimized = mainImage.startsWith('http')
+
             return (
               <Link
                 key={property.id}
@@ -76,11 +79,12 @@ export default function FeaturedProperties() {
               >
                 <div className="relative h-64">
                   <Image
-                    src={images[0] || 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&q=80'}
+                    src={mainImage}
                     alt={property.title}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                    unoptimized={unoptimized}
                   />
                   {property.featured && (
                     <div className="absolute top-4 right-4 bg-accent-yellow text-dark-blue px-3 py-1 rounded-full text-xs font-semibold">
