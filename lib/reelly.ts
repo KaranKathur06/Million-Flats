@@ -46,28 +46,33 @@ export async function reellyFetch<T>(
   const { apiKey } = getEnv()
 
   const ttl = options.cacheTtlMs ?? 0
+  const cached = ttl > 0 ? (cacheStore.get(url) as CacheEntry<T> | undefined) : undefined
   if (ttl > 0) {
-    const hit = cacheStore.get(url) as CacheEntry<T> | undefined
-    if (hit && hit.expiresAt > Date.now()) {
-      return hit.value
+    if (cached && cached.expiresAt > Date.now()) return cached.value
+  }
+
+  let data: T
+  try {
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'X-API-Key': apiKey,
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    })
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      throw new Error(`Reelly API error: ${res.status} ${body}`)
     }
+
+    data = (await res.json()) as T
+  } catch (e) {
+    if (cached) return cached.value
+    throw e
   }
-
-  const res = await fetch(url, {
-    headers: {
-      'X-API-Key': apiKey,
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
-    cache: 'no-store',
-  })
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    throw new Error(`Reelly API error: ${res.status} ${body}`)
-  }
-
-  const data = (await res.json()) as T
 
   if (ttl > 0) {
     cacheStore.set(url, { expiresAt: Date.now() + ttl, value: data })

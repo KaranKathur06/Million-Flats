@@ -1,47 +1,89 @@
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 
-const locations = [
-  { name: 'Dubai', properties: 324, image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80' },
-  { name: 'Abu Dhabi', properties: 278, image: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=800&q=80' },
-  { name: 'Sharjah', properties: 156, image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&q=80' },
-  { name: 'Ajman', properties: 89, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&q=80' },
-]
+type ApiResponse = { items?: any[] }
+
+function safeString(v: unknown) {
+  return typeof v === 'string' ? v : ''
+}
+
+function normalize(v: string) {
+  return v.trim().toLowerCase()
+}
 
 export default function FeaturedLocations() {
+  const [projects, setProjects] = useState<any[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/properties', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((data: ApiResponse) => {
+        if (cancelled) return
+        setProjects(Array.isArray(data?.items) ? data.items : [])
+      })
+      .catch(() => {
+        if (cancelled) return
+        setProjects([])
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const locations = useMemo(() => {
+    const map = new Map<string, { region: string; community: string; count: number }>()
+    for (const p of projects) {
+      const region = safeString(p?.location?.region)
+      const community = safeString(p?.location?.district)
+      if (!region || !community) continue
+      const key = `${normalize(region)}__${normalize(community)}`
+      const prev = map.get(key)
+      if (prev) prev.count += 1
+      else map.set(key, { region, community, count: 1 })
+    }
+
+    return Array.from(map.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8)
+  }, [projects])
+
   return (
     <section className="py-20 bg-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <p className="text-accent-orange font-semibold text-sm uppercase tracking-wider mb-2">
-            UAE MARKETS
-          </p>
-          <h2 className="text-4xl md:text-5xl font-serif font-bold text-dark-blue mb-4">
-            Featured Locations
-          </h2>
+          <p className="text-accent-orange font-semibold text-sm uppercase tracking-wider mb-2">MARKETS</p>
+          <h2 className="text-4xl md:text-5xl font-serif font-bold text-dark-blue mb-4">Featured Locations</h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Explore luxury real estate across the United Arab Emirates.
+            Explore real estate opportunities across regions and communities.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {locations.map((location) => (
+          {locations.map((loc) => (
             <Link
-              key={location.name}
-              href={`/properties?location=${location.name}`}
+              key={`${loc.region}-${loc.community}`}
+              href={`/properties?region=${encodeURIComponent(loc.region)}&community=${encodeURIComponent(loc.community)}`}
               className="relative h-64 rounded-lg overflow-hidden group"
             >
               <Image
-                src={location.image}
-                alt={location.name}
+                src="/image-placeholder.svg"
+                alt={`${loc.community}, ${loc.region}`}
                 fill
                 className="object-cover group-hover:scale-110 transition-transform duration-300"
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                unoptimized
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
               <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                <h3 className="text-2xl font-bold mb-1">{location.name}</h3>
-                <p className="text-white/90">{location.properties} properties available</p>
+                <h3 className="text-2xl font-bold mb-1">{loc.community}</h3>
+                <p className="text-white/90">
+                  {loc.region} • {loc.count} projects
+                </p>
               </div>
             </Link>
           ))}

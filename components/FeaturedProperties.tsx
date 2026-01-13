@@ -5,7 +5,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useCountry } from '@/components/CountryProvider'
 import { formatCountryPrice } from '@/lib/country'
-import { resolvePropertyImages } from '@/lib/propertyImages'
 
 export default function FeaturedProperties() {
   const [properties, setProperties] = useState<any[]>([])
@@ -21,22 +20,24 @@ export default function FeaturedProperties() {
         const items = Array.isArray(data?.items) ? data.items : []
         const mapped = items
           .map((item: any) => {
-            const id = String(item?.id ?? item?.project_id ?? item?.external_id ?? '')
+            const id = String(item?.id ?? '')
             if (!id) return null
+
+            const region = String(item?.location?.region ?? '')
+            const district = String(item?.location?.district ?? '')
+            const location = [district, region].filter(Boolean).join(', ')
+
+            const minPrice = Number(item?.min_price ?? 0)
+            const displayPrice = Number.isFinite(minPrice) ? minPrice : 0
+
             return {
               id,
-              title: String(item?.title ?? item?.name ?? 'Property'),
-              location: String(item?.community ?? item?.location?.community ?? item?.city ?? item?.location?.city ?? ''),
-              price: Number(item?.price ?? item?.min_price ?? item?.starting_price ?? item?.price_from ?? 0),
-              images: Array.isArray(item?.images)
-                ? item.images
-                : Array.isArray(item?.gallery)
-                  ? item.gallery
-                  : item?.cover_image
-                    ? [String(item.cover_image)]
-                    : [],
-              featured: Boolean(item?.featured ?? false),
-              propertyType: String(item?.type ?? item?.property_type ?? 'Apartment'),
+              title: String(item?.name ?? 'Project'),
+              developer: String(item?.developer ?? ''),
+              location,
+              price: displayPrice,
+              priceOnRequest: displayPrice <= 0,
+              coverImage: String(item?.cover_image?.url ?? ''),
             }
           })
           .filter(Boolean)
@@ -62,13 +63,7 @@ export default function FeaturedProperties() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {properties.map((property: any) => {
-            const images = resolvePropertyImages({
-              propertyType: property.propertyType || 'Apartment',
-              images: property.images,
-              seed: property.id,
-            })
-
-            const mainImage = images[0] || '/image-placeholder.svg'
+            const mainImage = property.coverImage || '/image-placeholder.svg'
             const unoptimized = mainImage.startsWith('http')
 
             return (
@@ -86,16 +81,14 @@ export default function FeaturedProperties() {
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                     unoptimized={unoptimized}
                   />
-                  {property.featured && (
-                    <div className="absolute top-4 right-4 bg-accent-yellow text-dark-blue px-3 py-1 rounded-full text-xs font-semibold">
-                      Featured
-                    </div>
-                  )}
                 </div>
                 <div className="p-6">
                   <h3 className="text-xl font-semibold text-dark-blue mb-2">{property.title}</h3>
+                  {property.developer ? <p className="text-sm text-gray-600 mb-1">{property.developer}</p> : null}
                   <p className="text-gray-600 mb-4">{property.location}</p>
-                  <p className="text-2xl font-bold text-dark-blue">{formatCountryPrice(country, property.price)}</p>
+                  <p className="text-2xl font-bold text-dark-blue">
+                    {property.priceOnRequest ? 'Price on request' : `From ${formatCountryPrice(country, property.price)}`}
+                  </p>
                 </div>
               </Link>
             )

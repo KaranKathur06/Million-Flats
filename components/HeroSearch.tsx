@@ -1,34 +1,145 @@
- 'use client'
+'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useCountry } from '@/components/CountryProvider'
-import { CITIES_BY_COUNTRY, COUNTRY_META, type CountryCode } from '@/lib/country'
+import SelectDropdown from '@/components/SelectDropdown'
+import { uiPriceToAed, type CountryCode } from '@/lib/country'
+
+type ApiResponse = { items?: any[] }
+
+function safeString(v: unknown) {
+  return typeof v === 'string' ? v : ''
+}
+
+function normalize(v: string) {
+  return v.trim().toLowerCase()
+}
 
 export default function HeroSearch() {
   const router = useRouter()
-  const { country, setCountry } = useCountry()
-  const [city, setCity] = useState('')
-  const [propertyType, setPropertyType] = useState('')
+
+  const [projects, setProjects] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const [region, setRegion] = useState('')
+  const [community, setCommunity] = useState('')
+  const [area, setArea] = useState('')
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
 
-  const cities = useMemo(() => CITIES_BY_COUNTRY[country], [country])
-  const countryMeta = COUNTRY_META[country]
-
   useEffect(() => {
-    setCity('')
-  }, [country])
+    let cancelled = false
+
+    const cacheKey = 'mf_projects_cache_v1'
+
+    try {
+      const raw = sessionStorage.getItem(cacheKey)
+      if (raw) {
+        const parsed = JSON.parse(raw) as unknown
+        const items = Array.isArray(parsed) ? parsed : []
+        if (items.length > 0) {
+          setProjects(items)
+          setLoading(false)
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    const load = async (attempt: number) => {
+      try {
+        const res = await fetch('/api/properties?limit=250', { cache: 'no-store' })
+        if (!res.ok) throw new Error(String(res.status))
+        const data = (await res.json()) as ApiResponse
+        const items = Array.isArray(data?.items) ? data.items : []
+        if (cancelled) return
+        setProjects(items)
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify(items))
+        } catch {
+          // ignore
+        }
+      } catch {
+        if (cancelled) return
+        if (attempt < 2) {
+          window.setTimeout(() => {
+            if (!cancelled) void load(attempt + 1)
+          }, 600 * (attempt + 1))
+          return
+        }
+      } finally {
+        if (cancelled) return
+        setLoading(false)
+      }
+    }
+
+    setLoading((prev) => prev && projects.length === 0)
+    void load(0)
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const regionOptions = useMemo(() => {
+    const set = new Set<string>()
+    for (const p of projects) {
+      const r = safeString(p?.location?.region)
+      if (r) set.add(r)
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [projects])
+
+  const effectiveRegionOptions = useMemo(() => {
+    if (regionOptions.length > 0) return regionOptions
+    return ['Dubai', 'India']
+  }, [regionOptions])
+
+  const communityOptions = useMemo(() => {
+    const set = new Set<string>()
+    for (const p of projects) {
+      const r = safeString(p?.location?.region)
+      const d = safeString(p?.location?.district)
+      if (!d) continue
+      if (!region || normalize(r) === normalize(region)) set.add(d)
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [projects, region])
+
+  const areaOptions = useMemo(() => {
+    const set = new Set<string>()
+    for (const p of projects) {
+      const r = safeString(p?.location?.region)
+      const d = safeString(p?.location?.district)
+      const s = safeString(p?.location?.sector)
+      if (!s) continue
+      const regionOk = !region || normalize(r) === normalize(region)
+      const districtOk = !community || normalize(d) === normalize(community)
+      if (regionOk && districtOk) set.add(s)
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [projects, region, community])
+
+  const currencyCountry: CountryCode = normalize(region) === 'india' ? 'India' : 'UAE'
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     const params = new URLSearchParams()
-    params.set('country', country)
-    if (city) params.set('location', city)
-    if (propertyType) params.set('type', propertyType)
-    if (minPrice) params.set('minPrice', minPrice)
-    if (maxPrice) params.set('maxPrice', maxPrice)
-    router.push(`/properties?${params.toString()}`)
+
+    if (region) params.set('region', region)
+    if (community) params.set('community', community)
+    if (area) params.set('area', area)
+
+    if (minPrice) {
+      const n = Number(minPrice)
+      if (Number.isFinite(n) && n > 0) params.set('minPrice', String(uiPriceToAed(currencyCountry, n)))
+    }
+    if (maxPrice) {
+      const n = Number(maxPrice)
+      if (Number.isFinite(n) && n > 0) params.set('maxPrice', String(uiPriceToAed(currencyCountry, n)))
+    }
+
+    router.push(`/properties${params.toString() ? `?${params.toString()}` : ''}`)
   }
 
   return (
@@ -38,129 +149,73 @@ export default function HeroSearch() {
     >
       <div className="grid grid-cols-1 md:grid-cols-6 gap-3 md:gap-5 items-stretch">
         <div className="md:col-span-1">
-          <div className="relative">
-            <select
-              value={country}
-              onChange={(e) => setCountry(e.target.value as CountryCode)}
-              className="mf-select peer w-full h-12 md:h-14 pt-5 pb-2 px-4 pr-11 rounded-xl bg-white/10 text-white border border-white/15 md:border-white/10 cursor-pointer hover:bg-white/15 hover:border-white/25 focus:outline-none"
-            >
-              <option value="UAE" className="text-gray-900">UAE</option>
-              <option value="India" className="text-gray-900">India</option>
-            </select>
-            <svg
-              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/70"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-            <label className="pointer-events-none absolute left-4 top-2 text-[11px] font-medium text-white/70">
-              Country
-            </label>
-          </div>
+          <SelectDropdown
+            variant="dark"
+            label="Region"
+            value={region}
+            onChange={(v) => {
+              setRegion(v)
+              setCommunity('')
+              setArea('')
+            }}
+            options={[{ value: '', label: 'All Regions' }, ...effectiveRegionOptions.map((r) => ({ value: r }))]}
+            disabled={loading && projects.length === 0}
+          />
         </div>
 
         <div className="md:col-span-1">
-          <div className="relative">
-            <select
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              className="mf-select peer w-full h-12 md:h-14 pt-5 pb-2 px-4 pr-11 rounded-xl bg-white/10 text-white border border-white/15 md:border-white/10 cursor-pointer hover:bg-white/15 hover:border-white/25 focus:outline-none"
-            >
-              <option value="" className="text-gray-900">Select City</option>
-              {cities.map((c) => (
-                <option key={c} value={c} className="text-gray-900">{c}</option>
-              ))}
-            </select>
-            <svg
-              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/70"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-            <label className="pointer-events-none absolute left-4 top-2 text-[11px] font-medium text-white/70">
-              City
-            </label>
-          </div>
+          <SelectDropdown
+            variant="dark"
+            label="Community"
+            value={community}
+            onChange={(v) => {
+              setCommunity(v)
+              setArea('')
+            }}
+            options={[{ value: '', label: 'All Communities' }, ...communityOptions.map((d) => ({ value: d }))]}
+            disabled={(loading && projects.length === 0) || communityOptions.length === 0}
+          />
         </div>
 
         <div className="md:col-span-1">
-          <div className="relative">
-            <select
-              value={propertyType}
-              onChange={(e) => setPropertyType(e.target.value)}
-              className="mf-select peer w-full h-12 md:h-14 pt-5 pb-2 px-4 pr-11 rounded-xl bg-white/10 text-white border border-white/15 md:border-white/10 cursor-pointer hover:bg-white/15 hover:border-white/25 focus:outline-none"
-            >
-              <option value="" className="text-gray-900">All Types</option>
-              <option value="Apartment" className="text-gray-900">Apartment</option>
-              <option value="Villa" className="text-gray-900">Villa</option>
-              <option value="Penthouse" className="text-gray-900">Penthouse</option>
-              <option value="Townhouse" className="text-gray-900">Townhouse</option>
-              <option value="Plot" className="text-gray-900">Plot</option>
-              <option value="Commercial" className="text-gray-900">Commercial</option>
-            </select>
-            <svg
-              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/70"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-            <label className="pointer-events-none absolute left-4 top-2 text-[11px] font-medium text-white/70">
-              Property Type
-            </label>
-          </div>
+          <SelectDropdown
+            variant="dark"
+            label="Area"
+            value={area}
+            onChange={setArea}
+            options={[{ value: '', label: 'All Areas' }, ...areaOptions.map((s) => ({ value: s }))]}
+            disabled={(loading && projects.length === 0) || areaOptions.length === 0}
+          />
         </div>
 
         <div className="md:col-span-1">
+          <label className="block text-xs font-semibold text-white/80 mb-1">Min Price ({currencyCountry === 'India' ? '₹' : 'AED'})</label>
           <div className="relative">
             <input
-              type="number"
               inputMode="numeric"
               value={minPrice}
-              onChange={(e) => setMinPrice(e.target.value)}
-              placeholder=" "
-              className="peer w-full h-12 md:h-14 pt-5 pb-2 px-4 rounded-xl bg-white/10 text-white placeholder:text-white/40 border border-white/15 md:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent-yellow/70"
+              onChange={(e) => setMinPrice(e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="Enter amount"
+              className="w-full h-12 md:h-14 px-4 rounded-xl bg-white/10 text-white text-sm font-semibold placeholder:text-white/40 border border-white/15 md:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent-yellow/70"
             />
-            <label
-              className={`pointer-events-none absolute left-4 transition-all ${
-                minPrice
-                  ? 'top-2 text-[11px] font-medium text-white/70'
-                  : 'top-1/2 -translate-y-1/2 text-sm text-white/60'
-              }`}
-            >
-              Min Price ({countryMeta.currencyLabel})
-            </label>
           </div>
         </div>
 
         <div className="md:col-span-1">
+          <label className="block text-xs font-semibold text-white/80 mb-1">Max Price ({currencyCountry === 'India' ? '₹' : 'AED'})</label>
           <div className="relative">
             <input
-              type="number"
               inputMode="numeric"
               value={maxPrice}
-              onChange={(e) => setMaxPrice(e.target.value)}
-              placeholder=" "
-              className="peer w-full h-12 md:h-14 pt-5 pb-2 px-4 rounded-xl bg-white/10 text-white placeholder:text-white/40 border border-white/15 md:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent-yellow/70"
+              onChange={(e) => setMaxPrice(e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="Enter amount"
+              className="w-full h-12 md:h-14 px-4 rounded-xl bg-white/10 text-white text-sm font-semibold placeholder:text-white/40 border border-white/15 md:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent-yellow/70"
             />
-            <label
-              className={`pointer-events-none absolute left-4 transition-all ${
-                maxPrice
-                  ? 'top-2 text-[11px] font-medium text-white/70'
-                  : 'top-1/2 -translate-y-1/2 text-sm text-white/60'
-              }`}
-            >
-              Max Price ({countryMeta.currencyLabel})
-            </label>
           </div>
         </div>
 
-        <div className="md:col-span-1 flex items-stretch">
+        <div className="md:col-span-1 flex flex-col">
+          <div className="block text-xs font-semibold text-white/80 mb-1 opacity-0 select-none">Browse Properties</div>
           <button
             type="submit"
             className="w-full h-12 md:h-14 bg-accent-yellow text-dark-blue rounded-xl font-semibold hover:bg-accent-yellow/90 transition-colors"

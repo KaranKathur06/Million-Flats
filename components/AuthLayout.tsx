@@ -18,6 +18,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
           className="object-cover"
           priority
           sizes="100vw"
+          unoptimized
         />
         <div className="absolute inset-0 bg-gradient-to-br from-dark-blue/90 via-dark-blue/70 to-black/70" />
       </div>
@@ -30,6 +31,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
           fill
           className="object-cover"
           priority
+          unoptimized
         />
         <div className="absolute inset-0 bg-gradient-to-br from-dark-blue/90 via-dark-blue/80 to-dark-blue/90"></div>
         <div className="relative z-10 flex flex-col justify-center p-12 text-white">

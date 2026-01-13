@@ -21,6 +21,7 @@ export default function Home() {
             className="object-cover"
             priority
             sizes="100vw"
+            unoptimized
           />
           <div className="absolute inset-0 bg-black/55 md:bg-black/40"></div>
         </div>

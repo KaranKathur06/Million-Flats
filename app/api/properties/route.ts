@@ -60,23 +60,44 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url)
 
+  const rawLimit = searchParams.get('limit')
+  const rawPage = searchParams.get('page')
+  const rawOffset = searchParams.get('offset')
+
+  const region = searchParams.get('region') || undefined
+  const district = searchParams.get('community') || undefined
+  const sector = searchParams.get('area') || undefined
+  const sale_status = searchParams.get('saleStatus') || undefined
+  const construction_status = searchParams.get('constructionStatus') || undefined
+  const min_price = searchParams.get('minPrice') || undefined
+  const max_price = searchParams.get('maxPrice') || undefined
+
+  const parsedLimit = rawLimit ? Number(rawLimit) : NaN
+  const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? String(Math.min(parsedLimit, 250)) : '50'
+
+  const parsedPage = rawPage ? Number(rawPage) : NaN
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? String(parsedPage) : undefined
+
+  const parsedOffset = rawOffset ? Number(rawOffset) : NaN
+  const offset = Number.isFinite(parsedOffset) && parsedOffset >= 0 ? String(parsedOffset) : undefined
+
   const filters = {
-    country: searchParams.get('country') || undefined,
-    city: searchParams.get('city') || searchParams.get('location') || undefined,
-    community: searchParams.get('community') || undefined,
-    purpose: searchParams.get('purpose') || undefined,
-    type: searchParams.get('type') || undefined,
-    min_price: searchParams.get('minPrice') || undefined,
-    max_price: searchParams.get('maxPrice') || undefined,
-    beds: searchParams.get('beds') || searchParams.get('bedrooms') || undefined,
-    baths: searchParams.get('baths') || searchParams.get('bathrooms') || undefined,
-    limit: searchParams.get('limit') || undefined,
-    offset: searchParams.get('offset') || undefined,
+    limit,
+    page,
+    offset,
+    region,
+    district,
+    sector,
+    sale_status,
+    construction_status,
+    min_price,
+    max_price,
   }
 
   try {
     const data = await reellyListProjects<any>(filters)
     const normalized = normalizeListResponse(data)
+    console.log('Projects fetched:', Array.isArray(normalized.items) ? normalized.items.length : 0)
     return NextResponse.json(normalized)
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Unknown error'

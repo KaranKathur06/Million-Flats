@@ -4,24 +4,44 @@ import Link from 'next/link'
 export default function FeaturedAgents() {
   const agents = [
     {
-      name: 'Ananya Kapoor',
+      name: 'Alex Carter',
       location: 'Mumbai, India',
       photo: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?w=400&q=80',
     },
     {
-      name: 'Omar Hassan',
+      name: 'Sam Jordan',
       location: 'Dubai, UAE',
       photo: 'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?w=400&q=80',
     },
     {
-      name: 'Ishaan Verma',
+      name: 'Jordan Blake',
       location: 'Bangalore, India',
       photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80',
     },
     {
-      name: 'Sara Al Noor',
+      name: 'Taylor Morgan',
       location: 'Abu Dhabi, UAE',
       photo: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&q=80',
+    },
+    {
+      name: 'Casey Reed',
+      location: 'Pune, India',
+      photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&q=80',
+    },
+    {
+      name: 'Morgan Hayes',
+      location: 'Sharjah, UAE',
+      photo: 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?w=400&q=80',
+    },
+    {
+      name: 'Riley Bennett',
+      location: 'Chennai, India',
+      photo: 'https://images.unsplash.com/photo-1528892952291-009c663ce843?w=400&q=80',
+    },
+    {
+      name: 'Avery Quinn',
+      location: 'Dubai, UAE',
+      photo: 'https://images.unsplash.com/photo-1548142813-c348350df52b?w=400&q=80',
     },
   ]
 
@@ -40,7 +60,14 @@ export default function FeaturedAgents() {
           {agents.map((agent) => (
             <div key={agent.name} className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden">
               <div className="relative h-56">
-                <Image src={agent.photo} alt={agent.name} fill className="object-cover" sizes="(max-width: 1024px) 50vw, 25vw" />
+                <Image
+                  src={agent.photo}
+                  alt={agent.name}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 1024px) 50vw, 25vw"
+                  unoptimized
+                />
               </div>
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-dark-blue">{agent.name}</h3>
