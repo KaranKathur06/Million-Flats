@@ -41,12 +41,6 @@ export default function ProjectListCard({ project }: { project: ReellyProject })
   const imageUrl = project.cover_image?.url || '/image-placeholder.svg'
   const unoptimized = imageUrl.startsWith('http')
 
-  const saleBadge = project.sale_status === 'on_sale' ? 'Available' : 'Sold Out'
-  const saleBadgeClass =
-    project.sale_status === 'on_sale'
-      ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-      : 'bg-rose-50 text-rose-700 border-rose-100'
-
   const constructionBadge = project.construction_status === 'completed' ? 'Completed' : 'Under Construction'
 
   const locationLabel = [project.location?.district, project.location?.region].filter(Boolean).join(', ')
@@ -66,10 +60,10 @@ export default function ProjectListCard({ project }: { project: ReellyProject })
           className="object-cover"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           unoptimized={unoptimized}
+          loading="lazy"
         />
 
         <div className="absolute top-3 left-3 flex gap-2">
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${saleBadgeClass}`}>{saleBadge}</span>
           <span className="px-3 py-1 rounded-full text-xs font-semibold border border-gray-200 bg-white text-gray-700">
             {constructionBadge}
           </span>

@@ -6,6 +6,8 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 type Props = {
   total: number
   limit: number
+  page?: number
+  onChange?: (page: number) => void
 }
 
 type Token = number | 'ellipsis'
@@ -40,7 +42,7 @@ function buildTokens(currentPage: number, totalPages: number): Token[] {
   return tokens
 }
 
-export default function Pagination({ total, limit }: Props) {
+export default function Pagination({ total, limit, page: pageProp, onChange }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -48,10 +50,11 @@ export default function Pagination({ total, limit }: Props) {
   const totalPages = Math.max(1, Math.ceil(total / limit))
 
   const page = useMemo(() => {
+    if (typeof pageProp === 'number' && Number.isFinite(pageProp)) return Math.floor(pageProp)
     const raw = searchParams?.get('page') ?? ''
     const n = Number(raw)
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : 1
-  }, [searchParams])
+  }, [pageProp, searchParams])
 
   const safePage = Math.min(Math.max(page, 1), totalPages)
   const tokens = useMemo(() => buildTokens(safePage, totalPages), [safePage, totalPages])
@@ -59,6 +62,10 @@ export default function Pagination({ total, limit }: Props) {
   if (totalPages <= 1) return null
 
   const goToPage = (nextPage: number) => {
+    if (onChange) {
+      onChange(nextPage)
+      return
+    }
     const next = new URLSearchParams(searchParams?.toString() ?? '')
     next.set('page', String(nextPage))
     next.set('limit', String(limit))

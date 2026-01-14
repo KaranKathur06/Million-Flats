@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import ProjectListCard, { type ReellyProject } from '@/components/ProjectListCard'
 import Pagination from '@/components/Pagination'
 import SelectDropdown from '@/components/SelectDropdown'
@@ -10,17 +10,15 @@ type ProjectFilters = {
   region: string
   district: string
   sector: string
-  sale_status: '' | 'on_sale' | 'out_of_stock'
   construction_status: '' | 'completed' | 'under_construction'
   min_price: string
   max_price: string
+  developer: string
 }
 
 type Props = {
-  items: unknown[]
-  total: number
+  seedItems: unknown[]
   apiError: string
-  facetItems: unknown[]
 }
 
 function safeString(v: unknown) {
@@ -53,7 +51,7 @@ function asProject(item: any): ReellyProject | null {
     return null
   }
 
-  if (sale_status !== 'on_sale' && sale_status !== 'out_of_stock') return null
+  if (sale_status !== 'on_sale') return null
   if (construction_status !== 'completed' && construction_status !== 'under_construction') return null
 
   return {
@@ -86,45 +84,41 @@ function hasAnyActiveFilter(f: ProjectFilters) {
     f.region ||
       f.district ||
       f.sector ||
-      f.sale_status ||
       f.construction_status ||
       f.min_price ||
-      f.max_price
+      f.max_price ||
+      f.developer
   )
 }
 
-export default function ProjectsClient({ items, total, apiError, facetItems }: Props) {
-  const router = useRouter()
+function safeInt(v: string | null | undefined, fallback: number) {
+  const n = v ? Number(v) : NaN
+  return Number.isFinite(n) ? Math.floor(n) : fallback
+}
+
+export default function ProjectsClient({ seedItems, apiError }: Props) {
   const pathname = usePathname()
-  const searchParams = useSearchParams()
   const [hasInteracted, setHasInteracted] = useState(false)
 
-  const page = useMemo(() => {
-    const raw = searchParams?.get('page') ?? ''
-    const n = Number(raw)
-    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 1
-  }, [searchParams])
-
-  const limit = useMemo(() => {
-    const raw = searchParams?.get('limit') ?? ''
-    const n = Number(raw)
-    const resolved = Number.isFinite(n) && n > 0 ? Math.floor(n) : 50
-    return Math.min(Math.max(resolved, 10), 250)
-  }, [searchParams])
+  const didInitFromUrl = useRef(false)
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(24)
 
   const [filters, setFilters] = useState<ProjectFilters>({
     region: '',
     district: '',
     sector: '',
-    sale_status: '',
     construction_status: '',
     min_price: '',
     max_price: '',
+    developer: '',
   })
 
-  const syncUrlFromFilters = useCallback(
-    (nextFilters: ProjectFilters) => {
-      const params = new URLSearchParams(searchParams?.toString() ?? '')
+  const syncUrl = useCallback(
+    (nextFilters: ProjectFilters, nextPage: number, nextLimit: number) => {
+      if (typeof window === 'undefined') return
+
+      const params = new URLSearchParams(window.location.search)
 
       if (nextFilters.region) params.set('region', nextFilters.region)
       else params.delete('region')
@@ -135,9 +129,6 @@ export default function ProjectsClient({ items, total, apiError, facetItems }: P
       if (nextFilters.sector) params.set('area', nextFilters.sector)
       else params.delete('area')
 
-      if (nextFilters.sale_status) params.set('saleStatus', nextFilters.sale_status)
-      else params.delete('saleStatus')
-
       if (nextFilters.construction_status) params.set('constructionStatus', nextFilters.construction_status)
       else params.delete('constructionStatus')
 
@@ -147,71 +138,79 @@ export default function ProjectsClient({ items, total, apiError, facetItems }: P
       if (nextFilters.max_price) params.set('maxPrice', nextFilters.max_price)
       else params.delete('maxPrice')
 
-      params.set('page', '1')
-      if (!params.get('limit')) params.set('limit', String(limit))
+      if (nextFilters.developer) params.set('developer', nextFilters.developer)
+      else params.delete('developer')
 
-      router.push(`${pathname}?${params.toString()}`)
+      params.set('page', String(nextPage))
+      params.set('limit', String(nextLimit))
+
+      const nextUrl = `${pathname}?${params.toString()}`
+      window.history.replaceState(null, '', nextUrl)
     },
-    [limit, pathname, router, searchParams]
+    [pathname]
   )
 
   useEffect(() => {
-    if (!searchParams) return
+    if (didInitFromUrl.current) return
+    if (typeof window === 'undefined') return
 
-    const region = safeString(searchParams.get('region'))
-    const community = safeString(searchParams.get('community'))
-    const area = safeString(searchParams.get('area'))
-    const saleStatus = safeString(searchParams.get('saleStatus'))
-    const constructionStatus = safeString(searchParams.get('constructionStatus'))
-    const minPrice = safeString(searchParams.get('minPrice'))
-    const maxPrice = safeString(searchParams.get('maxPrice'))
+    const params = new URLSearchParams(window.location.search)
+
+    const region = safeString(params.get('region'))
+    const community = safeString(params.get('community'))
+    const area = safeString(params.get('area'))
+    const constructionStatus = safeString(params.get('constructionStatus'))
+    const minPrice = safeString(params.get('minPrice'))
+    const maxPrice = safeString(params.get('maxPrice'))
+    const developer = safeString(params.get('developer'))
 
     const next: ProjectFilters = {
       region,
       district: community,
       sector: area,
-      sale_status: saleStatus === 'on_sale' || saleStatus === 'out_of_stock' ? (saleStatus as any) : '',
       construction_status:
         constructionStatus === 'completed' || constructionStatus === 'under_construction' ? (constructionStatus as any) : '',
       min_price: minPrice.replace(/[^0-9]/g, ''),
       max_price: maxPrice.replace(/[^0-9]/g, ''),
+      developer,
     }
 
+    const nextPage = Math.max(1, safeInt(params.get('page'), 1))
+    const nextLimit = Math.min(Math.max(safeInt(params.get('limit'), 24), 12), 60)
+
+    didInitFromUrl.current = true
     setFilters(next)
+    setPage(nextPage)
+    setLimit(nextLimit)
     if (hasAnyActiveFilter(next)) setHasInteracted(true)
-  }, [searchParams])
+  }, [])
 
-  const facetProjects = useMemo(() => {
-    const list = Array.isArray((facetItems as any) as unknown[]) ? (facetItems as unknown[]) : []
+  const allProjects = useMemo(() => {
+    const list = Array.isArray((seedItems as any) as unknown[]) ? (seedItems as unknown[]) : []
     return list.map((i: any) => asProject(i)).filter(Boolean) as ReellyProject[]
-  }, [facetItems])
-
-  const pageProjects = useMemo(() => {
-    const list = Array.isArray((items as any) as unknown[]) ? (items as unknown[]) : []
-    return list.map((i: any) => asProject(i)).filter(Boolean) as ReellyProject[]
-  }, [items])
+  }, [seedItems])
 
   const regionOptions = useMemo(() => {
     const set = new Set<string>()
-    facetProjects.forEach((p) => {
+    allProjects.forEach((p) => {
       if (p.location?.region) set.add(p.location.region)
     })
     return Array.from(set).sort((a, b) => a.localeCompare(b))
-  }, [facetProjects])
+  }, [allProjects])
 
   const districtOptions = useMemo(() => {
     const set = new Set<string>()
-    facetProjects.forEach((p) => {
+    allProjects.forEach((p) => {
       if (!filters.region || normalize(p.location.region) === normalize(filters.region)) {
         if (p.location?.district) set.add(p.location.district)
       }
     })
     return Array.from(set).sort((a, b) => a.localeCompare(b))
-  }, [facetProjects, filters.region])
+  }, [allProjects, filters.region])
 
   const sectorOptions = useMemo(() => {
     const set = new Set<string>()
-    facetProjects.forEach((p) => {
+    allProjects.forEach((p) => {
       const regionOk = !filters.region || normalize(p.location.region) === normalize(filters.region)
       const districtOk = !filters.district || normalize(p.location.district) === normalize(filters.district)
       if (regionOk && districtOk) {
@@ -219,12 +218,44 @@ export default function ProjectsClient({ items, total, apiError, facetItems }: P
       }
     })
     return Array.from(set).sort((a, b) => a.localeCompare(b))
-  }, [facetProjects, filters.district, filters.region])
+  }, [allProjects, filters.district, filters.region])
 
+  const filteredProjects = useMemo(() => {
+    const regionQ = normalize(filters.region)
+    const districtQ = normalize(filters.district)
+    const sectorQ = normalize(filters.sector)
+    const developerQ = normalize(filters.developer)
+
+    const min = filters.min_price ? Number(filters.min_price) : undefined
+    const max = filters.max_price ? Number(filters.max_price) : undefined
+
+    return allProjects.filter((p) => {
+      if (regionQ && normalize(p.location.region) !== regionQ) return false
+      if (districtQ && normalize(p.location.district) !== districtQ) return false
+      if (sectorQ && normalize(p.location.sector) !== sectorQ) return false
+
+      if (developerQ && normalize(p.developer) !== developerQ) return false
+
+      if (filters.construction_status && p.construction_status !== filters.construction_status) return false
+
+      if ((min != null || max != null) && p.min_price > 0) {
+        if (min != null && Number.isFinite(min) && p.min_price < min) return false
+        if (max != null && Number.isFinite(max) && p.min_price > max) return false
+      }
+
+      return true
+    })
+  }, [allProjects, filters])
+
+  const total = filteredProjects.length
   const totalPages = Math.max(1, Math.ceil(total / limit))
   const safePage = Math.min(Math.max(page, 1), totalPages)
   const startIndex = total === 0 ? 0 : (safePage - 1) * limit
-  const endIndexExclusive = total === 0 ? 0 : Math.min(startIndex + pageProjects.length, total)
+  const endIndexExclusive = total === 0 ? 0 : Math.min(startIndex + limit, total)
+  const paginatedProjects = useMemo(
+    () => filteredProjects.slice(startIndex, endIndexExclusive),
+    [endIndexExclusive, filteredProjects, startIndex]
+  )
 
   const showEmpty = hasInteracted && hasAnyActiveFilter(filters) && apiError === '' && total === 0
 
@@ -249,7 +280,8 @@ export default function ProjectsClient({ items, total, apiError, facetItems }: P
                     setHasInteracted(true)
                     const next = { ...filters, region: v, district: '', sector: '' }
                     setFilters(next)
-                    syncUrlFromFilters(next)
+                    setPage(1)
+                    syncUrl(next, 1, limit)
                   }}
                   options={[{ value: '', label: 'All Regions' }, ...regionOptions.map((r) => ({ value: r }))]}
                 />
@@ -263,7 +295,8 @@ export default function ProjectsClient({ items, total, apiError, facetItems }: P
                     setHasInteracted(true)
                     const next = { ...filters, district: v, sector: '' }
                     setFilters(next)
-                    syncUrlFromFilters(next)
+                    setPage(1)
+                    syncUrl(next, 1, limit)
                   }}
                   options={[{ value: '', label: 'All Communities' }, ...districtOptions.map((d) => ({ value: d }))]}
                   disabled={districtOptions.length === 0}
@@ -278,28 +311,11 @@ export default function ProjectsClient({ items, total, apiError, facetItems }: P
                     setHasInteracted(true)
                     const next = { ...filters, sector: v }
                     setFilters(next)
-                    syncUrlFromFilters(next)
+                    setPage(1)
+                    syncUrl(next, 1, limit)
                   }}
                   options={[{ value: '', label: 'All Areas' }, ...sectorOptions.map((s) => ({ value: s }))]}
                   disabled={sectorOptions.length === 0}
-                />
-              </div>
-
-              <div className="md:col-span-3">
-                <SelectDropdown
-                  label="Sale Status"
-                  value={filters.sale_status}
-                  onChange={(v) => {
-                    setHasInteracted(true)
-                    const next = { ...filters, sale_status: v as any }
-                    setFilters(next)
-                    syncUrlFromFilters(next)
-                  }}
-                  options={[
-                    { value: '', label: 'All' },
-                    { value: 'on_sale', label: 'Available' },
-                    { value: 'out_of_stock', label: 'Sold Out' },
-                  ]}
                 />
               </div>
 
@@ -311,12 +327,31 @@ export default function ProjectsClient({ items, total, apiError, facetItems }: P
                     setHasInteracted(true)
                     const next = { ...filters, construction_status: v as any }
                     setFilters(next)
-                    syncUrlFromFilters(next)
+                    setPage(1)
+                    syncUrl(next, 1, limit)
                   }}
                   options={[
                     { value: '', label: 'All' },
                     { value: 'completed', label: 'Completed' },
                     { value: 'under_construction', label: 'Under Construction' },
+                  ]}
+                />
+              </div>
+
+              <div className="md:col-span-3">
+                <SelectDropdown
+                  label="Developer"
+                  value={filters.developer}
+                  onChange={(v) => {
+                    setHasInteracted(true)
+                    const next = { ...filters, developer: v }
+                    setFilters(next)
+                    setPage(1)
+                    syncUrl(next, 1, limit)
+                  }}
+                  options={[
+                    { value: '', label: 'All Developers' },
+                    ...Array.from(new Set(allProjects.map((p) => p.developer))).sort((a, b) => a.localeCompare(b)).map((d) => ({ value: d })),
                   ]}
                 />
               </div>
@@ -329,9 +364,15 @@ export default function ProjectsClient({ items, total, apiError, facetItems }: P
                     setHasInteracted(true)
                     setFilters((prev) => ({ ...prev, min_price: e.target.value.replace(/[^0-9]/g, '') }))
                   }}
-                  onBlur={() => syncUrlFromFilters({ ...filters })}
+                  onBlur={() => {
+                    setPage(1)
+                    syncUrl({ ...filters }, 1, limit)
+                  }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') syncUrlFromFilters({ ...filters })
+                    if (e.key === 'Enter') {
+                      setPage(1)
+                      syncUrl({ ...filters }, 1, limit)
+                    }
                   }}
                   inputMode="numeric"
                   placeholder="e.g. 500000"
@@ -347,9 +388,15 @@ export default function ProjectsClient({ items, total, apiError, facetItems }: P
                     setHasInteracted(true)
                     setFilters((prev) => ({ ...prev, max_price: e.target.value.replace(/[^0-9]/g, '') }))
                   }}
-                  onBlur={() => syncUrlFromFilters({ ...filters })}
+                  onBlur={() => {
+                    setPage(1)
+                    syncUrl({ ...filters }, 1, limit)
+                  }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') syncUrlFromFilters({ ...filters })
+                    if (e.key === 'Enter') {
+                      setPage(1)
+                      syncUrl({ ...filters }, 1, limit)
+                    }
                   }}
                   inputMode="numeric"
                   placeholder="e.g. 2000000"
@@ -366,24 +413,14 @@ export default function ProjectsClient({ items, total, apiError, facetItems }: P
                       region: '',
                       district: '',
                       sector: '',
-                      sale_status: '',
                       construction_status: '',
                       min_price: '',
                       max_price: '',
+                      developer: '',
                     }
                     setFilters(next)
-
-                    const params = new URLSearchParams(searchParams?.toString() ?? '')
-                    params.delete('region')
-                    params.delete('community')
-                    params.delete('area')
-                    params.delete('saleStatus')
-                    params.delete('constructionStatus')
-                    params.delete('minPrice')
-                    params.delete('maxPrice')
-                    params.set('page', '1')
-                    if (!params.get('limit')) params.set('limit', String(limit))
-                    router.push(`${pathname}?${params.toString()}`)
+                    setPage(1)
+                    syncUrl(next, 1, limit)
                   }}
                   className="w-full h-12 md:h-11 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue hover:bg-gray-50"
                 >
@@ -406,12 +443,22 @@ export default function ProjectsClient({ items, total, apiError, facetItems }: P
         ) : (
           <div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {pageProjects.map((p) => (
+              {paginatedProjects.map((p) => (
                 <ProjectListCard key={p.id} project={p} />
               ))}
             </div>
 
-            <Pagination total={total} limit={limit} />
+            <Pagination
+              total={total}
+              limit={limit}
+              page={safePage}
+              onChange={(nextPage: number) => {
+                const resolved = Math.min(Math.max(nextPage, 1), totalPages)
+                setPage(resolved)
+                syncUrl(filters, resolved, limit)
+                if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+            />
           </div>
         )}
       </div>

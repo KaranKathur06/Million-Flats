@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation'
-import { headers } from 'next/headers'
 import Link from 'next/link'
+import Image from 'next/image'
 import PropertyGallery from '@/components/PropertyGallery'
-import { formatCountryPrice } from '@/lib/country'
+import { reellyFetch } from '@/lib/reelly'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v : ''
@@ -17,6 +17,32 @@ function normalize(v: string) {
   return v.trim().toLowerCase()
 }
 
+function formatAed(amount: number) {
+  return new Intl.NumberFormat('en-AE', {
+    style: 'currency',
+    currency: 'AED',
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
+
+function normalizeListResponse(raw: unknown) {
+  if (!raw || typeof raw !== 'object') return { items: [] as unknown[], raw }
+
+  const anyRaw = raw as any
+  const items =
+    Array.isArray(anyRaw.items)
+      ? anyRaw.items
+      : Array.isArray(anyRaw.results)
+        ? anyRaw.results
+        : Array.isArray(anyRaw.data)
+          ? anyRaw.data
+          : Array.isArray(anyRaw)
+            ? anyRaw
+            : []
+
+  return { items, raw }
+}
+
 function toImageUrl(v: unknown): string {
   if (typeof v === 'string') return v
   if (v && typeof v === 'object') {
@@ -26,46 +52,66 @@ function toImageUrl(v: unknown): string {
   return ''
 }
 
-function pickCountry(region: string) {
-  return normalize(region) === 'india' ? 'India' : 'UAE'
-}
-
 export default async function PropertyDetailPage({ params }: { params: { id: string } }) {
+  const rawId = safeString(params?.id)
+  if (!rawId) notFound()
+
   let item: any
+  let marker: any = null
+  let developerRecord: any = null
+
   try {
-    const h = headers()
-    const host = h.get('host')
-    const proto = h.get('x-forwarded-proto') || 'http'
-    if (!host) {
-      notFound()
-    }
-
-    const url = `${proto}://${host}/api/properties/${encodeURIComponent(params.id)}`
-    const res = await fetch(url, { cache: 'no-store' })
-    if (!res.ok) {
-      notFound()
-    }
-
-    const json = (await res.json()) as { item?: any }
-    item = json?.item
-    if (!item) {
-      notFound()
-    }
+    item = await reellyFetch<any>(`/api/v2/clients/projects/${encodeURIComponent(rawId)}`, {}, { cacheTtlMs: 0 })
   } catch {
     notFound()
   }
 
+  if (!item || typeof item !== 'object') notFound()
+  if (safeString(item?.sale_status) && safeString(item?.sale_status) !== 'on_sale') notFound()
+
+  try {
+    const markersRaw = await reellyFetch<any>('/api/v2/clients/projects/markers', {}, { cacheTtlMs: 0 })
+    const markers = normalizeListResponse(markersRaw).items
+    const projectId = safeString(item?.id) || String(safeNumber(item?.id))
+    marker =
+      markers.find((m: any) => String(m?.project_id ?? m?.projectId ?? m?.id) === String(projectId)) ||
+      markers.find((m: any) => String(m?.id) === String(projectId)) ||
+      null
+  } catch {
+    marker = null
+  }
+
+  try {
+    const developersRaw = await reellyFetch<any>('/api/v2/clients/developers', {}, { cacheTtlMs: 0 })
+    const developers = normalizeListResponse(developersRaw).items
+    const developerId = safeString(item?.developer_id) || String(safeNumber(item?.developer_id))
+    const developerName = safeString(item?.developer)
+
+    developerRecord =
+      (developerId
+        ? developers.find((d: any) => String(d?.id) === String(developerId))
+        : null) ||
+      (developerName
+        ? developers.find((d: any) => normalize(safeString(d?.name)) === normalize(developerName))
+        : null) ||
+      null
+  } catch {
+    developerRecord = null
+  }
+
   const title = safeString(item?.name) || safeString(item?.title) || 'Project'
   const developer = safeString(item?.developer)
+  const developerName = safeString(developerRecord?.name) || developer
+  const developerLogoUrl = toImageUrl(developerRecord?.logo) || toImageUrl(developerRecord?.logo_image) || toImageUrl(developerRecord?.image) || ''
+  const developerDescription =
+    safeString(developerRecord?.description) || safeString(developerRecord?.about) || safeString(developerRecord?.bio)
 
   const region = safeString(item?.location?.region)
   const district = safeString(item?.location?.district)
   const sector = safeString(item?.location?.sector)
   const locationParts = [sector, district, region].filter(Boolean)
   const locationLabel = locationParts.join(', ')
-  const country = pickCountry(region)
 
-  const saleStatus = safeString(item?.sale_status)
   const constructionStatus = safeString(item?.construction_status)
   const completionDate = safeString(item?.completion_date)
 
@@ -81,6 +127,13 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
 
   const description = safeString(item?.description)
 
+  const lat = safeNumber(marker?.latitude ?? marker?.lat)
+  const lng = safeNumber(marker?.longitude ?? marker?.lng ?? marker?.lon)
+  const hasCoords = Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)
+
+  const internalRef =
+    safeString(item?.internal_reference) || safeString(item?.internalRef) || safeString(item?.reference) || safeString(item?.ref)
+
   return (
     <div className="min-h-screen bg-white">
       <PropertyGallery images={images} title={title} />
@@ -89,9 +142,9 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
         <div className="px-4 py-3 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-lg font-bold text-dark-blue leading-tight truncate">
-              {priceOnRequest ? 'Price on request' : `From ${formatCountryPrice(country === 'India' ? 'India' : 'UAE', minPrice)}`}
+              {priceOnRequest ? 'Price on request' : `From ${formatAed(minPrice)}`}
             </p>
-            <p className="text-xs text-gray-600 truncate">{locationLabel || region || 'Location'}, {country}</p>
+            <p className="text-xs text-gray-600 truncate">{locationLabel || region || 'Location'}</p>
           </div>
           <div className="shrink-0">
             <span className="text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1 rounded-full">
@@ -107,26 +160,24 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
           <div className="lg:col-span-8">
             <div className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
               <p className="hidden md:block text-4xl md:text-5xl font-bold text-dark-blue tracking-tight">
-                {priceOnRequest ? 'Price on request' : `From ${formatCountryPrice(country === 'India' ? 'India' : 'UAE', minPrice)}`}
+                {priceOnRequest ? 'Price on request' : `From ${formatAed(minPrice)}`}
               </p>
               <h1 className="mt-0 md:mt-3 text-2xl md:text-4xl font-serif font-bold text-dark-blue">
                 {title}
               </h1>
-              <p className="mt-2 text-gray-600">{locationLabel || region || 'Location'}, {country}</p>
+              <p className="mt-2 text-gray-600">{locationLabel || region || 'Location'}</p>
 
               <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {developer ? (
+                {developerName ? (
                   <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                     <p className="text-xs text-gray-600">Developer</p>
-                    <p className="text-lg font-semibold text-dark-blue mt-1">{developer}</p>
+                    <p className="text-lg font-semibold text-dark-blue mt-1">{developerName}</p>
                   </div>
                 ) : null}
-                {saleStatus ? (
-                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                    <p className="text-xs text-gray-600">Sale status</p>
-                    <p className="text-lg font-semibold text-dark-blue mt-1">{saleStatus.replace(/_/g, ' ')}</p>
-                  </div>
-                ) : null}
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                  <p className="text-xs text-gray-600">Availability</p>
+                  <p className="text-lg font-semibold text-dark-blue mt-1">Available</p>
+                </div>
                 {constructionStatus ? (
                   <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                     <p className="text-xs text-gray-600">Construction status</p>
@@ -143,11 +194,90 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
                   <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 md:col-span-2">
                     <p className="text-xs text-gray-600">Price range</p>
                     <p className="text-lg font-semibold text-dark-blue mt-1">
-                      {minPrice > 0 ? `From ${formatCountryPrice(country === 'India' ? 'India' : 'UAE', minPrice)}` : 'Price on request'}
-                      {maxPrice > 0 ? ` • Up to ${formatCountryPrice(country === 'India' ? 'India' : 'UAE', maxPrice)}` : ''}
+                      {minPrice > 0 ? `From ${formatAed(minPrice)}` : 'Price on request'}
+                      {maxPrice > 0 ? ` • Up to ${formatAed(maxPrice)}` : ''}
                     </p>
                   </div>
                 ) : null}
+              </div>
+
+              <div className="mt-10 grid grid-cols-1 gap-6">
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                  <h2 className="text-2xl font-serif font-bold text-dark-blue mb-4">Developer</h2>
+                  <div className="flex items-start gap-4">
+                    <div className="shrink-0 w-16 h-16 rounded-2xl border border-gray-200 bg-white overflow-hidden relative">
+                      <Image
+                        src={developerLogoUrl || '/image-placeholder.svg'}
+                        alt={developerName || 'Developer'}
+                        fill
+                        className="object-contain p-2"
+                        unoptimized={(developerLogoUrl || '').startsWith('http')}
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-lg font-semibold text-dark-blue">{developerName || 'Developer'}</p>
+                      <p className="mt-2 text-sm text-gray-700 leading-relaxed line-clamp-4">
+                        {developerDescription || 'Developer profile will be updated soon.'}
+                      </p>
+                      {developerName ? (
+                        <Link
+                          href={`/properties?developer=${encodeURIComponent(developerName)}`}
+                          className="mt-4 inline-flex text-sm font-semibold text-dark-blue hover:underline"
+                        >
+                          View all projects by this developer
+                        </Link>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                  <h2 className="text-2xl font-serif font-bold text-dark-blue mb-4">Location & Map</h2>
+                  <p className="text-gray-700">{locationLabel || region || 'Location'}</p>
+                  {hasCoords ? (
+                    <div className="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
+                      <iframe
+                        title="Project location"
+                        loading="lazy"
+                        className="w-full h-[320px]"
+                        src={`https://maps.google.com/maps?q=${encodeURIComponent(`${lat},${lng}`)}&z=15&output=embed`}
+                      />
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-sm text-gray-600">Map coordinates are not available for this project yet.</p>
+                  )}
+                  {hasCoords ? (
+                    <a
+                      href={`https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lng}`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 inline-flex text-sm font-semibold text-dark-blue hover:underline"
+                    >
+                      Open in Google Maps
+                    </a>
+                  ) : null}
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                  <h2 className="text-2xl font-serif font-bold text-dark-blue mb-4">Project Metadata</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                      <p className="text-xs text-gray-600">Project ID</p>
+                      <p className="text-lg font-semibold text-dark-blue mt-1">{safeString(item?.id) || String(safeNumber(item?.id))}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                      <p className="text-xs text-gray-600">Availability</p>
+                      <p className="text-lg font-semibold text-dark-blue mt-1">Available</p>
+                    </div>
+                    {internalRef ? (
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 md:col-span-2">
+                        <p className="text-xs text-gray-600">Reference</p>
+                        <p className="text-lg font-semibold text-dark-blue mt-1 break-words">{internalRef}</p>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
               </div>
 
               <div className="mt-8">
@@ -162,9 +292,9 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
               <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                 <div className="mb-4">
                   <p className="text-2xl font-bold text-dark-blue">
-                    {priceOnRequest ? 'Price on request' : `From ${formatCountryPrice(country === 'India' ? 'India' : 'UAE', minPrice)}`}
+                    {priceOnRequest ? 'Price on request' : `From ${formatAed(minPrice)}`}
                   </p>
-                  <p className="text-sm text-gray-600 mt-1">{locationLabel || region || 'Location'}, {country}</p>
+                  <p className="text-sm text-gray-600 mt-1">{locationLabel || region || 'Location'}</p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
