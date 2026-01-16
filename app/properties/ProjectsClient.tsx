@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import Image from 'next/image'
 import ProjectListCard, { type ReellyProject } from '@/components/ProjectListCard'
 import SelectDropdown from '@/components/SelectDropdown'
 
@@ -114,10 +113,19 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
   const [isAppending, setIsAppending] = useState(false)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
 
-  const [amenitiesOpen, setAmenitiesOpen] = useState(false)
   const [amenitiesLoading, setAmenitiesLoading] = useState(false)
   const [amenitiesPayload, setAmenitiesPayload] = useState<AmenitiesIndexPayload | null>(null)
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
+
+  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false)
+  const [moreFiltersVisible, setMoreFiltersVisible] = useState(false)
+  const [draft, setDraft] = useState<{ construction_status: ProjectFilters['construction_status']; developer: string; amenities: string[] }>(
+    {
+      construction_status: '',
+      developer: '',
+      amenities: [],
+    }
+  )
 
   const [filters, setFilters] = useState<ProjectFilters>({
     region: '',
@@ -240,6 +248,12 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
     return list.map((i: any) => asProject(i)).filter(Boolean) as ReellyProject[]
   }, [seedItems])
 
+  const developerOptions = useMemo(() => {
+    return Array.from(new Set(allProjects.map((p) => p.developer)))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b))
+  }, [allProjects])
+
   const regionOptions = useMemo(() => {
     const set = new Set<string>()
     allProjects.forEach((p) => {
@@ -273,6 +287,52 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
   const amenityIconByName = useMemo(() => {
     return amenitiesPayload?.amenityIcons ?? {}
   }, [amenitiesPayload])
+
+  const openMoreFilters = useCallback(() => {
+    setDraft({
+      construction_status: filters.construction_status,
+      developer: filters.developer,
+      amenities: [...selectedAmenities],
+    })
+    setMoreFiltersOpen(true)
+    requestAnimationFrame(() => setMoreFiltersVisible(true))
+  }, [filters.construction_status, filters.developer, selectedAmenities])
+
+  const closeMoreFilters = useCallback(() => {
+    setMoreFiltersVisible(false)
+    window.setTimeout(() => setMoreFiltersOpen(false), 220)
+  }, [])
+
+  const curatedAmenities = useMemo(() => {
+    if (!moreFiltersOpen) return [] as string[]
+    if (!amenitiesPayload) return [] as string[]
+
+    const freq = new Map<string, number>()
+    const labelByKey = new Map<string, string>()
+    const rows = Array.isArray(amenitiesPayload.items) ? amenitiesPayload.items : []
+    for (const r of rows) {
+      const list = Array.isArray((r as any)?.amenities) ? ((r as any).amenities as unknown[]) : []
+      for (const a of list) {
+        if (typeof a !== 'string') continue
+        const label = a.trim()
+        if (!label) continue
+        const k = normalize(label)
+        if (!k) continue
+        labelByKey.set(k, labelByKey.get(k) ?? label)
+        freq.set(k, (freq.get(k) ?? 0) + 1)
+      }
+    }
+
+    const entries = Array.from(freq.entries()).map(([k, count]) => ({
+      key: k,
+      label: labelByKey.get(k) ?? k,
+      count,
+    }))
+
+    entries.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+
+    return entries.slice(0, 24).map((e) => e.label)
+  }, [amenitiesPayload, moreFiltersOpen])
 
   const amenitiesFilterPending = selectedAmenities.length > 0 && !amenitiesPayload
 
@@ -393,6 +453,7 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
     hasInteracted && (hasAnyActiveFilter(filters) || selectedAmenities.length > 0) && apiError === '' && total === 0 && !amenitiesFilterPending
 
   const showAmenitiesPending = amenitiesFilterPending && amenitiesLoading
+  const showAmenitiesUnavailable = amenitiesFilterPending && !amenitiesLoading
 
   const skeletonCount = useMemo(() => {
     if (!isAppending) return 0
@@ -411,8 +472,8 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
 
         <div className="sticky top-14 md:top-20 z-30 mb-6 md:mb-10">
           <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl shadow-sm p-3">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-              <div className="md:col-span-3">
+            <div className="grid grid-cols-1 md:grid-cols-10 gap-3">
+              <div className="md:col-span-2">
                 <SelectDropdown
                   label="Region"
                   value={filters.region}
@@ -426,7 +487,7 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
                 />
               </div>
 
-              <div className="md:col-span-3">
+              <div className="md:col-span-2">
                 <SelectDropdown
                   label="Community"
                   value={filters.district}
@@ -441,7 +502,7 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
                 />
               </div>
 
-              <div className="md:col-span-3">
+              <div className="md:col-span-2">
                 <SelectDropdown
                   label="Area"
                   value={filters.sector}
@@ -456,42 +517,7 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
                 />
               </div>
 
-              <div className="md:col-span-3">
-                <SelectDropdown
-                  label="Construction Status"
-                  value={filters.construction_status}
-                  onChange={(v) => {
-                    setHasInteracted(true)
-                    const next = { ...filters, construction_status: v as any }
-                    setFilters(next)
-                    syncUrl(next, selectedAmenities)
-                  }}
-                  options={[
-                    { value: '', label: 'All' },
-                    { value: 'completed', label: 'Completed' },
-                    { value: 'under_construction', label: 'Under Construction' },
-                  ]}
-                />
-              </div>
-
-              <div className="md:col-span-3">
-                <SelectDropdown
-                  label="Developer"
-                  value={filters.developer}
-                  onChange={(v) => {
-                    setHasInteracted(true)
-                    const next = { ...filters, developer: v }
-                    setFilters(next)
-                    syncUrl(next, selectedAmenities)
-                  }}
-                  options={[
-                    { value: '', label: 'All Developers' },
-                    ...Array.from(new Set(allProjects.map((p) => p.developer))).sort((a, b) => a.localeCompare(b)).map((d) => ({ value: d })),
-                  ]}
-                />
-              </div>
-
-              <div className="md:col-span-3">
+              <div className="md:col-span-2">
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Min Price (AED)</label>
                 <input
                   value={filters.min_price}
@@ -513,7 +539,7 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
                 />
               </div>
 
-              <div className="md:col-span-3">
+              <div className="md:col-span-2">
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Max Price (AED)</label>
                 <input
                   value={filters.max_price}
@@ -534,108 +560,207 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
                   className="w-full h-12 md:h-11 px-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-dark-blue/30"
                 />
               </div>
-
-              <div className="md:col-span-3 flex items-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setHasInteracted(true)
-                    const next: ProjectFilters = {
-                      region: '',
-                      district: '',
-                      sector: '',
-                      construction_status: '',
-                      min_price: '',
-                      max_price: '',
-                      developer: '',
-                    }
-                    setFilters(next)
-                    setSelectedAmenities([])
-                    syncUrl(next, [])
-                  }}
-                  className="w-full h-12 md:h-11 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue hover:bg-gray-50"
-                >
-                  Reset
-                </button>
-              </div>
             </div>
 
-            <div className="mt-3 pt-3 border-t border-gray-200">
-              <div className="flex items-center justify-between gap-3">
+            <div className="mt-3 pt-3 border-t border-gray-200 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={openMoreFilters}
+                className="h-11 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue hover:bg-gray-50"
+              >
+                More Filters
+                {filters.construction_status || filters.developer || selectedAmenities.length > 0
+                  ? ` (${Number(Boolean(filters.construction_status)) + Number(Boolean(filters.developer)) + Number(selectedAmenities.length > 0)})`
+                  : ''}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setHasInteracted(true)
+                  const next: ProjectFilters = {
+                    region: '',
+                    district: '',
+                    sector: '',
+                    construction_status: '',
+                    min_price: '',
+                    max_price: '',
+                    developer: '',
+                  }
+                  setFilters(next)
+                  setSelectedAmenities([])
+                  syncUrl(next, [])
+                }}
+                className="h-11 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue hover:bg-gray-50"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {moreFiltersOpen ? (
+          <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+            <button
+              type="button"
+              className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ${
+                moreFiltersVisible ? 'opacity-100' : 'opacity-0'
+              }`}
+              aria-label="Close"
+              onClick={closeMoreFilters}
+            />
+            <div
+              className={`relative w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-gray-200 p-6 transition-all duration-200 ${
+                moreFiltersVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-xl font-semibold text-dark-blue">More Filters</h2>
                 <button
                   type="button"
-                  onClick={() => setAmenitiesOpen((v) => !v)}
-                  className="text-sm font-semibold text-dark-blue hover:underline"
+                  onClick={closeMoreFilters}
+                  className="h-10 w-10 rounded-xl border border-gray-200 inline-flex items-center justify-center"
+                  aria-label="Close"
                 >
-                  Amenities{selectedAmenities.length > 0 ? ` (${selectedAmenities.length})` : ''}
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
-                {selectedAmenities.length > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setHasInteracted(true)
-                      setSelectedAmenities([])
-                      syncUrl(filters, [])
-                    }}
-                    className="text-xs font-semibold text-gray-600 hover:text-dark-blue"
-                  >
-                    Clear Amenities
-                  </button>
-                ) : null}
               </div>
 
-              {amenitiesOpen ? (
-                <div className="mt-3">
+              <div className="max-h-[70vh] overflow-auto pr-1">
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-dark-blue mb-3">Availability</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <label className="flex items-center gap-3 rounded-xl border border-gray-200 p-3 opacity-70">
+                      <input type="checkbox" checked disabled />
+                      <span className="text-sm font-semibold text-dark-blue">Available Only</span>
+                    </label>
+
+                    <label className="flex items-center gap-3 rounded-xl border border-gray-200 p-3">
+                      <input
+                        type="checkbox"
+                        checked={draft.construction_status === 'under_construction'}
+                        onChange={(e) => {
+                          setDraft((prev) => ({
+                            ...prev,
+                            construction_status: e.target.checked ? 'under_construction' : '',
+                          }))
+                        }}
+                      />
+                      <span className="text-sm font-semibold text-dark-blue">Off-Plan Only</span>
+                    </label>
+
+                    <label className="flex items-center gap-3 rounded-xl border border-gray-200 p-3">
+                      <input
+                        type="checkbox"
+                        checked={draft.construction_status === 'completed'}
+                        onChange={(e) => {
+                          setDraft((prev) => ({
+                            ...prev,
+                            construction_status: e.target.checked ? 'completed' : '',
+                          }))
+                        }}
+                      />
+                      <span className="text-sm font-semibold text-dark-blue">Ready Homes Only</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-dark-blue mb-3">Developer</h3>
+                  <SelectDropdown
+                    label="Developer"
+                    value={draft.developer}
+                    onChange={(v) => setDraft((prev) => ({ ...prev, developer: v }))}
+                    options={[{ value: '', label: 'All Developers' }, ...developerOptions.map((d) => ({ value: d }))]}
+                  />
+                </div>
+
+                <div className="mb-2">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <h3 className="text-sm font-semibold text-dark-blue">Amenities</h3>
+                    {draft.amenities.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setDraft((prev) => ({ ...prev, amenities: [] }))}
+                        className="text-xs font-semibold text-gray-600 hover:text-dark-blue"
+                      >
+                        Clear
+                      </button>
+                    ) : null}
+                  </div>
+
                   {amenitiesLoading ? (
                     <div className="text-sm text-gray-600">Loading amenities…</div>
-                  ) : availableAmenities.length === 0 ? (
+                  ) : curatedAmenities.length === 0 ? (
                     <div className="text-sm text-gray-600">Amenities are not available yet.</div>
                   ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                      {availableAmenities.map((a) => {
-                        const selected = selectedAmenities.some((x) => normalize(x) === normalize(a))
-                        const iconUrl = amenityIconByName[a] || ''
-                        const unoptimized = iconUrl.startsWith('http')
-
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {curatedAmenities.map((a) => {
+                        const checked = draft.amenities.some((x) => normalize(x) === normalize(a))
                         return (
-                          <button
-                            key={a}
-                            type="button"
-                            onClick={() => {
-                              setHasInteracted(true)
-                              const next = selected
-                                ? selectedAmenities.filter((x) => normalize(x) !== normalize(a))
-                                : [...selectedAmenities, a]
-                              setSelectedAmenities(next)
-                              syncUrl(filters, next)
-                            }}
-                            className={`h-10 rounded-xl border px-3 text-left text-xs font-semibold transition-colors flex items-center gap-2 ${
-                              selected
-                                ? 'bg-dark-blue text-white border-dark-blue'
-                                : 'bg-white text-dark-blue border-gray-200 hover:bg-gray-50'
-                            }`}
-                          >
-                            <span className="relative w-5 h-5 shrink-0 rounded-md border border-gray-200 bg-white overflow-hidden">
-                              <Image
-                                src={iconUrl || '/image-placeholder.svg'}
-                                alt={a}
-                                fill
-                                className="object-contain p-0.5"
-                                unoptimized={unoptimized}
-                                loading="lazy"
-                              />
-                            </span>
-                            <span className="truncate">{a}</span>
-                          </button>
+                          <label key={a} className="flex items-center gap-3 rounded-xl border border-gray-200 p-3">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                const next = e.target.checked
+                                  ? [...draft.amenities, a]
+                                  : draft.amenities.filter((x) => normalize(x) !== normalize(a))
+                                setDraft((prev) => ({ ...prev, amenities: next }))
+                              }}
+                            />
+                            <span className="text-sm text-dark-blue truncate">{a}</span>
+                          </label>
                         )
                       })}
                     </div>
                   )}
                 </div>
-              ) : null}
+              </div>
+
+              <div className="mt-6 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraft((prev) => ({ ...prev, construction_status: '', developer: '', amenities: [] }))
+                  }}
+                  className="h-11 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue"
+                >
+                  Clear
+                </button>
+
+                <button
+                  type="button"
+                  onClick={closeMoreFilters}
+                  className="h-11 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHasInteracted(true)
+                    const next: ProjectFilters = {
+                      ...filters,
+                      construction_status: draft.construction_status,
+                      developer: draft.developer,
+                    }
+                    setFilters(next)
+                    setSelectedAmenities(draft.amenities)
+                    syncUrl(next, draft.amenities)
+                    closeMoreFilters()
+                  }}
+                  className="h-11 px-5 rounded-xl bg-dark-blue text-white text-sm font-semibold hover:bg-dark-blue/90 transition-colors"
+                >
+                  Update Filters
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        ) : null}
 
         {apiError ? (
           <div className="text-center text-gray-700 py-10">
@@ -646,6 +771,8 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
           </div>
         ) : showAmenitiesPending ? (
           <div className="text-center text-gray-600 py-16">Loading amenities data to apply your filter…</div>
+        ) : showAmenitiesUnavailable ? (
+          <div className="text-center text-gray-600 py-16">Amenities are unavailable right now. Please clear amenities to continue browsing.</div>
         ) : showEmpty ? (
           <div className="text-center text-gray-600 py-16">No projects match your filters.</div>
         ) : (
