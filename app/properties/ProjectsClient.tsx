@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
+import Image from 'next/image'
 import ProjectListCard, { type ReellyProject } from '@/components/ProjectListCard'
-import Pagination from '@/components/Pagination'
 import SelectDropdown from '@/components/SelectDropdown'
 
 type ProjectFilters = {
@@ -20,6 +20,15 @@ type Props = {
   seedItems: unknown[]
   apiError: string
 }
+
+type AmenitiesIndexPayload = {
+  generatedAt: number
+  items: Array<{ projectId: number; amenities: string[] }>
+  amenities: string[]
+  amenityIcons: Record<string, string>
+}
+
+const PAGE_SIZE = 24
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v : ''
@@ -101,8 +110,14 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
   const [hasInteracted, setHasInteracted] = useState(false)
 
   const didInitFromUrl = useRef(false)
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(24)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [isAppending, setIsAppending] = useState(false)
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
+
+  const [amenitiesOpen, setAmenitiesOpen] = useState(false)
+  const [amenitiesLoading, setAmenitiesLoading] = useState(false)
+  const [amenitiesPayload, setAmenitiesPayload] = useState<AmenitiesIndexPayload | null>(null)
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
 
   const [filters, setFilters] = useState<ProjectFilters>({
     region: '',
@@ -115,7 +130,7 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
   })
 
   const syncUrl = useCallback(
-    (nextFilters: ProjectFilters, nextPage: number, nextLimit: number) => {
+    (nextFilters: ProjectFilters, nextAmenities: string[]) => {
       if (typeof window === 'undefined') return
 
       const params = new URLSearchParams(window.location.search)
@@ -141,8 +156,11 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
       if (nextFilters.developer) params.set('developer', nextFilters.developer)
       else params.delete('developer')
 
-      params.set('page', String(nextPage))
-      params.set('limit', String(nextLimit))
+      if (nextAmenities.length > 0) params.set('amenities', nextAmenities.join('|'))
+      else params.delete('amenities')
+
+      params.set('page', '1')
+      params.set('limit', String(PAGE_SIZE))
 
       const nextUrl = `${pathname}?${params.toString()}`
       window.history.replaceState(null, '', nextUrl)
@@ -163,6 +181,7 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
     const minPrice = safeString(params.get('minPrice'))
     const maxPrice = safeString(params.get('maxPrice'))
     const developer = safeString(params.get('developer'))
+    const amenitiesParam = safeString(params.get('amenities'))
 
     const next: ProjectFilters = {
       region,
@@ -175,14 +194,45 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
       developer,
     }
 
-    const nextPage = Math.max(1, safeInt(params.get('page'), 1))
-    const nextLimit = Math.min(Math.max(safeInt(params.get('limit'), 24), 12), 60)
+    const nextAmenities = amenitiesParam
+      ? amenitiesParam
+          .split('|')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : []
 
     didInitFromUrl.current = true
     setFilters(next)
-    setPage(nextPage)
-    setLimit(nextLimit)
-    if (hasAnyActiveFilter(next)) setHasInteracted(true)
+    setSelectedAmenities(nextAmenities)
+    setVisibleCount(PAGE_SIZE)
+    if (hasAnyActiveFilter(next) || nextAmenities.length > 0) setHasInteracted(true)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadAmenities = async () => {
+      try {
+        setAmenitiesLoading(true)
+        const res = await fetch('/api/amenities-index', { cache: 'no-store' })
+        if (!res.ok) throw new Error(String(res.status))
+        const json = (await res.json()) as AmenitiesIndexPayload
+        if (cancelled) return
+        if (json && Array.isArray(json.items) && Array.isArray(json.amenities) && typeof json.amenityIcons === 'object') {
+          setAmenitiesPayload(json)
+        }
+      } catch {
+        if (cancelled) return
+      } finally {
+        if (cancelled) return
+        setAmenitiesLoading(false)
+      }
+    }
+
+    void loadAmenities()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const allProjects = useMemo(() => {
@@ -220,11 +270,60 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
     return Array.from(set).sort((a, b) => a.localeCompare(b))
   }, [allProjects, filters.district, filters.region])
 
+  const amenityIconByName = useMemo(() => {
+    return amenitiesPayload?.amenityIcons ?? {}
+  }, [amenitiesPayload])
+
+  const amenitiesFilterPending = selectedAmenities.length > 0 && !amenitiesPayload
+
+  const filterKey = useMemo(() => {
+    const amenityKey = selectedAmenities.map((a) => normalize(a)).sort().join('|')
+    return [
+      filters.region,
+      filters.district,
+      filters.sector,
+      filters.construction_status,
+      filters.min_price,
+      filters.max_price,
+      filters.developer,
+      amenityKey,
+    ].join('||')
+  }, [filters, selectedAmenities])
+
+  const availableAmenities = useMemo(() => {
+    const list = Array.isArray(amenitiesPayload?.amenities) ? amenitiesPayload!.amenities : []
+    const set = new Set<string>()
+    for (const a of list) {
+      if (typeof a === 'string' && a.trim()) set.add(a.trim())
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [amenitiesPayload])
+
+  const amenitiesByProjectId = useMemo(() => {
+    const m = new Map<number, Set<string>>()
+    const rows = Array.isArray(amenitiesPayload?.items) ? amenitiesPayload!.items : []
+    for (const r of rows) {
+      const id = safeNumber((r as any)?.projectId)
+      if (!id) continue
+      const list = Array.isArray((r as any)?.amenities) ? ((r as any).amenities as unknown[]) : []
+      const set = new Set<string>()
+      for (const a of list) {
+        if (typeof a !== 'string') continue
+        const k = normalize(a)
+        if (k) set.add(k)
+      }
+      m.set(id, set)
+    }
+    return m
+  }, [amenitiesPayload])
+
   const filteredProjects = useMemo(() => {
     const regionQ = normalize(filters.region)
     const districtQ = normalize(filters.district)
     const sectorQ = normalize(filters.sector)
     const developerQ = normalize(filters.developer)
+
+    const selectedAmenityKeys = selectedAmenities.map((a) => normalize(a)).filter(Boolean)
 
     const min = filters.min_price ? Number(filters.min_price) : undefined
     const max = filters.max_price ? Number(filters.max_price) : undefined
@@ -238,6 +337,13 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
 
       if (filters.construction_status && p.construction_status !== filters.construction_status) return false
 
+      if (selectedAmenityKeys.length > 0) {
+        if (!amenitiesPayload) return false
+        const set = amenitiesByProjectId.get(p.id)
+        if (!set) return false
+        if (!selectedAmenityKeys.every((k) => set.has(k))) return false
+      }
+
       if ((min != null || max != null) && p.min_price > 0) {
         if (min != null && Number.isFinite(min) && p.min_price < min) return false
         if (max != null && Number.isFinite(max) && p.min_price > max) return false
@@ -245,19 +351,53 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
 
       return true
     })
-  }, [allProjects, filters])
+  }, [allProjects, amenitiesByProjectId, amenitiesPayload, filters, selectedAmenities])
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+    setIsAppending(false)
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [filterKey])
 
   const total = filteredProjects.length
-  const totalPages = Math.max(1, Math.ceil(total / limit))
-  const safePage = Math.min(Math.max(page, 1), totalPages)
-  const startIndex = total === 0 ? 0 : (safePage - 1) * limit
-  const endIndexExclusive = total === 0 ? 0 : Math.min(startIndex + limit, total)
-  const paginatedProjects = useMemo(
-    () => filteredProjects.slice(startIndex, endIndexExclusive),
-    [endIndexExclusive, filteredProjects, startIndex]
-  )
+  const visibleProjects = useMemo(() => {
+    const n = Math.min(Math.max(visibleCount, PAGE_SIZE), total)
+    return filteredProjects.slice(0, n)
+  }, [filteredProjects, total, visibleCount])
 
-  const showEmpty = hasInteracted && hasAnyActiveFilter(filters) && apiError === '' && total === 0
+  const hasMore = visibleProjects.length < total
+
+  useEffect(() => {
+    const el = loadMoreRef.current
+    if (!el) return
+    if (!hasMore) return
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const hit = entries.some((e) => e.isIntersecting)
+        if (!hit) return
+        if (isAppending) return
+
+        setIsAppending(true)
+        setVisibleCount((prev) => prev + PAGE_SIZE)
+        window.setTimeout(() => setIsAppending(false), 120)
+      },
+      { rootMargin: '240px' }
+    )
+
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [hasMore, isAppending])
+
+  const showEmpty =
+    hasInteracted && (hasAnyActiveFilter(filters) || selectedAmenities.length > 0) && apiError === '' && total === 0 && !amenitiesFilterPending
+
+  const showAmenitiesPending = amenitiesFilterPending && amenitiesLoading
+
+  const skeletonCount = useMemo(() => {
+    if (!isAppending) return 0
+    return 6
+  }, [isAppending])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -265,7 +405,7 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
         <div className="mb-8">
           <h1 className="text-4xl font-serif font-bold text-dark-blue mb-2">Properties</h1>
           <p className="text-gray-600">
-            {total === 0 ? '0 projects' : `Showing ${startIndex + 1}–${endIndexExclusive} of ${total} projects`}
+            {total === 0 ? '0 projects' : `Showing 1–${visibleProjects.length} of ${total} projects`}
           </p>
         </div>
 
@@ -280,8 +420,7 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
                     setHasInteracted(true)
                     const next = { ...filters, region: v, district: '', sector: '' }
                     setFilters(next)
-                    setPage(1)
-                    syncUrl(next, 1, limit)
+                    syncUrl(next, selectedAmenities)
                   }}
                   options={[{ value: '', label: 'All Regions' }, ...regionOptions.map((r) => ({ value: r }))]}
                 />
@@ -295,8 +434,7 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
                     setHasInteracted(true)
                     const next = { ...filters, district: v, sector: '' }
                     setFilters(next)
-                    setPage(1)
-                    syncUrl(next, 1, limit)
+                    syncUrl(next, selectedAmenities)
                   }}
                   options={[{ value: '', label: 'All Communities' }, ...districtOptions.map((d) => ({ value: d }))]}
                   disabled={districtOptions.length === 0}
@@ -311,8 +449,7 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
                     setHasInteracted(true)
                     const next = { ...filters, sector: v }
                     setFilters(next)
-                    setPage(1)
-                    syncUrl(next, 1, limit)
+                    syncUrl(next, selectedAmenities)
                   }}
                   options={[{ value: '', label: 'All Areas' }, ...sectorOptions.map((s) => ({ value: s }))]}
                   disabled={sectorOptions.length === 0}
@@ -327,8 +464,7 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
                     setHasInteracted(true)
                     const next = { ...filters, construction_status: v as any }
                     setFilters(next)
-                    setPage(1)
-                    syncUrl(next, 1, limit)
+                    syncUrl(next, selectedAmenities)
                   }}
                   options={[
                     { value: '', label: 'All' },
@@ -346,8 +482,7 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
                     setHasInteracted(true)
                     const next = { ...filters, developer: v }
                     setFilters(next)
-                    setPage(1)
-                    syncUrl(next, 1, limit)
+                    syncUrl(next, selectedAmenities)
                   }}
                   options={[
                     { value: '', label: 'All Developers' },
@@ -365,13 +500,11 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
                     setFilters((prev) => ({ ...prev, min_price: e.target.value.replace(/[^0-9]/g, '') }))
                   }}
                   onBlur={() => {
-                    setPage(1)
-                    syncUrl({ ...filters }, 1, limit)
+                    syncUrl({ ...filters }, selectedAmenities)
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      setPage(1)
-                      syncUrl({ ...filters }, 1, limit)
+                      syncUrl({ ...filters }, selectedAmenities)
                     }
                   }}
                   inputMode="numeric"
@@ -389,13 +522,11 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
                     setFilters((prev) => ({ ...prev, max_price: e.target.value.replace(/[^0-9]/g, '') }))
                   }}
                   onBlur={() => {
-                    setPage(1)
-                    syncUrl({ ...filters }, 1, limit)
+                    syncUrl({ ...filters }, selectedAmenities)
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      setPage(1)
-                      syncUrl({ ...filters }, 1, limit)
+                      syncUrl({ ...filters }, selectedAmenities)
                     }
                   }}
                   inputMode="numeric"
@@ -419,14 +550,89 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
                       developer: '',
                     }
                     setFilters(next)
-                    setPage(1)
-                    syncUrl(next, 1, limit)
+                    setSelectedAmenities([])
+                    syncUrl(next, [])
                   }}
                   className="w-full h-12 md:h-11 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue hover:bg-gray-50"
                 >
                   Reset
                 </button>
               </div>
+            </div>
+
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setAmenitiesOpen((v) => !v)}
+                  className="text-sm font-semibold text-dark-blue hover:underline"
+                >
+                  Amenities{selectedAmenities.length > 0 ? ` (${selectedAmenities.length})` : ''}
+                </button>
+                {selectedAmenities.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHasInteracted(true)
+                      setSelectedAmenities([])
+                      syncUrl(filters, [])
+                    }}
+                    className="text-xs font-semibold text-gray-600 hover:text-dark-blue"
+                  >
+                    Clear Amenities
+                  </button>
+                ) : null}
+              </div>
+
+              {amenitiesOpen ? (
+                <div className="mt-3">
+                  {amenitiesLoading ? (
+                    <div className="text-sm text-gray-600">Loading amenities…</div>
+                  ) : availableAmenities.length === 0 ? (
+                    <div className="text-sm text-gray-600">Amenities are not available yet.</div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                      {availableAmenities.map((a) => {
+                        const selected = selectedAmenities.some((x) => normalize(x) === normalize(a))
+                        const iconUrl = amenityIconByName[a] || ''
+                        const unoptimized = iconUrl.startsWith('http')
+
+                        return (
+                          <button
+                            key={a}
+                            type="button"
+                            onClick={() => {
+                              setHasInteracted(true)
+                              const next = selected
+                                ? selectedAmenities.filter((x) => normalize(x) !== normalize(a))
+                                : [...selectedAmenities, a]
+                              setSelectedAmenities(next)
+                              syncUrl(filters, next)
+                            }}
+                            className={`h-10 rounded-xl border px-3 text-left text-xs font-semibold transition-colors flex items-center gap-2 ${
+                              selected
+                                ? 'bg-dark-blue text-white border-dark-blue'
+                                : 'bg-white text-dark-blue border-gray-200 hover:bg-gray-50'
+                            }`}
+                          >
+                            <span className="relative w-5 h-5 shrink-0 rounded-md border border-gray-200 bg-white overflow-hidden">
+                              <Image
+                                src={iconUrl || '/image-placeholder.svg'}
+                                alt={a}
+                                fill
+                                className="object-contain p-0.5"
+                                unoptimized={unoptimized}
+                                loading="lazy"
+                              />
+                            </span>
+                            <span className="truncate">{a}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -438,27 +644,45 @@ export default function ProjectsClient({ seedItems, apiError }: Props) {
               <p className="mt-2 text-sm text-gray-600">{apiError}</p>
             </div>
           </div>
+        ) : showAmenitiesPending ? (
+          <div className="text-center text-gray-600 py-16">Loading amenities data to apply your filter…</div>
         ) : showEmpty ? (
           <div className="text-center text-gray-600 py-16">No projects match your filters.</div>
         ) : (
           <div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {paginatedProjects.map((p) => (
+              {visibleProjects.map((p) => (
                 <ProjectListCard key={p.id} project={p} />
               ))}
+
+              {skeletonCount > 0
+                ? Array.from({ length: skeletonCount }).map((_, i) => (
+                    <div
+                      key={`sk-${i}`}
+                      className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
+                    >
+                      <div className="aspect-[16/9] bg-gray-200 animate-pulse" />
+                      <div className="p-5 space-y-3">
+                        <div className="h-5 w-2/3 bg-gray-200 rounded animate-pulse" />
+                        <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse" />
+                        <div className="h-4 w-1/3 bg-gray-200 rounded animate-pulse" />
+                        <div className="h-11 w-full bg-gray-200 rounded-xl animate-pulse" />
+                      </div>
+                    </div>
+                  ))
+                : null}
             </div>
 
-            <Pagination
-              total={total}
-              limit={limit}
-              page={safePage}
-              onChange={(nextPage: number) => {
-                const resolved = Math.min(Math.max(nextPage, 1), totalPages)
-                setPage(resolved)
-                syncUrl(filters, resolved, limit)
-                if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
-              }}
-            />
+            <div className="mt-10">
+              {hasMore ? (
+                <div className="text-center text-sm text-gray-600">
+                  <div ref={loadMoreRef} className="h-8" />
+                  <p className="mt-2">Loading more properties…</p>
+                </div>
+              ) : total > 0 ? (
+                <div className="text-center text-sm text-gray-600">You’ve reached the end of the list.</div>
+              ) : null}
+            </div>
           </div>
         )}
       </div>

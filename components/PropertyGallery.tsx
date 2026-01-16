@@ -6,9 +6,11 @@ import Image from 'next/image'
 interface PropertyGalleryProps {
   images: string[]
   title: string
+  className?: string
+  heightClassName?: string
 }
 
-export default function PropertyGallery({ images, title }: PropertyGalleryProps) {
+export default function PropertyGallery({ images, title, className, heightClassName }: PropertyGalleryProps) {
   const [selectedImage, setSelectedImage] = useState(0)
   const [touchStartX, setTouchStartX] = useState<number | null>(null)
 
@@ -18,7 +20,7 @@ export default function PropertyGallery({ images, title }: PropertyGalleryProps)
 
   return (
     <div
-      className="relative h-[280px] sm:h-[360px] md:h-[600px]"
+      className={`${heightClassName || 'relative h-[280px] sm:h-[360px] md:h-[600px]'}${className ? ` ${className}` : ''}`}
       onTouchStart={(e) => setTouchStartX(e.touches[0]?.clientX ?? null)}
       onTouchEnd={(e) => {
         if (touchStartX == null) return
@@ -44,6 +46,7 @@ export default function PropertyGallery({ images, title }: PropertyGalleryProps)
         className="object-cover"
         sizes="100vw"
         unoptimized={(images[selectedImage] || images[0]).startsWith('http')}
+        loading="lazy"
       />
       {images.length > 1 && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">

@@ -126,6 +126,9 @@ export default function HeroSearch() {
     e.preventDefault()
     const params = new URLSearchParams()
 
+    params.set('page', '1')
+    params.set('limit', '24')
+
     if (region) params.set('region', region)
     if (community) params.set('community', community)
     if (area) params.set('area', area)
@@ -139,7 +142,7 @@ export default function HeroSearch() {
       if (Number.isFinite(n) && n > 0) params.set('maxPrice', String(uiPriceToAed(currencyCountry, n)))
     }
 
-    router.push(`/properties${params.toString() ? `?${params.toString()}` : ''}`)
+    router.push(`/properties?${params.toString()}`)
   }
 
   return (
