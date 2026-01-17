@@ -6,6 +6,16 @@ import Image from 'next/image'
 import { useCountry } from '@/components/CountryProvider'
 import { formatCountryPrice } from '@/lib/country'
 
+function canOptimizeUrl(src: string) {
+  if (!src.startsWith('http')) return true
+  try {
+    const u = new URL(src)
+    return u.hostname === 'api.reelly.io' || u.hostname === 'reelly-backend.s3.amazonaws.com' || u.hostname === 'images.unsplash.com'
+  } catch {
+    return false
+  }
+}
+
 export default function FeaturedProperties() {
   const [properties, setProperties] = useState<any[]>([])
   const { country } = useCountry()
@@ -64,7 +74,7 @@ export default function FeaturedProperties() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {properties.map((property: any) => {
             const mainImage = property.coverImage || '/image-placeholder.svg'
-            const unoptimized = mainImage.startsWith('http')
+            const unoptimized = mainImage.startsWith('http') && !canOptimizeUrl(mainImage)
 
             return (
               <Link

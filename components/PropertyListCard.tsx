@@ -6,6 +6,16 @@ import Link from 'next/link'
 import { formatCountryPrice } from '@/lib/country'
 import { resolveImagesForProperty } from '@/lib/propertyImages'
 
+function canOptimizeUrl(src: string) {
+  if (!src.startsWith('http')) return true
+  try {
+    const u = new URL(src)
+    return u.hostname === 'api.reelly.io' || u.hostname === 'reelly-backend.s3.amazonaws.com' || u.hostname === 'images.unsplash.com'
+  } catch {
+    return false
+  }
+}
+
 interface Agent {
   id: string
   name: string
@@ -67,10 +77,10 @@ export default function PropertyListCard({ property }: { property: Property }) {
   }, [baseImages, property.id, sessionSeed])
 
   const mainImage = resolvedImages?.[0] || '/image-placeholder.svg'
-  const unoptimizedMain = mainImage.startsWith('http')
+  const unoptimizedMain = mainImage.startsWith('http') && !canOptimizeUrl(mainImage)
 
   const thumbs = (resolvedImages || []).slice(1, 4)
-  const unoptimizedThumbs = thumbs.map((src) => src.startsWith('http'))
+  const unoptimizedThumbs = thumbs.map((src) => src.startsWith('http') && !canOptimizeUrl(src))
 
   const phone = property.agent?.phone || ''
   const whatsappNumber = phone.replace(/[^\d]/g, '')
@@ -86,7 +96,7 @@ export default function PropertyListCard({ property }: { property: Property }) {
             fill
             className="object-cover"
             sizes="100vw"
-            unoptimized={mainImage.startsWith('http')}
+            unoptimized={unoptimizedMain}
           />
           {property.featured && (
             <div className="absolute top-3 left-3 bg-accent-yellow text-dark-blue px-3 py-1 rounded-full text-xs font-semibold">

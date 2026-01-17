@@ -3,6 +3,16 @@ import Image from 'next/image'
 import { formatCountryPrice } from '@/lib/country'
 import { resolvePropertyImages } from '@/lib/propertyImages'
 
+function canOptimizeUrl(src: string) {
+  if (!src.startsWith('http')) return true
+  try {
+    const u = new URL(src)
+    return u.hostname === 'api.reelly.io' || u.hostname === 'reelly-backend.s3.amazonaws.com' || u.hostname === 'images.unsplash.com'
+  } catch {
+    return false
+  }
+}
+
 interface Property {
   id: string
   country: 'UAE' | 'India'
@@ -25,7 +35,7 @@ export default function PropertyCard({ property }: { property: Property }) {
   })
 
   const mainImage = images[0] || '/image-placeholder.svg'
-  const unoptimized = mainImage.startsWith('http')
+  const unoptimized = mainImage.startsWith('http') && !canOptimizeUrl(mainImage)
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow">

@@ -2,8 +2,46 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import PropertyGallery from '@/components/PropertyGallery'
-import LazyMap from '@/components/LazyMap'
+import ClientLazyMap from '@/components/ClientLazyMap'
+import DeferredSection from '@/components/DeferredSection'
+import RevealContent from '@/components/RevealContent'
 import { reellyFetch } from '@/lib/reelly'
+
+const didLogProjectResponse = new Set<string>()
+const didLogImageGroups = new Set<string>()
+
+type MarkersCacheEntry = {
+  expiresAt: number
+  items: unknown[]
+}
+
+const MARKERS_TTL_MS = 10 * 60 * 1000
+
+let markersCache: MarkersCacheEntry | null = null
+let markersInFlight: Promise<unknown[]> | null = null
+
+async function getProjectMarkers(): Promise<unknown[]> {
+  const now = Date.now()
+  if (markersCache && markersCache.expiresAt > now) return markersCache.items
+
+  if (!markersInFlight) {
+    markersInFlight = (async () => {
+      try {
+        const markersRaw = await reellyFetch<any>('/api/v2/clients/projects/markers', {}, { cacheTtlMs: MARKERS_TTL_MS })
+        const items = normalizeListResponse(markersRaw).items
+        markersCache = { expiresAt: Date.now() + MARKERS_TTL_MS, items }
+        return items
+      } catch {
+        markersCache = { expiresAt: Date.now() + 60 * 1000, items: [] }
+        return []
+      }
+    })().finally(() => {
+      markersInFlight = null
+    })
+  }
+
+  return markersInFlight
+}
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v : ''
@@ -16,6 +54,17 @@ function safeNumber(v: unknown) {
 
 function normalize(v: string) {
   return v.trim().toLowerCase()
+}
+
+function canOptimizeUrl(src: string) {
+  if (typeof src !== 'string') return false
+  if (!src.startsWith('http')) return true
+  try {
+    const u = new URL(src)
+    return u.hostname === 'api.reelly.io' || u.hostname === 'reelly-backend.s3.amazonaws.com' || u.hostname === 'images.unsplash.com'
+  } catch {
+    return false
+  }
 }
 
 function formatAed(amount: number) {
@@ -53,6 +102,90 @@ function toImageUrl(v: unknown): string {
   return ''
 }
 
+function uniqueUrls(list: string[]) {
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const u of list) {
+    if (typeof u !== 'string') continue
+    const s = u.trim()
+    if (!s) continue
+    if (seen.has(s)) continue
+    seen.add(s)
+    out.push(s)
+  }
+  return out
+}
+
+function extractImageGroups(project: any) {
+  const hero: string[] = []
+  const gallery: string[] = []
+  const unitLayouts: string[] = []
+  const amenityIcons: string[] = []
+
+  const cover = toImageUrl(project?.cover_image)
+  if (cover) hero.push(cover)
+
+  const isLikelyImageUrl = (u: string) => {
+    const s = u.toLowerCase()
+    return (
+      s.startsWith('http') &&
+      (s.includes('.jpg') || s.includes('.jpeg') || s.includes('.png') || s.includes('.webp') || s.includes('.gif') || s.includes('.avif'))
+    )
+  }
+
+  const pushAnyImage = (value: unknown, into: string[]) => {
+    const direct = toImageUrl(value)
+    if (direct && isLikelyImageUrl(direct)) {
+      into.push(direct)
+      return
+    }
+
+    if (value && typeof value === 'object') {
+      const nested = toImageUrl((value as any).image)
+      if (nested && isLikelyImageUrl(nested)) into.push(nested)
+    }
+  }
+
+  const pushFromArray = (arr: unknown, into: string[]) => {
+    const list = Array.isArray(arr) ? (arr as unknown[]) : []
+    for (const it of list) {
+      pushAnyImage(it, into)
+    }
+  }
+
+  pushFromArray(project?.architecture, gallery)
+  pushFromArray(project?.interior, gallery)
+  pushFromArray(project?.lobby, gallery)
+
+  const buildings = Array.isArray(project?.buildings) ? (project.buildings as unknown[]) : []
+  for (const b of buildings) {
+    const u = toImageUrl((b as any)?.cover_image)
+    if (u) gallery.push(u)
+  }
+
+  const generalPlan = toImageUrl(project?.general_plan)
+  if (generalPlan) gallery.push(generalPlan)
+
+  const typicalUnits = Array.isArray(project?.typical_units) ? (project.typical_units as unknown[]) : []
+  for (const tu of typicalUnits) {
+    pushFromArray((tu as any)?.layout, unitLayouts)
+    pushFromArray((tu as any)?.floor_plans, unitLayouts)
+  }
+
+  const amenities = Array.isArray(project?.project_amenities) ? (project.project_amenities as unknown[]) : []
+  for (const a of amenities) {
+    const u = toImageUrl((a as any)?.icon) || toImageUrl((a as any)?.amenity?.icon)
+    if (u) amenityIcons.push(u)
+  }
+
+  return {
+    hero: uniqueUrls(hero),
+    gallery: uniqueUrls(gallery),
+    unitLayouts: uniqueUrls(unitLayouts),
+    amenityIcons: uniqueUrls(amenityIcons),
+  }
+}
+
 export default async function PropertyDetailPage({ params }: { params: { id: string } }) {
   const rawId = safeString(params?.id)
   if (!rawId) notFound()
@@ -63,19 +196,39 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
 
   try {
     item = await reellyFetch<any>(`/api/v2/clients/projects/${encodeURIComponent(rawId)}`, {}, { cacheTtlMs: 0 })
-  } catch {
-    notFound()
+  } catch (e) {
+    const message = e instanceof Error ? e.message : ''
+    if (/Reelly API error:\s*404\b/.test(message)) notFound()
+    throw e
   }
 
   if (!item || typeof item !== 'object') notFound()
 
+  if (process.env.NODE_ENV !== 'production') {
+    const key = String((item as any)?.id ?? rawId)
+    if (!didLogProjectResponse.has(key)) {
+      didLogProjectResponse.add(key)
+      console.log(`[properties/${rawId}] Reelly project response:`)
+      console.log(JSON.stringify(item, null, 2))
+    }
+  }
+
+  const imageGroups = extractImageGroups(item)
+
+  if (process.env.NODE_ENV !== 'production') {
+    const key = String((item as any)?.id ?? rawId)
+    if (!didLogImageGroups.has(key)) {
+      didLogImageGroups.add(key)
+      console.log(`[properties/${rawId}] Extracted image groups:`)
+      console.log(JSON.stringify(imageGroups, null, 2))
+    }
+  }
+
   try {
-    const markersRaw = await reellyFetch<any>('/api/v2/clients/projects/markers', {}, { cacheTtlMs: 0 })
-    const markers = normalizeListResponse(markersRaw).items
+    const markers = await getProjectMarkers()
     const projectId = safeString(item?.id) || String(safeNumber(item?.id))
     marker =
-      markers.find((m: any) => String(m?.project_id ?? m?.projectId ?? m?.id) === String(projectId)) ||
-      markers.find((m: any) => String(m?.id) === String(projectId)) ||
+      (markers as any[]).find((m: any) => String(m?.project_id ?? m?.projectId) === String(projectId)) ||
       null
   } catch {
     marker = null
@@ -129,6 +282,8 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
   const galleryUrls: string[] = galleries.map(toImageUrl).filter(Boolean)
   const images: string[] = [coverUrl, ...galleryUrls].filter(Boolean)
 
+  const curatedGalleryImages = (imageGroups.gallery.length > 0 ? imageGroups.gallery : galleryUrls).slice(0, 18)
+
   const paymentPlans: unknown[] = Array.isArray(item?.payment_plans)
     ? item.payment_plans
     : Array.isArray(item?.paymentPlans)
@@ -145,8 +300,8 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
 
   const description = safeString(item?.description)
 
-  const lat = safeNumber(marker?.latitude ?? marker?.lat)
-  const lng = safeNumber(marker?.longitude ?? marker?.lng ?? marker?.lon)
+  const lat = safeNumber(marker?.latitude ?? marker?.lat ?? item?.location?.latitude)
+  const lng = safeNumber(marker?.longitude ?? marker?.lng ?? marker?.lon ?? item?.location?.longitude)
   const hasCoords = Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)
 
   const internalRef =
@@ -162,7 +317,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
           className="object-cover"
           priority
           sizes="100vw"
-          unoptimized={(coverUrl || '').startsWith('http')}
+          unoptimized={(coverUrl || '').startsWith('http') && !canOptimizeUrl(coverUrl || '')}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
         <div className="absolute inset-0">
@@ -208,7 +363,11 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
             <h2 className="text-2xl font-serif font-bold text-dark-blue">Image Gallery</h2>
             <p className="mt-2 text-gray-600">Browse cover and gallery images.</p>
             <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200">
-              <PropertyGallery images={images} title={title} heightClassName="relative h-[320px] sm:h-[420px] md:h-[520px]" />
+              <PropertyGallery
+                images={curatedGalleryImages.length > 0 ? curatedGalleryImages : images}
+                title={title}
+                heightClassName="relative h-[320px] sm:h-[420px] md:h-[520px]"
+              />
             </div>
           </section>
 
@@ -329,8 +488,11 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
           )}
 
           {projectAmenities.length > 0 ? (
-            <section className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
-              <h2 className="text-2xl font-serif font-bold text-dark-blue">Amenities</h2>
+            <DeferredSection
+              title="Amenities"
+              count={projectAmenities.length}
+              className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm"
+            >
               <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {projectAmenities
                   .map((a: any) => {
@@ -347,7 +509,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
                           alt={a.name}
                           fill
                           className="object-contain p-2"
-                          unoptimized={(a.iconUrl || '').startsWith('http')}
+                          unoptimized={(a.iconUrl || '').startsWith('http') && !canOptimizeUrl(a.iconUrl || '')}
                           loading="lazy"
                         />
                       </div>
@@ -355,12 +517,15 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
                     </div>
                   ))}
               </div>
-            </section>
+            </DeferredSection>
           ) : null}
 
           {typicalUnits.length > 0 ? (
-            <section className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
-              <h2 className="text-2xl font-serif font-bold text-dark-blue">Typical Units</h2>
+            <DeferredSection
+              title="Typical Units"
+              count={typicalUnits.length}
+              className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm"
+            >
               <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                 {typicalUnits.map((u: any, idx: number) => {
                   const unitType = safeString(u?.unit_type) || safeString(u?.type) || safeString(u?.name)
@@ -377,11 +542,14 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
                           ? `Up to ${sizeTo}`
                           : ''
 
-                  if (!unitType && !sizeLabel && starting <= 0) return null
+                  const hasAnyInfo = Boolean(unitType) || Boolean(sizeLabel) || starting > 0
 
                   return (
                     <div key={idx} className="bg-gray-50 rounded-2xl p-5 border border-gray-200">
                       <p className="text-base font-semibold text-dark-blue">{unitType || `Unit ${idx + 1}`}</p>
+                      {!hasAnyInfo ? (
+                        <p className="mt-3 text-sm text-gray-600">Unit details are not available yet.</p>
+                      ) : null}
                       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {sizeLabel ? (
                           <div className="bg-white rounded-xl p-3 border border-gray-200">
@@ -400,7 +568,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
                   )
                 })}
               </div>
-            </section>
+            </DeferredSection>
           ) : null}
 
           <section className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
@@ -408,9 +576,11 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
             <p className="mt-2 text-gray-700">{locationLabel || region || 'Location'}</p>
 
             {hasCoords ? (
-              <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
-                <LazyMap lat={lat} lng={lng} />
-              </div>
+              <RevealContent labelShow="Show map" labelHide="Hide map">
+                <div className="overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
+                  <ClientLazyMap lat={lat} lng={lng} />
+                </div>
+              </RevealContent>
             ) : (
               <p className="mt-4 text-sm text-gray-600">Map coordinates are not available for this project yet.</p>
             )}
@@ -436,7 +606,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
                   alt={developerName || 'Developer'}
                   fill
                   className="object-contain p-2"
-                  unoptimized={(developerLogoUrl || '').startsWith('http')}
+                  unoptimized={(developerLogoUrl || '').startsWith('http') && !canOptimizeUrl(developerLogoUrl || '')}
                   loading="lazy"
                 />
               </div>

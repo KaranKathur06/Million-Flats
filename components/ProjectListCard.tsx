@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import { memo, useMemo, useState } from 'react'
 
 export type ReellyProject = {
   id: number
@@ -24,12 +25,14 @@ export type ReellyProject = {
 }
 
 function formatAed(amount: number) {
-  return new Intl.NumberFormat('en-AE', {
-    style: 'currency',
-    currency: 'AED',
-    maximumFractionDigits: 0,
-  }).format(amount)
+  return AED_FORMATTER.format(amount)
 }
+
+const AED_FORMATTER = new Intl.NumberFormat('en-AE', {
+  style: 'currency',
+  currency: 'AED',
+  maximumFractionDigits: 0,
+})
 
 function formatCompletionDate(value: string) {
   const d = new Date(value)
@@ -37,9 +40,27 @@ function formatCompletionDate(value: string) {
   return d.toLocaleDateString('en-AE', { year: 'numeric', month: 'short' })
 }
 
-export default function ProjectListCard({ project }: { project: ReellyProject }) {
-  const imageUrl = project.cover_image?.url || '/image-placeholder.svg'
-  const unoptimized = imageUrl.startsWith('http')
+function ProjectListCardInner({ project }: { project: ReellyProject }) {
+  const [imgErrored, setImgErrored] = useState(false)
+
+  const canOptimizeUrl = useMemo(() => {
+    const src = project.cover_image?.url || ''
+    if (!src.startsWith('http')) return true
+    try {
+      const u = new URL(src)
+      return u.hostname === 'api.reelly.io' || u.hostname === 'reelly-backend.s3.amazonaws.com' || u.hostname === 'images.unsplash.com'
+    } catch {
+      return false
+    }
+  }, [project.cover_image?.url])
+
+  const imageUrl = useMemo(() => {
+    const raw = project.cover_image?.url || ''
+    if (imgErrored) return '/image-placeholder.svg'
+    return raw || '/image-placeholder.svg'
+  }, [imgErrored, project.cover_image?.url])
+
+  const unoptimized = useMemo(() => imageUrl.startsWith('http') && !canOptimizeUrl, [canOptimizeUrl, imageUrl])
 
   const constructionBadge = project.construction_status === 'completed' ? 'Completed' : 'Under Construction'
 
@@ -56,11 +77,13 @@ export default function ProjectListCard({ project }: { project: ReellyProject })
         <Image
           src={imageUrl}
           alt={project.name}
-          fill
-          className="object-cover"
+          width={800}
+          height={450}
+          className="h-full w-full object-cover"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           unoptimized={unoptimized}
           loading="lazy"
+          onError={() => setImgErrored(true)}
         />
 
         <div className="absolute top-3 left-3 flex gap-2">
@@ -93,3 +116,5 @@ export default function ProjectListCard({ project }: { project: ReellyProject })
     </div>
   )
 }
+
+export default memo(ProjectListCardInner)
