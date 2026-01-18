@@ -1,14 +1,38 @@
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import PropertyGallery from '@/components/PropertyGallery'
 import ClientLazyMap from '@/components/ClientLazyMap'
 import DeferredSection from '@/components/DeferredSection'
 import RevealContent from '@/components/RevealContent'
+import ScrollableZoomGallery from '@/components/ScrollableZoomGallery'
 import { reellyFetch } from '@/lib/reelly'
+import { buildProjectSeoPath } from '@/lib/seo'
 
 const didLogProjectResponse = new Set<string>()
 const didLogImageGroups = new Set<string>()
+
+const PROJECT_TTL_MS = 10 * 60 * 1000
+const DEVELOPERS_TTL_MS = 30 * 60 * 1000
+
+function siteUrl() {
+  const base = (process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || '').trim()
+  return base ? base.replace(/\/$/, '') : ''
+}
+
+function absoluteUrl(path: string) {
+  const base = siteUrl()
+  if (!base) return ''
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`
+}
+
+function clampDescription(s: string, max = 160) {
+  const cleaned = s.replace(/\s+/g, ' ').trim()
+  if (!cleaned) return ''
+  if (cleaned.length <= max) return cleaned
+  return `${cleaned.slice(0, max - 1).trimEnd()}…`
+}
 
 type MarkersCacheEntry = {
   expiresAt: number
@@ -119,6 +143,11 @@ function uniqueUrls(list: string[]) {
 function extractImageGroups(project: any) {
   const hero: string[] = []
   const gallery: string[] = []
+  const architecture: string[] = []
+  const interior: string[] = []
+  const lobby: string[] = []
+  const buildingImages: string[] = []
+  const masterPlan: string[] = []
   const unitLayouts: string[] = []
   const amenityIcons: string[] = []
 
@@ -153,18 +182,26 @@ function extractImageGroups(project: any) {
     }
   }
 
-  pushFromArray(project?.architecture, gallery)
-  pushFromArray(project?.interior, gallery)
-  pushFromArray(project?.lobby, gallery)
+  pushFromArray(project?.architecture, architecture)
+  pushFromArray(project?.interior, interior)
+  pushFromArray(project?.lobby, lobby)
 
-  const buildings = Array.isArray(project?.buildings) ? (project.buildings as unknown[]) : []
-  for (const b of buildings) {
+  gallery.push(...architecture, ...interior, ...lobby)
+
+  const buildingRecords = Array.isArray(project?.buildings) ? (project.buildings as unknown[]) : []
+  for (const b of buildingRecords) {
     const u = toImageUrl((b as any)?.cover_image)
-    if (u) gallery.push(u)
+    if (u) {
+      gallery.push(u)
+      buildingImages.push(u)
+    }
   }
 
   const generalPlan = toImageUrl(project?.general_plan)
-  if (generalPlan) gallery.push(generalPlan)
+  if (generalPlan) {
+    gallery.push(generalPlan)
+    masterPlan.push(generalPlan)
+  }
 
   const typicalUnits = Array.isArray(project?.typical_units) ? (project.typical_units as unknown[]) : []
   for (const tu of typicalUnits) {
@@ -181,8 +218,69 @@ function extractImageGroups(project: any) {
   return {
     hero: uniqueUrls(hero),
     gallery: uniqueUrls(gallery),
+    architecture: uniqueUrls(architecture),
+    interior: uniqueUrls(interior),
+    lobby: uniqueUrls(lobby),
+    buildings: uniqueUrls(buildingImages),
+    masterPlan: uniqueUrls(masterPlan),
     unitLayouts: uniqueUrls(unitLayouts),
     amenityIcons: uniqueUrls(amenityIcons),
+  }
+}
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const rawId = safeString(params?.id)
+  if (!rawId) return { title: 'Property' }
+
+  let item: any
+  try {
+    item = await reellyFetch<any>(`/api/v2/clients/projects/${encodeURIComponent(rawId)}`, {}, { cacheTtlMs: PROJECT_TTL_MS })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : ''
+    if (/Reelly API error:\s*404\b/.test(message)) notFound()
+    return { title: 'Property' }
+  }
+
+  const title = safeString(item?.name) || safeString(item?.title) || 'Project'
+  const developer = safeString(item?.developer)
+  const region = safeString(item?.location?.region)
+  const district = safeString(item?.location?.district)
+  const sector = safeString(item?.location?.sector)
+  const locationLabel = [sector, district, region].filter(Boolean).join(', ')
+
+  const projectId = safeString(item?.id) || String(safeNumber(item?.id)) || rawId
+  const seoPath = buildProjectSeoPath({
+    id: projectId,
+    name: title,
+    region,
+    district,
+    sector,
+  })
+
+  const minPrice = safeNumber(item?.min_price)
+  const priceLabel = minPrice > 0 ? `From ${formatAed(minPrice)}` : 'Price on Request'
+  const description = clampDescription(safeString(item?.description) || `${priceLabel}${locationLabel ? ` • ${locationLabel}` : ''}`)
+
+  const coverUrl = toImageUrl(item?.cover_image) || ''
+  const canonical = absoluteUrl(seoPath || `/properties/${encodeURIComponent(projectId)}`)
+
+  return {
+    title: `${title}${locationLabel ? ` in ${locationLabel}` : ''} | millionflats`,
+    description,
+    alternates: canonical ? { canonical } : undefined,
+    openGraph: {
+      title: `${title}${locationLabel ? ` in ${locationLabel}` : ''}`,
+      description,
+      url: canonical || undefined,
+      type: 'article',
+      images: coverUrl ? [{ url: coverUrl, alt: title }] : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${title}${locationLabel ? ` in ${locationLabel}` : ''}`,
+      description,
+      images: coverUrl ? [coverUrl] : undefined,
+    },
   }
 }
 
@@ -195,7 +293,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
   let developerRecord: any = null
 
   try {
-    item = await reellyFetch<any>(`/api/v2/clients/projects/${encodeURIComponent(rawId)}`, {}, { cacheTtlMs: 0 })
+    item = await reellyFetch<any>(`/api/v2/clients/projects/${encodeURIComponent(rawId)}`, {}, { cacheTtlMs: PROJECT_TTL_MS })
   } catch (e) {
     const message = e instanceof Error ? e.message : ''
     if (/Reelly API error:\s*404\b/.test(message)) notFound()
@@ -235,7 +333,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
   }
 
   try {
-    const developersRaw = await reellyFetch<any>('/api/v2/clients/developers', {}, { cacheTtlMs: 0 })
+    const developersRaw = await reellyFetch<any>('/api/v2/clients/developers', {}, { cacheTtlMs: DEVELOPERS_TTL_MS })
     const developers = normalizeListResponse(developersRaw).items
     const developerId = safeString(item?.developer_id) || String(safeNumber(item?.developer_id))
     const developerName = safeString(item?.developer)
@@ -284,6 +382,14 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
 
   const curatedGalleryImages = (imageGroups.gallery.length > 0 ? imageGroups.gallery : galleryUrls).slice(0, 18)
 
+  const photoCategories: Array<{ key: string; title: string; urls: string[] }> = [
+    { key: 'architecture', title: 'Architecture', urls: (imageGroups as any).architecture || [] },
+    { key: 'interior', title: 'Interior', urls: (imageGroups as any).interior || [] },
+    { key: 'lobby', title: 'Lobby', urls: (imageGroups as any).lobby || [] },
+    { key: 'buildings', title: 'Buildings', urls: (imageGroups as any).buildings || [] },
+    { key: 'masterPlan', title: 'Master Plan', urls: (imageGroups as any).masterPlan || [] },
+  ]
+
   const paymentPlans: unknown[] = Array.isArray(item?.payment_plans)
     ? item.payment_plans
     : Array.isArray(item?.paymentPlans)
@@ -307,8 +413,51 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
   const internalRef =
     safeString(item?.internal_reference) || safeString(item?.internalRef) || safeString(item?.reference) || safeString(item?.ref)
 
+  const projectId = safeString(item?.id) || String(safeNumber(item?.id)) || rawId
+  const seoPath = buildProjectSeoPath({
+    id: projectId,
+    name: title,
+    region,
+    district,
+    sector,
+  })
+  const canonical = absoluteUrl(seoPath || `/properties/${encodeURIComponent(projectId)}`)
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'RealEstateListing',
+    name: title,
+    url: canonical || undefined,
+    description: description || undefined,
+    image: uniqueUrls([coverUrl, ...curatedGalleryImages]).slice(0, 20),
+    offers:
+      minPrice > 0
+        ? {
+            '@type': 'Offer',
+            price: String(minPrice),
+            priceCurrency: 'AED',
+          }
+        : undefined,
+    address: locationLabel
+      ? {
+          '@type': 'PostalAddress',
+          addressLocality: district || sector || undefined,
+          addressRegion: region || undefined,
+          addressCountry: 'AE',
+          streetAddress: locationLabel,
+        }
+      : undefined,
+    geo: hasCoords
+      ? {
+          '@type': 'GeoCoordinates',
+          latitude: lat,
+          longitude: lng,
+        }
+      : undefined,
+  }
+
   return (
     <div className="min-h-screen bg-white">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
       <div className="relative h-[420px] md:h-[560px] overflow-hidden">
         <Image
           src={coverUrl || '/image-placeholder.svg'}
@@ -369,6 +518,57 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
                 heightClassName="relative h-[320px] sm:h-[420px] md:h-[520px]"
               />
             </div>
+
+            {photoCategories.some((c) => Array.isArray(c.urls) && c.urls.length > 0) ? (
+              <div className="mt-8 space-y-8">
+                {photoCategories
+                  .filter((c) => Array.isArray(c.urls) && c.urls.length > 0)
+                  .map((cat) => (
+                    <div key={cat.key}>
+                      <h3 className="text-lg font-semibold text-dark-blue">{cat.title}</h3>
+                      <div className="mt-4">
+                        <ScrollableZoomGallery
+                          title={`${title} - ${cat.title}`}
+                          images={cat.urls}
+                          imageAltPrefix={`${title} ${cat.title}`}
+                          aspectClassName="aspect-[4/3]"
+                          fit="cover"
+                        />
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            ) : null}
+
+            {imageGroups.unitLayouts.length > 0 ? (
+              <div className="mt-10">
+                <h3 className="text-lg font-semibold text-dark-blue">Floor Plans</h3>
+                <div className="mt-4">
+                  <ScrollableZoomGallery
+                    title={`${title} - Floor Plans`}
+                    images={imageGroups.unitLayouts}
+                    imageAltPrefix={`${title} floor plan`}
+                    aspectClassName="aspect-[4/3]"
+                    fit="contain"
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {imageGroups.amenityIcons.length > 0 ? (
+              <div className="mt-10">
+                <h3 className="text-lg font-semibold text-dark-blue">Amenity Icons</h3>
+                <div className="mt-4">
+                  <ScrollableZoomGallery
+                    title={`${title} - Amenity Icons`}
+                    images={imageGroups.amenityIcons}
+                    imageAltPrefix={`${title} amenity icon`}
+                    aspectClassName="aspect-square"
+                    fit="contain"
+                  />
+                </div>
+              </div>
+            ) : null}
           </section>
 
           <section className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">

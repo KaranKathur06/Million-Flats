@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { memo, useMemo, useState } from 'react'
+import { buildProjectSeoPath } from '@/lib/seo'
 
 export type ReellyProject = {
   id: number
@@ -66,6 +67,15 @@ function ProjectListCardInner({ project }: { project: ReellyProject }) {
 
   const locationLabel = [project.location?.district, project.location?.region].filter(Boolean).join(', ')
 
+  const seoHref =
+    buildProjectSeoPath({
+      id: project.id,
+      name: project.name,
+      region: project.location?.region,
+      district: project.location?.district,
+      sector: project.location?.sector,
+    }) || `/properties/${project.id}`
+
   const priceLabel =
     typeof project.min_price === 'number' && project.min_price > 0
       ? `From ${formatAed(project.min_price)}`
@@ -107,7 +117,7 @@ function ProjectListCardInner({ project }: { project: ReellyProject }) {
         </div>
 
         <Link
-          href={`/properties/${project.id}`}
+          href={seoHref}
           className="mt-4 inline-flex items-center justify-center w-full h-11 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 transition-colors"
         >
           View Details

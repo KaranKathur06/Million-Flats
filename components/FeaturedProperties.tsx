@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useCountry } from '@/components/CountryProvider'
 import { formatCountryPrice } from '@/lib/country'
+import { buildProjectSeoPath } from '@/lib/seo'
 
 function canOptimizeUrl(src: string) {
   if (!src.startsWith('http')) return true
@@ -35,6 +36,7 @@ export default function FeaturedProperties() {
 
             const region = String(item?.location?.region ?? '')
             const district = String(item?.location?.district ?? '')
+            const sector = String(item?.location?.sector ?? '')
             const location = [district, region].filter(Boolean).join(', ')
 
             const minPrice = Number(item?.min_price ?? 0)
@@ -45,6 +47,9 @@ export default function FeaturedProperties() {
               title: String(item?.name ?? 'Project'),
               developer: String(item?.developer ?? ''),
               location,
+              region,
+              district,
+              sector,
               price: displayPrice,
               priceOnRequest: displayPrice <= 0,
               coverImage: String(item?.cover_image?.url ?? ''),
@@ -76,10 +81,19 @@ export default function FeaturedProperties() {
             const mainImage = property.coverImage || '/image-placeholder.svg'
             const unoptimized = mainImage.startsWith('http') && !canOptimizeUrl(mainImage)
 
+            const href =
+              buildProjectSeoPath({
+                id: Number(property.id),
+                name: String(property.title || ''),
+                region: String(property.region || ''),
+                district: String(property.district || ''),
+                sector: String(property.sector || ''),
+              }) || `/properties/${property.id}`
+
             return (
               <Link
                 key={property.id}
-                href={`/properties/${property.id}`}
+                href={href}
                 className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow group"
               >
                 <div className="relative h-64">

@@ -46,6 +46,7 @@ export async function reellyFetch<T>(
   const { apiKey } = getEnv()
 
   const ttl = options.cacheTtlMs ?? 0
+  const revalidateSeconds = ttl > 0 ? Math.max(1, Math.ceil(ttl / 1000)) : 0
   const cached = ttl > 0 ? (cacheStore.get(url) as CacheEntry<T> | undefined) : undefined
   if (ttl > 0) {
     if (cached && cached.expiresAt > Date.now()) return cached.value
@@ -60,7 +61,7 @@ export async function reellyFetch<T>(
         Accept: 'application/json',
         'Content-Type': 'application/json',
       },
-      cache: 'no-store',
+      ...(ttl > 0 ? { next: { revalidate: revalidateSeconds } } : { cache: 'no-store' }),
     })
 
     if (!res.ok) {
