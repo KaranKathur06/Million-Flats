@@ -28,7 +28,7 @@ export default function Header() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 md:h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="/" className="flex items-center">
             <Image
               src="/LOGO.jpeg"
               alt="Millionflats"
@@ -37,7 +37,6 @@ export default function Header() {
               className="rounded-md w-8 h-8 md:w-[34px] md:h-[34px]"
               priority
             />
-            <span className="text-dark-blue font-semibold text-base md:text-lg tracking-wide">millionflats</span>
           </Link>
 
           {/* Navigation */}
@@ -105,22 +104,6 @@ export default function Header() {
               }`}
             >
               Tokenized
-            </Link>
-            <Link
-              href="/about"
-              className={`text-sm font-medium transition-colors ${
-                isActive('/about') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-              }`}
-            >
-              About
-            </Link>
-            <Link
-              href="/contact"
-              className={`text-sm font-medium transition-colors ${
-                isActive('/contact') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-              }`}
-            >
-              Contact
             </Link>
           </nav>
 
@@ -250,24 +233,6 @@ export default function Header() {
               onClick={() => setMobileOpen(false)}
             >
               Tokenized
-            </Link>
-            <Link
-              href="/about"
-              className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                isActive('/about') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-              }`}
-              onClick={() => setMobileOpen(false)}
-            >
-              About
-            </Link>
-            <Link
-              href="/contact"
-              className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                isActive('/contact') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-              }`}
-              onClick={() => setMobileOpen(false)}
-            >
-              Contact
             </Link>
 
             <div className="pt-4 mt-4 border-t border-gray-200 space-y-2">

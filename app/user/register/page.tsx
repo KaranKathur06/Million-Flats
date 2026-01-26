@@ -50,7 +50,7 @@ export default function UserRegisterPage() {
         if (data.requiresVerification) {
           router.push(`/user/verify?email=${encodeURIComponent(formData.email)}`)
         } else {
-          router.push('/user/dashboard')
+          router.push('/dashboard')
         }
       } else {
         setError(data.message || 'Registration failed')
@@ -63,7 +63,7 @@ export default function UserRegisterPage() {
   }
 
   const handleGoogleSignup = () => {
-    signIn('google', { callbackUrl: '/user/dashboard' })
+    signIn('google', { callbackUrl: '/auth/redirect' })
   }
 
   return (

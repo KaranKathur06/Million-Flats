@@ -176,9 +176,6 @@ For production, set these environment variables:
 - Map integration uses placeholder - implement real map service (Google Maps, Mapbox) for production
 
 
-
-
-
 ## Support
 
 For questions or issues, please contact support@millionflats.com

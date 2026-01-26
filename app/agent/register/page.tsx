@@ -58,6 +58,18 @@ export default function AgentRegisterPage() {
       const data = await res.json()
 
       if (res.ok) {
+        const result = await signIn('credentials', {
+          email: formData.email,
+          password: formData.password,
+          redirect: false,
+          callbackUrl: '/auth/redirect',
+        })
+
+        if (result?.ok && result.url) {
+          router.push(result.url)
+          return
+        }
+
         router.push('/agent/login')
       } else {
         setError(data.message || 'Registration failed')
@@ -70,7 +82,7 @@ export default function AgentRegisterPage() {
   }
 
   const handleGoogleSignup = () => {
-    signIn('google', { callbackUrl: '/agent/dashboard' })
+    signIn('google', { callbackUrl: '/auth/redirect?intent=agent' })
   }
 
   return (

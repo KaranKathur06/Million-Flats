@@ -26,11 +26,11 @@ export default function AgentLoginPage() {
         email: formData.email,
         password: formData.password,
         redirect: false,
-        callbackUrl: '/agent/dashboard',
+        callbackUrl: '/auth/redirect',
       })
 
-      if (result?.ok) {
-        router.push('/agent/dashboard')
+      if (result?.ok && result.url) {
+        router.push(result.url)
         return
       }
 
@@ -41,6 +41,11 @@ export default function AgentLoginPage() {
       })
 
       const data = await res.json()
+      if (res.ok) {
+        router.push('/auth/redirect')
+        return
+      }
+
       setError((result as any)?.error || data.message || 'Login failed')
     } catch (error) {
       setError('An error occurred. Please try again.')
@@ -50,7 +55,7 @@ export default function AgentLoginPage() {
   }
 
   const handleGoogleLogin = () => {
-    signIn('google', { callbackUrl: '/agent/dashboard' })
+    signIn('google', { callbackUrl: '/auth/redirect?intent=agent' })
   }
 
   return (

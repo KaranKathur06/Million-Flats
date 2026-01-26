@@ -26,7 +26,7 @@ export default function VerifyClient() {
       const data = await res.json()
 
       if (res.ok) {
-        router.push('/user/dashboard')
+        router.push('/dashboard')
       } else {
         setError(data.message || 'Verification failed')
       }

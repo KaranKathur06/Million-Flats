@@ -24,11 +24,11 @@ export default function UserLoginPage() {
         email,
         password,
         redirect: false,
-        callbackUrl: '/user/dashboard',
+        callbackUrl: '/auth/redirect',
       })
 
-      if (result?.ok) {
-        router.push('/user/dashboard')
+      if (result?.ok && result.url) {
+        router.push(result.url)
         return
       }
 
@@ -46,6 +46,11 @@ export default function UserLoginPage() {
         return
       }
 
+      if (res.ok) {
+        router.push('/auth/redirect')
+        return
+      }
+
       setError((result as any)?.error || data.message || 'Login failed')
     } catch (error) {
       setError('An error occurred. Please try again.')
@@ -55,7 +60,7 @@ export default function UserLoginPage() {
   }
 
   const handleGoogleLogin = () => {
-    signIn('google', { callbackUrl: '/user/dashboard' })
+    signIn('google', { callbackUrl: '/auth/redirect' })
   }
 
   return (
