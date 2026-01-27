@@ -13,6 +13,8 @@ function getEnv(name: string) {
 const nextAuthSecret = getEnv('NEXTAUTH_SECRET')
 const googleClientId = getEnv('GOOGLE_CLIENT_ID')
 const googleClientSecret = getEnv('GOOGLE_CLIENT_SECRET')
+const jwtSecret = getEnv('JWT_SECRET')
+const authSecret = nextAuthSecret || jwtSecret
 
 export const authOptions: NextAuthOptions = {
   adapter: {
@@ -34,7 +36,7 @@ export const authOptions: NextAuthOptions = {
       return (await prisma.user.findUnique({ where: { email: normalized } })) as any
     },
   } as any,
-  secret: nextAuthSecret,
+  secret: authSecret,
   session: {
     strategy: 'jwt',
   },
@@ -87,37 +89,27 @@ export const authOptions: NextAuthOptions = {
       if (!email || !googleId) return false
 
       const existing = await prisma.user.findUnique({ where: { email } })
-      if (existing) {
-        if (existing.googleId && existing.googleId !== googleId) return false
+      if (existing?.googleId && existing.googleId !== googleId) return false
 
-        await prisma.user.update({
-          where: { id: existing.id },
-          data: {
-            googleId: existing.googleId || googleId,
-            verified: true,
-            name: existing.name || (user?.name ?? null),
-            emailVerified: new Date(),
-          } as any,
-        })
+      const updated = await prisma.user.upsert({
+        where: { email },
+        create: {
+          email,
+          name: user?.name ?? null,
+          googleId,
+          verified: true,
+          emailVerified: new Date(),
+        } as any,
+        update: {
+          googleId: existing?.googleId || googleId,
+          verified: true,
+          name: existing?.name || (user?.name ?? null),
+          emailVerified: new Date(),
+        } as any,
+      })
 
-        ;(user as any).id = existing.id
-        ;(user as any).role = existing.role
-        return true
-      }
-
-      const createdId = (user as any)?.id
-      if (createdId) {
-        const updated = await prisma.user.update({
-          where: { id: createdId },
-          data: {
-            googleId,
-            verified: true,
-            emailVerified: new Date(),
-            name: user?.name ?? null,
-          } as any,
-        })
-        ;(user as any).role = updated.role
-      }
+      ;(user as any).id = updated.id
+      ;(user as any).role = updated.role
       return true
     },
     async jwt({ token, user }: any) {
@@ -160,5 +152,6 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/user/login',
+    error: '/auth/error',
   },
 }
