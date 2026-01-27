@@ -32,9 +32,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   const redirectToRaw = typeof req.query.redirectTo === 'string' ? req.query.redirectTo : ''
   const redirectTo = redirectToRaw.startsWith('/')
     ? redirectToRaw
-    : type === 'agent'
-      ? '/agent/dashboard'
-      : '/user/dashboard'
+    : '/auth/redirect'
 
   const baseUrl = getBaseUrl(req)
   const redirectUri = `${baseUrl}/api/auth/google/callback`

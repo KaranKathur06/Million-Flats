@@ -19,20 +19,18 @@ function getBaseUrl(req: NextApiRequest) {
 }
 
 function safeDecodeMeta(metaCookie: string | undefined): { type: 'user' | 'agent'; redirectTo: string } {
-  if (!metaCookie) return { type: 'user', redirectTo: '/user/dashboard' }
+  if (!metaCookie) return { type: 'user', redirectTo: '/auth/redirect' }
   try {
     const raw = Buffer.from(metaCookie, 'base64url').toString('utf8')
     const parsed = JSON.parse(raw) as { type?: unknown; redirectTo?: unknown }
     const type = parsed.type === 'agent' ? 'agent' : 'user'
     const redirectTo = typeof parsed.redirectTo === 'string' && parsed.redirectTo.startsWith('/')
       ? parsed.redirectTo
-      : type === 'agent'
-        ? '/agent/dashboard'
-        : '/user/dashboard'
+      : '/auth/redirect'
 
     return { type, redirectTo }
   } catch {
-    return { type: 'user', redirectTo: '/user/dashboard' }
+    return { type: 'user', redirectTo: '/auth/redirect' }
   }
 }
 
