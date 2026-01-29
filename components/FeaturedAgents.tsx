@@ -73,7 +73,7 @@ export default function FeaturedAgents() {
                 <h3 className="text-lg font-semibold text-dark-blue">{agent.name}</h3>
                 <p className="text-sm text-gray-600 mt-1">{agent.location}</p>
                 <Link
-                  href="/contact"
+                  href="/auth/redirect?next=/contact"
                   className="mt-5 inline-flex items-center justify-center w-full h-11 rounded-xl bg-dark-blue text-white text-sm font-semibold hover:bg-opacity-90 transition"
                 >
                   View Profile

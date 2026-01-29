@@ -22,7 +22,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
             Try Again
           </button>
           <Link
-            href="/properties"
+            href="/buy"
             className="inline-flex items-center justify-center bg-gray-100 text-dark-blue px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
           >
             Browse Properties

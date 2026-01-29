@@ -70,7 +70,10 @@ export async function middleware(req: NextRequest) {
 
   const isAgentOnboarding = pathname === '/agent/onboarding' || pathname.startsWith('/agent/onboarding/')
 
-  if (!isAgentProtected && !isUserProtected && !isAgentOnboarding) {
+  const isVerix = pathname === '/verix' || pathname.startsWith('/verix/')
+  const isEcosystem = pathname === '/contact' || pathname.startsWith('/contact/')
+
+  if (!isAgentProtected && !isUserProtected && !isAgentOnboarding && !isVerix && !isEcosystem) {
     return NextResponse.next()
   }
 
@@ -92,7 +95,19 @@ export async function middleware(req: NextRequest) {
   if (!nextAuthToken && !role) {
     const url = req.nextUrl.clone()
     url.pathname = getLoginPath(pathname)
-    url.search = ''
+    if (isVerix || isEcosystem) {
+      const next = `${pathname}${req.nextUrl.search || ''}`
+      url.search = `next=${encodeURIComponent(next)}`
+    } else {
+      url.search = ''
+    }
+    return NextResponse.redirect(url)
+  }
+
+  if ((isVerix || isEcosystem) && role === 'AGENT') {
+    const url = req.nextUrl.clone()
+    url.pathname = '/agent-portal'
+    url.search = 'warning=restricted'
     return NextResponse.redirect(url)
   }
 
@@ -114,5 +129,13 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/agent-portal/:path*', '/user/dashboard/:path*', '/agent/dashboard/:path*', '/agent/onboarding/:path*'],
+  matcher: [
+    '/dashboard/:path*',
+    '/agent-portal/:path*',
+    '/user/dashboard/:path*',
+    '/agent/dashboard/:path*',
+    '/agent/onboarding/:path*',
+    '/verix/:path*',
+    '/contact/:path*',
+  ],
 }

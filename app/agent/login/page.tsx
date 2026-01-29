@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { signIn } from 'next-auth/react'
+import { signIn, signOut } from 'next-auth/react'
 import AuthLayout from '@/components/AuthLayout'
 
 export default function AgentLoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -15,6 +16,14 @@ export default function AgentLoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const authError = searchParams?.get('error')
+    if (authError === 'agent_not_registered') {
+      signOut({ redirect: false })
+      setError('Agent account not found. Please register as an agent.')
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,7 +35,7 @@ export default function AgentLoginPage() {
         email: formData.email,
         password: formData.password,
         redirect: false,
-        callbackUrl: '/auth/redirect',
+        callbackUrl: '/auth/redirect?intent=agent',
       })
 
       if (result?.ok && result.url) {
@@ -42,11 +51,16 @@ export default function AgentLoginPage() {
 
       const data = await res.json()
       if (res.ok) {
-        router.push('/auth/redirect')
+        router.push('/auth/redirect?intent=agent')
         return
       }
 
-      setError((result as any)?.error || data.message || 'Login failed')
+      const raw = (result as any)?.error || data.message || 'Login failed'
+      if (raw === 'CredentialsSignin') {
+        setError('Invalid email or password.')
+      } else {
+        setError(raw)
+      }
     } catch (error) {
       setError('An error occurred. Please try again.')
     } finally {

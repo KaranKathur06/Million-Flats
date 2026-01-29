@@ -4,6 +4,16 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 
+function extractAgentId(input: string) {
+  const raw = (input || '').trim()
+  if (!raw) return ''
+  const parts = raw.split('-')
+  const candidate = parts.length > 1 ? parts[parts.length - 1] : raw
+  const uuidRe = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
+  if (uuidRe.test(candidate)) return candidate
+  return raw
+}
+
 type Badge = {
   key: string
   label: string
@@ -133,7 +143,7 @@ const scoreComponents = [
 ]
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const id = (params?.id || '').trim()
+  const id = extractAgentId(params?.id || '')
   if (!id) return { title: 'Agent | millionflats' }
 
   const agent = await prisma.agent.findUnique({ where: { id }, include: { user: true } }).catch(() => null)
@@ -146,7 +156,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 }
 
 export default async function AgentProfilePage({ params }: { params: { id: string } }) {
-  const id = (params?.id || '').trim()
+  const id = extractAgentId(params?.id || '')
   if (!id) notFound()
 
   const agent = await prisma.agent.findUnique({ where: { id }, include: { user: true } })
@@ -209,7 +219,10 @@ export default async function AgentProfilePage({ params }: { params: { id: strin
               </div>
 
               <div className="mt-6">
-                <Link href="/contact" className="inline-flex items-center justify-center w-full h-11 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 transition-colors">
+                <Link
+                  href="/auth/redirect?next=/contact"
+                  className="inline-flex items-center justify-center w-full h-11 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 transition-colors"
+                >
                   Contact Support
                 </Link>
               </div>

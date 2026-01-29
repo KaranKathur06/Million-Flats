@@ -19,6 +19,9 @@ export default function ContactInfo() {
             <a href="mailto:sales@millionflats.com" className="text-dark-blue hover:underline text-sm">
               sales@millionflats.com
             </a>
+             <a href="mailto:info@millionflats.com" className="text-dark-blue hover:underline text-sm">
+              info@millionflats.com
+            </a>
           </div>
         </div>
       </div>

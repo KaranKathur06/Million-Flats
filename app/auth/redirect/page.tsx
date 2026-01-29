@@ -10,6 +10,13 @@ export default async function AuthRedirectPage({
 }: {
   searchParams?: Record<string, string | string[] | undefined>
 }) {
+  const intentRaw = searchParams?.intent
+  const intent = Array.isArray(intentRaw) ? intentRaw[0] : intentRaw
+
+  const nextRaw = searchParams?.next
+  const next = Array.isArray(nextRaw) ? nextRaw[0] : nextRaw
+  const safeNext = typeof next === 'string' && next.startsWith('/') ? next : ''
+
   const session = await getServerSession(authOptions)
   const sessionRole = String((session?.user as any)?.role || '').toUpperCase()
   const hasSession = Boolean(session?.user)
@@ -31,11 +38,12 @@ export default async function AuthRedirectPage({
   const role = sessionRole || legacyRole || ((hasSession || hasLegacyToken) ? 'USER' : '')
 
   if (!role) {
-    redirect('/user/login')
+    if (safeNext) {
+      const loginPath = intent === 'agent' ? '/agent/login' : '/user/login'
+      redirect(`${loginPath}?next=${encodeURIComponent(safeNext)}`)
+    }
+    redirect(intent === 'agent' ? '/agent/login' : '/user/login')
   }
-
-  const intentRaw = searchParams?.intent
-  const intent = Array.isArray(intentRaw) ? intentRaw[0] : intentRaw
 
   const email = String((session?.user as any)?.email || '').trim().toLowerCase()
   const dbRole = email
@@ -44,12 +52,16 @@ export default async function AuthRedirectPage({
 
   const effectiveRole = dbRole || role
 
-  if (intent === 'agent' && effectiveRole === 'USER') {
-    redirect('/agent/onboarding')
+  if (intent === 'agent' && effectiveRole !== 'AGENT') {
+    redirect('/agent/login?error=agent_not_registered')
   }
 
   if (effectiveRole === 'AGENT') {
     redirect('/agent-portal')
+  }
+
+  if (safeNext) {
+    redirect(safeNext)
   }
 
   redirect('/dashboard')

@@ -9,8 +9,8 @@ export const metadata: Metadata = {
   description: 'Premium luxury real estate in UAE for discerning investors and buyers. Explore properties in Dubai, Abu Dhabi, Sharjah, and across the Emirates.',
   keywords: 'luxury real estate UAE, premium properties Dubai, Abu Dhabi properties, luxury villas UAE, penthouses Dubai, real estate UAE',
   icons: {
-    icon: '/LOGO.jpeg',
-    apple: '/LOGO.jpeg',
+    icon: '/LOGO.png',
+    apple: '/LOGO.png',
   },
 }
 

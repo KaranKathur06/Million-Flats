@@ -121,7 +121,7 @@ export default function FeaturedProperties() {
 
         <div className="text-center mt-12">
           <Link
-            href="/properties"
+            href="/buy"
             className="inline-block bg-dark-blue text-white px-8 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors"
           >
             Explore All Properties

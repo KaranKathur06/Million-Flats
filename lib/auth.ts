@@ -89,21 +89,18 @@ export const authOptions: NextAuthOptions = {
       if (!email || !googleId) return false
 
       const existing = await prisma.user.findUnique({ where: { email } })
-      if (existing?.googleId && existing.googleId !== googleId) return false
+      if (!existing) {
+        return '/user/login?error=email_not_registered'
+      }
 
-      const updated = await prisma.user.upsert({
+      if (existing.googleId && existing.googleId !== googleId) return false
+
+      const updated = await prisma.user.update({
         where: { email },
-        create: {
-          email,
-          name: user?.name ?? null,
-          googleId,
+        data: {
+          googleId: existing.googleId || googleId,
           verified: true,
-          emailVerified: new Date(),
-        } as any,
-        update: {
-          googleId: existing?.googleId || googleId,
-          verified: true,
-          name: existing?.name || (user?.name ?? null),
+          name: existing.name || (user?.name ?? null),
           emailVerified: new Date(),
         } as any,
       })
@@ -141,11 +138,23 @@ export const authOptions: NextAuthOptions = {
     },
     async redirect({ url, baseUrl }: any) {
       if (typeof url !== 'string') return baseUrl
-      if (!url.startsWith(baseUrl)) return baseUrl
 
-      if (url === baseUrl || url === `${baseUrl}/`) return url
-      if (url.startsWith(`${baseUrl}/api/auth`)) return url
-      if (url.startsWith(`${baseUrl}/auth/redirect`)) return url
+      const resolvedUrl = url.startsWith('/') ? `${baseUrl}${url}` : url
+      if (!resolvedUrl.startsWith(baseUrl)) return baseUrl
+
+      if (resolvedUrl === baseUrl || resolvedUrl === `${baseUrl}/`) return resolvedUrl
+      if (resolvedUrl.startsWith(`${baseUrl}/api/auth`)) return resolvedUrl
+      if (resolvedUrl.startsWith(`${baseUrl}/auth/redirect`)) return resolvedUrl
+
+      const allowedPrefixes = [
+        `${baseUrl}/auth/error`,
+        `${baseUrl}/user/login`,
+        `${baseUrl}/user/register`,
+        `${baseUrl}/user/verify`,
+        `${baseUrl}/agent/login`,
+        `${baseUrl}/agent/register`,
+      ]
+      if (allowedPrefixes.some((p) => resolvedUrl.startsWith(p))) return resolvedUrl
 
       return `${baseUrl}/auth/redirect`
     },

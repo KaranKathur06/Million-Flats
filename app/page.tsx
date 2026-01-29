@@ -74,7 +74,7 @@ export default function Home() {
               Become an Agent
             </Link>
             <Link
-              href="/contact"
+              href="/auth/redirect?next=/contact"
               className="bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-dark-blue transition-colors"
             >
               Contact Sales

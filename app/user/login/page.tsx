@@ -1,18 +1,30 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import AuthLayout from '@/components/AuthLayout'
 
 export default function UserLoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const next = searchParams?.get('next')
+  const safeNext = typeof next === 'string' && next.startsWith('/') ? next : ''
+  const callbackUrl = safeNext ? `/auth/redirect?next=${encodeURIComponent(safeNext)}` : '/auth/redirect'
+
+  useEffect(() => {
+    const authError = searchParams?.get('error')
+    if (authError === 'email_not_registered') {
+      setError('Email not registered. Please register first.')
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,7 +36,7 @@ export default function UserLoginPage() {
         email,
         password,
         redirect: false,
-        callbackUrl: '/auth/redirect',
+        callbackUrl,
       })
 
       if (result?.ok && result.url) {
@@ -47,11 +59,16 @@ export default function UserLoginPage() {
       }
 
       if (res.ok) {
-        router.push('/auth/redirect')
+        router.push(callbackUrl)
         return
       }
 
-      setError((result as any)?.error || data.message || 'Login failed')
+      const raw = (result as any)?.error || data.message || 'Login failed'
+      if (raw === 'CredentialsSignin') {
+        setError('Invalid email or password.')
+      } else {
+        setError(raw)
+      }
     } catch (error) {
       setError('An error occurred. Please try again.')
     } finally {
@@ -60,7 +77,7 @@ export default function UserLoginPage() {
   }
 
   const handleGoogleLogin = () => {
-    signIn('google', { callbackUrl: '/auth/redirect' })
+    signIn('google', { callbackUrl })
   }
 
   return (

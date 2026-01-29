@@ -24,7 +24,7 @@ export default function Footer() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                  <Link href="/auth/redirect?next=/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
                     Contact
                   </Link>
                 </li>
@@ -34,22 +34,38 @@ export default function Footer() {
 
           <div>
             <h3 className="font-semibold text-gray-900 mb-4">Trust Framework (Verix™ System)</h3>
-            <ul className="space-y-4">
+            <ul className="space-y-2">
               <li>
-                <p className="text-sm font-semibold text-dark-blue">VerixView™</p>
-                <p className="text-sm text-gray-600">Authenticity &amp; Honesty — Is the property exactly as presented?</p>
+                <Link
+                  href="/auth/redirect?next=/verix/view"
+                  className="text-sm font-semibold text-dark-blue hover:underline"
+                >
+                  VerixView™
+                </Link>
               </li>
               <li>
-                <p className="text-sm font-semibold text-dark-blue">VerixShield™</p>
-                <p className="text-sm text-gray-600">Fairness &amp; Security — Is this a balanced, low-risk deal for both parties?</p>
+                <Link
+                  href="/auth/redirect?next=/verix/shield"
+                  className="text-sm font-semibold text-dark-blue hover:underline"
+                >
+                  VerixShield™
+                </Link>
               </li>
               <li>
-                <p className="text-sm font-semibold text-dark-blue">VerixIndex™</p>
-                <p className="text-sm text-gray-600">Future Opportunity — Is this a financially sound investment for the future?</p>
+                <Link
+                  href="/auth/redirect?next=/verix/index"
+                  className="text-sm font-semibold text-dark-blue hover:underline"
+                >
+                  VerixIndex™
+                </Link>
               </li>
               <li>
-                <p className="text-sm font-semibold text-dark-blue">VerixTitle™</p>
-                <p className="text-sm text-gray-600">Compliance &amp; Certainty — Are there hidden legal hurdles or risks?</p>
+                <Link
+                  href="/auth/redirect?next=/verix/title"
+                  className="text-sm font-semibold text-dark-blue hover:underline"
+                >
+                  VerixTitle™
+                </Link>
               </li>
             </ul>
           </div>
@@ -59,37 +75,58 @@ export default function Footer() {
             <h3 className="font-semibold text-gray-900 mb-4">Ecosystem Partners</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                <Link
+                  href="/auth/redirect?next=/contact"
+                  className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
+                >
                   Home Loans &amp; Finance
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                <Link
+                  href="/auth/redirect?next=/contact"
+                  className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
+                >
                   Legal &amp; Documentation
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                <Link
+                  href="/auth/redirect?next=/contact"
+                  className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
+                >
                   Property Insurance
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                <Link
+                  href="/auth/redirect?next=/contact"
+                  className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
+                >
                   Interior Design &amp; Renovation
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                <Link
+                  href="/auth/redirect?next=/contact"
+                  className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
+                >
                   Packers &amp; Movers
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                <Link
+                  href="/auth/redirect?next=/contact"
+                  className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
+                >
                   Property Management
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                <Link
+                  href="/auth/redirect?next=/contact"
+                  className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
+                >
                   Vastu / Feng Shui Consultants
                 </Link>
               </li>
@@ -101,17 +138,15 @@ export default function Footer() {
             <h3 className="font-semibold text-gray-900 mb-4">For Buyers</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/properties" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                <Link href="/buy" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
                   Browse Properties
                 </Link>
               </li>
               <li>
-                <Link href="/user/dashboard" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
-                  Saved Favorites
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                <Link
+                  href="/auth/redirect?next=/contact"
+                  className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
+                >
                   Contact Agent
                 </Link>
               </li>
@@ -123,17 +158,15 @@ export default function Footer() {
             <h3 className="font-semibold text-gray-900 mb-4">For Agents</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/agent/login" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                <Link href="/agent-portal" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
                   Agent Portal
                 </Link>
               </li>
               <li>
-                <Link href="/agent/dashboard" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
-                  Manage Listings
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                <Link
+                  href="/auth/redirect?next=/contact"
+                  className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
+                >
                   Support
                 </Link>
               </li>
@@ -153,7 +186,7 @@ export default function Footer() {
             <Link href="/terms" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
               Terms of Service
             </Link>
-            <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+            <Link href="/auth/redirect?next=/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
               Contact
             </Link>
           </div>

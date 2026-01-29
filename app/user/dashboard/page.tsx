@@ -41,7 +41,7 @@ export default function UserDashboardPage() {
                 <div className="text-center py-12">
                   <p className="text-gray-600 mb-4">You haven&apos;t saved any properties yet.</p>
                   <Link
-                    href="/properties"
+                    href="/buy"
                     className="inline-block bg-dark-blue text-white px-6 py-2 rounded-lg font-medium hover:bg-opacity-90 transition-colors"
                   >
                     Browse Properties
@@ -66,13 +66,13 @@ export default function UserDashboardPage() {
               <h2 className="text-xl font-semibold text-dark-blue mb-4">Quick Actions</h2>
               <div className="space-y-3">
                 <Link
-                  href="/properties"
+                  href="/buy"
                   className="block w-full bg-dark-blue text-white py-2 px-4 rounded-lg text-center font-medium hover:bg-opacity-90 transition-colors"
                 >
                   Browse Properties
                 </Link>
                 <Link
-                  href="/contact"
+                  href="/auth/redirect?next=/contact"
                   className="block w-full bg-transparent border-2 border-dark-blue text-dark-blue py-2 px-4 rounded-lg text-center font-medium hover:bg-dark-blue hover:text-white transition-colors"
                 >
                   Contact Agent

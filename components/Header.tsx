@@ -4,10 +4,17 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
+import { signOut, useSession } from 'next-auth/react'
 
 export default function Header() {
   const pathname = usePathname() ?? ''
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { data: session, status } = useSession()
+
+  const role = String((session?.user as any)?.role || '').toUpperCase()
+  const isAuthed = status === 'authenticated'
+  const isAgent = isAuthed && role === 'AGENT'
+  const isUser = isAuthed && role === 'USER'
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'
@@ -32,55 +39,74 @@ export default function Header() {
             <Image
               src="/LOGO.jpeg"
               alt="Millionflats"
-              width={34}
-              height={34}
-              className="rounded-md w-8 h-8 md:w-[34px] md:h-[34px]"
+              width={40}
+              height={40}
+              className="rounded-md w-10 h-10 md:w-[40px] md:h-[40px]"
               priority
             />
           </Link>
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <Link
-              href="/"
-              className={`text-sm font-medium transition-colors ${
-                isActive('/') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-              }`}
-            >
-              Home
-            </Link>
-            <Link
-              href="/properties"
-              className={`text-sm font-medium transition-colors ${
-                isActive('/properties') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-              }`}
-            >
-              Properties
-            </Link>
-            <Link
-              href="/sell"
-              className={`text-sm font-medium transition-colors ${
-                isActive('/sell') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-              }`}
-            >
-              Sell
-            </Link>
-            <Link
-              href="/buy"
-              className={`text-sm font-medium transition-colors ${
-                isActive('/buy') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-              }`}
-            >
-              Buy
-            </Link>
-            <Link
-              href="/rent"
-              className={`text-sm font-medium transition-colors ${
-                isActive('/rent') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-              }`}
-            >
-              Rent
-            </Link>
+            {!isAuthed && (
+              <>
+                <Link
+                  href="/"
+                  className={`text-sm font-medium transition-colors ${
+                    isActive('/') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+                  }`}
+                >
+                  Home
+                </Link>
+                <Link
+                  href="/sell"
+                  className={`text-sm font-medium transition-colors ${
+                    isActive('/sell') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+                  }`}
+                >
+                  Sell
+                </Link>
+                <Link
+                  href="/buy"
+                  className={`text-sm font-medium transition-colors ${
+                    isActive('/buy') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+                  }`}
+                >
+                  Buy
+                </Link>
+                <Link
+                  href="/rent"
+                  className={`text-sm font-medium transition-colors ${
+                    isActive('/rent') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+                  }`}
+                >
+                  Rent
+                </Link>
+              </>
+            )}
+
+            {isUser && (
+              <Link
+                href="/dashboard"
+                className={`text-sm font-medium transition-colors ${
+                  isActive('/dashboard') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+                }`}
+              >
+                Dashboard
+              </Link>
+            )}
+
+            {isAgent && (
+              <Link
+                href="/agent-portal"
+                className={`text-sm font-medium transition-colors ${
+                  isActive('/agent-portal') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+                }`}
+              >
+                Agent Portal
+              </Link>
+            )}
+
             <Link
               href="/market-analysis"
               className={`text-sm font-medium transition-colors ${
@@ -109,18 +135,30 @@ export default function Header() {
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link
-              href="/user/login"
-              className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors"
-            >
-              Login
-            </Link>
-            <Link
-              href="/agent/login"
-              className="bg-dark-blue text-white px-6 py-2 rounded-lg font-medium hover:bg-opacity-90 transition-colors"
-            >
-              Agent Portal
-            </Link>
+            {!isAuthed ? (
+              <>
+                <Link
+                  href="/user/login"
+                  className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/agent/login"
+                  className="bg-dark-blue text-white px-6 py-2 rounded-lg font-medium hover:bg-opacity-90 transition-colors"
+                >
+                  Agent Portal
+                </Link>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors"
+                onClick={() => signOut({ callbackUrl: '/' })}
+              >
+                Logout
+              </button>
+            )}
           </div>
 
           <button
@@ -162,51 +200,71 @@ export default function Header() {
           </div>
 
           <nav className="p-4 space-y-2">
-            <Link
-              href="/"
-              className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                isActive('/') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-              }`}
-              onClick={() => setMobileOpen(false)}
-            >
-              Home
-            </Link>
-            <Link
-              href="/properties"
-              className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                isActive('/properties') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-              }`}
-              onClick={() => setMobileOpen(false)}
-            >
-              Properties
-            </Link>
-            <Link
-              href="/sell"
-              className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                isActive('/sell') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-              }`}
-              onClick={() => setMobileOpen(false)}
-            >
-              Sell
-            </Link>
-            <Link
-              href="/buy"
-              className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                isActive('/buy') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-              }`}
-              onClick={() => setMobileOpen(false)}
-            >
-              Buy
-            </Link>
-            <Link
-              href="/rent"
-              className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                isActive('/rent') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-              }`}
-              onClick={() => setMobileOpen(false)}
-            >
-              Rent
-            </Link>
+            {!isAuthed && (
+              <>
+                <Link
+                  href="/"
+                  className={`block px-4 py-3 rounded-xl text-sm font-medium ${
+                    isActive('/') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+                  }`}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Home
+                </Link>
+                <Link
+                  href="/sell"
+                  className={`block px-4 py-3 rounded-xl text-sm font-medium ${
+                    isActive('/sell') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+                  }`}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Sell
+                </Link>
+                <Link
+                  href="/buy"
+                  className={`block px-4 py-3 rounded-xl text-sm font-medium ${
+                    isActive('/buy') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+                  }`}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Buy
+                </Link>
+                <Link
+                  href="/rent"
+                  className={`block px-4 py-3 rounded-xl text-sm font-medium ${
+                    isActive('/rent') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+                  }`}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Rent
+                </Link>
+              </>
+            )}
+
+            {isUser && (
+              <Link
+                href="/dashboard"
+                className={`block px-4 py-3 rounded-xl text-sm font-medium ${
+                  isActive('/dashboard') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+                }`}
+                onClick={() => setMobileOpen(false)}
+              >
+                Dashboard
+              </Link>
+            )}
+
+            {isAgent && (
+              <Link
+                href="/agent-portal"
+                className={`block px-4 py-3 rounded-xl text-sm font-medium ${
+                  isActive('/agent-portal') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+                }`}
+                onClick={() => setMobileOpen(false)}
+              >
+                Agent Portal
+              </Link>
+            )}
+
             <Link
               href="/market-analysis"
               className={`block px-4 py-3 rounded-xl text-sm font-medium ${
@@ -236,20 +294,35 @@ export default function Header() {
             </Link>
 
             <div className="pt-4 mt-4 border-t border-gray-200 space-y-2">
-              <Link
-                href="/user/login"
-                className="block px-4 py-3 rounded-xl text-sm font-semibold text-dark-blue bg-gray-100"
-                onClick={() => setMobileOpen(false)}
-              >
-                Login
-              </Link>
-              <Link
-                href="/agent/login"
-                className="block px-4 py-3 rounded-xl text-sm font-semibold text-white bg-dark-blue"
-                onClick={() => setMobileOpen(false)}
-              >
-                Agent Portal
-              </Link>
+              {!isAuthed ? (
+                <>
+                  <Link
+                    href="/user/login"
+                    className="block px-4 py-3 rounded-xl text-sm font-semibold text-dark-blue bg-gray-100"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/agent/login"
+                    className="block px-4 py-3 rounded-xl text-sm font-semibold text-white bg-dark-blue"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Agent Portal
+                  </Link>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="w-full text-left block px-4 py-3 rounded-xl text-sm font-semibold text-dark-blue bg-gray-100"
+                  onClick={() => {
+                    setMobileOpen(false)
+                    signOut({ callbackUrl: '/' })
+                  }}
+                >
+                  Logout
+                </button>
+              )}
             </div>
           </nav>
         </div>
