@@ -46,7 +46,6 @@ export const authOptions: NextAuthOptions = {
           GoogleProvider({
             clientId: googleClientId,
             clientSecret: googleClientSecret,
-            allowDangerousEmailAccountLinking: true,
           }),
         ]
       : []),
@@ -126,7 +125,6 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      if (!token.role) token.role = 'USER'
       return token
     },
     async session({ session, token }: any) {

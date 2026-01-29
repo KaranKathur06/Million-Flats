@@ -111,45 +111,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const existing = await prisma.user.findUnique({ where: { email }, include: { agent: true } })
 
-    if (meta.type === 'agent' && existing && !existing.agent) {
+    if (!existing) {
+      res.setHeader('Set-Cookie', clearCookies)
+      return res.redirect(`${baseUrl}${meta.type === 'agent' ? '/agent/login' : '/user/login'}?error=email_not_registered`)
+    }
+
+    if (meta.type === 'agent' && !existing.agent) {
       res.setHeader('Set-Cookie', clearCookies)
       return res.redirect(`${baseUrl}/agent/login?error=not_an_agent`)
     }
 
-    let userId: string
-    let userRole: string
-
-    if (existing) {
-      if (existing.googleId && existing.googleId !== googleId) {
-        res.setHeader('Set-Cookie', clearCookies)
-        return res.redirect(`${baseUrl}${meta.type === 'agent' ? '/agent/login' : '/user/login'}?error=google_mismatch`)
-      }
-
-      const updated = await prisma.user.update({
-        where: { id: existing.id },
-        data: {
-          googleId: existing.googleId || googleId,
-          verified: true,
-          name: existing.name || name,
-        },
-      })
-
-      userId = updated.id
-      userRole = updated.role
-    } else {
-      const created = await prisma.user.create({
-        data: {
-          email,
-          name,
-          googleId,
-          role: 'USER',
-          verified: true,
-        },
-      })
-
-      userId = created.id
-      userRole = created.role
+    if (existing.googleId && existing.googleId !== googleId) {
+      res.setHeader('Set-Cookie', clearCookies)
+      return res.redirect(`${baseUrl}${meta.type === 'agent' ? '/agent/login' : '/user/login'}?error=google_mismatch`)
     }
+
+    const updated = await prisma.user.update({
+      where: { id: existing.id },
+      data: {
+        googleId: existing.googleId || googleId,
+        verified: true,
+        name: existing.name || name,
+      },
+    })
+
+    const userId: string = updated.id
+    const userRole: string = updated.role
 
     const jwtToken = jwt.sign({ id: userId, email, role: userRole }, JWT_SECRET, { expiresIn: '7d' })
 

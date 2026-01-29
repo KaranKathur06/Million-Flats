@@ -35,7 +35,7 @@ export default async function AuthRedirectPage({
     }
   }
 
-  const role = sessionRole || legacyRole || ((hasSession || hasLegacyToken) ? 'USER' : '')
+  const role = sessionRole || legacyRole
 
   if (!role) {
     if (safeNext) {

@@ -6,6 +6,12 @@ import { prisma } from '@/lib/prisma'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
+function roleLabel(role: string) {
+  const normalized = String(role || '').toUpperCase()
+  if (normalized === 'AGENT') return 'Agent'
+  return 'User'
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<{ success: boolean; message: string; token?: string; requiresVerification?: boolean }>
@@ -28,8 +34,15 @@ export default async function handler(
         return res.status(400).json({ success: false, message: 'Password required' })
       }
 
-      const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } })
+      const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail }, include: { agent: true } })
       if (existingUser) {
+        if (existingUser.role === 'AGENT' || existingUser.agent) {
+          return res.status(400).json({
+            success: false,
+            message: `This email is already registered as a ${roleLabel('AGENT')}. Please use a different email.`,
+          })
+        }
+
         if (!existingUser.password) {
           const hashedPassword = await bcrypt.hash(password, 10)
           const updated = await prisma.user.update({
@@ -163,8 +176,22 @@ export default async function handler(
 
       const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail }, include: { agent: true } })
 
-      if (existingUser?.agent) {
-        return res.status(400).json({ success: false, message: 'Agent already exists' })
+      if (existingUser) {
+        const existingRole = String(existingUser.role || '').toUpperCase()
+
+        if (existingUser.agent) {
+          return res.status(400).json({
+            success: false,
+            message: `This email is already registered as a ${roleLabel('AGENT')}. Please use a different email.`,
+          })
+        }
+
+        if (existingRole !== 'AGENT') {
+          return res.status(400).json({
+            success: false,
+            message: `This email is already registered as a ${roleLabel(existingRole)}. Please use a different email.`,
+          })
+        }
       }
 
       const hashedPassword = await bcrypt.hash(password, 10)
@@ -183,7 +210,6 @@ export default async function handler(
               name: existingUser.name || name,
               password: existingUser.password || hashedPassword,
               phone: existingUser.phone || phone || null,
-              role: existingUser.role === 'ADMIN' ? 'ADMIN' : 'AGENT',
             },
           })
         : await prisma.user.create({

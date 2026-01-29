@@ -9,12 +9,37 @@ import { signOut, useSession } from 'next-auth/react'
 export default function Header() {
   const pathname = usePathname() ?? ''
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
   const { data: session, status } = useSession()
 
   const role = String((session?.user as any)?.role || '').toUpperCase()
   const isAuthed = status === 'authenticated'
   const isAgent = isAuthed && role === 'AGENT'
   const isUser = isAuthed && role === 'USER'
+
+  const publicLinks = [
+    { href: '/', label: 'Home' },
+    { href: '/sell', label: 'Sell' },
+    { href: '/buy', label: 'Buy' },
+    { href: '/rent', label: 'Rent' },
+  ]
+
+  const userLinks = [
+    { href: '/', label: 'Home' },
+    { href: '/sell', label: 'Sell' },
+    { href: '/buy', label: 'Buy' },
+    { href: '/rent', label: 'Rent' },
+    { href: '/market-analysis', label: 'Market Analysis' },
+    { href: '/explore-3d', label: 'Explore in 3D' },
+    { href: '/tokenized', label: 'Tokenized' },
+  ]
+
+  const agentLinks = [
+    { href: '/', label: 'Home' },
+    { href: '/agent-portal', label: 'Agent Portal' },
+  ]
+
+  const navLinks = !isAuthed ? publicLinks : isAgent ? agentLinks : userLinks
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'
@@ -29,6 +54,28 @@ export default function Header() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [mobileOpen])
+
+  useEffect(() => {
+    if (!profileOpen) return
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setProfileOpen(false)
+    }
+
+    const onMouseDown = (e: MouseEvent) => {
+      const el = e.target as HTMLElement | null
+      if (!el) return
+      if (el.closest('[data-profile-menu]')) return
+      setProfileOpen(false)
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('mousedown', onMouseDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('mousedown', onMouseDown)
+    }
+  }, [profileOpen])
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -48,89 +95,17 @@ export default function Header() {
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            {!isAuthed && (
-              <>
-                <Link
-                  href="/"
-                  className={`text-sm font-medium transition-colors ${
-                    isActive('/') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-                  }`}
-                >
-                  Home
-                </Link>
-                <Link
-                  href="/sell"
-                  className={`text-sm font-medium transition-colors ${
-                    isActive('/sell') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-                  }`}
-                >
-                  Sell
-                </Link>
-                <Link
-                  href="/buy"
-                  className={`text-sm font-medium transition-colors ${
-                    isActive('/buy') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-                  }`}
-                >
-                  Buy
-                </Link>
-                <Link
-                  href="/rent"
-                  className={`text-sm font-medium transition-colors ${
-                    isActive('/rent') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-                  }`}
-                >
-                  Rent
-                </Link>
-              </>
-            )}
-
-            {isUser && (
+            {navLinks.map((item) => (
               <Link
-                href="/dashboard"
+                key={item.href}
+                href={item.href}
                 className={`text-sm font-medium transition-colors ${
-                  isActive('/dashboard') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+                  isActive(item.href) ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
                 }`}
               >
-                Dashboard
+                {item.label}
               </Link>
-            )}
-
-            {isAgent && (
-              <Link
-                href="/agent-portal"
-                className={`text-sm font-medium transition-colors ${
-                  isActive('/agent-portal') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-                }`}
-              >
-                Agent Portal
-              </Link>
-            )}
-
-            <Link
-              href="/market-analysis"
-              className={`text-sm font-medium transition-colors ${
-                isActive('/market-analysis') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-              }`}
-            >
-              Market Analysis
-            </Link>
-            <Link
-              href="/explore-3d"
-              className={`text-sm font-medium transition-colors ${
-                isActive('/explore-3d') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-              }`}
-            >
-              Explore in 3D
-            </Link>
-            <Link
-              href="/tokenized"
-              className={`text-sm font-medium transition-colors ${
-                isActive('/tokenized') ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-              }`}
-            >
-              Tokenized
-            </Link>
+            ))}
           </nav>
 
           {/* Auth Buttons */}
@@ -147,17 +122,71 @@ export default function Header() {
                   href="/agent/login"
                   className="bg-dark-blue text-white px-6 py-2 rounded-lg font-medium hover:bg-opacity-90 transition-colors"
                 >
-                  Agent Portal
+                  Agent Login
                 </Link>
               </>
             ) : (
-              <button
-                type="button"
-                className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors"
-                onClick={() => signOut({ callbackUrl: '/' })}
-              >
-                Logout
-              </button>
+              <>
+                {isUser ? (
+                  <div className="relative" data-profile-menu>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-dark-blue transition-colors"
+                      onClick={() => setProfileOpen((v) => !v)}
+                      aria-expanded={profileOpen}
+                      aria-haspopup="menu"
+                    >
+                      <span>Profile</span>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {profileOpen && (
+                      <div
+                        className="absolute right-0 mt-2 w-48 rounded-xl border border-gray-200 bg-white shadow-lg p-2"
+                        role="menu"
+                      >
+                        <Link
+                          href="/profile"
+                          className="block px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+                          role="menuitem"
+                          onClick={() => setProfileOpen(false)}
+                        >
+                          My Profile
+                        </Link>
+                        <Link
+                          href="/settings"
+                          className="block px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+                          role="menuitem"
+                          onClick={() => setProfileOpen(false)}
+                        >
+                          Settings
+                        </Link>
+                        <button
+                          type="button"
+                          className="w-full text-left block px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+                          role="menuitem"
+                          onClick={() => {
+                            setProfileOpen(false)
+                            signOut({ callbackUrl: '/' })
+                          }}
+                        >
+                          Logout
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors"
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                  >
+                    Logout
+                  </button>
+                )}
+              </>
             )}
           </div>
 
@@ -200,98 +229,18 @@ export default function Header() {
           </div>
 
           <nav className="p-4 space-y-2">
-            {!isAuthed && (
-              <>
-                <Link
-                  href="/"
-                  className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                    isActive('/') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-                  }`}
-                  onClick={() => setMobileOpen(false)}
-                >
-                  Home
-                </Link>
-                <Link
-                  href="/sell"
-                  className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                    isActive('/sell') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-                  }`}
-                  onClick={() => setMobileOpen(false)}
-                >
-                  Sell
-                </Link>
-                <Link
-                  href="/buy"
-                  className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                    isActive('/buy') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-                  }`}
-                  onClick={() => setMobileOpen(false)}
-                >
-                  Buy
-                </Link>
-                <Link
-                  href="/rent"
-                  className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                    isActive('/rent') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-                  }`}
-                  onClick={() => setMobileOpen(false)}
-                >
-                  Rent
-                </Link>
-              </>
-            )}
-
-            {isUser && (
+            {navLinks.map((item) => (
               <Link
-                href="/dashboard"
+                key={item.href}
+                href={item.href}
                 className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                  isActive('/dashboard') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+                  isActive(item.href) ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
                 }`}
                 onClick={() => setMobileOpen(false)}
               >
-                Dashboard
+                {item.label}
               </Link>
-            )}
-
-            {isAgent && (
-              <Link
-                href="/agent-portal"
-                className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                  isActive('/agent-portal') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-                }`}
-                onClick={() => setMobileOpen(false)}
-              >
-                Agent Portal
-              </Link>
-            )}
-
-            <Link
-              href="/market-analysis"
-              className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                isActive('/market-analysis') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-              }`}
-              onClick={() => setMobileOpen(false)}
-            >
-              Market Analysis
-            </Link>
-            <Link
-              href="/explore-3d"
-              className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                isActive('/explore-3d') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-              }`}
-              onClick={() => setMobileOpen(false)}
-            >
-              Explore in 3D
-            </Link>
-            <Link
-              href="/tokenized"
-              className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                isActive('/tokenized') ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-              }`}
-              onClick={() => setMobileOpen(false)}
-            >
-              Tokenized
-            </Link>
+            ))}
 
             <div className="pt-4 mt-4 border-t border-gray-200 space-y-2">
               {!isAuthed ? (
@@ -308,20 +257,40 @@ export default function Header() {
                     className="block px-4 py-3 rounded-xl text-sm font-semibold text-white bg-dark-blue"
                     onClick={() => setMobileOpen(false)}
                   >
-                    Agent Portal
+                    Agent Login
                   </Link>
                 </>
               ) : (
-                <button
-                  type="button"
-                  className="w-full text-left block px-4 py-3 rounded-xl text-sm font-semibold text-dark-blue bg-gray-100"
-                  onClick={() => {
-                    setMobileOpen(false)
-                    signOut({ callbackUrl: '/' })
-                  }}
-                >
-                  Logout
-                </button>
+                <>
+                  {isUser && (
+                    <>
+                      <Link
+                        href="/profile"
+                        className="block px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 bg-gray-50"
+                        onClick={() => setMobileOpen(false)}
+                      >
+                        My Profile
+                      </Link>
+                      <Link
+                        href="/settings"
+                        className="block px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 bg-gray-50"
+                        onClick={() => setMobileOpen(false)}
+                      >
+                        Settings
+                      </Link>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    className="w-full text-left block px-4 py-3 rounded-xl text-sm font-semibold text-dark-blue bg-gray-100"
+                    onClick={() => {
+                      setMobileOpen(false)
+                      signOut({ callbackUrl: '/' })
+                    }}
+                  >
+                    Logout
+                  </button>
+                </>
               )}
             </div>
           </nav>

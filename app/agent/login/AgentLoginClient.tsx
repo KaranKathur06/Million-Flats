@@ -23,6 +23,10 @@ export default function AgentLoginClient() {
       signOut({ redirect: false })
       setError('Agent account not found. Please register as an agent.')
     }
+    if (authError === 'email_not_registered') {
+      signOut({ redirect: false })
+      setError('Email not registered. Please register first.')
+    }
   }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {

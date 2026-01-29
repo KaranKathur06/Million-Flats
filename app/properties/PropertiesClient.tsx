@@ -12,6 +12,8 @@ interface Property {
   title: string
   location: string
   price: number
+  intent: 'BUY' | 'RENT'
+  pricingFrequency?: string
   yearBuilt?: number
   bedrooms: number
   bathrooms: number
@@ -107,6 +109,26 @@ function deriveAnnualRentAed(salePriceAed: number) {
   return Math.max(1, Math.round(salePriceAed * 0.06))
 }
 
+function normalizeFrequency(v: unknown) {
+  if (typeof v !== 'string') return ''
+  return v.trim().toLowerCase()
+}
+
+function classifyIntent(input: { intentRaw: unknown; pricingFrequencyRaw: unknown }) {
+  const rawIntent = typeof input.intentRaw === 'string' ? input.intentRaw.trim().toUpperCase() : ''
+  if (rawIntent === 'BUY' || rawIntent === 'RENT') return rawIntent
+
+  const freq = normalizeFrequency(input.pricingFrequencyRaw)
+  if (freq.includes('month')) return 'RENT'
+  return 'BUY'
+}
+
+type Purpose = 'buy' | 'rent'
+
+function safePurpose(v: unknown): Purpose {
+  return v === 'rent' ? 'rent' : 'buy'
+}
+
 function deriveListingStatus(propertyId: string) {
   const bucket = hashToIndex(`status:${propertyId}`, 12)
   const sold = bucket === 0
@@ -135,7 +157,7 @@ function buildPriceOptions(country: CountryCode) {
   return opts
 }
 
-export default function PropertiesClient() {
+export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Purpose }) {
   const searchParams = useSearchParams()
   const { country, setCountry } = useCountry()
   const [properties, setProperties] = useState<Property[]>([])
@@ -156,10 +178,18 @@ export default function PropertiesClient() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [mobileFiltersVisible, setMobileFiltersVisible] = useState(false)
 
-  const [purpose, setPurpose] = useState<'buy' | 'rent'>(() => {
+  const [purposeState, setPurposeState] = useState<Purpose>(() => {
+    if (forcedPurpose) return forcedPurpose
     const fromUrl = searchParams?.get('purpose')
-    return fromUrl === 'rent' ? 'rent' : 'buy'
+    return safePurpose(fromUrl)
   })
+
+  const purpose = forcedPurpose ?? purposeState
+
+  const setPurpose = (next: Purpose) => {
+    if (forcedPurpose) return
+    setPurposeState(next)
+  }
 
   const getParam = useCallback((key: string) => searchParams?.get(key) ?? '', [searchParams])
 
@@ -219,6 +249,11 @@ export default function PropertiesClient() {
   useEffect(() => {
     syncUrl(filters, purpose)
   }, [filters, purpose, syncUrl])
+
+  useEffect(() => {
+    if (!forcedPurpose) return
+    setPurposeState(forcedPurpose)
+  }, [forcedPurpose])
 
   useEffect(() => {
     const fromUrl = getParam('country')
@@ -337,12 +372,20 @@ export default function PropertiesClient() {
                 ? [String(item.cover_image)]
                 : []
 
+          const pricingFrequencyRaw =
+            item?.pricing_frequency ?? item?.price_frequency ?? item?.priceFrequency ?? item?.frequency ?? item?.rent_frequency
+
+          const intent = classifyIntent({ intentRaw: item?.intent ?? item?.purpose, pricingFrequencyRaw })
+          const pricingFrequency = typeof pricingFrequencyRaw === 'string' ? pricingFrequencyRaw : undefined
+
           return {
             id: externalId,
             country: filters.country === 'India' ? 'India' : 'UAE',
             title,
             location: community ? `${city} · ${community}` : city,
             price: Number.isFinite(price) ? price : 0,
+            intent,
+            pricingFrequency,
             bedrooms: Number.isFinite(bedrooms) ? bedrooms : 0,
             bathrooms: Number.isFinite(bathrooms) ? bathrooms : 0,
             squareFeet: Number.isFinite(squareFeet) ? squareFeet : 0,
@@ -463,6 +506,14 @@ export default function PropertiesClient() {
 
     let filtered = properties
 
+    filtered = filtered.filter((p) => (purpose === 'rent' ? p.intent === 'RENT' : p.intent === 'BUY'))
+
+    const effectivePrice = (p: Property) => {
+      if (purpose !== 'rent') return p.price
+      if (p.intent === 'RENT') return p.price
+      return deriveAnnualRentAed(p.price)
+    }
+
     if (filters.search) {
       const q = filters.search.trim().toLowerCase()
       filtered = filtered.filter((p) => {
@@ -490,10 +541,10 @@ export default function PropertiesClient() {
     }
 
     if (minAed != null) {
-      filtered = filtered.filter((p) => (purpose === 'rent' ? deriveAnnualRentAed(p.price) : p.price) >= minAed)
+      filtered = filtered.filter((p) => effectivePrice(p) >= minAed)
     }
     if (maxAed != null) {
-      filtered = filtered.filter((p) => (purpose === 'rent' ? deriveAnnualRentAed(p.price) : p.price) <= maxAed)
+      filtered = filtered.filter((p) => effectivePrice(p) <= maxAed)
     }
 
     if (filters.bedrooms) {
@@ -528,15 +579,15 @@ export default function PropertiesClient() {
     switch (sortBy) {
       case 'price-low':
         filtered = [...filtered].sort((a, b) => {
-          const ap = purpose === 'rent' ? deriveAnnualRentAed(a.price) : a.price
-          const bp = purpose === 'rent' ? deriveAnnualRentAed(b.price) : b.price
+          const ap = effectivePrice(a)
+          const bp = effectivePrice(b)
           return ap - bp
         })
         break
       case 'price-high':
         filtered = [...filtered].sort((a, b) => {
-          const ap = purpose === 'rent' ? deriveAnnualRentAed(a.price) : a.price
-          const bp = purpose === 'rent' ? deriveAnnualRentAed(b.price) : b.price
+          const ap = effectivePrice(a)
+          const bp = effectivePrice(b)
           return bp - ap
         })
         break
@@ -549,10 +600,9 @@ export default function PropertiesClient() {
         break
     }
 
-    if (purpose === 'rent') {
-      return filtered.map((p) => ({ ...p, price: deriveAnnualRentAed(p.price) }))
-    }
-    return filtered
+    if (purpose !== 'rent') return filtered
+
+    return filtered.map((p) => ({ ...p, price: effectivePrice(p) }))
   }, [filters, properties, purpose])
 
   const priceOptions = useMemo(() => buildPriceOptions(draftFilters.country), [draftFilters.country])
@@ -698,26 +748,28 @@ export default function PropertiesClient() {
 
             <div className="relative z-10 hidden md:block bg-white/85 backdrop-blur-md border border-gray-200 rounded-2xl shadow-sm p-3">
               <div className="flex flex-wrap items-center gap-2">
-                <div className="inline-flex items-center rounded-xl border border-gray-200 bg-white p-1">
-                  <button
-                    type="button"
-                    onClick={() => setPurpose('buy')}
-                    className={`h-10 px-4 rounded-lg text-sm font-semibold transition-colors ${
-                      purpose === 'buy' ? 'bg-dark-blue text-white' : 'text-dark-blue hover:bg-gray-50'
-                    }`}
-                  >
-                    Buy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPurpose('rent')}
-                    className={`h-10 px-4 rounded-lg text-sm font-semibold transition-colors ${
-                      purpose === 'rent' ? 'bg-dark-blue text-white' : 'text-dark-blue hover:bg-gray-50'
-                    }`}
-                  >
-                    Rent
-                  </button>
-                </div>
+                {!forcedPurpose ? (
+                  <div className="inline-flex items-center rounded-xl border border-gray-200 bg-white p-1">
+                    <button
+                      type="button"
+                      onClick={() => setPurpose('buy')}
+                      className={`h-10 px-4 rounded-lg text-sm font-semibold transition-colors ${
+                        purpose === 'buy' ? 'bg-dark-blue text-white' : 'text-dark-blue hover:bg-gray-50'
+                      }`}
+                    >
+                      Buy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPurpose('rent')}
+                      className={`h-10 px-4 rounded-lg text-sm font-semibold transition-colors ${
+                        purpose === 'rent' ? 'bg-dark-blue text-white' : 'text-dark-blue hover:bg-gray-50'
+                      }`}
+                    >
+                      Rent
+                    </button>
+                  </div>
+                ) : null}
 
                 <div className="relative group">
                   <select
@@ -1031,26 +1083,28 @@ export default function PropertiesClient() {
                 </button>
               </div>
 
-              <div className="inline-flex items-center rounded-xl border border-gray-200 bg-white p-1 w-fit">
-                <button
-                  type="button"
-                  onClick={() => setPurpose('buy')}
-                  className={`h-10 px-4 rounded-lg text-sm font-semibold transition-colors ${
-                    purpose === 'buy' ? 'bg-dark-blue text-white' : 'text-dark-blue hover:bg-gray-50'
-                  }`}
-                >
-                  Buy
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPurpose('rent')}
-                  className={`h-10 px-4 rounded-lg text-sm font-semibold transition-colors ${
-                    purpose === 'rent' ? 'bg-dark-blue text-white' : 'text-dark-blue hover:bg-gray-50'
-                  }`}
-                >
-                  Rent
-                </button>
-              </div>
+              {!forcedPurpose ? (
+                <div className="inline-flex items-center rounded-xl border border-gray-200 bg-white p-1 w-fit">
+                  <button
+                    type="button"
+                    onClick={() => setPurpose('buy')}
+                    className={`h-10 px-4 rounded-lg text-sm font-semibold transition-colors ${
+                      purpose === 'buy' ? 'bg-dark-blue text-white' : 'text-dark-blue hover:bg-gray-50'
+                    }`}
+                  >
+                    Buy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPurpose('rent')}
+                    className={`h-10 px-4 rounded-lg text-sm font-semibold transition-colors ${
+                      purpose === 'rent' ? 'bg-dark-blue text-white' : 'text-dark-blue hover:bg-gray-50'
+                    }`}
+                  >
+                    Rent
+                  </button>
+                </div>
+              ) : null}
 
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-2">Property Type</label>

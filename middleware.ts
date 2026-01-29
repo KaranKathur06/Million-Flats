@@ -66,7 +66,14 @@ export async function middleware(req: NextRequest) {
     pathname === '/agent-portal' || pathname.startsWith('/agent-portal/') || pathname === '/agent/dashboard' || pathname.startsWith('/agent/dashboard/')
 
   const isUserProtected =
-    pathname === '/dashboard' || pathname.startsWith('/dashboard/') || pathname === '/user/dashboard' || pathname.startsWith('/user/dashboard/')
+    pathname === '/dashboard' ||
+    pathname.startsWith('/dashboard/') ||
+    pathname === '/user/dashboard' ||
+    pathname.startsWith('/user/dashboard/') ||
+    pathname === '/profile' ||
+    pathname.startsWith('/profile/') ||
+    pathname === '/settings' ||
+    pathname.startsWith('/settings/')
 
   const isAgentOnboarding = pathname === '/agent/onboarding' || pathname.startsWith('/agent/onboarding/')
 
@@ -88,11 +95,10 @@ export async function middleware(req: NextRequest) {
     if (legacyCookie && legacySecret) {
       const legacyPayload = await verifyLegacyJwt(legacyCookie, legacySecret)
       role = String((legacyPayload as any)?.role || '').toUpperCase()
-      if (!role) role = legacyPayload ? 'USER' : ''
     }
   }
 
-  if (!nextAuthToken && !role) {
+  if (!role) {
     const url = req.nextUrl.clone()
     url.pathname = getLoginPath(pathname)
     if (isVerix || isEcosystem) {
@@ -137,5 +143,7 @@ export const config = {
     '/agent/onboarding/:path*',
     '/verix/:path*',
     '/contact/:path*',
+    '/profile/:path*',
+    '/settings/:path*',
   ],
 }
