@@ -13,6 +13,7 @@ interface Property {
   location: string
   price: number
   intent: 'BUY' | 'RENT'
+  sourceType?: 'REELLY' | 'MANUAL'
   pricingFrequency?: string
   yearBuilt?: number
   bedrooms: number
@@ -351,6 +352,9 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
       // If fields differ, UI will still work due to fallback images/prices.
       const mapped = json.items
         .map((item: any) => {
+          const sourceTypeRaw = String(item?.source_type || item?.sourceType || '').toUpperCase()
+          const sourceType = sourceTypeRaw === 'MANUAL' ? 'MANUAL' : sourceTypeRaw === 'REELLY' ? 'REELLY' : undefined
+
           const externalId = String(item?.id ?? item?.project_id ?? item?.external_id ?? '')
           if (!externalId) return null
 
@@ -375,7 +379,12 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
           const pricingFrequencyRaw =
             item?.pricing_frequency ?? item?.price_frequency ?? item?.priceFrequency ?? item?.frequency ?? item?.rent_frequency
 
-          const intent = classifyIntent({ intentRaw: item?.intent ?? item?.purpose, pricingFrequencyRaw })
+          const intent =
+            sourceType === 'MANUAL'
+              ? String(item?.intent || '').toUpperCase() === 'RENT'
+                ? 'RENT'
+                : 'BUY'
+              : classifyIntent({ intentRaw: item?.intent ?? item?.purpose, pricingFrequencyRaw })
           const pricingFrequency = typeof pricingFrequencyRaw === 'string' ? pricingFrequencyRaw : undefined
 
           return {
@@ -385,6 +394,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
             location: community ? `${city} · ${community}` : city,
             price: Number.isFinite(price) ? price : 0,
             intent,
+            sourceType,
             pricingFrequency,
             bedrooms: Number.isFinite(bedrooms) ? bedrooms : 0,
             bathrooms: Number.isFinite(bathrooms) ? bathrooms : 0,

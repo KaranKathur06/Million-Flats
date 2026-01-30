@@ -1,111 +1,102 @@
-'use client'
+import { redirect } from 'next/navigation'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import AgentDashboardClient from './AgentDashboardClient'
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
+function slugify(input: string) {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+}
 
-export default function AgentDashboardPage() {
-  const [listings, setListings] = useState([])
-  const [loading, setLoading] = useState(true)
+function formatRelativeTime(date: Date) {
+  const diffMs = Date.now() - date.getTime()
+  const min = Math.max(0, Math.floor(diffMs / 60000))
+  if (min < 1) return 'Just now'
+  if (min < 60) return `${min}m ago`
+  const hours = Math.floor(min / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
+}
 
-  useEffect(() => {
-    fetchListings()
-  }, [])
+export default async function AgentDashboardPage() {
+  const session = await getServerSession(authOptions)
+  const role = String((session?.user as any)?.role || '').toUpperCase()
 
-  const fetchListings = async () => {
-    try {
-      // This would fetch from API in real implementation
-      setListings([])
-    } catch (error) {
-      console.error('Error fetching listings:', error)
-    } finally {
-      setLoading(false)
-    }
+  if (!session?.user) {
+    redirect('/agent/login?next=%2Fagent-portal')
   }
 
+  if (role !== 'AGENT') {
+    redirect('/user/dashboard')
+  }
+
+  const email = String((session.user as any).email || '').trim().toLowerCase()
+  if (!email) {
+    redirect('/agent/login?next=%2Fagent-portal')
+  }
+
+  const dbUser = await prisma.user.findUnique({ where: { email }, include: { agent: true } })
+  if (!dbUser || !dbUser.agent) {
+    redirect('/agent/login?next=%2Fagent-portal')
+  }
+
+  const agent = dbUser.agent
+
+  const leads = await prisma.propertyLead.findMany({
+    where: { agentId: agent.id },
+    orderBy: { createdAt: 'desc' },
+    take: 8,
+  })
+
+  const leads30dCount = await prisma.propertyLead.count({
+    where: { agentId: agent.id, createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
+  })
+
+  const agentListingCount = await (prisma as any).agentListing
+    .count({ where: { agentId: agent.id } })
+    .catch(() => 0)
+
+  const leadListingCount = await prisma.propertyLead
+    .findMany({
+      where: { agentId: agent.id },
+      distinct: ['externalId'],
+      select: { externalId: true },
+    })
+    .then((rows) => rows.length)
+
+  const totalListings = agentListingCount > 0 ? agentListingCount : leadListingCount
+
+  const name = dbUser.name || 'Agent'
+  const slug = slugify(name)
+  const publicProfileHref = `/agents/${slug ? `${slug}-` : ''}${agent.id}`
+
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-serif font-bold text-dark-blue mb-2">Agent Dashboard</h1>
-            <p className="text-gray-600">Manage your listings and properties</p>
-          </div>
-          <Link
-            href="/properties/new"
-            className="bg-dark-blue text-white px-6 py-2 rounded-lg font-medium hover:bg-opacity-90 transition-colors"
-          >
-            Add New Listing
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-2xl font-semibold text-dark-blue mb-4">My Listings</h2>
-              {loading ? (
-                <p className="text-gray-600">Loading...</p>
-              ) : listings.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-600 mb-4">You haven&apos;t created any listings yet.</p>
-                  <Link
-                    href="/properties/new"
-                    className="inline-block bg-dark-blue text-white px-6 py-2 rounded-lg font-medium hover:bg-opacity-90 transition-colors"
-                  >
-                    Create Your First Listing
-                  </Link>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {listings.map((listing: any) => (
-                    <div key={listing.id} className="border-b border-gray-200 pb-4">
-                      <Link href={`/properties/${listing.id}`} className="hover:underline">
-                        <h3 className="font-semibold text-dark-blue">{listing.title}</h3>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h2 className="text-xl font-semibold text-dark-blue mb-4">Quick Stats</h2>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-gray-600 text-sm">Total Listings</p>
-                  <p className="text-2xl font-bold text-dark-blue">{listings.length}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600 text-sm">Active Listings</p>
-                  <p className="text-2xl font-bold text-dark-blue">
-                    {listings.filter((l: any) => l.status === 'active').length}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold text-dark-blue mb-4">Quick Actions</h2>
-              <div className="space-y-3">
-                <Link
-                  href="/properties/new"
-                  className="block w-full bg-dark-blue text-white py-2 px-4 rounded-lg text-center font-medium hover:bg-opacity-90 transition-colors"
-                >
-                  Add New Listing
-                </Link>
-                <Link
-                  href="/contact"
-                  className="block w-full bg-transparent border-2 border-dark-blue text-dark-blue py-2 px-4 rounded-lg text-center font-medium hover:bg-dark-blue hover:text-white transition-colors"
-                >
-                  Support
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <AgentDashboardClient
+      agentName={name}
+      company={agent.company || ''}
+      license={agent.license || ''}
+      approved={Boolean(agent.approved)}
+      publicProfileHref={publicProfileHref}
+      stats={{
+        totalListings,
+        activeListings: totalListings,
+        views30d: 0,
+        leadsReceived: leads30dCount,
+        contactClicks: 0,
+      }}
+      listings={[]}
+      leads={leads.map((l) => ({
+        id: l.id,
+        propertyTitle: `Property ${l.externalId}`,
+        contactMethod: 'Enquiry',
+        createdAtLabel: formatRelativeTime(l.createdAt),
+      }))}
+    />
   )
 }
 

@@ -1,8 +1,12 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import { reellyGetProject } from '@/lib/reelly'
+import AgentListingCard from './AgentListingCard'
+import ContactAgentForm from './ContactAgentForm'
+import ServerPagination from './ServerPagination'
 
 function extractAgentId(input: string) {
   const raw = (input || '').trim()
@@ -14,133 +18,119 @@ function extractAgentId(input: string) {
   return raw
 }
 
-type Badge = {
-  key: string
-  label: string
-  emoji: string
-  how: string
+function siteUrl() {
+  const base = (process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || '').trim()
+  return base ? base.replace(/\/$/, '') : ''
 }
 
-type BadgeGroup = {
-  category: string
-  badges: Badge[]
+function absoluteUrl(path: string) {
+  const base = siteUrl()
+  if (!base) return ''
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`
 }
 
-const badgeGroups: BadgeGroup[] = [
-  {
-    category: 'Performance Excellence',
-    badges: [
-      {
-        key: 'top_closer',
-        label: 'Top Closer',
-        emoji: '🏆',
-        how: 'Earned through a consistently strong verified close rate on completed transactions.',
-      },
-      {
-        key: 'fast_tracker',
-        label: 'Fast Tracker',
-        emoji: '⚡',
-        how: 'Earned by maintaining fast response times and timely follow-ups on verified enquiries.',
-      },
-      {
-        key: 'value_expert',
-        label: 'Value Expert',
-        emoji: '💎',
-        how: 'Earned when recommendations align with market benchmarks and verified deal outcomes.',
-      },
-    ],
-  },
-  {
-    category: 'Platform Champion',
-    badges: [
-      {
-        key: 'ai_pioneer',
-        label: 'AI Pioneer',
-        emoji: '🤖',
-        how: 'Earned by adopting platform tools that improve listing quality and buyer experience (verified usage).',
-      },
-      {
-        key: 'responsive_pro',
-        label: 'Responsive Pro',
-        emoji: '👍',
-        how: 'Earned by consistently meeting response SLAs across verified enquiries.',
-      },
-      {
-        key: 'volume_leader',
-        label: 'Volume Leader',
-        emoji: '📊',
-        how: 'Earned by completing high transaction volume with verified outcomes over time.',
-      },
-    ],
-  },
-  {
-    category: 'Niche Expertise',
-    badges: [
-      {
-        key: 'luxury_specialist',
-        label: 'Luxury Specialist',
-        emoji: '🏙️',
-        how: 'Earned by verified performance in premium segments (price bands and property types).',
-      },
-      {
-        key: 'nri_expert',
-        label: 'NRI Expert',
-        emoji: '🌍',
-        how: 'Earned by verified client outcomes for overseas and NRI buyer journeys.',
-      },
-      {
-        key: 'neighborhood_ace',
-        label: 'Neighborhood Ace',
-        emoji: '📍',
-        how: 'Earned by verified expertise and conversion in specific communities and micro-markets.',
-      },
-    ],
-  },
-  {
-    category: 'Service Quality',
-    badges: [
-      {
-        key: 'client_favorite',
-        label: 'Client Favorite',
-        emoji: '⭐',
-        how: 'Earned by strong verified post-deal reviews from closed transactions.',
-      },
-      {
-        key: 'repeat_winner',
-        label: 'Repeat Winner',
-        emoji: '🔁',
-        how: 'Earned through verified repeat clients and repeat closed deals over time.',
-      },
-    ],
-  },
-]
+function safeString(v: unknown) {
+  return typeof v === 'string' ? v : ''
+}
 
-const scoreComponents = [
-  {
-    key: 'transaction_success',
-    label: 'Transaction Success',
-    weight: 40,
-    description: 'Measures verified close rate, deal reliability, and outcome consistency across completed transactions.',
-  },
-  {
-    key: 'platform_engagement',
-    label: 'Platform Engagement',
-    weight: 25,
-    description: 'Measures verified responsiveness, listing completeness, and quality signals across platform activity.',
-  },
-  {
-    key: 'client_satisfaction',
-    label: 'Client Satisfaction',
-    weight: 20,
-    description: 'Measures verified feedback collected only after closed deals (no open-lead reviews).',
-  },
-  {
-    key: 'market_expertise',
-    label: 'Market Expertise',
-    weight: 15,
-    description: 'Measures verified market coverage, pricing accuracy, and community-level performance signals.',
-  },
-]
+function safeNumber(v: unknown) {
+  const n = typeof v === 'number' ? v : Number(v)
+  return Number.isFinite(n) ? n : 0
+}
+
+function safeInt(v: unknown, fallback: number) {
+  const n = typeof v === 'string' ? Number(v) : typeof v === 'number' ? v : NaN
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback
+}
+
+function slugify(input: string) {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+}
+
+function clampDescription(s: string, max = 160) {
+  const cleaned = s.replace(/\s+/g, ' ').trim()
+  if (!cleaned) return ''
+  if (cleaned.length <= max) return cleaned
+  return `${cleaned.slice(0, max - 1).trimEnd()}…`
+}
+
+function toImageUrl(v: unknown): string {
+  if (typeof v === 'string') return v
+  if (v && typeof v === 'object') {
+    const u = (v as any).url
+    if (typeof u === 'string') return u
+  }
+  return ''
+}
+
+function uniqueStrings(list: string[]) {
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const it of list) {
+    const s = (it || '').trim()
+    if (!s) continue
+    if (seen.has(s)) continue
+    seen.add(s)
+    out.push(s)
+  }
+  return out
+}
+
+function buildQueryString(params: Record<string, string>) {
+  const sp = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) {
+    if (!v) continue
+    sp.set(k, v)
+  }
+  const s = sp.toString()
+  return s ? `?${s}` : ''
+}
+
+function buildLocationLabel(project: any) {
+  const region = safeString(project?.location?.region)
+  const district = safeString(project?.location?.district)
+  const sector = safeString(project?.location?.sector)
+  return [sector, district, region].filter(Boolean).join(', ')
+}
+
+function mapProjectToListing(project: any) {
+  const id = safeString(project?.id) || String(safeNumber(project?.id))
+  const title = safeString(project?.name) || safeString(project?.title) || 'Property'
+  const location = buildLocationLabel(project) || 'UAE'
+  const price = safeNumber(project?.min_price ?? project?.price ?? 0)
+  const bedrooms = safeNumber(project?.beds ?? project?.bedrooms ?? 0)
+  const bathrooms = safeNumber(project?.baths ?? project?.bathrooms ?? 0)
+  const squareFeet = safeNumber(project?.area ?? project?.size ?? project?.square_feet ?? 0)
+  const featured = Boolean(project?.featured ?? false)
+  const propertyType = safeString(project?.type) || safeString(project?.property_type) || 'Property'
+
+  const cover = toImageUrl(project?.cover_image)
+  const galleries: unknown[] = Array.isArray(project?.galleries)
+    ? project.galleries
+    : Array.isArray(project?.gallery)
+      ? project.gallery
+      : []
+  const galleryUrls = galleries.map(toImageUrl).filter(Boolean)
+  const images = uniqueStrings([cover, ...galleryUrls])
+
+  return {
+    id,
+    country: 'UAE' as const,
+    title,
+    location,
+    price,
+    bedrooms,
+    bathrooms,
+    squareFeet,
+    images,
+    featured,
+    propertyType,
+  }
+}
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const id = extractAgentId(params?.id || '')
@@ -149,14 +139,42 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const agent = await prisma.agent.findUnique({ where: { id }, include: { user: true } }).catch(() => null)
   const name = agent?.user?.name || 'Agent'
 
+  const slug = slugify(name)
+  const canonicalPath = `/agents/${slug ? `${slug}-` : ''}${id}`
+  const canonical = absoluteUrl(canonicalPath)
+
+  const company = agent?.company || 'millionflats Partner'
+  const description = clampDescription(
+    `View ${name}, ${company}, on millionflats. Explore agent details, verification, and active listings.`
+  )
+
   return {
-    title: `${name} | Agent | millionflats`,
-    description: `View ${name}'s agent profile, trust badges, and scoring breakdown on millionflats.`,
+    title: `${name} | Real Estate Agent | millionflats`,
+    description,
+    alternates: canonical ? { canonical } : undefined,
+    openGraph: {
+      title: `${name} | Real Estate Agent | millionflats`,
+      description,
+      url: canonical || undefined,
+      type: 'profile',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${name} | Real Estate Agent | millionflats`,
+      description,
+    },
   }
 }
 
-export default async function AgentProfilePage({ params }: { params: { id: string } }) {
-  const id = extractAgentId(params?.id || '')
+export default async function AgentProfilePage({
+  params,
+  searchParams,
+}: {
+  params: { id: string }
+  searchParams?: Record<string, string | string[] | undefined>
+}) {
+  const rawParam = safeString(params?.id || '')
+  const id = extractAgentId(rawParam)
   if (!id) notFound()
 
   const agent = await prisma.agent.findUnique({ where: { id }, include: { user: true } })
@@ -168,145 +186,333 @@ export default async function AgentProfilePage({ params }: { params: { id: strin
   const phone = user?.phone || ''
   const image = user?.image || ''
 
-  const earnedBadgeKeys: string[] = []
+  const limit = Math.min(24, Math.max(6, safeInt(searchParams?.limit, 9)))
+  const page = Math.max(1, safeInt(searchParams?.page, 1))
+  const offset = (page - 1) * limit
+
+  const query: Record<string, string> = {}
+  for (const [k, v] of Object.entries(searchParams || {})) {
+    if (typeof v === 'string') query[k] = v
+    else if (Array.isArray(v) && typeof v[0] === 'string') query[k] = v[0]
+  }
+
+  const agentListingRows = await (prisma as any).agentListing
+    .findMany({
+      where: { agentId: agent.id },
+      orderBy: { updatedAt: 'desc' },
+      select: { externalId: true },
+    })
+    .catch(() => [])
+
+  const leadListingRows =
+    agentListingRows.length > 0
+      ? []
+      : await prisma.propertyLead.findMany({
+          where: { agentId: agent.id },
+          distinct: ['externalId'],
+          orderBy: { createdAt: 'desc' },
+          select: { externalId: true },
+        })
+
+  const sourceListingIds = agentListingRows.length > 0 ? agentListingRows : leadListingRows
+  const totalListings = sourceListingIds.length
+  const pageIds = sourceListingIds.slice(offset, offset + limit)
+
+  const projectsSettled = (await Promise.allSettled(
+    pageIds.map((row: { externalId: string }) => reellyGetProject<any>(String(row.externalId)))
+  )) as PromiseSettledResult<any>[]
+
+  const listings = projectsSettled
+    .map((r: PromiseSettledResult<any>) => (r.status === 'fulfilled' ? mapProjectToListing(r.value) : null))
+    .filter(Boolean) as ReturnType<typeof mapProjectToListing>[]
+
+  const areasServed = uniqueStrings(
+    listings
+      .map((l) => l.location)
+      .map((loc) => loc.split(',').map((p) => p.trim()).filter(Boolean))
+      .flat()
+  ).slice(0, 4)
+
+  const company = agent.company || 'Listing Agent'
+  const license = agent.license || ''
+  const whatsapp = agent.whatsapp || ''
+
+  const slug = slugify(name)
+  const canonicalPath = `/agents/${slug ? `${slug}-` : ''}${agent.id}`
+  const canonical = absoluteUrl(canonicalPath)
+  const canonicalId = canonicalPath.replace('/agents/', '')
+
+  if (rawParam && rawParam !== canonicalId) {
+    const qs = buildQueryString(query)
+    redirect(`${canonicalPath}${qs}`)
+  }
+
+  const about =
+    `As a ${company} partner on millionflats, ${name} focuses on helping buyers discover verified premium opportunities. ` +
+    `Contact the agent for availability, viewings, and pricing guidance.`
+
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': ['Person', 'RealEstateAgent'],
+    name,
+    url: canonical || undefined,
+    image: image || undefined,
+    email: email || undefined,
+    telephone: phone || undefined,
+    worksFor: company
+      ? {
+          '@type': 'Organization',
+          name: company,
+        }
+      : undefined,
+    identifier: license
+      ? {
+          '@type': 'PropertyValue',
+          name: 'License',
+          value: license,
+        }
+      : undefined,
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col lg:flex-row gap-10">
-          <div className="lg:w-[380px]">
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-7">
-              <div className="flex items-start gap-4">
-                <div className="h-16 w-16 rounded-full bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center">
-                  {image ? (
-                    <Image src={image} alt={name} width={64} height={64} className="h-16 w-16 object-cover" />
-                  ) : (
-                    <span className="text-2xl font-semibold text-gray-600">{name.charAt(0).toUpperCase()}</span>
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <h1 className="text-2xl font-serif font-bold text-dark-blue truncate">{name}</h1>
-                  <p className="text-sm text-gray-600 mt-1">{agent.company || 'Listing Agent'}</p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${agent.approved ? 'bg-green-50 text-green-800 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-                      {agent.approved ? 'Verified on platform' : 'Verification pending'}
-                    </span>
-                    {agent.license ? (
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white text-gray-700 border border-gray-200">
-                        License on file
-                      </span>
-                    ) : null}
+    <div className="min-h-screen bg-gray-50">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-10 pb-28 md:pb-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-10">
+          <div className="space-y-8">
+            <section className="bg-white rounded-2xl border border-gray-200 p-6 md:p-8">
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+                <div className="flex items-start gap-4">
+                  <div className="h-20 w-20 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center">
+                    {image ? (
+                      <Image src={image} alt={name} width={80} height={80} className="h-20 w-20 object-cover" />
+                    ) : (
+                      <span className="text-2xl font-semibold text-gray-600">{name.charAt(0).toUpperCase()}</span>
+                    )}
                   </div>
+
+                  <div className="min-w-0">
+                    <p className="text-accent-orange font-semibold text-sm uppercase tracking-wider">Agent</p>
+                    <h1 className="mt-2 text-3xl md:text-4xl font-serif font-bold text-dark-blue truncate">{name}</h1>
+                    <p className="mt-2 text-gray-600">{company}</p>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                          agent.approved
+                            ? 'bg-green-50 text-green-800 border-green-200'
+                            : 'bg-gray-100 text-gray-600 border-gray-200'
+                        }`}
+                      >
+                        {agent.approved ? 'Verified on millionflats' : 'Verification pending'}
+                      </span>
+                      {license ? (
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white text-gray-700 border border-gray-200">
+                          License {license}
+                        </span>
+                      ) : null}
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white text-gray-700 border border-gray-200">
+                        Listed on MillionFlats
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {phone ? (
+                    <a
+                      href={`tel:${phone}`}
+                      className="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90"
+                    >
+                      Call
+                    </a>
+                  ) : null}
+                  {whatsapp ? (
+                    <a
+                      href={`https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}`}
+                      className="inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
+                    >
+                      WhatsApp
+                    </a>
+                  ) : null}
+                  {email ? (
+                    <a
+                      href={`mailto:${email}`}
+                      className="inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
+                    >
+                      Email
+                    </a>
+                  ) : null}
                 </div>
               </div>
 
-              <div className="mt-6 space-y-2">
-                {email ? (
-                  <a href={`mailto:${email}`} className="block text-sm text-dark-blue hover:underline break-words">
-                    {email}
-                  </a>
+              <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-xs text-gray-600">Total listings</p>
+                  <p className="mt-2 text-2xl font-bold text-dark-blue">{totalListings}</p>
+                </div>
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-xs text-gray-600">Active listings</p>
+                  <p className="mt-2 text-2xl font-bold text-dark-blue">{totalListings}</p>
+                </div>
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-xs text-gray-600">Areas served</p>
+                  <p className="mt-2 text-sm font-semibold text-dark-blue">{areasServed.length ? areasServed.join(', ') : 'UAE'}</p>
+                </div>
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-xs text-gray-600">Response time</p>
+                  <p className="mt-2 text-sm font-semibold text-dark-blue">Typically within 24h</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="bg-white rounded-2xl border border-gray-200 p-6 md:p-8">
+              <h2 className="text-2xl font-serif font-bold text-dark-blue">About the Agent</h2>
+              <p className="mt-3 text-gray-700 leading-relaxed">{about}</p>
+            </section>
+
+            <section className="bg-white rounded-2xl border border-gray-200 p-6 md:p-8">
+              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-serif font-bold text-dark-blue">Active Listings</h2>
+                  <p className="mt-2 text-sm text-gray-600">Crawlable listings attributed to this agent.</p>
+                </div>
+                {rawParam && rawParam !== canonicalId ? (
+                  <Link href={canonicalPath} className="text-sm font-semibold text-dark-blue hover:underline">
+                    View canonical profile
+                  </Link>
                 ) : null}
+              </div>
+
+              {listings.length === 0 ? (
+                <div className="mt-6 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-8">
+                  <p className="text-sm text-gray-600">No active listings are available for this agent yet.</p>
+                </div>
+              ) : (
+                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {listings.map((l) => (
+                    <AgentListingCard key={l.id} listing={l as any} />
+                  ))}
+                </div>
+              )}
+
+              <ServerPagination pathname={canonicalPath} query={query} total={totalListings} limit={limit} page={page} />
+            </section>
+
+            <section className="bg-white rounded-2xl border border-gray-200 p-6 md:p-8">
+              <h2 className="text-2xl font-serif font-bold text-dark-blue">Specializations</h2>
+              <p className="mt-2 text-sm text-gray-600">Structured focus areas to help buyers understand fit.</p>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-50 text-gray-700 border border-gray-200">
+                  Luxury homes
+                </span>
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-50 text-gray-700 border border-gray-200">
+                  Off-plan projects
+                </span>
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-50 text-gray-700 border border-gray-200">
+                  Investor-ready deals
+                </span>
+                {areasServed.map((a) => (
+                  <span
+                    key={a}
+                    className="px-3 py-1 rounded-full text-xs font-semibold bg-white text-dark-blue border border-gray-200"
+                  >
+                    {a}
+                  </span>
+                ))}
+              </div>
+            </section>
+
+            <section className="bg-white rounded-2xl border border-gray-200 p-6 md:p-8">
+              <h2 className="text-2xl font-serif font-bold text-dark-blue">Trust & Verification</h2>
+              <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+                  <p className="text-sm font-semibold text-dark-blue">License information</p>
+                  <p className="mt-2 text-sm text-gray-700">{license ? license : 'License details not provided.'}</p>
+                </div>
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+                  <p className="text-sm font-semibold text-dark-blue">Company</p>
+                  <p className="mt-2 text-sm text-gray-700">{company}</p>
+                </div>
+              </div>
+
+              <p className="mt-6 text-xs text-gray-500 leading-relaxed">
+                Verification badges reflect platform checks and submitted documentation. No guarantee of outcomes is implied.
+              </p>
+            </section>
+          </div>
+
+          <aside className="lg:sticky lg:top-24 h-fit">
+            <div className="bg-white rounded-2xl border border-gray-200 p-6">
+              <h2 className="text-xl font-serif font-bold text-dark-blue">Contact {name}</h2>
+              <p className="mt-2 text-sm text-gray-600">Get availability, pricing guidance, and viewing options.</p>
+
+              <div className="mt-5 space-y-2">
                 {phone ? (
-                  <a href={`tel:${phone}`} className="block text-sm text-dark-blue hover:underline">
-                    {phone}
+                  <a
+                    href={`tel:${phone}`}
+                    className="inline-flex items-center justify-center w-full h-11 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90"
+                  >
+                    Call
                   </a>
                 ) : null}
-                {agent.whatsapp ? (
-                  <a href={`https://wa.me/${agent.whatsapp.replace(/[^0-9]/g, '')}`} className="block text-sm text-dark-blue hover:underline">
+                {whatsapp ? (
+                  <a
+                    href={`https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}`}
+                    className="inline-flex items-center justify-center w-full h-11 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
+                  >
                     WhatsApp
+                  </a>
+                ) : null}
+                {email ? (
+                  <a
+                    href={`mailto:${email}`}
+                    className="inline-flex items-center justify-center w-full h-11 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
+                  >
+                    Email
                   </a>
                 ) : null}
               </div>
 
               <div className="mt-6">
-                <Link
-                  href="/auth/redirect?next=/contact"
-                  className="inline-flex items-center justify-center w-full h-11 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 transition-colors"
-                >
-                  Contact Support
-                </Link>
+                <ContactAgentForm agentName={name} agentId={agent.id} />
               </div>
-
-              <p className="mt-6 text-xs text-gray-500 leading-relaxed">
-                Trust badges and scoring are based on verified platform data only. Reviews are collected only from closed deals.
-              </p>
             </div>
-          </div>
-
-          <div className="flex-1 space-y-10">
-            <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-7">
-              <div className="flex items-start justify-between gap-6">
-                <div>
-                  <h2 className="text-2xl font-serif font-bold text-dark-blue">Agent Badges</h2>
-                  <p className="mt-2 text-sm text-gray-600">
-                    Badges are earned automatically based on verified activity. Locked badges will unlock once eligibility criteria is met.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-8 space-y-8">
-                {badgeGroups.map((group) => (
-                  <div key={group.category}>
-                    <h3 className="text-lg font-semibold text-dark-blue">{group.category}</h3>
-                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {group.badges.map((b) => {
-                        const earned = earnedBadgeKeys.includes(b.key)
-                        return (
-                          <div
-                            key={b.key}
-                            className={`rounded-2xl border p-4 ${earned ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}
-                            title={b.how}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="font-semibold text-dark-blue truncate">
-                                  <span className="mr-2">{b.emoji}</span>
-                                  {b.label}
-                                </p>
-                                <p className="mt-1 text-xs text-gray-600">Hover for how it’s earned</p>
-                              </div>
-                              <span className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold border ${earned ? 'bg-white text-green-800 border-green-200' : 'bg-white text-gray-600 border-gray-200'}`}>
-                                {earned ? 'Earned' : 'Locked'}
-                              </span>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-7">
-              <h2 className="text-2xl font-serif font-bold text-dark-blue">Agent Score Breakdown</h2>
-              <p className="mt-2 text-sm text-gray-600">
-                This panel shows how the agent score is weighted. Individual scores appear only after verified platform activity.
-              </p>
-
-              <div className="mt-6 space-y-5">
-                {scoreComponents.map((c) => (
-                  <div key={c.key} className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <p className="font-semibold text-dark-blue">{c.label}</p>
-                      <span className="text-sm font-semibold text-gray-700">Weight {c.weight}%</span>
-                    </div>
-                    <p className="mt-2 text-sm text-gray-600">{c.description}</p>
-                    <div className="mt-4 h-2 w-full rounded-full bg-white border border-gray-200 overflow-hidden">
-                      <div className="h-full bg-dark-blue" style={{ width: `${c.weight}%` }} />
-                    </div>
-                    <p className="mt-2 text-xs text-gray-500">Status: Pending verified activity</p>
-                  </div>
-                ))}
-              </div>
-
-              <p className="mt-6 text-xs text-gray-500 leading-relaxed">
-                Future logic: scoring uses only verified transactions, platform signals, and post-close reviews. No guarantees are implied.
-              </p>
-            </section>
-          </div>
+          </aside>
         </div>
       </div>
+
+      {(phone || whatsapp || email) && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white/95 backdrop-blur border-t border-gray-200">
+          <div className="mx-auto max-w-[1400px] px-4 py-3 flex items-center gap-2">
+            {phone ? (
+              <a
+                href={`tel:${phone}`}
+                className="flex-1 h-11 rounded-xl bg-dark-blue text-white font-semibold flex items-center justify-center"
+              >
+                Call
+              </a>
+            ) : null}
+            {whatsapp ? (
+              <a
+                href={`https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}`}
+                className="flex-1 h-11 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold flex items-center justify-center"
+              >
+                WhatsApp
+              </a>
+            ) : null}
+            {email ? (
+              <a
+                href={`mailto:${email}`}
+                className="h-11 px-4 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold flex items-center justify-center"
+              >
+                Email
+              </a>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

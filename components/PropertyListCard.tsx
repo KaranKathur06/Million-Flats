@@ -36,6 +36,7 @@ interface Property {
   images: string[]
   featured: boolean
   propertyType: string
+  sourceType?: 'REELLY' | 'MANUAL'
   agent?: Agent
 }
 
@@ -103,6 +104,9 @@ export default function PropertyListCard({ property }: { property: Property }) {
               Featured
             </div>
           )}
+          <div className="absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold bg-white/90 text-dark-blue border border-white/60">
+            {property.sourceType === 'MANUAL' ? 'Agent Listing' : 'Verified Project'}
+          </div>
         </div>
 
         <div className="p-4">
@@ -171,6 +175,9 @@ export default function PropertyListCard({ property }: { property: Property }) {
                 Featured
               </div>
             )}
+            <div className="absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-semibold bg-white/90 text-dark-blue border border-white/60">
+              {property.sourceType === 'MANUAL' ? 'Agent Listing' : 'Verified Project'}
+            </div>
           </div>
           {thumbs.length > 0 && (
             <div className="grid grid-cols-3 gap-2 p-3 bg-gray-50 border-t border-gray-200">

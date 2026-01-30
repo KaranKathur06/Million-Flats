@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { reellyListProjects } from '@/lib/reelly'
+import { prisma } from '@/lib/prisma'
 
 type RateEntry = { count: number; resetAt: number }
 
@@ -60,6 +61,9 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url)
 
+  const rawCountry = searchParams.get('country') || 'UAE'
+  const country = rawCountry === 'India' ? 'India' : 'UAE'
+
   const rawLimit = searchParams.get('limit')
   const rawPage = searchParams.get('page')
   const rawOffset = searchParams.get('offset')
@@ -71,6 +75,9 @@ export async function GET(req: Request) {
   const construction_status = searchParams.get('constructionStatus') || undefined
   const min_price = searchParams.get('minPrice') || undefined
   const max_price = searchParams.get('maxPrice') || undefined
+  const purpose = searchParams.get('purpose') || undefined
+  const type = searchParams.get('type') || undefined
+  const city = searchParams.get('city') || undefined
 
   const parsedLimit = rawLimit ? Number(rawLimit) : NaN
   const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? String(Math.min(parsedLimit, 250)) : '50'
@@ -97,8 +104,69 @@ export async function GET(req: Request) {
   try {
     const data = await reellyListProjects<any>(filters)
     const normalized = normalizeListResponse(data)
-    console.log('Projects fetched:', Array.isArray(normalized.items) ? normalized.items.length : 0)
-    return NextResponse.json(normalized)
+
+    const reellyItems = (Array.isArray(normalized.items) ? normalized.items : []).map((it: any) => ({
+      ...it,
+      source_type: 'REELLY',
+    }))
+
+    const parsedMin = min_price ? Number(min_price) : NaN
+    const parsedMax = max_price ? Number(max_price) : NaN
+
+    const manualWhere: any = {
+      status: 'APPROVED',
+      sourceType: 'MANUAL',
+      countryCode: country,
+    }
+
+    if (city) manualWhere.city = { contains: city, mode: 'insensitive' }
+    if (district) manualWhere.community = { contains: district, mode: 'insensitive' }
+    if (type) manualWhere.propertyType = { contains: type, mode: 'insensitive' }
+    if (purpose === 'rent') manualWhere.intent = 'RENT'
+    if (purpose === 'buy') manualWhere.intent = 'SALE'
+
+    if (Number.isFinite(parsedMin)) manualWhere.price = { ...(manualWhere.price || {}), gte: parsedMin }
+    if (Number.isFinite(parsedMax)) manualWhere.price = { ...(manualWhere.price || {}), lte: parsedMax }
+
+    const manualRows = await (prisma as any).manualProperty
+      .findMany({
+        where: manualWhere,
+        orderBy: { updatedAt: 'desc' },
+        include: { media: true },
+        take: 120,
+      })
+      .catch(() => [])
+
+    const manualItems = (manualRows as any[]).map((p) => {
+      const images = Array.isArray(p?.media) ? p.media.map((m: any) => m?.url).filter(Boolean) : []
+      return {
+        source_type: 'MANUAL',
+        id: p.id,
+        title: p.title || 'Agent Listing',
+        city: p.city || '',
+        community: p.community || '',
+        type: p.propertyType || 'Property',
+        property_type: p.propertyType || 'Property',
+        price: p.price || 0,
+        intent: p.intent || 'SALE',
+        beds: p.bedrooms || 0,
+        baths: p.bathrooms || 0,
+        area: p.squareFeet || 0,
+        images,
+        featured: Boolean(p.exclusiveDeal),
+        latitude: p.latitude,
+        longitude: p.longitude,
+      }
+    })
+
+    const merged = [...manualItems, ...reellyItems]
+
+    return NextResponse.json({
+      items: merged,
+      raw: normalized.raw,
+      manualCount: manualItems.length,
+      reellyCount: reellyItems.length,
+    })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Unknown error'
     return NextResponse.json({ error: 'reelly_failed', message }, { status: 502 })

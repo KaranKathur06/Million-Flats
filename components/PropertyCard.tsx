@@ -25,6 +25,7 @@ interface Property {
   images: string[]
   featured: boolean
   propertyType?: string
+  sourceType?: 'REELLY' | 'MANUAL'
 }
 
 export default function PropertyCard({ property }: { property: Property }) {
@@ -53,6 +54,9 @@ export default function PropertyCard({ property }: { property: Property }) {
             Featured
           </div>
         )}
+        <div className="absolute top-4 left-4 bg-white/90 text-dark-blue px-3 py-1 rounded-full text-xs font-semibold border border-white/60">
+          {property.sourceType === 'MANUAL' ? 'Agent Listing' : 'Verified Project'}
+        </div>
       </div>
 
       <div className="p-6">

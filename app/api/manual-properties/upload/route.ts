@@ -1,0 +1,114 @@
+import { NextResponse } from 'next/server'
+import { z } from 'zod'
+import path from 'path'
+import { promises as fs } from 'fs'
+import { prisma } from '@/lib/prisma'
+import { requireAgentSession } from '@/lib/agentAuth'
+
+export const runtime = 'nodejs'
+
+const QuerySchema = z.object({
+  propertyId: z.string().trim().min(1),
+  category: z.enum(['COVER', 'EXTERIOR', 'INTERIOR', 'FLOOR_PLANS', 'AMENITIES', 'BROCHURE']),
+})
+
+function safeFilename(name: string) {
+  return name
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .slice(0, 120)
+}
+
+function isAllowedImageType(mime: string) {
+  return mime === 'image/jpeg' || mime === 'image/png' || mime === 'image/webp'
+}
+
+function isAllowedPdf(mime: string) {
+  return mime === 'application/pdf'
+}
+
+export async function POST(req: Request) {
+  const auth = await requireAgentSession()
+  if (!auth.ok) {
+    return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
+  }
+
+  const { searchParams } = new URL(req.url)
+  const parsedQuery = QuerySchema.safeParse({
+    propertyId: searchParams.get('propertyId'),
+    category: searchParams.get('category'),
+  })
+
+  if (!parsedQuery.success) {
+    return NextResponse.json({ success: false, message: 'Invalid query' }, { status: 400 })
+  }
+
+  const { propertyId, category } = parsedQuery.data
+
+  const property = await (prisma as any).manualProperty.findFirst({ where: { id: propertyId, agentId: auth.agentId } })
+  if (!property) {
+    return NextResponse.json({ success: false, message: 'Not found' }, { status: 404 })
+  }
+
+  const form = await req.formData()
+  const file = form.get('file')
+  const altText = typeof form.get('altText') === 'string' ? String(form.get('altText')).trim() : ''
+
+  if (!file || !(file instanceof File)) {
+    return NextResponse.json({ success: false, message: 'Missing file' }, { status: 400 })
+  }
+
+  const mime = file.type || ''
+  const isBrochure = category === 'BROCHURE'
+
+  if (isBrochure) {
+    if (!isAllowedPdf(mime)) {
+      return NextResponse.json({ success: false, message: 'Only PDF brochures are allowed.' }, { status: 400 })
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      return NextResponse.json({ success: false, message: 'PDF too large (max 15MB).' }, { status: 400 })
+    }
+  } else {
+    if (!isAllowedImageType(mime)) {
+      return NextResponse.json({ success: false, message: 'Only JPG/PNG/WebP images are allowed.' }, { status: 400 })
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      return NextResponse.json({ success: false, message: 'Image too large (max 8MB).' }, { status: 400 })
+    }
+  }
+
+  const ext = isBrochure
+    ? 'pdf'
+    : mime === 'image/png'
+      ? 'png'
+      : mime === 'image/webp'
+        ? 'webp'
+        : 'jpg'
+
+  const baseName = safeFilename(path.parse(file.name || 'upload').name || 'upload')
+  const finalName = `${Date.now()}-${baseName}.${ext}`
+
+  const relDir = path.join('manual-uploads', propertyId)
+  const absDir = path.join(process.cwd(), 'public', relDir)
+  await fs.mkdir(absDir, { recursive: true })
+
+  const absPath = path.join(absDir, finalName)
+  const buf = Buffer.from(await file.arrayBuffer())
+  await fs.writeFile(absPath, buf)
+
+  const url = `/${relDir.replace(/\\/g, '/')}/${finalName}`
+
+  const media = await (prisma as any).manualPropertyMedia.create({
+    data: {
+      propertyId,
+      category: category as any,
+      url,
+      altText: altText || null,
+      position: 0,
+    } as any,
+    select: { id: true, category: true, url: true, altText: true, position: true },
+  })
+
+  return NextResponse.json({ success: true, media })
+}
