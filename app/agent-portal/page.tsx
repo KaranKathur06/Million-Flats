@@ -30,14 +30,14 @@ export default async function AgentPortalPage() {
     ? String((await prisma.user.findUnique({ where: { email: sessionEmail }, select: { role: true } }))?.role || '').toUpperCase()
     : ''
 
-  const role = dbRole || sessionRole || legacyRole || ((hasSession || hasLegacyToken) ? 'USER' : '')
+  const role = dbRole || sessionRole || legacyRole
 
   if (!role) {
     redirect('/agent/login')
   }
 
   if (role !== 'AGENT') {
-    redirect('/dashboard')
+    redirect('/user/dashboard')
   }
 
   return <AgentDashboardPage />

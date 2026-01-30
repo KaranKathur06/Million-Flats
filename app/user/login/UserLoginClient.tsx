@@ -9,7 +9,8 @@ import AuthLayout from '@/components/AuthLayout'
 export default function UserLoginClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [email, setEmail] = useState('')
+  const initialEmail = searchParams?.get('email') || ''
+  const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -22,7 +23,13 @@ export default function UserLoginClient() {
   useEffect(() => {
     const authError = searchParams?.get('error')
     if (authError === 'email_not_registered') {
+      window.alert('Email not registered. Please register first.')
       setError('Email not registered. Please register first.')
+    }
+
+    const verified = searchParams?.get('verified')
+    if (verified === '1') {
+      setError('Email verified successfully. Please sign in to continue.')
     }
   }, [searchParams])
 
@@ -44,25 +51,7 @@ export default function UserLoginClient() {
         return
       }
 
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, type: 'user' }),
-      })
-
-      const data = await res.json()
-
-      if (res.ok && data.requiresVerification) {
-        router.push(`/user/verify?email=${encodeURIComponent(email)}`)
-        return
-      }
-
-      if (res.ok) {
-        router.push(callbackUrl)
-        return
-      }
-
-      const raw = (result as any)?.error || data.message || 'Login failed'
+      const raw = (result as any)?.error || 'Login failed'
       if (raw === 'CredentialsSignin') {
         setError('Invalid email or password.')
       } else {

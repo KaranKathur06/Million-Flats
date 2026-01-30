@@ -30,7 +30,7 @@ export default async function DashboardPage() {
     ? String((await prisma.user.findUnique({ where: { email: sessionEmail }, select: { role: true } }))?.role || '').toUpperCase()
     : ''
 
-  const role = dbRole || sessionRole || legacyRole || ((hasSession || hasLegacyToken) ? 'USER' : '')
+  const role = dbRole || sessionRole || legacyRole
 
   if (!role) {
     redirect('/user/login')

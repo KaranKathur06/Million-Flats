@@ -1,6 +1,15 @@
+'use client'
+
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 
 export default function Footer() {
+  const { data: session, status } = useSession()
+  const role = String((session?.user as any)?.role || '').toUpperCase()
+  const isAuthed = status === 'authenticated'
+  const isUser = isAuthed && role === 'USER'
+  const isAgent = isAuthed && role === 'AGENT'
+
   return (
     <footer className="bg-gray-50 border-t border-gray-200">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -32,43 +41,45 @@ export default function Footer() {
             </div>
           </div>
 
-          <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Trust Framework (Verix™ System)</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href="/auth/redirect?next=/verix/view"
-                  className="text-sm font-semibold text-dark-blue hover:underline"
-                >
-                  VerixView™
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/auth/redirect?next=/verix/shield"
-                  className="text-sm font-semibold text-dark-blue hover:underline"
-                >
-                  VerixShield™
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/auth/redirect?next=/verix/index"
-                  className="text-sm font-semibold text-dark-blue hover:underline"
-                >
-                  VerixIndex™
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/auth/redirect?next=/verix/title"
-                  className="text-sm font-semibold text-dark-blue hover:underline"
-                >
-                  VerixTitle™
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {isUser && (
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-4">Trust Framework (Verix™ System)</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Link
+                    href="/auth/redirect?next=/verix/view"
+                    className="text-sm font-semibold text-dark-blue hover:underline"
+                  >
+                    VerixView™
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/auth/redirect?next=/verix/shield"
+                    className="text-sm font-semibold text-dark-blue hover:underline"
+                  >
+                    VerixShield™
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/auth/redirect?next=/verix/index"
+                    className="text-sm font-semibold text-dark-blue hover:underline"
+                  >
+                    VerixIndex™
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/auth/redirect?next=/verix/title"
+                    className="text-sm font-semibold text-dark-blue hover:underline"
+                  >
+                    VerixTitle™
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          )}
 
           {/* Ecosystem Partners */}
           <div>
@@ -157,11 +168,25 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold text-gray-900 mb-4">For Agents</h3>
             <ul className="space-y-2">
-              <li>
-                <Link href="/agent-portal" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
-                  Agent Portal
-                </Link>
-              </li>
+              {!isAgent ? (
+                <li>
+                  <Link
+                    href="/agent/login"
+                    className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
+                  >
+                    Agent Login
+                  </Link>
+                </li>
+              ) : (
+                <li>
+                  <Link
+                    href="/agent-portal"
+                    className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
+                  >
+                    Agent Portal
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link
                   href="/auth/redirect?next=/contact"

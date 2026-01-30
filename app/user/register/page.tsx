@@ -49,7 +49,7 @@ export default function UserRegisterPage() {
         if (data.requiresVerification) {
           router.push(`/user/verify?email=${encodeURIComponent(formData.email)}`)
         } else {
-          router.push('/dashboard')
+          router.push('/user/dashboard')
         }
       } else {
         setError(data.message || 'Registration failed')

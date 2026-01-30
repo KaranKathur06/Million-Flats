@@ -39,7 +39,7 @@ export default function Header() {
     { href: '/agent-portal', label: 'Agent Portal' },
   ]
 
-  const navLinks = !isAuthed ? publicLinks : isAgent ? agentLinks : userLinks
+  const navLinks = !isAuthed ? publicLinks : isAgent ? agentLinks : isUser ? userLinks : publicLinks
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'
@@ -148,7 +148,7 @@ export default function Header() {
                         role="menu"
                       >
                         <Link
-                          href="/profile"
+                          href="/user/profile"
                           className="block px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
                           role="menuitem"
                           onClick={() => setProfileOpen(false)}
@@ -176,6 +176,22 @@ export default function Header() {
                         </button>
                       </div>
                     )}
+                  </div>
+                ) : isAgent ? (
+                  <div className="flex items-center gap-4">
+                    <Link
+                      href="/agent/profile"
+                      className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors"
+                    >
+                      Profile
+                    </Link>
+                    <button
+                      type="button"
+                      className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors"
+                      onClick={() => signOut({ callbackUrl: '/' })}
+                    >
+                      Logout
+                    </button>
                   </div>
                 ) : (
                   <button
@@ -265,7 +281,7 @@ export default function Header() {
                   {isUser && (
                     <>
                       <Link
-                        href="/profile"
+                        href="/user/profile"
                         className="block px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 bg-gray-50"
                         onClick={() => setMobileOpen(false)}
                       >
@@ -279,6 +295,15 @@ export default function Header() {
                         Settings
                       </Link>
                     </>
+                  )}
+                  {isAgent && (
+                    <Link
+                      href="/agent/profile"
+                      className="block px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 bg-gray-50"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      Profile
+                    </Link>
                   )}
                   <button
                     type="button"

@@ -21,10 +21,12 @@ export default function AgentLoginClient() {
     const authError = searchParams?.get('error')
     if (authError === 'agent_not_registered') {
       signOut({ redirect: false })
+      window.alert('Agent account not found. Please register as an agent.')
       setError('Agent account not found. Please register as an agent.')
     }
     if (authError === 'email_not_registered') {
       signOut({ redirect: false })
+      window.alert('Email not registered. Please register first.')
       setError('Email not registered. Please register first.')
     }
   }, [searchParams])
@@ -47,19 +49,7 @@ export default function AgentLoginClient() {
         return
       }
 
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, type: 'agent' }),
-      })
-
-      const data = await res.json()
-      if (res.ok) {
-        router.push('/auth/redirect?intent=agent')
-        return
-      }
-
-      const raw = (result as any)?.error || data.message || 'Login failed'
+      const raw = (result as any)?.error || 'Login failed'
       if (raw === 'CredentialsSignin') {
         setError('Invalid email or password.')
       } else {

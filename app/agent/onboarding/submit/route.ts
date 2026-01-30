@@ -30,6 +30,10 @@ export async function POST(req: Request) {
     return NextResponse.redirect(new URL('/agent/login', req.url))
   }
 
+  if (dbUser.role !== 'AGENT' && dbUser.role !== 'ADMIN') {
+    return NextResponse.redirect(new URL('/agent/login?error=not_an_agent', req.url))
+  }
+
   const hasGoogleAccount = dbUser.accounts?.some((a) => a.provider === 'google')
   if (!hasGoogleAccount) {
     return NextResponse.redirect(new URL('/agent/login', req.url))
@@ -54,13 +58,14 @@ export async function POST(req: Request) {
     })
   }
 
-  await prisma.user.update({
-    where: { id: dbUser.id },
-    data: {
-      phone: phone || dbUser.phone || null,
-      role: dbUser.role === 'ADMIN' ? 'ADMIN' : 'AGENT',
-    },
-  })
+  if (phone && phone !== dbUser.phone) {
+    await prisma.user.update({
+      where: { id: dbUser.id },
+      data: {
+        phone,
+      },
+    })
+  }
 
   return NextResponse.redirect(new URL('/agent-portal', req.url))
 }

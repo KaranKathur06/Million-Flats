@@ -64,5 +64,5 @@ export default async function AuthRedirectPage({
     redirect(safeNext)
   }
 
-  redirect('/dashboard')
+  redirect('/user/dashboard')
 }

@@ -62,7 +62,7 @@ export default function AgentRegisterPage() {
           email: formData.email,
           password: formData.password,
           redirect: false,
-          callbackUrl: '/auth/redirect',
+          callbackUrl: '/auth/redirect?intent=agent',
         })
 
         if (result?.ok && result.url) {

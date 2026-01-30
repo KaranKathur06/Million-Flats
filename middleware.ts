@@ -3,6 +3,9 @@ import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
 function getLoginPath(pathname: string) {
+  if (pathname === '/agent-portal' || pathname.startsWith('/agent-portal/')) return '/agent/login'
+  if (pathname === '/agent/dashboard' || pathname.startsWith('/agent/dashboard/')) return '/agent/login'
+  if (pathname === '/agent/onboarding' || pathname.startsWith('/agent/onboarding/')) return '/agent/login'
   return pathname.startsWith('/agent') ? '/agent/login' : '/user/login'
 }
 
@@ -63,7 +66,20 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   const isAgentProtected =
-    pathname === '/agent-portal' || pathname.startsWith('/agent-portal/') || pathname === '/agent/dashboard' || pathname.startsWith('/agent/dashboard/')
+    pathname === '/agent-portal' ||
+    pathname.startsWith('/agent-portal/') ||
+    pathname === '/agent/dashboard' ||
+    pathname.startsWith('/agent/dashboard/') ||
+    pathname === '/agent/profile' ||
+    pathname.startsWith('/agent/profile/')
+
+  const isUserOnlyFeature =
+    pathname === '/market-analysis' ||
+    pathname.startsWith('/market-analysis/') ||
+    pathname === '/explore-3d' ||
+    pathname.startsWith('/explore-3d/') ||
+    pathname === '/tokenized' ||
+    pathname.startsWith('/tokenized/')
 
   const isUserProtected =
     pathname === '/dashboard' ||
@@ -73,7 +89,10 @@ export async function middleware(req: NextRequest) {
     pathname === '/profile' ||
     pathname.startsWith('/profile/') ||
     pathname === '/settings' ||
-    pathname.startsWith('/settings/')
+    pathname.startsWith('/settings/') ||
+    pathname === '/user' ||
+    pathname.startsWith('/user/') ||
+    isUserOnlyFeature
 
   const isAgentOnboarding = pathname === '/agent/onboarding' || pathname.startsWith('/agent/onboarding/')
 
@@ -104,6 +123,9 @@ export async function middleware(req: NextRequest) {
     if (isVerix || isEcosystem) {
       const next = `${pathname}${req.nextUrl.search || ''}`
       url.search = `next=${encodeURIComponent(next)}`
+    } else if (isUserOnlyFeature) {
+      const next = `${pathname}${req.nextUrl.search || ''}`
+      url.search = `next=${encodeURIComponent(next)}`
     } else {
       url.search = ''
     }
@@ -119,7 +141,14 @@ export async function middleware(req: NextRequest) {
 
   if (isAgentProtected && role !== 'AGENT') {
     const url = req.nextUrl.clone()
-    url.pathname = '/dashboard'
+    url.pathname = '/user/dashboard'
+    url.search = 'error=agent_only'
+    return NextResponse.redirect(url)
+  }
+
+  if ((pathname === '/profile' || pathname.startsWith('/profile/')) && role === 'AGENT') {
+    const url = req.nextUrl.clone()
+    url.pathname = '/agent/profile'
     url.search = ''
     return NextResponse.redirect(url)
   }
@@ -127,7 +156,7 @@ export async function middleware(req: NextRequest) {
   if (isUserProtected && role === 'AGENT') {
     const url = req.nextUrl.clone()
     url.pathname = '/agent-portal'
-    url.search = ''
+    url.search = 'error=user_only'
     return NextResponse.redirect(url)
   }
 
@@ -138,11 +167,16 @@ export const config = {
   matcher: [
     '/dashboard/:path*',
     '/agent-portal/:path*',
+    '/user/:path*',
     '/user/dashboard/:path*',
     '/agent/dashboard/:path*',
+    '/agent/profile/:path*',
     '/agent/onboarding/:path*',
     '/verix/:path*',
     '/contact/:path*',
+    '/market-analysis/:path*',
+    '/explore-3d/:path*',
+    '/tokenized/:path*',
     '/profile/:path*',
     '/settings/:path*',
   ],
