@@ -16,6 +16,28 @@ const googleClientSecret = getEnv('GOOGLE_CLIENT_SECRET')
 const jwtSecret = getEnv('JWT_SECRET')
 const authSecret = nextAuthSecret || jwtSecret
 
+function normalizeRole(input: unknown) {
+  const r = typeof input === 'string' ? input.trim().toUpperCase() : ''
+  if (r === 'ADMIN' || r === 'AGENT' || r === 'USER') return r
+  return 'USER'
+}
+
+let didAttemptRoleBackfill = false
+
+async function backfillNullRoles() {
+  if (didAttemptRoleBackfill) return
+  didAttemptRoleBackfill = true
+  try {
+    await (prisma as any).$executeRaw`UPDATE "users" SET "role"='USER' WHERE "role" IS NULL`
+  } catch {
+    // ignore
+  }
+}
+
+if (process.env.NODE_ENV === 'production' && !authSecret) {
+  throw new Error('Missing NEXTAUTH_SECRET (or JWT_SECRET) in production')
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: {
     ...PrismaAdapter(prisma),
@@ -80,57 +102,84 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account, profile }: any) {
-      if (account?.provider !== 'google') return true
+      try {
+        if (account?.provider !== 'google') return true
 
-      const email = (profile as any)?.email ? String((profile as any).email).trim().toLowerCase() : ''
-      const googleId = (profile as any)?.sub ? String((profile as any).sub) : ''
+        const email = (profile as any)?.email ? String((profile as any).email).trim().toLowerCase() : ''
+        const googleId = (profile as any)?.sub ? String((profile as any).sub) : ''
 
-      if (!email || !googleId) return false
+        if (!email || !googleId) return false
 
-      const existing = await prisma.user.findUnique({ where: { email } })
-      if (!existing) {
-        return '/user/login?error=email_not_registered'
+        await backfillNullRoles()
+
+        const existing = await prisma.user.findUnique({ where: { email } })
+        if (!existing) {
+          return '/user/login?error=email_not_registered'
+        }
+
+        if (existing.googleId && existing.googleId !== googleId) return false
+
+        const updated = await prisma.user.update({
+          where: { email },
+          data: {
+            googleId: existing.googleId || googleId,
+            verified: true,
+            name: existing.name || (user?.name ?? null),
+            emailVerified: new Date(),
+            role: (existing as any).role || 'USER',
+          } as any,
+        })
+
+        if (user && typeof user === 'object') {
+          ;(user as any).id = updated.id
+          ;(user as any).role = normalizeRole(updated.role)
+        }
+        return true
+      } catch {
+        return '/auth/error'
       }
-
-      if (existing.googleId && existing.googleId !== googleId) return false
-
-      const updated = await prisma.user.update({
-        where: { email },
-        data: {
-          googleId: existing.googleId || googleId,
-          verified: true,
-          name: existing.name || (user?.name ?? null),
-          emailVerified: new Date(),
-        } as any,
-      })
-
-      ;(user as any).id = updated.id
-      ;(user as any).role = updated.role
-      return true
     },
     async jwt({ token, user }: any) {
-      if (user) {
-        token.id = (user as any).id
-        token.role = (user as any).role
+      await backfillNullRoles()
+
+      const safeUser = user && typeof user === 'object' ? user : null
+      if (safeUser) {
+        const id = (safeUser as any).id
+        const role = normalizeRole((safeUser as any).role)
+        if (id) token.id = id
+        token.role = role
       }
 
-      if ((!token.role || !token.id) && token.email) {
-        const email = String(token.email).trim().toLowerCase()
+      const hasId = Boolean((token as any)?.id)
+      const hasRole = Boolean((token as any)?.role)
+      if ((!hasId || !hasRole) && (token as any)?.email) {
+        const email = String((token as any).email).trim().toLowerCase()
         if (email) {
           const dbUser = await prisma.user.findUnique({ where: { email } }).catch(() => null)
           if (dbUser) {
-            token.id = token.id || dbUser.id
-            token.role = token.role || dbUser.role
+            ;(token as any).id = (token as any).id || dbUser.id
+            ;(token as any).role = normalizeRole((dbUser as any).role)
+
+            if (!(dbUser as any).role) {
+              await prisma.user.update({ where: { id: dbUser.id }, data: { role: 'USER' } as any }).catch(() => null)
+            }
+          } else {
+            ;(token as any).role = normalizeRole((token as any).role)
           }
         }
       }
 
+      ;(token as any).role = normalizeRole((token as any).role)
       return token
     },
     async session({ session, token }: any) {
-      if (session.user) {
-        ;(session.user as any).id = (token as any).id
-        ;(session.user as any).role = (token as any).role
+      if (session?.user) {
+        const tokenId = (token as any)?.id
+        const tokenRole = (token as any)?.role
+        if (tokenId) {
+          ;(session.user as any).id = tokenId
+        }
+        ;(session.user as any).role = normalizeRole(tokenRole)
       }
       return session
     },
