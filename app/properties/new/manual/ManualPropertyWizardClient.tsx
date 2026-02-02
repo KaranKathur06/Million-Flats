@@ -27,6 +27,7 @@ type MediaItem = {
 type ManualProperty = {
   id: string
   status: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'
+  rejectionReason?: string | null
   title?: string | null
   propertyType?: string | null
   intent?: 'SALE' | 'RENT' | null
@@ -87,12 +88,26 @@ export default function ManualPropertyWizardClient() {
   const draftIdFromUrl = searchParams?.get('draft') || ''
 
   const [step, setStep] = useState<Step>('basics')
-  const [creating, setCreating] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [loadingDraft, setLoadingDraft] = useState(false)
 
-  const [property, setProperty] = useState<ManualProperty | null>(null)
+  const [property, setProperty] = useState<ManualProperty>(() => ({
+    id: '',
+    status: 'DRAFT',
+    currency: 'AED',
+    bedrooms: 0,
+    bathrooms: 0,
+    squareFeet: 0,
+    countryCode: 'UAE',
+    authorizedToMarket: false,
+    exclusiveDeal: false,
+    ownerContactOnFile: false,
+    amenities: [],
+    customAmenities: [],
+    media: [],
+  }))
   const [duplicate, setDuplicate] = useState<DuplicateResult | null>(null)
   const [duplicateConfirm, setDuplicateConfirm] = useState(false)
 
@@ -101,33 +116,53 @@ export default function ManualPropertyWizardClient() {
 
   const propertyId = property?.id || ''
 
+  const statusBanner = useMemo(() => {
+    if (!property) return null
+    if (property.status === 'APPROVED') {
+      return (
+        <div className="mb-6 rounded-2xl border border-green-200 bg-green-50 p-5">
+          <p className="text-sm font-semibold text-green-800">Your property has been approved and is now live.</p>
+          <div className="mt-3">
+            <Link href={`/properties/${encodeURIComponent(property.id)}`} className="text-sm font-semibold text-dark-blue hover:underline">
+              View public listing
+            </Link>
+          </div>
+        </div>
+      )
+    }
+
+    if (property.status === 'REJECTED') {
+      const reason = String(property.rejectionReason || '').trim()
+      return (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-5">
+          <p className="text-sm font-semibold text-red-800">Your property was rejected for the following reason:</p>
+          <p className="mt-2 text-sm text-red-800">{reason || 'No reason provided.'}</p>
+          <p className="mt-3 text-xs text-red-700">You can edit and resubmit. Resubmission returns the listing to review.</p>
+        </div>
+      )
+    }
+
+    if (property.status === 'PENDING_REVIEW') {
+      return (
+        <div className="mb-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <p className="text-sm font-semibold text-dark-blue">Your property is under review.</p>
+          <p className="mt-2 text-xs text-gray-600">Manual listings are not publicly visible until approved.</p>
+        </div>
+      )
+    }
+
+    return null
+  }, [property])
+
   const coverImages = useMemo(() => {
     const media = property?.media || []
     return media.filter((m) => m.category === 'COVER')
   }, [property?.media])
 
-  const ensureDraft = async () => {
-    if (creating) return
-    setCreating(true)
-    setError('')
-    try {
-      const res = await fetch('/api/manual-properties', { method: 'POST' })
-      const data = (await res.json()) as any
-      if (!res.ok || !data?.success) {
-        throw new Error(data?.message || 'Failed to create draft')
-      }
-      const nextId = String(data.property.id)
-      router.replace(`/properties/new/manual?draft=${encodeURIComponent(nextId)}`)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create draft')
-    } finally {
-      setCreating(false)
-    }
-  }
-
   const fetchDraft = async (id: string) => {
-    setLoading(true)
+    setLoadingDraft(true)
     setError('')
+    setNotice('')
     try {
       const res = await fetch(`/api/manual-properties/${encodeURIComponent(id)}`)
       const data = (await res.json()) as any
@@ -139,36 +174,33 @@ export default function ManualPropertyWizardClient() {
       const score = Number(data.property?.duplicateScore || 0)
       if (score > 0) {
         setDuplicate({ score, level: score >= 75 ? 'strong' : score >= 50 ? 'soft' : 'none', match: null })
+      } else {
+        setDuplicate(null)
       }
+      setNotice('Draft loaded.')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load draft')
     } finally {
-      setLoading(false)
+      setLoadingDraft(false)
     }
   }
 
   useEffect(() => {
-    if (!draftIdFromUrl) {
-      ensureDraft()
-      return
-    }
-    fetchDraft(draftIdFromUrl)
-  }, [draftIdFromUrl])
-
-  useEffect(() => {
+    if (step !== 'amenities') return
+    if (amenityIndex.length > 0) return
     fetch('/api/amenities-index')
       .then((r) => r.json())
       .then((j) => {
         if (Array.isArray(j?.amenities)) setAmenityIndex(j.amenities)
       })
       .catch(() => null)
-  }, [])
+  }, [step, amenityIndex.length])
 
-  const patch = async (data: Partial<ManualProperty>) => {
-    if (!propertyId) return
+  const patchById = async (id: string, data: Partial<ManualProperty>) => {
     setSaving(true)
+    setNotice('')
     try {
-      const res = await fetch(`/api/manual-properties/${encodeURIComponent(propertyId)}`, {
+      const res = await fetch(`/api/manual-properties/${encodeURIComponent(id)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -178,11 +210,83 @@ export default function ManualPropertyWizardClient() {
         throw new Error(json?.message || 'Failed to save')
       }
       setProperty(json.property)
+      return json.property as ManualProperty
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save')
+      return null
     } finally {
       setSaving(false)
     }
+  }
+
+  const buildSavePayload = (): Partial<ManualProperty> => {
+    return {
+      title: property.title ?? null,
+      propertyType: property.propertyType ?? null,
+      intent: property.intent ?? null,
+      price: typeof property.price === 'number' ? property.price : null,
+      currency: property.currency || 'AED',
+      constructionStatus: property.constructionStatus ?? null,
+      shortDescription: property.shortDescription ?? null,
+      bedrooms: typeof property.bedrooms === 'number' ? property.bedrooms : 0,
+      bathrooms: typeof property.bathrooms === 'number' ? property.bathrooms : 0,
+      squareFeet: typeof property.squareFeet === 'number' ? property.squareFeet : 0,
+      countryCode: property.countryCode || 'UAE',
+      city: property.city ?? null,
+      community: property.community ?? null,
+      address: property.address ?? null,
+      latitude: typeof property.latitude === 'number' ? property.latitude : null,
+      longitude: typeof property.longitude === 'number' ? property.longitude : null,
+      developerName: property.developerName ?? null,
+      amenities: Array.isArray(property.amenities) ? property.amenities : null,
+      customAmenities: Array.isArray(property.customAmenities) ? property.customAmenities : null,
+      paymentPlanText: property.paymentPlanText ?? null,
+      emiNote: property.emiNote ?? null,
+      authorizedToMarket: Boolean(property.authorizedToMarket),
+      exclusiveDeal: Boolean(property.exclusiveDeal),
+      ownerContactOnFile: Boolean(property.ownerContactOnFile),
+      duplicateOverrideConfirmed: Boolean(duplicateConfirm),
+      duplicateScore: typeof property.duplicateScore === 'number' ? property.duplicateScore : null,
+      duplicateMatchedProjectId: property.duplicateMatchedProjectId ?? null,
+    }
+  }
+
+  const patch = async (data: Partial<ManualProperty>) => {
+    if (!propertyId) return
+    await patchById(propertyId, data)
+  }
+
+  const ensureRemoteDraft = async () => {
+    if (propertyId) return propertyId
+    setSaving(true)
+    setError('')
+    setNotice('')
+    try {
+      const res = await fetch('/api/manual-properties', { method: 'POST' })
+      const data = (await res.json()) as any
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.message || 'Failed to create draft')
+      }
+      const nextId = String(data.property.id)
+      setProperty((p) => ({ ...(p as any), id: nextId, status: data.property.status || 'DRAFT' }))
+      router.replace(`/properties/new/manual?draft=${encodeURIComponent(nextId)}`)
+      return nextId
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to create draft')
+      return ''
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveDraft = async () => {
+    setError('')
+    setNotice('')
+    const id = await ensureRemoteDraft()
+    if (!id) return
+
+    const saved = await patchById(id, buildSavePayload())
+    if (saved) setNotice('Draft saved.')
   }
 
   const debouncedDuplicateCheck = useMemo(
@@ -236,7 +340,10 @@ export default function ManualPropertyWizardClient() {
   }, [property?.title, property?.community, property?.developerName, property?.latitude, property?.longitude, property?.price])
 
   const upload = async (category: string, file: File) => {
-    if (!propertyId) return
+    if (!propertyId) {
+      setError('Please click “Save Draft” before uploading media.')
+      return
+    }
     setError('')
     try {
       const fd = new FormData()
@@ -259,11 +366,16 @@ export default function ManualPropertyWizardClient() {
   }
 
   const submit = async () => {
-    if (!propertyId) return
     setError('')
     setSaving(true)
     try {
-      const res = await fetch(`/api/manual-properties/${encodeURIComponent(propertyId)}/submit`, {
+      const id = await ensureRemoteDraft()
+      if (!id) return
+
+      const saved = await patchById(id, buildSavePayload())
+      if (!saved) return
+
+      const res = await fetch(`/api/manual-properties/${encodeURIComponent(id)}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ duplicateOverrideConfirmed: duplicateConfirm }),
@@ -278,18 +390,6 @@ export default function ManualPropertyWizardClient() {
     } finally {
       setSaving(false)
     }
-  }
-
-  if (creating || loading || !draftIdFromUrl) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="mx-auto max-w-[1000px] px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-2xl border border-gray-200 p-8">
-            <p className="text-gray-600">Preparing your manual listing…</p>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -307,6 +407,34 @@ export default function ManualPropertyWizardClient() {
             Back to Agent Portal
           </Link>
         </div>
+
+        {statusBanner}
+
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={saveDraft}
+            className="inline-flex items-center justify-center h-11 px-6 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90"
+            disabled={saving}
+          >
+            Save Draft
+          </button>
+
+          {draftIdFromUrl && !propertyId ? (
+            <button
+              type="button"
+              onClick={() => fetchDraft(draftIdFromUrl)}
+              className="inline-flex items-center justify-center h-11 px-6 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
+              disabled={loadingDraft || saving}
+            >
+              {loadingDraft ? 'Loading…' : 'Load Draft'}
+            </button>
+          ) : null}
+        </div>
+
+        {notice ? (
+          <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{notice}</div>
+        ) : null}
 
         {error ? (
           <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>

@@ -87,6 +87,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     where: { id: property.id },
     data: {
       status: 'PENDING_REVIEW',
+      submittedAt: new Date(),
+      rejectionReason: null,
       duplicateOverrideConfirmed: Boolean(parsed.data.duplicateOverrideConfirmed) || property.duplicateOverrideConfirmed,
     } as any,
     select: { id: true, status: true },

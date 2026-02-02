@@ -49,6 +49,11 @@ enum ManualPropertyConstructionStatus {
   OFF_PLAN
 }
 
+enum ManualModerationAction {
+  APPROVE
+  REJECT
+}
+
 model User {
   id        String   @id @default(uuid())
   role      Role     @default(USER)
@@ -194,9 +199,14 @@ model ManualProperty {
   duplicateMatchedProjectId String? @map("duplicate_matched_project_id")
   duplicateOverrideConfirmed Boolean @default(false) @map("duplicate_override_confirmed")
 
+  rejectionReason String? @map("rejection_reason")
+
+  submittedAt DateTime? @map("submitted_at")
+
   agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
   media ManualPropertyMedia[]
   duplicateOverrideLogs ManualDuplicateOverrideLog[]
+  moderationLogs ManualPropertyModerationLog[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -206,6 +216,24 @@ model ManualProperty {
   @@index([sourceType])
   @@index([countryCode, city])
   @@map("manual_properties")
+}
+
+model ManualPropertyModerationLog {
+  id         String @id @default(uuid())
+  propertyId String @map("property_id")
+  adminId    String @map("admin_id")
+  action     ManualModerationAction
+  reason     String? @db.Text
+
+  property ManualProperty @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  admin    User           @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([propertyId])
+  @@index([adminId])
+  @@index([action])
+  @@map("manual_property_moderation_logs")
 }
 
 model ManualPropertyMedia {
