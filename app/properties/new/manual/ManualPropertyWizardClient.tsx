@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -86,6 +86,7 @@ export default function ManualPropertyWizardClient() {
   const searchParams = useSearchParams()
 
   const draftIdFromUrl = searchParams?.get('draft') || ''
+  const didAutoLoadDraftRef = useRef(false)
 
   const [step, setStep] = useState<Step>('basics')
   const [saving, setSaving] = useState(false)
@@ -115,6 +116,11 @@ export default function ManualPropertyWizardClient() {
   const [customAmenityInput, setCustomAmenityInput] = useState('')
 
   const propertyId = property?.id || ''
+  const propertyRef = useRef(property)
+
+  useEffect(() => {
+    propertyRef.current = property
+  }, [property])
 
   const statusBanner = useMemo(() => {
     if (!property) return null
@@ -159,7 +165,11 @@ export default function ManualPropertyWizardClient() {
     return media.filter((m) => m.category === 'COVER')
   }, [property?.media])
 
-  const fetchDraft = async (id: string) => {
+  const isBlankDraft = (p: ManualProperty) => {
+    return !p.id && !p.title && !p.city && !p.community && typeof p.price !== 'number' && (p.media?.length || 0) === 0
+  }
+
+  const fetchDraft = useCallback(async (id: string, opts?: { mode?: 'auto' | 'manual' }) => {
     setLoadingDraft(true)
     setError('')
     setNotice('')
@@ -169,6 +179,16 @@ export default function ManualPropertyWizardClient() {
       if (!res.ok || !data?.success) {
         throw new Error(data?.message || 'Failed to load draft')
       }
+
+      const mode = opts?.mode || 'manual'
+      const local = propertyRef.current
+      const canAutoApply = mode === 'manual' || isBlankDraft(local)
+
+      if (!canAutoApply) {
+        setNotice('Draft found in URL. Click “Load Draft” to restore it (this will overwrite the current form).')
+        return
+      }
+
       setProperty(data.property)
       setDuplicateConfirm(Boolean(data.property?.duplicateOverrideConfirmed))
       const score = Number(data.property?.duplicateScore || 0)
@@ -183,7 +203,15 @@ export default function ManualPropertyWizardClient() {
     } finally {
       setLoadingDraft(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (!draftIdFromUrl) return
+    if (propertyId) return
+    if (didAutoLoadDraftRef.current) return
+    didAutoLoadDraftRef.current = true
+    fetchDraft(draftIdFromUrl, { mode: 'auto' })
+  }, [draftIdFromUrl, fetchDraft, propertyId])
 
   useEffect(() => {
     if (step !== 'amenities') return
@@ -196,7 +224,7 @@ export default function ManualPropertyWizardClient() {
       .catch(() => null)
   }, [step, amenityIndex.length])
 
-  const patchById = async (id: string, data: Partial<ManualProperty>) => {
+  const patchById = useCallback(async (id: string, data: Partial<ManualProperty>) => {
     setSaving(true)
     setNotice('')
     try {
@@ -217,7 +245,7 @@ export default function ManualPropertyWizardClient() {
     } finally {
       setSaving(false)
     }
-  }
+  }, [])
 
   const buildSavePayload = (): Partial<ManualProperty> => {
     return {
@@ -251,10 +279,10 @@ export default function ManualPropertyWizardClient() {
     }
   }
 
-  const patch = async (data: Partial<ManualProperty>) => {
+  const patch = useCallback(async (data: Partial<ManualProperty>) => {
     if (!propertyId) return
     await patchById(propertyId, data)
-  }
+  }, [patchById, propertyId])
 
   const ensureRemoteDraft = async () => {
     if (propertyId) return propertyId
@@ -331,13 +359,13 @@ export default function ManualPropertyWizardClient() {
           return
         }
       }, 650),
-    []
+    [patch, propertyId]
   )
 
   useEffect(() => {
     if (!property) return
     debouncedDuplicateCheck(property)
-  }, [property?.title, property?.community, property?.developerName, property?.latitude, property?.longitude, property?.price])
+  }, [debouncedDuplicateCheck, property])
 
   const upload = async (category: string, file: File) => {
     if (!propertyId) {
@@ -423,7 +451,7 @@ export default function ManualPropertyWizardClient() {
           {draftIdFromUrl && !propertyId ? (
             <button
               type="button"
-              onClick={() => fetchDraft(draftIdFromUrl)}
+              onClick={() => fetchDraft(draftIdFromUrl, { mode: 'manual' })}
               className="inline-flex items-center justify-center h-11 px-6 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
               disabled={loadingDraft || saving}
             >

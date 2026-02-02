@@ -6,6 +6,7 @@ function getLoginPath(pathname: string) {
   if (pathname === '/agent-portal' || pathname.startsWith('/agent-portal/')) return '/agent/login'
   if (pathname === '/agent/dashboard' || pathname.startsWith('/agent/dashboard/')) return '/agent/login'
   if (pathname === '/agent/onboarding' || pathname.startsWith('/agent/onboarding/')) return '/agent/login'
+  if (pathname === '/properties/new' || pathname.startsWith('/properties/new/')) return '/agent/login'
   return pathname.startsWith('/agent') ? '/agent/login' : '/user/login'
 }
 
@@ -71,7 +72,11 @@ export async function middleware(req: NextRequest) {
     pathname === '/agent/dashboard' ||
     pathname.startsWith('/agent/dashboard/') ||
     pathname === '/agent/profile' ||
-    pathname.startsWith('/agent/profile/')
+    pathname.startsWith('/agent/profile/') ||
+    pathname === '/properties/new' ||
+    pathname.startsWith('/properties/new/')
+
+  const isAdminProtected = pathname === '/admin' || pathname.startsWith('/admin/')
 
   const isUserOnlyFeature =
     pathname === '/market-analysis' ||
@@ -99,7 +104,7 @@ export async function middleware(req: NextRequest) {
   const isVerix = pathname === '/verix' || pathname.startsWith('/verix/')
   const isEcosystem = pathname === '/contact' || pathname.startsWith('/contact/')
 
-  if (!isAgentProtected && !isUserProtected && !isAgentOnboarding && !isVerix && !isEcosystem) {
+  if (!isAgentProtected && !isAdminProtected && !isUserProtected && !isAgentOnboarding && !isVerix && !isEcosystem) {
     return NextResponse.next()
   }
 
@@ -126,9 +131,19 @@ export async function middleware(req: NextRequest) {
     } else if (isUserOnlyFeature) {
       const next = `${pathname}${req.nextUrl.search || ''}`
       url.search = `next=${encodeURIComponent(next)}`
+    } else if (isAdminProtected || pathname === '/properties/new' || pathname.startsWith('/properties/new/')) {
+      const next = `${pathname}${req.nextUrl.search || ''}`
+      url.search = `next=${encodeURIComponent(next)}`
     } else {
       url.search = ''
     }
+    return NextResponse.redirect(url)
+  }
+
+  if (isAdminProtected && role !== 'ADMIN') {
+    const url = req.nextUrl.clone()
+    url.pathname = '/user/dashboard'
+    url.search = 'error=admin_only'
     return NextResponse.redirect(url)
   }
 
@@ -166,12 +181,14 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     '/dashboard/:path*',
+    '/admin/:path*',
     '/agent-portal/:path*',
     '/user/:path*',
     '/user/dashboard/:path*',
     '/agent/dashboard/:path*',
     '/agent/profile/:path*',
     '/agent/onboarding/:path*',
+    '/properties/new/:path*',
     '/verix/:path*',
     '/contact/:path*',
     '/market-analysis/:path*',

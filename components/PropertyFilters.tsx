@@ -75,7 +75,7 @@ export default function PropertyFilters({ filters, onFilterChange }: PropertyFil
     if (filters.location) {
       onFilterChange({ location: '' })
     }
-  }, [filters.country])
+  }, [filters.country, filters.location, onFilterChange])
 
   const filteredCities = cities.filter(city => city.toLowerCase().includes(locationSearch.toLowerCase()))
 

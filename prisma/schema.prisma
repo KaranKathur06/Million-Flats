@@ -77,6 +77,8 @@ model User {
   propertyLeads   PropertyLead[]
   preference      UserPreference?
 
+  manualPropertyModerationLogs ManualPropertyModerationLog[] @relation("ManualPropertyModerationAdmin")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -226,7 +228,7 @@ model ManualPropertyModerationLog {
   reason     String? @db.Text
 
   property ManualProperty @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  admin    User           @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  admin    User           @relation("ManualPropertyModerationAdmin", fields: [adminId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now()) @map("created_at")
 

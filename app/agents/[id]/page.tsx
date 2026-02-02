@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { reellyGetProject } from '@/lib/reelly'
 import AgentListingCard from './AgentListingCard'
 import ContactAgentForm from './ContactAgentForm'
+import AgentListingsFilterBarClient from './AgentListingsFilterBarClient'
 import ServerPagination from './ServerPagination'
 
 function extractAgentId(input: string) {
@@ -41,6 +42,20 @@ function safeNumber(v: unknown) {
 function safeInt(v: unknown, fallback: number) {
   const n = typeof v === 'string' ? Number(v) : typeof v === 'number' ? v : NaN
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback
+}
+
+function safePositiveNumber(v: unknown) {
+  const n = typeof v === 'string' ? Number(v) : typeof v === 'number' ? v : NaN
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+type ListingSource = 'all' | 'verified' | 'manual'
+type ListingSort = 'newest' | 'price_asc' | 'price_desc'
+
+type AttributionRow = {
+  sourceType: 'REELLY' | 'MANUAL'
+  id: string
+  updatedAt: Date
 }
 
 function slugify(input: string) {
@@ -90,6 +105,15 @@ function buildQueryString(params: Record<string, string>) {
   return s ? `?${s}` : ''
 }
 
+function buildQueryStringWith(params: Record<string, string>, patch: Record<string, string | undefined>) {
+  const next: Record<string, string> = { ...params }
+  for (const [k, v] of Object.entries(patch)) {
+    if (!v) delete next[k]
+    else next[k] = v
+  }
+  return buildQueryString(next)
+}
+
 function buildLocationLabel(project: any) {
   const region = safeString(project?.location?.region)
   const district = safeString(project?.location?.district)
@@ -129,6 +153,39 @@ function mapProjectToListing(project: any) {
     images,
     featured,
     propertyType,
+    sourceType: 'REELLY' as const,
+  }
+}
+
+function mapManualToListing(p: any) {
+  const id = safeString(p?.id)
+  const title = safeString(p?.title) || 'Property'
+  const location = [safeString(p?.community), safeString(p?.city), safeString(p?.countryCode)].filter(Boolean).join(', ') || 'UAE'
+  const price = safeNumber(p?.price ?? 0)
+  const bedrooms = safeNumber(p?.bedrooms ?? 0)
+  const bathrooms = safeNumber(p?.bathrooms ?? 0)
+  const squareFeet = safeNumber(p?.squareFeet ?? 0)
+  const propertyType = safeString(p?.propertyType) || 'Property'
+  const country = (safeString(p?.countryCode) === 'India' ? 'India' : 'UAE') as 'UAE' | 'India'
+
+  const media: any[] = Array.isArray(p?.media) ? p.media : []
+  const cover = media.filter((m) => m?.category === 'COVER').map((m) => safeString(m?.url)).filter(Boolean)
+  const rest = media.filter((m) => m?.category !== 'COVER').map((m) => safeString(m?.url)).filter(Boolean)
+  const images = uniqueStrings([...cover, ...rest])
+
+  return {
+    id,
+    country,
+    title,
+    location,
+    price,
+    bedrooms,
+    bathrooms,
+    squareFeet,
+    images,
+    featured: false,
+    propertyType,
+    sourceType: 'MANUAL' as const,
   }
 }
 
@@ -190,46 +247,194 @@ export default async function AgentProfilePage({
   const page = Math.max(1, safeInt(searchParams?.page, 1))
   const offset = (page - 1) * limit
 
+  const sourceParam = safeString(searchParams?.source || '')
+  const source: ListingSource = sourceParam === 'verified' || sourceParam === 'manual' ? sourceParam : 'all'
+
+  const minPrice = safePositiveNumber(searchParams?.minPrice)
+  const maxPrice = safePositiveNumber(searchParams?.maxPrice)
+  const beds = Math.max(0, safeInt(searchParams?.beds, 0))
+  const typeFilter = safeString(searchParams?.type || '')
+  const cityFilter = safeString(searchParams?.city || '')
+  const communityFilter = safeString(searchParams?.community || '')
+  const sortParam = safeString(searchParams?.sort || '')
+  const sort: ListingSort = sortParam === 'price_asc' || sortParam === 'price_desc' ? sortParam : 'newest'
+
   const query: Record<string, string> = {}
   for (const [k, v] of Object.entries(searchParams || {})) {
     if (typeof v === 'string') query[k] = v
     else if (Array.isArray(v) && typeof v[0] === 'string') query[k] = v[0]
   }
 
-  const agentListingRows = await (prisma as any).agentListing
-    .findMany({
-      where: { agentId: agent.id },
-      orderBy: { updatedAt: 'desc' },
-      select: { externalId: true },
-    })
-    .catch(() => [])
+  const reellyRowsEnabled = source === 'all' || source === 'verified'
+  const manualRowsEnabled = source === 'all' || source === 'manual'
+
+  const agentListingRows = reellyRowsEnabled
+    ? await (prisma as any).agentListing
+        .findMany({
+          where: { agentId: agent.id },
+          orderBy: { updatedAt: 'desc' },
+          select: { externalId: true, updatedAt: true },
+        })
+        .catch(() => [])
+    : []
 
   const leadListingRows =
-    agentListingRows.length > 0
-      ? []
-      : await prisma.propertyLead.findMany({
+    reellyRowsEnabled && agentListingRows.length === 0
+      ? await prisma.propertyLead.findMany({
           where: { agentId: agent.id },
           distinct: ['externalId'],
           orderBy: { createdAt: 'desc' },
-          select: { externalId: true },
+          select: { externalId: true, createdAt: true },
         })
+      : []
 
-  const sourceListingIds = agentListingRows.length > 0 ? agentListingRows : leadListingRows
-  const totalListings = sourceListingIds.length
-  const pageIds = sourceListingIds.slice(offset, offset + limit)
+  const reellyAttributionRows: AttributionRow[] = (agentListingRows.length > 0 ? agentListingRows : leadListingRows).map((row: any) => ({
+    sourceType: 'REELLY',
+    id: String(row.externalId),
+    updatedAt: new Date(row.updatedAt ?? row.createdAt ?? 0),
+  }))
 
-  const projectsSettled = (await Promise.allSettled(
-    pageIds.map((row: { externalId: string }) => reellyGetProject<any>(String(row.externalId)))
-  )) as PromiseSettledResult<any>[]
+  const manualAttributionRows: AttributionRow[] = manualRowsEnabled
+    ? await (prisma as any).manualProperty
+        .findMany({
+          where: { agentId: agent.id, status: 'APPROVED' },
+          orderBy: { updatedAt: 'desc' },
+          select: { id: true, updatedAt: true },
+        })
+        .then((rows: any[]) =>
+          rows.map((row: any) => ({
+            sourceType: 'MANUAL',
+            id: String(row.id),
+            updatedAt: new Date(row.updatedAt ?? 0),
+          }))
+        )
+        .catch(() => [])
+    : []
 
-  const listings = projectsSettled
-    .map((r: PromiseSettledResult<any>) => (r.status === 'fulfilled' ? mapProjectToListing(r.value) : null))
-    .filter(Boolean) as ReturnType<typeof mapProjectToListing>[]
+  const totalListingsAll = reellyAttributionRows.length + manualAttributionRows.length
+
+  const reellyIdsAll = reellyAttributionRows.map((r) => r.id)
+  const manualIdsAll = manualAttributionRows.map((r) => r.id)
+
+  const needsProjectData =
+    Boolean(minPrice || maxPrice || beds || typeFilter || cityFilter || communityFilter) || sort !== 'newest'
+
+  let totalListings = 0
+  let listings: any[] = []
+  let effectivePage = page
+
+  if (!needsProjectData) {
+    const attributionRows = [...reellyAttributionRows, ...manualAttributionRows].sort((a, b) => {
+      const ad = a.updatedAt instanceof Date ? a.updatedAt.getTime() : new Date(a.updatedAt).getTime()
+      const bd = b.updatedAt instanceof Date ? b.updatedAt.getTime() : new Date(b.updatedAt).getTime()
+      return bd - ad
+    })
+
+    totalListings = attributionRows.length
+    const totalPages = Math.max(1, Math.ceil(totalListings / limit))
+    effectivePage = Math.max(1, Math.min(page, totalPages))
+    const safeOffset = (effectivePage - 1) * limit
+
+    const pageRows = attributionRows.slice(safeOffset, safeOffset + limit)
+    const pageReellyIds = pageRows.filter((r) => r.sourceType === 'REELLY').map((r) => r.id)
+    const pageManualIds = pageRows.filter((r) => r.sourceType === 'MANUAL').map((r) => r.id)
+
+    const reellyListingMap = new Map<string, any>()
+    if (reellyRowsEnabled && pageReellyIds.length > 0) {
+      const projectsSettled = (await Promise.allSettled(pageReellyIds.map((id) => reellyGetProject<any>(String(id))))) as PromiseSettledResult<any>[]
+      for (let i = 0; i < pageReellyIds.length; i += 1) {
+        const id = pageReellyIds[i]
+        const settled = projectsSettled[i]
+        if (settled && settled.status === 'fulfilled') {
+          reellyListingMap.set(id, mapProjectToListing(settled.value))
+        }
+      }
+    }
+
+    const manualListingMap = new Map<string, any>()
+    if (manualRowsEnabled && pageManualIds.length > 0) {
+      const rows = await (prisma as any).manualProperty
+        .findMany({
+          where: { id: { in: pageManualIds } },
+          include: { media: true },
+        })
+        .catch(() => [])
+      for (const row of rows) {
+        manualListingMap.set(String(row.id), mapManualToListing(row))
+      }
+    }
+
+    listings = pageRows
+      .map((r) => (r.sourceType === 'REELLY' ? reellyListingMap.get(r.id) : manualListingMap.get(r.id)))
+      .filter(Boolean) as any[]
+  } else {
+    const reellyListingMap = new Map<string, any>()
+    if (reellyRowsEnabled && reellyIdsAll.length > 0) {
+      const projectsSettled = (await Promise.allSettled(reellyIdsAll.map((id) => reellyGetProject<any>(String(id))))) as PromiseSettledResult<any>[]
+      for (let i = 0; i < reellyIdsAll.length; i += 1) {
+        const id = reellyIdsAll[i]
+        const settled = projectsSettled[i]
+        if (settled && settled.status === 'fulfilled') {
+          reellyListingMap.set(id, {
+            ...mapProjectToListing(settled.value),
+            updatedAt: reellyAttributionRows.find((r) => r.id === id)?.updatedAt ?? new Date(0),
+          })
+        }
+      }
+    }
+
+    const manualListingMap = new Map<string, any>()
+    if (manualRowsEnabled && manualIdsAll.length > 0) {
+      const rows = await (prisma as any).manualProperty
+        .findMany({
+          where: { id: { in: manualIdsAll } },
+          include: { media: true },
+        })
+        .catch(() => [])
+      for (const row of rows) {
+        manualListingMap.set(String(row.id), { ...mapManualToListing(row), updatedAt: row.updatedAt ?? new Date(0) })
+      }
+    }
+
+    const allListings = [...reellyAttributionRows, ...manualAttributionRows]
+      .map((r) => (r.sourceType === 'REELLY' ? reellyListingMap.get(r.id) : manualListingMap.get(r.id)))
+      .filter(Boolean) as Array<any>
+
+    const typeNorm = typeFilter.trim().toLowerCase()
+    const cityNorm = cityFilter.trim().toLowerCase()
+    const communityNorm = communityFilter.trim().toLowerCase()
+
+    const filteredListings = allListings.filter((l) => {
+      if (minPrice && safeNumber(l.price) < minPrice) return false
+      if (maxPrice && safeNumber(l.price) > maxPrice) return false
+      if (beds && safeNumber(l.bedrooms) < beds) return false
+      if (typeNorm && safeString(l.propertyType || '').trim().toLowerCase() !== typeNorm) return false
+      const loc = safeString(l.location || '').toLowerCase()
+      if (cityNorm && !loc.includes(cityNorm)) return false
+      if (communityNorm && !loc.includes(communityNorm)) return false
+      return true
+    })
+
+    const sortedListings = filteredListings.sort((a, b) => {
+      if (sort === 'price_asc') return safeNumber(a.price) - safeNumber(b.price)
+      if (sort === 'price_desc') return safeNumber(b.price) - safeNumber(a.price)
+      const ad = a.updatedAt instanceof Date ? a.updatedAt.getTime() : new Date(a.updatedAt || 0).getTime()
+      const bd = b.updatedAt instanceof Date ? b.updatedAt.getTime() : new Date(b.updatedAt || 0).getTime()
+      return bd - ad
+    })
+
+    totalListings = sortedListings.length
+    const totalPages = Math.max(1, Math.ceil(totalListings / limit))
+    effectivePage = Math.max(1, Math.min(page, totalPages))
+    const safeOffset = (effectivePage - 1) * limit
+
+    listings = sortedListings.slice(safeOffset, safeOffset + limit) as Array<any>
+  }
 
   const areasServed = uniqueStrings(
     listings
-      .map((l) => l.location)
-      .map((loc) => loc.split(',').map((p) => p.trim()).filter(Boolean))
+      .map((l) => safeString(l.location))
+      .map((loc) => loc.split(',').map((p: string) => p.trim()).filter(Boolean))
       .flat()
   ).slice(0, 4)
 
@@ -349,11 +554,11 @@ export default async function AgentProfilePage({
               <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
                   <p className="text-xs text-gray-600">Total listings</p>
-                  <p className="mt-2 text-2xl font-bold text-dark-blue">{totalListings}</p>
+                  <p className="mt-2 text-2xl font-bold text-dark-blue">{totalListingsAll}</p>
                 </div>
                 <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
                   <p className="text-xs text-gray-600">Active listings</p>
-                  <p className="mt-2 text-2xl font-bold text-dark-blue">{totalListings}</p>
+                  <p className="mt-2 text-2xl font-bold text-dark-blue">{totalListingsAll}</p>
                 </div>
                 <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
                   <p className="text-xs text-gray-600">Areas served</p>
@@ -377,12 +582,51 @@ export default async function AgentProfilePage({
                   <h2 className="text-2xl font-serif font-bold text-dark-blue">Active Listings</h2>
                   <p className="mt-2 text-sm text-gray-600">Crawlable listings attributed to this agent.</p>
                 </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {([
+                    ['all', 'All'],
+                    ['verified', 'Verified'],
+                    ['manual', 'Agent listings'],
+                  ] as Array<[string, string]>).map(([k, label]) => {
+                    const active = source === k
+                    const href = `${canonicalPath}${buildQueryStringWith(query, { source: k === 'all' ? undefined : k, page: '1' })}`
+                    return (
+                      <Link
+                        key={k}
+                        href={href}
+                        className={`h-10 px-4 rounded-xl border text-sm font-semibold transition-colors ${
+                          active
+                            ? 'border-dark-blue bg-dark-blue text-white'
+                            : 'border-gray-200 bg-white text-dark-blue hover:bg-gray-50'
+                        }`}
+                      >
+                        {label}
+                      </Link>
+                    )
+                  })}
+                </div>
                 {rawParam && rawParam !== canonicalId ? (
                   <Link href={canonicalPath} className="text-sm font-semibold text-dark-blue hover:underline">
                     View canonical profile
                   </Link>
                 ) : null}
               </div>
+
+              <AgentListingsFilterBarClient
+                pathname={canonicalPath}
+                baseQuery={query}
+                limit={limit}
+                source={source}
+                minPrice={minPrice}
+                maxPrice={maxPrice}
+                beds={beds}
+                typeFilter={typeFilter}
+                cityFilter={cityFilter}
+                communityFilter={communityFilter}
+                sort={sort}
+                showingCount={listings.length}
+                totalCount={totalListings}
+              />
 
               {listings.length === 0 ? (
                 <div className="mt-6 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-8">
@@ -396,7 +640,7 @@ export default async function AgentProfilePage({
                 </div>
               )}
 
-              <ServerPagination pathname={canonicalPath} query={query} total={totalListings} limit={limit} page={page} />
+              <ServerPagination pathname={canonicalPath} query={query} total={totalListings} limit={limit} page={effectivePage} />
             </section>
 
             <section className="bg-white rounded-2xl border border-gray-200 p-6 md:p-8">

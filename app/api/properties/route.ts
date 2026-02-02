@@ -99,6 +99,7 @@ export async function GET(req: Request) {
     construction_status,
     min_price,
     max_price,
+    purpose,
   }
 
   try {

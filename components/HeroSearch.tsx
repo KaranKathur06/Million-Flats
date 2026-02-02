@@ -39,7 +39,6 @@ export default function HeroSearch() {
         const items = Array.isArray(parsed) ? parsed : []
         if (items.length > 0) {
           setProjects(items)
-          setLoading(false)
         }
       }
     } catch {
@@ -73,13 +72,16 @@ export default function HeroSearch() {
       }
     }
 
-    setLoading((prev) => prev && projects.length === 0)
     void load(0)
 
     return () => {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    setLoading(projects.length === 0)
+  }, [projects])
 
   const regionOptions = useMemo(() => {
     const set = new Set<string>()

@@ -117,10 +117,19 @@ function normalizeFrequency(v: unknown) {
 
 function classifyIntent(input: { intentRaw: unknown; pricingFrequencyRaw: unknown }) {
   const rawIntent = typeof input.intentRaw === 'string' ? input.intentRaw.trim().toUpperCase() : ''
-  if (rawIntent === 'BUY' || rawIntent === 'RENT') return rawIntent
+  if (rawIntent === 'BUY' || rawIntent === 'SALE' || rawIntent === 'SELL') return 'BUY'
+  if (rawIntent === 'RENT' || rawIntent === 'RENTAL' || rawIntent === 'LEASE' || rawIntent === 'LET') return 'RENT'
 
   const freq = normalizeFrequency(input.pricingFrequencyRaw)
-  if (freq.includes('month')) return 'RENT'
+  if (
+    freq.includes('month') ||
+    freq.includes('year') ||
+    freq.includes('annual') ||
+    freq.includes('annum') ||
+    freq.includes('week') ||
+    freq.includes('day')
+  )
+    return 'RENT'
   return 'BUY'
 }
 
