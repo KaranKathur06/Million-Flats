@@ -1,6 +1,29 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+type RateEntry = { count: number; resetAt: number }
+
+const ipRate = new Map<string, RateEntry>()
+const emailRate = new Map<string, RateEntry>()
+
+function getClientIp(req: Request) {
+  const xf = req.headers.get('x-forwarded-for')
+  if (xf) return xf.split(',')[0]?.trim() || 'unknown'
+  return 'unknown'
+}
+
+function allow(rate: Map<string, RateEntry>, key: string, max: number, windowMs: number) {
+  const now = Date.now()
+  const cur = rate.get(key)
+  if (!cur || cur.resetAt <= now) {
+    rate.set(key, { count: 1, resetAt: now + windowMs })
+    return true
+  }
+  if (cur.count >= max) return false
+  cur.count += 1
+  return true
+}
+
 function safeString(v: unknown) {
   if (typeof v !== 'string') return ''
   return v.trim()
@@ -8,6 +31,12 @@ function safeString(v: unknown) {
 
 export async function POST(req: Request) {
   try {
+    const ip = getClientIp(req)
+    const windowMs = 10 * 60 * 1000
+    if (!allow(ipRate, ip, 20, windowMs)) {
+      return NextResponse.json({ success: false, message: 'Invalid OTP' }, { status: 400 })
+    }
+
     const body = await req.json().catch(() => null)
 
     const email = safeString(body?.email).toLowerCase()
@@ -22,9 +51,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: 'Invalid user type' }, { status: 400 })
     }
 
+    if (!allow(emailRate, email, 10, windowMs)) {
+      return NextResponse.json({ success: false, message: 'Invalid OTP' }, { status: 400 })
+    }
+
     const user = await prisma.user.findUnique({ where: { email } })
     if (!user) {
-      return NextResponse.json({ success: false, message: 'User not found' }, { status: 401 })
+      return NextResponse.json({ success: false, message: 'Invalid OTP' }, { status: 400 })
+    }
+
+    if (user.verified) {
+      await prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } }).catch(() => null)
+      return NextResponse.json({ success: true, message: 'Verification successful' }, { status: 200 })
     }
 
     const tokenRow = await prisma.emailVerificationToken.findFirst({

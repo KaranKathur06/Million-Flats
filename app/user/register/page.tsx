@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AuthLayout from '@/components/AuthLayout'
@@ -13,16 +13,32 @@ export default function UserRegisterPage() {
     password: '',
     confirmPassword: '',
   })
+  const [stage, setStage] = useState<'form' | 'verify'>('form')
+  const [verifyEmail, setVerifyEmail] = useState('')
+  const [otp, setOtp] = useState('')
+  const [cooldownSeconds, setCooldownSeconds] = useState(0)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
   const [acceptedTerms, setAcceptedTerms] = useState(false)
+
+  const normalizedEmail = useMemo(() => (formData.email || '').trim().toLowerCase(), [formData.email])
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return
+    const t = window.setInterval(() => {
+      setCooldownSeconds((s) => (s > 0 ? s - 1 : 0))
+    }, 1000)
+    return () => window.clearInterval(t)
+  }, [cooldownSeconds])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setInfo('')
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match')
@@ -47,7 +63,12 @@ export default function UserRegisterPage() {
 
       if (res.ok) {
         if (data.requiresVerification) {
-          router.push(`/user/verify?email=${encodeURIComponent(formData.email)}`)
+          const email = normalizedEmail
+          setVerifyEmail(email)
+          setStage('verify')
+          setOtp('')
+          setCooldownSeconds(60)
+          setInfo(`We’ve sent a verification code to ${email}.`)
         } else {
           router.push('/user/dashboard')
         }
@@ -61,15 +82,136 @@ export default function UserRegisterPage() {
     }
   }
 
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    setInfo('')
+
+    try {
+      const email = (verifyEmail || normalizedEmail).trim().toLowerCase()
+      const res = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp, type: 'user' }),
+      })
+
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        setError((data && data.message) || 'Verification failed')
+        return
+      }
+
+      router.push(`/user/login?email=${encodeURIComponent(email)}&verified=1`)
+    } catch {
+      setError('An error occurred. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResend = async () => {
+    if (cooldownSeconds > 0) return
+    setLoading(true)
+    setError('')
+    setInfo('')
+    try {
+      const email = (verifyEmail || normalizedEmail).trim().toLowerCase()
+      const res = await fetch('/api/auth/resend-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, type: 'user' }),
+      })
+
+      await res.json().catch(() => null)
+
+      setCooldownSeconds(60)
+      setInfo(`If an account exists for ${email}, a new code has been sent.`)
+    } catch {
+      setInfo('If an account exists, a new code has been sent.')
+      setCooldownSeconds(60)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <AuthLayout
       title="Create Account"
       subtitle="Save properties, book tours, and receive personalized recommendations"
     >
-      <form className="space-y-5" onSubmit={handleSubmit}>
+      {stage === 'verify' ? (
+        <form className="space-y-5" onSubmit={handleVerify}>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
+          )}
+          {info && (
+            <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm">{info}</div>
+          )}
+
+          <div>
+            <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-2">
+              Verification code
+            </label>
+            <input
+              id="otp"
+              name="otp"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              required
+              maxLength={6}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all text-center text-2xl tracking-widest"
+              placeholder="000000"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || otp.length !== 6}
+            className="w-full h-12 bg-dark-blue text-white px-4 rounded-xl font-semibold hover:bg-dark-blue/90 focus:outline-none focus:ring-2 focus:ring-dark-blue focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-dark-blue/20"
+          >
+            {loading ? 'Verifying…' : 'Verify Email'}
+          </button>
+
+          <button
+            type="button"
+            disabled={loading || cooldownSeconds > 0}
+            onClick={handleResend}
+            className="w-full h-12 border border-gray-300 rounded-xl font-semibold text-dark-blue hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {cooldownSeconds > 0 ? `Resend code in ${cooldownSeconds}s` : 'Resend code'}
+          </button>
+
+          <div className="text-center text-sm text-gray-600">
+            <button
+              type="button"
+              onClick={() => {
+                setStage('form')
+                setOtp('')
+                setError('')
+                setInfo('')
+                setCooldownSeconds(0)
+              }}
+              className="font-medium text-dark-blue hover:text-dark-blue/80 transition-colors"
+            >
+              Back
+            </button>
+          </div>
+        </form>
+      ) : (
+        <form className="space-y-5" onSubmit={handleSubmit}>
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
             {error}
+          </div>
+        )}
+        {info && (
+          <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm">
+            {info}
           </div>
         )}
 
@@ -228,7 +370,8 @@ export default function UserRegisterPage() {
             Sign in
           </Link>
         </p>
-      </form>
+        </form>
+      )}
     </AuthLayout>
   )
 }

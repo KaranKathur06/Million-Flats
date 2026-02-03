@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
+import { sendEmail } from '@/lib/mailer'
 
 function safeString(v: unknown) {
   if (typeof v !== 'string') return ''
@@ -11,6 +12,10 @@ function roleLabel(role: string) {
   const normalized = String(role || '').toUpperCase()
   if (normalized === 'AGENT') return 'Agent'
   return 'User'
+}
+
+function generateOtp() {
+  return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
 export async function POST(req: Request) {
@@ -54,7 +59,7 @@ export async function POST(req: Request) {
           })
 
           if (!updated.verified) {
-            const otp = Math.floor(100000 + Math.random() * 900000).toString()
+            const otp = generateOtp()
             const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
 
             await prisma.emailVerificationToken.deleteMany({ where: { userId: updated.id } })
@@ -66,7 +71,11 @@ export async function POST(req: Request) {
               },
             })
 
-            console.log(`OTP for ${email}: ${otp}`)
+            await sendEmail({
+              to: email,
+              subject: 'Your MillionFlats verification code',
+              html: `<p>Your verification code is:</p><p style="font-size:24px;letter-spacing:4px;"><strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
+            }).catch(() => null)
 
             return NextResponse.json(
               {
@@ -87,7 +96,7 @@ export async function POST(req: Request) {
         }
 
         if (!existingUser.verified) {
-          const otp = Math.floor(100000 + Math.random() * 900000).toString()
+          const otp = generateOtp()
           const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
 
           await prisma.emailVerificationToken.deleteMany({ where: { userId: existingUser.id } })
@@ -99,7 +108,11 @@ export async function POST(req: Request) {
             },
           })
 
-          console.log(`OTP for ${email}: ${otp}`)
+          await sendEmail({
+            to: email,
+            subject: 'Your MillionFlats verification code',
+            html: `<p>Your verification code is:</p><p style="font-size:24px;letter-spacing:4px;"><strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
+          }).catch(() => null)
 
           return NextResponse.json(
             {
@@ -126,7 +139,7 @@ export async function POST(req: Request) {
         },
       })
 
-      const otp = Math.floor(100000 + Math.random() * 900000).toString()
+      const otp = generateOtp()
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
 
       await prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } })
@@ -138,7 +151,11 @@ export async function POST(req: Request) {
         },
       })
 
-      console.log(`OTP for ${email}: ${otp}`)
+      await sendEmail({
+        to: email,
+        subject: 'Your MillionFlats verification code',
+        html: `<p>Your verification code is:</p><p style="font-size:24px;letter-spacing:4px;"><strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
+      }).catch(() => null)
 
       return NextResponse.json(
         {
