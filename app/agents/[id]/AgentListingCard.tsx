@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { formatCountryPrice } from '@/lib/country'
 import { resolvePropertyImages } from '@/lib/propertyImages'
+import { buildPropertySlugPath } from '@/lib/seo'
 
 function canOptimizeUrl(src: string) {
   if (!src.startsWith('http')) return true
@@ -29,6 +30,8 @@ type Listing = {
 }
 
 export default function AgentListingCard({ listing }: { listing: Listing }) {
+  const href = buildPropertySlugPath({ id: listing.id, title: listing.title }) || `/properties/${encodeURIComponent(listing.id)}`
+
   const images = resolvePropertyImages({
     propertyType: listing.propertyType || 'Property',
     images: listing.images,
@@ -63,7 +66,7 @@ export default function AgentListingCard({ listing }: { listing: Listing }) {
 
       <div className="p-5">
         <p className="text-lg font-bold text-dark-blue">{formatCountryPrice(listing.country, listing.price)}</p>
-        <Link href={`/properties/${encodeURIComponent(listing.id)}`} className="block mt-2">
+        <Link href={href} className="block mt-2">
           <h3 className="text-base font-semibold text-dark-blue leading-snug hover:underline">
             {listing.title}
           </h3>
@@ -87,7 +90,7 @@ export default function AgentListingCard({ listing }: { listing: Listing }) {
 
         <div className="mt-5">
           <Link
-            href={`/properties/${encodeURIComponent(listing.id)}`}
+            href={href}
             className="inline-flex items-center justify-center w-full h-11 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 transition-colors"
           >
             View details

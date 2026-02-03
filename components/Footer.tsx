@@ -33,7 +33,7 @@ export default function Footer() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/auth/redirect?next=/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                  <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
                     Contact
                   </Link>
                 </li>
@@ -87,7 +87,7 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href="/auth/redirect?next=/contact"
+                  href="/contact"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                 >
                   Home Loans &amp; Finance
@@ -95,7 +95,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/auth/redirect?next=/contact"
+                  href="/contact"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                 >
                   Legal &amp; Documentation
@@ -103,7 +103,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/auth/redirect?next=/contact"
+                  href="/contact"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                 >
                   Property Insurance
@@ -111,7 +111,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/auth/redirect?next=/contact"
+                  href="/contact"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                 >
                   Interior Design &amp; Renovation
@@ -119,7 +119,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/auth/redirect?next=/contact"
+                  href="/contact"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                 >
                   Packers &amp; Movers
@@ -127,7 +127,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/auth/redirect?next=/contact"
+                  href="/contact"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                 >
                   Property Management
@@ -135,7 +135,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/auth/redirect?next=/contact"
+                  href="/contact"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                 >
                   Vastu / Feng Shui Consultants
@@ -155,7 +155,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/auth/redirect?next=/contact"
+                  href="/contact"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                 >
                   Contact Agent
@@ -189,7 +189,7 @@ export default function Footer() {
               )}
               <li>
                 <Link
-                  href="/auth/redirect?next=/contact"
+                  href="/contact"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                 >
                   Support
@@ -211,7 +211,7 @@ export default function Footer() {
             <Link href="/terms" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
               Terms of Service
             </Link>
-            <Link href="/auth/redirect?next=/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+            <Link href="/contact" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
               Contact
             </Link>
           </div>

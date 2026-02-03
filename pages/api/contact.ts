@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { z } from 'zod'
+import { getServerSession } from 'next-auth/next'
 import { prisma } from '@/lib/prisma'
+import { authOptions } from '@/lib/auth'
 
 const RATE_LIMIT_WINDOW_MS = 60_000
 const RATE_LIMIT_MAX = 5
@@ -51,6 +53,13 @@ export default function handler(
       }
 
       const { name, email, phone, subject, message } = parsed.data
+
+      if (String(subject).toLowerCase() === 'agent_inquiry') {
+        const session = await getServerSession(req, res, authOptions)
+        if (!session?.user) {
+          return res.status(401).json({ success: false, message: 'Please login to contact an agent.' })
+        }
+      }
 
       await prisma.contactSubmission.create({
         data: {

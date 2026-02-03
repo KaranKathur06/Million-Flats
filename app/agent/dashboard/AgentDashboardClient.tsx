@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { formatCountryPrice } from '@/lib/country'
+import { buildPropertySlugPath } from '@/lib/seo'
 
 type Listing = {
   id: string
@@ -197,41 +199,46 @@ export default function AgentDashboardClient({
               ) : view === 'grid' ? (
                 <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {listings.map((l) => (
-                    <div key={l.id} className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
-                      <div className="h-40 bg-gray-100 border-b border-gray-200" />
-                      <div className="p-5">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="font-semibold text-dark-blue truncate">{l.title}</p>
-                            <p className="mt-1 text-sm text-gray-600 truncate">{l.location}</p>
+                    (() => {
+                      const href = buildPropertySlugPath({ id: l.id, title: l.title }) || `/properties/${encodeURIComponent(l.id)}`
+                      return (
+                        <div key={l.id} className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+                          <div className="h-40 bg-gray-100 border-b border-gray-200" />
+                          <div className="p-5">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="font-semibold text-dark-blue truncate">{l.title}</p>
+                                <p className="mt-1 text-sm text-gray-600 truncate">{l.location}</p>
+                              </div>
+                              <span className="shrink-0 px-3 py-1 rounded-full text-xs font-semibold bg-gray-50 text-gray-700 border border-gray-200">
+                                {l.status}
+                              </span>
+                            </div>
+                            <p className="mt-3 text-lg font-bold text-dark-blue">{l.priceLabel}</p>
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              <Link
+                                href={href}
+                                className="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue hover:bg-gray-50"
+                              >
+                                View
+                              </Link>
+                              <button
+                                type="button"
+                                className="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                              >
+                                Unpublish
+                              </button>
+                            </div>
                           </div>
-                          <span className="shrink-0 px-3 py-1 rounded-full text-xs font-semibold bg-gray-50 text-gray-700 border border-gray-200">
-                            {l.status}
-                          </span>
                         </div>
-                        <p className="mt-3 text-lg font-bold text-dark-blue">{l.priceLabel}</p>
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          <Link
-                            href={`/properties/${encodeURIComponent(l.id)}`}
-                            className="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue hover:bg-gray-50"
-                          >
-                            View
-                          </Link>
-                          <button
-                            type="button"
-                            className="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                          >
-                            Unpublish
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                      )
+                    })()
                   ))}
                 </div>
               ) : (
@@ -260,7 +267,7 @@ export default function AgentDashboardClient({
                           <td className="px-4 py-3 font-semibold text-dark-blue">{l.priceLabel}</td>
                           <td className="px-4 py-3 text-right">
                             <Link
-                              href={`/properties/${encodeURIComponent(l.id)}`}
+                              href={buildPropertySlugPath({ id: l.id, title: l.title }) || `/properties/${encodeURIComponent(l.id)}`}
                               className="inline-flex items-center justify-center h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-dark-blue hover:bg-gray-50"
                             >
                               View

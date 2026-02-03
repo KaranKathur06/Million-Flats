@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { formatCountryPrice } from '@/lib/country'
 import { resolvePropertyImages } from '@/lib/propertyImages'
+import { buildPropertySlugPath } from '@/lib/seo'
 
 function canOptimizeUrl(src: string) {
   if (!src.startsWith('http')) return true
@@ -29,6 +30,8 @@ interface Property {
 }
 
 export default function PropertyCard({ property }: { property: Property }) {
+  const href = buildPropertySlugPath({ id: property.id, title: property.title }) || `/properties/${property.id}`
+
   const images = resolvePropertyImages({
     propertyType: property.propertyType || 'Apartment',
     images: property.images,
@@ -92,7 +95,7 @@ export default function PropertyCard({ property }: { property: Property }) {
 
         <div className="mt-5">
           <Link
-            href={`/properties/${property.id}`}
+            href={href}
             className="block w-full text-center bg-dark-blue text-white py-2.5 rounded-xl font-semibold hover:bg-dark-blue/90 transition-colors"
           >
             View Details

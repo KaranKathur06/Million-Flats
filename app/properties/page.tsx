@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import { reellyFetch } from '@/lib/reelly'
-import { buildProjectSeoPath } from '@/lib/seo'
+import { buildProjectSeoPath, buildPropertySlugPath } from '@/lib/seo'
 
 type SeedCacheEntry = {
   expiresAt: number
@@ -443,7 +443,10 @@ export default async function PropertiesPage({
               ) : (
                 <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {visible.map((p) => {
+                    const propertySlugHref = buildPropertySlugPath({ id: p.id, title: p.name })
+
                     const href =
+                      propertySlugHref ||
                       buildProjectSeoPath({
                         id: p.id,
                         name: p.name,

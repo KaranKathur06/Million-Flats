@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { nanoid } from 'nanoid'
+import { prisma } from '@/lib/prisma'
+import { buildPropertySlugPath } from '@/lib/seo'
 
 type DuplicateResult = {
   score: number
@@ -129,7 +133,10 @@ export default function ManualPropertyWizardClient() {
         <div className="mb-6 rounded-2xl border border-green-200 bg-green-50 p-5">
           <p className="text-sm font-semibold text-green-800">Your property has been approved and is now live.</p>
           <div className="mt-3">
-            <Link href={`/properties/${encodeURIComponent(property.id)}`} className="text-sm font-semibold text-dark-blue hover:underline">
+            <Link
+              href={buildPropertySlugPath({ id: property.id, title: String(property.title || 'Agent Listing') }) || `/properties/${encodeURIComponent(property.id)}`}
+              className="text-sm font-semibold text-dark-blue hover:underline"
+            >
               View public listing
             </Link>
           </div>

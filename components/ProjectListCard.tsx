@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { memo, useMemo, useState } from 'react'
-import { buildProjectSeoPath } from '@/lib/seo'
+import { buildProjectSeoPath, buildPropertySlugPath } from '@/lib/seo'
 
 export type ReellyProject = {
   id: number
@@ -67,7 +67,10 @@ function ProjectListCardInner({ project }: { project: ReellyProject }) {
 
   const locationLabel = [project.location?.district, project.location?.region].filter(Boolean).join(', ')
 
+  const propertyHref = buildPropertySlugPath({ id: project.id, title: project.name })
+
   const seoHref =
+    propertyHref ||
     buildProjectSeoPath({
       id: project.id,
       name: project.name,

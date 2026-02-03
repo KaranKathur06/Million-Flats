@@ -1,10 +1,11 @@
 'use client'
 
 import { useMemo, useRef } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
+import Image from 'next/image'
 import { formatCountryPrice } from '@/lib/country'
-import { resolveImagesForProperty } from '@/lib/propertyImages'
+import { resolvePropertyImages } from '@/lib/propertyImages'
+import { buildPropertySlugPath } from '@/lib/seo'
 
 function canOptimizeUrl(src: string) {
   if (!src.startsWith('http')) return true
@@ -63,8 +64,14 @@ function shuffleWithSeed<T>(items: T[], seed: string) {
 }
 
 export default function PropertyListCard({ property }: { property: Property }) {
+  const href = buildPropertySlugPath({ id: property.id, title: property.title }) || `/properties/${property.id}`
   const baseImages = useMemo(
-    () => resolveImagesForProperty({ id: property.id, propertyType: property.propertyType, images: property.images }),
+    () =>
+      resolvePropertyImages({
+        propertyType: property.propertyType,
+        images: property.images,
+        seed: property.id,
+      }),
     [property.id, property.propertyType, property.images]
   )
 
@@ -72,7 +79,7 @@ export default function PropertyListCard({ property }: { property: Property }) {
 
   const resolvedImages = useMemo(() => {
     const imgs = baseImages || []
-    const shouldShuffle = imgs.length > 1 && imgs.every((src) => src.startsWith('/'))
+    const shouldShuffle = imgs.length > 1 && imgs.every((src: string) => src.startsWith('/'))
     if (!shouldShuffle) return imgs
     return shuffleWithSeed(imgs, `${property.id}:${sessionSeed}`)
   }, [baseImages, property.id, sessionSeed])
@@ -81,7 +88,7 @@ export default function PropertyListCard({ property }: { property: Property }) {
   const unoptimizedMain = mainImage.startsWith('http') && !canOptimizeUrl(mainImage)
 
   const thumbs = (resolvedImages || []).slice(1, 4)
-  const unoptimizedThumbs = thumbs.map((src) => src.startsWith('http') && !canOptimizeUrl(src))
+  const unoptimizedThumbs = thumbs.map((src: string) => src.startsWith('http') && !canOptimizeUrl(src))
 
   const phone = property.agent?.phone || ''
   const whatsappNumber = phone.replace(/[^\d]/g, '')
@@ -151,7 +158,7 @@ export default function PropertyListCard({ property }: { property: Property }) {
           </div>
 
           <Link
-            href={`/properties/${property.id}`}
+            href={href}
             className="mt-4 inline-flex items-center justify-center w-full h-12 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 transition-colors"
           >
             View Details
@@ -181,7 +188,7 @@ export default function PropertyListCard({ property }: { property: Property }) {
           </div>
           {thumbs.length > 0 && (
             <div className="grid grid-cols-3 gap-2 p-3 bg-gray-50 border-t border-gray-200">
-              {thumbs.map((src, idx) => (
+              {thumbs.map((src: string, idx: number) => (
                 <div key={idx} className="relative h-20 rounded-lg overflow-hidden">
                   <Image
                     src={src}
@@ -258,7 +265,7 @@ export default function PropertyListCard({ property }: { property: Property }) {
                 WhatsApp
               </a>
               <Link
-                href={`/properties/${property.id}`}
+                href={href}
                 className="inline-flex items-center justify-center h-11 px-4 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 transition-colors"
               >
                 View Details

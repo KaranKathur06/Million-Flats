@@ -12,10 +12,28 @@ export default function ContactInfo() {
           <div>
             <h3 className="font-semibold text-dark-blue mb-1">Email</h3>
             <p className="text-sm text-gray-600 mb-2">Get in touch via email</p>
+            <a href="mailto:support@millionflats.com" className="text-dark-blue hover:underline text-sm">
+              support@millionflats.com
+            </a>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-dark-blue mb-1">Email</h3>
+            <p className="text-sm text-gray-600 mb-2">Get in touch via email</p>
+            <a href="mailto:sales@millionflats.com" className="text-dark-blue hover:underline text-sm">
+              sales@millionflats.com
+            </a>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-dark-blue mb-1">Email</h3>
+            <p className="text-sm text-gray-600 mb-2">Get in touch via email</p>
             <a href="mailto:info@millionflats.com" className="text-dark-blue hover:underline text-sm">
               info@millionflats.com
             </a>
           </div>
+
+
         </div>
       </div>
 

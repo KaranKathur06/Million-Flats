@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -9,7 +9,7 @@ import RevealContent from '@/components/RevealContent'
 import ScrollableZoomGallery from '@/components/ScrollableZoomGallery'
 import ManualPropertyPreview from '@/components/ManualPropertyPreview'
 import { reellyFetch } from '@/lib/reelly'
-import { buildProjectSeoPath } from '@/lib/seo'
+import { buildPropertySlugPath, buildProjectSeoPath, parsePropertyIdFromSlug } from '@/lib/seo'
 import { prisma } from '@/lib/prisma'
 
 const didLogProjectResponse = new Set<string>()
@@ -249,7 +249,8 @@ function extractImageGroups(project: any) {
 }
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const rawId = safeString(params?.id)
+  const rawParam = safeString(params?.id)
+  const rawId = parsePropertyIdFromSlug(rawParam) || rawParam
   if (!rawId) return { title: 'Property' }
 
   if (isUuid(rawId)) {
@@ -275,7 +276,8 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
             .filter(Boolean)
         : []
 
-      const canonical = absoluteUrl(`/properties/${encodeURIComponent(rawId)}`)
+      const canonicalPath = buildPropertySlugPath({ id: rawId, title }) || `/properties/${encodeURIComponent(rawId)}`
+      const canonical = absoluteUrl(canonicalPath)
       const cover = images[0] || ''
 
       return {
@@ -316,6 +318,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const locationLabel = [sector, district, region].filter(Boolean).join(', ')
 
   const projectId = safeString(item?.id) || String(safeNumber(item?.id)) || rawId
+  const propertySlugPath = buildPropertySlugPath({ id: projectId, title })
   const seoPath = buildProjectSeoPath({
     id: projectId,
     name: title,
@@ -329,7 +332,8 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const description = clampDescription(safeString(item?.description) || `${priceLabel}${locationLabel ? ` • ${locationLabel}` : ''}`)
 
   const coverUrl = toImageUrl(item?.cover_image) || ''
-  const canonical = absoluteUrl(seoPath || `/properties/${encodeURIComponent(projectId)}`)
+  const canonicalPath = propertySlugPath || seoPath || `/properties/${encodeURIComponent(projectId)}`
+  const canonical = absoluteUrl(canonicalPath)
 
   return {
     title: `${title}${locationLabel ? ` in ${locationLabel}` : ''} | millionflats`,
@@ -352,7 +356,10 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 }
 
 export default async function PropertyDetailPage({ params }: { params: { id: string } }) {
-  const rawId = safeString(params?.id)
+  const rawParam = safeString(params?.id)
+  if (!rawParam) notFound()
+
+  const rawId = parsePropertyIdFromSlug(rawParam) || rawParam
   if (!rawId) notFound()
 
   if (isUuid(rawId)) {
@@ -368,6 +375,14 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
     }
 
     const title = safeString(manual?.title) || 'Agent Listing'
+    const canonicalPath = buildPropertySlugPath({ id: rawId, title })
+    if (canonicalPath) {
+      const expected = canonicalPath.split('/').pop() || ''
+      const current = (rawParam || '').trim()
+      if (expected && current !== expected) {
+        redirect(canonicalPath)
+      }
+    }
     const city = safeString(manual?.city)
     const community = safeString(manual?.community)
     const locationLabel = [community, city].filter(Boolean).join(', ')
@@ -438,6 +453,17 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
 
   if (!item || typeof item !== 'object') notFound()
 
+  const title = safeString(item?.name) || safeString(item?.title) || 'Project'
+  const projectId = safeString(item?.id) || String(safeNumber(item?.id)) || rawId
+  const canonicalSlugPath = buildPropertySlugPath({ id: projectId, title })
+  if (canonicalSlugPath) {
+    const expected = canonicalSlugPath.split('/').pop() || ''
+    const current = (rawParam || '').trim()
+    if (expected && current !== expected) {
+      redirect(canonicalSlugPath)
+    }
+  }
+
   if (process.env.NODE_ENV !== 'production') {
     const key = String((item as any)?.id ?? rawId)
     if (!didLogProjectResponse.has(key)) {
@@ -460,9 +486,9 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
 
   try {
     const markers = await getProjectMarkers()
-    const projectId = safeString(item?.id) || String(safeNumber(item?.id))
+    const markerProjectId = safeString(item?.id) || String(safeNumber(item?.id))
     marker =
-      (markers as any[]).find((m: any) => String(m?.project_id ?? m?.projectId) === String(projectId)) ||
+      (markers as any[]).find((m: any) => String(m?.project_id ?? m?.projectId) === String(markerProjectId)) ||
       null
   } catch {
     marker = null
@@ -486,7 +512,6 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
     developerRecord = null
   }
 
-  const title = safeString(item?.name) || safeString(item?.title) || 'Project'
   const developer = safeString(item?.developer)
   const developerName = safeString(developerRecord?.name) || developer
   const developerLogoUrl = toImageUrl(developerRecord?.logo) || toImageUrl(developerRecord?.logo_image) || toImageUrl(developerRecord?.image) || ''
@@ -549,7 +574,6 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
   const internalRef =
     safeString(item?.internal_reference) || safeString(item?.internalRef) || safeString(item?.reference) || safeString(item?.ref)
 
-  const projectId = safeString(item?.id) || String(safeNumber(item?.id)) || rawId
   const seoPath = buildProjectSeoPath({
     id: projectId,
     name: title,
@@ -557,7 +581,8 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
     district,
     sector,
   })
-  const canonical = absoluteUrl(seoPath || `/properties/${encodeURIComponent(projectId)}`)
+  const canonicalPath = buildPropertySlugPath({ id: projectId, title }) || seoPath || `/properties/${encodeURIComponent(projectId)}`
+  const canonical = absoluteUrl(canonicalPath)
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'RealEstateListing',

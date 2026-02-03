@@ -16,12 +16,14 @@ export default function Header() {
   const isAuthed = status === 'authenticated'
   const isAgent = isAuthed && role === 'AGENT'
   const isUser = isAuthed && role === 'USER'
+  const isAdmin = isAuthed && role === 'ADMIN'
 
   const publicLinks = [
     { href: '/', label: 'Home' },
     { href: '/sell', label: 'Sell' },
     { href: '/buy', label: 'Buy' },
     { href: '/rent', label: 'Rent' },
+    { href: '/agents', label: 'Find an Agent' },
   ]
 
   const userLinks = [
@@ -29,6 +31,7 @@ export default function Header() {
     { href: '/sell', label: 'Sell' },
     { href: '/buy', label: 'Buy' },
     { href: '/rent', label: 'Rent' },
+    { href: '/agents', label: 'Find an Agent' },
     { href: '/market-analysis', label: 'Market Analysis' },
     { href: '/explore-3d', label: 'Explore in 3D' },
     { href: '/tokenized', label: 'Tokenized' },
@@ -36,10 +39,17 @@ export default function Header() {
 
   const agentLinks = [
     { href: '/', label: 'Home' },
+    { href: '/agents', label: 'Find an Agent' },
     { href: '/agent-portal', label: 'Agent Portal' },
   ]
 
-  const navLinks = !isAuthed ? publicLinks : isAgent ? agentLinks : isUser ? userLinks : publicLinks
+  const adminLinks = [
+    { href: '/', label: 'Home' },
+    { href: '/agents', label: 'Find an Agent' },
+    { href: '/admin/moderation/properties', label: 'Admin' },
+  ]
+
+  const navLinks = !isAuthed ? publicLinks : isAdmin ? adminLinks : isAgent ? agentLinks : isUser ? userLinks : publicLinks
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'

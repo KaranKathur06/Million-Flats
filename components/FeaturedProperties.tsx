@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
-import { useCountry } from '@/components/CountryProvider'
+import Link from 'next/link'
 import { formatCountryPrice } from '@/lib/country'
-import { buildProjectSeoPath } from '@/lib/seo'
+import { buildProjectSeoPath, buildPropertySlugPath } from '@/lib/seo'
+import { useCountry } from '@/components/CountryProvider'
 
 function canOptimizeUrl(src: string) {
   if (!src.startsWith('http')) return true
@@ -81,7 +81,13 @@ export default function FeaturedProperties() {
             const mainImage = property.coverImage || '/image-placeholder.svg'
             const unoptimized = mainImage.startsWith('http') && !canOptimizeUrl(mainImage)
 
+            const canonicalHref = buildPropertySlugPath({
+              id: String(property.id),
+              title: String(property.title || ''),
+            })
+
             const href =
+              canonicalHref ||
               buildProjectSeoPath({
                 id: Number(property.id),
                 name: String(property.title || ''),

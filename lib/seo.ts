@@ -23,6 +23,27 @@ export function parseIdFromSlug(slug: string): string {
   return m?.[1] ? String(Number(m[1])) : ''
 }
 
+export function parsePropertyIdFromSlug(slug: string): string {
+  const s = (slug || '').trim()
+  if (!s) return ''
+
+  const uuidRe = /([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/
+  const uuid = s.match(uuidRe)?.[1]
+  if (uuid) return uuid
+
+  return parseIdFromSlug(s)
+}
+
+export function buildPropertySlugPath(args: { id: string | number; title: string }) {
+  const id = typeof args.id === 'number' ? String(args.id) : String(args.id || '').trim()
+  if (!id) return ''
+
+  const slug = slugify(args.title)
+  const encodedId = encodeURIComponent(id)
+  const segment = slug ? `${slug}-${encodedId}` : encodedId
+  return `/properties/${segment}`
+}
+
 export function buildProjectSeoPath(args: {
   id: string | number
   name: string

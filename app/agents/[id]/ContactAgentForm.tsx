@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 
 type Props = {
   agentName: string
@@ -8,6 +10,15 @@ type Props = {
 }
 
 export default function ContactAgentForm({ agentName, agentId }: Props) {
+  const router = useRouter()
+  const pathname = usePathname() ?? ''
+  const searchParams = useSearchParams()
+  const { status } = useSession()
+
+  const isAuthed = status === 'authenticated'
+  const search = searchParams ? searchParams.toString() : ''
+  const next = `${pathname}${search ? `?${search}` : ''}`
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -20,6 +31,12 @@ export default function ContactAgentForm({ agentName, agentId }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!isAuthed) {
+      router.push(`/user/login?next=${encodeURIComponent(next)}`)
+      return
+    }
+
     setSubmitting(true)
     setError('')
 
@@ -31,7 +48,7 @@ export default function ContactAgentForm({ agentName, agentId }: Props) {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
-          subject: 'property',
+          subject: 'agent_inquiry',
           message: `[Agent: ${agentName} | ${agentId}] ${formData.message}`,
         }),
       })

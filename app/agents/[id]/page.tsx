@@ -8,6 +8,7 @@ import AgentListingCard from './AgentListingCard'
 import ContactAgentForm from './ContactAgentForm'
 import AgentListingsFilterBarClient from './AgentListingsFilterBarClient'
 import ServerPagination from './ServerPagination'
+import GatedActionLink from '@/components/GatedActionLink'
 
 function extractAgentId(input: string) {
   const raw = (input || '').trim()
@@ -525,28 +526,28 @@ export default async function AgentProfilePage({
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   {phone ? (
-                    <a
+                    <GatedActionLink
                       href={`tel:${phone}`}
                       className="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90"
                     >
                       Call
-                    </a>
+                    </GatedActionLink>
                   ) : null}
                   {whatsapp ? (
-                    <a
+                    <GatedActionLink
                       href={`https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}`}
                       className="inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
                     >
                       WhatsApp
-                    </a>
+                    </GatedActionLink>
                   ) : null}
                   {email ? (
-                    <a
+                    <GatedActionLink
                       href={`mailto:${email}`}
                       className="inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
                     >
                       Email
-                    </a>
+                    </GatedActionLink>
                   ) : null}
                 </div>
               </div>
@@ -694,28 +695,28 @@ export default async function AgentProfilePage({
 
               <div className="mt-5 space-y-2">
                 {phone ? (
-                  <a
+                  <GatedActionLink
                     href={`tel:${phone}`}
                     className="inline-flex items-center justify-center w-full h-11 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90"
                   >
                     Call
-                  </a>
+                  </GatedActionLink>
                 ) : null}
                 {whatsapp ? (
-                  <a
+                  <GatedActionLink
                     href={`https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}`}
                     className="inline-flex items-center justify-center w-full h-11 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
                   >
                     WhatsApp
-                  </a>
+                  </GatedActionLink>
                 ) : null}
                 {email ? (
-                  <a
+                  <GatedActionLink
                     href={`mailto:${email}`}
                     className="inline-flex items-center justify-center w-full h-11 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
                   >
                     Email
-                  </a>
+                  </GatedActionLink>
                 ) : null}
               </div>
 
@@ -731,28 +732,28 @@ export default async function AgentProfilePage({
         <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white/95 backdrop-blur border-t border-gray-200">
           <div className="mx-auto max-w-[1400px] px-4 py-3 flex items-center gap-2">
             {phone ? (
-              <a
+              <GatedActionLink
                 href={`tel:${phone}`}
                 className="flex-1 h-11 rounded-xl bg-dark-blue text-white font-semibold flex items-center justify-center"
               >
                 Call
-              </a>
+              </GatedActionLink>
             ) : null}
             {whatsapp ? (
-              <a
+              <GatedActionLink
                 href={`https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}`}
                 className="flex-1 h-11 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold flex items-center justify-center"
               >
                 WhatsApp
-              </a>
+              </GatedActionLink>
             ) : null}
             {email ? (
-              <a
+              <GatedActionLink
                 href={`mailto:${email}`}
                 className="h-11 px-4 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold flex items-center justify-center"
               >
                 Email
-              </a>
+              </GatedActionLink>
             ) : null}
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { buildPropertySlugPath } from '@/lib/seo'
 
 export default function UserDashboardPage() {
   const [savedProperties, setSavedProperties] = useState([])
@@ -51,7 +52,10 @@ export default function UserDashboardPage() {
                 <div className="space-y-4">
                   {savedProperties.map((property: any) => (
                     <div key={property.id} className="border-b border-gray-200 pb-4">
-                      <Link href={`/properties/${property.id}`} className="hover:underline">
+                      <Link
+                        href={buildPropertySlugPath({ id: property.id, title: String(property.title || 'Property') }) || `/properties/${property.id}`}
+                        className="hover:underline"
+                      >
                         <h3 className="font-semibold text-dark-blue">{property.title}</h3>
                       </Link>
                     </div>
@@ -72,7 +76,7 @@ export default function UserDashboardPage() {
                   Browse Properties
                 </Link>
                 <Link
-                  href="/auth/redirect?next=/contact"
+                  href="/contact"
                   className="block w-full bg-transparent border-2 border-dark-blue text-dark-blue py-2 px-4 rounded-lg text-center font-medium hover:bg-dark-blue hover:text-white transition-colors"
                 >
                   Contact Agent

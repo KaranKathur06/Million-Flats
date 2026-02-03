@@ -91,20 +91,19 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith('/dashboard/') ||
     pathname === '/user/dashboard' ||
     pathname.startsWith('/user/dashboard/') ||
+    pathname === '/user/profile' ||
+    pathname.startsWith('/user/profile/') ||
     pathname === '/profile' ||
     pathname.startsWith('/profile/') ||
     pathname === '/settings' ||
     pathname.startsWith('/settings/') ||
-    pathname === '/user' ||
-    pathname.startsWith('/user/') ||
     isUserOnlyFeature
 
   const isAgentOnboarding = pathname === '/agent/onboarding' || pathname.startsWith('/agent/onboarding/')
 
   const isVerix = pathname === '/verix' || pathname.startsWith('/verix/')
-  const isEcosystem = pathname === '/contact' || pathname.startsWith('/contact/')
 
-  if (!isAgentProtected && !isAdminProtected && !isUserProtected && !isAgentOnboarding && !isVerix && !isEcosystem) {
+  if (!isAgentProtected && !isAdminProtected && !isUserProtected && !isAgentOnboarding && !isVerix) {
     return NextResponse.next()
   }
 
@@ -125,7 +124,7 @@ export async function middleware(req: NextRequest) {
   if (!role) {
     const url = req.nextUrl.clone()
     url.pathname = getLoginPath(pathname)
-    if (isVerix || isEcosystem) {
+    if (isVerix) {
       const next = `${pathname}${req.nextUrl.search || ''}`
       url.search = `next=${encodeURIComponent(next)}`
     } else if (isUserOnlyFeature) {
@@ -147,7 +146,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if ((isVerix || isEcosystem) && role === 'AGENT') {
+  if (isVerix && role === 'AGENT') {
     const url = req.nextUrl.clone()
     url.pathname = '/agent-portal'
     url.search = 'warning=restricted'
@@ -183,14 +182,13 @@ export const config = {
     '/dashboard/:path*',
     '/admin/:path*',
     '/agent-portal/:path*',
-    '/user/:path*',
     '/user/dashboard/:path*',
+    '/user/profile/:path*',
     '/agent/dashboard/:path*',
     '/agent/profile/:path*',
     '/agent/onboarding/:path*',
     '/properties/new/:path*',
     '/verix/:path*',
-    '/contact/:path*',
     '/market-analysis/:path*',
     '/explore-3d/:path*',
     '/tokenized/:path*',
