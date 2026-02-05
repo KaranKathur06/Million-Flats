@@ -194,7 +194,12 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const id = extractAgentId(params?.id || '')
   if (!id) return { title: 'Agent | millionflats' }
 
-  const agent = await prisma.agent.findUnique({ where: { id }, include: { user: true } }).catch(() => null)
+  const agent = await prisma.agent
+    .findUnique({ where: { id }, include: { user: true } })
+    .catch((error: unknown) => {
+      console.error('Agent profile metadata: failed to load agent', error)
+      return null
+    })
   const name = agent?.user?.name || 'Agent'
 
   const slug = slugify(name)
@@ -238,7 +243,8 @@ export default async function AgentProfilePage({
   let agent: any = null
   try {
     agent = await prisma.agent.findUnique({ where: { id }, include: { user: true } })
-  } catch {
+  } catch (error) {
+    console.error('Agent profile: failed to load agent', error)
     agent = null
   }
   if (!agent) {
@@ -297,7 +303,10 @@ export default async function AgentProfilePage({
           orderBy: { updatedAt: 'desc' },
           select: { externalId: true, updatedAt: true },
         })
-        .catch(() => [])
+        .catch((error: unknown) => {
+          console.error('Agent profile: failed to load agentListing rows', error)
+          return []
+        })
     : []
 
   const leadListingRows =
@@ -307,7 +316,10 @@ export default async function AgentProfilePage({
           distinct: ['externalId'],
           orderBy: { createdAt: 'desc' },
           select: { externalId: true, createdAt: true },
-        }).catch(() => [])
+        }).catch((error: unknown) => {
+          console.error('Agent profile: failed to load lead listing rows', error)
+          return []
+        })
       : []
 
   const reellyAttributionRows: AttributionRow[] = (agentListingRows.length > 0 ? agentListingRows : leadListingRows).map((row: any) => ({
@@ -330,7 +342,10 @@ export default async function AgentProfilePage({
             updatedAt: new Date(row.updatedAt ?? 0),
           }))
         )
-        .catch(() => [])
+        .catch((error: unknown) => {
+          console.error('Agent profile: failed to load manual listing rows', error)
+          return []
+        })
     : []
 
   const totalListingsAll = reellyAttributionRows.length + manualAttributionRows.length
@@ -380,7 +395,10 @@ export default async function AgentProfilePage({
           where: { id: { in: pageManualIds } },
           include: { media: true },
         })
-        .catch(() => [])
+        .catch((error: unknown) => {
+          console.error('Agent profile: failed to load page manual properties', error)
+          return []
+        })
       for (const row of rows) {
         manualListingMap.set(String(row.id), mapManualToListing(row))
       }
@@ -412,7 +430,10 @@ export default async function AgentProfilePage({
           where: { id: { in: manualIdsAll } },
           include: { media: true },
         })
-        .catch(() => [])
+        .catch((error: unknown) => {
+          console.error('Agent profile: failed to load all manual properties', error)
+          return []
+        })
       for (const row of rows) {
         manualListingMap.set(String(row.id), { ...mapManualToListing(row), updatedAt: row.updatedAt ?? new Date(0) })
       }

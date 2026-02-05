@@ -59,7 +59,10 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
       orderBy: { createdAt: 'desc' },
       take: 500,
     })
-    .catch(() => [])
+    .catch((error: unknown) => {
+      console.error('Agents directory: failed to load agents', error)
+      return []
+    })
 
   const agentIds = agents.map((a) => a.id)
 
@@ -70,7 +73,10 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
           where: { agentId: { in: agentIds } },
           _count: { _all: true },
         })
-        .catch(() => [])
+        .catch((error: unknown) => {
+          console.error('Agents directory: failed to load verified listing counts', error)
+          return []
+        })
     : []
 
   const manualCounts: Array<{ agentId: string; _count: { _all: number } }> = agentIds.length
@@ -80,7 +86,10 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
           where: { agentId: { in: agentIds }, status: 'APPROVED', sourceType: 'MANUAL' },
           _count: { _all: true },
         })
-        .catch(() => [])
+        .catch((error: unknown) => {
+          console.error('Agents directory: failed to load manual listing counts', error)
+          return []
+        })
     : []
 
   const countMap = new Map<string, number>()

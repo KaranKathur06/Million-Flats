@@ -52,7 +52,10 @@ export default async function AgentDashboardPage() {
       where: { id: agent.id },
       select: { id: true, license: true, whatsapp: true, bio: true, profileCompletionUpdatedAt: true },
     })
-    .catch(() => null)
+    .catch((error: unknown) => {
+      console.error('Agent dashboard: failed to load agentRow', error)
+      return null
+    })
 
   const hasPhoto = Boolean(String(dbUser.image || '').trim())
   const hasBio = Boolean(String(agentRow?.bio || '').trim())
@@ -72,7 +75,10 @@ export default async function AgentDashboardPage() {
 
   const agentListingCount = await (prisma as any).agentListing
     .count({ where: { agentId: agent.id } })
-    .catch(() => 0)
+    .catch((error: unknown) => {
+      console.error('Agent dashboard: failed to count agentListing', error)
+      return 0
+    })
 
   const leadListingCount = await prisma.propertyLead
     .findMany({
@@ -86,7 +92,10 @@ export default async function AgentDashboardPage() {
 
   const manualApprovedCount = await (prisma as any).manualProperty
     .count({ where: { agentId: agent.id, status: 'APPROVED', sourceType: 'MANUAL' } })
-    .catch(() => 0)
+    .catch((error: unknown) => {
+      console.error('Agent dashboard: failed to count manual approved listings', error)
+      return 0
+    })
 
   const hasPublishedListing = totalListings > 0 || manualApprovedCount > 0
 
@@ -98,7 +107,10 @@ export default async function AgentDashboardPage() {
       select: { id: true },
     })
     .then((row: any) => Boolean(row?.id))
-    .catch(() => false)
+    .catch((error: unknown) => {
+      console.error('Agent dashboard: failed to check listing media', error)
+      return false
+    })
 
   const completionWeights = {
     photo: 15,
@@ -137,7 +149,10 @@ export default async function AgentDashboardPage() {
         where: { id: agent.id },
         data: { profileCompletion: completion, profileCompletionUpdatedAt: new Date() },
       })
-      .catch(() => null)
+      .catch((error: unknown) => {
+        console.error('Agent dashboard: failed to update profile completion', error)
+        return null
+      })
   }
 
   const name = dbUser.name || 'Agent'
