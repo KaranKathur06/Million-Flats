@@ -141,7 +141,14 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
                   <div className="flex items-start gap-4">
                     <div className="h-16 w-16 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center">
                       {avatar ? (
-                        <Image src={avatar} alt={name} width={64} height={64} className="h-16 w-16 object-cover" />
+                        <Image
+                          src={avatar}
+                          alt={name}
+                          width={64}
+                          height={64}
+                          className="h-16 w-16 object-cover"
+                          unoptimized={avatar.startsWith('http')}
+                        />
                       ) : (
                         <span className="text-xl font-semibold text-gray-600">{name.charAt(0).toUpperCase()}</span>
                       )}

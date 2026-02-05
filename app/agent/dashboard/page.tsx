@@ -47,10 +47,12 @@ export default async function AgentDashboardPage() {
 
   const agent = dbUser.agent
 
-  const agentRow = await (prisma as any).agent.findUnique({
-    where: { id: agent.id },
-    select: { id: true, license: true, whatsapp: true, bio: true, profileCompletionUpdatedAt: true },
-  })
+  const agentRow = await (prisma as any).agent
+    .findUnique({
+      where: { id: agent.id },
+      select: { id: true, license: true, whatsapp: true, bio: true, profileCompletionUpdatedAt: true },
+    })
+    .catch(() => null)
 
   const hasPhoto = Boolean(String(dbUser.image || '').trim())
   const hasBio = Boolean(String(agentRow?.bio || '').trim())

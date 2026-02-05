@@ -235,8 +235,29 @@ export default async function AgentProfilePage({
   const id = extractAgentId(rawParam)
   if (!id) notFound()
 
-  const agent = await prisma.agent.findUnique({ where: { id }, include: { user: true } })
-  if (!agent) notFound()
+  let agent: any = null
+  try {
+    agent = await prisma.agent.findUnique({ where: { id }, include: { user: true } })
+  } catch {
+    agent = null
+  }
+  if (!agent) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="mx-auto max-w-[1100px] px-4 sm:px-6 lg:px-8 py-12">
+          <div className="rounded-2xl border border-gray-200 bg-white p-8">
+            <h1 className="text-2xl md:text-3xl font-serif font-bold text-dark-blue">Agent profile unavailable</h1>
+            <p className="mt-3 text-gray-600">This page is temporarily unavailable. Please try again later.</p>
+            <div className="mt-6">
+              <Link href="/agents" className="inline-flex items-center justify-center h-11 px-6 rounded-xl bg-dark-blue text-white font-semibold">
+                Back to Agents
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const user = agent.user
   const name = user?.name || 'Agent'
@@ -286,7 +307,7 @@ export default async function AgentProfilePage({
           distinct: ['externalId'],
           orderBy: { createdAt: 'desc' },
           select: { externalId: true, createdAt: true },
-        })
+        }).catch(() => [])
       : []
 
   const reellyAttributionRows: AttributionRow[] = (agentListingRows.length > 0 ? agentListingRows : leadListingRows).map((row: any) => ({
@@ -491,7 +512,14 @@ export default async function AgentProfilePage({
                 <div className="flex items-start gap-4">
                   <div className="h-20 w-20 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center">
                     {image ? (
-                      <Image src={image} alt={name} width={80} height={80} className="h-20 w-20 object-cover" />
+                      <Image
+                        src={image}
+                        alt={name}
+                        width={80}
+                        height={80}
+                        className="h-20 w-20 object-cover"
+                        unoptimized={String(image).startsWith('http')}
+                      />
                     ) : (
                       <span className="text-2xl font-semibold text-gray-600">{name.charAt(0).toUpperCase()}</span>
                     )}
