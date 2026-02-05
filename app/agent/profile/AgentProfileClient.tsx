@@ -7,22 +7,28 @@ export default function AgentProfileClient({
   initialName,
   email,
   initialPhone,
+  initialImage,
   initialCompany,
   initialLicense,
   initialWhatsapp,
+  initialBio,
 }: {
   initialName: string
   email: string
   initialPhone: string
+  initialImage: string
   initialCompany: string
   initialLicense: string
   initialWhatsapp: string
+  initialBio: string
 }) {
   const [name, setName] = useState(initialName)
   const [phone, setPhone] = useState(initialPhone)
+  const [image, setImage] = useState(initialImage)
   const [company, setCompany] = useState(initialCompany)
   const [license, setLicense] = useState(initialLicense)
   const [whatsapp, setWhatsapp] = useState(initialWhatsapp)
+  const [bio, setBio] = useState(initialBio)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -37,7 +43,7 @@ export default function AgentProfileClient({
       const res = await fetch('/api/agent/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, company, license, whatsapp }),
+        body: JSON.stringify({ name, phone, image, company, license, whatsapp, bio }),
       })
 
       const data = await res.json().catch(() => ({}))
@@ -106,6 +112,21 @@ export default function AgentProfileClient({
                 </div>
 
                 <div>
+                  <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
+                    Profile photo URL
+                  </label>
+                  <input
+                    id="image"
+                    name="image"
+                    type="url"
+                    value={image}
+                    onChange={(e) => setImage(e.target.value)}
+                    className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
+                    placeholder="https://…"
+                  />
+                </div>
+
+                <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                     Email
                   </label>
@@ -148,6 +169,25 @@ export default function AgentProfileClient({
                     placeholder="WhatsApp number"
                   />
                 </div>
+              </div>
+            </section>
+
+            <section className="bg-white rounded-2xl border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-dark-blue">About</h2>
+
+              <div className="mt-5">
+                <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-2">
+                  Bio
+                </label>
+                <textarea
+                  id="bio"
+                  name="bio"
+                  rows={5}
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
+                  placeholder="Write a short introduction for your public profile"
+                />
               </div>
             </section>
 

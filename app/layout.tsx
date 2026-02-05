@@ -1,9 +1,16 @@
 import type { Metadata } from 'next'
 import React, { Suspense } from 'react'
+import { Public_Sans } from 'next/font/google'
 import './globals.css'
 import AppProviders from '@/components/AppProviders'
 import AppShell from '@/components/AppShell'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
+
+const publicSans = Public_Sans({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-public-sans',
+})
 
 export const metadata: Metadata = {
   title: 'millionflats - Premium Luxury Real Estate in UAE',
@@ -21,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={publicSans.variable}>
       <body className="font-sans antialiased">
         <Suspense fallback={null}>
           <GoogleAnalytics />

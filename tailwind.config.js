@@ -30,8 +30,8 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        serif: ['Playfair Display', 'Georgia', 'serif'],
+        sans: ['var(--font-public-sans)', 'system-ui', 'sans-serif'],
+        serif: ['var(--font-public-sans)', 'system-ui', 'sans-serif'],
       },
     },
   },

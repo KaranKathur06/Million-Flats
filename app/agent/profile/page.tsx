@@ -31,9 +31,11 @@ export default async function AgentProfilePage() {
       initialName={user.name || ''}
       email={user.email}
       initialPhone={user.phone || ''}
+      initialImage={user.image || ''}
       initialCompany={user.agent?.company || ''}
       initialLicense={user.agent?.license || ''}
       initialWhatsapp={user.agent?.whatsapp || ''}
+      initialBio={(user.agent as any)?.bio || ''}
     />
   )
 }

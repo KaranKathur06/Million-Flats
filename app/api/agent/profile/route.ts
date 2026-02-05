@@ -32,26 +32,31 @@ export async function PATCH(req: Request) {
     const company = safeString(body?.company)
     const license = safeString(body?.license)
     const whatsapp = safeString(body?.whatsapp)
+    const bio = safeString(body?.bio)
+    const image = safeString(body?.image)
 
     const updated = await prisma.user.update({
       where: { email },
       data: {
         name: name || null,
         phone: phone || null,
+        image: image || null,
         agent: {
           upsert: {
             create: {
               company: company || null,
               license: license || null,
               whatsapp: whatsapp || null,
-            },
+              bio: bio || null,
+            } as any,
             update: {
               company: company || null,
               license: license || null,
               whatsapp: whatsapp || null,
-            },
+              bio: bio || null,
+            } as any,
           },
-        },
+        } as any,
       },
       include: { agent: true },
     })

@@ -28,6 +28,7 @@ export default function AgentDashboardClient({
   approved,
   publicProfileHref,
   stats,
+  profileCompletion,
   listings,
   leads,
 }: {
@@ -43,6 +44,7 @@ export default function AgentDashboardClient({
     leadsReceived: number
     contactClicks: number
   }
+  profileCompletion: { percent: number; missing: Array<{ key: string; label: string; href: string }> }
   listings: Listing[]
   leads: Lead[]
 }) {
@@ -354,6 +356,31 @@ export default function AgentDashboardClient({
                 >
                   Support / Help
                 </Link>
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-sm font-semibold text-dark-blue">Profile completion</p>
+                  <p className="text-sm font-semibold text-dark-blue">{Math.max(0, Math.min(100, Math.round(profileCompletion.percent)))}%</p>
+                </div>
+                <div className="mt-3 h-2 rounded-full bg-white border border-gray-200 overflow-hidden">
+                  <div
+                    className="h-full bg-accent-yellow"
+                    style={{ width: `${Math.max(0, Math.min(100, Math.round(profileCompletion.percent)))}%` }}
+                  />
+                </div>
+
+                {profileCompletion.missing.length > 0 ? (
+                  <div className="mt-4 space-y-2">
+                    {profileCompletion.missing.slice(0, 3).map((m) => (
+                      <Link key={m.key} href={m.href} className="block text-sm font-semibold text-dark-blue hover:underline">
+                        {m.label}
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-gray-600">Your profile is complete.</p>
+                )}
               </div>
             </div>
 

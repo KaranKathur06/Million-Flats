@@ -67,6 +67,8 @@ type ManualProperty = {
   duplicateMatchedProjectId?: string | null
   duplicateOverrideConfirmed?: boolean
 
+  tour3dUrl?: string | null
+
   media?: MediaItem[]
 }
 
@@ -97,6 +99,7 @@ export default function ManualPropertyWizardClient() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [loadingDraft, setLoadingDraft] = useState(false)
+  const [uploadingCategory, setUploadingCategory] = useState<string>('')
 
   const [property, setProperty] = useState<ManualProperty>(() => ({
     id: '',
@@ -112,6 +115,7 @@ export default function ManualPropertyWizardClient() {
     amenities: [],
     customAmenities: [],
     media: [],
+    tour3dUrl: null,
   }))
   const [duplicate, setDuplicate] = useState<DuplicateResult | null>(null)
   const [duplicateConfirm, setDuplicateConfirm] = useState(false)
@@ -283,6 +287,7 @@ export default function ManualPropertyWizardClient() {
       duplicateOverrideConfirmed: Boolean(duplicateConfirm),
       duplicateScore: typeof property.duplicateScore === 'number' ? property.duplicateScore : null,
       duplicateMatchedProjectId: property.duplicateMatchedProjectId ?? null,
+      tour3dUrl: property.tour3dUrl ?? null,
     }
   }
 
@@ -380,6 +385,7 @@ export default function ManualPropertyWizardClient() {
       return
     }
     setError('')
+    setUploadingCategory(category)
     try {
       const fd = new FormData()
       fd.set('file', file)
@@ -397,6 +403,8 @@ export default function ManualPropertyWizardClient() {
       await fetchDraft(propertyId)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed')
+    } finally {
+      setUploadingCategory('')
     }
   }
 
@@ -795,6 +803,77 @@ export default function ManualPropertyWizardClient() {
 
           {step === 'media' ? (
             <div className="mt-8 space-y-6">
+              <div className="rounded-2xl border border-gray-200 p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-dark-blue">Property video (optional)</p>
+                    <p className="text-xs text-gray-600 mt-1">MP4 or WebM (max 50MB).</p>
+                  </div>
+                  <label
+                    className={`inline-flex items-center justify-center h-11 px-5 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 cursor-pointer ${
+                      uploadingCategory === 'VIDEO' ? 'opacity-60 pointer-events-none' : ''
+                    }`}
+                  >
+                    {uploadingCategory === 'VIDEO' ? 'Uploading…' : 'Upload'}
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="video/mp4,video/webm"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0]
+                        if (f) upload('VIDEO', f)
+                        e.currentTarget.value = ''
+                      }}
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {(property?.media || []).filter((m) => m.category === 'VIDEO').length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4">
+                      <p className="text-sm text-gray-600">No video uploaded.</p>
+                    </div>
+                  ) : (
+                    (property?.media || [])
+                      .filter((m) => m.category === 'VIDEO')
+                      .slice(0, 2)
+                      .map((m) => (
+                        <a key={m.id} href={m.url} target="_blank" className="rounded-xl border border-gray-200 bg-white p-3 hover:bg-gray-50">
+                          <p className="text-xs font-semibold text-dark-blue truncate">{m.url.split('/').slice(-1)[0]}</p>
+                          <p className="text-xs text-gray-500 mt-1 truncate">{m.altText || 'Video'}</p>
+                        </a>
+                      ))
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 p-5">
+                <p className="font-semibold text-dark-blue">3D tour link (optional)</p>
+                <p className="text-xs text-gray-600 mt-1">Add a hosted 3D walkthrough URL (Matterport, etc.).</p>
+                <div className="mt-4">
+                  <input
+                    value={property?.tour3dUrl || ''}
+                    onChange={(e) => setProperty((p) => ({ ...(p as any), tour3dUrl: e.target.value }))}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim()
+                      if (!v) {
+                        patch({ tour3dUrl: null })
+                        return
+                      }
+                      try {
+                        const u = new URL(v)
+                        if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('invalid')
+                        patch({ tour3dUrl: v })
+                      } catch {
+                        setError('Please enter a valid URL (must start with http:// or https://).')
+                      }
+                    }}
+                    placeholder="https://…"
+                    className="w-full h-12 px-4 rounded-xl border border-gray-300"
+                  />
+                </div>
+              </div>
+
               {([
                 ['COVER', 'Cover image (required)', true],
                 ['EXTERIOR', 'Architecture / Exterior', false],
@@ -809,8 +888,12 @@ export default function ManualPropertyWizardClient() {
                       <p className="font-semibold text-dark-blue">{label}</p>
                       {req ? <p className="text-xs text-gray-600 mt-1">Required</p> : null}
                     </div>
-                    <label className="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 cursor-pointer">
-                      Upload
+                    <label
+                      className={`inline-flex items-center justify-center h-11 px-5 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 cursor-pointer ${
+                        uploadingCategory === cat ? 'opacity-60 pointer-events-none' : ''
+                      }`}
+                    >
+                      {uploadingCategory === cat ? 'Uploading…' : 'Upload'}
                       <input
                         type="file"
                         className="hidden"

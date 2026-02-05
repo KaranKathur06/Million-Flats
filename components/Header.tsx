@@ -92,15 +92,17 @@ export default function Header() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 md:h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/LOGO.jpeg"
-              alt="Millionflats"
-              width={40}
-              height={40}
-              className="rounded-md w-10 h-10 md:w-[40px] md:h-[40px]"
-              priority
-            />
+          <Link href="/" className="flex items-center h-full">
+            <span className="relative h-full w-[140px] md:w-[190px]">
+              <Image
+                src="/LOGO.png"
+                alt="Millionflats"
+                fill
+                className="object-contain"
+                sizes="190px"
+                priority
+              />
+            </span>
           </Link>
 
           {/* Navigation */}

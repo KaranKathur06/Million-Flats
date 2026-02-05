@@ -9,7 +9,7 @@ export const runtime = 'nodejs'
 
 const QuerySchema = z.object({
   propertyId: z.string().trim().min(1),
-  category: z.enum(['COVER', 'EXTERIOR', 'INTERIOR', 'FLOOR_PLANS', 'AMENITIES', 'BROCHURE']),
+  category: z.enum(['COVER', 'EXTERIOR', 'INTERIOR', 'FLOOR_PLANS', 'AMENITIES', 'BROCHURE', 'VIDEO']),
 })
 
 function safeFilename(name: string) {
@@ -26,6 +26,10 @@ function isAllowedImageType(mime: string) {
 
 function isAllowedPdf(mime: string) {
   return mime === 'application/pdf'
+}
+
+function isAllowedVideoType(mime: string) {
+  return mime === 'video/mp4' || mime === 'video/webm'
 }
 
 export async function POST(req: Request) {
@@ -61,6 +65,7 @@ export async function POST(req: Request) {
 
   const mime = file.type || ''
   const isBrochure = category === 'BROCHURE'
+  const isVideo = category === 'VIDEO'
 
   if (isBrochure) {
     if (!isAllowedPdf(mime)) {
@@ -68,6 +73,13 @@ export async function POST(req: Request) {
     }
     if (file.size > 15 * 1024 * 1024) {
       return NextResponse.json({ success: false, message: 'PDF too large (max 15MB).' }, { status: 400 })
+    }
+  } else if (isVideo) {
+    if (!isAllowedVideoType(mime)) {
+      return NextResponse.json({ success: false, message: 'Only MP4/WebM videos are allowed.' }, { status: 400 })
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      return NextResponse.json({ success: false, message: 'Video too large (max 50MB).' }, { status: 400 })
     }
   } else {
     if (!isAllowedImageType(mime)) {
@@ -80,11 +92,15 @@ export async function POST(req: Request) {
 
   const ext = isBrochure
     ? 'pdf'
-    : mime === 'image/png'
-      ? 'png'
-      : mime === 'image/webp'
-        ? 'webp'
-        : 'jpg'
+    : isVideo
+      ? mime === 'video/webm'
+        ? 'webm'
+        : 'mp4'
+      : mime === 'image/png'
+        ? 'png'
+        : mime === 'image/webp'
+          ? 'webp'
+          : 'jpg'
 
   const baseName = safeFilename(path.parse(file.name || 'upload').name || 'upload')
   const finalName = `${Date.now()}-${baseName}.${ext}`

@@ -19,9 +19,19 @@ export default function ManualPropertyPreview({ manual }: { manual: any }) {
 
   const images: string[] = Array.isArray(manual?.media)
     ? manual.media
+        .filter((m: any) => {
+          const cat = safeString(m?.category)
+          return cat !== 'BROCHURE' && cat !== 'VIDEO'
+        })
         .map((m: any) => safeString(m?.url))
         .filter(Boolean)
     : []
+
+  const videoUrl = Array.isArray(manual?.media)
+    ? safeString(manual.media.find((m: any) => safeString(m?.category) === 'VIDEO')?.url)
+    : ''
+
+  const tour3dUrl = safeString(manual?.tour3dUrl)
 
   const cover = images[0] || '/image-placeholder.svg'
 
@@ -56,6 +66,25 @@ export default function ManualPropertyPreview({ manual }: { manual: any }) {
             <div className="rounded-2xl border border-gray-200 overflow-hidden">
               <PropertyGallery images={images.length ? images : [cover]} title={title} />
             </div>
+
+            {videoUrl ? (
+              <div className="mt-6 rounded-2xl border border-gray-200 overflow-hidden">
+                <video src={videoUrl} controls className="w-full h-auto bg-black" />
+              </div>
+            ) : null}
+
+            {tour3dUrl ? (
+              <div className="mt-6">
+                <a
+                  href={tour3dUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center h-11 px-6 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
+                >
+                  View 3D Tour
+                </a>
+              </div>
+            ) : null}
 
             <div className="mt-8 rounded-2xl border border-gray-200 p-7">
               <div className="flex flex-wrap items-center gap-2">

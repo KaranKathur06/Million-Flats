@@ -38,6 +38,22 @@ const PatchSchema = z.object({
   duplicateScore: z.number().int().min(0).max(100).optional().nullable(),
   duplicateMatchedProjectId: z.string().trim().min(1).max(128).optional().nullable(),
   duplicateOverrideConfirmed: z.boolean().optional(),
+
+  tour3dUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .nullable()
+    .refine((v) => {
+      if (!v) return true
+      try {
+        const u = new URL(v)
+        return u.protocol === 'http:' || u.protocol === 'https:'
+      } catch {
+        return false
+      }
+    }, 'Invalid URL'),
 })
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {

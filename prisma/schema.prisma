@@ -37,6 +37,7 @@ enum ManualPropertyMediaCategory {
   FLOOR_PLANS
   AMENITIES
   BROCHURE
+  VIDEO
 }
 
 enum ManualPropertyIntent {
@@ -167,6 +168,10 @@ model Agent {
   whatsapp String? @map("whatsapp_number")
   approved Boolean @default(false)
 
+  bio String? @db.Text
+  profileCompletion Int @default(0) @map("profile_completion")
+  profileCompletionUpdatedAt DateTime? @map("profile_completion_updated_at")
+
   user  User @relation(fields: [userId], references: [id], onDelete: Cascade)
   leads PropertyLead[]
   listings AgentListing[]
@@ -220,6 +225,8 @@ model ManualProperty {
   duplicateOverrideConfirmed Boolean @default(false) @map("duplicate_override_confirmed")
 
   rejectionReason String? @map("rejection_reason")
+
+  tour3dUrl String? @map("tour_3d_url")
 
   submittedAt DateTime? @map("submitted_at")
 
