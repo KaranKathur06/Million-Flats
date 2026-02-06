@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import path from 'path'
-import { promises as fs } from 'fs'
 import { prisma } from '@/lib/prisma'
 import { requireAgentSession } from '@/lib/agentAuth'
+import { uploadToS3 } from '@/lib/s3'
 
 export const runtime = 'nodejs'
 
@@ -30,6 +29,12 @@ function isAllowedPdf(mime: string) {
 
 function isAllowedVideoType(mime: string) {
   return mime === 'video/mp4' || mime === 'video/webm'
+}
+
+function folderForUpload(category: string, propertyId: string) {
+  if (category === 'VIDEO') return `properties/videos/${propertyId}`
+  if (category === 'BROCHURE') return `documents/${propertyId}`
+  return `properties/images/${propertyId}`
 }
 
 export async function POST(req: Request) {
@@ -102,18 +107,18 @@ export async function POST(req: Request) {
           ? 'webp'
           : 'jpg'
 
-  const baseName = safeFilename(path.parse(file.name || 'upload').name || 'upload')
-  const finalName = `${Date.now()}-${baseName}.${ext}`
+  const baseName = safeFilename(file.name || 'upload') || 'upload'
+  const finalName = baseName.endsWith(`.${ext}`) ? baseName : `${baseName}.${ext}`
 
-  const relDir = path.join('manual-uploads', propertyId)
-  const absDir = path.join(process.cwd(), 'public', relDir)
-  await fs.mkdir(absDir, { recursive: true })
-
-  const absPath = path.join(absDir, finalName)
   const buf = Buffer.from(await file.arrayBuffer())
-  await fs.writeFile(absPath, buf)
+  const uploaded = await uploadToS3({
+    buffer: buf,
+    folder: folderForUpload(category, propertyId),
+    filename: finalName,
+    contentType: mime || 'application/octet-stream',
+  })
 
-  const url = `/${relDir.replace(/\\/g, '/')}/${finalName}`
+  const url = uploaded.objectUrl
 
   const media = await (prisma as any).manualPropertyMedia.create({
     data: {
