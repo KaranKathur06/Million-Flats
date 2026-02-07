@@ -59,8 +59,8 @@ EXCEPTION
 END $$;
 
 CREATE TABLE IF NOT EXISTS "manual_properties" (
-  "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "agent_id" UUID NOT NULL,
+  "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "agent_id" TEXT NOT NULL,
   "source_type" "PropertySourceType" NOT NULL DEFAULT 'MANUAL',
   "status" "ManualPropertyStatus" NOT NULL DEFAULT 'DRAFT',
 
@@ -115,8 +115,8 @@ CREATE INDEX IF NOT EXISTS "manual_properties_source_type_idx" ON "manual_proper
 CREATE INDEX IF NOT EXISTS "manual_properties_country_city_idx" ON "manual_properties" ("country", "city");
 
 CREATE TABLE IF NOT EXISTS "manual_property_media" (
-  "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "property_id" UUID NOT NULL,
+  "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "property_id" TEXT NOT NULL,
   "category" "ManualPropertyMediaCategory" NOT NULL,
   "url" TEXT NOT NULL,
   "s3_key" TEXT,
@@ -133,9 +133,9 @@ CREATE INDEX IF NOT EXISTS "manual_property_media_property_id_idx" ON "manual_pr
 CREATE INDEX IF NOT EXISTS "manual_property_media_category_idx" ON "manual_property_media" ("category");
 
 CREATE TABLE IF NOT EXISTS "manual_property_moderation_logs" (
-  "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "property_id" UUID NOT NULL,
-  "admin_id" UUID NOT NULL,
+  "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "property_id" TEXT NOT NULL,
+  "admin_id" TEXT NOT NULL,
   "action" "ManualModerationAction" NOT NULL,
   "reason" TEXT,
   "created_at" TIMESTAMP(3) NOT NULL DEFAULT NOW(),
@@ -149,9 +149,9 @@ CREATE INDEX IF NOT EXISTS "manual_property_moderation_logs_admin_id_idx" ON "ma
 CREATE INDEX IF NOT EXISTS "manual_property_moderation_logs_action_idx" ON "manual_property_moderation_logs" ("action");
 
 CREATE TABLE IF NOT EXISTS "manual_duplicate_override_logs" (
-  "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "property_id" UUID NOT NULL,
-  "agent_id" UUID NOT NULL,
+  "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "property_id" TEXT NOT NULL,
+  "agent_id" TEXT NOT NULL,
   "score" INTEGER NOT NULL,
   "matched_project_id" TEXT NOT NULL,
   "created_at" TIMESTAMP(3) NOT NULL DEFAULT NOW(),
