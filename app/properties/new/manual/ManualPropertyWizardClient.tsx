@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
@@ -82,6 +83,8 @@ function debounce<T extends (...args: any[]) => void>(fn: T, ms: number) {
   }
 }
 
+const LAST_MANUAL_DRAFT_KEY = 'millionflats:last_manual_draft_id'
+
 function toNumber(v: string) {
   const n = Number(v)
   return Number.isFinite(n) ? n : 0
@@ -93,6 +96,7 @@ export default function ManualPropertyWizardClient() {
 
   const draftIdFromUrl = searchParams?.get('draft') || ''
   const didAutoLoadDraftRef = useRef(false)
+  const didAutoCreateDraftRef = useRef(false)
 
   const [step, setStep] = useState<Step>('basics')
   const [saving, setSaving] = useState(false)
@@ -100,6 +104,8 @@ export default function ManualPropertyWizardClient() {
   const [notice, setNotice] = useState('')
   const [loadingDraft, setLoadingDraft] = useState(false)
   const [uploadingCategory, setUploadingCategory] = useState<string>('')
+  const [mediaPreviewUrls, setMediaPreviewUrls] = useState<Record<string, string>>({})
+  const [mediaBusyId, setMediaBusyId] = useState<string>('')
 
   const [property, setProperty] = useState<ManualProperty>(() => ({
     id: '',
@@ -125,10 +131,21 @@ export default function ManualPropertyWizardClient() {
 
   const propertyId = property?.id || ''
   const propertyRef = useRef(property)
+  const lastAutosaveFingerprintRef = useRef<string>('')
+  const didHydrateFromServerRef = useRef(false)
 
   useEffect(() => {
     propertyRef.current = property
   }, [property])
+
+  const rememberDraftId = useCallback((id: string) => {
+    if (!id) return
+    try {
+      window.localStorage.setItem(LAST_MANUAL_DRAFT_KEY, id)
+    } catch {
+      return
+    }
+  }, [])
 
   const statusBanner = useMemo(() => {
     if (!property) return null
@@ -176,6 +193,57 @@ export default function ManualPropertyWizardClient() {
     return media.filter((m) => m.category === 'COVER')
   }, [property?.media])
 
+  const getPreviewUrl = useCallback(
+    (m: any) => {
+      const id = String(m?.id || '')
+      if (id && mediaPreviewUrls[id]) return mediaPreviewUrls[id]
+      return String(m?.url || '')
+    },
+    [mediaPreviewUrls]
+  )
+
+  useEffect(() => {
+    const media = Array.isArray(property?.media) ? property?.media : []
+    if (media.length === 0) return
+
+    const missing = media
+      .map((m: any) => ({ id: String(m?.id || ''), url: String(m?.url || '') }))
+      .filter((m: any) => m.id && m.url && !mediaPreviewUrls[m.id] && m.url.includes('.amazonaws.com/'))
+
+    if (missing.length === 0) return
+
+    let cancelled = false
+
+    Promise.allSettled(
+      missing.map(async (m: any) => {
+        const res = await fetch('/api/media/signed-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: m.url, expiresInSeconds: 900 }),
+        })
+        const json = (await res.json()) as any
+        if (!res.ok || !json?.success || !json?.url) return null
+        return { id: m.id, signedUrl: String(json.url) }
+      })
+    ).then((results) => {
+      if (cancelled) return
+      const updates: Record<string, string> = {}
+      for (const r of results) {
+        if (r.status !== 'fulfilled') continue
+        const v = r.value
+        if (!v) continue
+        updates[v.id] = v.signedUrl
+      }
+      if (Object.keys(updates).length > 0) {
+        setMediaPreviewUrls((prev) => ({ ...prev, ...updates }))
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [mediaPreviewUrls, property?.media])
+
   const isBlankDraft = (p: ManualProperty) => {
     return !p.id && !p.title && !p.city && !p.community && typeof p.price !== 'number' && (p.media?.length || 0) === 0
   }
@@ -201,6 +269,11 @@ export default function ManualPropertyWizardClient() {
       }
 
       setProperty(data.property)
+      didHydrateFromServerRef.current = true
+      rememberDraftId(String(data.property?.id || id))
+      if (!draftIdFromUrl && String(data.property?.id || '')) {
+        router.replace(`/properties/new/manual?draft=${encodeURIComponent(String(data.property.id))}`)
+      }
       setDuplicateConfirm(Boolean(data.property?.duplicateOverrideConfirmed))
       const score = Number(data.property?.duplicateScore || 0)
       if (score > 0) {
@@ -214,7 +287,7 @@ export default function ManualPropertyWizardClient() {
     } finally {
       setLoadingDraft(false)
     }
-  }, [])
+  }, [draftIdFromUrl, rememberDraftId, router])
 
   useEffect(() => {
     if (!draftIdFromUrl) return
@@ -249,6 +322,7 @@ export default function ManualPropertyWizardClient() {
         throw new Error(json?.message || 'Failed to save')
       }
       setProperty(json.property)
+      didHydrateFromServerRef.current = true
       return json.property as ManualProperty
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save')
@@ -258,7 +332,7 @@ export default function ManualPropertyWizardClient() {
     }
   }, [])
 
-  const buildSavePayload = (): Partial<ManualProperty> => {
+  const buildSavePayload = useCallback((): Partial<ManualProperty> => {
     return {
       title: property.title ?? null,
       propertyType: property.propertyType ?? null,
@@ -289,14 +363,14 @@ export default function ManualPropertyWizardClient() {
       duplicateMatchedProjectId: property.duplicateMatchedProjectId ?? null,
       tour3dUrl: property.tour3dUrl ?? null,
     }
-  }
+  }, [duplicateConfirm, property])
 
   const patch = useCallback(async (data: Partial<ManualProperty>) => {
     if (!propertyId) return
     await patchById(propertyId, data)
   }, [patchById, propertyId])
 
-  const ensureRemoteDraft = async () => {
+  const ensureRemoteDraft = useCallback(async () => {
     if (propertyId) return propertyId
     setSaving(true)
     setError('')
@@ -310,6 +384,7 @@ export default function ManualPropertyWizardClient() {
       const nextId = String(data.property.id)
       setProperty((p) => ({ ...(p as any), id: nextId, status: data.property.status || 'DRAFT' }))
       router.replace(`/properties/new/manual?draft=${encodeURIComponent(nextId)}`)
+      rememberDraftId(nextId)
       return nextId
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create draft')
@@ -317,7 +392,51 @@ export default function ManualPropertyWizardClient() {
     } finally {
       setSaving(false)
     }
-  }
+  }, [propertyId, rememberDraftId, router])
+
+  useEffect(() => {
+    if (draftIdFromUrl) return
+    if (propertyId) return
+    if (didAutoCreateDraftRef.current) return
+    didAutoCreateDraftRef.current = true
+
+    let remembered = ''
+    try {
+      remembered = String(window.localStorage.getItem(LAST_MANUAL_DRAFT_KEY) || '')
+    } catch {
+      remembered = ''
+    }
+
+    if (remembered) {
+      fetchDraft(remembered, { mode: 'auto' })
+      return
+    }
+
+    void ensureRemoteDraft()
+  }, [draftIdFromUrl, ensureRemoteDraft, fetchDraft, propertyId])
+
+  const autosave = useMemo(
+    () =>
+      debounce(async (id: string, payload: Partial<ManualProperty>, fingerprint: string) => {
+        if (!id) return
+        if (!didHydrateFromServerRef.current) return
+        if (lastAutosaveFingerprintRef.current === fingerprint) return
+        lastAutosaveFingerprintRef.current = fingerprint
+        await patchById(id, payload)
+      }, 1200),
+    [patchById]
+  )
+
+  useEffect(() => {
+    if (!propertyId) return
+    if (saving) return
+    if (loadingDraft) return
+    if (property?.status && property.status !== 'DRAFT' && property.status !== 'REJECTED') return
+
+    const payload = buildSavePayload()
+    const fingerprint = JSON.stringify(payload)
+    autosave(propertyId, payload, fingerprint)
+  }, [autosave, buildSavePayload, loadingDraft, property?.status, propertyId, saving])
 
   const saveDraft = async () => {
     setError('')
@@ -379,9 +498,21 @@ export default function ManualPropertyWizardClient() {
     debouncedDuplicateCheck(property)
   }, [debouncedDuplicateCheck, property])
 
+  const categoryToType = (category: string) => {
+    const c = String(category || '').toUpperCase()
+    if (c === 'COVER') return 'cover'
+    if (c === 'EXTERIOR') return 'exterior'
+    if (c === 'INTERIOR') return 'interior'
+    if (c === 'FLOOR_PLANS') return 'floorplan'
+    if (c === 'VIDEO') return 'video'
+    if (c === 'AMENITIES') return 'amenities'
+    if (c === 'BROCHURE') return 'brochure'
+    return 'interior'
+  }
+
   const upload = async (category: string, file: File) => {
     if (!propertyId) {
-      setError('Please click “Save Draft” before uploading media.')
+      setError('Save draft to start uploading media')
       return
     }
     setError('')
@@ -391,22 +522,59 @@ export default function ManualPropertyWizardClient() {
       fd.set('file', file)
       const altGuess = `${property?.title || 'Property'} - ${category.toLowerCase().replace(/_/g, ' ')}`
       fd.set('altText', altGuess)
+      fd.set('propertyId', propertyId)
+      fd.set('type', categoryToType(category))
 
       const res = await fetch(
-        `/api/manual-properties/upload?propertyId=${encodeURIComponent(propertyId)}&category=${encodeURIComponent(category)}`,
+        '/api/manual-properties/upload',
         { method: 'POST', body: fd }
       )
       const json = (await res.json()) as any
       if (!res.ok || !json?.success) {
         throw new Error(json?.message || 'Upload failed')
       }
-      await fetchDraft(propertyId)
+      if (Array.isArray(json?.media)) {
+        setProperty((p) => ({ ...(p as any), media: json.media }))
+      } else {
+        await fetchDraft(propertyId)
+      }
+      setNotice('Uploaded successfully')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed')
     } finally {
       setUploadingCategory('')
     }
   }
+
+  const deleteMedia = useCallback(
+    async (mediaId: string) => {
+      if (!propertyId) return
+      if (!mediaId) return
+      const ok = window.confirm('Remove this upload?')
+      if (!ok) return
+
+      setError('')
+      setMediaBusyId(mediaId)
+      try {
+        const res = await fetch(`/api/manual-properties/media/${encodeURIComponent(mediaId)}`, { method: 'DELETE' })
+        const json = (await res.json()) as any
+        if (!res.ok || !json?.success) {
+          throw new Error(json?.message || 'Failed to delete')
+        }
+
+        if (Array.isArray(json?.media)) {
+          setProperty((p) => ({ ...(p as any), media: json.media }))
+        } else {
+          await fetchDraft(propertyId)
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to delete')
+      } finally {
+        setMediaBusyId('')
+      }
+    },
+    [fetchDraft, propertyId]
+  )
 
   const submit = async () => {
     setError('')
@@ -810,8 +978,12 @@ export default function ManualPropertyWizardClient() {
                     <p className="text-xs text-gray-600 mt-1">MP4 or WebM (max 50MB).</p>
                   </div>
                   <label
-                    className={`inline-flex items-center justify-center h-11 px-5 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 cursor-pointer ${
-                      uploadingCategory === 'VIDEO' ? 'opacity-60 pointer-events-none' : ''
+                    className={`inline-flex items-center justify-center h-11 px-5 rounded-xl font-semibold cursor-pointer ${
+                      !propertyId
+                        ? 'bg-gray-200 text-gray-500 pointer-events-none'
+                        : uploadingCategory === 'VIDEO'
+                          ? 'bg-dark-blue text-white opacity-60 pointer-events-none'
+                          : 'bg-dark-blue text-white hover:bg-dark-blue/90'
                     }`}
                   >
                     {uploadingCategory === 'VIDEO' ? 'Uploading…' : 'Upload'}
@@ -828,6 +1000,8 @@ export default function ManualPropertyWizardClient() {
                   </label>
                 </div>
 
+                {!propertyId ? <p className="mt-3 text-xs text-gray-600">Save draft to start uploading media</p> : null}
+
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {(property?.media || []).filter((m) => m.category === 'VIDEO').length === 0 ? (
                     <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4">
@@ -838,10 +1012,25 @@ export default function ManualPropertyWizardClient() {
                       .filter((m) => m.category === 'VIDEO')
                       .slice(0, 2)
                       .map((m) => (
-                        <a key={m.id} href={m.url} target="_blank" className="rounded-xl border border-gray-200 bg-white p-3 hover:bg-gray-50">
-                          <p className="text-xs font-semibold text-dark-blue truncate">{m.url.split('/').slice(-1)[0]}</p>
+                        <div key={m.id} className="rounded-xl border border-gray-200 bg-white p-3">
+                          <a href={getPreviewUrl(m)} target="_blank" className="block hover:underline">
+                            <p className="text-xs font-semibold text-dark-blue truncate">{String(m.url || '').split('/').slice(-1)[0]}</p>
+                          </a>
                           <p className="text-xs text-gray-500 mt-1 truncate">{m.altText || 'Video'}</p>
-                        </a>
+                          <div className="mt-3 flex items-center justify-between gap-3">
+                            <p className="text-xs text-gray-500">
+                              {typeof (m as any).sizeBytes === 'number' ? `${Math.round(((m as any).sizeBytes / (1024 * 1024)) * 10) / 10} MB` : ''}
+                            </p>
+                            <button
+                              type="button"
+                              disabled={mediaBusyId === m.id}
+                              onClick={() => deleteMedia(String(m.id))}
+                              className="text-xs font-semibold text-red-700 hover:underline disabled:opacity-60"
+                            >
+                              {mediaBusyId === m.id ? 'Removing…' : 'Remove'}
+                            </button>
+                          </div>
+                        </div>
                       ))
                   )}
                 </div>
@@ -889,8 +1078,12 @@ export default function ManualPropertyWizardClient() {
                       {req ? <p className="text-xs text-gray-600 mt-1">Required</p> : null}
                     </div>
                     <label
-                      className={`inline-flex items-center justify-center h-11 px-5 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 cursor-pointer ${
-                        uploadingCategory === cat ? 'opacity-60 pointer-events-none' : ''
+                      className={`inline-flex items-center justify-center h-11 px-5 rounded-xl font-semibold cursor-pointer ${
+                        !propertyId
+                          ? 'bg-gray-200 text-gray-500 pointer-events-none'
+                          : uploadingCategory === cat
+                            ? 'bg-dark-blue text-white opacity-60 pointer-events-none'
+                            : 'bg-dark-blue text-white hover:bg-dark-blue/90'
                       }`}
                     >
                       {uploadingCategory === cat ? 'Uploading…' : 'Upload'}
@@ -907,6 +1100,8 @@ export default function ManualPropertyWizardClient() {
                     </label>
                   </div>
 
+                  {!propertyId ? <p className="mt-3 text-xs text-gray-600">Save draft to start uploading media</p> : null}
+
                   <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {(property?.media || []).filter((m) => m.category === cat).length === 0 ? (
                       <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4">
@@ -917,10 +1112,37 @@ export default function ManualPropertyWizardClient() {
                         .filter((m) => m.category === cat)
                         .slice(0, 6)
                         .map((m) => (
-                          <a key={m.id} href={m.url} target="_blank" className="rounded-xl border border-gray-200 bg-white p-3 hover:bg-gray-50">
-                            <p className="text-xs font-semibold text-dark-blue truncate">{m.url.split('/').slice(-1)[0]}</p>
-                            <p className="text-xs text-gray-500 mt-1 truncate">{m.altText || 'Alt text pending'}</p>
-                          </a>
+                          <div key={m.id} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                            {cat === 'BROCHURE' ? (
+                              <a href={getPreviewUrl(m)} target="_blank" className="block p-3 hover:bg-gray-50">
+                                <p className="text-xs font-semibold text-dark-blue truncate">{String(m.url || '').split('/').slice(-1)[0]}</p>
+                                <p className="text-xs text-gray-500 mt-1 truncate">{m.altText || 'PDF brochure'}</p>
+                              </a>
+                            ) : (
+                              <a href={getPreviewUrl(m)} target="_blank" className="block">
+                                <div className="relative w-full h-32">
+                                  <Image
+                                    src={getPreviewUrl(m)}
+                                    alt={m.altText || label}
+                                    fill
+                                    className="object-cover"
+                                    unoptimized
+                                  />
+                                </div>
+                              </a>
+                            )}
+                            <div className="p-3 flex items-center justify-between gap-3">
+                              <p className="text-xs text-gray-500 truncate">{m.altText || 'Alt text pending'}</p>
+                              <button
+                                type="button"
+                                disabled={mediaBusyId === m.id}
+                                onClick={() => deleteMedia(String(m.id))}
+                                className="text-xs font-semibold text-red-700 hover:underline disabled:opacity-60"
+                              >
+                                {mediaBusyId === m.id ? 'Removing…' : 'Remove'}
+                              </button>
+                            </div>
+                          </div>
                         ))
                     )}
                   </div>

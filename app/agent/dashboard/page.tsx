@@ -23,6 +23,40 @@ function formatRelativeTime(date: Date) {
   return `${days}d ago`
 }
 
+function computeDraftCompletion(d: any) {
+  const hasTitle = Boolean(String(d?.title || '').trim())
+  const hasPrice = typeof d?.price === 'number' && d.price > 0
+  const hasLocation = Boolean(String(d?.city || '').trim()) && Boolean(String(d?.community || '').trim())
+  const hasIntent = Boolean(String(d?.intent || '').trim())
+  const hasType = Boolean(String(d?.propertyType || '').trim())
+  const hasDesc = Boolean(String(d?.shortDescription || '').trim())
+
+  const media = Array.isArray(d?.media) ? d.media : []
+  const hasCover = media.some((m: any) => m?.category === 'COVER')
+  const hasAnyImages = media.some((m: any) => m?.category !== 'VIDEO' && m?.category !== 'BROCHURE')
+
+  const weights = {
+    basics: 20,
+    price: 15,
+    location: 15,
+    details: 15,
+    description: 10,
+    cover: 15,
+    images: 10,
+  }
+
+  const percent =
+    (hasTitle && hasIntent && hasType ? weights.basics : 0) +
+    (hasPrice ? weights.price : 0) +
+    (hasLocation ? weights.location : 0) +
+    (typeof d?.bedrooms === 'number' && typeof d?.bathrooms === 'number' ? weights.details : 0) +
+    (hasDesc ? weights.description : 0) +
+    (hasCover ? weights.cover : 0) +
+    (hasAnyImages ? weights.images : 0)
+
+  return Math.max(0, Math.min(100, Math.round(percent)))
+}
+
 export default async function AgentDashboardPage() {
   const session = await getServerSession(authOptions)
   const role = String((session?.user as any)?.role || '').toUpperCase()
@@ -159,6 +193,48 @@ export default async function AgentDashboardPage() {
   const slug = slugify(name)
   const publicProfileHref = `/agents/${slug ? `${slug}-` : ''}${agent.id}`
 
+  const draftListings = await (prisma as any).manualProperty
+    .findMany({
+      where: { agentId: agent.id, sourceType: 'MANUAL', status: { in: ['DRAFT', 'REJECTED'] } },
+      orderBy: { updatedAt: 'desc' },
+      take: 6,
+      select: {
+        id: true,
+        status: true,
+        title: true,
+        city: true,
+        community: true,
+        price: true,
+        currency: true,
+        intent: true,
+        propertyType: true,
+        bedrooms: true,
+        bathrooms: true,
+        shortDescription: true,
+        updatedAt: true,
+        createdAt: true,
+        media: { select: { id: true, category: true } },
+      },
+    })
+    .then((rows: any[]) =>
+      rows.map((d) => ({
+        id: String(d.id),
+        status: String(d.status),
+        title: String(d.title || 'Untitled draft'),
+        location: [d.community, d.city].filter(Boolean).join(', ') || 'Location pending',
+        priceLabel:
+          typeof d.price === 'number' && d.price > 0
+            ? `${String(d.currency || 'AED')} ${d.price.toLocaleString()}`
+            : 'Price pending',
+        updatedAtLabel: formatRelativeTime(new Date(d.updatedAt || d.createdAt)),
+        completionPercent: computeDraftCompletion(d),
+      }))
+    )
+    .catch((error: unknown) => {
+      console.error('Agent dashboard: failed to load manual drafts', error)
+      return []
+    })
+
   return (
     <AgentDashboardClient
       agentName={name}
@@ -174,6 +250,7 @@ export default async function AgentDashboardPage() {
         contactClicks: 0,
       }}
       profileCompletion={{ percent: completion, missing }}
+      draftListings={Array.isArray(draftListings) ? draftListings : []}
       listings={[]}
       leads={leads.map((l) => ({
         id: l.id,

@@ -14,6 +14,16 @@ type Listing = {
   thumbnailUrl?: string
 }
 
+type DraftListing = {
+  id: string
+  status: string
+  title: string
+  location: string
+  priceLabel: string
+  updatedAtLabel: string
+  completionPercent: number
+}
+
 type Lead = {
   id: string
   propertyTitle: string
@@ -29,6 +39,7 @@ export default function AgentDashboardClient({
   publicProfileHref,
   stats,
   profileCompletion,
+  draftListings,
   listings,
   leads,
 }: {
@@ -45,6 +56,7 @@ export default function AgentDashboardClient({
     contactClicks: number
   }
   profileCompletion: { percent: number; missing: Array<{ key: string; label: string; href: string }> }
+  draftListings: DraftListing[]
   listings: Listing[]
   leads: Lead[]
 }) {
@@ -135,6 +147,72 @@ export default function AgentDashboardClient({
 
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
+            {draftListings.length > 0 ? (
+              <div className="bg-white rounded-2xl border border-gray-200 p-6">
+                <div className="flex items-start justify-between gap-6">
+                  <div>
+                    <h2 className="text-xl font-serif font-bold text-dark-blue">Draft Listings</h2>
+                    <p className="mt-1 text-sm text-gray-600">Pick up where you left off and publish faster.</p>
+                  </div>
+                  <Link
+                    href="/properties/new/manual"
+                    className="inline-flex items-center justify-center h-10 px-4 rounded-xl bg-dark-blue text-white text-sm font-semibold hover:bg-dark-blue/90"
+                  >
+                    New Draft
+                  </Link>
+                </div>
+
+                <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {draftListings.map((d) => (
+                    <div key={d.id} className="rounded-2xl border border-gray-200 bg-white p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-dark-blue truncate">{d.title}</p>
+                          <p className="mt-1 text-sm text-gray-600 truncate">{d.location}</p>
+                        </div>
+                        <span className="shrink-0 px-3 py-1 rounded-full text-xs font-semibold bg-gray-50 text-gray-700 border border-gray-200">
+                          {d.status === 'REJECTED' ? 'Rejected' : 'Draft'}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-dark-blue">{d.priceLabel}</p>
+                        <p className="text-xs text-gray-500">{d.updatedAtLabel}</p>
+                      </div>
+
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <p className="text-xs font-semibold text-gray-700">Completion</p>
+                          <p className="text-xs font-semibold text-gray-700">{Math.max(0, Math.min(100, Math.round(d.completionPercent)))}%</p>
+                        </div>
+                        <div className="mt-2 h-2 rounded-full bg-gray-100 overflow-hidden">
+                          <div
+                            className="h-full bg-accent-yellow"
+                            style={{ width: `${Math.max(0, Math.min(100, Math.round(d.completionPercent)))}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-5 flex items-center gap-2">
+                        <Link
+                          href={`/properties/new/manual?draft=${encodeURIComponent(d.id)}`}
+                          className="inline-flex items-center justify-center h-10 px-4 rounded-xl bg-dark-blue text-white text-sm font-semibold hover:bg-dark-blue/90"
+                        >
+                          Resume
+                        </Link>
+                        <Link
+                          href={`/properties/new/manual?draft=${encodeURIComponent(d.id)}`}
+                          className="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue hover:bg-gray-50"
+                        >
+                          Edit
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             <div className="bg-white rounded-2xl border border-gray-200 p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
