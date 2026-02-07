@@ -1,4 +1,5 @@
 -- Relax manual_properties columns so drafts can be saved with partial data
+-- Guarded with IF EXISTS for environments where the table may not yet be present.
 -- (Submit endpoint enforces strict validation)
 
 ALTER TABLE IF EXISTS "manual_properties" ALTER COLUMN "title" DROP NOT NULL;
