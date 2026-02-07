@@ -10,6 +10,8 @@ import AgentListingsFilterBarClient from './AgentListingsFilterBarClient'
 import ServerPagination from './ServerPagination'
 import GatedActionLink from '@/components/GatedActionLink'
 
+export const dynamic = 'force-dynamic'
+
 function extractAgentId(input: string) {
   const raw = (input || '').trim()
   if (!raw) return ''

@@ -101,80 +101,73 @@ export default function PropertyGallery({ images, title, className, heightClassN
   }
 
   return (
-    <div
-      className={`${heightClassName || 'relative h-[280px] sm:h-[360px] md:h-[600px]'}${className ? ` ${className}` : ''}`}
-      onTouchStart={(e) => setTouchStartX(e.touches[0]?.clientX ?? null)}
-      onTouchEnd={(e) => {
-        if (touchStartX == null) return
-        const endX = e.changedTouches[0]?.clientX ?? touchStartX
-        const delta = endX - touchStartX
-        if (Math.abs(delta) < 50) {
+    <div className={className ? className : ''}>
+      <div
+        className={heightClassName || 'relative h-[280px] sm:h-[360px] md:h-[600px]'}
+        onTouchStart={(e) => setTouchStartX(e.touches[0]?.clientX ?? null)}
+        onTouchEnd={(e) => {
+          if (touchStartX == null) return
+          const endX = e.changedTouches[0]?.clientX ?? touchStartX
+          const delta = endX - touchStartX
+          if (Math.abs(delta) < 50) {
+            setTouchStartX(null)
+            return
+          }
+
+          if (delta < 0) {
+            setSelectedImage((prev) => (prev + 1) % galleryImages.length)
+          } else {
+            setSelectedImage((prev) => (prev - 1 + galleryImages.length) % galleryImages.length)
+          }
           setTouchStartX(null)
-          return
-        }
-
-        if (delta < 0) {
-          setSelectedImage((prev) => (prev + 1) % galleryImages.length)
-        } else {
-          setSelectedImage((prev) => (prev - 1 + galleryImages.length) % galleryImages.length)
-        }
-        setTouchStartX(null)
-      }}
-    >
-      <Image
-        src={activeSrc}
-        alt={title}
-        fill
-        className="object-cover cursor-zoom-in"
-        sizes="100vw"
-        unoptimized={activeSrc.startsWith('http') && !canOptimizeUrl(activeSrc)}
-        loading="eager"
-        priority
-        onClick={openZoom}
-      />
-      {galleryImages.length > 1 ? (
-        <>
-          <button
-            type="button"
-            onClick={goPrev}
-            aria-label="Previous image"
-            className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/35 hover:bg-black/55 text-white w-11 h-11 flex items-center justify-center backdrop-blur-sm"
-          >
-            <span className="text-2xl leading-none">‹</span>
-          </button>
-          <button
-            type="button"
-            onClick={goNext}
-            aria-label="Next image"
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/35 hover:bg-black/55 text-white w-11 h-11 flex items-center justify-center backdrop-blur-sm"
-          >
-            <span className="text-2xl leading-none">›</span>
-          </button>
-        </>
-      ) : null}
-
-      <button
-        type="button"
-        onClick={openZoom}
-        className="absolute top-3 right-3 rounded-xl bg-black/35 hover:bg-black/55 text-white px-3 py-2 text-sm backdrop-blur-sm"
+        }}
       >
-        Zoom
-      </button>
+        <Image
+          src={activeSrc}
+          alt={title}
+          fill
+          className="object-cover cursor-zoom-in"
+          sizes="100vw"
+          unoptimized={activeSrc.startsWith('http') && !canOptimizeUrl(activeSrc)}
+          loading="eager"
+          priority
+          onClick={openZoom}
+        />
 
-      {galleryImages.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-          {galleryImages.map((image, index) => (
-            <button
-              key={index}
-              onClick={() => setSelectedImage(index)}
-              className={`w-3 h-3 rounded-full transition-all ${
-                selectedImage === index ? 'bg-white w-8' : 'bg-white/50'
-              }`}
-              aria-label={`View image ${index + 1}`}
-            />
-          ))}
+        {galleryImages.length > 1 ? (
+          <div className="absolute bottom-3 right-3 rounded-full bg-black/35 text-white text-xs px-3 py-1 backdrop-blur-sm">
+            {selectedImage + 1} / {galleryImages.length}
+          </div>
+        ) : null}
+      </div>
+
+      {galleryImages.length > 1 ? (
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+          {galleryImages.map((src, idx) => {
+            const isActive = idx === selectedImage
+            return (
+              <button
+                key={src + idx}
+                type="button"
+                onClick={() => setSelectedImage(idx)}
+                className={`relative shrink-0 h-14 w-20 rounded-lg overflow-hidden ${
+                  isActive ? 'ring-2 ring-dark-blue ring-offset-2 ring-offset-white' : 'opacity-80 hover:opacity-100'
+                }`}
+                aria-label={`View image ${idx + 1}`}
+              >
+                <Image
+                  src={src}
+                  alt={`${title} thumbnail ${idx + 1}`}
+                  fill
+                  className="object-cover"
+                  sizes="80px"
+                  unoptimized={src.startsWith('http') && !canOptimizeUrl(src)}
+                />
+              </button>
+            )
+          })}
         </div>
-      )}
+      ) : null}
 
       {zoomOpen ? (
         <ZoomModal

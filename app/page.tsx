@@ -8,6 +8,8 @@ import FeaturedAgencies from '@/components/FeaturedAgencies'
 import FeaturedDevelopers from '@/components/FeaturedDevelopers'
 import FeaturedAgents from '@/components/FeaturedAgents'
 
+export const dynamic = 'force-dynamic'
+
 export default function Home() {
   return (
     <div className="min-h-screen">

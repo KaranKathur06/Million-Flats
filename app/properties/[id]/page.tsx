@@ -5,9 +5,8 @@ import Image from 'next/image'
 import PropertyGallery from '@/components/PropertyGallery'
 import ClientLazyMap from '@/components/ClientLazyMap'
 import DeferredSection from '@/components/DeferredSection'
-import RevealContent from '@/components/RevealContent'
-import ScrollableZoomGallery from '@/components/ScrollableZoomGallery'
 import ManualPropertyPreview from '@/components/ManualPropertyPreview'
+import AmenitiesListModal from '@/components/AmenitiesListModal'
 import { reellyFetch } from '@/lib/reelly'
 import { buildPropertySlugPath, buildProjectSeoPath, parsePropertyIdFromSlug } from '@/lib/seo'
 import { prisma } from '@/lib/prisma'
@@ -34,6 +33,44 @@ function clampDescription(s: string, max = 160) {
   if (!cleaned) return ''
   if (cleaned.length <= max) return cleaned
   return `${cleaned.slice(0, max - 1).trimEnd()}…`
+}
+
+function takeParagraphs(raw: string, maxParagraphs = 2) {
+  const text = safeString(raw)
+  if (!text) return ''
+  const parts = text
+    .split(/\n\s*\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+  return parts.slice(0, Math.max(1, maxParagraphs)).join('\n\n')
+}
+
+function extractBedRangeFromUnits(units: unknown[]) {
+  const nums: number[] = []
+  for (const u of units) {
+    const t = safeString((u as any)?.unit_type) || safeString((u as any)?.type) || safeString((u as any)?.name)
+    const m = t.match(/\b(\d{1,2})\s*(?:br|bed)\b/i)
+    if (m && m[1]) nums.push(Number(m[1]))
+  }
+  const finite = nums.filter((n) => Number.isFinite(n) && n > 0)
+  if (finite.length === 0) return ''
+  const min = Math.min(...finite)
+  const max = Math.max(...finite)
+  return min === max ? `${min}` : `${min}-${max}`
+}
+
+function extractAreaFromUnits(units: unknown[]) {
+  let min = Number.POSITIVE_INFINITY
+  let max = 0
+  for (const u of units) {
+    const from = safeNumber((u as any)?.size_from ?? (u as any)?.min_size ?? (u as any)?.minSize)
+    const to = safeNumber((u as any)?.size_to ?? (u as any)?.max_size ?? (u as any)?.maxSize)
+    if (from > 0) min = Math.min(min, from)
+    if (to > 0) max = Math.max(max, to)
+  }
+  if (!Number.isFinite(min) || min <= 0) return ''
+  if (max > 0 && max >= min) return `${Math.round(min).toLocaleString()}–${Math.round(max).toLocaleString()} sq ft`
+  return `${Math.round(min).toLocaleString()} sq ft`
 }
 
 function isUuid(v: string) {
@@ -565,7 +602,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
     ? item.typical_units
     : []
 
-  const description = safeString(item?.description)
+  const description = takeParagraphs(safeString(item?.description), 2)
 
   const lat = safeNumber(marker?.latitude ?? marker?.lat ?? item?.location?.latitude)
   const lng = safeNumber(marker?.longitude ?? marker?.lng ?? marker?.lon ?? item?.location?.longitude)
@@ -616,10 +653,23 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
       : undefined,
   }
 
+  const bedsLabel = extractBedRangeFromUnits(typicalUnits)
+  const areaLabel = extractAreaFromUnits(typicalUnits)
+  const keyFacts = [
+    { label: 'Beds', value: bedsLabel || '—' },
+    { label: 'Baths', value: '—' },
+    { label: 'Area', value: areaLabel || '—' },
+    { label: 'Price', value: priceOnRequest ? 'On request' : `From ${formatAed(minPrice)}` },
+  ]
+
+  const amenityNames = projectAmenities
+    .map((a: any) => safeString(a?.amenity?.name) || safeString(a?.name))
+    .filter(Boolean)
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#fbfaf7]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
-      <div className="relative h-[420px] md:h-[560px] overflow-hidden">
+      <div className="relative h-[60vh] max-h-[70vh] overflow-hidden">
         <Image
           src={coverUrl || '/image-placeholder.svg'}
           alt={title}
@@ -629,156 +679,78 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
           sizes="100vw"
           unoptimized={(coverUrl || '').startsWith('http') && !canOptimizeUrl(coverUrl || '')}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
         <div className="absolute inset-0">
-          <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 h-full flex items-end pb-10">
-            <div className="w-full">
-              <div className="flex flex-wrap items-center gap-3">
-                {constructionStatus ? (
-                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white/15 text-white border border-white/20 backdrop-blur">
-                    {constructionStatus.replace(/_/g, ' ')}
-                  </span>
-                ) : null}
-                {saleStatus ? (
-                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white/15 text-white border border-white/20 backdrop-blur">
-                    {saleStatus.replace(/_/g, ' ')}
-                  </span>
-                ) : null}
+          <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 h-full flex items-end pb-8">
+            <div className="w-full flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div className="max-w-[900px]">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-semibold text-white tracking-tight">
+                  {title}
+                </h1>
+
+                <p className="mt-2 text-white/85 text-sm sm:text-base">
+                  {sector ? `${sector}, ` : ''}
+                  {district ? `${district}, ` : ''}
+                  {region}
+                </p>
+
+                <p className="mt-4 text-2xl sm:text-3xl font-semibold text-white">
+                  {priceOnRequest ? 'Price on Request' : `From ${formatAed(minPrice)}`}
+                </p>
               </div>
 
-              <h1 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-white tracking-tight">
-                {title}
-              </h1>
-
-              <p className="mt-2 text-white/90 text-sm sm:text-base">
-                {developerName ? `${developerName} • ` : ''}
-                {sector ? `${sector} • ` : ''}
-                {district ? `${district} • ` : ''}
-                {region}
-              </p>
-
-              <p className="mt-4 text-2xl sm:text-3xl font-bold text-white">
-                {priceOnRequest ? 'Price on Request' : `From ${formatAed(minPrice)}`}
-              </p>
-              {maxPrice > 0 ? <p className="mt-1 text-white/80">Up to {formatAed(maxPrice)}</p> : null}
+              <div className="shrink-0">
+                <Link
+                  href="/contact"
+                  className="inline-flex h-12 px-6 rounded-xl bg-white text-dark-blue font-semibold items-center justify-center shadow-sm hover:bg-white/95"
+                >
+                  Contact Agent
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
+        <div className="py-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-6">
+            {keyFacts.map((f) => (
+              <div key={f.label}>
+                <div className="text-2xl sm:text-3xl font-semibold text-dark-blue tracking-tight">{f.value}</div>
+                <div className="mt-1 text-xs uppercase tracking-widest text-gray-500">{f.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Details Section */}
-      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-10 pb-28 md:pb-10">
-        <div className="space-y-10">
-          <section className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
-            <h2 className="text-2xl font-serif font-bold text-dark-blue">Image Gallery</h2>
-            <p className="mt-2 text-gray-600">Browse cover and gallery images.</p>
-            <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200">
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 pb-14">
+        <div className="space-y-12">
+          <section className="bg-white rounded-3xl p-5 md:p-7 shadow-sm">
+            <h2 className="text-xl md:text-2xl font-serif font-semibold text-dark-blue">Gallery</h2>
+            <div className="mt-5 overflow-hidden rounded-2xl">
               <PropertyGallery
                 images={curatedGalleryImages.length > 0 ? curatedGalleryImages : images}
                 title={title}
                 heightClassName="relative h-[320px] sm:h-[420px] md:h-[520px]"
               />
             </div>
-
-            {photoCategories.some((c) => Array.isArray(c.urls) && c.urls.length > 0) ? (
-              <div className="mt-8 space-y-8">
-                {photoCategories
-                  .filter((c) => Array.isArray(c.urls) && c.urls.length > 0)
-                  .map((cat) => (
-                    <div key={cat.key}>
-                      <h3 className="text-lg font-semibold text-dark-blue">{cat.title}</h3>
-                      <div className="mt-4">
-                        <ScrollableZoomGallery
-                          title={`${title} - ${cat.title}`}
-                          images={cat.urls}
-                          imageAltPrefix={`${title} ${cat.title}`}
-                          aspectClassName="aspect-[4/3]"
-                          fit="cover"
-                        />
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            ) : null}
-
-            {imageGroups.unitLayouts.length > 0 ? (
-              <div className="mt-10">
-                <h3 className="text-lg font-semibold text-dark-blue">Floor Plans</h3>
-                <div className="mt-4">
-                  <ScrollableZoomGallery
-                    title={`${title} - Floor Plans`}
-                    images={imageGroups.unitLayouts}
-                    imageAltPrefix={`${title} floor plan`}
-                    aspectClassName="aspect-[4/3]"
-                    fit="contain"
-                  />
-                </div>
-              </div>
-            ) : null}
-
-            {imageGroups.amenityIcons.length > 0 ? (
-              <div className="mt-10">
-                <h3 className="text-lg font-semibold text-dark-blue">Amenity Icons</h3>
-                <div className="mt-4">
-                  <ScrollableZoomGallery
-                    title={`${title} - Amenity Icons`}
-                    images={imageGroups.amenityIcons}
-                    imageAltPrefix={`${title} amenity icon`}
-                    aspectClassName="aspect-square"
-                    fit="contain"
-                  />
-                </div>
-              </div>
-            ) : null}
           </section>
 
-          <section className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
-            <h2 className="text-2xl font-serif font-bold text-dark-blue">Project Overview</h2>
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                <p className="text-xs text-gray-600">Project name</p>
-                <p className="text-lg font-semibold text-dark-blue mt-1">{title}</p>
+          {description ? (
+            <section className="bg-white rounded-3xl p-5 md:p-7 shadow-sm">
+              <h2 className="text-xl md:text-2xl font-serif font-semibold text-dark-blue">Description</h2>
+              <div className="mt-4 max-w-[720px]">
+                <p className="text-gray-700 leading-relaxed whitespace-pre-line">{description}</p>
               </div>
-              {developerName ? (
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                  <p className="text-xs text-gray-600">Developer</p>
-                  <p className="text-lg font-semibold text-dark-blue mt-1">{developerName}</p>
-                </div>
-              ) : null}
-              {constructionStatus ? (
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                  <p className="text-xs text-gray-600">Construction status</p>
-                  <p className="text-lg font-semibold text-dark-blue mt-1">{constructionStatus.replace(/_/g, ' ')}</p>
-                </div>
-              ) : null}
-              {completionDate ? (
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                  <p className="text-xs text-gray-600">Completion date</p>
-                  <p className="text-lg font-semibold text-dark-blue mt-1">{completionDate}</p>
-                </div>
-              ) : null}
-              {saleStatus ? (
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                  <p className="text-xs text-gray-600">Sale status</p>
-                  <p className="text-lg font-semibold text-dark-blue mt-1">{saleStatus.replace(/_/g, ' ')}</p>
-                </div>
-              ) : null}
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                <p className="text-xs text-gray-600">Project ID</p>
-                <p className="text-lg font-semibold text-dark-blue mt-1">{safeString(item?.id) || String(safeNumber(item?.id))}</p>
-              </div>
-              {internalRef ? (
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 md:col-span-2">
-                  <p className="text-xs text-gray-600">Internal reference</p>
-                  <p className="text-lg font-semibold text-dark-blue mt-1 break-words">{internalRef}</p>
-                </div>
-              ) : null}
-            </div>
-          </section>
+            </section>
+          ) : null}
 
           {paymentPlans.length > 0 && (
-            <section className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
-              <h2 className="text-2xl font-serif font-bold text-dark-blue">Pricing & Payment Plans</h2>
+            <section className="bg-white rounded-3xl p-5 md:p-7 shadow-sm">
+              <h2 className="text-xl md:text-2xl font-serif font-semibold text-dark-blue">Pricing & Payment Plans</h2>
 
               <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                 {minPrice > 0 ? (
@@ -852,31 +824,10 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
             <DeferredSection
               title="Amenities"
               count={projectAmenities.length}
-              className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm"
+              className="bg-white rounded-3xl p-5 md:p-7 shadow-sm"
             >
-              <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {projectAmenities
-                  .map((a: any) => {
-                    const name = safeString(a?.amenity?.name) || safeString(a?.name)
-                    const iconUrl = toImageUrl(a?.icon) || toImageUrl(a?.amenity?.icon)
-                    return { name, iconUrl }
-                  })
-                  .filter((a: any) => a.name)
-                  .map((a: any, idx: number) => (
-                    <div key={idx} className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
-                      <div className="w-12 h-12 rounded-xl border border-gray-200 bg-white overflow-hidden relative">
-                        <Image
-                          src={a.iconUrl || '/image-placeholder.svg'}
-                          alt={a.name}
-                          fill
-                          className="object-contain p-2"
-                          unoptimized={(a.iconUrl || '').startsWith('http') && !canOptimizeUrl(a.iconUrl || '')}
-                          loading="lazy"
-                        />
-                      </div>
-                      <p className="mt-3 text-sm font-semibold text-dark-blue">{a.name}</p>
-                    </div>
-                  ))}
+              <div className="mt-5">
+                <AmenitiesListModal amenities={amenityNames} maxPreview={8} title="Amenities" />
               </div>
             </DeferredSection>
           ) : null}
@@ -932,34 +883,44 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
             </DeferredSection>
           ) : null}
 
-          <section className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
-            <h2 className="text-2xl font-serif font-bold text-dark-blue">Location & Map</h2>
-            <p className="mt-2 text-gray-700">{locationLabel || region || 'Location'}</p>
+          <section className="bg-white rounded-3xl p-5 md:p-7 shadow-sm">
+            <h2 className="text-xl md:text-2xl font-serif font-semibold text-dark-blue">Location</h2>
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              <div className="order-2 md:order-1">
+                <p className="text-sm text-gray-700">{locationLabel || region || 'Location'}</p>
+                {developerName ? <p className="mt-2 text-sm text-gray-600">{developerName}</p> : null}
+                {constructionStatus ? (
+                  <p className="mt-3 text-sm text-gray-600">{constructionStatus.replace(/_/g, ' ')}</p>
+                ) : null}
+                {completionDate ? <p className="mt-1 text-sm text-gray-600">Completion: {completionDate}</p> : null}
+                {internalRef ? <p className="mt-3 text-xs text-gray-500">Ref: {internalRef}</p> : null}
 
-            {hasCoords ? (
-              <RevealContent labelShow="Show map" labelHide="Hide map">
-                <div className="overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
-                  <ClientLazyMap lat={lat} lng={lng} />
-                </div>
-              </RevealContent>
-            ) : (
-              <p className="mt-4 text-sm text-gray-600">Map coordinates are not available for this project yet.</p>
-            )}
+                {hasCoords ? (
+                  <a
+                    href={`https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lng}`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-4 inline-flex text-sm font-semibold text-dark-blue hover:underline"
+                  >
+                    Open in Google Maps
+                  </a>
+                ) : null}
+              </div>
 
-            {hasCoords ? (
-              <a
-                href={`https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lng}`)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex text-sm font-semibold text-dark-blue hover:underline"
-              >
-                Open in Google Maps
-              </a>
-            ) : null}
+              <div className="order-1 md:order-2">
+                {hasCoords ? (
+                  <div className="overflow-hidden rounded-2xl bg-gray-50">
+                    <ClientLazyMap lat={lat} lng={lng} className="h-[200px] md:h-[240px]" />
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600">Map coordinates are not available for this project yet.</p>
+                )}
+              </div>
+            </div>
           </section>
 
-          <section className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
-            <h2 className="text-2xl font-serif font-bold text-dark-blue">Developer</h2>
+          <section className="bg-white rounded-3xl p-5 md:p-7 shadow-sm">
+            <h2 className="text-xl md:text-2xl font-serif font-semibold text-dark-blue">Developer</h2>
             <div className="mt-6 flex items-start gap-4">
               <div className="shrink-0 w-16 h-16 rounded-2xl border border-gray-200 bg-white overflow-hidden relative">
                 <Image
@@ -988,35 +949,15 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
             </div>
           </section>
 
-          {description ? (
-            <section className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
-              <h2 className="text-2xl font-serif font-bold text-dark-blue">Project Description</h2>
-              <p className="mt-4 text-gray-700 leading-relaxed whitespace-pre-line">{description}</p>
-            </section>
-          ) : null}
-
-          <section className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
-            <h2 className="text-2xl font-serif font-bold text-dark-blue">Take the Next Step</h2>
-            <p className="mt-2 text-gray-600">Talk to an agent and get the latest availability, pricing, and payment options.</p>
-
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <section className="bg-white rounded-3xl p-5 md:p-7 shadow-sm">
+            <h2 className="text-xl md:text-2xl font-serif font-semibold text-dark-blue">Contact</h2>
+            <p className="mt-2 text-sm text-gray-600">Speak to an agent for availability, pricing, and payment options.</p>
+            <div className="mt-5">
               <Link
                 href="/contact"
-                className="h-12 rounded-xl bg-dark-blue text-white font-semibold inline-flex items-center justify-center"
+                className="h-12 px-6 rounded-xl bg-dark-blue text-white font-semibold inline-flex items-center justify-center"
               >
                 Contact Agent
-              </Link>
-              <Link
-                href="/contact"
-                className="h-12 rounded-xl bg-accent-yellow text-dark-blue font-semibold inline-flex items-center justify-center"
-              >
-                Enquire Now
-              </Link>
-              <Link
-                href="/contact"
-                className="h-12 rounded-xl bg-gray-100 text-dark-blue font-semibold inline-flex items-center justify-center hover:bg-gray-200 transition-colors"
-              >
-                Request Brochure
               </Link>
             </div>
           </section>

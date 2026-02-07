@@ -33,18 +33,19 @@ export default function LazyMap({ lat, lng, className }: Props) {
 
   const safeLat = Number.isFinite(lat) ? lat : 0
   const safeLng = Number.isFinite(lng) ? lng : 0
+  const heightClass = className && className.trim().length > 0 ? className : 'h-[240px]'
 
   return (
-    <div ref={ref} className={className}>
+    <div ref={ref}>
       {shouldRender ? (
         <iframe
           title="Project location"
           loading="lazy"
-          className="w-full h-[320px]"
+          className={`w-full ${heightClass}`}
           src={`https://maps.google.com/maps?q=${encodeURIComponent(`${safeLat},${safeLng}`)}&z=15&output=embed`}
         />
       ) : (
-        <div className="w-full h-[320px] bg-gray-100 animate-pulse" />
+        <div className={`w-full ${heightClass} bg-gray-100 animate-pulse`} />
       )}
     </div>
   )
