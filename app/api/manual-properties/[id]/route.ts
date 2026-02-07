@@ -4,21 +4,21 @@ import { prisma } from '@/lib/prisma'
 import { requireAgentSession } from '@/lib/agentAuth'
 
 const PatchSchema = z.object({
-  title: z.string().trim().min(3).max(120).optional().nullable(),
-  propertyType: z.string().trim().min(2).max(40).optional().nullable(),
+  title: z.string().trim().max(120).optional().nullable(),
+  propertyType: z.string().trim().max(40).optional().nullable(),
   intent: z.enum(['SALE', 'RENT']).optional().nullable(),
-  price: z.number().positive().optional().nullable(),
+  price: z.number().optional().nullable(),
   currency: z.string().trim().min(1).max(10).optional(),
   constructionStatus: z.enum(['READY', 'OFF_PLAN']).optional().nullable(),
-  shortDescription: z.string().trim().min(20).max(1000).optional().nullable(),
+  shortDescription: z.string().trim().max(1000).optional().nullable(),
 
   bedrooms: z.number().int().min(0).max(20).optional(),
   bathrooms: z.number().int().min(0).max(20).optional(),
   squareFeet: z.number().min(0).max(200000).optional(),
 
   countryCode: z.enum(['UAE', 'India']).optional(),
-  city: z.string().trim().min(1).max(80).optional().nullable(),
-  community: z.string().trim().min(1).max(120).optional().nullable(),
+  city: z.string().trim().max(80).optional().nullable(),
+  community: z.string().trim().max(120).optional().nullable(),
   address: z.string().trim().max(200).optional().nullable(),
   latitude: z.number().min(-90).max(90).optional().nullable(),
   longitude: z.number().min(-180).max(180).optional().nullable(),
