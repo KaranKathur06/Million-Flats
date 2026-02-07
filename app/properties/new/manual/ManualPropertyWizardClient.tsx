@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { nanoid } from 'nanoid'
-import { prisma } from '@/lib/prisma'
 import { buildPropertySlugPath } from '@/lib/seo'
 
 type DuplicateResult = {

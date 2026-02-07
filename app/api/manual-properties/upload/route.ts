@@ -51,53 +51,54 @@ function folderForUpload(category: string, propertyId: string) {
 }
 
 export async function POST(req: Request) {
-  const auth = await requireAgentSession()
-  if (!auth.ok) {
-    return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
-  }
+  try {
+    const auth = await requireAgentSession()
+    if (!auth.ok) {
+      return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
+    }
 
-  const { searchParams } = new URL(req.url)
-  const legacyQuery = QuerySchema.safeParse({
-    propertyId: searchParams.get('propertyId'),
-    category: searchParams.get('category'),
-  })
+    const { searchParams } = new URL(req.url)
+    const legacyQuery = QuerySchema.safeParse({
+      propertyId: searchParams.get('propertyId'),
+      category: searchParams.get('category'),
+    })
 
-  const form = await req.formData()
-  const file = form.get('file')
-  const altText = typeof form.get('altText') === 'string' ? String(form.get('altText')).trim() : ''
+    const form = await req.formData()
+    const file = form.get('file')
+    const altText = typeof form.get('altText') === 'string' ? String(form.get('altText')).trim() : ''
 
-  const typeRaw = typeof form.get('type') === 'string' ? String(form.get('type')).trim().toLowerCase() : ''
-  const parsedType = typeRaw ? TypeSchema.safeParse(typeRaw) : null
+    const typeRaw = typeof form.get('type') === 'string' ? String(form.get('type')).trim().toLowerCase() : ''
+    const parsedType = typeRaw ? TypeSchema.safeParse(typeRaw) : null
 
-  const propertyIdFromBody = typeof form.get('propertyId') === 'string' ? String(form.get('propertyId')).trim() : ''
+    const propertyIdFromBody = typeof form.get('propertyId') === 'string' ? String(form.get('propertyId')).trim() : ''
 
-  const propertyId = legacyQuery.success ? legacyQuery.data.propertyId : propertyIdFromBody
-  const category = legacyQuery.success
-    ? legacyQuery.data.category
-    : parsedType?.success
-      ? typeToCategory(parsedType.data)
-      : null
+    const propertyId = legacyQuery.success ? legacyQuery.data.propertyId : propertyIdFromBody
+    const category = legacyQuery.success
+      ? legacyQuery.data.category
+      : parsedType?.success
+        ? typeToCategory(parsedType.data)
+        : null
 
-  if (!propertyId || !category) {
-    return NextResponse.json({ success: false, message: 'Missing propertyId or type' }, { status: 400 })
-  }
+    if (!propertyId || !category) {
+      return NextResponse.json({ success: false, message: 'Missing propertyId or type' }, { status: 400 })
+    }
 
-  const property = await (prisma as any).manualProperty.findFirst({ where: { id: propertyId, agentId: auth.agentId } })
-  if (!property) {
-    return NextResponse.json({ success: false, message: 'Not found' }, { status: 404 })
-  }
+    const property = await (prisma as any).manualProperty.findFirst({ where: { id: propertyId, agentId: auth.agentId } })
+    if (!property) {
+      return NextResponse.json({ success: false, message: 'Not found' }, { status: 404 })
+    }
 
-  if (property.status !== 'DRAFT' && property.status !== 'REJECTED') {
-    return NextResponse.json({ success: false, message: 'Cannot upload after submission' }, { status: 400 })
-  }
+    if (property.status !== 'DRAFT' && property.status !== 'REJECTED') {
+      return NextResponse.json({ success: false, message: 'Cannot upload after submission' }, { status: 400 })
+    }
 
-  if (!file || !(file instanceof File)) {
-    return NextResponse.json({ success: false, message: 'Missing file' }, { status: 400 })
-  }
+    if (!file || !(file instanceof File)) {
+      return NextResponse.json({ success: false, message: 'Missing file' }, { status: 400 })
+    }
 
-  const mime = file.type || ''
-  const isBrochure = category === 'BROCHURE'
-  const isVideo = category === 'VIDEO'
+    const mime = file.type || ''
+    const isBrochure = category === 'BROCHURE'
+    const isVideo = category === 'VIDEO'
 
   if (isBrochure) {
     if (!isAllowedPdf(mime)) {
@@ -185,4 +186,8 @@ export async function POST(req: Request) {
   })
 
   return NextResponse.json({ success: true, media })
+  } catch (error) {
+    console.error('Manual property upload: failed', error)
+    return NextResponse.json({ success: false, message: 'Upload failed' }, { status: 500 })
+  }
 }
