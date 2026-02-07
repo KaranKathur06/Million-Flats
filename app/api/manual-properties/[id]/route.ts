@@ -3,6 +3,38 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAgentSession } from '@/lib/agentAuth'
 
+function errorToDetails(error: unknown) {
+  if (!error || typeof error !== 'object') return null
+  const anyErr = error as any
+  return {
+    name: typeof anyErr.name === 'string' ? anyErr.name : undefined,
+    message: typeof anyErr.message === 'string' ? anyErr.message : undefined,
+    code: typeof anyErr.code === 'string' ? anyErr.code : undefined,
+    meta: anyErr.meta,
+  }
+}
+
+function classifyDraftSaveError(error: unknown) {
+  const details = errorToDetails(error)
+  const msg = String((details as any)?.message || '')
+  const looksLikeMissingTable = /manual_properties/i.test(msg) && /(does not exist|relation .* does not exist|undefined_table|42P01)/i.test(msg)
+  if (looksLikeMissingTable) {
+    return {
+      status: 500,
+      error: 'Manual listings database tables are missing. Run Prisma migrations (prisma migrate deploy).',
+      code: 'DB_MISSING_TABLE',
+      details,
+    }
+  }
+
+  return {
+    status: 500,
+    error: 'Failed to save draft',
+    code: 'DRAFT_SAVE_FAILED',
+    details,
+  }
+}
+
 const PatchSchema = z.object({
   title: z.string().trim().max(120).optional().nullable(),
   propertyType: z.string().trim().max(40).optional().nullable(),
@@ -75,7 +107,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     return NextResponse.json({ success: true, property })
   } catch (error) {
     console.error('Manual property: failed to load draft', error)
-    return NextResponse.json({ success: false, error: 'Failed to load draft' }, { status: 500 })
+    const details = errorToDetails(error)
+    return NextResponse.json({ success: false, error: 'Failed to load draft', code: 'DRAFT_LOAD_FAILED', details }, { status: 500 })
   }
 }
 
@@ -117,6 +150,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ success: true, property: updated })
   } catch (error) {
     console.error('Manual property: failed to save draft', error)
-    return NextResponse.json({ success: false, error: 'Failed to save draft' }, { status: 500 })
+    const info = classifyDraftSaveError(error)
+    return NextResponse.json({ success: false, error: info.error, code: info.code, details: info.details }, { status: info.status })
   }
 }

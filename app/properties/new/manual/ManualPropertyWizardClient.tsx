@@ -338,7 +338,9 @@ export default function ManualPropertyWizardClient() {
       const json = (await safeJson(res)) as any
       if (!json) throw new Error('Invalid server response')
       if (!res.ok || !json?.success) {
-        throw new Error(json?.error || json?.message || 'Failed to save')
+        const details = json?.details?.message ? `: ${String(json.details.message)}` : ''
+        const code = json?.code ? ` (${String(json.code)})` : ''
+        throw new Error(String(json?.error || json?.message || 'Failed to save') + code + details)
       }
       setProperty(json.property)
       didHydrateFromServerRef.current = true
@@ -399,7 +401,9 @@ export default function ManualPropertyWizardClient() {
       const data = (await safeJson(res)) as any
       if (!data) throw new Error('Invalid server response')
       if (!res.ok || !data?.success) {
-        throw new Error(data?.error || data?.message || 'Failed to create draft')
+        const details = data?.details?.message ? `: ${String(data.details.message)}` : ''
+        const code = data?.code ? ` (${String(data.code)})` : ''
+        throw new Error(String(data?.error || data?.message || 'Failed to create draft') + code + details)
       }
       const nextId = String(data.property.id)
       setProperty((p) => ({ ...(p as any), id: nextId, status: data.property.status || 'DRAFT' }))

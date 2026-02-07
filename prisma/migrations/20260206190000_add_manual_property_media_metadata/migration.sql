@@ -1,4 +1,4 @@
 -- AlterTable
-ALTER TABLE "manual_property_media" ADD COLUMN "s3_key" TEXT;
-ALTER TABLE "manual_property_media" ADD COLUMN "mime_type" TEXT;
-ALTER TABLE "manual_property_media" ADD COLUMN "size_bytes" INTEGER;
+ALTER TABLE IF EXISTS "manual_property_media" ADD COLUMN IF NOT EXISTS "s3_key" TEXT;
+ALTER TABLE IF EXISTS "manual_property_media" ADD COLUMN IF NOT EXISTS "mime_type" TEXT;
+ALTER TABLE IF EXISTS "manual_property_media" ADD COLUMN IF NOT EXISTS "size_bytes" INTEGER;
