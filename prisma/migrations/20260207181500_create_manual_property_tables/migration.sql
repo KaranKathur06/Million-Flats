@@ -4,6 +4,27 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 DO $$
 BEGIN
+  CREATE TYPE "Role" AS ENUM ('USER', 'AGENT', 'ADMIN');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+  CREATE TYPE "CountryCode" AS ENUM ('UAE', 'India');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+  CREATE TYPE "PropertySourceType" AS ENUM ('REELLY', 'MANUAL');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
   CREATE TYPE "ManualPropertyStatus" AS ENUM ('DRAFT', 'PENDING_REVIEW', 'APPROVED', 'REJECTED');
 EXCEPTION
   WHEN duplicate_object THEN NULL;
