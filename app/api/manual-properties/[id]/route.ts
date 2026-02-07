@@ -57,56 +57,66 @@ const PatchSchema = z.object({
 })
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const auth = await requireAgentSession()
-  if (!auth.ok) {
-    return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
+  try {
+    const auth = await requireAgentSession()
+    if (!auth.ok) {
+      return NextResponse.json({ success: false, error: auth.message }, { status: auth.status })
+    }
+
+    const property = await (prisma as any).manualProperty.findFirst({
+      where: { id: params.id, agentId: auth.agentId },
+      include: { media: { orderBy: [{ category: 'asc' }, { position: 'asc' }] } },
+    })
+
+    if (!property) {
+      return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({ success: true, property })
+  } catch (error) {
+    console.error('Manual property: failed to load draft', error)
+    return NextResponse.json({ success: false, error: 'Failed to load draft' }, { status: 500 })
   }
-
-  const property = await (prisma as any).manualProperty.findFirst({
-    where: { id: params.id, agentId: auth.agentId },
-    include: { media: { orderBy: [{ category: 'asc' }, { position: 'asc' }] } },
-  })
-
-  if (!property) {
-    return NextResponse.json({ success: false, message: 'Not found' }, { status: 404 })
-  }
-
-  return NextResponse.json({ success: true, property })
 }
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const auth = await requireAgentSession()
-  if (!auth.ok) {
-    return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
+  try {
+    const auth = await requireAgentSession()
+    if (!auth.ok) {
+      return NextResponse.json({ success: false, error: auth.message }, { status: auth.status })
+    }
+
+    const body = await req.json().catch(() => null)
+    const parsed = PatchSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: 'Invalid data' }, { status: 400 })
+    }
+
+    const existing = await (prisma as any).manualProperty.findFirst({ where: { id: params.id, agentId: auth.agentId } })
+    if (!existing) {
+      return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 })
+    }
+
+    if (existing.status !== 'DRAFT' && existing.status !== 'REJECTED') {
+      return NextResponse.json({ success: false, error: 'Cannot edit after submission' }, { status: 400 })
+    }
+
+    const data: any = {
+      ...parsed.data,
+    }
+
+    if (parsed.data.amenities !== undefined) data.amenities = parsed.data.amenities
+    if (parsed.data.customAmenities !== undefined) data.customAmenities = parsed.data.customAmenities
+
+    const updated = await (prisma as any).manualProperty.update({
+      where: { id: params.id },
+      data,
+      include: { media: { orderBy: [{ category: 'asc' }, { position: 'asc' }] } },
+    })
+
+    return NextResponse.json({ success: true, property: updated })
+  } catch (error) {
+    console.error('Manual property: failed to save draft', error)
+    return NextResponse.json({ success: false, error: 'Failed to save draft' }, { status: 500 })
   }
-
-  const body = await req.json().catch(() => null)
-  const parsed = PatchSchema.safeParse(body)
-  if (!parsed.success) {
-    return NextResponse.json({ success: false, message: 'Invalid data' }, { status: 400 })
-  }
-
-  const existing = await (prisma as any).manualProperty.findFirst({ where: { id: params.id, agentId: auth.agentId } })
-  if (!existing) {
-    return NextResponse.json({ success: false, message: 'Not found' }, { status: 404 })
-  }
-
-  if (existing.status !== 'DRAFT' && existing.status !== 'REJECTED') {
-    return NextResponse.json({ success: false, message: 'Cannot edit after submission' }, { status: 400 })
-  }
-
-  const data: any = {
-    ...parsed.data,
-  }
-
-  if (parsed.data.amenities !== undefined) data.amenities = parsed.data.amenities
-  if (parsed.data.customAmenities !== undefined) data.customAmenities = parsed.data.customAmenities
-
-  const updated = await (prisma as any).manualProperty.update({
-    where: { id: params.id },
-    data,
-    include: { media: { orderBy: [{ category: 'asc' }, { position: 'asc' }] } },
-  })
-
-  return NextResponse.json({ success: true, property: updated })
 }

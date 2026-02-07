@@ -98,6 +98,14 @@ export default function ManualPropertyWizardClient() {
   const didAutoLoadDraftRef = useRef(false)
   const didAutoCreateDraftRef = useRef(false)
 
+  const safeJson = useCallback(async (res: Response) => {
+    try {
+      return await res.json()
+    } catch {
+      return null
+    }
+  }, [])
+
   const [step, setStep] = useState<Step>('basics')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -106,6 +114,7 @@ export default function ManualPropertyWizardClient() {
   const [uploadingCategory, setUploadingCategory] = useState<string>('')
   const [mediaPreviewUrls, setMediaPreviewUrls] = useState<Record<string, string>>({})
   const [mediaBusyId, setMediaBusyId] = useState<string>('')
+  const [resumeDraftId, setResumeDraftId] = useState<string>('')
 
   const [property, setProperty] = useState<ManualProperty>(() => ({
     id: '',
@@ -146,6 +155,22 @@ export default function ManualPropertyWizardClient() {
       return
     }
   }, [])
+
+  useEffect(() => {
+    if (propertyId) return
+    const fromUrl = String(draftIdFromUrl || '').trim()
+    if (fromUrl) {
+      setResumeDraftId(fromUrl)
+      return
+    }
+    let remembered = ''
+    try {
+      remembered = String(window.localStorage.getItem(LAST_MANUAL_DRAFT_KEY) || '')
+    } catch {
+      remembered = ''
+    }
+    if (remembered) setResumeDraftId(remembered)
+  }, [draftIdFromUrl, propertyId])
 
   const statusBanner = useMemo(() => {
     if (!property) return null
@@ -254,9 +279,10 @@ export default function ManualPropertyWizardClient() {
     setNotice('')
     try {
       const res = await fetch(`/api/manual-properties/${encodeURIComponent(id)}`)
-      const data = (await res.json()) as any
+      const data = (await safeJson(res)) as any
+      if (!data) throw new Error('Invalid server response')
       if (!res.ok || !data?.success) {
-        throw new Error(data?.message || 'Failed to load draft')
+        throw new Error(data?.error || data?.message || 'Failed to load draft')
       }
 
       const mode = opts?.mode || 'manual'
@@ -274,6 +300,7 @@ export default function ManualPropertyWizardClient() {
       if (!draftIdFromUrl && String(data.property?.id || '')) {
         router.replace(`/properties/new/manual?draft=${encodeURIComponent(String(data.property.id))}`)
       }
+      setResumeDraftId('')
       setDuplicateConfirm(Boolean(data.property?.duplicateOverrideConfirmed))
       const score = Number(data.property?.duplicateScore || 0)
       if (score > 0) {
@@ -287,15 +314,7 @@ export default function ManualPropertyWizardClient() {
     } finally {
       setLoadingDraft(false)
     }
-  }, [draftIdFromUrl, rememberDraftId, router])
-
-  useEffect(() => {
-    if (!draftIdFromUrl) return
-    if (propertyId) return
-    if (didAutoLoadDraftRef.current) return
-    didAutoLoadDraftRef.current = true
-    fetchDraft(draftIdFromUrl, { mode: 'auto' })
-  }, [draftIdFromUrl, fetchDraft, propertyId])
+  }, [draftIdFromUrl, rememberDraftId, router, safeJson])
 
   useEffect(() => {
     if (step !== 'amenities') return
@@ -317,9 +336,10 @@ export default function ManualPropertyWizardClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
-      const json = (await res.json()) as any
+      const json = (await safeJson(res)) as any
+      if (!json) throw new Error('Invalid server response')
       if (!res.ok || !json?.success) {
-        throw new Error(json?.message || 'Failed to save')
+        throw new Error(json?.error || json?.message || 'Failed to save')
       }
       setProperty(json.property)
       didHydrateFromServerRef.current = true
@@ -330,7 +350,7 @@ export default function ManualPropertyWizardClient() {
     } finally {
       setSaving(false)
     }
-  }, [])
+  }, [safeJson])
 
   const buildSavePayload = useCallback((): Partial<ManualProperty> => {
     return {
@@ -377,14 +397,17 @@ export default function ManualPropertyWizardClient() {
     setNotice('')
     try {
       const res = await fetch('/api/manual-properties', { method: 'POST' })
-      const data = (await res.json()) as any
+      const data = (await safeJson(res)) as any
+      if (!data) throw new Error('Invalid server response')
       if (!res.ok || !data?.success) {
-        throw new Error(data?.message || 'Failed to create draft')
+        throw new Error(data?.error || data?.message || 'Failed to create draft')
       }
       const nextId = String(data.property.id)
       setProperty((p) => ({ ...(p as any), id: nextId, status: data.property.status || 'DRAFT' }))
       router.replace(`/properties/new/manual?draft=${encodeURIComponent(nextId)}`)
       rememberDraftId(nextId)
+      didHydrateFromServerRef.current = true
+      setResumeDraftId('')
       return nextId
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create draft')
@@ -392,28 +415,7 @@ export default function ManualPropertyWizardClient() {
     } finally {
       setSaving(false)
     }
-  }, [propertyId, rememberDraftId, router])
-
-  useEffect(() => {
-    if (draftIdFromUrl) return
-    if (propertyId) return
-    if (didAutoCreateDraftRef.current) return
-    didAutoCreateDraftRef.current = true
-
-    let remembered = ''
-    try {
-      remembered = String(window.localStorage.getItem(LAST_MANUAL_DRAFT_KEY) || '')
-    } catch {
-      remembered = ''
-    }
-
-    if (remembered) {
-      fetchDraft(remembered, { mode: 'auto' })
-      return
-    }
-
-    void ensureRemoteDraft()
-  }, [draftIdFromUrl, ensureRemoteDraft, fetchDraft, propertyId])
+  }, [propertyId, rememberDraftId, router, safeJson])
 
   const autosave = useMemo(
     () =>
@@ -529,9 +531,10 @@ export default function ManualPropertyWizardClient() {
         '/api/manual-properties/upload',
         { method: 'POST', body: fd }
       )
-      const json = (await res.json()) as any
+      const json = (await safeJson(res)) as any
+      if (!json) throw new Error('Invalid server response')
       if (!res.ok || !json?.success) {
-        throw new Error(json?.message || 'Upload failed')
+        throw new Error(json?.error || json?.message || 'Upload failed')
       }
       if (Array.isArray(json?.media)) {
         setProperty((p) => ({ ...(p as any), media: json.media }))
@@ -557,9 +560,10 @@ export default function ManualPropertyWizardClient() {
       setMediaBusyId(mediaId)
       try {
         const res = await fetch(`/api/manual-properties/media/${encodeURIComponent(mediaId)}`, { method: 'DELETE' })
-        const json = (await res.json()) as any
+        const json = (await safeJson(res)) as any
+        if (!json) throw new Error('Invalid server response')
         if (!res.ok || !json?.success) {
-          throw new Error(json?.message || 'Failed to delete')
+          throw new Error(json?.error || json?.message || 'Failed to delete')
         }
 
         if (Array.isArray(json?.media)) {
@@ -573,7 +577,7 @@ export default function ManualPropertyWizardClient() {
         setMediaBusyId('')
       }
     },
-    [fetchDraft, propertyId]
+    [fetchDraft, propertyId, safeJson]
   )
 
   const submit = async () => {
@@ -591,13 +595,16 @@ export default function ManualPropertyWizardClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ duplicateOverrideConfirmed: duplicateConfirm }),
       })
-      const json = (await res.json()) as any
+      const json = (await safeJson(res)) as any
+      if (!json) throw new Error('Invalid server response')
       if (!res.ok || !json?.success) {
-        throw new Error(json?.message || 'Failed to submit')
+        throw new Error(json?.error || json?.message || 'Submission failed')
       }
-      router.replace('/agent-portal')
+
+      await fetchDraft(id, { mode: 'manual' })
+      setNotice('Submitted successfully')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to submit')
+      setError(e instanceof Error ? e.message : 'Submission failed')
     } finally {
       setSaving(false)
     }
