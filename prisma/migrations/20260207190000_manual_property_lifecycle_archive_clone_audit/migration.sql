@@ -16,9 +16,24 @@ END $$;
 -- 2) ManualProperty columns
 ALTER TABLE "manual_properties"
   ADD COLUMN IF NOT EXISTS "last_completed_step" TEXT,
-  ADD COLUMN IF NOT EXISTS "cloned_from_id" UUID,
+  ADD COLUMN IF NOT EXISTS "cloned_from_id" TEXT,
   ADD COLUMN IF NOT EXISTS "archived_at" TIMESTAMP(3),
   ADD COLUMN IF NOT EXISTS "archived_by" TEXT;
+
+-- If a previous failed attempt created cloned_from_id as UUID, coerce it to TEXT to match manual_properties.id.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'manual_properties'
+      AND column_name = 'cloned_from_id'
+      AND udt_name = 'uuid'
+  ) THEN
+    ALTER TABLE "manual_properties"
+      ALTER COLUMN "cloned_from_id" TYPE TEXT USING "cloned_from_id"::TEXT;
+  END IF;
+END $$;
 
 DO $$
 BEGIN
