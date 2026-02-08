@@ -74,11 +74,26 @@ CREATE TABLE IF NOT EXISTS "audit_logs" (
   "entity_type" "AuditEntityType" NOT NULL,
   "entity_id" TEXT NOT NULL,
   "action" "AuditAction" NOT NULL,
-  "performed_by_user_id" UUID,
+  "performed_by_user_id" TEXT,
   "meta" JSONB,
   "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "audit_logs_pkey" PRIMARY KEY ("id")
 );
+
+-- If a previous failed attempt created performed_by_user_id as UUID, coerce it to TEXT to match users.id.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'audit_logs'
+      AND column_name = 'performed_by_user_id'
+      AND udt_name = 'uuid'
+  ) THEN
+    ALTER TABLE "audit_logs"
+      ALTER COLUMN "performed_by_user_id" TYPE TEXT USING "performed_by_user_id"::TEXT;
+  END IF;
+END $$;
 
 DO $$
 BEGIN
