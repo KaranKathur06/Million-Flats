@@ -12,6 +12,8 @@ export type AuditAction =
   | 'ADMIN_CLONED_TO_DRAFT'
   | 'ADMIN_AGENT_APPROVED'
   | 'ADMIN_AGENT_SUSPENDED'
+  | 'ADMIN_AGENT_BANNED'
+  | 'ADMIN_AGENT_ROLE_REVOKED'
 
 export async function writeAuditLog(input: {
   entityType: AuditEntityType

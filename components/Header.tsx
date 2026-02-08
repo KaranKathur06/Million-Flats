@@ -44,9 +44,11 @@ export default function Header() {
   ]
 
   const adminLinks = [
-    { href: '/', label: 'Home' },
-    { href: '/agents', label: 'Find an Agent' },
-    { href: '/admin', label: 'Admin' },
+    { href: '/admin', label: 'Dashboard' },
+    { href: '/admin/listings', label: 'Listings' },
+    { href: '/admin/drafts', label: 'Drafts' },
+    { href: '/admin/agents', label: 'Agents' },
+    { href: '/admin/users', label: 'Users' },
   ]
 
   const navLinks = !isAuthed ? publicLinks : isAdmin ? adminLinks : isAgent ? agentLinks : isUser ? userLinks : publicLinks

@@ -111,6 +111,7 @@ export async function middleware(req: NextRequest) {
   const nextAuthToken = secret ? await getToken({ req, secret }) : null
 
   let role = String((nextAuthToken as any)?.role || '').toUpperCase()
+  const accountStatus = String((nextAuthToken as any)?.status || 'ACTIVE').toUpperCase()
 
   if (!role) {
     const legacyCookie = req.cookies.get('token')?.value
@@ -143,6 +144,13 @@ export async function middleware(req: NextRequest) {
     const url = req.nextUrl.clone()
     url.pathname = '/user/dashboard'
     url.search = 'error=admin_only'
+    return NextResponse.redirect(url)
+  }
+
+  if (isAgentProtected && role === 'AGENT' && accountStatus !== 'ACTIVE') {
+    const url = req.nextUrl.clone()
+    url.pathname = '/agent/login'
+    url.search = 'error=account_disabled'
     return NextResponse.redirect(url)
   }
 

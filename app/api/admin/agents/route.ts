@@ -18,6 +18,8 @@ export async function GET() {
       name: true,
       phone: true,
       verified: true,
+      role: true,
+      status: true,
       createdAt: true,
       agent: {
         select: {

@@ -224,6 +224,12 @@ export default async function AgentProfilePage({
   }
 
   const user = agent.user
+
+  const isApproved = Boolean(agent?.approved)
+  const status = String(user?.status || 'ACTIVE').toUpperCase()
+  if (!isApproved || status !== 'ACTIVE') {
+    notFound()
+  }
   const name = user?.name || 'Agent'
   const email = user?.email || ''
   const phone = user?.phone || ''

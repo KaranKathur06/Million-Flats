@@ -10,6 +10,8 @@ type AgentRow = {
   email: string
   phone: string
   verified: boolean
+  role: string
+  status: string
   createdAt: string
   company: string
   license: string
@@ -63,6 +65,7 @@ export default function AdminAgentsTableClient({ items }: { items: AgentRow[] })
               <th className="py-3 pr-4">License</th>
               <th className="py-3 pr-4">Completion</th>
               <th className="py-3 pr-4">Approved</th>
+              <th className="py-3 pr-4">Account</th>
               <th className="py-3 pr-4">Created</th>
               <th className="py-3 pr-4">Actions</th>
             </tr>
@@ -72,6 +75,9 @@ export default function AdminAgentsTableClient({ items }: { items: AgentRow[] })
               const isBusy = busyId === it.agentId
               const canApprove = !it.approved && it.agentId
               const canSuspend = it.approved && it.agentId
+              const status = safeString(it.status || 'ACTIVE').toUpperCase() || 'ACTIVE'
+              const canBan = Boolean(it.agentId) && status !== 'BANNED'
+              const canRevokeRole = Boolean(it.agentId)
 
               return (
                 <tr key={it.agentId || it.userId} className="border-b border-white/5">
@@ -87,6 +93,19 @@ export default function AdminAgentsTableClient({ items }: { items: AgentRow[] })
                   <td className="py-4 pr-4">
                     <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-semibold text-white/90">
                       {it.approved ? 'Approved' : 'Pending'}
+                    </span>
+                  </td>
+                  <td className="py-4 pr-4">
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                        status === 'BANNED'
+                          ? 'border-red-500/30 bg-red-500/10 text-red-200'
+                          : status === 'SUSPENDED'
+                            ? 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+                            : 'border-white/10 bg-black/20 text-white/90'
+                      }`}
+                    >
+                      {status}
                     </span>
                   </td>
                   <td className="py-4 pr-4 text-white/70">{it.createdAt || '—'}</td>
@@ -125,6 +144,42 @@ export default function AdminAgentsTableClient({ items }: { items: AgentRow[] })
                       >
                         Suspend
                       </button>
+
+                      <button
+                        disabled={!canBan || isBusy}
+                        onClick={() =>
+                          doAction(it.agentId, async () => {
+                            const ok = window.confirm('Ban this agent? This disables login and hides all listings.')
+                            if (!ok) return
+                            await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/ban`)
+                          })
+                        }
+                        className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                          canBan && !isBusy
+                            ? 'bg-red-500/20 text-red-200 border border-red-500/30 hover:bg-red-500/25'
+                            : 'bg-white/5 text-white/30 cursor-not-allowed'
+                        }`}
+                      >
+                        Ban
+                      </button>
+
+                      <button
+                        disabled={!canRevokeRole || isBusy}
+                        onClick={() =>
+                          doAction(it.agentId, async () => {
+                            const ok = window.confirm('Revoke AGENT role? This demotes the account to USER and disables agent access.')
+                            if (!ok) return
+                            await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/revoke-role`)
+                          })
+                        }
+                        className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                          canRevokeRole && !isBusy
+                            ? 'border border-white/10 bg-transparent text-white/90 hover:bg-white/5'
+                            : 'bg-white/5 text-white/30 cursor-not-allowed'
+                        }`}
+                      >
+                        Revoke role
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -133,7 +188,7 @@ export default function AdminAgentsTableClient({ items }: { items: AgentRow[] })
 
             {items.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-10 text-center text-white/60">
+                <td colSpan={8} className="py-10 text-center text-white/60">
                   No agents found.
                 </td>
               </tr>

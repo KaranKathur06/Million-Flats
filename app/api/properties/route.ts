@@ -97,6 +97,10 @@ export async function GET(req: Request) {
     const where: any = {
       status: 'APPROVED',
       sourceType: 'MANUAL',
+      agent: {
+        approved: true,
+        user: { status: 'ACTIVE' },
+      },
     }
 
     if (q.country) where.countryCode = q.country

@@ -22,6 +22,12 @@ function normalizeRole(input: unknown) {
   return 'USER'
 }
 
+function normalizeStatus(input: unknown) {
+  const s = typeof input === 'string' ? input.trim().toUpperCase() : ''
+  if (s === 'ACTIVE' || s === 'SUSPENDED' || s === 'BANNED') return s
+  return 'ACTIVE'
+}
+
 let didAttemptRoleBackfill = false
 
 async function backfillNullRoles() {
@@ -96,6 +102,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name ?? undefined,
           role: user.role,
+          status: (user as any).status || 'ACTIVE',
         } as any
       },
     }),
@@ -146,8 +153,10 @@ export const authOptions: NextAuthOptions = {
       if (safeUser) {
         const id = (safeUser as any).id
         const role = normalizeRole((safeUser as any).role)
+        const status = normalizeStatus((safeUser as any).status)
         if (id) token.id = id
         token.role = role
+        token.status = status
       }
 
       const hasId = Boolean((token as any)?.id)
@@ -159,27 +168,32 @@ export const authOptions: NextAuthOptions = {
           if (dbUser) {
             ;(token as any).id = (token as any).id || dbUser.id
             ;(token as any).role = normalizeRole((dbUser as any).role)
+            ;(token as any).status = normalizeStatus((dbUser as any).status)
 
             if (!(dbUser as any).role) {
               await prisma.user.update({ where: { id: dbUser.id }, data: { role: 'USER' } as any }).catch(() => null)
             }
           } else {
             ;(token as any).role = normalizeRole((token as any).role)
+            ;(token as any).status = normalizeStatus((token as any).status)
           }
         }
       }
 
       ;(token as any).role = normalizeRole((token as any).role)
+      ;(token as any).status = normalizeStatus((token as any).status)
       return token
     },
     async session({ session, token }: any) {
       if (session?.user) {
         const tokenId = (token as any)?.id
         const tokenRole = (token as any)?.role
+        const tokenStatus = (token as any)?.status
         if (tokenId) {
           ;(session.user as any).id = tokenId
         }
         ;(session.user as any).role = normalizeRole(tokenRole)
+        ;(session.user as any).status = normalizeStatus(tokenStatus)
       }
       return session
     },

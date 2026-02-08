@@ -18,23 +18,34 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
   const agent = await (prisma as any).agent.findFirst({
     where: { id: agentId },
-    select: { id: true, approved: true, userId: true },
+    select: { id: true, approved: true, userId: true, user: { select: { role: true, status: true } } },
   })
 
   if (!agent) return bad('Not found', 404)
 
   const updated = await (prisma as any).agent.update({
     where: { id: agentId },
-    data: { approved: false, user: { update: { status: 'SUSPENDED' } } } as any,
+    data: { approved: false, user: { update: { status: 'BANNED' } } } as any,
     select: { id: true, approved: true },
   })
+
+  await (prisma as any).manualProperty
+    .updateMany({
+      where: { agentId, sourceType: 'MANUAL', status: 'APPROVED' },
+      data: { status: 'ARCHIVED', archivedAt: new Date(), archivedBy: auth.userId } as any,
+    })
+    .catch(() => null)
 
   await writeAuditLog({
     entityType: 'AGENT',
     entityId: agentId,
-    action: 'ADMIN_AGENT_SUSPENDED',
+    action: 'ADMIN_AGENT_BANNED',
     performedByUserId: auth.userId,
-    meta: { actor: 'admin', previousApproved: Boolean(agent.approved) },
+    meta: {
+      actor: 'admin',
+      previousApproved: Boolean(agent.approved),
+      previousStatus: String(agent?.user?.status || 'ACTIVE'),
+    },
   })
 
   return NextResponse.json({ success: true, agent: updated })

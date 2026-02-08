@@ -58,6 +58,7 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
   const agents = await prisma.agent
     .findMany({
       include: { user: true },
+      where: { approved: true, user: { status: 'ACTIVE' } } as any,
       orderBy: { createdAt: 'desc' },
       take: 500,
     })
@@ -85,7 +86,12 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
     ? await (prisma as any).manualProperty
         .groupBy({
           by: ['agentId'],
-          where: { agentId: { in: agentIds }, status: 'APPROVED', sourceType: 'MANUAL' },
+          where: {
+            agentId: { in: agentIds },
+            status: 'APPROVED',
+            sourceType: 'MANUAL',
+            agent: { approved: true, user: { status: 'ACTIVE' } },
+          },
           _count: { _all: true },
         })
         .catch((error: unknown) => {

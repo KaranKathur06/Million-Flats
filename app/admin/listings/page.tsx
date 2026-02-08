@@ -118,18 +118,17 @@ export default async function AdminListingsPage({
   })
 
   return (
-    <div className="min-h-screen bg-[#0b1220] py-10 text-white">
-      <div className="mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-8">
-        <div className="rounded-2xl border border-white/10 bg-[#0f1a2e] p-7">
-          <p className="text-amber-300 font-semibold text-sm uppercase tracking-wider">Admin</p>
-          <div className="mt-2 flex items-center justify-between gap-4">
-            <h1 className="text-3xl font-serif font-bold">Listings</h1>
-            <Link href="/admin" className="text-sm font-semibold text-white/80 hover:text-white">
-              Back to dashboard
-            </Link>
-          </div>
+    <div className="mx-auto max-w-[1500px]">
+      <div className="rounded-2xl border border-white/10 bg-[#0f1a2e] p-7">
+        <p className="text-amber-300 font-semibold text-sm uppercase tracking-wider">Admin</p>
+        <div className="mt-2 flex items-center justify-between gap-4">
+          <h1 className="text-3xl font-serif font-bold">Listings</h1>
+          <Link href="/admin" className="text-sm font-semibold text-white/80 hover:text-white">
+            Back to dashboard
+          </Link>
+        </div>
 
-          <form className="mt-6 grid grid-cols-1 md:grid-cols-6 gap-3" method="get">
+        <form className="mt-6 grid grid-cols-1 md:grid-cols-6 gap-3" method="get">
             <select
               name="status"
               defaultValue={status}
@@ -174,11 +173,11 @@ export default async function AdminListingsPage({
             <button className="h-11 rounded-xl bg-amber-400 text-[#0b1220] font-semibold hover:bg-amber-300">
               Apply
             </button>
-          </form>
 
-          <div className="mt-6">
-            <AdminListingsTableClient items={items} />
-          </div>
+        </form>
+
+        <div className="mt-6">
+          <AdminListingsTableClient items={items} />
         </div>
       </div>
     </div>

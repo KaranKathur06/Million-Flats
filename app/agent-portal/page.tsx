@@ -9,11 +9,15 @@ export default async function AgentPortalPage() {
   const sessionRole = String((session?.user as any)?.role || '').toUpperCase()
   const sessionEmail = String((session?.user as any)?.email || '').trim().toLowerCase()
 
-  const dbRole = sessionEmail
-    ? String((await prisma.user.findUnique({ where: { email: sessionEmail }, select: { role: true } }))?.role || '').toUpperCase()
-    : ''
+  const dbUser = sessionEmail
+    ? await (prisma as any).user
+        .findUnique({ where: { email: sessionEmail }, select: { role: true, status: true, agent: { select: { approved: true } } } })
+        .catch(() => null)
+    : null
 
-  const role = dbRole || sessionRole
+  const role = String(dbUser?.role || sessionRole || '').toUpperCase()
+  const status = String(dbUser?.status || (session?.user as any)?.status || 'ACTIVE').toUpperCase()
+  const isApproved = Boolean(dbUser?.agent?.approved)
 
   if (!role) {
     redirect('/agent/login')
@@ -21,6 +25,10 @@ export default async function AgentPortalPage() {
 
   if (role !== 'AGENT') {
     redirect('/user/dashboard')
+  }
+
+  if (status !== 'ACTIVE' || !isApproved) {
+    redirect('/agent/login?error=account_disabled')
   }
 
   return <AgentDashboardPage />

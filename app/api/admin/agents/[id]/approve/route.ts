@@ -25,7 +25,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
   const updated = await (prisma as any).agent.update({
     where: { id: agentId },
-    data: { approved: true } as any,
+    data: { approved: true, user: { update: { status: 'ACTIVE' } } } as any,
     select: { id: true, approved: true },
   })
 

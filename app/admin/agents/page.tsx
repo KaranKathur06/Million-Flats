@@ -31,6 +31,8 @@ export default async function AdminAgentsPage() {
       name: true,
       phone: true,
       verified: true,
+      role: true,
+      status: true,
       createdAt: true,
       agent: {
         select: {
@@ -55,6 +57,8 @@ export default async function AdminAgentsPage() {
       email: safeString(u.email),
       phone: safeString(u.phone),
       verified: Boolean(u.verified),
+      role: safeString(u.role),
+      status: safeString(u.status),
       createdAt: u.createdAt ? new Date(u.createdAt).toLocaleString() : '',
       company: safeString(agent?.company),
       license: safeString(agent?.license),
@@ -65,20 +69,18 @@ export default async function AdminAgentsPage() {
   })
 
   return (
-    <div className="min-h-screen bg-[#0b1220] py-10 text-white">
-      <div className="mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-8">
-        <div className="rounded-2xl border border-white/10 bg-[#0f1a2e] p-7">
-          <p className="text-amber-300 font-semibold text-sm uppercase tracking-wider">Admin</p>
-          <div className="mt-2 flex items-center justify-between gap-4">
-            <h1 className="text-3xl font-serif font-bold">Agents</h1>
-            <Link href="/admin" className="text-sm font-semibold text-white/80 hover:text-white">
-              Back to dashboard
-            </Link>
-          </div>
+    <div className="mx-auto max-w-[1500px]">
+      <div className="rounded-2xl border border-white/10 bg-[#0f1a2e] p-7">
+        <p className="text-amber-300 font-semibold text-sm uppercase tracking-wider">Admin</p>
+        <div className="mt-2 flex items-center justify-between gap-4">
+          <h1 className="text-3xl font-serif font-bold">Agents</h1>
+          <Link href="/admin" className="text-sm font-semibold text-white/80 hover:text-white">
+            Back to dashboard
+          </Link>
+        </div>
 
-          <div className="mt-6">
-            <AdminAgentsTableClient items={items} />
-          </div>
+        <div className="mt-6">
+          <AdminAgentsTableClient items={items} />
         </div>
       </div>
     </div>

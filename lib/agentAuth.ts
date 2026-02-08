@@ -24,5 +24,14 @@ export async function requireAgentSession() {
     return { ok: false as const, status: 403, message: 'Forbidden' }
   }
 
+  const status = String((dbUser as any)?.status || 'ACTIVE').toUpperCase()
+  if (status !== 'ACTIVE') {
+    return { ok: false as const, status: 403, message: 'Forbidden' }
+  }
+
+  if (!dbUser.agent.approved) {
+    return { ok: false as const, status: 403, message: 'Forbidden' }
+  }
+
   return { ok: true as const, agentId: dbUser.agent.id, userId: dbUser.id }
 }

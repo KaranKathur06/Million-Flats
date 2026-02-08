@@ -259,7 +259,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   if (isUuid(rawId)) {
     const manual = await (prisma as any).manualProperty
       .findFirst({
-        where: { id: rawId, status: 'APPROVED', sourceType: 'MANUAL' },
+        where: { id: rawId, status: 'APPROVED', sourceType: 'MANUAL', agent: { approved: true, user: { status: 'ACTIVE' } } },
         include: { media: true },
       })
       .catch(() => null)
@@ -317,7 +317,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
   if (isUuid(rawId)) {
     const manual = await (prisma as any).manualProperty
       .findFirst({
-        where: { id: rawId, status: 'APPROVED', sourceType: 'MANUAL' },
+        where: { id: rawId, status: 'APPROVED', sourceType: 'MANUAL', agent: { approved: true, user: { status: 'ACTIVE' } } },
         include: { media: { orderBy: [{ category: 'asc' }, { position: 'asc' }] }, agent: { include: { user: true } } },
       })
       .catch(() => null)

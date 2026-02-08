@@ -10,8 +10,9 @@ const AUTH_PREFIXES = ['/user/login', '/user/register', '/agent/login', '/agent/
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isAuthRoute = AUTH_PREFIXES.some((p) => pathname?.startsWith(p))
+  const isAdminRoute = pathname === '/admin' || pathname?.startsWith('/admin/')
 
-  if (isAuthRoute) {
+  if (isAuthRoute || isAdminRoute) {
     return <main className="min-h-screen">{children}</main>
   }
 
