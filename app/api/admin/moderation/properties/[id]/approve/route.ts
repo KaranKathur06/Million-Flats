@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
+import { writeAuditLog } from '@/lib/audit'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ success: false, message: msg }, { status })
@@ -79,6 +80,14 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
       action: 'APPROVE',
       reason: null,
     } as any,
+  })
+
+  await writeAuditLog({
+    entityType: 'MANUAL_PROPERTY',
+    entityId: id,
+    action: 'ADMIN_APPROVED',
+    performedByUserId: auth.userId,
+    meta: { actor: 'admin' },
   })
 
   return NextResponse.json({ success: true, property: updated })

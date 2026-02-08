@@ -17,7 +17,7 @@ function canOptimizeUrl(src: string) {
   if (!src.startsWith('http')) return true
   try {
     const u = new URL(src)
-    return u.hostname === 'api.reelly.io' || u.hostname === 'reelly-backend.s3.amazonaws.com' || u.hostname === 'images.unsplash.com'
+    return u.hostname === 'images.unsplash.com'
   } catch {
     return false
   }

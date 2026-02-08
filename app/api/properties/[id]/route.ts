@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { reellyGetProject } from '@/lib/reelly'
 
 type RateEntry = { count: number; resetAt: number }
 
@@ -45,11 +44,5 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: 'missing_id' }, { status: 400 })
   }
 
-  try {
-    const data = await reellyGetProject<any>(id)
-    return NextResponse.json({ item: data, raw: data })
-  } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return NextResponse.json({ error: 'reelly_failed', message }, { status: 502 })
-  }
+  return NextResponse.json({ success: false, message: 'Not found' }, { status: 404 })
 }

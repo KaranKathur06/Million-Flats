@@ -8,7 +8,7 @@ function canOptimizeUrl(src: string) {
   if (!src.startsWith('http')) return true
   try {
     const u = new URL(src)
-    return u.hostname === 'api.reelly.io' || u.hostname === 'reelly-backend.s3.amazonaws.com' || u.hostname === 'images.unsplash.com'
+    return u.hostname === 'images.unsplash.com'
   } catch {
     return false
   }
@@ -26,7 +26,6 @@ type Listing = {
   images: string[]
   featured: boolean
   propertyType?: string
-  sourceType?: 'REELLY' | 'MANUAL'
 }
 
 export default function AgentListingCard({ listing }: { listing: Listing }) {
@@ -52,11 +51,9 @@ export default function AgentListingCard({ listing }: { listing: Listing }) {
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           unoptimized={unoptimized}
         />
-        {listing.sourceType ? (
-          <div className="absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold bg-white/90 text-dark-blue border border-white/60">
-            {listing.sourceType === 'MANUAL' ? 'Agent listing' : 'Verified project'}
-          </div>
-        ) : null}
+        <div className="absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold bg-white/90 text-dark-blue border border-white/60">
+          Agent listing
+        </div>
         {listing.featured ? (
           <div className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold bg-white/90 text-dark-blue border border-white/60">
             Featured

@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAgentSession } from '@/lib/agentAuth'
-import { reellyGetProject } from '@/lib/reelly'
 
 const SubmitSchema = z.object({
   duplicateOverrideConfirmed: z.boolean().optional(),
@@ -65,19 +64,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     const score = typeof property.duplicateScore === 'number' ? property.duplicateScore : 0
     if (score > 75 && property.duplicateMatchedProjectId && property.developerName) {
-      return bad('Remove developer name for listings that match a verified project. This prevents developer branding duplication.')
-    }
-
-    if (score > 75 && property.duplicateMatchedProjectId && property.title) {
-      try {
-        const p = await reellyGetProject<any>(String(property.duplicateMatchedProjectId))
-        const projectName = String((p as any)?.name || (p as any)?.title || '').trim()
-        if (projectName && normalizeName(projectName) === normalizeName(String(property.title))) {
-          return bad('Manual listings cannot reuse the exact verified project name. Please adjust the title.')
-        }
-      } catch {
-        // ignore
-      }
+      return bad('Remove developer name for listings that match an existing listing. This prevents branding duplication.')
     }
 
     if (score > 75 && !parsed.data.duplicateOverrideConfirmed && !property.duplicateOverrideConfirmed) {

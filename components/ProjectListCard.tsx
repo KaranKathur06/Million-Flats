@@ -44,16 +44,15 @@ function formatCompletionDate(value: string) {
 function ProjectListCardInner({ project }: { project: ReellyProject }) {
   const [imgErrored, setImgErrored] = useState(false)
 
-  const canOptimizeUrl = useMemo(() => {
-    const src = project.cover_image?.url || ''
+  const canOptimizeUrl = (src: string) => {
     if (!src.startsWith('http')) return true
     try {
       const u = new URL(src)
-      return u.hostname === 'api.reelly.io' || u.hostname === 'reelly-backend.s3.amazonaws.com' || u.hostname === 'images.unsplash.com'
+      return u.hostname === 'images.unsplash.com'
     } catch {
       return false
     }
-  }, [project.cover_image?.url])
+  }
 
   const imageUrl = useMemo(() => {
     const raw = project.cover_image?.url || ''
@@ -61,7 +60,7 @@ function ProjectListCardInner({ project }: { project: ReellyProject }) {
     return raw || '/image-placeholder.svg'
   }, [imgErrored, project.cover_image?.url])
 
-  const unoptimized = useMemo(() => imageUrl.startsWith('http') && !canOptimizeUrl, [canOptimizeUrl, imageUrl])
+  const unoptimized = imageUrl.startsWith('http') && !canOptimizeUrl(imageUrl)
 
   const constructionBadge = project.construction_status === 'completed' ? 'Completed' : 'Under Construction'
 

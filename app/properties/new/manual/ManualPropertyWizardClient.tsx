@@ -70,6 +70,7 @@ type ManualProperty = {
   tour3dUrl?: string | null
 
   media?: MediaItem[]
+  lastCompletedStep?: Step
 }
 
 type Step = 'basics' | 'location' | 'media' | 'amenities' | 'pricing' | 'declaration' | 'review'
@@ -93,9 +94,11 @@ export default function ManualPropertyWizardClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const draftIdFromUrl = searchParams?.get('draft') || ''
+  const draftIdFromUrl = searchParams?.get('draft') || searchParams?.get('draftId') || ''
+  const modeFromUrl = (searchParams?.get('mode') || '').toLowerCase()
   const didAutoLoadDraftRef = useRef(false)
   const didAutoCreateDraftRef = useRef(false)
+  const hydratedDraftIdRef = useRef<string>('')
 
   const safeJson = useCallback(async (res: Response) => {
     try {
@@ -114,6 +117,12 @@ export default function ManualPropertyWizardClient() {
   const [mediaPreviewUrls, setMediaPreviewUrls] = useState<Record<string, string>>({})
   const [mediaBusyId, setMediaBusyId] = useState<string>('')
   const [resumeDraftId, setResumeDraftId] = useState<string>('')
+
+  useEffect(() => {
+    if (modeFromUrl === 'edit') {
+      setStep('basics')
+    }
+  }, [modeFromUrl])
 
   const [property, setProperty] = useState<ManualProperty>(() => ({
     id: '',
@@ -145,6 +154,21 @@ export default function ManualPropertyWizardClient() {
   useEffect(() => {
     propertyRef.current = property
   }, [property])
+
+  const mergeProperty = useCallback((next: Partial<ManualProperty>) => {
+    setProperty((prev) => {
+      const mergedAmenities = next.amenities !== undefined ? (next.amenities ?? []) : prev.amenities
+      const mergedCustomAmenities = next.customAmenities !== undefined ? (next.customAmenities ?? []) : prev.customAmenities
+      const mergedMedia = next.media !== undefined ? (next.media ?? []) : prev.media
+      return {
+        ...(prev as any),
+        ...(next as any),
+        amenities: mergedAmenities,
+        customAmenities: mergedCustomAmenities,
+        media: mergedMedia,
+      }
+    })
+  }, [])
 
   const rememberDraftId = useCallback((id: string) => {
     if (!id) return
@@ -272,48 +296,68 @@ export default function ManualPropertyWizardClient() {
     return !p.id && !p.title && !p.city && !p.community && typeof p.price !== 'number' && (p.media?.length || 0) === 0
   }
 
-  const fetchDraft = useCallback(async (id: string, opts?: { mode?: 'auto' | 'manual' }) => {
-    setLoadingDraft(true)
-    setError('')
-    setNotice('')
-    try {
-      const res = await fetch(`/api/manual-properties/${encodeURIComponent(id)}`)
-      const data = (await safeJson(res)) as any
-      if (!data) throw new Error('Invalid server response')
-      if (!res.ok || !data?.success) {
-        throw new Error(data?.error || data?.message || 'Failed to load draft')
-      }
+  const fetchDraft = useCallback(
+    async (id: string, opts?: { mode?: 'auto' | 'manual' }) => {
+      setLoadingDraft(true)
+      setError('')
+      setNotice('')
+      try {
+        const res = await fetch(`/api/manual-properties/${encodeURIComponent(id)}`)
+        const data = (await safeJson(res)) as any
+        if (!data) throw new Error('Invalid server response')
+        if (!res.ok || !data?.success) {
+          throw new Error(data?.error || data?.message || 'Failed to load draft')
+        }
 
-      const mode = opts?.mode || 'manual'
-      const local = propertyRef.current
-      const canAutoApply = mode === 'manual' || isBlankDraft(local)
+        const mode = opts?.mode || 'manual'
+        const local = propertyRef.current
+        const canAutoApply = mode === 'manual' || isBlankDraft(local)
 
-      if (!canAutoApply) {
-        setNotice('Draft found in URL. Click “Load Draft” to restore it (this will overwrite the current form).')
-        return
-      }
+        if (!canAutoApply) {
+          setNotice('Draft found in URL. Click “Load Draft” to restore it (this will overwrite the current form).')
+          return
+        }
 
-      setProperty(data.property)
-      didHydrateFromServerRef.current = true
-      rememberDraftId(String(data.property?.id || id))
-      if (!draftIdFromUrl && String(data.property?.id || '')) {
-        router.replace(`/properties/new/manual?draft=${encodeURIComponent(String(data.property.id))}`)
+        mergeProperty(data.property)
+        didHydrateFromServerRef.current = true
+        rememberDraftId(String(data.property?.id || id))
+        if (!draftIdFromUrl && String(data.property?.id || '')) {
+          router.replace(`/properties/new/manual?draft=${encodeURIComponent(String(data.property.id))}`)
+        }
+        setResumeDraftId('')
+        setDuplicateConfirm(Boolean(data.property?.duplicateOverrideConfirmed))
+        const score = Number(data.property?.duplicateScore || 0)
+        if (score > 0) {
+          setDuplicate({ score, level: score >= 75 ? 'strong' : score >= 50 ? 'soft' : 'none', match: null })
+        } else {
+          setDuplicate(null)
+        }
+        if (modeFromUrl === 'resume') {
+          const last = String((data.property as any)?.lastCompletedStep || '').trim() as Step
+          const allowed: Step[] = ['basics', 'location', 'media', 'amenities', 'pricing', 'declaration', 'review']
+          if (allowed.includes(last)) setStep(last)
+        }
+        setNotice('Draft loaded.')
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to load draft')
+      } finally {
+        setLoadingDraft(false)
       }
-      setResumeDraftId('')
-      setDuplicateConfirm(Boolean(data.property?.duplicateOverrideConfirmed))
-      const score = Number(data.property?.duplicateScore || 0)
-      if (score > 0) {
-        setDuplicate({ score, level: score >= 75 ? 'strong' : score >= 50 ? 'soft' : 'none', match: null })
-      } else {
-        setDuplicate(null)
-      }
-      setNotice('Draft loaded.')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load draft')
-    } finally {
-      setLoadingDraft(false)
-    }
-  }, [draftIdFromUrl, rememberDraftId, router, safeJson])
+    },
+    [draftIdFromUrl, mergeProperty, rememberDraftId, router, safeJson, modeFromUrl]
+  )
+
+  useEffect(() => {
+    if (propertyId) return
+    if (!resumeDraftId) return
+    if (loadingDraft || saving) return
+    if (didAutoLoadDraftRef.current) return
+    if (hydratedDraftIdRef.current === resumeDraftId) return
+
+    didAutoLoadDraftRef.current = true
+    hydratedDraftIdRef.current = resumeDraftId
+    fetchDraft(resumeDraftId, { mode: 'auto' })
+  }, [fetchDraft, loadingDraft, propertyId, resumeDraftId, saving])
 
   useEffect(() => {
     if (step !== 'amenities') return
@@ -342,7 +386,7 @@ export default function ManualPropertyWizardClient() {
         const code = json?.code ? ` (${String(json.code)})` : ''
         throw new Error(String(json?.error || json?.message || 'Failed to save') + code + details)
       }
-      setProperty(json.property)
+      mergeProperty(json.property)
       didHydrateFromServerRef.current = true
       return json.property as ManualProperty
     } catch (e) {
@@ -351,7 +395,16 @@ export default function ManualPropertyWizardClient() {
     } finally {
       setSaving(false)
     }
-  }, [safeJson])
+  }, [mergeProperty, safeJson])
+
+  useEffect(() => {
+    const id = propertyRef.current?.id
+    const status = propertyRef.current?.status
+    if (!id) return
+    if (status && status !== 'DRAFT' && status !== 'REJECTED') return
+    if (!didHydrateFromServerRef.current) return
+    patchById(id, { lastCompletedStep: step } as any)
+  }, [patchById, step])
 
   const buildSavePayload = useCallback((): Partial<ManualProperty> => {
     return {
@@ -406,7 +459,7 @@ export default function ManualPropertyWizardClient() {
         throw new Error(String(data?.error || data?.message || 'Failed to create draft') + code + details)
       }
       const nextId = String(data.property.id)
-      setProperty((p) => ({ ...(p as any), id: nextId, status: data.property.status || 'DRAFT' }))
+      mergeProperty({ id: nextId, status: data.property.status || 'DRAFT' })
       router.replace(`/properties/new/manual?draft=${encodeURIComponent(nextId)}`)
       rememberDraftId(nextId)
       didHydrateFromServerRef.current = true
@@ -418,7 +471,7 @@ export default function ManualPropertyWizardClient() {
     } finally {
       setSaving(false)
     }
-  }, [propertyId, rememberDraftId, router, safeJson])
+  }, [mergeProperty, propertyId, rememberDraftId, router, safeJson])
 
   const autosave = useMemo(
     () =>
@@ -523,27 +576,59 @@ export default function ManualPropertyWizardClient() {
     setError('')
     setUploadingCategory(category)
     try {
-      const fd = new FormData()
-      fd.set('file', file)
       const altGuess = `${property?.title || 'Property'} - ${category.toLowerCase().replace(/_/g, ' ')}`
-      fd.set('altText', altGuess)
-      fd.set('propertyId', propertyId)
-      fd.set('type', categoryToType(category))
 
-      const res = await fetch(
-        '/api/manual-properties/upload',
-        { method: 'POST', body: fd }
-      )
-      const json = (await safeJson(res)) as any
-      if (!json) throw new Error('Invalid server response')
-      if (!res.ok || !json?.success) {
-        throw new Error(json?.error || json?.message || 'Upload failed')
+      const presignRes = await fetch('/api/manual-properties/upload/presign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          propertyId,
+          category,
+          filename: file.name,
+          contentType: file.type || 'application/octet-stream',
+          sizeBytes: file.size,
+          altText: altGuess,
+        }),
+      })
+
+      const presignJson = (await safeJson(presignRes)) as any
+      if (!presignJson || !presignRes.ok || !presignJson?.success) {
+        throw new Error(presignJson?.message || presignJson?.error || 'Failed to prepare upload')
       }
-      if (Array.isArray(json?.media)) {
-        setProperty((p) => ({ ...(p as any), media: json.media }))
-      } else {
-        await fetchDraft(propertyId)
+
+      const uploadRes = await fetch(String(presignJson.uploadUrl), {
+        method: 'PUT',
+        headers: { 'Content-Type': String(file.type || 'application/octet-stream') },
+        body: file,
+      })
+
+      if (!uploadRes.ok) {
+        throw new Error('Upload failed')
       }
+
+      const completeRes = await fetch('/api/manual-properties/upload/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          propertyId,
+          category,
+          url: String(presignJson.objectUrl),
+          s3Key: String(presignJson.key),
+          mimeType: file.type || null,
+          sizeBytes: file.size,
+          altText: altGuess,
+        }),
+      })
+
+      const completeJson = (await safeJson(completeRes)) as any
+      if (!completeJson || !completeRes.ok || !completeJson?.success) {
+        throw new Error(completeJson?.message || completeJson?.error || 'Failed to finalize upload')
+      }
+
+      if (Array.isArray(completeJson?.media)) {
+        mergeProperty({ media: completeJson.media })
+      }
+
       setNotice('Uploaded successfully')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed')
@@ -551,6 +636,28 @@ export default function ManualPropertyWizardClient() {
       setUploadingCategory('')
     }
   }
+
+  const uploadMany = useCallback(
+    async (category: string, files: File[]) => {
+      if (!files.length) return
+      const id = await ensureRemoteDraft()
+      if (!id) return
+      await Promise.all(files.map((f) => upload(category, f)))
+    },
+    [ensureRemoteDraft]
+  )
+
+  const toggleAmenity = useCallback(
+    (amenity: string) => {
+      const next = new Set(propertyRef.current?.amenities || [])
+      if (next.has(amenity)) next.delete(amenity)
+      else next.add(amenity)
+      const list = Array.from(next)
+      mergeProperty({ amenities: list })
+      patch({ amenities: list })
+    },
+    [mergeProperty, patch]
+  )
 
   const deleteMedia = useCallback(
     async (mediaId: string) => {
@@ -621,7 +728,7 @@ export default function ManualPropertyWizardClient() {
             <p className="text-accent-orange font-semibold text-sm uppercase tracking-wider">Manual Listing</p>
             <h1 className="mt-2 text-3xl md:text-4xl font-serif font-bold text-dark-blue">Add Manual Property</h1>
             <p className="mt-2 text-sm text-gray-600">
-              Agent-owned inventory is reviewed before going live. Verified projects remain separate.
+              Agent-owned inventory is reviewed before going live.
             </p>
           </div>
           <Link href="/agent-portal" className="text-sm font-semibold text-dark-blue hover:underline">
@@ -669,18 +776,18 @@ export default function ManualPropertyWizardClient() {
           >
             <p className="font-semibold text-dark-blue">
               {duplicate.level === 'strong'
-                ? 'This looks like an existing verified project.'
-                : 'This property looks similar to an existing verified project.'}
+                ? 'This looks like an existing listing.'
+                : 'This property looks similar to an existing listing.'}
             </p>
             <p className="mt-1 text-sm text-gray-700">Confidence: {duplicate.score}/100</p>
             {duplicate.match ? (
               <div className="mt-3 rounded-xl border border-gray-200 bg-white p-4">
                 <p className="font-semibold text-dark-blue">{duplicate.match.name}</p>
-                <p className="text-sm text-gray-600 mt-1">{duplicate.match.developer || 'Verified project'}</p>
+                <p className="text-sm text-gray-600 mt-1">{duplicate.match.developer || 'Listing'}</p>
                 <div className="mt-3 flex flex-wrap gap-3">
                   {duplicate.match.url ? (
                     <Link href={duplicate.match.url} className="text-sm font-semibold text-dark-blue hover:underline">
-                      View Verified Project
+                      View listing
                     </Link>
                   ) : null}
                 </div>
@@ -946,7 +1053,15 @@ export default function ManualPropertyWizardClient() {
                   type="number"
                   value={property?.latitude ?? ''}
                   onChange={(e) => setProperty((p) => ({ ...(p as any), latitude: Number(e.target.value) }))}
-                  onBlur={(e) => patch({ latitude: Number(e.target.value) || null })}
+                  onBlur={(e) => {
+                    const raw = e.target.value
+                    if (raw === '') {
+                      patch({ latitude: null })
+                      return
+                    }
+                    const n = Number(raw)
+                    patch({ latitude: Number.isFinite(n) ? n : null })
+                  }}
                   className="w-full h-12 px-4 rounded-xl border border-gray-300"
                 />
               </div>
@@ -956,7 +1071,15 @@ export default function ManualPropertyWizardClient() {
                   type="number"
                   value={property?.longitude ?? ''}
                   onChange={(e) => setProperty((p) => ({ ...(p as any), longitude: Number(e.target.value) }))}
-                  onBlur={(e) => patch({ longitude: Number(e.target.value) || null })}
+                  onBlur={(e) => {
+                    const raw = e.target.value
+                    if (raw === '') {
+                      patch({ longitude: null })
+                      return
+                    }
+                    const n = Number(raw)
+                    patch({ longitude: Number.isFinite(n) ? n : null })
+                  }}
                   className="w-full h-12 px-4 rounded-xl border border-gray-300"
                 />
               </div>
@@ -1002,8 +1125,8 @@ export default function ManualPropertyWizardClient() {
                       className="hidden"
                       accept="video/mp4,video/webm"
                       onChange={(e) => {
-                        const f = e.target.files?.[0]
-                        if (f) upload('VIDEO', f)
+                        const files = Array.from(e.target.files || [])
+                        if (files.length > 0) uploadMany('VIDEO', files)
                         e.currentTarget.value = ''
                       }}
                     />
@@ -1100,10 +1223,11 @@ export default function ManualPropertyWizardClient() {
                       <input
                         type="file"
                         className="hidden"
+                        multiple={cat !== 'BROCHURE'}
                         accept={cat === 'BROCHURE' ? 'application/pdf' : 'image/*'}
                         onChange={(e) => {
-                          const f = e.target.files?.[0]
-                          if (f) upload(cat, f)
+                          const files = Array.from(e.target.files || [])
+                          if (files.length > 0) uploadMany(cat, files)
                           e.currentTarget.value = ''
                         }}
                       />
@@ -1173,21 +1297,16 @@ export default function ManualPropertyWizardClient() {
                       {amenityIndex.slice(0, 120).map((a) => {
                         const selected = (property?.amenities || []).includes(a)
                         return (
-                          <label key={a} className="flex items-center gap-2 text-sm text-gray-700">
-                            <input
-                              type="checkbox"
-                              checked={selected}
-                              onChange={(e) => {
-                                const next = new Set(property?.amenities || [])
-                                if (e.target.checked) next.add(a)
-                                else next.delete(a)
-                                const list = Array.from(next)
-                                setProperty((p) => ({ ...(p as any), amenities: list }))
-                                patch({ amenities: list })
-                              }}
-                            />
-                            <span>{a}</span>
-                          </label>
+                          <button
+                            key={a}
+                            type="button"
+                            onClick={() => toggleAmenity(a)}
+                            className={`px-3 py-2 rounded-lg border text-sm text-left transition ${
+                              selected ? 'bg-dark-blue text-white border-dark-blue' : 'bg-white border-gray-300 text-gray-700'
+                            }`}
+                          >
+                            {a}
+                          </button>
                         )
                       })}
                     </div>

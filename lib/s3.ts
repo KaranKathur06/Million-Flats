@@ -113,6 +113,33 @@ export async function createSignedGetUrl(params: { key: string; expiresInSeconds
   return { region, bucket, url, expiresIn }
 }
 
+export async function createSignedPutUrl(params: {
+  folder: string
+  filename: string
+  contentType: string
+  expiresInSeconds?: number
+}) {
+  const { region, bucket } = requireS3Env()
+  const client = getS3Client()
+
+  const key = buildS3Key(params.folder, params.filename)
+  const expiresIn = Math.min(60 * 10, Math.max(30, params.expiresInSeconds ?? 600))
+
+  const uploadUrl = await getSignedUrl(
+    client,
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ContentType: params.contentType || 'application/octet-stream',
+    }),
+    { expiresIn }
+  )
+
+  const objectUrl = `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key).replace(/%2F/g, '/')}`
+
+  return { region, bucket, key, uploadUrl, objectUrl, expiresIn }
+}
+
 export function extractS3KeyFromUrl(objectUrl: string) {
   const { region, bucket } = requireS3Env()
   const prefix = `https://${bucket}.s3.${region}.amazonaws.com/`

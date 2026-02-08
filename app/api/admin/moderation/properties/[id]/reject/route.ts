@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
+import { writeAuditLog } from '@/lib/audit'
 
 const RejectSchema = z.object({
   reason: z.string().trim().min(3).max(2000),
@@ -49,6 +50,14 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       action: 'REJECT',
       reason: parsed.data.reason,
     } as any,
+  })
+
+  await writeAuditLog({
+    entityType: 'MANUAL_PROPERTY',
+    entityId: id,
+    action: 'ADMIN_REJECTED',
+    performedByUserId: auth.userId,
+    meta: { actor: 'admin' },
   })
 
   return NextResponse.json({ success: true, property: updated })

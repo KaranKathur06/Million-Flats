@@ -11,7 +11,7 @@ function canOptimizeUrl(src: string) {
   if (!src.startsWith('http')) return true
   try {
     const u = new URL(src)
-    return u.hostname === 'api.reelly.io' || u.hostname === 'reelly-backend.s3.amazonaws.com' || u.hostname === 'images.unsplash.com'
+    return u.hostname === 'images.unsplash.com'
   } catch {
     return false
   }
@@ -37,7 +37,6 @@ interface Property {
   images: string[]
   featured: boolean
   propertyType: string
-  sourceType?: 'REELLY' | 'MANUAL'
   agent?: Agent
 }
 
@@ -112,7 +111,7 @@ export default function PropertyListCard({ property }: { property: Property }) {
             </div>
           )}
           <div className="absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold bg-white/90 text-dark-blue border border-white/60">
-            {property.sourceType === 'MANUAL' ? 'Agent Listing' : 'Verified Project'}
+            Agent Listing
           </div>
         </div>
 
@@ -183,7 +182,7 @@ export default function PropertyListCard({ property }: { property: Property }) {
               </div>
             )}
             <div className="absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-semibold bg-white/90 text-dark-blue border border-white/60">
-              {property.sourceType === 'MANUAL' ? 'Agent Listing' : 'Verified Project'}
+              Agent Listing
             </div>
           </div>
           {thumbs.length > 0 && (

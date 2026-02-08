@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { reellyFetch, reellyGetProject } from '@/lib/reelly'
 
 const InputSchema = z.object({
   title: z.string().trim().min(1).max(160).optional(),
@@ -78,36 +77,9 @@ function geoScore(distanceMeters: number) {
 async function getMarkers(): Promise<Marker[]> {
   const now = Date.now()
   if (markerCache && markerCache.expiresAt > now) return markerCache.markers
-
-  if (!markerInFlight) {
-    markerInFlight = (async () => {
-      const raw = await reellyFetch<any>('/api/v2/clients/projects/markers', {}, { cacheTtlMs: MARKERS_TTL_MS })
-      const items: unknown[] = Array.isArray((raw as any)?.items)
-        ? (raw as any).items
-        : Array.isArray((raw as any)?.results)
-          ? (raw as any).results
-          : Array.isArray(raw)
-            ? raw
-            : []
-
-      const markers: Marker[] = []
-      for (const it of items) {
-        const id = safeString((it as any)?.id) || String(safeNumber((it as any)?.id))
-        const name = safeString((it as any)?.name) || safeString((it as any)?.title) || ''
-        const lat = safeNumber((it as any)?.lat ?? (it as any)?.latitude)
-        const lng = safeNumber((it as any)?.lng ?? (it as any)?.longitude)
-        if (!id || !Number.isFinite(lat) || !Number.isFinite(lng)) continue
-        markers.push({ id, name, lat, lng })
-      }
-
-      markerCache = { expiresAt: Date.now() + MARKERS_TTL_MS, markers }
-      return markers
-    })().finally(() => {
-      markerInFlight = null
-    })
-  }
-
-  return markerInFlight
+  const markers: Marker[] = []
+  markerCache = { expiresAt: Date.now() + MARKERS_TTL_MS, markers }
+  return markers
 }
 
 export async function POST(req: Request) {
@@ -157,45 +129,15 @@ export async function POST(req: Request) {
     let area = 0
 
     if (nameSim >= 45 || gScore >= 70) {
-      try {
-        const project = await reellyGetProject<any>(String(c.id))
-        const dev = safeString(project?.developer?.name) || safeString(project?.developer_name) || ''
-        const projectCommunity =
-          safeString(project?.location?.district) || safeString(project?.location?.community) || safeString(project?.location?.sector) || ''
-
-        devSim = developerName && dev ? tokenSimilarity(developerName, dev) : 0
-
-        const p = safeNumber(project?.min_price ?? project?.price ?? 0)
-        if (price && p) {
-          const ratio = Math.min(price, p) / Math.max(price, p)
-          priceScore = ratio >= 0.9 ? 100 : ratio >= 0.8 ? 70 : ratio >= 0.7 ? 40 : 0
-        }
-
-        area = community && projectCommunity ? tokenSimilarity(community, projectCommunity) : 0
-
-        const score = Math.round(nameSim * 0.4 + area * 0.25 + devSim * 0.15 + gScore * 0.15 + priceScore * 0.05)
-
-        if (!best || score > best.score) {
-          best = {
-            projectId: String(c.id),
-            score,
-            name: safeString(project?.name) || c.name,
-            developer: dev,
-            distanceMeters: hasGeo ? dist : undefined,
-            url: `/properties/${encodeURIComponent(String(c.id))}`,
-          }
-        }
-      } catch {
-        const score = Math.round(nameSim * 0.6 + gScore * 0.4)
-        if (!best || score > best.score) {
-          best = {
-            projectId: String(c.id),
-            score,
-            name: c.name,
-            developer: '',
-            distanceMeters: hasGeo ? dist : undefined,
-            url: `/properties/${encodeURIComponent(String(c.id))}`,
-          }
+      const score = Math.round(nameSim * 0.6 + gScore * 0.4)
+      if (!best || score > best.score) {
+        best = {
+          projectId: String(c.id),
+          score,
+          name: c.name,
+          developer: '',
+          distanceMeters: hasGeo ? dist : undefined,
+          url: '',
         }
       }
     }

@@ -13,7 +13,6 @@ interface Property {
   location: string
   price: number
   intent: 'BUY' | 'RENT'
-  sourceType?: 'REELLY' | 'MANUAL'
   pricingFrequency?: string
   yearBuilt?: number
   bedrooms: number
@@ -344,85 +343,67 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
       params.set('purpose', purpose)
 
       const res = await fetch(`/api/properties?${params.toString()}`)
-      if (!res.ok) {
-        const text = await res.text().catch(() => '')
-        throw new Error(text || `Failed to fetch properties: ${res.status}`)
-      }
+      const text = await res.text().catch(() => '')
+      const json = text ? (JSON.parse(text) as any) : null
 
-      const json = (await res.json()) as { items: unknown[] }
-
-      if (!json?.items || !Array.isArray(json.items)) {
+      if (!res.ok || !json?.success) {
         setProperties([])
-        setApiError('Property feed is unavailable right now.')
+        setApiError('Unable to load properties. Please try again later.')
         return
       }
 
-      // Best-effort mapping (keeps architecture: no DB persistence).
-      // If fields differ, UI will still work due to fallback images/prices.
-      const mapped = json.items
+      const items = Array.isArray(json?.items) ? (json.items as any[]) : []
+
+      const mapped = items
         .map((item: any) => {
-          const sourceTypeRaw = String(item?.source_type || item?.sourceType || '').toUpperCase()
-          const sourceType = sourceTypeRaw === 'MANUAL' ? 'MANUAL' : sourceTypeRaw === 'REELLY' ? 'REELLY' : undefined
+          const id = String(item?.id || '').trim()
+          if (!id) return null
 
-          const externalId = String(item?.id ?? item?.project_id ?? item?.external_id ?? '')
-          if (!externalId) return null
+          const title = typeof item?.title === 'string' ? item.title : 'Property'
+          const countryLabel: 'UAE' | 'India' = item?.country === 'India' ? 'India' : 'UAE'
+          const city = typeof item?.city === 'string' ? item.city : ''
+          const community = typeof item?.community === 'string' ? item.community : ''
+          const location = community ? `${city} · ${community}` : city
 
-          const title = String(item?.title ?? item?.name ?? 'Property')
-          const city = String(item?.city ?? item?.location?.city ?? filters.location ?? '')
-          const community = String(item?.community ?? item?.location?.community ?? '')
-          const propertyType = String(item?.type ?? item?.property_type ?? 'Apartment')
+          const intentRaw = String(item?.intent || '').toUpperCase()
+          const intent: 'BUY' | 'RENT' = intentRaw === 'RENT' ? 'RENT' : 'BUY'
 
-          const price = Number(item?.price ?? item?.min_price ?? item?.starting_price ?? item?.price_from ?? 0)
-          const bedrooms = Number(item?.beds ?? item?.bedrooms ?? 0)
-          const bathrooms = Number(item?.baths ?? item?.bathrooms ?? 0)
-          const squareFeet = Number(item?.area ?? item?.size ?? item?.square_feet ?? 0)
+          const images: string[] = Array.isArray(item?.images) ? item.images.map((v: any) => String(v || '')).filter(Boolean) : []
 
-          const images: string[] = Array.isArray(item?.images)
-            ? item.images
-            : Array.isArray(item?.gallery)
-              ? item.gallery
-              : item?.cover_image
-                ? [String(item.cover_image)]
-                : []
-
-          const pricingFrequencyRaw =
-            item?.pricing_frequency ?? item?.price_frequency ?? item?.priceFrequency ?? item?.frequency ?? item?.rent_frequency
-
-          const intent =
-            sourceType === 'MANUAL'
-              ? String(item?.intent || '').toUpperCase() === 'RENT'
-                ? 'RENT'
-                : 'BUY'
-              : classifyIntent({ intentRaw: item?.intent ?? item?.purpose, pricingFrequencyRaw })
-          const pricingFrequency = typeof pricingFrequencyRaw === 'string' ? pricingFrequencyRaw : undefined
+          const agentRaw = item?.agent
+          const agent = agentRaw
+            ? {
+                id: String(agentRaw?.id || ''),
+                name: String(agentRaw?.name || ''),
+                email: String(agentRaw?.email || ''),
+                phone: String(agentRaw?.phone || ''),
+                avatar: typeof agentRaw?.avatar === 'string' ? agentRaw.avatar : undefined,
+              }
+            : undefined
 
           return {
-            id: externalId,
-            country: filters.country === 'India' ? 'India' : 'UAE',
+            id,
+            country: countryLabel,
             title,
-            location: community ? `${city} · ${community}` : city,
-            price: Number.isFinite(price) ? price : 0,
+            location,
+            price: Number(item?.price || 0),
             intent,
-            sourceType,
-            pricingFrequency,
-            bedrooms: Number.isFinite(bedrooms) ? bedrooms : 0,
-            bathrooms: Number.isFinite(bathrooms) ? bathrooms : 0,
-            squareFeet: Number.isFinite(squareFeet) ? squareFeet : 0,
+            bedrooms: Number(item?.bedrooms || 0),
+            bathrooms: Number(item?.bathrooms || 0),
+            squareFeet: Number(item?.squareFeet || 0),
             images,
-            featured: Boolean(item?.featured ?? false),
-            propertyType,
+            featured: Boolean(item?.featured),
+            propertyType: String(item?.propertyType || 'Property'),
+            agent,
           } satisfies Property
         })
         .filter(Boolean) as Property[]
 
       setProperties(mapped)
-      if (mapped.length === 0) {
-        setApiError('No properties found for the selected filters.')
-      }
+      if (mapped.length === 0) setApiError('No properties found matching your filters')
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Failed to fetch properties.'
       setProperties([])
-      setApiError(message)
+      setApiError('Unable to load properties. Please try again later.')
     } finally {
       setLoading(false)
     }

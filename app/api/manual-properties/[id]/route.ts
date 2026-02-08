@@ -86,6 +86,11 @@ const PatchSchema = z.object({
         return false
       }
     }, 'Invalid URL'),
+
+  lastCompletedStep: z.string().trim().min(1).max(40).optional().nullable(),
+  clonedFromId: z.string().trim().min(1).max(128).optional().nullable(),
+  archivedAt: z.coerce.date().optional().nullable(),
+  archivedBy: z.string().trim().min(1).max(40).optional().nullable(),
 })
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {

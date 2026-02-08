@@ -3,7 +3,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { reellyGetProject } from '@/lib/reelly'
 import AgentListingCard from './AgentListingCard'
 import ContactAgentForm from './ContactAgentForm'
 import AgentListingsFilterBarClient from './AgentListingsFilterBarClient'
@@ -52,11 +51,11 @@ function safePositiveNumber(v: unknown) {
   return Number.isFinite(n) && n > 0 ? n : null
 }
 
-type ListingSource = 'all' | 'verified' | 'manual'
+type ListingSource = 'all' | 'manual'
 type ListingSort = 'newest' | 'price_asc' | 'price_desc'
 
 type AttributionRow = {
-  sourceType: 'REELLY' | 'MANUAL'
+  sourceType: 'MANUAL'
   id: string
   updatedAt: Date
 }
@@ -115,49 +114,6 @@ function buildQueryStringWith(params: Record<string, string>, patch: Record<stri
     else next[k] = v
   }
   return buildQueryString(next)
-}
-
-function buildLocationLabel(project: any) {
-  const region = safeString(project?.location?.region)
-  const district = safeString(project?.location?.district)
-  const sector = safeString(project?.location?.sector)
-  return [sector, district, region].filter(Boolean).join(', ')
-}
-
-function mapProjectToListing(project: any) {
-  const id = safeString(project?.id) || String(safeNumber(project?.id))
-  const title = safeString(project?.name) || safeString(project?.title) || 'Property'
-  const location = buildLocationLabel(project) || 'UAE'
-  const price = safeNumber(project?.min_price ?? project?.price ?? 0)
-  const bedrooms = safeNumber(project?.beds ?? project?.bedrooms ?? 0)
-  const bathrooms = safeNumber(project?.baths ?? project?.bathrooms ?? 0)
-  const squareFeet = safeNumber(project?.area ?? project?.size ?? project?.square_feet ?? 0)
-  const featured = Boolean(project?.featured ?? false)
-  const propertyType = safeString(project?.type) || safeString(project?.property_type) || 'Property'
-
-  const cover = toImageUrl(project?.cover_image)
-  const galleries: unknown[] = Array.isArray(project?.galleries)
-    ? project.galleries
-    : Array.isArray(project?.gallery)
-      ? project.gallery
-      : []
-  const galleryUrls = galleries.map(toImageUrl).filter(Boolean)
-  const images = uniqueStrings([cover, ...galleryUrls])
-
-  return {
-    id,
-    country: 'UAE' as const,
-    title,
-    location,
-    price,
-    bedrooms,
-    bathrooms,
-    squareFeet,
-    images,
-    featured,
-    propertyType,
-    sourceType: 'REELLY' as const,
-  }
 }
 
 function mapManualToListing(p: any) {
@@ -278,7 +234,7 @@ export default async function AgentProfilePage({
   const offset = (page - 1) * limit
 
   const sourceParam = safeString(searchParams?.source || '')
-  const source: ListingSource = sourceParam === 'verified' || sourceParam === 'manual' ? sourceParam : 'all'
+  const source: ListingSource = sourceParam === 'manual' ? sourceParam : 'all'
 
   const minPrice = safePositiveNumber(searchParams?.minPrice)
   const maxPrice = safePositiveNumber(searchParams?.maxPrice)
@@ -295,40 +251,7 @@ export default async function AgentProfilePage({
     else if (Array.isArray(v) && typeof v[0] === 'string') query[k] = v[0]
   }
 
-  const reellyRowsEnabled = source === 'all' || source === 'verified'
   const manualRowsEnabled = source === 'all' || source === 'manual'
-
-  const agentListingRows = reellyRowsEnabled
-    ? await (prisma as any).agentListing
-        .findMany({
-          where: { agentId: agent.id },
-          orderBy: { updatedAt: 'desc' },
-          select: { externalId: true, updatedAt: true },
-        })
-        .catch((error: unknown) => {
-          console.error('Agent profile: failed to load agentListing rows', error)
-          return []
-        })
-    : []
-
-  const leadListingRows =
-    reellyRowsEnabled && agentListingRows.length === 0
-      ? await prisma.propertyLead.findMany({
-          where: { agentId: agent.id },
-          distinct: ['externalId'],
-          orderBy: { createdAt: 'desc' },
-          select: { externalId: true, createdAt: true },
-        }).catch((error: unknown) => {
-          console.error('Agent profile: failed to load lead listing rows', error)
-          return []
-        })
-      : []
-
-  const reellyAttributionRows: AttributionRow[] = (agentListingRows.length > 0 ? agentListingRows : leadListingRows).map((row: any) => ({
-    sourceType: 'REELLY',
-    id: String(row.externalId),
-    updatedAt: new Date(row.updatedAt ?? row.createdAt ?? 0),
-  }))
 
   const manualAttributionRows: AttributionRow[] = manualRowsEnabled
     ? await (prisma as any).manualProperty
@@ -350,9 +273,8 @@ export default async function AgentProfilePage({
         })
     : []
 
-  const totalListingsAll = reellyAttributionRows.length + manualAttributionRows.length
+  const totalListingsAll = manualAttributionRows.length
 
-  const reellyIdsAll = reellyAttributionRows.map((r) => r.id)
   const manualIdsAll = manualAttributionRows.map((r) => r.id)
 
   const needsProjectData =
@@ -363,7 +285,7 @@ export default async function AgentProfilePage({
   let effectivePage = page
 
   if (!needsProjectData) {
-    const attributionRows = [...reellyAttributionRows, ...manualAttributionRows].sort((a, b) => {
+    const attributionRows = [...manualAttributionRows].sort((a, b) => {
       const ad = a.updatedAt instanceof Date ? a.updatedAt.getTime() : new Date(a.updatedAt).getTime()
       const bd = b.updatedAt instanceof Date ? b.updatedAt.getTime() : new Date(b.updatedAt).getTime()
       return bd - ad
@@ -375,20 +297,7 @@ export default async function AgentProfilePage({
     const safeOffset = (effectivePage - 1) * limit
 
     const pageRows = attributionRows.slice(safeOffset, safeOffset + limit)
-    const pageReellyIds = pageRows.filter((r) => r.sourceType === 'REELLY').map((r) => r.id)
     const pageManualIds = pageRows.filter((r) => r.sourceType === 'MANUAL').map((r) => r.id)
-
-    const reellyListingMap = new Map<string, any>()
-    if (reellyRowsEnabled && pageReellyIds.length > 0) {
-      const projectsSettled = (await Promise.allSettled(pageReellyIds.map((id) => reellyGetProject<any>(String(id))))) as PromiseSettledResult<any>[]
-      for (let i = 0; i < pageReellyIds.length; i += 1) {
-        const id = pageReellyIds[i]
-        const settled = projectsSettled[i]
-        if (settled && settled.status === 'fulfilled') {
-          reellyListingMap.set(id, mapProjectToListing(settled.value))
-        }
-      }
-    }
 
     const manualListingMap = new Map<string, any>()
     if (manualRowsEnabled && pageManualIds.length > 0) {
@@ -406,25 +315,8 @@ export default async function AgentProfilePage({
       }
     }
 
-    listings = pageRows
-      .map((r) => (r.sourceType === 'REELLY' ? reellyListingMap.get(r.id) : manualListingMap.get(r.id)))
-      .filter(Boolean) as any[]
+    listings = pageRows.map((r) => manualListingMap.get(r.id)).filter(Boolean) as any[]
   } else {
-    const reellyListingMap = new Map<string, any>()
-    if (reellyRowsEnabled && reellyIdsAll.length > 0) {
-      const projectsSettled = (await Promise.allSettled(reellyIdsAll.map((id) => reellyGetProject<any>(String(id))))) as PromiseSettledResult<any>[]
-      for (let i = 0; i < reellyIdsAll.length; i += 1) {
-        const id = reellyIdsAll[i]
-        const settled = projectsSettled[i]
-        if (settled && settled.status === 'fulfilled') {
-          reellyListingMap.set(id, {
-            ...mapProjectToListing(settled.value),
-            updatedAt: reellyAttributionRows.find((r) => r.id === id)?.updatedAt ?? new Date(0),
-          })
-        }
-      }
-    }
-
     const manualListingMap = new Map<string, any>()
     if (manualRowsEnabled && manualIdsAll.length > 0) {
       const rows = await (prisma as any).manualProperty
@@ -441,9 +333,7 @@ export default async function AgentProfilePage({
       }
     }
 
-    const allListings = [...reellyAttributionRows, ...manualAttributionRows]
-      .map((r) => (r.sourceType === 'REELLY' ? reellyListingMap.get(r.id) : manualListingMap.get(r.id)))
-      .filter(Boolean) as Array<any>
+    const allListings = [...manualAttributionRows].map((r) => manualListingMap.get(r.id)).filter(Boolean) as Array<any>
 
     const typeNorm = typeFilter.trim().toLowerCase()
     const cityNorm = cityFilter.trim().toLowerCase()
@@ -637,7 +527,6 @@ export default async function AgentProfilePage({
                 <div className="flex flex-wrap items-center gap-2">
                   {([
                     ['all', 'All'],
-                    ['verified', 'Verified'],
                     ['manual', 'Agent listings'],
                   ] as Array<[string, string]>).map(([k, label]) => {
                     const active = source === k

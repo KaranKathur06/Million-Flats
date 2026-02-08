@@ -97,7 +97,7 @@ export default async function AdminModerationQueuePage({
         <div className="bg-white rounded-2xl border border-gray-200 p-7">
           <p className="text-accent-orange font-semibold text-sm uppercase tracking-wider">Admin Moderation</p>
           <h1 className="mt-2 text-3xl font-serif font-bold text-dark-blue">Manual Properties Queue</h1>
-          <p className="mt-2 text-gray-600">Only manual listings are reviewed. Verified projects bypass moderation.</p>
+          <p className="mt-2 text-gray-600">Only manual listings are reviewed.</p>
 
           <form className="mt-6 grid grid-cols-1 md:grid-cols-5 gap-3" method="get">
             <select

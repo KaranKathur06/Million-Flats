@@ -28,6 +28,7 @@ enum ManualPropertyStatus {
   PENDING_REVIEW
   APPROVED
   REJECTED
+  ARCHIVED
 }
 
 enum ManualPropertyMediaCategory {
@@ -189,6 +190,15 @@ model ManualProperty {
   sourceType  PropertySourceType @default(MANUAL) @map("source_type")
   status      ManualPropertyStatus @default(DRAFT)
 
+  lastCompletedStep String? @map("last_completed_step")
+
+  clonedFromId String? @map("cloned_from_id")
+  clonedFrom ManualProperty? @relation("ManualPropertyClone", fields: [clonedFromId], references: [id], onDelete: SetNull)
+  clones ManualProperty[] @relation("ManualPropertyClone")
+
+  archivedAt DateTime? @map("archived_at")
+  archivedBy String? @map("archived_by")
+
   title       String?
   propertyType String? @map("property_type")
   intent      ManualPropertyIntent?
@@ -243,6 +253,36 @@ model ManualProperty {
   @@index([sourceType])
   @@index([countryCode, city])
   @@map("manual_properties")
+}
+
+enum AuditEntityType {
+  MANUAL_PROPERTY
+}
+
+enum AuditAction {
+  DRAFT_DELETED
+  PUBLISHED_ARCHIVED
+  PUBLISHED_CLONED_TO_DRAFT
+  ADMIN_APPROVED
+  ADMIN_REJECTED
+}
+
+model AuditLog {
+  id         String @id @default(uuid())
+  entityType AuditEntityType @map("entity_type")
+  entityId   String @map("entity_id")
+  action     AuditAction
+  performedByUserId String? @map("performed_by_user_id")
+  meta       Json?
+
+  performedBy User? @relation(fields: [performedByUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([performedByUserId])
+  @@map("audit_logs")
 }
 
 model ManualPropertyModerationLog {

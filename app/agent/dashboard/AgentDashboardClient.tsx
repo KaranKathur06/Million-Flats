@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { formatCountryPrice } from '@/lib/country'
 import { buildPropertySlugPath } from '@/lib/seo'
 
@@ -60,7 +61,10 @@ export default function AgentDashboardClient({
   listings: Listing[]
   leads: Lead[]
 }) {
+  const router = useRouter()
   const [view, setView] = useState<'grid' | 'table'>('grid')
+  const [busyId, setBusyId] = useState<string>('')
+  const [actionError, setActionError] = useState<string>('')
 
   const initials = useMemo(() => {
     const parts = (agentName || '').trim().split(/\s+/).filter(Boolean)
@@ -68,6 +72,56 @@ export default function AgentDashboardClient({
     const last = parts.length > 1 ? parts[parts.length - 1]?.[0] || '' : ''
     return `${first}${last}`.toUpperCase()
   }, [agentName])
+
+  const deleteDraft = async (id: string) => {
+    if (!id || busyId) return
+    setBusyId(id)
+    setActionError('')
+    try {
+      const res = await fetch(`/api/manual-properties/${encodeURIComponent(id)}/delete`, { method: 'POST' })
+      const json = (await res.json().catch(() => null)) as any
+      if (!res.ok || !json?.success) throw new Error(json?.message || 'Failed to delete draft')
+      router.refresh()
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : 'Failed to delete draft')
+    } finally {
+      setBusyId('')
+    }
+  }
+
+  const clonePublishedToDraft = async (id: string) => {
+    if (!id || busyId) return
+    setBusyId(id)
+    setActionError('')
+    try {
+      const res = await fetch(`/api/manual-properties/${encodeURIComponent(id)}/edit`, { method: 'POST' })
+      const json = (await res.json().catch(() => null)) as any
+      if (!res.ok || !json?.success) throw new Error(json?.message || 'Failed to create draft copy')
+      const draftId = String(json?.draftId || '')
+      if (!draftId) throw new Error('Missing draftId')
+      router.push(`/properties/new/manual?draftId=${encodeURIComponent(draftId)}&mode=edit`)
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : 'Failed to create draft copy')
+    } finally {
+      setBusyId('')
+    }
+  }
+
+  const archivePublished = async (id: string) => {
+    if (!id || busyId) return
+    setBusyId(id)
+    setActionError('')
+    try {
+      const res = await fetch(`/api/manual-properties/${encodeURIComponent(id)}/archive`, { method: 'POST' })
+      const json = (await res.json().catch(() => null)) as any
+      if (!res.ok || !json?.success) throw new Error(json?.message || 'Failed to archive listing')
+      router.refresh()
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : 'Failed to archive listing')
+    } finally {
+      setBusyId('')
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
@@ -195,21 +249,39 @@ export default function AgentDashboardClient({
 
                       <div className="mt-5 flex items-center gap-2">
                         <Link
-                          href={`/properties/new/manual?draft=${encodeURIComponent(d.id)}`}
+                          href={`/properties/new/manual?draftId=${encodeURIComponent(d.id)}&mode=resume`}
                           className="inline-flex items-center justify-center h-10 px-4 rounded-xl bg-dark-blue text-white text-sm font-semibold hover:bg-dark-blue/90"
                         >
                           Resume
                         </Link>
                         <Link
-                          href={`/properties/new/manual?draft=${encodeURIComponent(d.id)}`}
+                          href={`/properties/new/manual?draftId=${encodeURIComponent(d.id)}&mode=edit`}
                           className="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue hover:bg-gray-50"
                         >
                           Edit
                         </Link>
+                        <button
+                          type="button"
+                          onClick={() => deleteDraft(d.id)}
+                          disabled={busyId === d.id}
+                          className={`inline-flex items-center justify-center h-10 px-4 rounded-xl border text-sm font-semibold ${
+                            busyId === d.id
+                              ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          Delete
+                        </button>
                       </div>
                     </div>
                   ))}
                 </div>
+              </div>
+            ) : null}
+
+            {actionError ? (
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+                <p className="text-sm font-semibold text-red-700">{actionError}</p>
               </div>
             ) : null}
 
@@ -304,15 +376,19 @@ export default function AgentDashboardClient({
                               </Link>
                               <button
                                 type="button"
+                                onClick={() => clonePublishedToDraft(l.id)}
+                                disabled={busyId === l.id}
                                 className="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50"
                               >
                                 Edit
                               </button>
                               <button
                                 type="button"
+                                onClick={() => archivePublished(l.id)}
+                                disabled={busyId === l.id}
                                 className="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50"
                               >
-                                Unpublish
+                                Delete
                               </button>
                             </div>
                           </div>

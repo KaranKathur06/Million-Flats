@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { reellyListProjects } from '@/lib/reelly'
 
 type RateEntry = { count: number; resetAt: number }
 
@@ -50,28 +49,5 @@ export async function GET(req: Request) {
     )
   }
 
-  const { searchParams } = new URL(req.url)
-
-  const filters = {
-    country: searchParams.get('country') || undefined,
-    city: searchParams.get('city') || undefined,
-    community: searchParams.get('community') || undefined,
-    type: searchParams.get('type') || undefined,
-    min_price: searchParams.get('minPrice') || undefined,
-    max_price: searchParams.get('maxPrice') || undefined,
-    beds: searchParams.get('beds') || searchParams.get('bedrooms') || undefined,
-    baths: searchParams.get('baths') || searchParams.get('bathrooms') || undefined,
-    purpose: searchParams.get('purpose') || undefined,
-    limit: searchParams.get('limit') || undefined,
-    offset: searchParams.get('offset') || undefined,
-  }
-
-  try {
-    const data = await reellyListProjects<any>(filters)
-    const normalized = normalizeListResponse(data)
-    return NextResponse.json(normalized)
-  } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return NextResponse.json({ error: 'reelly_failed', message }, { status: 502 })
-  }
+  return NextResponse.json({ success: false, message: 'Not found' }, { status: 404 })
 }

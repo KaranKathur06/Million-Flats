@@ -235,6 +235,38 @@ export default async function AgentDashboardPage() {
       return []
     })
 
+  const publishedManualListings = await (prisma as any).manualProperty
+    .findMany({
+      where: { agentId: agent.id, sourceType: 'MANUAL', status: 'APPROVED' },
+      orderBy: { updatedAt: 'desc' },
+      take: 50,
+      include: { media: { orderBy: [{ category: 'asc' }, { position: 'asc' }] } },
+    })
+    .then((rows: any[]) =>
+      rows.map((p: any) => {
+        const title = String(p?.title || 'Agent Listing')
+        const location = [p?.community, p?.city].filter(Boolean).join(', ') || '—'
+        const priceLabel =
+          typeof p?.price === 'number' && p.price > 0 ? `${String(p?.currency || 'AED')} ${p.price.toLocaleString()}` : '—'
+        const thumb = Array.isArray(p?.media)
+          ? String(p.media.find((m: any) => String(m?.category) === 'COVER')?.url || p.media[0]?.url || '')
+          : ''
+
+        return {
+          id: String(p.id),
+          title,
+          location,
+          priceLabel,
+          status: 'Active',
+          thumbnailUrl: thumb || undefined,
+        }
+      })
+    )
+    .catch((error: unknown) => {
+      console.error('Agent dashboard: failed to load published manual listings', error)
+      return []
+    })
+
   return (
     <AgentDashboardClient
       agentName={name}
@@ -251,7 +283,7 @@ export default async function AgentDashboardPage() {
       }}
       profileCompletion={{ percent: completion, missing }}
       draftListings={Array.isArray(draftListings) ? draftListings : []}
-      listings={[]}
+      listings={Array.isArray(publishedManualListings) ? publishedManualListings : []}
       leads={leads.map((l) => ({
         id: l.id,
         propertyTitle: `Property ${l.externalId}`,

@@ -16,7 +16,7 @@ type Props = {
   pathname: string
   baseQuery: Record<string, string>
   limit: number
-  source: 'all' | 'verified' | 'manual'
+  source: 'all' | 'manual'
   minPrice: number | null
   maxPrice: number | null
   beds: number

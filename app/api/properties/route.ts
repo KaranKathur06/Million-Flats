@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { reellyListProjects } from '@/lib/reelly'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 
 type RateEntry = { count: number; resetAt: number }
@@ -49,6 +49,24 @@ function normalizeListResponse(raw: unknown) {
   return { items, raw }
 }
 
+const QuerySchema = z.object({
+  purpose: z.enum(['rent', 'buy']).optional(),
+  country: z.enum(['UAE', 'India']).optional(),
+  city: z.string().trim().min(1).max(120).optional(),
+  propertyType: z.string().trim().min(1).max(80).optional(),
+  minPrice: z.coerce.number().finite().nonnegative().optional(),
+  maxPrice: z.coerce.number().finite().nonnegative().optional(),
+})
+
+function safeString(v: unknown) {
+  return typeof v === 'string' ? v : ''
+}
+
+function safeNumber(v: unknown) {
+  const n = typeof v === 'number' ? v : Number(v)
+  return Number.isFinite(n) ? n : 0
+}
+
 export async function GET(req: Request) {
   const ip = getClientIp(req)
   const rl = rateLimit(ip)
@@ -59,117 +77,92 @@ export async function GET(req: Request) {
     )
   }
 
-  const { searchParams } = new URL(req.url)
-
-  const rawCountry = searchParams.get('country') || 'UAE'
-  const country = rawCountry === 'India' ? 'India' : 'UAE'
-
-  const rawLimit = searchParams.get('limit')
-  const rawPage = searchParams.get('page')
-  const rawOffset = searchParams.get('offset')
-
-  const region = searchParams.get('region') || undefined
-  const district = searchParams.get('community') || undefined
-  const sector = searchParams.get('area') || undefined
-  const sale_status = searchParams.get('saleStatus') || undefined
-  const construction_status = searchParams.get('constructionStatus') || undefined
-  const min_price = searchParams.get('minPrice') || undefined
-  const max_price = searchParams.get('maxPrice') || undefined
-  const purpose = searchParams.get('purpose') || undefined
-  const type = searchParams.get('type') || undefined
-  const city = searchParams.get('city') || undefined
-
-  const parsedLimit = rawLimit ? Number(rawLimit) : NaN
-  const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? String(Math.min(parsedLimit, 250)) : '50'
-
-  const parsedPage = rawPage ? Number(rawPage) : NaN
-  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? String(parsedPage) : undefined
-
-  const parsedOffset = rawOffset ? Number(rawOffset) : NaN
-  const offset = Number.isFinite(parsedOffset) && parsedOffset >= 0 ? String(parsedOffset) : undefined
-
-  const filters = {
-    limit,
-    page,
-    offset,
-    region,
-    district,
-    sector,
-    sale_status,
-    construction_status,
-    min_price,
-    max_price,
-    purpose,
-  }
-
   try {
-    const data = await reellyListProjects<any>(filters)
-    const normalized = normalizeListResponse(data)
+    const { searchParams } = new URL(req.url)
 
-    const reellyItems = (Array.isArray(normalized.items) ? normalized.items : []).map((it: any) => ({
-      ...it,
-      source_type: 'REELLY',
-    }))
+    const parsed = QuerySchema.safeParse({
+      purpose: (searchParams.get('purpose') || '').toLowerCase() || undefined,
+      country: (searchParams.get('country') || '').trim() || undefined,
+      city: searchParams.get('city') || undefined,
+      propertyType: searchParams.get('propertyType') || searchParams.get('type') || undefined,
+      minPrice: searchParams.get('minPrice') || undefined,
+      maxPrice: searchParams.get('maxPrice') || undefined,
+    })
 
-    const parsedMin = min_price ? Number(min_price) : NaN
-    const parsedMax = max_price ? Number(max_price) : NaN
-
-    const manualWhere: any = {
-      status: 'APPROVED',
-      sourceType: 'MANUAL',
-      countryCode: country,
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, message: 'Invalid filters' }, { status: 400 })
     }
 
-    if (city) manualWhere.city = { contains: city, mode: 'insensitive' }
-    if (district) manualWhere.community = { contains: district, mode: 'insensitive' }
-    if (type) manualWhere.propertyType = { contains: type, mode: 'insensitive' }
-    if (purpose === 'rent') manualWhere.intent = 'RENT'
-    if (purpose === 'buy') manualWhere.intent = 'SALE'
+    const q = parsed.data
+    const where: any = {
+      status: 'APPROVED',
+      sourceType: 'MANUAL',
+    }
 
-    if (Number.isFinite(parsedMin)) manualWhere.price = { ...(manualWhere.price || {}), gte: parsedMin }
-    if (Number.isFinite(parsedMax)) manualWhere.price = { ...(manualWhere.price || {}), lte: parsedMax }
+    if (q.country) where.countryCode = q.country
+    if (q.city) where.city = { contains: q.city, mode: 'insensitive' }
+    if (q.propertyType) where.propertyType = { contains: q.propertyType, mode: 'insensitive' }
+    if (q.purpose === 'rent') where.intent = 'RENT'
+    if (q.purpose === 'buy') where.intent = 'SALE'
 
-    const manualRows = await (prisma as any).manualProperty
-      .findMany({
-        where: manualWhere,
-        orderBy: { updatedAt: 'desc' },
-        include: { media: true },
-        take: 120,
-      })
-      .catch(() => [])
+    if (typeof q.minPrice === 'number' && Number.isFinite(q.minPrice)) {
+      where.price = { ...(where.price || {}), gte: q.minPrice }
+    }
+    if (typeof q.maxPrice === 'number' && Number.isFinite(q.maxPrice)) {
+      where.price = { ...(where.price || {}), lte: q.maxPrice }
+    }
 
-    const manualItems = (manualRows as any[]).map((p) => {
-      const images = Array.isArray(p?.media) ? p.media.map((m: any) => m?.url).filter(Boolean) : []
+    const rows = await (prisma as any).manualProperty.findMany({
+      where,
+      orderBy: { updatedAt: 'desc' },
+      include: { media: true, agent: { include: { user: true } } },
+      take: 200,
+    })
+
+    const items = (rows as any[]).map((p) => {
+      const images: string[] = Array.isArray(p?.media)
+        ? p.media
+            .filter((m: any) => {
+              const cat = safeString(m?.category)
+              return cat !== 'BROCHURE' && cat !== 'VIDEO'
+            })
+            .map((m: any) => safeString(m?.url))
+            .filter(Boolean)
+        : []
+
+      const agentUser = p?.agent?.user
+
       return {
-        source_type: 'MANUAL',
-        id: p.id,
-        title: p.title || 'Agent Listing',
-        city: p.city || '',
-        community: p.community || '',
-        type: p.propertyType || 'Property',
-        property_type: p.propertyType || 'Property',
-        price: p.price || 0,
-        intent: p.intent || 'SALE',
-        beds: p.bedrooms || 0,
-        baths: p.bathrooms || 0,
-        area: p.squareFeet || 0,
+        id: String(p.id),
+        title: safeString(p.title) || 'Agent Listing',
+        price: typeof p.price === 'number' ? p.price : safeNumber(p.price),
+        currency: safeString(p.currency) || 'AED',
+        country: p.countryCode === 'India' ? 'India' : 'UAE',
+        city: safeString(p.city),
+        community: safeString(p.community),
+        propertyType: safeString(p.propertyType) || 'Property',
+        intent: p.intent === 'RENT' ? 'RENT' : 'BUY',
+        bedrooms: typeof p.bedrooms === 'number' ? p.bedrooms : safeNumber(p.bedrooms),
+        bathrooms: typeof p.bathrooms === 'number' ? p.bathrooms : safeNumber(p.bathrooms),
+        squareFeet: typeof p.squareFeet === 'number' ? p.squareFeet : safeNumber(p.squareFeet),
         images,
         featured: Boolean(p.exclusiveDeal),
-        latitude: p.latitude,
-        longitude: p.longitude,
+        sourceType: 'MANUAL',
+        agent: agentUser
+          ? {
+              id: safeString(p.agentId),
+              name: safeString(agentUser?.name),
+              email: safeString(agentUser?.email),
+              phone: safeString(agentUser?.phone),
+              avatar: safeString(agentUser?.image),
+            }
+          : undefined,
       }
     })
 
-    const merged = [...manualItems, ...reellyItems]
-
-    return NextResponse.json({
-      items: merged,
-      raw: normalized.raw,
-      manualCount: manualItems.length,
-      reellyCount: reellyItems.length,
-    })
+    return NextResponse.json({ success: true, items })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return NextResponse.json({ error: 'reelly_failed', message }, { status: 502 })
+    console.error('Properties feed: failed', e)
+    return NextResponse.json({ success: false, message: 'Unable to load properties. Please try again later.' }, { status: 500 })
   }
 }
