@@ -1,0 +1,146 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+
+type AgentRow = {
+  userId: string
+  agentId: string
+  name: string
+  email: string
+  phone: string
+  verified: boolean
+  createdAt: string
+  company: string
+  license: string
+  whatsapp: string
+  approved: boolean
+  profileCompletion: number
+}
+
+function safeString(v: unknown) {
+  return typeof v === 'string' ? v : ''
+}
+
+async function postJson(url: string) {
+  const res = await fetch(url, { method: 'POST' })
+  const json = (await res.json().catch(() => null)) as any
+  if (!res.ok || !json?.success) {
+    throw new Error(safeString(json?.message) || 'Request failed')
+  }
+  return json
+}
+
+export default function AdminAgentsTableClient({ items }: { items: AgentRow[] }) {
+  const router = useRouter()
+  const [busyId, setBusyId] = useState('')
+  const [error, setError] = useState('')
+
+  const doAction = async (id: string, fn: () => Promise<void>) => {
+    if (busyId) return
+    setBusyId(id)
+    setError('')
+    try {
+      await fn()
+      router.refresh()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Action failed')
+    } finally {
+      setBusyId('')
+    }
+  }
+
+  return (
+    <div>
+      {error ? <p className="mb-4 text-sm font-semibold text-red-300">{error}</p> : null}
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="text-left text-white/70 border-b border-white/10">
+              <th className="py-3 pr-4">Agent</th>
+              <th className="py-3 pr-4">Company</th>
+              <th className="py-3 pr-4">License</th>
+              <th className="py-3 pr-4">Completion</th>
+              <th className="py-3 pr-4">Approved</th>
+              <th className="py-3 pr-4">Created</th>
+              <th className="py-3 pr-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((it) => {
+              const isBusy = busyId === it.agentId
+              const canApprove = !it.approved && it.agentId
+              const canSuspend = it.approved && it.agentId
+
+              return (
+                <tr key={it.agentId || it.userId} className="border-b border-white/5">
+                  <td className="py-4 pr-4">
+                    <div className="font-semibold text-white">{it.name}</div>
+                    <div className="text-xs text-white/60">{it.email}</div>
+                    {it.phone ? <div className="text-xs text-white/60">{it.phone}</div> : null}
+                    <div className="text-xs text-white/60">Verified: {it.verified ? 'Yes' : 'No'}</div>
+                  </td>
+                  <td className="py-4 pr-4 text-white/80">{it.company || '—'}</td>
+                  <td className="py-4 pr-4 text-white/80">{it.license || '—'}</td>
+                  <td className="py-4 pr-4 text-white/80">{String(it.profileCompletion)}%</td>
+                  <td className="py-4 pr-4">
+                    <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-semibold text-white/90">
+                      {it.approved ? 'Approved' : 'Pending'}
+                    </span>
+                  </td>
+                  <td className="py-4 pr-4 text-white/70">{it.createdAt || '—'}</td>
+                  <td className="py-4 pr-4">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        disabled={!canApprove || isBusy}
+                        onClick={() =>
+                          doAction(it.agentId, async () => {
+                            await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/approve`)
+                          })
+                        }
+                        className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                          canApprove && !isBusy
+                            ? 'bg-amber-400 text-[#0b1220] hover:bg-amber-300'
+                            : 'bg-white/5 text-white/30 cursor-not-allowed'
+                        }`}
+                      >
+                        Approve
+                      </button>
+
+                      <button
+                        disabled={!canSuspend || isBusy}
+                        onClick={() =>
+                          doAction(it.agentId, async () => {
+                            const ok = window.confirm('Suspend this agent?')
+                            if (!ok) return
+                            await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/suspend`)
+                          })
+                        }
+                        className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                          canSuspend && !isBusy
+                            ? 'border border-white/10 bg-transparent text-white hover:bg-white/5'
+                            : 'bg-white/5 text-white/30 cursor-not-allowed'
+                        }`}
+                      >
+                        Suspend
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="py-10 text-center text-white/60">
+                  No agents found.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}

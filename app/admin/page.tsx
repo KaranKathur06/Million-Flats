@@ -67,6 +67,34 @@ export default async function AdminHomePage() {
             >
               Moderation Queue
             </Link>
+
+            <Link
+              href="/admin/listings"
+              className="inline-flex items-center justify-center h-11 px-6 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
+            >
+              All Listings
+            </Link>
+
+            <Link
+              href="/admin/drafts"
+              className="inline-flex items-center justify-center h-11 px-6 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
+            >
+              Drafts
+            </Link>
+
+            <Link
+              href="/admin/agents"
+              className="inline-flex items-center justify-center h-11 px-6 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
+            >
+              Agents
+            </Link>
+
+            <Link
+              href="/admin/users"
+              className="inline-flex items-center justify-center h-11 px-6 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
+            >
+              Users
+            </Link>
           </div>
         </div>
       </div>
