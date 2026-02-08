@@ -81,6 +81,7 @@ model User {
   preference      UserPreference?
 
   manualPropertyModerationLogs ManualPropertyModerationLog[] @relation("ManualPropertyModerationAdmin")
+  auditLogs AuditLog[] @relation("AuditLogPerformedBy")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -275,7 +276,7 @@ model AuditLog {
   performedByUserId String? @map("performed_by_user_id")
   meta       Json?
 
-  performedBy User? @relation(fields: [performedByUserId], references: [id], onDelete: SetNull)
+  performedBy User? @relation("AuditLogPerformedBy", fields: [performedByUserId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now()) @map("created_at")
 
