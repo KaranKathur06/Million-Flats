@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { getAdminCapabilities } from '@/lib/adminCapabilities'
+import type { AppRole } from '@/lib/rbac'
 
 type Checklist = {
   hasCover: boolean
@@ -15,6 +17,7 @@ type Checklist = {
 export default function ModerationPanelClient({
   listingId,
   status,
+  currentRole,
   agentName,
   agentCompany,
   agentEmail,
@@ -25,6 +28,7 @@ export default function ModerationPanelClient({
 }: {
   listingId: string
   status: string
+  currentRole: AppRole
   agentName: string
   agentCompany: string
   agentEmail: string
@@ -40,6 +44,8 @@ export default function ModerationPanelClient({
   const [success, setSuccess] = useState('')
   const [rejectReason, setRejectReason] = useState('')
 
+  const capabilities = useMemo(() => getAdminCapabilities(currentRole), [currentRole])
+
   const canApprove = useMemo(() => {
     return (
       status === 'PENDING_REVIEW' &&
@@ -50,8 +56,25 @@ export default function ModerationPanelClient({
     )
   }, [status, checklist])
 
+  const canApproveByPerm = capabilities.moderation.properties.approve
+  const canRejectByPerm = capabilities.moderation.properties.reject
+
+  const approveReason = !canApproveByPerm
+    ? 'You do not have permission to approve listings.'
+    : !canApprove
+      ? 'Approvals are blocked until required fields are present.'
+      : ''
+
+  const rejectReasonHint = !canRejectByPerm
+    ? 'You do not have permission to reject listings.'
+    : status !== 'PENDING_REVIEW'
+      ? 'Only pending listings can be rejected.'
+      : rejectReason.trim().length < 3
+        ? 'Rejection reason is required.'
+        : ''
+
   const approve = async () => {
-    if (!canApprove || loading) return
+    if (!canApproveByPerm || !canApprove || loading) return
     setLoading(true)
     setError('')
     setSuccess('')
@@ -71,7 +94,7 @@ export default function ModerationPanelClient({
   }
 
   const reject = async () => {
-    if (loading) return
+    if (!canRejectByPerm || loading) return
     setLoading(true)
     setError('')
     setSuccess('')
@@ -147,9 +170,10 @@ export default function ModerationPanelClient({
         <div className="mt-3 grid grid-cols-1 gap-3">
           <button
             onClick={approve}
-            disabled={!canApprove || loading}
+            disabled={!canApproveByPerm || !canApprove || loading}
+            title={approveReason}
             className={`h-11 rounded-xl font-semibold ${
-              canApprove && !loading
+              canApproveByPerm && canApprove && !loading
                 ? 'bg-dark-blue text-white hover:bg-dark-blue/90'
                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
             }`}
@@ -168,9 +192,15 @@ export default function ModerationPanelClient({
             />
             <button
               onClick={reject}
-              disabled={loading || rejectReason.trim().length < 3 || status !== 'PENDING_REVIEW'}
+              disabled={
+                loading ||
+                !canRejectByPerm ||
+                rejectReason.trim().length < 3 ||
+                status !== 'PENDING_REVIEW'
+              }
+              title={rejectReasonHint}
               className={`mt-3 h-11 w-full rounded-xl font-semibold ${
-                !loading && rejectReason.trim().length >= 3 && status === 'PENDING_REVIEW'
+                !loading && canRejectByPerm && rejectReason.trim().length >= 3 && status === 'PENDING_REVIEW'
                   ? 'border border-gray-200 bg-white text-dark-blue hover:bg-gray-50'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}

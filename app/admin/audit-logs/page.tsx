@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { hasMinRole, normalizeRole } from '@/lib/rbac'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
@@ -14,13 +15,13 @@ export default async function AdminAuditLogsPage({
   searchParams: { [key: string]: string | string[] | undefined }
 }) {
   const session = await getServerSession(authOptions)
-  const role = String((session?.user as any)?.role || '').toUpperCase()
+  const role = normalizeRole((session?.user as any)?.role)
 
   if (!session?.user) {
     redirect('/user/login?next=%2Fadmin%2Faudit-logs')
   }
 
-  if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
+  if (!hasMinRole(role, 'ADMIN')) {
     redirect('/user/dashboard?error=admin_only')
   }
 

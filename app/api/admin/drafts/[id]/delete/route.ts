@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { deleteFromS3 } from '@/lib/s3'
 import { writeAuditLog } from '@/lib/audit'
+import { checkAdminRateLimit } from '@/lib/adminRateLimit'
 
 function bad(message: string, status = 400) {
   return NextResponse.json({ success: false, message }, { status })
@@ -12,10 +13,26 @@ function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
 }
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+function getIp(req: Request) {
+  const forwarded = req.headers.get('x-forwarded-for')
+  if (forwarded) return forwarded.split(',')[0]?.trim() || null
+  return req.headers.get('x-real-ip') || null
+}
+
+export async function POST(req: Request, { params }: { params: { id: string } }) {
   const auth = await requireAdminSession()
   if (!auth.ok) {
     return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
+  }
+
+  const limit = await checkAdminRateLimit({
+    performedByUserId: auth.userId,
+    action: 'DRAFT_DELETED',
+    windowMs: 60_000,
+    max: 20,
+  })
+  if (!limit.ok) {
+    return bad('Too many requests', 429)
   }
 
   const id = String(params?.id || '').trim()
@@ -36,6 +53,11 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   const media = Array.isArray(existing.media) ? existing.media : []
   const keys = media.map((m: any) => safeString(m?.s3Key)).filter(Boolean)
 
+  const beforeState = {
+    status: String(existing.status || 'DRAFT'),
+    mediaCount: media.length,
+  }
+
   await (prisma as any).manualProperty.delete({ where: { id } })
 
   await writeAuditLog({
@@ -43,6 +65,9 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     entityId: id,
     action: 'DRAFT_DELETED',
     performedByUserId: auth.userId,
+    ipAddress: getIp(req),
+    beforeState,
+    afterState: { deleted: true },
     meta: { actor: 'admin', deletedMediaCount: keys.length },
   })
 

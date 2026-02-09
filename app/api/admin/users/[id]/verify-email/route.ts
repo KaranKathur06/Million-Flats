@@ -15,16 +15,16 @@ function getIp(req: Request) {
 }
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const auth = await requireRole('SUPERADMIN')
+  const auth = await requireRole('ADMIN')
   if (!auth.ok) {
     return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
   }
 
   const limit = await checkAdminRateLimit({
     performedByUserId: auth.userId,
-    action: 'ADMIN_USER_BANNED',
+    action: 'ADMIN_USER_EMAIL_VERIFIED',
     windowMs: 60_000,
-    max: 10,
+    max: 30,
   })
   if (!limit.ok) {
     return bad('Too many requests', 429)
@@ -33,49 +33,46 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const userId = String(params?.id || '').trim()
   if (!userId) return bad('Not found', 404)
 
-  if (userId === auth.userId) {
-    return bad('Cannot ban your own account', 409)
-  }
-
   const user = await (prisma as any).user.findFirst({
     where: { id: userId },
-    select: { id: true, email: true, role: true, status: true, verified: true },
+    select: { id: true, email: true, verified: true, emailVerified: true, role: true, status: true },
   })
 
   if (!user) return bad('Not found', 404)
 
-  const targetRole = String((user as any).role || '').toUpperCase()
-  if (targetRole === 'SUPERADMIN') {
-    return bad('Forbidden', 403)
+  const beforeState = {
+    verified: Boolean((user as any).verified),
+    emailVerified: (user as any).emailVerified ? new Date((user as any).emailVerified).toISOString() : null,
+    role: String((user as any).role || 'USER'),
+    status: String((user as any).status || 'ACTIVE'),
   }
 
-  const targetStatus = String((user as any).status || 'ACTIVE').toUpperCase()
-  if (targetStatus === 'BANNED') {
+  if (Boolean((user as any).verified) && Boolean((user as any).emailVerified)) {
     return bad('Conflict', 409)
   }
 
-  const beforeState = { role: String((user as any).role || 'USER'), status: String((user as any).status || 'ACTIVE') }
-
   const updated = await (prisma as any).user.update({
     where: { id: userId },
-    data: { status: 'BANNED' } as any,
-    select: { id: true, email: true, role: true, status: true, verified: true },
+    data: { verified: true, emailVerified: new Date() } as any,
+    select: { id: true, email: true, verified: true, emailVerified: true, role: true, status: true },
   })
 
-  const afterState = { role: String((updated as any).role || 'USER'), status: String((updated as any).status || 'BANNED') }
+  const afterState = {
+    verified: Boolean((updated as any).verified),
+    emailVerified: (updated as any).emailVerified ? new Date((updated as any).emailVerified).toISOString() : null,
+    role: String((updated as any).role || 'USER'),
+    status: String((updated as any).status || 'ACTIVE'),
+  }
 
   await writeAuditLog({
     entityType: 'USER',
     entityId: userId,
-    action: 'ADMIN_USER_BANNED',
+    action: 'ADMIN_USER_EMAIL_VERIFIED',
     performedByUserId: auth.userId,
     ipAddress: getIp(req),
     beforeState,
     afterState,
-    meta: {
-      actor: 'admin',
-      targetEmail: String((user as any).email || ''),
-    },
+    meta: { actor: 'admin', targetEmail: String((user as any).email || '') },
   })
 
   return NextResponse.json({ success: true, user: updated })

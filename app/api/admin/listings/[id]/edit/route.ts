@@ -2,15 +2,32 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { writeAuditLog } from '@/lib/audit'
+import { checkAdminRateLimit } from '@/lib/adminRateLimit'
 
 function bad(message: string, status = 400) {
   return NextResponse.json({ success: false, message }, { status })
 }
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+function getIp(req: Request) {
+  const forwarded = req.headers.get('x-forwarded-for')
+  if (forwarded) return forwarded.split(',')[0]?.trim() || null
+  return req.headers.get('x-real-ip') || null
+}
+
+export async function POST(req: Request, { params }: { params: { id: string } }) {
   const auth = await requireAdminSession()
   if (!auth.ok) {
     return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
+  }
+
+  const limit = await checkAdminRateLimit({
+    performedByUserId: auth.userId,
+    action: 'ADMIN_CLONED_TO_DRAFT',
+    windowMs: 60_000,
+    max: 30,
+  })
+  if (!limit.ok) {
+    return bad('Too many requests', 429)
   }
 
   const id = String(params?.id || '').trim()
@@ -23,6 +40,8 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
   if (!existing) return bad('Not found', 404)
   if (String(existing.status) !== 'APPROVED') return bad('Only published listings can be edited using draft copies.')
+
+  const beforeState = { id: String(existing.id || id), status: String(existing.status || 'APPROVED') }
 
   const cloneData: any = {
     agentId: existing.agentId,
@@ -76,6 +95,8 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     select: { id: true, status: true },
   })
 
+  const afterState = { id: String(created.id), status: String(created.status || 'DRAFT'), clonedFromId: id }
+
   const media = Array.isArray(existing.media) ? existing.media : []
   if (media.length > 0) {
     await (prisma as any).manualPropertyMedia.createMany({
@@ -97,6 +118,9 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     entityId: created.id,
     action: 'ADMIN_CLONED_TO_DRAFT',
     performedByUserId: auth.userId,
+    ipAddress: getIp(req),
+    beforeState,
+    afterState,
     meta: { actor: 'admin', clonedFromId: id },
   })
 

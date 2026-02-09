@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import ManualPropertyPreview from '@/components/ManualPropertyPreview'
 import ModerationPanelClient from './ModerationPanelClient'
+import { hasMinRole, normalizeRole } from '@/lib/rbac'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
@@ -16,13 +17,13 @@ function safeNumber(v: unknown) {
 
 export default async function AdminModerationReviewPage({ params }: { params: { listingId: string } }) {
   const session = await getServerSession(authOptions)
-  const role = String((session?.user as any)?.role || '').toUpperCase()
+  const role = normalizeRole((session?.user as any)?.role)
 
   if (!session?.user) {
     redirect('/user/login?next=%2Fadmin%2Fmoderation%2Fproperties')
   }
 
-  if (role !== 'ADMIN') {
+  if (!hasMinRole(role, 'ADMIN')) {
     redirect('/user/dashboard?error=admin_only')
   }
 
@@ -79,6 +80,7 @@ export default async function AdminModerationReviewPage({ params }: { params: { 
             <ModerationPanelClient
               listingId={String(property.id)}
               status={String(property.status || '')}
+              currentRole={role}
               agentName={agentName}
               agentCompany={safeString(property?.agent?.company)}
               agentEmail={safeString(agentUser?.email)}

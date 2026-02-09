@@ -2,16 +2,17 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { hasMinRole, normalizeRole } from '@/lib/rbac'
 
 export default async function AdminSettingsPage() {
   const session = await getServerSession(authOptions)
-  const role = String((session?.user as any)?.role || '').toUpperCase()
+  const role = normalizeRole((session?.user as any)?.role)
 
   if (!session?.user) {
     redirect('/user/login?next=%2Fadmin%2Fsettings')
   }
 
-  if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
+  if (!hasMinRole(role, 'ADMIN')) {
     redirect('/user/dashboard?error=admin_only')
   }
 

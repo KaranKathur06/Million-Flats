@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { hasMinRole, normalizeRole } from '@/lib/rbac'
+import AdminUsersTableClient from './AdminUsersTableClient'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
@@ -14,13 +16,13 @@ export default async function AdminUsersPage({
   searchParams: { [key: string]: string | string[] | undefined }
 }) {
   const session = await getServerSession(authOptions)
-  const role = String((session?.user as any)?.role || '').toUpperCase()
+  const role = normalizeRole((session?.user as any)?.role)
 
   if (!session?.user) {
     redirect('/user/login?next=%2Fadmin%2Fusers')
   }
 
-  if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
+  if (!hasMinRole(role, 'ADMIN')) {
     redirect('/user/dashboard?error=admin_only')
   }
 
@@ -29,7 +31,7 @@ export default async function AdminUsersPage({
   const where: any = {}
   if (roleFilter) where.role = roleFilter.toUpperCase()
 
-  const rows = await prisma.user.findMany({
+  const rows = await (prisma as any).user.findMany({
     where,
     orderBy: { createdAt: 'desc' },
     take: 500,
@@ -38,10 +40,21 @@ export default async function AdminUsersPage({
       email: true,
       name: true,
       role: true,
+      status: true,
       verified: true,
       createdAt: true,
     },
   })
+
+  const items = (rows as any[]).map((u) => ({
+    id: String(u.id),
+    email: safeString(u.email),
+    name: safeString(u.name),
+    role: safeString(u.role),
+    status: safeString(u.status),
+    verified: Boolean(u.verified),
+    createdAt: u.createdAt ? new Date(u.createdAt).toLocaleString() : '',
+  }))
 
   return (
     <div className="mx-auto max-w-[1500px]">
@@ -70,40 +83,7 @@ export default async function AdminUsersPage({
         </form>
 
         <div className="mt-6 overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left text-white/70 border-b border-white/10">
-                <th className="py-3 pr-4">Email</th>
-                <th className="py-3 pr-4">Name</th>
-                <th className="py-3 pr-4">Role</th>
-                <th className="py-3 pr-4">Verified</th>
-                <th className="py-3 pr-4">Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((u) => (
-                <tr key={u.id} className="border-b border-white/5">
-                  <td className="py-4 pr-4 text-white">{safeString(u.email)}</td>
-                  <td className="py-4 pr-4 text-white/80">{safeString(u.name) || '—'}</td>
-                  <td className="py-4 pr-4">
-                    <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-semibold text-white/90">
-                      {safeString(u.role)}
-                    </span>
-                  </td>
-                  <td className="py-4 pr-4 text-white/80">{u.verified ? 'Yes' : 'No'}</td>
-                  <td className="py-4 pr-4 text-white/70">{u.createdAt ? new Date(u.createdAt).toLocaleString() : '—'}</td>
-                </tr>
-              ))}
-
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-10 text-center text-white/60">
-                    No users found.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+          <AdminUsersTableClient items={items} currentRole={role} />
         </div>
       </div>
     </div>

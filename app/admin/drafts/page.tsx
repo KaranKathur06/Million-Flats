@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { hasMinRole, normalizeRole } from '@/lib/rbac'
 import AdminDraftsTableClient from './AdminDraftsTableClient'
 
 function safeString(v: unknown) {
@@ -11,13 +12,13 @@ function safeString(v: unknown) {
 
 export default async function AdminDraftsPage() {
   const session = await getServerSession(authOptions)
-  const role = String((session?.user as any)?.role || '').toUpperCase()
+  const role = normalizeRole((session?.user as any)?.role)
 
   if (!session?.user) {
     redirect('/user/login?next=%2Fadmin%2Fdrafts')
   }
 
-  if (role !== 'ADMIN') {
+  if (!hasMinRole(role, 'ADMIN')) {
     redirect('/user/dashboard?error=admin_only')
   }
 
@@ -67,7 +68,7 @@ export default async function AdminDraftsPage() {
         </div>
 
         <div className="mt-6">
-          <AdminDraftsTableClient items={items} />
+          <AdminDraftsTableClient items={items} currentRole={role} />
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { getAdminCapabilities } from '@/lib/adminCapabilities'
 
 type AgentRow = {
   userId: string
@@ -33,10 +34,18 @@ async function postJson(url: string) {
   return json
 }
 
-export default function AdminAgentsTableClient({ items }: { items: AgentRow[] }) {
+export default function AdminAgentsTableClient({
+  items,
+  currentRole,
+}: {
+  items: AgentRow[]
+  currentRole: unknown
+}) {
   const router = useRouter()
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
+
+  const caps = getAdminCapabilities(currentRole)
 
   const doAction = async (id: string, fn: () => Promise<void>) => {
     if (busyId) return
@@ -73,11 +82,16 @@ export default function AdminAgentsTableClient({ items }: { items: AgentRow[] })
           <tbody>
             {items.map((it) => {
               const isBusy = busyId === it.agentId
-              const canApprove = !it.approved && it.agentId
-              const canSuspend = it.approved && it.agentId
+              const canApprove = caps.agents.approve && !it.approved && it.agentId
+              const canSuspend = caps.agents.suspend && it.approved && it.agentId
               const status = safeString(it.status || 'ACTIVE').toUpperCase() || 'ACTIVE'
-              const canBan = Boolean(it.agentId) && status !== 'BANNED'
-              const canRevokeRole = Boolean(it.agentId)
+              const canBan = caps.agents.ban && Boolean(it.agentId) && status !== 'BANNED'
+              const canRevokeRole = caps.agents.revokeRole && Boolean(it.agentId)
+
+              const approveTitle = caps.agents.approve ? '' : 'Forbidden'
+              const suspendTitle = caps.agents.suspend ? '' : 'Forbidden'
+              const banTitle = caps.agents.ban ? '' : 'Forbidden'
+              const revokeTitle = caps.agents.revokeRole ? '' : 'Forbidden'
 
               return (
                 <tr key={it.agentId || it.userId} className="border-b border-white/5">
@@ -112,6 +126,7 @@ export default function AdminAgentsTableClient({ items }: { items: AgentRow[] })
                   <td className="py-4 pr-4">
                     <div className="flex flex-wrap gap-2">
                       <button
+                        title={approveTitle}
                         disabled={!canApprove || isBusy}
                         onClick={() =>
                           doAction(it.agentId, async () => {
@@ -128,6 +143,7 @@ export default function AdminAgentsTableClient({ items }: { items: AgentRow[] })
                       </button>
 
                       <button
+                        title={suspendTitle}
                         disabled={!canSuspend || isBusy}
                         onClick={() =>
                           doAction(it.agentId, async () => {
@@ -146,6 +162,7 @@ export default function AdminAgentsTableClient({ items }: { items: AgentRow[] })
                       </button>
 
                       <button
+                        title={banTitle}
                         disabled={!canBan || isBusy}
                         onClick={() =>
                           doAction(it.agentId, async () => {
@@ -164,6 +181,7 @@ export default function AdminAgentsTableClient({ items }: { items: AgentRow[] })
                       </button>
 
                       <button
+                        title={revokeTitle}
                         disabled={!canRevokeRole || isBusy}
                         onClick={() =>
                           doAction(it.agentId, async () => {

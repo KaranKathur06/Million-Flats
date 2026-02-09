@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/rbac'
 import { writeAuditLog } from '@/lib/audit'
+import { checkAdminRateLimit } from '@/lib/adminRateLimit'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ success: false, message: msg }, { status })
@@ -17,6 +18,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const auth = await requireRole('SUPERADMIN')
   if (!auth.ok) {
     return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
+  }
+
+  const limit = await checkAdminRateLimit({
+    performedByUserId: auth.userId,
+    action: 'ADMIN_AGENT_BANNED',
+    windowMs: 60_000,
+    max: 10,
+  })
+  if (!limit.ok) {
+    return bad('Too many requests', 429)
   }
 
   const agentId = String(params?.id || '').trim()

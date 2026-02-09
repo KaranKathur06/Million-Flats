@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { getAdminCapabilities } from '@/lib/adminCapabilities'
+import type { AppRole } from '@/lib/rbac'
 
 type ListingItem = {
   id: string
@@ -35,10 +37,18 @@ async function postJson(url: string, body?: unknown) {
   return json
 }
 
-export default function AdminListingsTableClient({ items }: { items: ListingItem[] }) {
+export default function AdminListingsTableClient({
+  items,
+  currentRole,
+}: {
+  items: ListingItem[]
+  currentRole: AppRole
+}) {
   const router = useRouter()
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
+
+  const capabilities = useMemo(() => getAdminCapabilities(currentRole), [currentRole])
 
   const groupedCounts = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -92,11 +102,48 @@ export default function AdminListingsTableClient({ items }: { items: ListingItem
           <tbody>
             {items.map((it) => {
               const isBusy = busyId === it.id
-              const canApprove = it.status === 'PENDING_REVIEW'
-              const canReject = it.status === 'PENDING_REVIEW'
-              const canArchive = it.status === 'APPROVED'
-              const canRestore = it.status === 'ARCHIVED'
-              const canEdit = it.status === 'APPROVED'
+
+              const canApproveByState = it.status === 'PENDING_REVIEW'
+              const canRejectByState = it.status === 'PENDING_REVIEW'
+              const canArchiveByState = it.status === 'APPROVED'
+              const canRestoreByState = it.status === 'ARCHIVED'
+              const canEditByState = it.status === 'APPROVED'
+
+              const canApprove = capabilities.listings.approve && canApproveByState
+              const canReject = capabilities.listings.reject && canRejectByState
+              const canArchive = capabilities.listings.archive && canArchiveByState
+              const canRestore = capabilities.listings.restore && canRestoreByState
+              const canEdit = capabilities.listings.editSafely && canEditByState
+
+              const approveReason = !capabilities.listings.approve
+                ? 'You do not have permission to approve listings.'
+                : !canApproveByState
+                  ? 'Only pending listings can be approved.'
+                  : ''
+
+              const rejectReason = !capabilities.listings.reject
+                ? 'You do not have permission to reject listings.'
+                : !canRejectByState
+                  ? 'Only pending listings can be rejected.'
+                  : ''
+
+              const editReason = !capabilities.listings.editSafely
+                ? 'You do not have permission to edit listings.'
+                : !canEditByState
+                  ? 'Only approved listings can be edited safely.'
+                  : ''
+
+              const archiveReason = !capabilities.listings.archive
+                ? 'You do not have permission to archive listings.'
+                : !canArchiveByState
+                  ? 'Only approved listings can be archived.'
+                  : ''
+
+              const restoreReason = !capabilities.listings.restore
+                ? 'You do not have permission to restore listings.'
+                : !canRestoreByState
+                  ? 'Only archived listings can be restored.'
+                  : ''
 
               return (
                 <tr key={it.id} className="border-b border-white/5">
@@ -122,6 +169,7 @@ export default function AdminListingsTableClient({ items }: { items: ListingItem
                     <div className="flex flex-wrap gap-2">
                       <button
                         disabled={!canApprove || isBusy}
+                        title={approveReason}
                         onClick={() =>
                           doAction(it.id, async () => {
                             await postJson(`/api/admin/listings/${encodeURIComponent(it.id)}/approve`)
@@ -138,6 +186,7 @@ export default function AdminListingsTableClient({ items }: { items: ListingItem
 
                       <button
                         disabled={!canReject || isBusy}
+                        title={rejectReason}
                         onClick={() =>
                           doAction(it.id, async () => {
                             const reason = window.prompt('Rejection reason (visible to agent):') || ''
@@ -156,6 +205,7 @@ export default function AdminListingsTableClient({ items }: { items: ListingItem
 
                       <button
                         disabled={!canEdit || isBusy}
+                        title={editReason}
                         onClick={() =>
                           doAction(it.id, async () => {
                             const json = await postJson(`/api/admin/listings/${encodeURIComponent(it.id)}/edit`)
@@ -175,6 +225,7 @@ export default function AdminListingsTableClient({ items }: { items: ListingItem
 
                       <button
                         disabled={!canArchive || isBusy}
+                        title={archiveReason}
                         onClick={() =>
                           doAction(it.id, async () => {
                             await postJson(`/api/admin/listings/${encodeURIComponent(it.id)}/archive`)
@@ -191,6 +242,7 @@ export default function AdminListingsTableClient({ items }: { items: ListingItem
 
                       <button
                         disabled={!canRestore || isBusy}
+                        title={restoreReason}
                         onClick={() =>
                           doAction(it.id, async () => {
                             await postJson(`/api/admin/listings/${encodeURIComponent(it.id)}/restore`)

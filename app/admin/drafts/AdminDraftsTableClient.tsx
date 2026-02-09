@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { getAdminCapabilities } from '@/lib/adminCapabilities'
+import type { AppRole } from '@/lib/rbac'
 
 type DraftItem = {
   id: string
@@ -27,10 +29,18 @@ async function postJson(url: string) {
   return json
 }
 
-export default function AdminDraftsTableClient({ items }: { items: DraftItem[] }) {
+export default function AdminDraftsTableClient({
+  items,
+  currentRole,
+}: {
+  items: DraftItem[]
+  currentRole: AppRole
+}) {
   const router = useRouter()
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
+
+  const capabilities = useMemo(() => getAdminCapabilities(currentRole), [currentRole])
 
   const doAction = async (id: string, fn: () => Promise<void>) => {
     if (busyId) return
@@ -65,6 +75,8 @@ export default function AdminDraftsTableClient({ items }: { items: DraftItem[] }
           <tbody>
             {items.map((it) => {
               const isBusy = busyId === it.id
+              const canDelete = capabilities.drafts.delete
+              const deleteReason = canDelete ? '' : 'You do not have permission to delete drafts.'
 
               return (
                 <tr key={it.id} className="border-b border-white/5">
@@ -82,16 +94,20 @@ export default function AdminDraftsTableClient({ items }: { items: DraftItem[] }
                   <td className="py-4 pr-4">
                     <div className="flex flex-wrap gap-2">
                       <button
-                        disabled={isBusy}
+                        disabled={isBusy || !canDelete}
+                        title={deleteReason}
                         onClick={() =>
                           doAction(it.id, async () => {
+                            if (!canDelete) throw new Error(deleteReason)
                             const ok = window.confirm('Delete this draft? This cannot be undone.')
                             if (!ok) return
                             await postJson(`/api/admin/drafts/${encodeURIComponent(it.id)}/delete`)
                           })
                         }
                         className={`h-9 rounded-lg px-3 text-xs font-semibold ${
-                          !isBusy ? 'border border-white/10 bg-transparent text-white hover:bg-white/5' : 'bg-white/5 text-white/30'
+                          !isBusy && canDelete
+                            ? 'border border-white/10 bg-transparent text-white hover:bg-white/5'
+                            : 'bg-white/5 text-white/30 cursor-not-allowed'
                         }`}
                       >
                         Delete

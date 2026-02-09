@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { writeAuditLog } from '@/lib/audit'
 import { sendEmail, buildAbsoluteUrl } from '@/lib/mailer'
+import { checkAdminRateLimit } from '@/lib/adminRateLimit'
 
 const RejectSchema = z.object({
   reason: z.string().trim().min(3).max(2000),
@@ -17,10 +18,26 @@ function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
 }
 
+function getIp(req: Request) {
+  const forwarded = req.headers.get('x-forwarded-for')
+  if (forwarded) return forwarded.split(',')[0]?.trim() || null
+  return req.headers.get('x-real-ip') || null
+}
+
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const auth = await requireAdminSession()
   if (!auth.ok) {
     return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
+  }
+
+  const limit = await checkAdminRateLimit({
+    performedByUserId: auth.userId,
+    action: 'ADMIN_REJECTED',
+    windowMs: 60_000,
+    max: 30,
+  })
+  if (!limit.ok) {
+    return bad('Too many requests', 429)
   }
 
   const id = String(params?.id || '').trim()
@@ -43,6 +60,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (!property) return bad('Not found', 404)
   if (String(property.status) !== 'PENDING_REVIEW') return bad('Only pending listings can be rejected.')
 
+  const beforeState = { status: String(property.status || 'PENDING_REVIEW') }
+
   const updated = await (prisma as any).manualProperty.update({
     where: { id },
     data: {
@@ -52,11 +71,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     select: { id: true, status: true },
   })
 
+  const afterState = { status: String(updated.status || 'REJECTED') }
+
   await writeAuditLog({
     entityType: 'MANUAL_PROPERTY',
     entityId: id,
     action: 'ADMIN_REJECTED',
     performedByUserId: auth.userId,
+    ipAddress: getIp(req),
+    beforeState,
+    afterState,
     meta: { actor: 'admin' },
   })
 

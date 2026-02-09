@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { writeAuditLog } from '@/lib/audit'
+import { checkAdminRateLimit } from '@/lib/adminRateLimit'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ success: false, message: msg }, { status })
@@ -9,6 +10,12 @@ function bad(msg: string, status = 400) {
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
+}
+
+function getIp(req: Request) {
+  const forwarded = req.headers.get('x-forwarded-for')
+  if (forwarded) return forwarded.split(',')[0]?.trim() || null
+  return req.headers.get('x-real-ip') || null
 }
 
 function hasCover(media: any) {
@@ -47,10 +54,20 @@ function validateForApproval(property: any) {
   return { ok: true as const }
 }
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: { id: string } }) {
   const auth = await requireAdminSession()
   if (!auth.ok) {
     return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
+  }
+
+  const limit = await checkAdminRateLimit({
+    performedByUserId: auth.userId,
+    action: 'ADMIN_APPROVED',
+    windowMs: 60_000,
+    max: 30,
+  })
+  if (!limit.ok) {
+    return bad('Too many requests', 429)
   }
 
   const id = String(params?.id || '')
@@ -64,6 +81,8 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   const check = validateForApproval(property)
   if (!check.ok) return bad(check.message)
 
+  const beforeState = { status: String(property.status || 'PENDING_REVIEW') }
+
   const updated = await (prisma as any).manualProperty.update({
     where: { id },
     data: {
@@ -72,6 +91,8 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     } as any,
     select: { id: true, status: true },
   })
+
+  const afterState = { status: String(updated.status || 'APPROVED') }
 
   await (prisma as any).manualPropertyModerationLog.create({
     data: {
@@ -87,6 +108,9 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     entityId: id,
     action: 'ADMIN_APPROVED',
     performedByUserId: auth.userId,
+    ipAddress: getIp(req),
+    beforeState,
+    afterState,
     meta: { actor: 'admin' },
   })
 
