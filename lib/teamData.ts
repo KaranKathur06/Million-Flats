@@ -21,6 +21,12 @@ export const teamSections: TeamSection[] = [
         image: '/team/tarique.jpeg',
       },
       {
+        name: 'Ms. Neelam',
+        role: 'Managing Director',
+        bio: "She provides strategic oversight and governance. She represents the interests of our investors and guides the company's long-term vision and financial stewardship.",
+        image: '/team/neelam.jpeg',
+      },
+      {
         name: 'Hardik Vyas',
         role: 'COO',
         bio: 'Marketing and networking leader with 15+ years of global experience, including leadership roles at Falcon Company, Rajkot, as Export Manager.',

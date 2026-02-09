@@ -16,7 +16,7 @@ export default function Header() {
   const isAuthed = status === 'authenticated'
   const isAgent = isAuthed && role === 'AGENT'
   const isUser = isAuthed && role === 'USER'
-  const isAdmin = isAuthed && role === 'ADMIN'
+  const isAdmin = isAuthed && (role === 'ADMIN' || role === 'SUPERADMIN')
 
   const publicLinks = [
     { href: '/', label: 'Home' },

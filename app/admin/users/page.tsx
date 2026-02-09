@@ -20,7 +20,7 @@ export default async function AdminUsersPage({
     redirect('/user/login?next=%2Fadmin%2Fusers')
   }
 
-  if (role !== 'ADMIN') {
+  if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
     redirect('/user/dashboard?error=admin_only')
   }
 

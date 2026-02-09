@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatCountryPrice } from '@/lib/country'
 import { buildPropertySlugPath } from '@/lib/seo'
+import AgentProfileSubmitPanel, { ProfileStatusBadge } from '../_components/AgentProfileSubmitPanel'
 
 type Listing = {
   id: string
@@ -37,9 +38,11 @@ export default function AgentDashboardClient({
   company,
   license,
   approved,
+  profileStatus,
   publicProfileHref,
   stats,
   profileCompletion,
+  submitMeta,
   draftListings,
   listings,
   leads,
@@ -48,6 +51,7 @@ export default function AgentDashboardClient({
   company: string
   license: string
   approved: boolean
+  profileStatus: string
   publicProfileHref: string
   stats: {
     totalListings: number
@@ -57,6 +61,7 @@ export default function AgentDashboardClient({
     contactClicks: number
   }
   profileCompletion: { percent: number; missing: Array<{ key: string; label: string; href: string }> }
+  submitMeta: { license: string; phone: string; bio: string; photo: string; profileCompletion: number }
   draftListings: DraftListing[]
   listings: Listing[]
   leads: Lead[]
@@ -155,6 +160,7 @@ export default function AgentDashboardClient({
                       License: {license}
                     </span>
                   ) : null}
+                  <ProfileStatusBadge status={profileStatus} />
                 </div>
               </div>
             </div>
@@ -174,6 +180,17 @@ export default function AgentDashboardClient({
               </Link>
             </div>
           </div>
+        </div>
+
+        <div className="mt-6">
+          <AgentProfileSubmitPanel
+            profileStatus={profileStatus}
+            license={submitMeta.license}
+            phone={submitMeta.phone}
+            bio={submitMeta.bio}
+            photo={submitMeta.photo}
+            profileCompletion={submitMeta.profileCompletion}
+          />
         </div>
 
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">

@@ -257,24 +257,31 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   if (!rawId) return { title: 'Property' }
 
   if (isUuid(rawId)) {
-    const manual = await (prisma as any).manualProperty
-      .findFirst({
-        where: { id: rawId, status: 'APPROVED', sourceType: 'MANUAL', agent: { approved: true, user: { status: 'ACTIVE' } } },
-        include: { media: true },
+    const manualProperty = await (prisma as any).manualProperty
+      .findUnique({
+        where: { id: rawId },
+        include: { media: true, agent: { include: { user: true } } },
       })
       .catch(() => null)
 
-    if (manual) {
-      const title = safeString(manual?.title) || 'Agent Listing'
-      const city = safeString(manual?.city)
-      const community = safeString(manual?.community)
+    if (manualProperty) {
+      const agentApproved = Boolean(manualProperty?.agent?.approved)
+      const agentProfileLive = String((manualProperty as any)?.agent?.profileStatus || '').toUpperCase() === 'LIVE'
+      const agentUserStatus = String(manualProperty?.agent?.user?.status || 'ACTIVE').toUpperCase()
+      if (!agentApproved || !agentProfileLive || agentUserStatus !== 'ACTIVE') {
+        notFound()
+      }
+
+      const title = safeString(manualProperty?.title) || 'Agent Listing'
+      const city = safeString(manualProperty?.city)
+      const community = safeString(manualProperty?.community)
       const locationLabel = [community, city].filter(Boolean).join(', ')
       const description = clampDescription(
-        safeString(manual?.shortDescription) || `Agent-listed property${locationLabel ? ` • ${locationLabel}` : ''}.`
+        safeString(manualProperty?.shortDescription) || `Agent-listed property${locationLabel ? ` • ${locationLabel}` : ''}.`
       )
 
-      const images: string[] = Array.isArray(manual?.media)
-        ? manual.media
+      const images: string[] = Array.isArray(manualProperty?.media)
+        ? manualProperty.media
             .map((m: any) => safeString(m?.url))
             .filter(Boolean)
         : []
@@ -315,18 +322,25 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
   if (!rawId) notFound()
 
   if (isUuid(rawId)) {
-    const manual = await (prisma as any).manualProperty
-      .findFirst({
-        where: { id: rawId, status: 'APPROVED', sourceType: 'MANUAL', agent: { approved: true, user: { status: 'ACTIVE' } } },
+    const manualProperty = await (prisma as any).manualProperty
+      .findUnique({
+        where: { id: rawId },
         include: { media: { orderBy: [{ category: 'asc' }, { position: 'asc' }] }, agent: { include: { user: true } } },
       })
       .catch(() => null)
 
-    if (!manual) {
+    if (!manualProperty) {
       notFound()
     }
 
-    const title = safeString(manual?.title) || 'Agent Listing'
+    const agentApproved = Boolean(manualProperty?.agent?.approved)
+    const agentProfileLive = String((manualProperty as any)?.agent?.profileStatus || '').toUpperCase() === 'LIVE'
+    const agentUserStatus = String(manualProperty?.agent?.user?.status || 'ACTIVE').toUpperCase()
+    if (!agentApproved || !agentProfileLive || agentUserStatus !== 'ACTIVE') {
+      notFound()
+    }
+
+    const title = safeString(manualProperty?.title) || 'Agent Listing'
     const canonicalPath = buildPropertySlugPath({ id: rawId, title })
     if (canonicalPath) {
       const expected = canonicalPath.split('/').pop() || ''
@@ -335,9 +349,11 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
         redirect(canonicalPath)
       }
     }
-    const city = safeString(manual?.city)
-    const community = safeString(manual?.community)
+    const city = safeString(manualProperty?.city)
+    const community = safeString(manualProperty?.community)
     const locationLabel = [community, city].filter(Boolean).join(', ')
+
+    const manual = manualProperty
 
     const images: string[] = Array.isArray(manual?.media)
       ? manual.media

@@ -140,7 +140,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (isAdminProtected && role !== 'ADMIN') {
+  const isAdminOrHigher = role === 'ADMIN' || role === 'SUPERADMIN'
+  if (isAdminProtected && !isAdminOrHigher) {
     const url = req.nextUrl.clone()
     url.pathname = '/user/dashboard'
     url.search = 'error=admin_only'

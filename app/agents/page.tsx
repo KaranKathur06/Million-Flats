@@ -58,7 +58,7 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
   const agents = await prisma.agent
     .findMany({
       include: { user: true },
-      where: { approved: true, user: { status: 'ACTIVE' } } as any,
+      where: { approved: true, profileStatus: 'LIVE', user: { status: 'ACTIVE' } } as any,
       orderBy: { createdAt: 'desc' },
       take: 500,
     })
@@ -90,7 +90,7 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
             agentId: { in: agentIds },
             status: 'APPROVED',
             sourceType: 'MANUAL',
-            agent: { approved: true, user: { status: 'ACTIVE' } },
+            agent: { approved: true, profileStatus: 'LIVE', user: { status: 'ACTIVE' } },
           },
           _count: { _all: true },
         })

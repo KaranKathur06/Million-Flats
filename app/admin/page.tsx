@@ -12,7 +12,7 @@ export default async function AdminHomePage() {
     redirect('/user/login?next=%2Fadmin')
   }
 
-  if (role !== 'ADMIN') {
+  if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
     redirect('/user/dashboard?error=admin_only')
   }
 

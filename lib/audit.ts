@@ -14,12 +14,22 @@ export type AuditAction =
   | 'ADMIN_AGENT_SUSPENDED'
   | 'ADMIN_AGENT_BANNED'
   | 'ADMIN_AGENT_ROLE_REVOKED'
+  | 'ADMIN_AGENT_DELETED'
+  | 'ADMIN_AGENT_PROFILESTATUS_OVERRIDDEN'
+  | 'ADMIN_USER_BANNED'
+  | 'ADMIN_USER_DELETED'
+  | 'ADMIN_USER_ROLE_CHANGED'
+  | 'ADMIN_USER_EMAIL_VERIFIED'
+  | 'AGENT_PROFILE_SUBMITTED'
 
 export async function writeAuditLog(input: {
   entityType: AuditEntityType
   entityId: string
   action: AuditAction
   performedByUserId?: string | null
+  ipAddress?: string | null
+  beforeState?: unknown
+  afterState?: unknown
   meta?: unknown
 }) {
   const entityId = String(input.entityId || '').trim()
@@ -30,6 +40,9 @@ export async function writeAuditLog(input: {
     entityId,
     action: input.action,
     performedByUserId: input.performedByUserId || null,
+    ipAddress: input.ipAddress || null,
+    beforeState: input.beforeState ?? null,
+    afterState: input.afterState ?? null,
     meta: input.meta ?? null,
   }
 

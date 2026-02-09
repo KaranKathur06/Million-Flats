@@ -11,12 +11,44 @@ enum Role {
   USER
   AGENT
   ADMIN
+  SUPERADMIN
 }
 
 enum UserStatus {
   ACTIVE
   SUSPENDED
   BANNED
+}
+
+enum AgentProfileStatus {
+  DRAFT
+  SUBMITTED
+  VERIFIED
+  LIVE
+  SUSPENDED
+}
+
+enum AgentPropertyType {
+  RESIDENTIAL
+  LUXURY
+  COMMERCIAL
+}
+
+enum AgentServiceType {
+  BUY
+  SELL
+  RENT
+}
+
+enum AgentVerificationDocumentType {
+  LICENSE
+  ID
+}
+
+enum AgentVerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum CountryCode {
@@ -177,6 +209,8 @@ model Agent {
   whatsapp String? @map("whatsapp_number")
   approved Boolean @default(false)
 
+  profileStatus AgentProfileStatus @default(DRAFT) @map("profile_status")
+
   bio String? @db.Text
   profileCompletion Int @default(0) @map("profile_completion")
   profileCompletionUpdatedAt DateTime? @map("profile_completion_updated_at")
@@ -186,10 +220,122 @@ model Agent {
   listings AgentListing[]
   manualProperties ManualProperty[]
 
+  serviceAreas AgentServiceArea[]
+  specializations AgentSpecialization[]
+  metrics AgentMetric?
+  badges AgentBadge[]
+  verifications AgentVerification[]
+  reviews AgentReview[]
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("agents")
+}
+
+model AgentServiceArea {
+  id       String @id @default(uuid())
+  agentId  String @map("agent_id")
+  city     String
+  locality String?
+  latitude Float?
+  longitude Float?
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([agentId])
+  @@index([city])
+  @@unique([agentId, city, locality])
+  @@map("agent_service_areas")
+}
+
+model AgentSpecialization {
+  id           String @id @default(uuid())
+  agentId      String @map("agent_id")
+  propertyType AgentPropertyType @map("property_type")
+  serviceType  AgentServiceType @map("service_type")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([agentId])
+  @@index([propertyType])
+  @@index([serviceType])
+  @@unique([agentId, propertyType, serviceType])
+  @@map("agent_specializations")
+}
+
+model AgentMetric {
+  id               String @id @default(uuid())
+  agentId          String @unique @map("agent_id")
+  dealsClosed      Int @default(0) @map("deals_closed")
+  avgTimeToCloseDays Int? @map("avg_time_to_close_days")
+  saleToListRatio  Float? @map("sale_to_list_ratio")
+  responseRate     Float? @map("response_rate")
+  repeatClientRate Float? @map("repeat_client_rate")
+  verixproScore    Int @default(0) @map("verixpro_score")
+  lastCalculatedAt DateTime? @map("last_calculated_at")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([verixproScore])
+  @@map("agent_metrics")
+}
+
+model AgentBadge {
+  id       String @id @default(uuid())
+  agentId  String @map("agent_id")
+  badgeKey String @map("badge_key")
+  earnedAt DateTime @default(now()) @map("earned_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([badgeKey])
+  @@unique([agentId, badgeKey])
+  @@map("agent_badges")
+}
+
+model AgentVerification {
+  id           String @id @default(uuid())
+  agentId      String @map("agent_id")
+  documentType AgentVerificationDocumentType @map("document_type")
+  documentUrl  String @map("document_url")
+  status       AgentVerificationStatus @default(PENDING)
+  reviewedAt   DateTime? @map("reviewed_at")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([agentId])
+  @@index([status])
+  @@index([documentType])
+  @@map("agent_verifications")
+}
+
+model AgentReview {
+  id            String @id @default(uuid())
+  agentId       String @map("agent_id")
+  rating        Int
+  comment       String? @db.Text
+  verifiedDealId String? @map("verified_deal_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([rating])
+  @@map("agent_reviews")
 }
 
 model ManualProperty {
@@ -282,6 +428,13 @@ enum AuditAction {
   ADMIN_AGENT_SUSPENDED
   ADMIN_AGENT_BANNED
   ADMIN_AGENT_ROLE_REVOKED
+  ADMIN_AGENT_DELETED
+  ADMIN_AGENT_PROFILESTATUS_OVERRIDDEN
+  ADMIN_USER_BANNED
+  ADMIN_USER_DELETED
+  ADMIN_USER_ROLE_CHANGED
+  ADMIN_USER_EMAIL_VERIFIED
+  AGENT_PROFILE_SUBMITTED
 }
 
 model AuditLog {
@@ -290,6 +443,9 @@ model AuditLog {
   entityId   String @map("entity_id")
   action     AuditAction
   performedByUserId String? @map("performed_by_user_id")
+  ipAddress  String? @map("ip_address")
+  beforeState Json? @map("before_state")
+  afterState  Json? @map("after_state")
   meta       Json?
 
   performedBy User? @relation("AuditLogPerformedBy", fields: [performedByUserId], references: [id], onDelete: SetNull)

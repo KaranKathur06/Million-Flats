@@ -18,7 +18,7 @@ const authSecret = nextAuthSecret || jwtSecret
 
 function normalizeRole(input: unknown) {
   const r = typeof input === 'string' ? input.trim().toUpperCase() : ''
-  if (r === 'ADMIN' || r === 'AGENT' || r === 'USER') return r
+  if (r === 'SUPERADMIN' || r === 'ADMIN' || r === 'AGENT' || r === 'USER') return r
   return 'USER'
 }
 

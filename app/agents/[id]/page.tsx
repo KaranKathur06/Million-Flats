@@ -152,16 +152,27 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const id = extractAgentId(params?.id || '')
   if (!id) return { title: 'Agent | millionflats' }
 
-  const agent = await prisma.agent
+  let agent = await prisma.agent
     .findUnique({ where: { id }, include: { user: true } })
     .catch((error: unknown) => {
       console.error('Agent profile metadata: failed to load agent', error)
       return null
     })
-  const name = agent?.user?.name || 'Agent'
+
+  if (!agent) {
+    const fallbackUser = await (prisma as any).user
+      .findUnique({ where: { id }, include: { agent: true } })
+      .catch(() => null)
+    if (fallbackUser?.agent) {
+      agent = { ...fallbackUser.agent, user: fallbackUser } as any
+    }
+  }
+
+  const agentId = safeString((agent as any)?.id)
+  const name = (agent as any)?.user?.name || 'Agent'
 
   const slug = slugify(name)
-  const canonicalPath = `/agents/${slug ? `${slug}-` : ''}${id}`
+  const canonicalPath = agentId ? `/agents/${slug ? `${slug}-` : ''}${agentId}` : ''
   const canonical = absoluteUrl(canonicalPath)
 
   const company = agent?.company || 'millionflats Partner'
@@ -205,31 +216,51 @@ export default async function AgentProfilePage({
     console.error('Agent profile: failed to load agent', error)
     agent = null
   }
+
   if (!agent) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="mx-auto max-w-[1100px] px-4 sm:px-6 lg:px-8 py-12">
-          <div className="rounded-2xl border border-gray-200 bg-white p-8">
-            <h1 className="text-2xl md:text-3xl font-serif font-bold text-dark-blue">Agent profile unavailable</h1>
-            <p className="mt-3 text-gray-600">This page is temporarily unavailable. Please try again later.</p>
-            <div className="mt-6">
-              <Link href="/agents" className="inline-flex items-center justify-center h-11 px-6 rounded-xl bg-dark-blue text-white font-semibold">
-                Back to Agents
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+    const fallbackUser = await (prisma as any).user
+      .findUnique({ where: { id }, include: { agent: true } })
+      .catch((error: unknown) => {
+        console.error('Agent profile: failed to load fallback user', error)
+        return null
+      })
+
+    if (!fallbackUser) {
+      notFound()
+    }
+
+    agent = fallbackUser.agent
+      ? { ...fallbackUser.agent, user: fallbackUser }
+      : { id: '', approved: false, company: '', license: '', whatsapp: '', user: fallbackUser }
   }
 
   const user = agent.user
 
   const isApproved = Boolean(agent?.approved)
+  const profileStatus = String(agent?.profileStatus || 'DRAFT').toUpperCase()
   const status = String(user?.status || 'ACTIVE').toUpperCase()
-  if (!isApproved || status !== 'ACTIVE') {
+  if (status === 'BANNED') {
     notFound()
   }
+  const contactEnabled = status === 'ACTIVE'
+  const isLive = isApproved && profileStatus === 'LIVE' && status === 'ACTIVE'
+  const showProfileNotice = !isLive
+  const profileNoticeTitle = !isApproved
+    ? 'Profile setup in progress'
+    : profileStatus !== 'LIVE'
+      ? profileStatus === 'SUBMITTED'
+        ? 'Verification pending'
+        : 'Profile setup in progress'
+      : status === 'SUSPENDED'
+        ? 'Agent temporarily unavailable'
+        : 'Limited profile'
+  const profileNoticeBody = !isApproved
+    ? 'This agent is setting up verification and profile details. Some information may be unavailable.'
+    : profileStatus !== 'LIVE'
+      ? 'This agent is setting up verification and profile details. Some information may be unavailable.'
+      : status === 'SUSPENDED'
+        ? 'This agent is currently suspended. Contact options are disabled temporarily.'
+        : 'Some profile details may be unavailable.'
   const name = user?.name || 'Agent'
   const email = user?.email || ''
   const phone = user?.phone || ''
@@ -259,7 +290,7 @@ export default async function AgentProfilePage({
 
   const manualRowsEnabled = source === 'all' || source === 'manual'
 
-  const manualAttributionRows: AttributionRow[] = manualRowsEnabled
+  const manualAttributionRows: AttributionRow[] = manualRowsEnabled && agent?.id
     ? await (prisma as any).manualProperty
         .findMany({
           where: { agentId: agent.id, status: 'APPROVED' },
@@ -383,12 +414,14 @@ export default async function AgentProfilePage({
   const license = agent.license || ''
   const whatsapp = agent.whatsapp || ''
 
+  const agentId = safeString(agent?.id)
+
   const slug = slugify(name)
-  const canonicalPath = `/agents/${slug ? `${slug}-` : ''}${agent.id}`
+  const canonicalPath = agentId ? `/agents/${slug ? `${slug}-` : ''}${agentId}` : ''
   const canonical = absoluteUrl(canonicalPath)
   const canonicalId = canonicalPath.replace('/agents/', '')
 
-  if (rawParam && rawParam !== canonicalId) {
+  if (canonicalPath && rawParam && rawParam !== canonicalId) {
     const qs = buildQueryString(query)
     redirect(`${canonicalPath}${qs}`)
   }
@@ -449,6 +482,13 @@ export default async function AgentProfilePage({
                     <h1 className="mt-2 text-3xl md:text-4xl font-serif font-bold text-dark-blue truncate">{name}</h1>
                     <p className="mt-2 text-gray-600">{company}</p>
 
+                    {showProfileNotice ? (
+                      <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                        <p className="text-sm font-semibold text-amber-900">{profileNoticeTitle}</p>
+                        <p className="mt-1 text-sm text-amber-900/80">{profileNoticeBody}</p>
+                      </div>
+                    ) : null}
+
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold border ${
@@ -472,7 +512,7 @@ export default async function AgentProfilePage({
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3">
-                  {phone ? (
+                  {contactEnabled && phone ? (
                     <GatedActionLink
                       href={`tel:${phone}`}
                       className="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90"
@@ -480,7 +520,7 @@ export default async function AgentProfilePage({
                       Call
                     </GatedActionLink>
                   ) : null}
-                  {whatsapp ? (
+                  {contactEnabled && whatsapp ? (
                     <GatedActionLink
                       href={`https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}`}
                       className="inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
@@ -488,7 +528,7 @@ export default async function AgentProfilePage({
                       WhatsApp
                     </GatedActionLink>
                   ) : null}
-                  {email ? (
+                  {contactEnabled && email ? (
                     <GatedActionLink
                       href={`mailto:${email}`}
                       className="inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
@@ -667,14 +707,14 @@ export default async function AgentProfilePage({
               </div>
 
               <div className="mt-6">
-                <ContactAgentForm agentName={name} agentId={agent.id} />
+                {contactEnabled && agentId ? <ContactAgentForm agentName={name} agentId={agentId} /> : null}
               </div>
             </div>
           </aside>
         </div>
       </div>
 
-      {(phone || whatsapp || email) && (
+      {contactEnabled && (phone || whatsapp || email) && (
         <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white/95 backdrop-blur border-t border-gray-200">
           <div className="mx-auto max-w-[1400px] px-4 py-3 flex items-center gap-2">
             {phone ? (

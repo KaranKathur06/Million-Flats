@@ -26,6 +26,22 @@ export default async function AgentProfilePage() {
     redirect('/agent/login?next=%2Fagent%2Fprofile')
   }
 
+  const status = String((user as any)?.status || 'ACTIVE').toUpperCase()
+  if (status !== 'ACTIVE') {
+    redirect('/agent/login?error=account_disabled')
+  }
+
+  if (!user.agent) {
+    redirect('/agent/login?error=not_an_agent')
+  }
+
+  const agentRow = await (prisma as any).agent
+    .findUnique({
+      where: { id: user.agent.id },
+      select: { id: true, profileStatus: true, profileCompletion: true },
+    })
+    .catch(() => null)
+
   return (
     <AgentProfileClient
       initialName={user.name || ''}
@@ -36,6 +52,8 @@ export default async function AgentProfilePage() {
       initialLicense={user.agent?.license || ''}
       initialWhatsapp={user.agent?.whatsapp || ''}
       initialBio={(user.agent as any)?.bio || ''}
+      profileStatus={String((agentRow as any)?.profileStatus || (user.agent as any)?.profileStatus || 'DRAFT')}
+      profileCompletion={Number((agentRow as any)?.profileCompletion || (user.agent as any)?.profileCompletion || 0)}
     />
   )
 }

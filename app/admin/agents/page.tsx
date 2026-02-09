@@ -17,7 +17,7 @@ export default async function AdminAgentsPage() {
     redirect('/user/login?next=%2Fadmin%2Fagents')
   }
 
-  if (role !== 'ADMIN') {
+  if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
     redirect('/user/dashboard?error=admin_only')
   }
 

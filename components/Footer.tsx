@@ -5,9 +5,8 @@ import { useSession } from 'next-auth/react'
 
 export default function Footer() {
   const { data: session, status } = useSession()
+  const isAuthed = Boolean(session?.user)
   const role = String((session?.user as any)?.role || '').toUpperCase()
-  const isAuthed = status === 'authenticated'
-  const isUser = isAuthed && role === 'USER'
   const isAgent = isAuthed && role === 'AGENT'
 
   return (
@@ -41,7 +40,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {isUser && (
+          {isAuthed && (
             <div>
               <h3 className="font-semibold text-gray-900 mb-4">Trust Framework (Verix™ System)</h3>
               <ul className="space-y-2">

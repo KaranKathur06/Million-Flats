@@ -84,7 +84,7 @@ export default async function AgentDashboardPage() {
   const agentRow = await (prisma as any).agent
     .findUnique({
       where: { id: agent.id },
-      select: { id: true, license: true, whatsapp: true, bio: true, profileCompletionUpdatedAt: true },
+      select: { id: true, license: true, whatsapp: true, bio: true, profileStatus: true, profileCompletion: true, profileCompletionUpdatedAt: true },
     })
     .catch((error: unknown) => {
       console.error('Agent dashboard: failed to load agentRow', error)
@@ -273,6 +273,7 @@ export default async function AgentDashboardPage() {
       company={agent.company || ''}
       license={agent.license || ''}
       approved={Boolean(agent.approved)}
+      profileStatus={String((agentRow as any)?.profileStatus || (agent as any)?.profileStatus || 'DRAFT')}
       publicProfileHref={publicProfileHref}
       stats={{
         totalListings,
@@ -282,6 +283,13 @@ export default async function AgentDashboardPage() {
         contactClicks: 0,
       }}
       profileCompletion={{ percent: completion, missing }}
+      submitMeta={{
+        license: String(agentRow?.license || agent.license || ''),
+        phone: String(dbUser.phone || ''),
+        bio: String((agentRow as any)?.bio || ''),
+        photo: String(dbUser.image || ''),
+        profileCompletion: Math.max(0, Math.min(100, Math.round(completion))),
+      }}
       draftListings={Array.isArray(draftListings) ? draftListings : []}
       listings={Array.isArray(publishedManualListings) ? publishedManualListings : []}
       leads={leads.map((l) => ({

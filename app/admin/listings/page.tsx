@@ -32,7 +32,7 @@ export default async function AdminListingsPage({
     redirect('/user/login?next=%2Fadmin%2Flistings')
   }
 
-  if (role !== 'ADMIN') {
+  if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
     redirect('/user/dashboard?error=admin_only')
   }
 

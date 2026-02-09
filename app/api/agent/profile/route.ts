@@ -1,29 +1,32 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { requireAgentProfileSession } from '@/lib/agentAuth'
 
 function safeString(v: unknown) {
   if (typeof v !== 'string') return ''
   return v.trim()
 }
 
+function clampCompletion(n: number) {
+  if (!Number.isFinite(n)) return 0
+  return Math.max(0, Math.min(100, Math.round(n)))
+}
+
+const completionWeights = {
+  photo: 15,
+  bio: 15,
+  phone: 10,
+  whatsapp: 10,
+  license: 15,
+  listing: 20,
+  media: 15,
+}
+
 export async function PATCH(req: Request) {
   try {
-    const session = await getServerSession(authOptions)
-    const role = String((session?.user as any)?.role || '').toUpperCase()
-
-    if (!session?.user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
-    }
-
-    if (role !== 'AGENT') {
-      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
-    }
-
-    const email = String((session.user as any).email || '').trim().toLowerCase()
-    if (!email) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    const auth = await requireAgentProfileSession()
+    if (!auth.ok) {
+      return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
     }
 
     const body = await req.json().catch(() => null)
@@ -35,27 +38,56 @@ export async function PATCH(req: Request) {
     const bio = safeString(body?.bio)
     const image = safeString(body?.image)
 
+    const hasPhoto = Boolean(image)
+    const hasBio = Boolean(bio)
+    const hasPhone = Boolean(phone)
+    const hasWhatsapp = Boolean(whatsapp)
+    const hasLicense = Boolean(license)
+
+    const agentListingCount = await (prisma as any).agentListing
+      .findMany({ where: { agentId: auth.agentId }, distinct: ['externalId'], select: { externalId: true } })
+      .then((rows: any[]) => rows.length)
+      .catch(() => 0)
+
+    const manualApprovedCount = await (prisma as any).manualProperty
+      .count({ where: { agentId: auth.agentId, status: 'APPROVED', sourceType: 'MANUAL' } })
+      .catch(() => 0)
+
+    const hasPublishedListing = agentListingCount > 0 || manualApprovedCount > 0
+
+    const hasMedia = await (prisma as any).manualPropertyMedia
+      .findFirst({
+        where: { property: { agentId: auth.agentId, status: 'APPROVED', sourceType: 'MANUAL' } },
+        select: { id: true },
+      })
+      .then((row: any) => Boolean(row?.id))
+      .catch(() => false)
+
+    const completion = clampCompletion(
+      (hasPhoto ? completionWeights.photo : 0) +
+        (hasBio ? completionWeights.bio : 0) +
+        (hasPhone ? completionWeights.phone : 0) +
+        (hasWhatsapp ? completionWeights.whatsapp : 0) +
+        (hasLicense ? completionWeights.license : 0) +
+        (hasPublishedListing ? completionWeights.listing : 0) +
+        (hasMedia ? completionWeights.media : 0)
+    )
+
     const updated = await prisma.user.update({
-      where: { email },
+      where: { id: auth.userId },
       data: {
         name: name || null,
         phone: phone || null,
         image: image || null,
         agent: {
-          upsert: {
-            create: {
-              company: company || null,
-              license: license || null,
-              whatsapp: whatsapp || null,
-              bio: bio || null,
-            } as any,
-            update: {
-              company: company || null,
-              license: license || null,
-              whatsapp: whatsapp || null,
-              bio: bio || null,
-            } as any,
-          },
+          update: {
+            company: company || null,
+            license: license || null,
+            whatsapp: whatsapp || null,
+            bio: bio || null,
+            profileCompletion: completion,
+            profileCompletionUpdatedAt: new Date(),
+          } as any,
         } as any,
       },
       include: { agent: true },

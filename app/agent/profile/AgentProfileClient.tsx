@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import AgentProfileSubmitPanel, { ProfileStatusBadge } from '../_components/AgentProfileSubmitPanel'
 
 export default function AgentProfileClient({
   initialName,
@@ -12,6 +13,8 @@ export default function AgentProfileClient({
   initialLicense,
   initialWhatsapp,
   initialBio,
+  profileStatus,
+  profileCompletion,
 }: {
   initialName: string
   email: string
@@ -21,6 +24,8 @@ export default function AgentProfileClient({
   initialLicense: string
   initialWhatsapp: string
   initialBio: string
+  profileStatus: string
+  profileCompletion: number
 }) {
   const [name, setName] = useState(initialName)
   const [phone, setPhone] = useState(initialPhone)
@@ -70,6 +75,9 @@ export default function AgentProfileClient({
               <p className="text-accent-orange font-semibold text-sm uppercase tracking-wider">Agent</p>
               <h1 className="mt-2 text-3xl md:text-4xl font-serif font-bold text-dark-blue">Agent Profile</h1>
               <p className="mt-2 text-gray-600">Manage your public-facing and contact information.</p>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <ProfileStatusBadge status={profileStatus} />
+              </div>
             </div>
             <Link
               href="/agent-portal"
@@ -77,6 +85,17 @@ export default function AgentProfileClient({
             >
               Back to Portal
             </Link>
+          </div>
+
+          <div className="mt-6">
+            <AgentProfileSubmitPanel
+              profileStatus={profileStatus}
+              license={license}
+              phone={phone}
+              bio={bio}
+              photo={image}
+              profileCompletion={profileCompletion}
+            />
           </div>
 
           <form onSubmit={onSubmit} className="mt-8 space-y-6">

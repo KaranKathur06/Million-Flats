@@ -11,7 +11,7 @@ export default async function AdminSettingsPage() {
     redirect('/user/login?next=%2Fadmin%2Fsettings')
   }
 
-  if (role !== 'ADMIN') {
+  if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
     redirect('/user/dashboard?error=admin_only')
   }
 
