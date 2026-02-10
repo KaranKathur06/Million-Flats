@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import AgentProfileClient from './AgentProfileClient'
 
 export default async function AgentProfilePage() {
@@ -13,7 +14,7 @@ export default async function AgentProfilePage() {
   }
 
   if (role !== 'AGENT') {
-    redirect('/user/dashboard')
+    redirect(getHomeRouteForRole(role))
   }
 
   const email = String((session.user as any).email || '').trim().toLowerCase()

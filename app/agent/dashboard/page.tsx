@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import AgentDashboardClient from './AgentDashboardClient'
 
 function slugify(input: string) {
@@ -66,7 +67,7 @@ export default async function AgentDashboardPage() {
   }
 
   if (role !== 'AGENT') {
-    redirect('/user/dashboard')
+    redirect(getHomeRouteForRole(role))
   }
 
   const email = String((session.user as any).email || '').trim().toLowerCase()

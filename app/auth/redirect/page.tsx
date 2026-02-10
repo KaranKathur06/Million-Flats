@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 
 export default async function AuthRedirectPage({
   searchParams,
@@ -56,13 +57,11 @@ export default async function AuthRedirectPage({
     redirect('/agent/login?error=agent_not_registered')
   }
 
-  if (effectiveRole === 'AGENT') {
-    redirect('/agent-portal')
-  }
+  const home = getHomeRouteForRole(effectiveRole)
 
   if (safeNext) {
     redirect(safeNext)
   }
 
-  redirect('/user/dashboard')
+  redirect(home)
 }

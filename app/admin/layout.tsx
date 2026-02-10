@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import AdminShellHeaderClient from './AdminShellHeaderClient'
 
 const nav = [
   { href: '/admin', label: 'Dashboard' },
@@ -15,10 +16,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-[#0b1220] text-white">
       <div className="mx-auto flex max-w-[1700px]">
         <aside className="hidden md:block w-[260px] shrink-0 border-r border-white/10">
-          <div className="px-5 py-6">
-            <div className="text-sm font-semibold tracking-wide text-white/80">MillionFlats</div>
-            <div className="mt-1 font-serif text-xl font-bold">Admin</div>
-          </div>
+          <AdminShellHeaderClient />
 
           <nav className="px-3 pb-8">
             <div className="space-y-1">

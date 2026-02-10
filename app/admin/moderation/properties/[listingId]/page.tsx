@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import ManualPropertyPreview from '@/components/ManualPropertyPreview'
 import ModerationPanelClient from './ModerationPanelClient'
 import { hasMinRole, normalizeRole } from '@/lib/rbac'
+import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
@@ -24,7 +25,7 @@ export default async function AdminModerationReviewPage({ params }: { params: { 
   }
 
   if (!hasMinRole(role, 'ADMIN')) {
-    redirect('/user/dashboard?error=admin_only')
+    redirect(`${getHomeRouteForRole(role)}?error=admin_only`)
   }
 
   const id = safeString(params?.listingId)

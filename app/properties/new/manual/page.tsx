@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import ManualPropertyWizardClient from './ManualPropertyWizardClient'
 
 export default async function ManualPropertyNewPage() {
@@ -12,7 +13,7 @@ export default async function ManualPropertyNewPage() {
   }
 
   if (role !== 'AGENT') {
-    redirect('/user/dashboard')
+    redirect(getHomeRouteForRole(role))
   }
 
   return <ManualPropertyWizardClient />

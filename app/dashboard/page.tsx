@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import UserDashboardPage from '@/app/user/dashboard/page'
 
 export default async function DashboardPage() {
@@ -36,8 +37,9 @@ export default async function DashboardPage() {
     redirect('/user/login')
   }
 
-  if (role === 'AGENT') {
-    redirect('/agent-portal')
+  const home = getHomeRouteForRole(role)
+  if (home !== '/user/dashboard') {
+    redirect(home)
   }
 
   return <UserDashboardPage />

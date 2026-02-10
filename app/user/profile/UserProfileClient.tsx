@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 
 export default function UserProfileClient({
   initialName,
@@ -57,7 +59,7 @@ export default function UserProfileClient({
               <p className="mt-2 text-gray-600">Manage your personal details.</p>
             </div>
             <Link
-              href="/user/dashboard"
+              href={getHomeRouteForRole('USER')}
               className="hidden sm:inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
             >
               Back to Dashboard

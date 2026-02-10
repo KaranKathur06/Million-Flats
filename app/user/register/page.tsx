@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import AuthLayout from '@/components/AuthLayout'
+import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 
 export default function UserRegisterPage() {
   const router = useRouter()
@@ -70,7 +71,7 @@ export default function UserRegisterPage() {
           setCooldownSeconds(60)
           setInfo(`We’ve sent a verification code to ${email}.`)
         } else {
-          router.push('/user/dashboard')
+          router.push(getHomeRouteForRole('USER'))
         }
       } else {
         setError(data.message || 'Registration failed')

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import { useSession } from 'next-auth/react'
 import { nanoid } from 'nanoid'
 import { buildPropertySlugPath } from '@/lib/seo'
@@ -731,7 +732,7 @@ export default function ManualPropertyWizardClient() {
               Agent-owned inventory is reviewed before going live.
             </p>
           </div>
-          <Link href="/agent-portal" className="text-sm font-semibold text-dark-blue hover:underline">
+          <Link href={getHomeRouteForRole('AGENT')} className="text-sm font-semibold text-dark-blue hover:underline">
             Back to Agent Portal
           </Link>
         </div>

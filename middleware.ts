@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
+import { getHomeRouteForRole, isRoleAllowedForShell } from '@/lib/roleHomeRoute'
 
 function getLoginPath(pathname: string) {
   if (pathname === '/agent-portal' || pathname.startsWith('/agent-portal/')) return '/agent/login'
@@ -143,7 +144,7 @@ export async function middleware(req: NextRequest) {
   const isAdminOrHigher = role === 'ADMIN' || role === 'SUPERADMIN'
   if (isAdminProtected && !isAdminOrHigher) {
     const url = req.nextUrl.clone()
-    url.pathname = '/user/dashboard'
+    url.pathname = getHomeRouteForRole(role)
     url.search = 'error=admin_only'
     return NextResponse.redirect(url)
   }
@@ -164,7 +165,7 @@ export async function middleware(req: NextRequest) {
 
   if (isAgentProtected && role !== 'AGENT') {
     const url = req.nextUrl.clone()
-    url.pathname = '/user/dashboard'
+    url.pathname = getHomeRouteForRole(role)
     url.search = 'error=agent_only'
     return NextResponse.redirect(url)
   }
@@ -180,6 +181,27 @@ export async function middleware(req: NextRequest) {
     const url = req.nextUrl.clone()
     url.pathname = '/agent-portal'
     url.search = 'error=user_only'
+    return NextResponse.redirect(url)
+  }
+
+  if (pathname.startsWith('/user/') && !isRoleAllowedForShell(role, 'user')) {
+    const url = req.nextUrl.clone()
+    url.pathname = getHomeRouteForRole(role)
+    url.search = 'error=shell_mismatch'
+    return NextResponse.redirect(url)
+  }
+
+  if (pathname.startsWith('/agent/') && !isRoleAllowedForShell(role, 'agent')) {
+    const url = req.nextUrl.clone()
+    url.pathname = getHomeRouteForRole(role)
+    url.search = 'error=shell_mismatch'
+    return NextResponse.redirect(url)
+  }
+
+  if (pathname.startsWith('/admin/') && !isRoleAllowedForShell(role, 'admin')) {
+    const url = req.nextUrl.clone()
+    url.pathname = getHomeRouteForRole(role)
+    url.search = 'error=shell_mismatch'
     return NextResponse.redirect(url)
   }
 

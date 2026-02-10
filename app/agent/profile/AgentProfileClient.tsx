@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import AgentProfileSubmitPanel, { ProfileStatusBadge } from '../_components/AgentProfileSubmitPanel'
 
 export default function AgentProfileClient({
@@ -80,7 +82,7 @@ export default function AgentProfileClient({
               </div>
             </div>
             <Link
-              href="/agent-portal"
+              href={getHomeRouteForRole('AGENT')}
               className="hidden sm:inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
             >
               Back to Portal

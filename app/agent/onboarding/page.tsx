@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 
 export default async function AgentOnboardingPage() {
   const session = await getServerSession(authOptions)
@@ -20,7 +21,7 @@ export default async function AgentOnboardingPage() {
   }
 
   if (dbUser.role === 'AGENT' && dbUser.agent) {
-    redirect('/agent-portal')
+    redirect(getHomeRouteForRole(dbUser.role))
   }
 
   return (

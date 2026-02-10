@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions)
@@ -11,7 +12,7 @@ export default async function SettingsPage() {
   }
 
   if (role !== 'USER') {
-    redirect('/agent-portal')
+    redirect(getHomeRouteForRole(role))
   }
 
   return (

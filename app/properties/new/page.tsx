@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 
 export default async function NewPropertyPage() {
   const session = await getServerSession(authOptions)
@@ -11,7 +12,7 @@ export default async function NewPropertyPage() {
   }
 
   if (role !== 'AGENT') {
-    redirect('/user/dashboard')
+    redirect(getHomeRouteForRole(role))
   }
 
   redirect('/properties/new/manual')

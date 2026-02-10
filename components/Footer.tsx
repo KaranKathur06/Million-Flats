@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
+import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 
 export default function Footer() {
   const { data: session, status } = useSession()
@@ -179,7 +180,7 @@ export default function Footer() {
               ) : (
                 <li>
                   <Link
-                    href="/agent-portal"
+                    href={getHomeRouteForRole('AGENT')}
                     className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                   >
                     Agent Portal

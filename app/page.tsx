@@ -1,5 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { getServerSession } from 'next-auth'
+import { redirect } from 'next/navigation'
 import HeroSearch from '@/components/HeroSearch'
 import FeaturedProperties from '@/components/FeaturedProperties'
 import WhyMillionflats from '@/components/WhyMillionflats'
@@ -7,10 +9,18 @@ import FeaturedLocations from '@/components/FeaturedLocations'
 import FeaturedAgencies from '@/components/FeaturedAgencies'
 import FeaturedDevelopers from '@/components/FeaturedDevelopers'
 import FeaturedAgents from '@/components/FeaturedAgents'
+import { authOptions } from '@/lib/auth'
+import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 
 export const dynamic = 'force-dynamic'
 
-export default function Home() {
+export default async function Home() {
+  const session = await getServerSession(authOptions)
+  if (session?.user) {
+    const role = (session.user as any).role
+    redirect(getHomeRouteForRole(role))
+  }
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}

@@ -4,7 +4,13 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
-import { signOut, useSession } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
+import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
+
+async function doLogout() {
+  await fetch('/api/auth/logout', { method: 'POST' }).catch(() => null)
+  window.location.href = '/'
+}
 
 export default function Header() {
   const pathname = usePathname() ?? ''
@@ -40,7 +46,7 @@ export default function Header() {
   const agentLinks = [
     { href: '/', label: 'Home' },
     { href: '/agents', label: 'Find an Agent' },
-    { href: '/agent-portal', label: 'Agent Portal' },
+    { href: getHomeRouteForRole('AGENT'), label: 'Agent Portal' },
   ]
 
   const adminLinks = [
@@ -183,7 +189,7 @@ export default function Header() {
                           role="menuitem"
                           onClick={() => {
                             setProfileOpen(false)
-                            signOut({ callbackUrl: '/' })
+                            doLogout()
                           }}
                         >
                           Logout
@@ -202,7 +208,7 @@ export default function Header() {
                     <button
                       type="button"
                       className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors"
-                      onClick={() => signOut({ callbackUrl: '/' })}
+                      onClick={() => doLogout()}
                     >
                       Logout
                     </button>
@@ -211,7 +217,7 @@ export default function Header() {
                   <button
                     type="button"
                     className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors"
-                    onClick={() => signOut({ callbackUrl: '/' })}
+                    onClick={() => doLogout()}
                   >
                     Logout
                   </button>
@@ -324,7 +330,7 @@ export default function Header() {
                     className="w-full text-left block px-4 py-3 rounded-xl text-sm font-semibold text-dark-blue bg-gray-100"
                     onClick={() => {
                       setMobileOpen(false)
-                      signOut({ callbackUrl: '/' })
+                      doLogout()
                     }}
                   >
                     Logout

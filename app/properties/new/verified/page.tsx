@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 
 export default async function NewPropertyVerifiedPage() {
   const session = await getServerSession(authOptions)
@@ -12,7 +13,7 @@ export default async function NewPropertyVerifiedPage() {
   }
 
   if (role !== 'AGENT') {
-    redirect('/user/dashboard')
+    redirect(getHomeRouteForRole(role))
   }
 
   redirect('/properties/new/manual')
