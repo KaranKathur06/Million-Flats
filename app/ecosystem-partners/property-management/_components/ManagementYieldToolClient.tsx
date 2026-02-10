@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { trackEvent } from '@/lib/analytics'
 
 function formatINR(n: number) {
   if (!Number.isFinite(n)) return '—'
@@ -34,7 +35,11 @@ export default function ManagementYieldToolClient() {
               max={200000000}
               step={200000}
               value={propertyValue}
-              onChange={(e) => setPropertyValue(Number(e.target.value))}
+              onChange={(e) => {
+                const v = Number(e.target.value)
+                setPropertyValue(v)
+                trackEvent('ecosystem_tool_use', { tool: 'management_yield_calculator', field: 'property_value', value: v })
+              }}
               className="mt-2 w-full"
             />
           </div>
@@ -50,7 +55,11 @@ export default function ManagementYieldToolClient() {
               max={500000}
               step={1000}
               value={monthlyRent}
-              onChange={(e) => setMonthlyRent(Number(e.target.value))}
+              onChange={(e) => {
+                const v = Number(e.target.value)
+                setMonthlyRent(v)
+                trackEvent('ecosystem_tool_use', { tool: 'management_yield_calculator', field: 'monthly_rent', value: v })
+              }}
               className="mt-2 w-full"
             />
           </div>
@@ -66,7 +75,11 @@ export default function ManagementYieldToolClient() {
               max={15}
               step={0.5}
               value={mgmtFeePct}
-              onChange={(e) => setMgmtFeePct(Number(e.target.value))}
+              onChange={(e) => {
+                const v = Number(e.target.value)
+                setMgmtFeePct(v)
+                trackEvent('ecosystem_tool_use', { tool: 'management_yield_calculator', field: 'mgmt_fee_pct', value: v })
+              }}
               className="mt-2 w-full"
             />
           </div>

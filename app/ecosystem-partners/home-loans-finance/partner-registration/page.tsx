@@ -12,6 +12,7 @@ export default function HomeLoansFinancePartnerRegistrationPage() {
         <PartnerRegistrationFormClient
           title="Partner with MillionFlats & Access High-Intent Home Buyers"
           description="Join our curated ecosystem of trusted finance providers and grow your loan book with qualified, ready-to-transact customers."
+          category="home-loans-finance"
           submitLabel="Submit Application"
           groups={[
             {

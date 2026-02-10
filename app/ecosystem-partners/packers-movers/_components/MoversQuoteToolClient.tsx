@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { trackEvent } from '@/lib/analytics'
 
 function formatINR(n: number) {
   if (!Number.isFinite(n)) return '—'
@@ -42,7 +43,11 @@ export default function MoversQuoteToolClient() {
             <div className="font-semibold text-gray-900">Move Type</div>
             <select
               value={moveType}
-              onChange={(e) => setMoveType(e.target.value as any)}
+              onChange={(e) => {
+                const v = e.target.value as any
+                setMoveType(v)
+                trackEvent('ecosystem_tool_use', { tool: 'movers_quote_calculator', field: 'move_type', value: v })
+              }}
               className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3"
             >
               <option value="Local">Local (Same City)</option>
@@ -54,7 +59,11 @@ export default function MoversQuoteToolClient() {
             <div className="font-semibold text-gray-900">Volume</div>
             <select
               value={volume}
-              onChange={(e) => setVolume(e.target.value as any)}
+              onChange={(e) => {
+                const v = e.target.value as any
+                setVolume(v)
+                trackEvent('ecosystem_tool_use', { tool: 'movers_quote_calculator', field: 'volume', value: v })
+              }}
               className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3"
             >
               <option value="1BHK">1BHK</option>
@@ -70,7 +79,11 @@ export default function MoversQuoteToolClient() {
               <div className="font-semibold text-gray-900">From PIN</div>
               <input
                 value={fromPin}
-                onChange={(e) => setFromPin(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value
+                  setFromPin(v)
+                  trackEvent('ecosystem_tool_use', { tool: 'movers_quote_calculator', field: 'from_pin' })
+                }}
                 placeholder="e.g., 400001"
                 className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3"
               />
@@ -79,7 +92,11 @@ export default function MoversQuoteToolClient() {
               <div className="font-semibold text-gray-900">To PIN</div>
               <input
                 value={toPin}
-                onChange={(e) => setToPin(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value
+                  setToPin(v)
+                  trackEvent('ecosystem_tool_use', { tool: 'movers_quote_calculator', field: 'to_pin' })
+                }}
                 placeholder="e.g., 560001"
                 className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3"
               />

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { trackEvent } from '@/lib/analytics'
 
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n))
@@ -72,7 +73,11 @@ export default function LoanToolsClient() {
               max={50000000}
               step={50000}
               value={amount}
-              onChange={(e) => setAmount(Number(e.target.value))}
+              onChange={(e) => {
+                const v = Number(e.target.value)
+                setAmount(v)
+                trackEvent('ecosystem_tool_use', { tool: 'emi_calculator', field: 'amount', value: v })
+              }}
               className="mt-2 w-full"
             />
           </div>
@@ -88,7 +93,11 @@ export default function LoanToolsClient() {
               max={16}
               step={0.05}
               value={rate}
-              onChange={(e) => setRate(Number(e.target.value))}
+              onChange={(e) => {
+                const v = Number(e.target.value)
+                setRate(v)
+                trackEvent('ecosystem_tool_use', { tool: 'emi_calculator', field: 'rate', value: v })
+              }}
               className="mt-2 w-full"
             />
           </div>
@@ -104,7 +113,11 @@ export default function LoanToolsClient() {
               max={30}
               step={1}
               value={tenureYears}
-              onChange={(e) => setTenureYears(Number(e.target.value))}
+              onChange={(e) => {
+                const v = Number(e.target.value)
+                setTenureYears(v)
+                trackEvent('ecosystem_tool_use', { tool: 'emi_calculator', field: 'tenure_years', value: v })
+              }}
               className="mt-2 w-full"
             />
           </div>
@@ -138,7 +151,11 @@ export default function LoanToolsClient() {
             <input
               inputMode="numeric"
               value={income}
-              onChange={(e) => setIncome(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value
+                setIncome(v)
+                trackEvent('ecosystem_tool_use', { tool: 'eligibility_checker', field: 'income' })
+              }}
               placeholder="e.g., 150000"
               className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3"
             />
@@ -149,7 +166,11 @@ export default function LoanToolsClient() {
             <input
               inputMode="numeric"
               value={obligations}
-              onChange={(e) => setObligations(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value
+                setObligations(v)
+                trackEvent('ecosystem_tool_use', { tool: 'eligibility_checker', field: 'obligations' })
+              }}
               placeholder="e.g., 20000"
               className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3"
             />
@@ -160,7 +181,11 @@ export default function LoanToolsClient() {
             <input
               inputMode="numeric"
               value={desiredLoan}
-              onChange={(e) => setDesiredLoan(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value
+                setDesiredLoan(v)
+                trackEvent('ecosystem_tool_use', { tool: 'eligibility_checker', field: 'desired_loan' })
+              }}
               placeholder="e.g., 6000000"
               className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3"
             />

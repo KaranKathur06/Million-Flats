@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { trackEvent } from '@/lib/analytics'
 
 export default function FinalCTA({
   headline,
@@ -18,12 +19,16 @@ export default function FinalCTA({
         <div className="mt-5 flex flex-wrap gap-3">
           <Link
             href={primary.href}
+            onClick={() => trackEvent('ecosystem_cta_click', { type: 'primary', label: primary.label, href: primary.href })}
             className="inline-flex h-11 items-center justify-center rounded-xl bg-dark-blue px-6 font-semibold text-white hover:bg-dark-blue/90"
           >
             {primary.label}
           </Link>
           <Link
             href={secondary.href}
+            onClick={() =>
+              trackEvent('ecosystem_cta_click', { type: 'secondary', label: secondary.label, href: secondary.href })
+            }
             className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-6 font-semibold text-dark-blue hover:bg-gray-50"
           >
             {secondary.label}

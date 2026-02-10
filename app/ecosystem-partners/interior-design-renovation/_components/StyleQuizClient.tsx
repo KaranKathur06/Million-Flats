@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { trackEvent } from '@/lib/analytics'
 
 const QUESTIONS = [
   {
@@ -44,7 +45,10 @@ export default function StyleQuizClient() {
                   <button
                     key={o}
                     type="button"
-                    onClick={() => setAnswers((p) => ({ ...p, [idx]: o }))}
+                    onClick={() => {
+                      setAnswers((p) => ({ ...p, [idx]: o }))
+                      trackEvent('ecosystem_tool_use', { tool: 'design_style_quiz', question: idx, answer: o })
+                    }}
                     className={
                       selected
                         ? 'rounded-full bg-dark-blue px-4 py-2 text-xs font-semibold text-white'

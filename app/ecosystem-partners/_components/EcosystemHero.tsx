@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import { trackEvent } from '@/lib/analytics'
 
 export default function EcosystemHero({
   headline,
@@ -18,6 +19,7 @@ export default function EcosystemHero({
   imageSrc: string
   imageAlt: string
 }) {
+  const src = String(imageSrc || '').trim() || '/LOGO.png'
   return (
     <section className="bg-white border-b border-gray-200">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -28,6 +30,7 @@ export default function EcosystemHero({
             <div className="mt-6">
               <Link
                 href={ctaHref}
+                onClick={() => trackEvent('ecosystem_hero_cta_click', { label: ctaLabel, href: ctaHref })}
                 className="inline-flex h-11 items-center justify-center rounded-xl bg-dark-blue px-6 font-semibold text-white hover:bg-dark-blue/90"
               >
                 {ctaLabel}
@@ -37,7 +40,7 @@ export default function EcosystemHero({
 
           <div className="relative w-full overflow-hidden rounded-3xl border border-gray-200 bg-gray-50">
             <div className="relative aspect-[16/10] w-full">
-              <Image src={imageSrc} alt={imageAlt} fill className="object-cover" sizes="(min-width: 1024px) 560px, 100vw" />
+              <Image src={src} alt={imageAlt} fill className="object-cover" sizes="(min-width: 1024px) 560px, 100vw" />
             </div>
           </div>
         </div>

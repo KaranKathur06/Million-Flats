@@ -12,6 +12,7 @@ export default function LegalPartnerRegistrationPage() {
         <PartnerRegistrationFormClient
           title="Partner with MillionFlats: Expand Your Real Estate Legal Practice"
           description="Join our exclusive network of legal experts and connect with a steady stream of clients engaged in active property transactions."
+          category="legal-documentation"
           submitLabel="Submit Application"
           groups={[
             {

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { trackEvent } from '@/lib/analytics'
 
 type Field =
   | { type: 'text'; name: string; label: string; placeholder?: string; required?: boolean }
@@ -16,15 +17,20 @@ type Field =
 export default function PartnerRegistrationFormClient({
   title,
   description,
+  category,
   groups,
   submitLabel,
 }: {
   title: string
   description: string
+  category: string
   groups: { title: string; fields: Field[] }[]
   submitLabel: string
 }) {
   const [values, setValues] = useState<Record<string, any>>({})
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [successId, setSuccessId] = useState('')
 
   const isComplete = useMemo(() => {
     const requiredFields = groups.flatMap((g) => g.fields.filter((f) => (f as any).required))
@@ -45,6 +51,72 @@ export default function PartnerRegistrationFormClient({
     setValues((p) => ({ ...p, [name]: value }))
   }
 
+  async function submit() {
+    if (!isComplete || busy) return
+    setBusy(true)
+    setError('')
+    setSuccessId('')
+
+    try {
+      const fd = new FormData()
+      fd.set('category', String(category))
+
+      const params = new URLSearchParams(window.location.search)
+      fd.set('utm_source', params.get('utm_source') || '')
+      fd.set('utm_medium', params.get('utm_medium') || '')
+      fd.set('utm_campaign', params.get('utm_campaign') || '')
+      fd.set('utm_term', params.get('utm_term') || '')
+      fd.set('utm_content', params.get('utm_content') || '')
+      fd.set('referrer', document.referrer || '')
+      fd.set('landing_url', window.location.href || '')
+      fd.set('user_agent', navigator.userAgent || '')
+
+      for (const [k, v] of Object.entries(values)) {
+        if (v === undefined || v === null) continue
+        if (v instanceof File) {
+          continue
+        }
+        if (Array.isArray(v)) {
+          fd.set(k, JSON.stringify(v))
+        } else {
+          fd.set(k, String(v))
+        }
+      }
+
+      const fileKeys = Object.keys(values).filter((k) => values[k] instanceof File)
+      for (const k of fileKeys) {
+        const f = values[k] as File
+        const key = String(k).toLowerCase()
+        if (key.includes('logo') || key.includes('photo')) {
+          fd.set('logo', f)
+        } else {
+          fd.set('certificate', f)
+        }
+      }
+
+      trackEvent('ecosystem_partner_form_submit', { category })
+
+      const res = await fetch('/api/ecosystem-partners/apply', {
+        method: 'POST',
+        body: fd,
+      })
+      const json = (await res.json().catch(() => null)) as any
+      if (!res.ok || !json?.success) {
+        throw new Error(String(json?.message || 'Submission failed'))
+      }
+
+      const id = String(json?.application?.id || '')
+      setSuccessId(id)
+      trackEvent('ecosystem_partner_form_success', { category, id })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Submission failed'
+      setError(msg)
+      trackEvent('ecosystem_partner_form_error', { category, message: msg })
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="rounded-3xl border border-gray-200 bg-white p-8">
       <div className="max-w-3xl">
@@ -52,6 +124,20 @@ export default function PartnerRegistrationFormClient({
         <p className="mt-3 text-gray-600">{description}</p>
 
         <div className="mt-8 space-y-8">
+          {successId ? (
+            <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-5">
+              <div className="text-sm font-semibold text-green-200">Application submitted</div>
+              <div className="mt-1 text-sm text-white/80">Reference ID: {successId}</div>
+            </div>
+          ) : null}
+
+          {error ? (
+            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-5">
+              <div className="text-sm font-semibold text-red-200">Submission failed</div>
+              <div className="mt-1 text-sm text-white/80">{error}</div>
+            </div>
+          ) : null}
+
           {groups.map((g) => (
             <div key={g.title} className="rounded-2xl border border-gray-200 p-6">
               <div className="text-lg font-semibold text-gray-900">{g.title}</div>
@@ -193,14 +279,15 @@ export default function PartnerRegistrationFormClient({
 
           <button
             type="button"
-            disabled={!isComplete}
+            disabled={!isComplete || busy}
+            onClick={submit}
             className={
-              isComplete
+              isComplete && !busy
                 ? 'inline-flex h-11 items-center justify-center rounded-xl bg-dark-blue px-6 font-semibold text-white hover:bg-dark-blue/90'
                 : 'inline-flex h-11 items-center justify-center rounded-xl bg-gray-200 px-6 font-semibold text-gray-500 cursor-not-allowed'
             }
           >
-            {submitLabel}
+            {busy ? 'Submitting…' : submitLabel}
           </button>
         </div>
       </div>

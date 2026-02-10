@@ -12,6 +12,7 @@ export default function PropertyManagementPartnerRegistrationPage() {
         <PartnerRegistrationFormClient
           title="Partner with MillionFlats: Manage Premium Properties for Discerning Owners"
           description="Expand your portfolio by connecting with property owners—especially NRIs and remote investors—who value professional management and seek trusted partners."
+          category="property-management"
           submitLabel="Submit Application"
           groups={[
             {

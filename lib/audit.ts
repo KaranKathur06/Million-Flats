@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 
-export type AuditEntityType = 'MANUAL_PROPERTY' | 'AGENT' | 'USER'
+export type AuditEntityType = 'MANUAL_PROPERTY' | 'AGENT' | 'USER' | 'ECOSYSTEM_PARTNER_APPLICATION'
 export type AuditAction =
   | 'DRAFT_DELETED'
   | 'PUBLISHED_ARCHIVED'
@@ -23,6 +23,8 @@ export type AuditAction =
   | 'ADMIN_USER_ROLE_CHANGED'
   | 'ADMIN_USER_EMAIL_VERIFIED'
   | 'AGENT_PROFILE_SUBMITTED'
+  | 'ECOSYSTEM_PARTNER_APPLIED'
+  | 'ADMIN_ECOSYSTEM_PARTNER_STAGE_CHANGED'
 
 export async function writeAuditLog(input: {
   entityType: AuditEntityType

@@ -12,6 +12,7 @@ export default function MoversPartnerRegistrationPage() {
         <PartnerRegistrationFormClient
           title="Partner with MillionFlats: Move Customers During Life’s Biggest Transitions"
           description="Connect your moving services with homeowners and tenants at the exact moment they secure a new property—through India’s intelligent real estate platform."
+          category="packers-movers"
           submitLabel="Submit Application"
           groups={[
             {

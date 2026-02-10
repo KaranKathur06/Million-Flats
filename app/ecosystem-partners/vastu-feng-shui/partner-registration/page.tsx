@@ -12,6 +12,7 @@ export default function VastuPartnerRegistrationPage() {
         <PartnerRegistrationFormClient
           title="Partner with MillionFlats: Guide Clients in Creating Harmonious Spaces"
           description="Join our curated network of wellness consultants and connect with homeowners and investors who seek authentic Vastu or Feng Shui expertise as part of their property journey."
+          category="vastu-feng-shui"
           submitLabel="Submit Application"
           groups={[
             {

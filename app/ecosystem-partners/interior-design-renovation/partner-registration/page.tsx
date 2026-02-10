@@ -12,6 +12,7 @@ export default function InteriorsPartnerRegistrationPage() {
         <PartnerRegistrationFormClient
           title="Showcase Your Talent to Homeowners Ready to Invest"
           description="Join MillionFlats' curated network of design professionals and connect with qualified clients actively seeking to renovate, decorate, and transform their spaces."
+          category="interior-design-renovation"
           submitLabel="Submit Application"
           groups={[
             {

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { trackEvent } from '@/lib/analytics'
 
 function formatINR(n: number) {
   if (!Number.isFinite(n)) return '—'
@@ -36,7 +37,11 @@ export default function InsuranceToolsClient() {
               max={100000000}
               step={100000}
               value={propertyValue}
-              onChange={(e) => setPropertyValue(Number(e.target.value))}
+              onChange={(e) => {
+                const v = Number(e.target.value)
+                setPropertyValue(v)
+                trackEvent('ecosystem_tool_use', { tool: 'insurance_premium_calculator', field: 'property_value', value: v })
+              }}
               className="mt-2 w-full"
             />
           </div>
@@ -52,7 +57,11 @@ export default function InsuranceToolsClient() {
               max={100}
               step={1}
               value={coveragePct}
-              onChange={(e) => setCoveragePct(Number(e.target.value))}
+              onChange={(e) => {
+                const v = Number(e.target.value)
+                setCoveragePct(v)
+                trackEvent('ecosystem_tool_use', { tool: 'insurance_premium_calculator', field: 'coverage_pct', value: v })
+              }}
               className="mt-2 w-full"
             />
           </div>
@@ -68,7 +77,11 @@ export default function InsuranceToolsClient() {
               max={1.6}
               step={0.05}
               value={cityRisk}
-              onChange={(e) => setCityRisk(Number(e.target.value))}
+              onChange={(e) => {
+                const v = Number(e.target.value)
+                setCityRisk(v)
+                trackEvent('ecosystem_tool_use', { tool: 'insurance_premium_calculator', field: 'location_risk', value: v })
+              }}
               className="mt-2 w-full"
             />
           </div>

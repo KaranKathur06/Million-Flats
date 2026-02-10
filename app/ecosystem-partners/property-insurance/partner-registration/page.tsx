@@ -12,6 +12,7 @@ export default function InsurancePartnerRegistrationPage() {
         <PartnerRegistrationFormClient
           title="Partner with MillionFlats: Insure a Growing Market of Property Owners"
           description="Connect your insurance products directly with motivated customers at the point of purchase and ownership on India's intelligent real estate platform."
+          category="property-insurance"
           submitLabel="Submit Application"
           groups={[
             {
