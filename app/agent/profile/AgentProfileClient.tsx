@@ -99,7 +99,7 @@ export default function AgentProfileClient({
               </div>
             </div>
             <Link
-              href={getHomeRouteForRole(sessionRole)}
+              href="/agent/profile"
               className="hidden sm:inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
             >
               Back to Portal

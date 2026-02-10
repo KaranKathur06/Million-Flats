@@ -67,11 +67,18 @@ async function verifyLegacyJwt(token: string, secret: string) {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
+  const isAgentPublic =
+    pathname === '/agent/login' ||
+    pathname.startsWith('/agent/login/') ||
+    pathname === '/agent/register' ||
+    pathname.startsWith('/agent/register/')
+
   const isAgentProtected =
     pathname === '/agent-portal' ||
     pathname.startsWith('/agent-portal/') ||
     pathname === '/agent/dashboard' ||
     pathname.startsWith('/agent/dashboard/') ||
+    (pathname.startsWith('/agent/') && !isAgentPublic) ||
     pathname === '/properties/new' ||
     pathname.startsWith('/properties/new/')
 
@@ -134,6 +141,12 @@ export async function middleware(req: NextRequest) {
   if (!role) {
     const url = req.nextUrl.clone()
 
+    if (pathname.startsWith('/agent') && !isAgentPublic) {
+      url.pathname = '/'
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
+
     if (isAdminProtected) {
       url.pathname = '/'
       url.search = ''
@@ -187,8 +200,8 @@ export async function middleware(req: NextRequest) {
 
   if (isAgentProtected && role !== 'AGENT') {
     const url = req.nextUrl.clone()
-    url.pathname = getHomeRouteForRole(role)
-    url.search = 'error=agent_only'
+    url.pathname = '/'
+    url.search = ''
     return NextResponse.redirect(url)
   }
 

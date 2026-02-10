@@ -57,8 +57,11 @@ export async function POST(req: Request) {
       where: { id: dbUser.id },
       data: {
         phone,
+        role: 'AGENT',
       },
     })
+  } else if (String((dbUser as any)?.role || '').toUpperCase() !== 'AGENT') {
+    await prisma.user.update({ where: { id: dbUser.id }, data: { role: 'AGENT' } as any }).catch(() => null)
   }
 
   return NextResponse.redirect(new URL('/agent/profile', req.url))

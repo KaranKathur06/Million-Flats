@@ -52,17 +52,34 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     userRole: String(agent?.user?.role || ''),
   }
 
-  const updated = await (prisma as any).agent.update({
-    where: { id: agentId },
-    data: { approved: true, profileStatus: 'VERIFIED' } as any,
-    select: { id: true, approved: true, profileStatus: true },
+  const updated = await prisma.$transaction(async (tx) => {
+    const updatedAgent = await (tx as any).agent.update({
+      where: { id: agentId },
+      data: { approved: true, profileStatus: 'VERIFIED' } as any,
+      select: { id: true, approved: true, profileStatus: true, userId: true },
+    })
+
+    if (String(agent?.user?.role || '').toUpperCase() !== 'AGENT') {
+      await (tx as any).user.update({
+        where: { id: String(agent.userId) },
+        data: { role: 'AGENT' } as any,
+        select: { id: true },
+      })
+    }
+
+    const userAfter = await (tx as any).user.findUnique({
+      where: { id: String(agent.userId) },
+      select: { role: true },
+    })
+
+    return { agent: updatedAgent, userAfter }
   })
 
   const afterState = {
-    approved: Boolean(updated.approved),
-    profileStatus: String(updated?.profileStatus || '').toUpperCase(),
+    approved: Boolean(updated.agent.approved),
+    profileStatus: String(updated.agent?.profileStatus || '').toUpperCase(),
     userStatus: String(agent?.user?.status || 'ACTIVE'),
-    userRole: String(agent?.user?.role || ''),
+    userRole: String(updated.userAfter?.role || agent?.user?.role || ''),
   }
 
   await writeAuditLog({
@@ -76,5 +93,5 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     meta: { actor: 'admin', previousApproved: Boolean(agent.approved) },
   })
 
-  return NextResponse.json({ success: true, agent: updated })
+  return NextResponse.json({ success: true, agent: updated.agent })
 }

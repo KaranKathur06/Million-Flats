@@ -17,7 +17,7 @@ export default async function AgentPortalPage() {
 
   const role = String(dbUser?.role || sessionRole || '').toUpperCase()
   const status = String(dbUser?.status || (session?.user as any)?.status || 'ACTIVE').toUpperCase()
-  const isApproved = Boolean(dbUser?.agent?.approved)
+  const profileStatus = String((dbUser as any)?.agent?.profileStatus || 'DRAFT').toUpperCase()
 
   if (!role) {
     redirect('/agent/login')
@@ -27,9 +27,13 @@ export default async function AgentPortalPage() {
     redirect(getHomeRouteForRole(role))
   }
 
-  if (status !== 'ACTIVE' || !isApproved) {
+  if (status !== 'ACTIVE') {
     redirect('/agent/login?error=account_disabled')
   }
 
-  redirect(getHomeRouteForRole(role))
+  if (profileStatus === 'LIVE') {
+    redirect('/agent/dashboard')
+  }
+
+  redirect('/agent/profile?notice=complete_verification')
 }

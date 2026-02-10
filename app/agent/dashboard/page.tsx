@@ -92,6 +92,11 @@ export default async function AgentDashboardPage() {
       return null
     })
 
+  const profileStatus = String((agentRow as any)?.profileStatus || (agent as any)?.profileStatus || 'DRAFT').toUpperCase()
+  if (profileStatus !== 'LIVE') {
+    redirect('/agent/profile?notice=complete_verification')
+  }
+
   const hasPhoto = Boolean(String(dbUser.image || '').trim())
   const hasBio = Boolean(String(agentRow?.bio || '').trim())
   const hasPhone = Boolean(String(dbUser.phone || '').trim())
