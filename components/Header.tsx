@@ -8,8 +8,8 @@ import { useSession } from 'next-auth/react'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 
 async function doLogout() {
-  await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => null)
-  window.location.href = '/'
+  await fetch('/api/auth/logout', { method: 'POST', credentials: 'include', cache: 'no-store' }).catch(() => null)
+  window.location.replace('/')
 }
 
 export default function Header() {
@@ -21,6 +21,9 @@ export default function Header() {
   const isAuthed = status === 'authenticated'
   const isAuthLoading = status === 'loading'
   const dashboardHref = getHomeRouteForRole(role)
+
+  const isAgent = isAuthed && role === 'AGENT'
+  const isAdminOrHigher = isAuthed && (role === 'ADMIN' || role === 'SUPERADMIN')
 
   const showVerfix = !isAuthed || role === 'USER'
   const verfixHref = !isAuthed ? '/auth/redirect?next=%2Fverfix-system' : '/verfix-system'
@@ -46,7 +49,12 @@ export default function Header() {
     { href: '/tokenized', label: 'Tokenized' },
   ]
 
-  const navLinks = !isAuthed ? publicLinks : userLinks
+  const agentLinks = [
+    { href: '/agent/dashboard', label: 'Agent Dashboard' },
+    { href: '/agent/profile', label: 'Profile' },
+  ]
+
+  const navLinks = !isAuthed ? publicLinks : isAdminOrHigher ? [] : isAgent ? agentLinks : userLinks
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'
@@ -81,19 +89,23 @@ export default function Header() {
           </Link>
 
           {/* Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            {navLinks.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`text-sm font-medium transition-colors ${
-                  isActive(item.href) ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          {navLinks.length > 0 ? (
+            <nav className="hidden md:flex items-center space-x-8">
+              {navLinks.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`text-sm font-medium transition-colors ${
+                    isActive(item.href) ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          ) : (
+            <div className="hidden md:block" />
+          )}
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
@@ -111,12 +123,14 @@ export default function Header() {
               </>
             ) : (
               <>
-                <Link
-                  href={dashboardHref}
-                  className="bg-dark-blue text-white px-6 py-2 rounded-lg font-medium hover:bg-opacity-90 transition-colors"
-                >
-                  Go to Dashboard
-                </Link>
+                {!isAdminOrHigher ? (
+                  <Link
+                    href={dashboardHref}
+                    className="bg-dark-blue text-white px-6 py-2 rounded-lg font-medium hover:bg-opacity-90 transition-colors"
+                  >
+                    Go to Dashboard
+                  </Link>
+                ) : null}
                 <button
                   type="button"
                   className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors"

@@ -36,9 +36,7 @@ export default async function AuthRedirectPage({
     }
   }
 
-  const role = sessionRole || legacyRole
-
-  if (!role) {
+  if (!hasSession && !legacyRole) {
     if (safeNext) {
       const loginPath = intent === 'agent' ? '/agent/login' : '/user/login'
       redirect(`${loginPath}?next=${encodeURIComponent(safeNext)}`)
@@ -51,7 +49,7 @@ export default async function AuthRedirectPage({
     ? String((await prisma.user.findUnique({ where: { email }, select: { role: true } }))?.role || '').toUpperCase()
     : ''
 
-  const effectiveRole = dbRole || role
+  const effectiveRole = dbRole || sessionRole || legacyRole
 
   if (intent === 'agent' && email) {
     const dbUser = await (prisma as any).user

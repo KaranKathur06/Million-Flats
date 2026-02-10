@@ -16,11 +16,11 @@ export default function Footer() {
 
   return (
     <footer className="bg-gray-50 border-t border-gray-200">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+      <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-8">
           {/* Company Info */}
-          <div className="col-span-1">
-            <Link href="/" className="flex items-center space-x-2 mb-4">
+          <div className="md:col-span-2">
+            <Link href="/" className="flex items-center gap-3 mb-4">
               <span className="relative w-[160px] h-10">
                 <Image src="/LOGO.png" alt="MillionFlats" fill className="object-contain" sizes="160px" />
               </span>

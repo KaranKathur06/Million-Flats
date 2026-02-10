@@ -11,7 +11,7 @@ export function getHomeRouteForRole(role: unknown): string {
 
   if (r === 'ADMIN' || r === 'SUPERADMIN') return '/admin/dashboard'
   if (r === 'AGENT') return '/agent/dashboard'
-  return '/user/dashboard'
+  return '/'
 }
 
 export function isRoleAllowedForShell(role: unknown, shell: 'admin' | 'agent' | 'user'): boolean {
