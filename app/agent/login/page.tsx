@@ -25,7 +25,7 @@ export default async function AgentLoginPage() {
     }
 
     if (!hasAgentRow) {
-      redirect('/agent/onboarding')
+      redirect(role === 'AGENT' ? '/agent/onboarding' : role === 'ADMIN' || role === 'SUPERADMIN' ? '/admin/dashboard' : '/user/dashboard')
     }
 
     if (role === 'AGENT' && approved && profileStatus === 'LIVE') {

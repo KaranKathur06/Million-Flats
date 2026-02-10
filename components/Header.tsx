@@ -8,21 +8,22 @@ import { useSession } from 'next-auth/react'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 
 async function doLogout() {
-  await fetch('/api/auth/logout', { method: 'POST' }).catch(() => null)
+  await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => null)
   window.location.href = '/'
 }
 
 export default function Header() {
   const pathname = usePathname() ?? ''
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [profileOpen, setProfileOpen] = useState(false)
   const { data: session, status } = useSession()
 
   const role = String((session?.user as any)?.role || '').toUpperCase()
   const isAuthed = status === 'authenticated'
-  const isAgent = isAuthed && role === 'AGENT'
-  const isUser = isAuthed && role === 'USER'
-  const isAdmin = isAuthed && (role === 'ADMIN' || role === 'SUPERADMIN')
+  const isAuthLoading = status === 'loading'
+  const dashboardHref = getHomeRouteForRole(role)
+
+  const showVerfix = !isAuthed || role === 'USER'
+  const verfixHref = !isAuthed ? '/auth/redirect?next=%2Fverfix-system' : '/verfix-system'
 
   const publicLinks = [
     { href: '/', label: 'Home' },
@@ -30,6 +31,7 @@ export default function Header() {
     { href: '/buy', label: 'Buy' },
     { href: '/rent', label: 'Rent' },
     { href: '/agents', label: 'Find an Agent' },
+    ...(showVerfix ? [{ href: verfixHref, label: 'Verfix System™' }] : []),
   ]
 
   const userLinks = [
@@ -38,26 +40,13 @@ export default function Header() {
     { href: '/buy', label: 'Buy' },
     { href: '/rent', label: 'Rent' },
     { href: '/agents', label: 'Find an Agent' },
+    ...(showVerfix ? [{ href: verfixHref, label: 'Verfix System™' }] : []),
     { href: '/market-analysis', label: 'Market Analysis' },
     { href: '/explore-3d', label: 'Explore in 3D' },
     { href: '/tokenized', label: 'Tokenized' },
   ]
 
-  const agentLinks = [
-    { href: '/', label: 'Home' },
-    { href: '/agents', label: 'Find an Agent' },
-    { href: getHomeRouteForRole('AGENT'), label: 'Agent Portal' },
-  ]
-
-  const adminLinks = [
-    { href: '/admin', label: 'Dashboard' },
-    { href: '/admin/listings', label: 'Listings' },
-    { href: '/admin/drafts', label: 'Drafts' },
-    { href: '/admin/agents', label: 'Agents' },
-    { href: '/admin/users', label: 'Users' },
-  ]
-
-  const navLinks = !isAuthed ? publicLinks : isAdmin ? adminLinks : isAgent ? agentLinks : isUser ? userLinks : publicLinks
+  const navLinks = !isAuthed ? publicLinks : userLinks
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'
@@ -72,28 +61,6 @@ export default function Header() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [mobileOpen])
-
-  useEffect(() => {
-    if (!profileOpen) return
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setProfileOpen(false)
-    }
-
-    const onMouseDown = (e: MouseEvent) => {
-      const el = e.target as HTMLElement | null
-      if (!el) return
-      if (el.closest('[data-profile-menu]')) return
-      setProfileOpen(false)
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('mousedown', onMouseDown)
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('mousedown', onMouseDown)
-    }
-  }, [profileOpen])
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -130,12 +97,9 @@ export default function Header() {
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            {!isAuthed ? (
+            {isAuthLoading ? null : !isAuthed ? (
               <>
-                <Link
-                  href="/user/login"
-                  className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors"
-                >
+                <Link href="/user/login" className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors">
                   Login
                 </Link>
                 <Link
@@ -147,81 +111,19 @@ export default function Header() {
               </>
             ) : (
               <>
-                {isUser ? (
-                  <div className="relative" data-profile-menu>
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-dark-blue transition-colors"
-                      onClick={() => setProfileOpen((v) => !v)}
-                      aria-expanded={profileOpen}
-                      aria-haspopup="menu"
-                    >
-                      <span>Profile</span>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-
-                    {profileOpen && (
-                      <div
-                        className="absolute right-0 mt-2 w-48 rounded-xl border border-gray-200 bg-white shadow-lg p-2"
-                        role="menu"
-                      >
-                        <Link
-                          href="/user/profile"
-                          className="block px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
-                          role="menuitem"
-                          onClick={() => setProfileOpen(false)}
-                        >
-                          My Profile
-                        </Link>
-                        <Link
-                          href="/settings"
-                          className="block px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
-                          role="menuitem"
-                          onClick={() => setProfileOpen(false)}
-                        >
-                          Settings
-                        </Link>
-                        <button
-                          type="button"
-                          className="w-full text-left block px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
-                          role="menuitem"
-                          onClick={() => {
-                            setProfileOpen(false)
-                            doLogout()
-                          }}
-                        >
-                          Logout
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : isAgent ? (
-                  <div className="flex items-center gap-4">
-                    <Link
-                      href="/agent/profile"
-                      className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors"
-                    >
-                      Profile
-                    </Link>
-                    <button
-                      type="button"
-                      className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors"
-                      onClick={() => doLogout()}
-                    >
-                      Logout
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors"
-                    onClick={() => doLogout()}
-                  >
-                    Logout
-                  </button>
-                )}
+                <Link
+                  href={dashboardHref}
+                  className="bg-dark-blue text-white px-6 py-2 rounded-lg font-medium hover:bg-opacity-90 transition-colors"
+                >
+                  Go to Dashboard
+                </Link>
+                <button
+                  type="button"
+                  className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors"
+                  onClick={() => doLogout()}
+                >
+                  Logout
+                </button>
               </>
             )}
           </div>
@@ -279,7 +181,7 @@ export default function Header() {
             ))}
 
             <div className="pt-4 mt-4 border-t border-gray-200 space-y-2">
-              {!isAuthed ? (
+              {isAuthLoading ? null : !isAuthed ? (
                 <>
                   <Link
                     href="/user/login"
@@ -298,33 +200,13 @@ export default function Header() {
                 </>
               ) : (
                 <>
-                  {isUser && (
-                    <>
-                      <Link
-                        href="/user/profile"
-                        className="block px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 bg-gray-50"
-                        onClick={() => setMobileOpen(false)}
-                      >
-                        My Profile
-                      </Link>
-                      <Link
-                        href="/settings"
-                        className="block px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 bg-gray-50"
-                        onClick={() => setMobileOpen(false)}
-                      >
-                        Settings
-                      </Link>
-                    </>
-                  )}
-                  {isAgent && (
-                    <Link
-                      href="/agent/profile"
-                      className="block px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 bg-gray-50"
-                      onClick={() => setMobileOpen(false)}
-                    >
-                      Profile
-                    </Link>
-                  )}
+                  <Link
+                    href={dashboardHref}
+                    className="block px-4 py-3 rounded-xl text-sm font-semibold text-white bg-dark-blue"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Go to Dashboard
+                  </Link>
                   <button
                     type="button"
                     className="w-full text-left block px-4 py-3 rounded-xl text-sm font-semibold text-dark-blue bg-gray-100"

@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import { normalizeRole } from '@/lib/rbac'
 
 async function doLogout() {
-  await fetch('/api/auth/logout', { method: 'POST' }).catch(() => null)
+  await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => null)
   window.location.href = '/'
 }
 

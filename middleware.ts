@@ -102,8 +102,17 @@ export async function middleware(req: NextRequest) {
   const isAgentProfile = pathname === '/agent/profile' || pathname.startsWith('/agent/profile/')
 
   const isVerix = pathname === '/verix' || pathname.startsWith('/verix/')
+  const isVerfixSystem = pathname === '/verfix-system' || pathname.startsWith('/verfix-system/')
 
-  if (!isAgentProtected && !isAdminProtected && !isUserProtected && !isAgentOnboarding && !isAgentProfile && !isVerix) {
+  if (
+    !isAgentProtected &&
+    !isAdminProtected &&
+    !isUserProtected &&
+    !isAgentOnboarding &&
+    !isAgentProfile &&
+    !isVerix &&
+    !isVerfixSystem
+  ) {
     return NextResponse.next()
   }
 
@@ -125,7 +134,7 @@ export async function middleware(req: NextRequest) {
   if (!role) {
     const url = req.nextUrl.clone()
     url.pathname = getLoginPath(pathname)
-    if (isVerix) {
+    if (isVerix || isVerfixSystem) {
       const next = `${pathname}${req.nextUrl.search || ''}`
       url.search = `next=${encodeURIComponent(next)}`
     } else if (isUserOnlyFeature) {
@@ -159,6 +168,13 @@ export async function middleware(req: NextRequest) {
     const url = req.nextUrl.clone()
     url.pathname = getHomeRouteForRole(role)
     url.search = 'warning=restricted'
+    return NextResponse.redirect(url)
+  }
+
+  if (isVerfixSystem && role !== 'USER') {
+    const url = req.nextUrl.clone()
+    url.pathname = '/unauthorized'
+    url.search = `reason=${encodeURIComponent('verfix_forbidden')}&role=${encodeURIComponent(role)}`
     return NextResponse.redirect(url)
   }
 
@@ -219,6 +235,7 @@ export const config = {
     '/agent/onboarding/:path*',
     '/properties/new/:path*',
     '/verix/:path*',
+    '/verfix-system/:path*',
     '/market-analysis/:path*',
     '/explore-3d/:path*',
     '/tokenized/:path*',

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useSession } from 'next-auth/react'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 
@@ -9,6 +10,9 @@ export default function Footer() {
   const isAuthed = Boolean(session?.user)
   const role = String((session?.user as any)?.role || '').toUpperCase()
   const isAgent = isAuthed && role === 'AGENT'
+  const isAdminOrHigher = isAuthed && (role === 'ADMIN' || role === 'SUPERADMIN')
+  const showVerfix = !isAuthed || role === 'USER'
+  const verfixHref = !isAuthed ? '/auth/redirect?next=%2Fverfix-system' : '/verfix-system'
 
   return (
     <footer className="bg-gray-50 border-t border-gray-200">
@@ -17,10 +21,10 @@ export default function Footer() {
           {/* Company Info */}
           <div className="col-span-1">
             <Link href="/" className="flex items-center space-x-2 mb-4">
-              <div className="w-10 h-10 bg-dark-blue flex items-center justify-center rounded">
-                <span className="text-white font-bold text-xl">M</span>
-              </div>
-              <span className="text-dark-blue font-semibold text-xl">millionflats</span>
+              <span className="relative w-[160px] h-10">
+                <Image src="/LOGO.png" alt="MillionFlats" fill className="object-contain" sizes="160px" />
+              </span>
+              <span className="text-dark-blue font-semibold text-xl">MillionFlats Private Limited.</span>
             </Link>
             <p className="text-gray-600 text-sm">
               Premium luxury real estate for discerning global investors and buyers.
@@ -41,40 +45,16 @@ export default function Footer() {
             </div>
           </div>
 
-          {isAuthed && (
+          {showVerfix && !isAgent && !isAdminOrHigher && (
             <div>
-              <h3 className="font-semibold text-gray-900 mb-4">Trust Framework (Verix™ System)</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">Verfix System™</h3>
               <ul className="space-y-2">
                 <li>
                   <Link
-                    href="/auth/redirect?next=/verix/view"
+                    href={verfixHref}
                     className="text-sm font-semibold text-dark-blue hover:underline"
                   >
-                    VerixView™
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/auth/redirect?next=/verix/shield"
-                    className="text-sm font-semibold text-dark-blue hover:underline"
-                  >
-                    VerixShield™
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/auth/redirect?next=/verix/index"
-                    className="text-sm font-semibold text-dark-blue hover:underline"
-                  >
-                    VerixIndex™
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/auth/redirect?next=/verix/title"
-                    className="text-sm font-semibold text-dark-blue hover:underline"
-                  >
-                    VerixTitle™
+                    Verfix System™
                   </Link>
                 </li>
               </ul>
@@ -87,7 +67,7 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href="/contact"
+                  href="/ecosystem-partners/home-loans-finance"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                 >
                   Home Loans &amp; Finance
@@ -95,7 +75,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/contact"
+                  href="/ecosystem-partners/legal-documentation"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                 >
                   Legal &amp; Documentation
@@ -103,7 +83,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/contact"
+                  href="/ecosystem-partners/property-insurance"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                 >
                   Property Insurance
@@ -111,7 +91,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/contact"
+                  href="/ecosystem-partners/interior-design-renovation"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                 >
                   Interior Design &amp; Renovation
@@ -119,7 +99,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/contact"
+                  href="/ecosystem-partners/packers-movers"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                 >
                   Packers &amp; Movers
@@ -127,7 +107,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/contact"
+                  href="/ecosystem-partners/property-management"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                 >
                   Property Management
@@ -135,7 +115,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/contact"
+                  href="/ecosystem-partners/vastu-feng-shui"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                 >
                   Vastu / Feng Shui Consultants
@@ -202,7 +182,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="mt-8 pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-600 text-sm">
-            © 2025 millionflats. All rights reserved.
+            © 2026 MillionFlats Private Limited. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link href="/privacy" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
