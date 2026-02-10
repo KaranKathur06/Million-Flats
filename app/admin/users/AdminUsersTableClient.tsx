@@ -10,7 +10,7 @@ type UserRow = {
   name: string
   role: string
   status: string
-  verified: boolean
+  emailVerified: boolean
   createdAt: string
 }
 
@@ -115,28 +115,34 @@ export default function AdminUsersTableClient({
                       {status}
                     </span>
                   </td>
-                  <td className="py-4 pr-4 text-white/80">{u.verified ? 'Yes' : 'No'}</td>
+                  <td className="py-4 pr-4 text-white/80">{u.emailVerified ? 'Yes' : 'No'}</td>
                   <td className="py-4 pr-4 text-white/70">{u.createdAt || '—'}</td>
                   <td className="py-4 pr-4">
                     <div className="flex flex-wrap gap-2">
-                      <button
-                        title={verifyTitle}
-                        disabled={!canVerifyEmail || isBusy}
-                        onClick={() =>
-                          doAction(u.id, async () => {
-                            const ok = window.confirm('Mark this user email as verified?')
-                            if (!ok) return
-                            await postJson(`/api/admin/users/${encodeURIComponent(u.id)}/verify-email`)
-                          })
-                        }
-                        className={`h-9 rounded-lg px-3 text-xs font-semibold ${
-                          canVerifyEmail && !isBusy
-                            ? 'border border-white/10 bg-transparent text-white/90 hover:bg-white/5'
-                            : 'bg-white/5 text-white/30 cursor-not-allowed'
-                        }`}
-                      >
-                        Verify email
-                      </button>
+                      {u.emailVerified ? (
+                        <span className="inline-flex h-9 items-center rounded-lg px-3 text-xs font-semibold border border-green-500/30 bg-green-500/10 text-green-200">
+                          Verified
+                        </span>
+                      ) : (
+                        <button
+                          title={verifyTitle}
+                          disabled={!canVerifyEmail || isBusy}
+                          onClick={() =>
+                            doAction(u.id, async () => {
+                              const ok = window.confirm('Mark this user email as verified?')
+                              if (!ok) return
+                              await postJson(`/api/admin/users/${encodeURIComponent(u.id)}/verify-email`)
+                            })
+                          }
+                          className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                            canVerifyEmail && !isBusy
+                              ? 'border border-white/10 bg-transparent text-white/90 hover:bg-white/5'
+                              : 'bg-white/5 text-white/30 cursor-not-allowed'
+                          }`}
+                        >
+                          Verify email
+                        </button>
+                      )}
 
                       <button
                         title={banTitle}

@@ -35,31 +35,52 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   const user = await (prisma as any).user.findFirst({
     where: { id: userId },
-    select: { id: true, email: true, verified: true, emailVerified: true, role: true, status: true },
+    select: {
+      id: true,
+      email: true,
+      emailVerified: true,
+      emailVerifiedAt: true,
+      emailVerifiedByAdminId: true,
+      role: true,
+      status: true,
+    },
   })
 
   if (!user) return bad('Not found', 404)
 
+  const alreadyVerified = Boolean((user as any).emailVerified)
+  if (alreadyVerified) {
+    return NextResponse.json({ success: true, user })
+  }
+
+  const now = new Date()
+
   const beforeState = {
-    verified: Boolean((user as any).verified),
-    emailVerified: (user as any).emailVerified ? new Date((user as any).emailVerified).toISOString() : null,
+    emailVerified: Boolean((user as any).emailVerified),
+    emailVerifiedAt: (user as any).emailVerifiedAt ? new Date((user as any).emailVerifiedAt).toISOString() : null,
+    emailVerifiedByAdminId: (user as any).emailVerifiedByAdminId ? String((user as any).emailVerifiedByAdminId) : null,
     role: String((user as any).role || 'USER'),
     status: String((user as any).status || 'ACTIVE'),
   }
 
-  if (Boolean((user as any).verified) && Boolean((user as any).emailVerified)) {
-    return bad('Conflict', 409)
-  }
-
   const updated = await (prisma as any).user.update({
     where: { id: userId },
-    data: { verified: true, emailVerified: new Date() } as any,
-    select: { id: true, email: true, verified: true, emailVerified: true, role: true, status: true },
+    data: { emailVerified: true, emailVerifiedAt: now, emailVerifiedByAdminId: auth.userId } as any,
+    select: {
+      id: true,
+      email: true,
+      emailVerified: true,
+      emailVerifiedAt: true,
+      emailVerifiedByAdminId: true,
+      role: true,
+      status: true,
+    },
   })
 
   const afterState = {
-    verified: Boolean((updated as any).verified),
-    emailVerified: (updated as any).emailVerified ? new Date((updated as any).emailVerified).toISOString() : null,
+    emailVerified: Boolean((updated as any).emailVerified),
+    emailVerifiedAt: (updated as any).emailVerifiedAt ? new Date((updated as any).emailVerifiedAt).toISOString() : null,
+    emailVerifiedByAdminId: (updated as any).emailVerifiedByAdminId ? String((updated as any).emailVerifiedByAdminId) : null,
     role: String((updated as any).role || 'USER'),
     status: String((updated as any).status || 'ACTIVE'),
   }
@@ -67,12 +88,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   await writeAuditLog({
     entityType: 'USER',
     entityId: userId,
-    action: 'ADMIN_USER_EMAIL_VERIFIED',
+    action: 'USER_EMAIL_VERIFIED',
     performedByUserId: auth.userId,
     ipAddress: getIp(req),
     beforeState,
     afterState,
-    meta: { actor: 'admin', targetEmail: String((user as any).email || '') },
+    meta: { actor: 'admin', actorAdminId: auth.userId, targetUserId: userId, targetEmail: String((user as any).email || '') },
   })
 
   return NextResponse.json({ success: true, user: updated })

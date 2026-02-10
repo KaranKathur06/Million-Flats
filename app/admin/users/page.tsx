@@ -42,7 +42,7 @@ export default async function AdminUsersPage({
       name: true,
       role: true,
       status: true,
-      verified: true,
+      emailVerified: true,
       createdAt: true,
     },
   })
@@ -53,7 +53,7 @@ export default async function AdminUsersPage({
     name: safeString(u.name),
     role: safeString(u.role),
     status: safeString(u.status),
-    verified: Boolean(u.verified),
+    emailVerified: Boolean(u.emailVerified),
     createdAt: u.createdAt ? new Date(u.createdAt).toLocaleString() : '',
   }))
 
