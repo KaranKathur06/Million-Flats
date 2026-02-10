@@ -1,4 +1,10 @@
-import { normalizeRole, type AppRole } from '@/lib/rbac'
+type AppRole = 'USER' | 'AGENT' | 'ADMIN' | 'SUPERADMIN'
+
+function normalizeRole(input: unknown): AppRole {
+  const r = typeof input === 'string' ? input.trim().toUpperCase() : ''
+  if (r === 'SUPERADMIN' || r === 'ADMIN' || r === 'AGENT' || r === 'USER') return r
+  return 'USER'
+}
 
 export function getHomeRouteForRole(role: unknown): string {
   const r = normalizeRole(role)

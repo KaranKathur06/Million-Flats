@@ -214,7 +214,7 @@ export async function POST(req: Request) {
               email,
               password: hashedPassword,
               phone: phone || null,
-              role: 'AGENT',
+              role: 'USER',
               verified: true,
             },
           })
@@ -226,7 +226,9 @@ export async function POST(req: Request) {
             company: company || null,
             license,
             whatsapp: null,
-          },
+            approved: false,
+            profileStatus: 'DRAFT',
+          } as any,
         })
       }
 

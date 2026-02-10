@@ -4,9 +4,11 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
+import { getAgentLifecycleUx } from '@/lib/agentLifecycle'
 import AgentProfileSubmitPanel, { ProfileStatusBadge } from '../_components/AgentProfileSubmitPanel'
 
 export default function AgentProfileClient({
+  sessionRole,
   initialName,
   email,
   initialPhone,
@@ -18,6 +20,7 @@ export default function AgentProfileClient({
   profileStatus,
   profileCompletion,
 }: {
+  sessionRole: string
   initialName: string
   email: string
   initialPhone: string
@@ -39,6 +42,20 @@ export default function AgentProfileClient({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  const searchParams = useSearchParams()
+
+  const lifecycle = useMemo(() => getAgentLifecycleUx({ profileStatus }), [profileStatus])
+  const notice = useMemo(() => String(searchParams?.get('notice') || '').trim(), [searchParams])
+
+  const noticeText =
+    notice === 'under_review'
+      ? 'Your profile is under review.'
+      : notice === 'not_approved'
+        ? 'Your profile is verified and waiting for activation.'
+        : notice === 'complete_profile'
+          ? 'Complete your profile and submit it for verification.'
+          : ''
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -82,11 +99,33 @@ export default function AgentProfileClient({
               </div>
             </div>
             <Link
-              href={getHomeRouteForRole('AGENT')}
+              href={getHomeRouteForRole(sessionRole)}
               className="hidden sm:inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
             >
               Back to Portal
             </Link>
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-dark-blue">{lifecycle.title}</h2>
+                <p className="mt-1 text-sm text-gray-600">{lifecycle.message}</p>
+                {noticeText ? <p className="mt-2 text-sm font-semibold text-gray-700">{noticeText}</p> : null}
+              </div>
+              <ProfileStatusBadge status={profileStatus} />
+            </div>
+
+            {lifecycle.ctaLabel && lifecycle.ctaHref ? (
+              <div className="mt-4">
+                <Link
+                  href={lifecycle.ctaHref}
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-dark-blue px-6 font-semibold text-white hover:bg-dark-blue/90"
+                >
+                  {lifecycle.ctaLabel}
+                </Link>
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-6">

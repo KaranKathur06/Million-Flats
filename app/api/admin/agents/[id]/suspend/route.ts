@@ -35,20 +35,30 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   const agent = await (prisma as any).agent.findFirst({
     where: { id: agentId },
-    select: { id: true, approved: true, userId: true, user: { select: { status: true } } },
+    select: { id: true, approved: true, profileStatus: true, userId: true, user: { select: { status: true, role: true } } },
   })
 
   if (!agent) return bad('Not found', 404)
 
-  const beforeState = { approved: Boolean(agent.approved), userStatus: String(agent?.user?.status || 'ACTIVE') }
+  const beforeState = {
+    approved: Boolean(agent.approved),
+    profileStatus: String(agent?.profileStatus || 'DRAFT').toUpperCase(),
+    userStatus: String(agent?.user?.status || 'ACTIVE'),
+    userRole: String(agent?.user?.role || ''),
+  }
 
   const updated = await (prisma as any).agent.update({
     where: { id: agentId },
-    data: { approved: false, user: { update: { status: 'SUSPENDED' } } } as any,
-    select: { id: true, approved: true },
+    data: { profileStatus: 'SUSPENDED' } as any,
+    select: { id: true, approved: true, profileStatus: true },
   })
 
-  const afterState = { approved: Boolean(updated.approved), userStatus: 'SUSPENDED' }
+  const afterState = {
+    approved: Boolean(updated.approved),
+    profileStatus: String(updated?.profileStatus || '').toUpperCase(),
+    userStatus: String(agent?.user?.status || 'ACTIVE'),
+    userRole: String(agent?.user?.role || ''),
+  }
 
   await writeAuditLog({
     entityType: 'AGENT',

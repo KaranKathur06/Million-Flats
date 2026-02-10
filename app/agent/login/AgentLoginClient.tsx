@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { signIn, signOut } from 'next-auth/react'
+import { signIn } from 'next-auth/react'
 import AuthLayout from '@/components/AuthLayout'
 
 export default function AgentLoginClient() {
@@ -19,16 +19,10 @@ export default function AgentLoginClient() {
 
   useEffect(() => {
     const authError = searchParams?.get('error')
-    if (authError === 'agent_not_registered') {
-      signOut({ redirect: false })
-      window.alert('Agent account not found. Please register as an agent.')
-      setError('Agent account not found. Please register as an agent.')
-    }
-    if (authError === 'email_not_registered') {
-      signOut({ redirect: false })
-      window.alert('Email not registered. Please register first.')
-      setError('Email not registered. Please register first.')
-    }
+    if (authError === 'not_registered') setError('This account is not registered as an agent. Apply as an agent to continue.')
+    if (authError === 'agent_not_registered') setError('This account is not registered as an agent. Apply as an agent to continue.')
+    if (authError === 'email_not_registered') setError('Email not registered. Please register first.')
+    if (authError === 'account_disabled') setError('Your account is disabled. Please contact support.')
   }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {

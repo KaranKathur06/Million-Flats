@@ -72,8 +72,6 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith('/agent-portal/') ||
     pathname === '/agent/dashboard' ||
     pathname.startsWith('/agent/dashboard/') ||
-    pathname === '/agent/profile' ||
-    pathname.startsWith('/agent/profile/') ||
     pathname === '/properties/new' ||
     pathname.startsWith('/properties/new/')
 
@@ -101,10 +99,11 @@ export async function middleware(req: NextRequest) {
     isUserOnlyFeature
 
   const isAgentOnboarding = pathname === '/agent/onboarding' || pathname.startsWith('/agent/onboarding/')
+  const isAgentProfile = pathname === '/agent/profile' || pathname.startsWith('/agent/profile/')
 
   const isVerix = pathname === '/verix' || pathname.startsWith('/verix/')
 
-  if (!isAgentProtected && !isAdminProtected && !isUserProtected && !isAgentOnboarding && !isVerix) {
+  if (!isAgentProtected && !isAdminProtected && !isUserProtected && !isAgentOnboarding && !isAgentProfile && !isVerix) {
     return NextResponse.next()
   }
 
@@ -132,7 +131,7 @@ export async function middleware(req: NextRequest) {
     } else if (isUserOnlyFeature) {
       const next = `${pathname}${req.nextUrl.search || ''}`
       url.search = `next=${encodeURIComponent(next)}`
-    } else if (isAdminProtected || pathname === '/properties/new' || pathname.startsWith('/properties/new/')) {
+    } else if (isAdminProtected || isAgentProfile || pathname === '/properties/new' || pathname.startsWith('/properties/new/')) {
       const next = `${pathname}${req.nextUrl.search || ''}`
       url.search = `next=${encodeURIComponent(next)}`
     } else {
@@ -158,7 +157,7 @@ export async function middleware(req: NextRequest) {
 
   if (isVerix && role === 'AGENT') {
     const url = req.nextUrl.clone()
-    url.pathname = '/agent-portal'
+    url.pathname = getHomeRouteForRole(role)
     url.search = 'warning=restricted'
     return NextResponse.redirect(url)
   }
@@ -179,7 +178,7 @@ export async function middleware(req: NextRequest) {
 
   if (isUserProtected && role === 'AGENT') {
     const url = req.nextUrl.clone()
-    url.pathname = '/agent-portal'
+    url.pathname = getHomeRouteForRole(role)
     url.search = 'error=user_only'
     return NextResponse.redirect(url)
   }
@@ -191,7 +190,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (pathname.startsWith('/agent/') && !isRoleAllowedForShell(role, 'agent')) {
+  if (pathname.startsWith('/agent/') && !isRoleAllowedForShell(role, 'agent') && !isAgentProfile) {
     const url = req.nextUrl.clone()
     url.pathname = getHomeRouteForRole(role)
     url.search = 'error=shell_mismatch'

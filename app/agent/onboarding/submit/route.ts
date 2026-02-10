@@ -31,15 +31,6 @@ export async function POST(req: Request) {
     return NextResponse.redirect(new URL('/agent/login', req.url))
   }
 
-  if (dbUser.role !== 'AGENT' && dbUser.role !== 'ADMIN') {
-    return NextResponse.redirect(new URL('/agent/login?error=not_an_agent', req.url))
-  }
-
-  const hasGoogleAccount = dbUser.accounts?.some((a) => a.provider === 'google')
-  if (!hasGoogleAccount) {
-    return NextResponse.redirect(new URL('/agent/login', req.url))
-  }
-
   if (!dbUser.agent) {
     await prisma.agent.create({
       data: {
@@ -47,7 +38,9 @@ export async function POST(req: Request) {
         license,
         company: company || null,
         whatsapp: null,
-      },
+        approved: false,
+        profileStatus: 'DRAFT',
+      } as any,
     })
   } else {
     await prisma.agent.update({
@@ -68,5 +61,5 @@ export async function POST(req: Request) {
     })
   }
 
-  return NextResponse.redirect(new URL('/agent-portal', req.url))
+  return NextResponse.redirect(new URL('/agent/profile', req.url))
 }

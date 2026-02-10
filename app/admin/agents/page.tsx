@@ -24,7 +24,7 @@ export default async function AdminAgentsPage() {
   }
 
   const rows = await (prisma as any).user.findMany({
-    where: { role: 'AGENT' },
+    where: { agent: { isNot: null } },
     orderBy: { createdAt: 'desc' },
     take: 500,
     select: {
@@ -43,6 +43,7 @@ export default async function AdminAgentsPage() {
           license: true,
           whatsapp: true,
           approved: true,
+          profileStatus: true,
           profileCompletion: true,
           createdAt: true,
         },
@@ -66,6 +67,7 @@ export default async function AdminAgentsPage() {
       license: safeString(agent?.license),
       whatsapp: safeString(agent?.whatsapp),
       approved: Boolean(agent?.approved),
+      profileStatus: safeString(agent?.profileStatus),
       profileCompletion: typeof agent?.profileCompletion === 'number' ? agent.profileCompletion : 0,
     }
   })

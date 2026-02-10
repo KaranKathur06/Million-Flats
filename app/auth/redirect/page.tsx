@@ -53,8 +53,34 @@ export default async function AuthRedirectPage({
 
   const effectiveRole = dbRole || role
 
-  if (intent === 'agent' && effectiveRole !== 'AGENT') {
-    redirect('/agent/login?error=agent_not_registered')
+  if (intent === 'agent' && email) {
+    const dbUser = await (prisma as any).user
+      .findUnique({ where: { email }, select: { role: true, status: true, agent: { select: { id: true, approved: true, profileStatus: true } } } })
+      .catch(() => null)
+
+    const hasAgentRow = Boolean((dbUser as any)?.agent?.id)
+    const dbUserRole = String((dbUser as any)?.role || effectiveRole || '').toUpperCase()
+    const dbStatus = String((dbUser as any)?.status || 'ACTIVE').toUpperCase()
+    const approved = Boolean((dbUser as any)?.agent?.approved)
+    const profileStatus = String((dbUser as any)?.agent?.profileStatus || 'DRAFT').toUpperCase()
+
+    if (!hasAgentRow) {
+      redirect('/agent/login?error=not_registered')
+    }
+
+    if (dbStatus !== 'ACTIVE') {
+      redirect('/agent/login?error=account_disabled')
+    }
+
+    if (dbUserRole !== 'AGENT') {
+      const reason = profileStatus === 'SUBMITTED' ? 'under_review' : profileStatus === 'VERIFIED' ? 'not_approved' : 'complete_profile'
+      redirect(`/agent/profile?notice=${encodeURIComponent(reason)}`)
+    }
+
+    if (!approved || profileStatus !== 'LIVE') {
+      const reason = profileStatus === 'SUBMITTED' ? 'under_review' : profileStatus === 'VERIFIED' ? 'not_approved' : 'complete_profile'
+      redirect(`/agent/profile?notice=${encodeURIComponent(reason)}`)
+    }
   }
 
   const home = getHomeRouteForRole(effectiveRole)

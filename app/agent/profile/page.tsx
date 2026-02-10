@@ -13,10 +13,6 @@ export default async function AgentProfilePage() {
     redirect('/agent/login?next=%2Fagent%2Fprofile')
   }
 
-  if (role !== 'AGENT') {
-    redirect(getHomeRouteForRole(role))
-  }
-
   const email = String((session.user as any).email || '').trim().toLowerCase()
   if (!email) {
     redirect('/agent/login?next=%2Fagent%2Fprofile')
@@ -33,7 +29,7 @@ export default async function AgentProfilePage() {
   }
 
   if (!user.agent) {
-    redirect('/agent/login?error=not_an_agent')
+    redirect('/agent/onboarding')
   }
 
   const agentRow = await (prisma as any).agent
@@ -45,6 +41,7 @@ export default async function AgentProfilePage() {
 
   return (
     <AgentProfileClient
+      sessionRole={role}
       initialName={user.name || ''}
       email={user.email}
       initialPhone={user.phone || ''}

@@ -22,7 +22,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   const limit = await checkAdminRateLimit({
     performedByUserId: auth.userId,
-    action: 'ADMIN_AGENT_APPROVED',
+    action: 'ADMIN_AGENT_UNSUSPENDED',
     windowMs: 60_000,
     max: 20,
   })
@@ -41,39 +41,44 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (!agent) return bad('Not found', 404)
 
   const currentProfileStatus = String(agent?.profileStatus || 'DRAFT').toUpperCase()
-  if (currentProfileStatus !== 'SUBMITTED') {
-    return bad('Agent is not in SUBMITTED state', 409)
+  if (currentProfileStatus !== 'SUSPENDED') {
+    return bad('Agent is not suspended', 409)
+  }
+
+  const userStatus = String(agent?.user?.status || 'ACTIVE').toUpperCase()
+  if (userStatus !== 'ACTIVE') {
+    return bad('User is not active', 409)
   }
 
   const beforeState = {
     approved: Boolean(agent.approved),
     profileStatus: currentProfileStatus,
-    userStatus: String(agent?.user?.status || 'ACTIVE'),
+    userStatus: userStatus,
     userRole: String(agent?.user?.role || ''),
   }
 
   const updated = await (prisma as any).agent.update({
     where: { id: agentId },
-    data: { approved: true, profileStatus: 'VERIFIED' } as any,
+    data: { profileStatus: 'LIVE' } as any,
     select: { id: true, approved: true, profileStatus: true },
   })
 
   const afterState = {
     approved: Boolean(updated.approved),
     profileStatus: String(updated?.profileStatus || '').toUpperCase(),
-    userStatus: String(agent?.user?.status || 'ACTIVE'),
+    userStatus: userStatus,
     userRole: String(agent?.user?.role || ''),
   }
 
   await writeAuditLog({
     entityType: 'AGENT',
     entityId: agentId,
-    action: 'ADMIN_AGENT_APPROVED',
+    action: 'ADMIN_AGENT_UNSUSPENDED',
     performedByUserId: auth.userId,
     ipAddress: getIp(req),
     beforeState,
     afterState,
-    meta: { actor: 'admin', previousApproved: Boolean(agent.approved) },
+    meta: { actor: 'admin' },
   })
 
   return NextResponse.json({ success: true, agent: updated })

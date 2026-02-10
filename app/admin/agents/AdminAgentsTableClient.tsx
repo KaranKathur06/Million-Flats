@@ -18,6 +18,7 @@ type AgentRow = {
   license: string
   whatsapp: string
   approved: boolean
+  profileStatus: string
   profileCompletion: number
 }
 
@@ -72,6 +73,7 @@ export default function AdminAgentsTableClient({
               <th className="py-3 pr-4">Agent</th>
               <th className="py-3 pr-4">Company</th>
               <th className="py-3 pr-4">License</th>
+              <th className="py-3 pr-4">Profile</th>
               <th className="py-3 pr-4">Completion</th>
               <th className="py-3 pr-4">Approved</th>
               <th className="py-3 pr-4">Account</th>
@@ -82,8 +84,11 @@ export default function AdminAgentsTableClient({
           <tbody>
             {items.map((it) => {
               const isBusy = busyId === it.agentId
-              const canApprove = caps.agents.approve && !it.approved && it.agentId
-              const canSuspend = caps.agents.suspend && it.approved && it.agentId
+              const profileStatus = safeString(it.profileStatus || 'DRAFT').toUpperCase() || 'DRAFT'
+              const canApprove = caps.agents.approve && it.agentId && profileStatus === 'SUBMITTED'
+              const canGoLive = caps.agents.approve && it.agentId && it.approved && profileStatus === 'VERIFIED'
+              const canSuspend = caps.agents.suspend && it.agentId && profileStatus === 'LIVE'
+              const canUnsuspend = caps.agents.suspend && it.agentId && profileStatus === 'SUSPENDED'
               const status = safeString(it.status || 'ACTIVE').toUpperCase() || 'ACTIVE'
               const canBan = caps.agents.ban && Boolean(it.agentId) && status !== 'BANNED'
               const canRevokeRole = caps.agents.revokeRole && Boolean(it.agentId)
@@ -103,6 +108,11 @@ export default function AdminAgentsTableClient({
                   </td>
                   <td className="py-4 pr-4 text-white/80">{it.company || '—'}</td>
                   <td className="py-4 pr-4 text-white/80">{it.license || '—'}</td>
+                  <td className="py-4 pr-4">
+                    <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-semibold text-white/90">
+                      {profileStatus}
+                    </span>
+                  </td>
                   <td className="py-4 pr-4 text-white/80">{String(it.profileCompletion)}%</td>
                   <td className="py-4 pr-4">
                     <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-semibold text-white/90">
@@ -143,6 +153,25 @@ export default function AdminAgentsTableClient({
                       </button>
 
                       <button
+                        title={approveTitle}
+                        disabled={!canGoLive || isBusy}
+                        onClick={() =>
+                          doAction(it.agentId, async () => {
+                            const ok = window.confirm('Go live? This will promote role to AGENT and activate the profile.')
+                            if (!ok) return
+                            await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/go-live`)
+                          })
+                        }
+                        className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                          canGoLive && !isBusy
+                            ? 'bg-green-500/20 text-green-200 border border-green-500/30 hover:bg-green-500/25'
+                            : 'bg-white/5 text-white/30 cursor-not-allowed'
+                        }`}
+                      >
+                        Go Live
+                      </button>
+
+                      <button
                         title={suspendTitle}
                         disabled={!canSuspend || isBusy}
                         onClick={() =>
@@ -159,6 +188,25 @@ export default function AdminAgentsTableClient({
                         }`}
                       >
                         Suspend
+                      </button>
+
+                      <button
+                        title={suspendTitle}
+                        disabled={!canUnsuspend || isBusy}
+                        onClick={() =>
+                          doAction(it.agentId, async () => {
+                            const ok = window.confirm('Unsuspend this agent?')
+                            if (!ok) return
+                            await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/unsuspend`)
+                          })
+                        }
+                        className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                          canUnsuspend && !isBusy
+                            ? 'border border-white/10 bg-transparent text-white hover:bg-white/5'
+                            : 'bg-white/5 text-white/30 cursor-not-allowed'
+                        }`}
+                      >
+                        Unsuspend
                       </button>
 
                       <button
@@ -206,7 +254,7 @@ export default function AdminAgentsTableClient({
 
             {items.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-10 text-center text-white/60">
+                <td colSpan={9} className="py-10 text-center text-white/60">
                   No agents found.
                 </td>
               </tr>
