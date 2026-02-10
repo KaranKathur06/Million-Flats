@@ -1,4 +1,4 @@
-import { requireRole } from '@/lib/rbac'
+import { requireRole } from '@/lib/rbacServer'
 
 export async function requireAdminSession() {
   const auth = await requireRole('ADMIN')
