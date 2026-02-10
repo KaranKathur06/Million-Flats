@@ -15,11 +15,15 @@ const nav = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#0b1220] text-white">
+      <header className="border-b border-white/10">
+        <div className="mx-auto max-w-[1700px]">
+          <AdminShellHeaderClient />
+        </div>
+      </header>
+
       <div className="mx-auto flex max-w-[1700px]">
         <aside className="hidden md:block w-[260px] shrink-0 border-r border-white/10">
-          <AdminShellHeaderClient />
-
-          <nav className="px-3 pb-8">
+          <nav className="px-3 py-6">
             <div className="space-y-1">
               {nav.map((item) => (
                 <Link
@@ -34,9 +38,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </nav>
         </aside>
 
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-10">
-          {children}
-        </main>
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-10">{children}</main>
       </div>
     </div>
   )

@@ -133,6 +133,13 @@ export async function middleware(req: NextRequest) {
 
   if (!role) {
     const url = req.nextUrl.clone()
+
+    if (isAdminProtected) {
+      url.pathname = '/'
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
+
     url.pathname = getLoginPath(pathname)
     if (isVerix || isVerfixSystem) {
       const next = `${pathname}${req.nextUrl.search || ''}`
@@ -140,7 +147,7 @@ export async function middleware(req: NextRequest) {
     } else if (isUserOnlyFeature) {
       const next = `${pathname}${req.nextUrl.search || ''}`
       url.search = `next=${encodeURIComponent(next)}`
-    } else if (isAdminProtected || isAgentProfile || pathname === '/properties/new' || pathname.startsWith('/properties/new/')) {
+    } else if (isAgentProfile || pathname === '/properties/new' || pathname.startsWith('/properties/new/')) {
       const next = `${pathname}${req.nextUrl.search || ''}`
       url.search = `next=${encodeURIComponent(next)}`
     } else {

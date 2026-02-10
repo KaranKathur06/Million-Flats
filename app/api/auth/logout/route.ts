@@ -11,8 +11,7 @@ function expireCookie(res: NextResponse, name: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const url = new URL('/', req.url)
-  const res = NextResponse.redirect(url)
+  const res = NextResponse.json({ success: true })
 
   expireCookie(res, 'next-auth.session-token')
   expireCookie(res, '__Secure-next-auth.session-token')
