@@ -16,6 +16,7 @@ export default function AgentLoginClient() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showResetCta, setShowResetCta] = useState(false)
 
   useEffect(() => {
     const authError = searchParams?.get('error')
@@ -29,6 +30,7 @@ export default function AgentLoginClient() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setShowResetCta(false)
 
     try {
       const result = await signIn('credentials', {
@@ -46,6 +48,17 @@ export default function AgentLoginClient() {
       const raw = (result as any)?.error || 'Login failed'
       if (raw === 'CredentialsSignin') {
         setError('Invalid email or password.')
+      } else if (raw === 'PASSWORD_NOT_SET') {
+        setError('This account does not have a password set. Please reset your password to continue.')
+        setShowResetCta(true)
+      } else if (raw === 'EMAIL_NOT_VERIFIED') {
+        setError('Please verify your email to continue.')
+      } else if (raw === 'INVALID_PASSWORD') {
+        setError('Invalid password.')
+      } else if (raw === 'ACCOUNT_DISABLED') {
+        setError('Your account is disabled. Please contact support.')
+      } else if (raw === 'ACCOUNT_BANNED') {
+        setError('Your account is banned. Please contact support.')
       } else {
         setError(raw)
       }
@@ -70,6 +83,15 @@ export default function AgentLoginClient() {
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
             {error}
           </div>
+        )}
+
+        {showResetCta && (
+          <Link
+            href={`/user/forgot-password?email=${encodeURIComponent(formData.email)}`}
+            className="block w-full text-center h-12 leading-[3rem] rounded-xl font-medium bg-gray-900 text-white hover:bg-gray-800 transition-all duration-200"
+          >
+            Reset Password
+          </Link>
         )}
 
         <button

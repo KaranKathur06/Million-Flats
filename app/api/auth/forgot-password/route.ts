@@ -57,7 +57,12 @@ export async function POST(req: Request) {
 
   const user = await prisma.user.findUnique({ where: { email: emailRaw } }).catch(() => null)
 
-  if (!user || !user.password) {
+  if (!user) {
+    return NextResponse.json({ success: true, message: 'If an account exists, a reset link will be sent.' }, { status: 200 })
+  }
+
+  const isEmailVerified = Boolean((user as any).emailVerified) || Boolean((user as any).verified)
+  if (!isEmailVerified) {
     return NextResponse.json({ success: true, message: 'If an account exists, a reset link will be sent.' }, { status: 200 })
   }
 

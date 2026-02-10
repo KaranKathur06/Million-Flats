@@ -71,13 +71,18 @@ export async function POST(req: Request) {
   }
 
   const user = await prisma.user.findUnique({ where: { id: String(row.userId) } }).catch(() => null)
-  if (!user || !user.password) {
+  if (!user) {
+    return NextResponse.json({ success: false, message: 'Reset link is invalid or expired.' }, { status: 400 })
+  }
+
+  const isEmailVerified = Boolean((user as any).emailVerified) || Boolean((user as any).verified)
+  if (!isEmailVerified) {
     return NextResponse.json({ success: false, message: 'Reset link is invalid or expired.' }, { status: 400 })
   }
 
   const hashed = await bcrypt.hash(password, 10)
 
-  await prisma.user.update({ where: { id: user.id }, data: { password: hashed, verified: true } as any }).catch(() => null)
+  await prisma.user.update({ where: { id: user.id }, data: { password: hashed } as any }).catch(() => null)
   await (prisma as any).passwordResetToken.update({ where: { id: row.id }, data: { usedAt: new Date() } }).catch(() => null)
 
   return NextResponse.json({ success: true }, { status: 200 })

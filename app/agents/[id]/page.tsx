@@ -236,31 +236,19 @@ export default async function AgentProfilePage({
 
   const user = agent.user
 
-  const isApproved = Boolean(agent?.approved)
   const profileStatus = String(agent?.profileStatus || 'DRAFT').toUpperCase()
   const status = String(user?.status || 'ACTIVE').toUpperCase()
-  if (status === 'BANNED') {
+  const emailVerified = Boolean((user as any)?.emailVerified)
+
+  const isPublicVisible = profileStatus === 'LIVE' && status === 'ACTIVE' && emailVerified
+  if (!isPublicVisible) {
     notFound()
   }
-  const contactEnabled = status === 'ACTIVE'
-  const isLive = isApproved && profileStatus === 'LIVE' && status === 'ACTIVE'
-  const showProfileNotice = !isLive
-  const profileNoticeTitle = !isApproved
-    ? 'Profile setup in progress'
-    : profileStatus !== 'LIVE'
-      ? profileStatus === 'SUBMITTED'
-        ? 'Verification pending'
-        : 'Profile setup in progress'
-      : status === 'SUSPENDED'
-        ? 'Agent temporarily unavailable'
-        : 'Limited profile'
-  const profileNoticeBody = !isApproved
-    ? 'This agent is setting up verification and profile details. Some information may be unavailable.'
-    : profileStatus !== 'LIVE'
-      ? 'This agent is setting up verification and profile details. Some information may be unavailable.'
-      : status === 'SUSPENDED'
-        ? 'This agent is currently suspended. Contact options are disabled temporarily.'
-        : 'Some profile details may be unavailable.'
+
+  const contactEnabled = true
+  const showProfileNotice = false
+  const profileNoticeTitle = ''
+  const profileNoticeBody = ''
   const name = user?.name || 'Agent'
   const email = user?.email || ''
   const phone = user?.phone || ''

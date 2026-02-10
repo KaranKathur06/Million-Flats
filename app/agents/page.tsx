@@ -58,7 +58,7 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
   const agents = await prisma.agent
     .findMany({
       include: { user: true },
-      where: { approved: true, profileStatus: 'LIVE', user: { status: 'ACTIVE' } } as any,
+      where: { profileStatus: 'LIVE', user: { status: 'ACTIVE', emailVerified: true } } as any,
       orderBy: { createdAt: 'desc' },
       take: 500,
     })
@@ -90,7 +90,7 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
             agentId: { in: agentIds },
             status: 'APPROVED',
             sourceType: 'MANUAL',
-            agent: { approved: true, profileStatus: 'LIVE', user: { status: 'ACTIVE' } },
+            agent: { profileStatus: 'LIVE', user: { status: 'ACTIVE', emailVerified: true } },
           },
           _count: { _all: true },
         })
@@ -138,7 +138,27 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
           Showing {filtered.length} of {agents.length} agents
         </div>
 
-        {filtered.length === 0 ? (
+        {agents.length === 0 ? (
+          <div className="mt-10 rounded-2xl border border-gray-200 bg-white p-8">
+            <p className="text-gray-700 font-semibold">No verified agents available yet.</p>
+            <p className="mt-2 text-gray-600">Check back soon, or apply to become an agent on millionflats.</p>
+
+            <div className="mt-6 flex flex-col sm:flex-row gap-3">
+              <Link
+                href="/agent/register"
+                className="h-11 px-5 rounded-xl bg-dark-blue text-white font-semibold inline-flex items-center justify-center hover:bg-dark-blue/90"
+              >
+                Become an agent
+              </Link>
+              <Link
+                href="/"
+                className="h-11 px-5 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold inline-flex items-center justify-center hover:bg-gray-50"
+              >
+                Check back soon
+              </Link>
+            </div>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="mt-10 rounded-2xl border border-gray-200 bg-white p-8">
             <p className="text-gray-600">No agents match your search.</p>
           </div>
@@ -179,12 +199,8 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
                         <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-50 text-gray-700 border border-gray-200">
                           {listings} listings
                         </span>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold border ${
-                            agent?.approved ? 'bg-green-50 text-green-800 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'
-                          }`}
-                        >
-                          {agent?.approved ? 'Verified' : 'Pending verification'}
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold border bg-green-50 text-green-800 border-green-200">
+                          Verified
                         </span>
                       </div>
                     </div>

@@ -90,12 +90,20 @@ export const authOptions: NextAuthOptions = {
         if (!email || !password) return null
 
         const user = await prisma.user.findUnique({ where: { email } })
-        if (!user || !user.password) return null
+        if (!user) return null
 
-        const ok = await bcrypt.compare(password, user.password)
-        if (!ok) return null
+        const status = String((user as any).status || 'ACTIVE')
+        if (status === 'BANNED') throw new Error('ACCOUNT_BANNED')
+        if (status === 'SUSPENDED') throw new Error('ACCOUNT_DISABLED')
 
-        if (user.role === 'USER' && !user.verified) return null
+        const isEmailVerified = Boolean((user as any).emailVerified) || Boolean((user as any).verified)
+        if (!isEmailVerified) throw new Error('EMAIL_NOT_VERIFIED')
+
+        const passwordHash = typeof (user as any).password === 'string' ? String((user as any).password) : ''
+        if (!passwordHash) throw new Error('PASSWORD_NOT_SET')
+
+        const ok = await bcrypt.compare(password, passwordHash)
+        if (!ok) throw new Error('INVALID_PASSWORD')
 
         return {
           id: user.id,
@@ -132,7 +140,8 @@ export const authOptions: NextAuthOptions = {
             googleId: existing.googleId || googleId,
             verified: true,
             name: existing.name || (user?.name ?? null),
-            emailVerified: new Date(),
+            emailVerified: true,
+            emailVerifiedAt: new Date(),
             role: (existing as any).role || 'USER',
           } as any,
         })
