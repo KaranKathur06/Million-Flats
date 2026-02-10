@@ -178,5 +178,5 @@ For production, set these environment variables:
 
 ## Support
 
-For questions or issues, please contact support@millionflats.com
+For questions or issues, please contact support@millionflats.com 
 
