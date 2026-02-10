@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import AdminShellHeaderClient from './AdminShellHeaderClient'
 
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+
 const nav = [
   { href: '/admin', label: 'Dashboard' },
   { href: '/admin/listings', label: 'Listings' },
