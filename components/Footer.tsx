@@ -5,22 +5,26 @@ import Image from 'next/image'
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-50 border-t border-gray-200">
+    <footer className="w-full bg-gray-50 border-t border-gray-200">
       <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-          <div className="lg:col-span-2">
-            <Link href="/" className="inline-flex items-center gap-3">
-              <span className="relative w-[160px] h-10">
-                <Image src="/LOGO.png" alt="MillionFlats" fill className="object-contain" sizes="160px" />
-              </span>
-            </Link>
-            <p className="mt-4 text-dark-blue font-semibold text-xl">MillionFlats Private Limited.</p>
-            <p className="mt-2 text-gray-600 text-sm max-w-xl">
-              Premium luxury real estate for discerning global investors and buyers.
-            </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-10 gap-10">
+          <div className="lg:col-span-4 lg:pr-10">
+            <div className="inline-block">
+              <Link href="/" className="inline-flex items-center gap-3">
+                <span className="relative w-10 h-10 shrink-0">
+                  <Image src="/LOGO.png" alt="MillionFlats" fill className="object-contain" sizes="40px" />
+                </span>
+                <span className="text-dark-blue font-semibold text-xl">MillionFlats Pvt Ltd.</span>
+              </Link>
+              <div className="mt-3 text-gray-600 text-sm leading-relaxed">
+                <div>Premium luxury real estate platform</div>
+                <div>For discerning global investors</div>
+                <div>Buyers and verified professionals</div>
+              </div>
+            </div>
           </div>
 
-          <div>
+          <div className="lg:col-span-2">
             <h3 className="font-semibold text-gray-900 mb-4">Company</h3>
             <ul className="space-y-2">
               <li>
@@ -40,20 +44,17 @@ export default function Footer() {
               </li>
               <li>
                 <Link href="/terms" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
-                  Terms of Service
+                  Terms and Conditions
                 </Link>
               </li>
             </ul>
           </div>
 
-          <div>
+          <div className="lg:col-span-2">
             <h3 className="font-semibold text-gray-900 mb-4">Ecosystem / Platform</h3>
             <ul className="space-y-2">
               <li>
-                <Link
-                  href="/ecosystem-partners"
-                  className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
-                >
+                <Link href="/ecosystem-partners" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
                   Ecosystem Partners
                 </Link>
               </li>
@@ -90,10 +91,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/ecosystem-partners/packers-movers"
-                  className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
-                >
+                <Link href="/ecosystem-partners/packers-movers" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
                   Packers &amp; Movers
                 </Link>
               </li>
@@ -106,18 +104,13 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/ecosystem-partners/vastu-feng-shui"
-                  className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
-                >
+                <Link href="/ecosystem-partners/vastu-feng-shui" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
                   Vastu / Feng Shui Consultants
                 </Link>
               </li>
             </ul>
-          </div>
 
-          <div>
-            <h3 className="font-semibold text-gray-900 mb-4">User / Agent</h3>
+            <h3 className="font-semibold text-gray-900 mt-8 mb-4">User / Agent</h3>
             <ul className="space-y-2">
               <li>
                 <Link href="/buy" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
@@ -141,12 +134,45 @@ export default function Footer() {
               </li>
             </ul>
           </div>
+
+          <div className="lg:col-span-2">
+            <h3 className="font-semibold text-gray-900 mb-4">
+              Verix System<sup>™</sup>
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/verix/view" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                  VerixView<sup>™</sup>
+                </Link>
+              </li>
+              <li>
+                <Link href="/verix/shield" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                  VerixShield<sup>™</sup>
+                </Link>
+              </li>
+              <li>
+                <Link href="/verix/index" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                  VerixIndex<sup>™</sup>
+                </Link>
+              </li>
+              <li>
+                <Link href="/verix/title" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                  VerixTitle<sup>™</sup>
+                </Link>
+              </li>
+              <li>
+                <Link href="/verix/pro" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
+                  VerixPro<sup>™</sup>
+                </Link>
+              </li>
+            </ul>
+          </div>
         </div>
 
         {/* Bottom Bar */}
         <div className="mt-10 pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-600 text-sm">
-            © 2026 MillionFlats Private Limited. All rights reserved.
+            © 2026 MillionFlats Pvt Ltd. All rights reserved.
           </p>
         </div>
       </div>

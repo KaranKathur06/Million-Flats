@@ -7,6 +7,8 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 
+type NavItem = { href: string; label: React.ReactNode }
+
 async function doLogout() {
   await fetch('/api/auth/logout', { method: 'POST', credentials: 'include', cache: 'no-store' }).catch(() => null)
   window.location.replace('/')
@@ -28,28 +30,28 @@ export default function Header() {
   const showVerfix = !isAuthed || role === 'USER'
   const verfixHref = !isAuthed ? '/auth/redirect?next=%2Fverfix-system' : '/verfix-system'
 
-  const publicLinks = [
+  const publicLinks: NavItem[] = [
     { href: '/', label: 'Home' },
     { href: '/sell', label: 'Sell' },
     { href: '/buy', label: 'Buy' },
     { href: '/rent', label: 'Rent' },
     { href: '/agents', label: 'Find an Agent' },
-    ...(showVerfix ? [{ href: verfixHref, label: 'Verfix System™' }] : []),
+    ...(showVerfix ? [{ href: verfixHref, label: <span>Verix System<sup>™</sup></span> }] : []),
   ]
 
-  const userLinks = [
+  const userLinks: NavItem[] = [
     { href: '/', label: 'Home' },
     { href: '/sell', label: 'Sell' },
     { href: '/buy', label: 'Buy' },
     { href: '/rent', label: 'Rent' },
     { href: '/agents', label: 'Find an Agent' },
-    ...(showVerfix ? [{ href: verfixHref, label: 'Verfix System™' }] : []),
+    ...(showVerfix ? [{ href: verfixHref, label: <span>Verix System<sup>™</sup></span> }] : []),
     { href: '/market-analysis', label: 'Market Analysis' },
     { href: '/explore-3d', label: 'Explore in 3D' },
     { href: '/tokenized', label: 'Tokenized' },
   ]
 
-  const agentLinks = [
+  const agentLinks: NavItem[] = [
     { href: '/agent/dashboard', label: 'Agent Dashboard' },
     { href: '/agent/profile', label: 'Profile' },
   ]

@@ -263,7 +263,7 @@ export default function AgentRegisterPage() {
           <label htmlFor="terms" className="ml-3 text-sm text-gray-600">
             I agree to the{' '}
             <Link href="/terms" className="text-dark-blue hover:underline">
-              Terms of Service
+              Terms and Conditions
             </Link>{' '}
             and{' '}
             <Link href="/privacy" className="text-dark-blue hover:underline">
