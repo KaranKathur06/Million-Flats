@@ -20,6 +20,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
   }
 
+  const isSuperadmin = String(auth.role || '').toUpperCase() === 'SUPERADMIN'
+
   const limit = await checkAdminRateLimit({
     performedByUserId: auth.userId,
     action: 'ADMIN_AGENT_APPROVED',
@@ -41,9 +43,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (!agent) return bad('Not found', 404)
 
   const currentProfileStatus = String(agent?.profileStatus || 'DRAFT').toUpperCase()
-  if (currentProfileStatus !== 'SUBMITTED') {
-    return bad('Agent is not in SUBMITTED state', 409)
+
+  if (!isSuperadmin && currentProfileStatus !== 'SUBMITTED') {
+    return bad('Agent must submit profile before approval', 409)
   }
+
+  if (isSuperadmin && currentProfileStatus !== 'SUBMITTED' && currentProfileStatus !== 'DRAFT') {
+    return bad(`Cannot approve agent from ${currentProfileStatus} state`, 409)
+  }
+
+  const wasOverride = isSuperadmin && currentProfileStatus === 'DRAFT'
 
   const beforeState = {
     approved: Boolean(agent.approved),
@@ -85,12 +94,21 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   await writeAuditLog({
     entityType: 'AGENT',
     entityId: agentId,
-    action: 'ADMIN_AGENT_APPROVED',
+    action: wasOverride ? 'AGENT_APPROVED_OVERRIDE' : 'AGENT_APPROVED',
     performedByUserId: auth.userId,
     ipAddress: getIp(req),
     beforeState,
     afterState,
-    meta: { actor: 'admin', previousApproved: Boolean(agent.approved) },
+    meta: {
+      actorUserId: auth.userId,
+      actorRole: auth.role,
+      agentId,
+      previousStatus: currentProfileStatus,
+      newStatus: String(updated.agent?.profileStatus || '').toUpperCase(),
+      wasOverride,
+      ip: getIp(req),
+      previousApproved: Boolean(agent.approved),
+    },
   })
 
   return NextResponse.json({ success: true, agent: updated.agent })

@@ -47,6 +47,8 @@ export default function AdminAgentsTableClient({
   const [error, setError] = useState('')
 
   const caps = getAdminCapabilities(currentRole)
+  const role = safeString(currentRole).toUpperCase()
+  const isSuperadmin = role === 'SUPERADMIN'
 
   const doAction = async (id: string, fn: () => Promise<void>) => {
     if (busyId) return
@@ -85,7 +87,10 @@ export default function AdminAgentsTableClient({
             {items.map((it) => {
               const isBusy = busyId === it.agentId
               const profileStatus = safeString(it.profileStatus || 'DRAFT').toUpperCase() || 'DRAFT'
-              const canApprove = caps.agents.approve && it.agentId && profileStatus === 'SUBMITTED'
+              const canApprove =
+                caps.agents.approve &&
+                it.agentId &&
+                (profileStatus === 'SUBMITTED' || (isSuperadmin && profileStatus === 'DRAFT'))
               const canGoLive = caps.agents.approve && it.agentId && it.approved && profileStatus === 'VERIFIED'
               const canSuspend = caps.agents.suspend && it.agentId && profileStatus === 'LIVE'
               const canUnsuspend = caps.agents.suspend && it.agentId && profileStatus === 'SUSPENDED'
@@ -93,7 +98,11 @@ export default function AdminAgentsTableClient({
               const canBan = caps.agents.ban && Boolean(it.agentId) && status !== 'BANNED'
               const canRevokeRole = caps.agents.revokeRole && Boolean(it.agentId)
 
-              const approveTitle = caps.agents.approve ? '' : 'Forbidden'
+              const approveTitle = !caps.agents.approve
+                ? 'Forbidden'
+                : !isSuperadmin && profileStatus !== 'SUBMITTED'
+                  ? 'Agent must submit profile before approval.'
+                  : ''
               const suspendTitle = caps.agents.suspend ? '' : 'Forbidden'
               const banTitle = caps.agents.ban ? '' : 'Forbidden'
               const revokeTitle = caps.agents.revokeRole ? '' : 'Forbidden'
@@ -140,6 +149,12 @@ export default function AdminAgentsTableClient({
                         disabled={!canApprove || isBusy}
                         onClick={() =>
                           doAction(it.agentId, async () => {
+                            if (isSuperadmin && profileStatus === 'DRAFT') {
+                              const ok = window.confirm(
+                                'You are overriding submission requirement. Continue?'
+                              )
+                              if (!ok) return
+                            }
                             await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/approve`)
                           })
                         }
