@@ -67,6 +67,25 @@ async function verifyLegacyJwt(token: string, secret: string) {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
+  if (
+    pathname === '/user/login' ||
+    pathname.startsWith('/user/login/') ||
+    pathname === '/user/register' ||
+    pathname.startsWith('/user/register/') ||
+    pathname === '/user/forgot-password' ||
+    pathname.startsWith('/user/forgot-password/') ||
+    pathname === '/user/reset-password' ||
+    pathname.startsWith('/user/reset-password/') ||
+    pathname === '/agent/login' ||
+    pathname.startsWith('/agent/login/') ||
+    pathname === '/agent/register' ||
+    pathname.startsWith('/agent/register/') ||
+    pathname === '/agent/forgot-password' ||
+    pathname.startsWith('/agent/forgot-password/')
+  ) {
+    return NextResponse.next()
+  }
+
   const isAgentPublic =
     pathname === '/agent/login' ||
     pathname.startsWith('/agent/login/') ||
@@ -187,6 +206,7 @@ export const config = {
   matcher: [
     '/admin/:path*',
     '/agent/:path*',
-    '/user/:path*',
+    '/user/dashboard/:path*',
+    '/user/profile/:path*',
   ],
 }

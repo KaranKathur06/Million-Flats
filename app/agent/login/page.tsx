@@ -5,8 +5,11 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import AgentLoginClient from './AgentLoginClient'
 
-export default async function AgentLoginPage() {
-  const session = await getServerSession(authOptions)
+export default async function AgentLoginPage({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined>
+}) {  const session = await getServerSession(authOptions)
   const email = String((session?.user as any)?.email || '').trim().toLowerCase()
 
   if (email) {
@@ -21,7 +24,14 @@ export default async function AgentLoginPage() {
     const profileStatus = String((user as any)?.agent?.profileStatus || 'DRAFT').toUpperCase()
 
     if (status !== 'ACTIVE') {
-      redirect('/agent/login?error=account_disabled')
+      const errRaw = searchParams?.error
+      const err = Array.isArray(errRaw) ? errRaw[0] : errRaw
+
+      // if we're already on /agent/login?error=account_disabled, do NOT redirect again.
+      // just render the login page and let the client show the error.
+      if (err !== 'account_disabled') {
+        redirect('/agent/login?error=account_disabled')
+      }
     }
 
     if (!hasAgentRow) {

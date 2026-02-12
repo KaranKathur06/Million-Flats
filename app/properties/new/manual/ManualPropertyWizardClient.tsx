@@ -645,7 +645,7 @@ export default function ManualPropertyWizardClient() {
       if (!id) return
       await Promise.all(files.map((f) => upload(category, f)))
     },
-    [ensureRemoteDraft]
+    [ensureRemoteDraft, upload]
   )
 
   const toggleAmenity = useCallback(
