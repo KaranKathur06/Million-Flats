@@ -82,46 +82,11 @@ export async function middleware(req: NextRequest) {
     pathname === '/properties/new' ||
     pathname.startsWith('/properties/new/')
 
-  const isAdminProtected = pathname === '/admin' || pathname.startsWith('/admin/')
-
-  const isUserOnlyFeature =
-    pathname === '/market-analysis' ||
-    pathname.startsWith('/market-analysis/') ||
-    pathname === '/explore-3d' ||
-    pathname.startsWith('/explore-3d/') ||
-    pathname === '/tokenized' ||
-    pathname.startsWith('/tokenized/')
-
-  const isUserProtected =
-    pathname === '/dashboard' ||
-    pathname.startsWith('/dashboard/') ||
-    pathname === '/user/dashboard' ||
-    pathname.startsWith('/user/dashboard/') ||
-    pathname === '/user/profile' ||
-    pathname.startsWith('/user/profile/') ||
-    pathname === '/profile' ||
-    pathname.startsWith('/profile/') ||
-    pathname === '/settings' ||
-    pathname.startsWith('/settings/') ||
-    isUserOnlyFeature
-
-  const isAgentOnboarding = pathname === '/agent/onboarding' || pathname.startsWith('/agent/onboarding/')
   const isAgentProfile = pathname === '/agent/profile' || pathname.startsWith('/agent/profile/')
 
-  const isVerix = pathname === '/verix' || pathname.startsWith('/verix/')
-  const isVerfixSystem = pathname === '/verfix-system' || pathname.startsWith('/verfix-system/')
+  const isAdminProtected = pathname === '/admin' || pathname.startsWith('/admin/')
 
-  if (
-    !isAgentProtected &&
-    !isAdminProtected &&
-    !isUserProtected &&
-    !isAgentOnboarding &&
-    !isAgentProfile &&
-    !isVerix &&
-    !isVerfixSystem
-  ) {
-    return NextResponse.next()
-  }
+  const isUserProtected = pathname === '/user' || pathname.startsWith('/user/')
 
   const secret = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET
   const nextAuthToken = secret ? await getToken({ req, secret }) : null
@@ -154,18 +119,7 @@ export async function middleware(req: NextRequest) {
     }
 
     url.pathname = getLoginPath(pathname)
-    if (isVerix || isVerfixSystem) {
-      const next = `${pathname}${req.nextUrl.search || ''}`
-      url.search = `next=${encodeURIComponent(next)}`
-    } else if (isUserOnlyFeature) {
-      const next = `${pathname}${req.nextUrl.search || ''}`
-      url.search = `next=${encodeURIComponent(next)}`
-    } else if (isAgentProfile || pathname === '/properties/new' || pathname.startsWith('/properties/new/')) {
-      const next = `${pathname}${req.nextUrl.search || ''}`
-      url.search = `next=${encodeURIComponent(next)}`
-    } else {
-      url.search = ''
-    }
+    url.search = ''
     return NextResponse.redirect(url)
   }
 
@@ -181,20 +135,6 @@ export async function middleware(req: NextRequest) {
     const url = req.nextUrl.clone()
     url.pathname = '/agent/login'
     url.search = 'error=account_disabled'
-    return NextResponse.redirect(url)
-  }
-
-  if (isVerix && role === 'AGENT') {
-    const url = req.nextUrl.clone()
-    url.pathname = getHomeRouteForRole(role)
-    url.search = 'warning=restricted'
-    return NextResponse.redirect(url)
-  }
-
-  if (isVerfixSystem && role !== 'USER') {
-    const url = req.nextUrl.clone()
-    url.pathname = '/unauthorized'
-    url.search = `reason=${encodeURIComponent('verfix_forbidden')}&role=${encodeURIComponent(role)}`
     return NextResponse.redirect(url)
   }
 
@@ -245,21 +185,8 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/dashboard/:path*',
     '/admin/:path*',
-    '/agent-portal/:path*',
-    '/user/dashboard/:path*',
-    '/user/profile/:path*',
-    '/agent/dashboard/:path*',
-    '/agent/profile/:path*',
-    '/agent/onboarding/:path*',
-    '/properties/new/:path*',
-    '/verix/:path*',
-    '/verfix-system/:path*',
-    '/market-analysis/:path*',
-    '/explore-3d/:path*',
-    '/tokenized/:path*',
-    '/profile/:path*',
-    '/settings/:path*',
+    '/agent/:path*',
+    '/user/:path*',
   ],
 }
