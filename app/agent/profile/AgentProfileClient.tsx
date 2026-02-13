@@ -150,10 +150,10 @@ export default function AgentProfileClient({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-10">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mx-auto">
-          <div className="flex items-start justify-between gap-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-accent-orange font-semibold text-sm uppercase tracking-wider">Agent</p>
               <h1 className="mt-2 text-3xl md:text-4xl font-serif font-bold text-dark-blue">Agent Profile</h1>
@@ -163,14 +163,14 @@ export default function AgentProfileClient({
               </div>
             </div>
             <Link
-              href="/agent/profile"
-              className="hidden sm:inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
+              href="/agent/dashboard"
+              className="inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold shadow-sm hover:bg-gray-50"
             >
-              Back to Portal
+              Go to Dashboard
             </Link>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6">
+          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-dark-blue">{lifecycle.title}</h2>
@@ -216,8 +216,13 @@ export default function AgentProfileClient({
               </div>
             )}
 
-            <section className="bg-white rounded-2xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-dark-blue">Account</h2>
+            <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-dark-blue">Account</h2>
+                  <p className="mt-1 text-sm text-gray-600">Your identity and contact details shown to clients.</p>
+                </div>
+              </div>
 
               <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
@@ -230,7 +235,7 @@ export default function AgentProfileClient({
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
+                    className="w-full h-12 px-4 border border-gray-300 rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
                     placeholder="Your name"
                   />
                 </div>
@@ -260,7 +265,7 @@ export default function AgentProfileClient({
                           const f = e.target.files && e.target.files[0] ? e.target.files[0] : null
                           setSelectedFile(f)
                         }}
-                        className="block w-full text-sm text-gray-700"
+                        className="block w-full text-sm text-gray-700 file:mr-4 file:rounded-xl file:border-0 file:bg-dark-blue file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-dark-blue/90"
                       />
 
                       <div className="mt-3 flex items-center gap-3">
@@ -268,7 +273,7 @@ export default function AgentProfileClient({
                           type="button"
                           onClick={uploadPhoto}
                           disabled={!selectedFile || uploading}
-                          className="h-10 px-4 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 disabled:opacity-50"
+                          className="h-10 px-4 rounded-xl bg-dark-blue text-white font-semibold shadow-sm hover:bg-dark-blue/90 disabled:opacity-50"
                         >
                           {uploading ? 'Uploading...' : 'Upload'}
                         </button>
@@ -302,7 +307,7 @@ export default function AgentProfileClient({
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
+                    className="w-full h-12 px-4 border border-gray-300 rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
                     placeholder="+971 XX XXX XXXX"
                   />
                 </div>
@@ -317,15 +322,18 @@ export default function AgentProfileClient({
                     type="tel"
                     value={whatsapp}
                     onChange={(e) => setWhatsapp(e.target.value)}
-                    className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
+                    className="w-full h-12 px-4 border border-gray-300 rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
                     placeholder="WhatsApp number"
                   />
                 </div>
               </div>
             </section>
 
-            <section className="bg-white rounded-2xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-dark-blue">About</h2>
+            <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+              <div>
+                <h2 className="text-lg font-semibold text-dark-blue">About</h2>
+                <p className="mt-1 text-sm text-gray-600">This description appears on your public agent profile.</p>
+              </div>
 
               <div className="mt-5">
                 <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-2">

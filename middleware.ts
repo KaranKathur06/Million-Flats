@@ -173,14 +173,7 @@ export async function middleware(req: NextRequest) {
     const isDashboard = pathname === '/agent/dashboard' || pathname.startsWith('/agent/dashboard/')
     const isProfile = pathname === '/agent/profile' || pathname.startsWith('/agent/profile/')
 
-    if (status === 'LIVE') {
-      if (isProfile) {
-        const url = req.nextUrl.clone()
-        url.pathname = '/agent/dashboard'
-        url.search = ''
-        return NextResponse.redirect(url)
-      }
-    } else {
+    if (status !== 'LIVE') {
       if (isDashboard) {
         const url = req.nextUrl.clone()
         url.pathname = '/agent/profile'

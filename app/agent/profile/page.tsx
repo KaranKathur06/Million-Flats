@@ -40,9 +40,6 @@ export default async function AgentProfilePage() {
     .catch(() => null)
 
   const profileStatus = String((agentRow as any)?.profileStatus || (user.agent as any)?.profileStatus || 'DRAFT').toUpperCase()
-  if (profileStatus === 'LIVE') {
-    redirect('/agent/dashboard')
-  }
 
   return (
     <AgentProfileClient

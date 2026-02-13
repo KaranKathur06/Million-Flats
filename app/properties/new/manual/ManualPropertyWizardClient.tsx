@@ -180,6 +180,14 @@ export default function ManualPropertyWizardClient() {
     }
   }, [])
 
+  const forgetDraftId = useCallback(() => {
+    try {
+      window.localStorage.removeItem(LAST_MANUAL_DRAFT_KEY)
+    } catch {
+      return
+    }
+  }, [])
+
   useEffect(() => {
     if (propertyId) return
     const fromUrl = String(draftIdFromUrl || '').trim()
@@ -307,6 +315,12 @@ export default function ManualPropertyWizardClient() {
         const data = (await safeJson(res)) as any
         if (!data) throw new Error('Invalid server response')
         if (!res.ok || !data?.success) {
+          if (res.status === 404 && String(data?.error || '').toLowerCase() === 'not found') {
+            forgetDraftId()
+            setResumeDraftId('')
+            hydratedDraftIdRef.current = ''
+            didAutoLoadDraftRef.current = false
+          }
           throw new Error(data?.error || data?.message || 'Failed to load draft')
         }
 
@@ -345,7 +359,7 @@ export default function ManualPropertyWizardClient() {
         setLoadingDraft(false)
       }
     },
-    [draftIdFromUrl, mergeProperty, rememberDraftId, router, safeJson, modeFromUrl]
+    [draftIdFromUrl, forgetDraftId, mergeProperty, rememberDraftId, router, safeJson, modeFromUrl]
   )
 
   useEffect(() => {
