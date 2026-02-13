@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import { getAgentLifecycleUx } from '@/lib/agentLifecycle'
 import AgentProfileSubmitPanel, { ProfileStatusBadge } from '../_components/AgentProfileSubmitPanel'
 
@@ -39,9 +38,14 @@ export default function AgentProfileClient({
   const [license, setLicense] = useState(initialLicense)
   const [whatsapp, setWhatsapp] = useState(initialWhatsapp)
   const [bio, setBio] = useState(initialBio)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string>('')
+  const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  const router = useRouter()
 
   const searchParams = useSearchParams()
 
@@ -57,6 +61,62 @@ export default function AgentProfileClient({
           ? 'Complete your profile and submit it for verification.'
           : ''
 
+  useEffect(() => {
+    const s = String(profileStatus || '').trim().toUpperCase()
+    if (s === 'LIVE') {
+      router.replace('/agent/dashboard')
+    }
+  }, [profileStatus, router])
+
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreviewUrl('')
+      return
+    }
+
+    const url = URL.createObjectURL(selectedFile)
+    setPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [selectedFile])
+
+  const uploadPhoto = async () => {
+    if (!selectedFile || uploading) return
+    setUploading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const form = new FormData()
+      form.append('file', selectedFile)
+
+      const res = await fetch('/api/agent/upload-photo', {
+        method: 'POST',
+        body: form,
+      })
+
+      const json = (await res.json().catch(() => null)) as any
+      if (!res.ok || !json?.success) {
+        setError(String(json?.message || 'Failed to upload photo'))
+        return
+      }
+
+      const url = String(json?.url || '').trim()
+      if (!url) {
+        setError('Upload succeeded but URL is missing.')
+        return
+      }
+
+      setImage(url)
+      setSelectedFile(null)
+      router.refresh()
+      setSuccess('Profile photo uploaded.')
+    } catch {
+      setError('An error occurred. Please try again.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -67,7 +127,7 @@ export default function AgentProfileClient({
       const res = await fetch('/api/agent/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, image, company, license, whatsapp, bio }),
+        body: JSON.stringify({ name, phone, company, license, whatsapp, bio }),
       })
 
       const data = await res.json().catch(() => ({}))
@@ -172,18 +232,46 @@ export default function AgentProfileClient({
                 </div>
 
                 <div>
-                  <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
-                    Profile photo URL
-                  </label>
-                  <input
-                    id="image"
-                    name="image"
-                    type="url"
-                    value={image}
-                    onChange={(e) => setImage(e.target.value)}
-                    className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
-                    placeholder="https://…"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Profile photo</label>
+
+                  <div className="flex items-start gap-4">
+                    <div className="h-16 w-16 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center shrink-0">
+                      {previewUrl || image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={previewUrl || image}
+                          alt="Profile"
+                          className="h-16 w-16 object-cover"
+                        />
+                      ) : (
+                        <span className="text-lg font-semibold text-gray-600">A</span>
+                      )}
+                    </div>
+
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const f = e.target.files && e.target.files[0] ? e.target.files[0] : null
+                          setSelectedFile(f)
+                        }}
+                        className="block w-full text-sm text-gray-700"
+                      />
+
+                      <div className="mt-3 flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={uploadPhoto}
+                          disabled={!selectedFile || uploading}
+                          className="h-10 px-4 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 disabled:opacity-50"
+                        >
+                          {uploading ? 'Uploading...' : 'Upload'}
+                        </button>
+                        <p className="text-xs text-gray-500">JPG/PNG/WebP up to 5MB.</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div>

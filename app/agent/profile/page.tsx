@@ -35,9 +35,14 @@ export default async function AgentProfilePage() {
   const agentRow = await (prisma as any).agent
     .findUnique({
       where: { id: user.agent.id },
-      select: { id: true, profileStatus: true, profileCompletion: true },
+      select: { id: true, profilePhoto: true, profileStatus: true, profileCompletion: true },
     })
     .catch(() => null)
+
+  const profileStatus = String((agentRow as any)?.profileStatus || (user.agent as any)?.profileStatus || 'DRAFT').toUpperCase()
+  if (profileStatus === 'LIVE') {
+    redirect('/agent/dashboard')
+  }
 
   return (
     <AgentProfileClient
@@ -45,12 +50,12 @@ export default async function AgentProfilePage() {
       initialName={user.name || ''}
       email={user.email}
       initialPhone={user.phone || ''}
-      initialImage={user.image || ''}
+      initialImage={String((agentRow as any)?.profilePhoto || '')}
       initialCompany={user.agent?.company || ''}
       initialLicense={user.agent?.license || ''}
       initialWhatsapp={user.agent?.whatsapp || ''}
       initialBio={(user.agent as any)?.bio || ''}
-      profileStatus={String((agentRow as any)?.profileStatus || (user.agent as any)?.profileStatus || 'DRAFT')}
+      profileStatus={profileStatus}
       profileCompletion={Number((agentRow as any)?.profileCompletion || (user.agent as any)?.profileCompletion || 0)}
     />
   )

@@ -28,6 +28,12 @@ function normalizeStatus(input: unknown) {
   return 'ACTIVE'
 }
 
+function normalizeAgentProfileStatus(input: unknown) {
+  const s = typeof input === 'string' ? input.trim().toUpperCase() : ''
+  if (s === 'DRAFT' || s === 'SUBMITTED' || s === 'VERIFIED' || s === 'LIVE' || s === 'SUSPENDED') return s
+  return ''
+}
+
 let didAttemptRoleBackfill = false
 
 async function backfillNullRoles() {
@@ -166,6 +172,9 @@ export const authOptions: NextAuthOptions = {
         if (id) token.id = id
         token.role = role
         token.status = status
+        if ((safeUser as any).agentProfileStatus) {
+          ;(token as any).agentProfileStatus = normalizeAgentProfileStatus((safeUser as any).agentProfileStatus)
+        }
       }
 
       const hasId = Boolean((token as any)?.id)
@@ -173,11 +182,12 @@ export const authOptions: NextAuthOptions = {
       if ((!hasId || !hasRole) && (token as any)?.email) {
         const email = String((token as any).email).trim().toLowerCase()
         if (email) {
-          const dbUser = await prisma.user.findUnique({ where: { email } }).catch(() => null)
+          const dbUser = await prisma.user.findUnique({ where: { email }, include: { agent: true } }).catch(() => null)
           if (dbUser) {
             ;(token as any).id = (token as any).id || dbUser.id
             ;(token as any).role = normalizeRole((dbUser as any).role)
             ;(token as any).status = normalizeStatus((dbUser as any).status)
+            ;(token as any).agentProfileStatus = normalizeAgentProfileStatus((dbUser as any)?.agent?.profileStatus)
 
             if (!(dbUser as any).role) {
               await prisma.user.update({ where: { id: dbUser.id }, data: { role: 'USER' } as any }).catch(() => null)
@@ -191,6 +201,9 @@ export const authOptions: NextAuthOptions = {
 
       ;(token as any).role = normalizeRole((token as any).role)
       ;(token as any).status = normalizeStatus((token as any).status)
+      if ((token as any).agentProfileStatus) {
+        ;(token as any).agentProfileStatus = normalizeAgentProfileStatus((token as any).agentProfileStatus)
+      }
       return token
     },
     async session({ session, token }: any) {
@@ -198,11 +211,15 @@ export const authOptions: NextAuthOptions = {
         const tokenId = (token as any)?.id
         const tokenRole = (token as any)?.role
         const tokenStatus = (token as any)?.status
+        const tokenAgentProfileStatus = (token as any)?.agentProfileStatus
         if (tokenId) {
           ;(session.user as any).id = tokenId
         }
         ;(session.user as any).role = normalizeRole(tokenRole)
         ;(session.user as any).status = normalizeStatus(tokenStatus)
+        if (tokenAgentProfileStatus) {
+          ;(session.user as any).agentProfileStatus = normalizeAgentProfileStatus(tokenAgentProfileStatus)
+        }
       }
       return session
     },

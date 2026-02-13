@@ -81,6 +81,30 @@ export async function uploadToS3(params: {
   return { bucket, key, objectUrl }
 }
 
+export async function uploadToS3Key(params: {
+  buffer: Buffer
+  key: string
+  contentType: string
+}) {
+  const { region, bucket } = requireS3Env()
+  const client = getS3Client()
+
+  const key = params.key.replace(/^\/+/, '')
+
+  await client.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: params.buffer,
+      ContentType: params.contentType,
+    })
+  )
+
+  const objectUrl = `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key).replace(/%2F/g, '/')}`
+
+  return { bucket, key, objectUrl }
+}
+
 export async function deleteFromS3(key: string) {
   const { bucket } = requireS3Env()
   const client = getS3Client()

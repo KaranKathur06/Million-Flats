@@ -112,6 +112,7 @@ export async function middleware(req: NextRequest) {
 
   let role = String((nextAuthToken as any)?.role || '').toUpperCase()
   const accountStatus = String((nextAuthToken as any)?.status || 'ACTIVE').toUpperCase()
+  const agentProfileStatus = String((nextAuthToken as any)?.agentProfileStatus || '').toUpperCase()
 
   if (!role) {
     const legacyCookie = req.cookies.get('token')?.value
@@ -155,6 +156,38 @@ export async function middleware(req: NextRequest) {
     url.pathname = '/agent/login'
     url.search = 'error=account_disabled'
     return NextResponse.redirect(url)
+  }
+
+  if (isAgentProtected && role === 'AGENT' && agentProfileStatus === 'SUSPENDED') {
+    if (pathname !== '/suspended' && !pathname.startsWith('/suspended/')) {
+      const url = req.nextUrl.clone()
+      url.pathname = '/suspended'
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
+  }
+
+  if (isAgentProtected && role === 'AGENT') {
+    const status = agentProfileStatus || 'DRAFT'
+
+    const isDashboard = pathname === '/agent/dashboard' || pathname.startsWith('/agent/dashboard/')
+    const isProfile = pathname === '/agent/profile' || pathname.startsWith('/agent/profile/')
+
+    if (status === 'LIVE') {
+      if (isProfile) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/agent/dashboard'
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
+    } else {
+      if (isDashboard) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/agent/profile'
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
+    }
   }
 
   if (isAgentProtected && role !== 'AGENT') {

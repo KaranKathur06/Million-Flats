@@ -209,6 +209,7 @@ model Agent {
   company  String? @map("company_name")
   license  String? @map("license_number")
   whatsapp String? @map("whatsapp_number")
+  profilePhoto String? @map("profile_photo")
   approved Boolean @default(false)
 
   profileStatus AgentProfileStatus @default(DRAFT) @map("profile_status")

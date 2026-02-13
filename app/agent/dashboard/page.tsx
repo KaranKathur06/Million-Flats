@@ -85,7 +85,7 @@ export default async function AgentDashboardPage() {
   const agentRow = await (prisma as any).agent
     .findUnique({
       where: { id: agent.id },
-      select: { id: true, license: true, whatsapp: true, bio: true, profileStatus: true, profileCompletion: true, profileCompletionUpdatedAt: true },
+      select: { id: true, profilePhoto: true, license: true, whatsapp: true, bio: true, profileStatus: true, profileCompletion: true, profileCompletionUpdatedAt: true },
     })
     .catch((error: unknown) => {
       console.error('Agent dashboard: failed to load agentRow', error)
@@ -97,7 +97,7 @@ export default async function AgentDashboardPage() {
     redirect('/agent/profile?notice=complete_verification')
   }
 
-  const hasPhoto = Boolean(String(dbUser.image || '').trim())
+  const hasPhoto = Boolean(String((agentRow as any)?.profilePhoto || '').trim())
   const hasBio = Boolean(String(agentRow?.bio || '').trim())
   const hasPhone = Boolean(String(dbUser.phone || '').trim())
   const hasWhatsapp = Boolean(String(agentRow?.whatsapp || agent.whatsapp || '').trim())
@@ -293,7 +293,7 @@ export default async function AgentDashboardPage() {
         license: String(agentRow?.license || agent.license || ''),
         phone: String(dbUser.phone || ''),
         bio: String((agentRow as any)?.bio || ''),
-        photo: String(dbUser.image || ''),
+        photo: String((agentRow as any)?.profilePhoto || ''),
         profileCompletion: Math.max(0, Math.min(100, Math.round(completion))),
       }}
       draftListings={Array.isArray(draftListings) ? draftListings : []}
