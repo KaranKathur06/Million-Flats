@@ -75,7 +75,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const license = safeString(agent?.license)
   const phone = normalizePhone(safeString(agent?.user?.phone))
   const bio = safeString(agent?.bio)
-  const photo = safeString(agent?.user?.image)
+  const photo = safeString(agent?.profilePhoto)
 
   const errors: Record<string, string> = {}
   if (!license) errors.license = 'License number is required.'

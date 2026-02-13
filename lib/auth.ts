@@ -179,22 +179,31 @@ export const authOptions: NextAuthOptions = {
 
       const hasId = Boolean((token as any)?.id)
       const hasRole = Boolean((token as any)?.role)
-      if ((!hasId || !hasRole) && (token as any)?.email) {
-        const email = String((token as any).email).trim().toLowerCase()
+      const tokenEmailRaw = (token as any)?.email
+      if (tokenEmailRaw) {
+        const email = String(tokenEmailRaw).trim().toLowerCase()
         if (email) {
-          const dbUser = await prisma.user.findUnique({ where: { email }, include: { agent: true } }).catch(() => null)
-          if (dbUser) {
-            ;(token as any).id = (token as any).id || dbUser.id
-            ;(token as any).role = normalizeRole((dbUser as any).role)
-            ;(token as any).status = normalizeStatus((dbUser as any).status)
-            ;(token as any).agentProfileStatus = normalizeAgentProfileStatus((dbUser as any)?.agent?.profileStatus)
+          const shouldBackfillIdentity = !hasId || !hasRole
+          const shouldRefreshAgentStatus =
+            normalizeRole((token as any)?.role) === 'AGENT' &&
+            normalizeStatus((token as any)?.status) === 'ACTIVE' &&
+            normalizeAgentProfileStatus((token as any)?.agentProfileStatus) !== 'LIVE'
 
-            if (!(dbUser as any).role) {
-              await prisma.user.update({ where: { id: dbUser.id }, data: { role: 'USER' } as any }).catch(() => null)
+          if (shouldBackfillIdentity || shouldRefreshAgentStatus) {
+            const dbUser = await prisma.user.findUnique({ where: { email }, include: { agent: true } }).catch(() => null)
+            if (dbUser) {
+              ;(token as any).id = (token as any).id || dbUser.id
+              ;(token as any).role = normalizeRole((dbUser as any).role)
+              ;(token as any).status = normalizeStatus((dbUser as any).status)
+              ;(token as any).agentProfileStatus = normalizeAgentProfileStatus((dbUser as any)?.agent?.profileStatus)
+
+              if (!(dbUser as any).role) {
+                await prisma.user.update({ where: { id: dbUser.id }, data: { role: 'USER' } as any }).catch(() => null)
+              }
+            } else {
+              ;(token as any).role = normalizeRole((token as any).role)
+              ;(token as any).status = normalizeStatus((token as any).status)
             }
-          } else {
-            ;(token as any).role = normalizeRole((token as any).role)
-            ;(token as any).status = normalizeStatus((token as any).status)
           }
         }
       }
