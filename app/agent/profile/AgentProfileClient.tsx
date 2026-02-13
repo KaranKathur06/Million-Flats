@@ -31,6 +31,8 @@ export default function AgentProfileClient({
   profileStatus: string
   profileCompletion: number
 }) {
+  const MIN_BIO_LENGTH = 150
+
   const [name, setName] = useState(initialName)
   const [phone, setPhone] = useState(initialPhone)
   const [image, setImage] = useState(initialImage)
@@ -44,6 +46,7 @@ export default function AgentProfileClient({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [bioTouched, setBioTouched] = useState(false)
 
   const router = useRouter()
 
@@ -124,10 +127,11 @@ export default function AgentProfileClient({
     setSuccess('')
 
     try {
+      const nextBio = String(bio || '').trim()
       const res = await fetch('/api/agent/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, company, license, whatsapp, bio }),
+        body: JSON.stringify({ name, phone, company, license, whatsapp, bio: nextBio }),
       })
 
       const data = await res.json().catch(() => ({}))
@@ -327,15 +331,43 @@ export default function AgentProfileClient({
                 <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-2">
                   Bio
                 </label>
-                <textarea
-                  id="bio"
-                  name="bio"
-                  rows={5}
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
-                  placeholder="Write a short introduction for your public profile"
-                />
+                {(() => {
+                  const len = String(bio || '').trim().length
+                  const tooShort = bioTouched && len > 0 && len < MIN_BIO_LENGTH
+                  const neutral = !bioTouched || len === 0 || len >= MIN_BIO_LENGTH
+                  return (
+                    <>
+                      <textarea
+                        id="bio"
+                        name="bio"
+                        rows={5}
+                        value={bio}
+                        onChange={(e) => {
+                          if (!bioTouched) setBioTouched(true)
+                          setBio(e.target.value)
+                        }}
+                        onBlur={() => setBioTouched(true)}
+                        className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all ${
+                          tooShort ? 'border-red-400' : 'border-gray-300'
+                        }`}
+                        placeholder="Write a short introduction for your public profile"
+                      />
+                      <div className="mt-2 flex items-center justify-between gap-3">
+                        <p className={`text-xs ${tooShort ? 'text-red-600' : 'text-gray-500'}`}>
+                          Minimum {MIN_BIO_LENGTH} characters.
+                        </p>
+                        <p className={`text-xs tabular-nums ${neutral ? 'text-gray-500' : 'text-red-600'}`}>
+                          {len} / {MIN_BIO_LENGTH}
+                        </p>
+                      </div>
+                      {tooShort ? (
+                        <p className="mt-2 text-sm text-red-600">
+                          Bio must be at least {MIN_BIO_LENGTH} characters.
+                        </p>
+                      ) : null}
+                    </>
+                  )
+                })()}
               </div>
             </section>
 

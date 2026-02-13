@@ -569,74 +569,78 @@ export default function ManualPropertyWizardClient() {
     return 'interior'
   }
 
-  const upload = async (category: string, file: File) => {
-    if (!propertyId) {
-      setError('Save draft to start uploading media')
-      return
-    }
-    setError('')
-    setUploadingCategory(category)
-    try {
-      const altGuess = `${property?.title || 'Property'} - ${category.toLowerCase().replace(/_/g, ' ')}`
-
-      const presignRes = await fetch('/api/manual-properties/upload/presign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          propertyId,
-          category,
-          filename: file.name,
-          contentType: file.type || 'application/octet-stream',
-          sizeBytes: file.size,
-          altText: altGuess,
-        }),
-      })
-
-      const presignJson = (await safeJson(presignRes)) as any
-      if (!presignJson || !presignRes.ok || !presignJson?.success) {
-        throw new Error(presignJson?.message || presignJson?.error || 'Failed to prepare upload')
+  const upload = useCallback(
+    async (category: string, file: File) => {
+      if (!propertyId) {
+        setError('Save draft to start uploading media')
+        return
       }
+      setError('')
+      setUploadingCategory(category)
+      try {
+        const title = (propertyRef.current as any)?.title || 'Property'
+        const altGuess = `${title} - ${category.toLowerCase().replace(/_/g, ' ')}`
 
-      const uploadRes = await fetch(String(presignJson.uploadUrl), {
-        method: 'PUT',
-        headers: { 'Content-Type': String(file.type || 'application/octet-stream') },
-        body: file,
-      })
+        const presignRes = await fetch('/api/manual-properties/upload/presign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            propertyId,
+            category,
+            filename: file.name,
+            contentType: file.type || 'application/octet-stream',
+            sizeBytes: file.size,
+            altText: altGuess,
+          }),
+        })
 
-      if (!uploadRes.ok) {
-        throw new Error('Upload failed')
+        const presignJson = (await safeJson(presignRes)) as any
+        if (!presignJson || !presignRes.ok || !presignJson?.success) {
+          throw new Error(presignJson?.message || presignJson?.error || 'Failed to prepare upload')
+        }
+
+        const uploadRes = await fetch(String(presignJson.uploadUrl), {
+          method: 'PUT',
+          headers: { 'Content-Type': String(file.type || 'application/octet-stream') },
+          body: file,
+        })
+
+        if (!uploadRes.ok) {
+          throw new Error('Upload failed')
+        }
+
+        const completeRes = await fetch('/api/manual-properties/upload/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            propertyId,
+            category,
+            url: String(presignJson.objectUrl),
+            s3Key: String(presignJson.key),
+            mimeType: file.type || null,
+            sizeBytes: file.size,
+            altText: altGuess,
+          }),
+        })
+
+        const completeJson = (await safeJson(completeRes)) as any
+        if (!completeJson || !completeRes.ok || !completeJson?.success) {
+          throw new Error(completeJson?.message || completeJson?.error || 'Failed to finalize upload')
+        }
+
+        if (Array.isArray(completeJson?.media)) {
+          mergeProperty({ media: completeJson.media })
+        }
+
+        setNotice('Uploaded successfully')
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Upload failed')
+      } finally {
+        setUploadingCategory('')
       }
-
-      const completeRes = await fetch('/api/manual-properties/upload/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          propertyId,
-          category,
-          url: String(presignJson.objectUrl),
-          s3Key: String(presignJson.key),
-          mimeType: file.type || null,
-          sizeBytes: file.size,
-          altText: altGuess,
-        }),
-      })
-
-      const completeJson = (await safeJson(completeRes)) as any
-      if (!completeJson || !completeRes.ok || !completeJson?.success) {
-        throw new Error(completeJson?.message || completeJson?.error || 'Failed to finalize upload')
-      }
-
-      if (Array.isArray(completeJson?.media)) {
-        mergeProperty({ media: completeJson.media })
-      }
-
-      setNotice('Uploaded successfully')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Upload failed')
-    } finally {
-      setUploadingCategory('')
-    }
-  }
+    },
+    [mergeProperty, propertyId, safeJson]
+  )
 
   const uploadMany = useCallback(
     async (category: string, files: File[]) => {
