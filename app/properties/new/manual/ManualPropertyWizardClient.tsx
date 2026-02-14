@@ -326,7 +326,8 @@ export default function ManualPropertyWizardClient() {
 
         const mode = opts?.mode || 'manual'
         const local = propertyRef.current
-        const canAutoApply = mode === 'manual' || isBlankDraft(local)
+        const forceApplyFromUrl = modeFromUrl === 'resume' || modeFromUrl === 'edit'
+        const canAutoApply = mode === 'manual' || forceApplyFromUrl || isBlankDraft(local)
 
         if (!canAutoApply) {
           setNotice('Draft found in URL. Click “Load Draft” to restore it (this will overwrite the current form).')

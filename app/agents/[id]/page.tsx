@@ -238,7 +238,7 @@ export default async function AgentProfilePage({
 
   const profileStatus = String(agent?.profileStatus || 'DRAFT').toUpperCase()
   const status = String(user?.status || 'ACTIVE').toUpperCase()
-  const emailVerified = Boolean((user as any)?.emailVerified)
+  const emailVerified = Boolean((user as any)?.verified || (user as any)?.emailVerified || (user as any)?.email_verified)
 
   const isPublicVisible = profileStatus === 'LIVE' && status === 'ACTIVE' && emailVerified
   if (!isPublicVisible) {

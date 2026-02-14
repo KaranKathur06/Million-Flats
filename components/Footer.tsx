@@ -12,7 +12,7 @@ export default function Footer() {
             <div className="inline-block">
               <Link href="/" className="inline-flex items-center gap-3">
                 <span className="relative w-10 h-10 shrink-0">
-                  <Image src="/LOGO.png" alt="MillionFlats" fill className="object-contain" sizes="40px" />
+                  <Image src="/LOGO.jpeg" alt="MillionFlats" fill className="object-contain" sizes="40px" />
                 </span>
                 <span className="text-dark-blue font-semibold text-xl">MillionFlats Pvt Ltd.</span>
               </Link>
@@ -60,11 +60,6 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold text-gray-900 mb-4">Ecosystem / Platform</h3>
             <ul className="space-y-2">
-              <li>
-                <Link href="/ecosystem-partners" className="text-gray-600 hover:text-dark-blue text-sm transition-colors">
-                  Ecosystem Partners
-                </Link>
-              </li>
               <li>
                 <Link
                   href="/ecosystem-partners/home-loans-finance"

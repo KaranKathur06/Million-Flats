@@ -80,7 +80,7 @@ export default function Header() {
           <Link href="/" className="flex items-center h-full">
             <span className="relative h-full w-[140px] md:w-[190px]">
               <Image
-                src="/LOGO.png"
+                src="/LOGO.jpeg"
                 alt="Millionflats"
                 fill
                 className="object-contain"

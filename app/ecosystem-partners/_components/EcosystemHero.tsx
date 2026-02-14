@@ -19,7 +19,7 @@ export default function EcosystemHero({
   imageSrc: string
   imageAlt: string
 }) {
-  const src = String(imageSrc || '').trim() || '/LOGO.png'
+  const src = String(imageSrc || '').trim() || '/LOGO.jpeg'
   return (
     <section className="bg-white border-b border-gray-200">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -35,6 +35,14 @@ export default function EcosystemHero({
               >
                 {ctaLabel}
               </Link>
+              <Image
+                src="/LOGO.jpeg"
+                alt="Millionflats"
+                width={200}
+                height={62}
+                priority
+                className="h-auto w-auto"
+              />
             </div>
           </div>
 
