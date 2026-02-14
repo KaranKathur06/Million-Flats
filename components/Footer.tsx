@@ -12,7 +12,7 @@ export default function Footer() {
             <div className="inline-block">
               <Link href="/" className="inline-flex items-center gap-3">
                 <span className="relative w-10 h-10 shrink-0">
-                  <Image src="/LOGO.jpeg" alt="MillionFlats" fill className="object-contain" sizes="40px" />
+                  <Image src="/FAVICON.jpeg" alt="MillionFlats" fill className="object-contain" sizes="40px" />
                 </span>
                 <span className="text-dark-blue font-semibold text-xl">MillionFlats Pvt Ltd.</span>
               </Link>

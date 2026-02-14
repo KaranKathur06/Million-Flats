@@ -78,13 +78,13 @@ export default function Header() {
         <div className="flex items-center justify-between h-14 md:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center h-full">
-            <span className="relative h-full w-[140px] md:w-[190px]">
+            <span className="relative h-full w-[72px] md:w-[150px]">
               <Image
                 src="/LOGO.jpeg"
                 alt="Millionflats"
                 fill
                 className="object-contain"
-                sizes="190px"
+                sizes="150px"
                 priority
               />
             </span>
