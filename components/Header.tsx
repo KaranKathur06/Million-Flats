@@ -47,6 +47,9 @@ export default function Header() {
     { href: '/agents', label: 'Find an Agent' },
     ...(showVerfix ? [{ href: verfixHref, label: <span>Verix System<sup>™</sup></span> }] : []),
     { href: '/market-analysis', label: 'Market Analysis' },
+  ]
+
+  const servicesLinks: NavItem[] = [
     { href: '/explore-3d', label: 'Explore in 3D' },
     { href: '/tokenized', label: 'Tokenized' },
   ]
@@ -104,6 +107,38 @@ export default function Header() {
                   {item.label}
                 </Link>
               ))}
+
+              {servicesLinks.length > 0 ? (
+                <div className="relative group">
+                  <button
+                    type="button"
+                    className={`text-sm font-medium transition-colors inline-flex items-center gap-1 ${
+                      servicesLinks.some((l) => isActive(l.href)) ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+                    }`}
+                    aria-haspopup="menu"
+                  >
+                    Services
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <div className="absolute left-0 top-full pt-3 hidden group-hover:block">
+                    <div className="w-56 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden">
+                      {servicesLinks.map((s) => (
+                        <Link
+                          key={s.href}
+                          href={s.href}
+                          className={`block px-4 py-3 text-sm transition-colors ${
+                            isActive(s.href) ? 'bg-gray-50 text-dark-blue font-medium' : 'text-gray-700 hover:bg-gray-50 hover:text-dark-blue'
+                          }`}
+                        >
+                          {s.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </nav>
           ) : (
             <div className="hidden md:block" />
@@ -195,6 +230,26 @@ export default function Header() {
                 {item.label}
               </Link>
             ))}
+
+            {servicesLinks.length > 0 ? (
+              <div className="pt-2">
+                <div className="px-4 pt-3 pb-2 text-xs font-semibold tracking-wide text-gray-500 uppercase">Services</div>
+                <div className="space-y-2">
+                  {servicesLinks.map((s) => (
+                    <Link
+                      key={s.href}
+                      href={s.href}
+                      className={`block px-4 py-3 rounded-xl text-sm font-medium ${
+                        isActive(s.href) ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+                      }`}
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      {s.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
             <div className="pt-4 mt-4 border-t border-gray-200 space-y-2">
               {isAuthLoading ? null : !isAuthed ? (

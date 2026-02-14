@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/mailer'
 
+export const runtime = 'nodejs'
+
 function safeString(v: unknown) {
   if (typeof v !== 'string') return ''
   return v.trim()

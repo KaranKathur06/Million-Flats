@@ -20,7 +20,7 @@ export async function sendEmail(input: { to: string; subject: string; html: stri
   const portRaw = safeString(process.env.SMTP_PORT)
   const user = safeString(process.env.SMTP_USER)
   const pass = safeString(process.env.SMTP_PASS)
-  const from = safeString(process.env.SMTP_FROM) || 'no-reply@millionflats.com'
+  const from = safeString(process.env.SMTP_FROM) || 'millionflats2025@gmail.com'
 
   if (!host || !portRaw || !user || !pass) {
     console.log('email_not_configured', { to: input.to, subject: input.subject })
