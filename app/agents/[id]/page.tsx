@@ -14,10 +14,10 @@ export const dynamic = 'force-dynamic'
 function extractAgentId(input: string) {
   const raw = (input || '').trim()
   if (!raw) return ''
-  const parts = raw.split('-')
-  const candidate = parts.length > 1 ? parts[parts.length - 1] : raw
   const uuidRe = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
-  if (uuidRe.test(candidate)) return candidate
+  if (uuidRe.test(raw)) return raw
+  const match = raw.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/)
+  if (match && uuidRe.test(match[0])) return match[0]
   return raw
 }
 

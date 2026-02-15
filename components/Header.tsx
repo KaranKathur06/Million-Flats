@@ -26,6 +26,7 @@ export default function Header() {
 
   const isAgent = isAuthed && role === 'AGENT'
   const isAdminOrHigher = isAuthed && (role === 'ADMIN' || role === 'SUPERADMIN')
+  const showServices = !isAuthed || role === 'USER'
 
   const showVerfix = !isAuthed || role === 'USER'
   const verfixHref = !isAuthed ? '/auth/redirect?next=%2Fverfix-system' : '/verfix-system'
@@ -49,10 +50,12 @@ export default function Header() {
     { href: '/market-analysis', label: 'Market Analysis' },
   ]
 
-  const servicesLinks: NavItem[] = [
-    { href: '/explore-3d', label: 'Explore in 3D' },
-    { href: '/tokenized', label: 'Tokenized' },
-  ]
+  const servicesLinks: NavItem[] = showServices
+    ? [
+        { href: '/explore-3d', label: 'Explore in 3D' },
+        { href: '/tokenized', label: 'Tokenized' },
+      ]
+    : []
 
   const agentLinks: NavItem[] = [
     { href: '/agent/dashboard', label: 'Agent Dashboard' },
