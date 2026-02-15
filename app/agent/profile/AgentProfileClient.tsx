@@ -42,6 +42,7 @@ export default function AgentProfileClient({
   const [bio, setBio] = useState(initialBio)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string>('')
+  const [signedImageUrl, setSignedImageUrl] = useState<string>('')
   const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -65,13 +66,6 @@ export default function AgentProfileClient({
           : ''
 
   useEffect(() => {
-    const s = String(profileStatus || '').trim().toUpperCase()
-    if (s === 'LIVE') {
-      router.replace('/agent/dashboard')
-    }
-  }, [profileStatus, router])
-
-  useEffect(() => {
     if (!selectedFile) {
       setPreviewUrl('')
       return
@@ -81,6 +75,40 @@ export default function AgentProfileClient({
     setPreviewUrl(url)
     return () => URL.revokeObjectURL(url)
   }, [selectedFile])
+
+  useEffect(() => {
+    const raw = String(image || '').trim()
+    const isS3 = raw.includes('.amazonaws.com/') || raw.includes('s3.')
+    if (!raw || !isS3) {
+      setSignedImageUrl('')
+      return
+    }
+
+    let cancelled = false
+
+    fetch('/api/media/signed-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: raw, expiresInSeconds: 900 }),
+    })
+      .then((r) => r.json())
+      .then((j) => {
+        if (cancelled) return
+        if (j?.success && typeof j?.url === 'string' && j.url.trim()) {
+          setSignedImageUrl(String(j.url))
+        } else {
+          setSignedImageUrl('')
+        }
+      })
+      .catch(() => {
+        if (cancelled) return
+        setSignedImageUrl('')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [image])
 
   const uploadPhoto = async () => {
     if (!selectedFile || uploading) return
@@ -245,15 +273,15 @@ export default function AgentProfileClient({
 
                   <div className="flex items-start gap-4">
                     <div className="h-16 w-16 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center shrink-0">
-                      {previewUrl || image ? (
+                      {previewUrl || signedImageUrl || image ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={previewUrl || image}
+                          src={previewUrl || signedImageUrl || image}
                           alt="Profile"
                           className="h-16 w-16 object-cover"
                         />
                       ) : (
-                        <span className="text-lg font-semibold text-gray-600">A</span>
+                        <span className="text-xs font-semibold text-gray-600">No photo</span>
                       )}
                     </div>
 
