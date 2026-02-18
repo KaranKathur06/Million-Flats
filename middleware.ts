@@ -4,11 +4,11 @@ import { getToken } from 'next-auth/jwt'
 import { getHomeRouteForRole, isRoleAllowedForShell } from '@/lib/roleHomeRoute'
 
 function getLoginPath(pathname: string) {
-  if (pathname === '/agent-portal' || pathname.startsWith('/agent-portal/')) return '/agent/login'
-  if (pathname === '/agent/dashboard' || pathname.startsWith('/agent/dashboard/')) return '/agent/login'
-  if (pathname === '/agent/onboarding' || pathname.startsWith('/agent/onboarding/')) return '/agent/login'
-  if (pathname === '/properties/new' || pathname.startsWith('/properties/new/')) return '/agent/login'
-  return pathname.startsWith('/agent') ? '/agent/login' : '/user/login'
+  if (pathname === '/agent-portal' || pathname.startsWith('/agent-portal/')) return '/auth/login'
+  if (pathname === '/agent/dashboard' || pathname.startsWith('/agent/dashboard/')) return '/auth/login'
+  if (pathname === '/agent/onboarding' || pathname.startsWith('/agent/onboarding/')) return '/auth/login'
+  if (pathname === '/properties/new' || pathname.startsWith('/properties/new/')) return '/auth/login'
+  return '/auth/login'
 }
 
 function base64UrlToUint8Array(input: string) {
@@ -68,6 +68,18 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   if (
+    pathname === '/auth/login' ||
+    pathname.startsWith('/auth/login/') ||
+    pathname === '/auth/register' ||
+    pathname.startsWith('/auth/register/') ||
+    pathname === '/auth/user/login' ||
+    pathname.startsWith('/auth/user/login/') ||
+    pathname === '/auth/user/register' ||
+    pathname.startsWith('/auth/user/register/') ||
+    pathname === '/auth/agent/login' ||
+    pathname.startsWith('/auth/agent/login/') ||
+    pathname === '/auth/agent/register' ||
+    pathname.startsWith('/auth/agent/register/') ||
     pathname === '/user/login' ||
     pathname.startsWith('/user/login/') ||
     pathname === '/user/register' ||
@@ -230,6 +242,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
+    '/dashboard/:path*',
     '/admin/:path*',
     '/agent/:path*',
     '/user/dashboard/:path*',

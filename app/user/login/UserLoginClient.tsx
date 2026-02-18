@@ -44,6 +44,7 @@ export default function UserLoginClient() {
       const result = await signIn('credentials', {
         email,
         password,
+        expectedRole: 'USER',
         redirect: false,
         callbackUrl,
       })
@@ -215,7 +216,7 @@ export default function UserLoginClient() {
 
         <p className="text-center text-sm text-gray-600">
           Don&apos;t have an account?{' '}
-          <Link href="/user/register" className="font-medium text-dark-blue hover:text-dark-blue/80 transition-colors">
+          <Link href="/auth/user/register" className="font-medium text-dark-blue hover:text-dark-blue/80 transition-colors">
             Create one
           </Link>
         </p>

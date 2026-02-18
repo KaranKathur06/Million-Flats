@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import React from 'react'
 
 interface AuthLayoutProps {
@@ -9,70 +10,65 @@ interface AuthLayoutProps {
 
 export default function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
-      <div className="lg:hidden relative h-[40vh] min-h-[280px]">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-gradient-to-br from-white via-[#F5F8FF] to-white">
+      <div className="lg:hidden relative h-[42vh] min-h-[320px]">
         <Image
-          src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1920&q=80"
+          src="/auth-bg.jpg"
           alt="Luxury Real Estate"
           fill
           className="object-cover"
           priority
           sizes="100vw"
-          unoptimized
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-dark-blue/90 via-dark-blue/70 to-black/70" />
+        <div className="absolute inset-0 bg-gradient-to-br from-dark-blue/95 via-dark-blue/80 to-black/60" />
       </div>
 
       {/* Left Section - Visual/Branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative">
+      <div className="hidden lg:flex lg:w-[60%] relative">
         <Image
-          src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1920&q=80"
+          src="/auth-bg.jpg"
           alt="Luxury Real Estate"
           fill
           className="object-cover"
           priority
-          unoptimized
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-dark-blue/90 via-dark-blue/80 to-dark-blue/90"></div>
-        <div className="relative z-10 flex flex-col justify-center p-12 text-white">
-          <div className="mb-8">
-            <div className="flex items-center space-x-2 mb-6">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm flex items-center justify-center rounded-lg">
-                <span className="text-white font-bold text-2xl">M</span>
-              </div>
-              <span className="text-white font-semibold text-2xl">millionflats</span>
-            </div>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4">
-            Access Premium Properties Worldwide
+        <div className="absolute inset-0 bg-gradient-to-br from-dark-blue/95 via-dark-blue/80 to-dark-blue/90" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_24%,rgba(255,255,255,0.10),transparent_55%)]" />
+
+        <div className="relative z-10 flex flex-col justify-center p-14 text-white">
+          <h1 className="text-5xl font-serif font-bold leading-tight tracking-tight">
+            Exclusive access begins here.
           </h1>
-          <p className="text-lg text-white/90 max-w-md">
-            Secure login to explore verified listings and exclusive opportunities across the UAE.
+          <p className="mt-5 text-lg text-white/90 max-w-xl">
+            For verified buyers and professional agents.
           </p>
         </div>
       </div>
 
       {/* Right Section - Auth Card */}
-      <div className="w-full lg:w-1/2 flex items-start lg:items-center justify-center px-4 sm:px-6 lg:p-12 bg-gradient-to-br from-gray-50 to-white">
-        <div className="w-full max-w-md -mt-10 lg:mt-0 pb-10 lg:pb-0">
-          {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center space-x-2 mb-8">
-            <Image src="/LOGO.jpeg" alt="Millionflats" width={36} height={36} className="rounded-lg" priority />
-            <span className="text-dark-blue font-semibold text-xl">millionflats</span>
-          </div>
+      <div className="w-full lg:w-[40%] flex flex-col bg-gradient-to-br from-white via-[#F5F8FF] to-white">
+        <div className="flex items-center justify-between px-6 sm:px-10 py-6">
+          <Link href="/" className="inline-flex items-center gap-3">
+            <span className="relative w-8 h-8">
+              <Image src="/FAVICON.jpeg" alt="MillionFlats" fill className="object-contain" sizes="32px" priority />
+            </span>
+            <span className="text-dark-blue font-semibold tracking-wide">millionflats</span>
+          </Link>
+          <Link href="/" className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors">
+            Back to Home
+          </Link>
+        </div>
 
-          {/* Auth Card */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 sm:p-8 border border-white/20">
-            <div className="mb-8">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-dark-blue mb-2">
-                {title}
-              </h2>
-              {subtitle && (
-                <p className="text-gray-600 mt-2">{subtitle}</p>
-              )}
+        <div className="flex-1 flex items-start lg:items-center justify-center px-4 sm:px-10 pb-12">
+          <div className="w-full max-w-[520px]">
+            <div className="rounded-[20px] border border-gray-200 bg-white/90 backdrop-blur-md shadow-[0_30px_70px_rgba(10,25,60,0.18)] p-8 sm:p-10">
+              <div className="mb-8">
+                <h2 className="text-3xl md:text-4xl font-serif font-bold text-dark-blue mb-2">{title}</h2>
+                {subtitle ? <p className="text-gray-600 mt-2">{subtitle}</p> : null}
+              </div>
+
+              {children}
             </div>
-
-            {children}
           </div>
         </div>
       </div>

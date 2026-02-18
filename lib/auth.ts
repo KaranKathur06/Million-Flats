@@ -88,10 +88,13 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
+        expectedRole: { label: 'Expected Role', type: 'text' },
       },
       async authorize(credentials: Record<string, unknown> | undefined) {
         const email = typeof credentials?.email === 'string' ? credentials.email.trim().toLowerCase() : ''
         const password = typeof credentials?.password === 'string' ? credentials.password : ''
+        const expectedRoleRaw = typeof credentials?.expectedRole === 'string' ? credentials.expectedRole.trim().toUpperCase() : ''
+        const expectedRole = expectedRoleRaw === 'USER' || expectedRoleRaw === 'AGENT' || expectedRoleRaw === 'ADMIN' || expectedRoleRaw === 'SUPERADMIN' ? expectedRoleRaw : ''
 
         if (!email || !password) return null
 
@@ -104,6 +107,11 @@ export const authOptions: NextAuthOptions = {
 
         const isEmailVerified = Boolean((user as any).emailVerified) || Boolean((user as any).verified)
         if (!isEmailVerified) throw new Error('EMAIL_NOT_VERIFIED')
+
+        const actualRole = normalizeRole((user as any).role)
+        if (expectedRole && actualRole !== expectedRole) {
+          throw new Error(`ROLE_MISMATCH:${actualRole}`)
+        }
 
         const passwordHash = typeof (user as any).password === 'string' ? String((user as any).password) : ''
         if (!passwordHash) throw new Error('PASSWORD_NOT_SET')
@@ -244,6 +252,8 @@ export const authOptions: NextAuthOptions = {
 
       const allowedPrefixes = [
         `${baseUrl}/auth/error`,
+        `${baseUrl}/auth/login`,
+        `${baseUrl}/auth/register`,
         `${baseUrl}/user/login`,
         `${baseUrl}/user/register`,
         `${baseUrl}/user/verify`,
@@ -256,7 +266,7 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: {
-    signIn: '/user/login',
+    signIn: '/auth/login',
     error: '/auth/error',
   },
 }

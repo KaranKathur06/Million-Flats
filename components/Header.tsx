@@ -33,7 +33,6 @@ export default function Header() {
 
   const publicLinks: NavItem[] = [
     { href: '/', label: 'Home' },
-    { href: '/sell', label: 'Sell' },
     { href: '/buy', label: 'Buy' },
     { href: '/rent', label: 'Rent' },
     { href: '/agents', label: 'Find an Agent' },
@@ -42,7 +41,6 @@ export default function Header() {
 
   const userLinks: NavItem[] = [
     { href: '/', label: 'Home' },
-    { href: '/sell', label: 'Sell' },
     { href: '/buy', label: 'Buy' },
     { href: '/rent', label: 'Rent' },
     { href: '/agents', label: 'Find an Agent' },
@@ -52,8 +50,11 @@ export default function Header() {
 
   const servicesLinks: NavItem[] = showServices
     ? [
-        { href: '/explore-3d', label: 'Explore in 3D' },
-        { href: '/tokenized', label: 'Tokenized' },
+        { href: '/explore-3d', label: '3D Tours' },
+        { href: '/ai-analytics', label: 'AI Analytics' },
+        { href: '/featured-listings', label: 'Featured Listings' },
+        { href: '/premium-ads', label: 'Premium Ads' },
+        { href: '/partnerships', label: 'Partnerships' },
       ]
     : []
 
@@ -84,7 +85,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-14 md:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center h-full">
-            <span className="relative h-full w-[72px] md:w-[150px]">
+            <span className="relative h-full w-[54px] md:w-[112px]">
               <Image
                 src="/LOGO.jpeg"
                 alt="Millionflats"
@@ -151,14 +152,20 @@ export default function Header() {
           <div className="hidden md:flex items-center space-x-4">
             {isAuthLoading ? null : !isAuthed ? (
               <>
-                <Link href="/user/login" className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors">
+                <Link
+                  href="/sell"
+                  className="text-sm font-semibold text-white bg-[#F4B400] px-4 py-2 rounded-lg hover:bg-[#E1A800] transition-colors"
+                >
+                  Sell or Rent Property
+                </Link>
+                <Link href="/auth/login" className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors">
                   Login
                 </Link>
                 <Link
-                  href="/agent/login"
+                  href="/auth/register"
                   className="bg-dark-blue text-white px-6 py-2 rounded-lg font-medium hover:bg-opacity-90 transition-colors"
                 >
-                  Agent Login
+                  Register
                 </Link>
               </>
             ) : (
@@ -258,18 +265,25 @@ export default function Header() {
               {isAuthLoading ? null : !isAuthed ? (
                 <>
                   <Link
-                    href="/user/login"
+                    href="/sell"
+                    className="block px-4 py-3 rounded-xl text-sm font-semibold text-white bg-[#F4B400]"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Sell or Rent Property
+                  </Link>
+                  <Link
+                    href="/auth/login"
                     className="block px-4 py-3 rounded-xl text-sm font-semibold text-dark-blue bg-gray-100"
                     onClick={() => setMobileOpen(false)}
                   >
                     Login
                   </Link>
                   <Link
-                    href="/agent/login"
+                    href="/auth/register"
                     className="block px-4 py-3 rounded-xl text-sm font-semibold text-white bg-dark-blue"
                     onClick={() => setMobileOpen(false)}
                   >
-                    Agent Login
+                    Register
                   </Link>
                 </>
               ) : (

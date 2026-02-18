@@ -34,11 +34,11 @@ export default async function DashboardPage() {
   const role = dbRole || sessionRole || legacyRole
 
   if (!role) {
-    redirect('/user/login')
+    redirect('/auth/login')
   }
 
   const home = getHomeRouteForRole(role)
-  if (home !== '/user/dashboard') {
+  if (home !== '/dashboard') {
     redirect(home)
   }
 

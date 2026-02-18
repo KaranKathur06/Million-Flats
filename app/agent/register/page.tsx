@@ -70,7 +70,7 @@ export default function AgentRegisterPage() {
           return
         }
 
-        router.push('/agent/login')
+        router.push('/auth/agent/login')
       } else {
         setError(data.message || 'Registration failed')
       }

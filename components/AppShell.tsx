@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 
-const AUTH_PREFIXES = ['/user/login', '/user/register', '/agent/login', '/agent/register']
+const AUTH_PREFIXES = ['/auth', '/user/login', '/user/register', '/agent/login', '/agent/register']
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()

@@ -104,7 +104,7 @@ export default function UserRegisterPage() {
         return
       }
 
-      router.push(`/user/login?email=${encodeURIComponent(email)}&verified=1`)
+      router.push(`/auth/user/login?email=${encodeURIComponent(email)}&verified=1`)
     } catch {
       setError('An error occurred. Please try again.')
     } finally {

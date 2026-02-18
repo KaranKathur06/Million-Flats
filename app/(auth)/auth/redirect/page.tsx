@@ -38,10 +38,9 @@ export default async function AuthRedirectPage({
 
   if (!hasSession && !legacyRole) {
     if (safeNext) {
-      const loginPath = intent === 'agent' ? '/agent/login' : '/user/login'
-      redirect(`${loginPath}?next=${encodeURIComponent(safeNext)}`)
+      redirect(`/auth/login?next=${encodeURIComponent(safeNext)}`)
     }
-    redirect(intent === 'agent' ? '/agent/login' : '/user/login')
+    redirect('/auth/login')
   }
 
   const email = String((session?.user as any)?.email || '').trim().toLowerCase()
