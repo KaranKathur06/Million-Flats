@@ -102,7 +102,7 @@ export default function FeaturedProperties() {
                 href={href}
                 className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow group"
               >
-                <div className="relative h-64">
+                <div className="relative aspect-[4/3] overflow-hidden rounded-lg">
                   <Image
                     src={mainImage}
                     alt={property.title}
@@ -110,6 +110,7 @@ export default function FeaturedProperties() {
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                     unoptimized={unoptimized}
+                    loading="lazy"
                   />
                 </div>
                 <div className="p-6">

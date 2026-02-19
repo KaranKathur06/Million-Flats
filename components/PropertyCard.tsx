@@ -42,7 +42,7 @@ export default function PropertyCard({ property }: { property: Property }) {
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow">
-      <div className="relative h-64 group">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-2xl group">
         <Image
           src={mainImage}
           alt={property.title}
@@ -50,6 +50,7 @@ export default function PropertyCard({ property }: { property: Property }) {
           className="object-cover group-hover:scale-105 transition-transform duration-300"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           unoptimized={unoptimized}
+          loading="lazy"
         />
         {property.featured && (
           <div className="absolute top-4 right-4 bg-accent-yellow text-dark-blue px-3 py-1 rounded-full text-xs font-semibold">

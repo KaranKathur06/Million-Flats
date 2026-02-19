@@ -14,31 +14,31 @@ export default async function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative min-h-[100svh] md:h-[700px] lg:h-[800px]">
+      <section className="relative w-full aspect-[16/9] max-h-[90vh] lg:max-h-[630px]">
+        <Image
+          src="/HOMEPAGE.jpg"
+          alt="Luxury Home"
+          fill
+          className="object-cover"
+          priority
+          sizes="(max-width: 768px) 100vw, 1920px"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/35 to-black/55" />
+
         <div className="absolute inset-0">
-          <Image
-            src="https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1920&q=80"
-            alt="Luxury Home"
-            fill
-            className="object-cover"
-            priority
-            sizes="100vw"
-            unoptimized
-          />
-          <div className="absolute inset-0 bg-black/55 md:bg-black/40"></div>
-        </div>
-        <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-center py-12 md:py-0">
-          <div className="w-full">
-            <div className="max-w-3xl">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white mb-6 drop-shadow-[0_2px_18px_rgba(0,0,0,0.55)]">
-                Intelligent Property. Intelligent Choice.
-              </h1>
-              <p className="text-lg md:text-xl text-white/90 mb-8 drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)]">
-                We’re your digital sales engine, not just another marketplace. We deliver qualified buyers and transaction-ready technology, connecting your properties with serious investors, buyers and sellers.
-              </p>
-            </div>
-            <div className="w-full max-w-[1400px] mx-auto">
-              <HeroSearch />
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-end pt-12 pb-10 md:pt-16 md:pb-12">
+            <div className="w-full">
+              <div className="max-w-3xl">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white mb-6 drop-shadow-[0_2px_18px_rgba(0,0,0,0.55)]">
+                  Intelligent Property. Intelligent Choice.
+                </h1>
+                <p className="text-lg md:text-xl text-white/90 mb-8 drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)]">
+                  We’re your digital sales engine, not just another marketplace. We deliver qualified buyers and transaction-ready technology, connecting your properties with serious investors, buyers and sellers.
+                </p>
+              </div>
+              <div className="w-full max-w-[1400px] mx-auto">
+                <HeroSearch />
+              </div>
             </div>
           </div>
         </div>

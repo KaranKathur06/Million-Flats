@@ -96,7 +96,7 @@ export default function PropertyListCard({ property }: { property: Property }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
       <div className="md:hidden">
-        <div className="relative aspect-[16/9]">
+        <div className="relative aspect-[4/3]">
           <Image
             src={mainImage}
             alt={property.title}
@@ -104,6 +104,7 @@ export default function PropertyListCard({ property }: { property: Property }) {
             className="object-cover"
             sizes="100vw"
             unoptimized={unoptimizedMain}
+            loading="lazy"
           />
           {property.featured && (
             <div className="absolute top-3 left-3 bg-accent-yellow text-dark-blue px-3 py-1 rounded-full text-xs font-semibold">
@@ -167,7 +168,7 @@ export default function PropertyListCard({ property }: { property: Property }) {
 
       <div className="hidden md:grid grid-cols-1 lg:grid-cols-12">
         <div className="lg:col-span-5">
-          <div className="relative h-72 lg:h-full min-h-[280px]">
+          <div className="relative aspect-[4/3]">
             <Image
               src={mainImage}
               alt={property.title}
@@ -175,6 +176,7 @@ export default function PropertyListCard({ property }: { property: Property }) {
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 40vw"
               unoptimized={unoptimizedMain}
+              loading="lazy"
             />
             {property.featured && (
               <div className="absolute top-4 left-4 bg-accent-yellow text-dark-blue px-3 py-1 rounded-full text-xs font-semibold">

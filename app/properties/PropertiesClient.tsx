@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import PropertyListCard from '@/components/PropertyListCard'
 import { useCountry } from '@/components/CountryProvider'
 import { CITIES_BY_COUNTRY, COUNTRY_META, DEFAULT_COUNTRY, isCountryCode, uiPriceToAed, type CountryCode } from '@/lib/country'
@@ -607,11 +608,40 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
 
   const priceOptions = useMemo(() => buildPriceOptions(draftFilters.country), [draftFilters.country])
 
+  const heroTitle = forcedPurpose === 'rent' ? 'Properties for Rent' : 'Properties for Sale'
+  const heroSubtitle =
+    forcedPurpose === 'rent'
+      ? 'Discover premium rentals across curated markets. Refine by city, community, and price.'
+      : 'Browse verified listings across curated markets. Refine by city, community, and price.'
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {!forcedPurpose ? (
+        <section className="relative w-full aspect-[16/6] max-h-[500px] bg-gray-100 overflow-hidden">
+          <Image
+            src="/HOMEPAGE.jpg"
+            alt={heroTitle}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 1920px"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/60" />
+
+          <div className="absolute inset-0">
+            <div className="mx-auto max-w-[1800px] px-4 sm:px-6 lg:px-8 h-full flex flex-col items-center justify-center text-center">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif font-bold text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.55)]">
+                {heroTitle}
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm md:text-base text-white/90 drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)]">
+                {heroSubtitle}
+              </p>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <div className="mx-auto max-w-[1800px] px-4 sm:px-6 lg:px-8 pt-10 pb-14">
         <div className="mb-8">
-          <h1 className="text-4xl font-serif font-bold text-dark-blue mb-2">Properties</h1>
           <p className="text-gray-600">{displayedProperties.length} properties found</p>
         </div>
 

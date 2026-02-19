@@ -634,6 +634,76 @@ model ContactSubmission {
   createdAt DateTime @default(now())
 }
 
+model EcosystemCategory {
+  id              String  @id @default(cuid())
+  slug            String  @unique
+  title           String
+  description     String
+  heroImage       String
+  metaTitle       String
+  metaDescription String
+  priorityOrder   Int     @default(0)
+  isActive        Boolean @default(true)
+
+  partners EcosystemPartner[]
+  leads    EcosystemLead[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([priorityOrder])
+  @@index([isActive])
+}
+
+model EcosystemPartner {
+  id               String  @id @default(cuid())
+  categoryId       String
+  name             String
+  logo             String?
+  shortDescription String?
+  rating           Float?
+  yearsExperience  Int?
+  locationCoverage String?
+  contactEmail     String?
+  contactPhone     String?
+  isFeatured       Boolean @default(false)
+  isVerified       Boolean @default(false)
+  priorityOrder    Int     @default(0)
+  isActive         Boolean @default(true)
+
+  category EcosystemCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  leads    EcosystemLead[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([priorityOrder])
+  @@index([isFeatured])
+  @@index([isVerified])
+  @@index([isActive])
+}
+
+model EcosystemLead {
+  id         String  @id @default(cuid())
+  categoryId String
+  partnerId  String?
+  name       String
+  email      String
+  phone      String
+  message    String
+  source     String?
+
+  category EcosystemCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  partner  EcosystemPartner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([categoryId])
+  @@index([partnerId])
+  @@index([createdAt])
+}
+
 enum EcosystemPartnerApplicationStage {
   APPLIED
   UNDER_REVIEW
