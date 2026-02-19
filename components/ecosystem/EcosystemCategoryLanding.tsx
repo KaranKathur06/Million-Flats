@@ -8,6 +8,7 @@ import EcosystemFAQ, { buildFaqSchema } from '@/components/ecosystem/EcosystemFA
 import StickyLeadCaptureClient from '@/components/ecosystem/StickyLeadCaptureClient'
 import { getEcosystemCategoryConfig } from '@/lib/ecosystem/categoryConfig'
 import { prisma } from '@/lib/prisma'
+import FinalCTA from '@/app/ecosystem-partners/_components/FinalCTA'
 
 function safeNumber(v: unknown) {
   if (typeof v === 'number' && Number.isFinite(v)) return v
@@ -135,6 +136,14 @@ export default async function EcosystemCategoryLanding({ slug, page }: { slug: s
         total={totalPartners}
         hasMore={hasMorePartners}
       />
+
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        <FinalCTA
+          headline="Run an agency? Get listed as a verified partner."
+          primary={{ label: 'Become a Partner', href: `/ecosystem/register/${cfg.slug}` }}
+          secondary={{ label: 'Talk to Us', href: '#lead' }}
+        />
+      </div>
 
       <EcosystemFAQ title="Frequently asked questions" faqs={cfg.faqs} />
 

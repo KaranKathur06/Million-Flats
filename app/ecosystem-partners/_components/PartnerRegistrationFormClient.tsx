@@ -33,6 +33,7 @@ export default function PartnerRegistrationFormClient({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [successId, setSuccessId] = useState('')
+  const [step, setStep] = useState(0)
 
   const isComplete = useMemo(() => {
     const requiredFields = groups.flatMap((g) => g.fields.filter((f) => (f as any).required))
@@ -48,6 +49,25 @@ export default function PartnerRegistrationFormClient({
     }
     return requiredFields.length > 0
   }, [values, groups])
+
+  const currentGroup = groups[Math.max(0, Math.min(step, groups.length - 1))]
+
+  const isStepComplete = useMemo(() => {
+    const g = currentGroup
+    if (!g) return false
+    const requiredFields = g.fields.filter((f) => (f as any).required)
+    for (const f of requiredFields) {
+      const v = values[(f as any).name]
+      if (f.type === 'multiselect') {
+        if (!Array.isArray(v) || v.length === 0) return false
+      } else if (f.type === 'file') {
+        if (!v) return false
+      } else {
+        if (v === undefined || v === null || String(v).trim() === '') return false
+      }
+    }
+    return requiredFields.length > 0
+  }, [values, currentGroup])
 
   function setField(name: string, value: any) {
     setValues((p) => ({ ...p, [name]: value }))
@@ -120,31 +140,83 @@ export default function PartnerRegistrationFormClient({
   }
 
   return (
-    <div className="rounded-3xl border border-gray-200 bg-white p-8">
+    <div className="rounded-3xl border border-gray-200 bg-white p-6 sm:p-8">
       <div className="max-w-3xl">
         <h1 className="text-3xl md:text-4xl font-serif font-bold text-dark-blue">{title}</h1>
         <p className="mt-3 text-gray-600">{description}</p>
 
-        <div className="mt-8 space-y-8">
+        <div className="mt-6">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {groups.map((g, i) => {
+              const active = i === step
+              const done = i < step
+              return (
+                <button
+                  key={g.title}
+                  type="button"
+                  onClick={() => {
+                    if (busy || successId) return
+                    setStep(i)
+                  }}
+                  className={
+                    active
+                      ? 'inline-flex h-9 items-center gap-2 rounded-xl border border-dark-blue/20 bg-dark-blue/5 px-3 font-semibold text-dark-blue'
+                      : done
+                        ? 'inline-flex h-9 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 font-semibold text-gray-700 hover:bg-gray-50'
+                        : 'inline-flex h-9 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 font-semibold text-gray-500'
+                  }
+                >
+                  <span
+                    className={
+                      active
+                        ? 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-dark-blue text-[11px] font-bold text-white'
+                        : done
+                          ? 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-[11px] font-bold text-white'
+                          : 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 text-[11px] font-bold text-gray-600'
+                    }
+                  >
+                    {i + 1}
+                  </span>
+                  <span>{g.title}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="mt-3 h-2 w-full rounded-full bg-gray-100">
+            <div
+              className="h-2 rounded-full bg-dark-blue transition-all"
+              style={{ width: `${((Math.min(step, groups.length - 1) + 1) / Math.max(1, groups.length)) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="mt-8 space-y-6">
           {successId ? (
-            <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-5">
-              <div className="text-sm font-semibold text-green-200">Application submitted</div>
-              <div className="mt-1 text-sm text-white/80">Reference ID: {successId}</div>
+            <div className="rounded-2xl border border-green-200 bg-green-50 p-5">
+              <div className="text-sm font-semibold text-green-800">Registration submitted</div>
+              <div className="mt-1 text-sm text-green-900">Reference ID: {successId}</div>
             </div>
           ) : null}
 
           {error ? (
-            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-5">
-              <div className="text-sm font-semibold text-red-200">Submission failed</div>
-              <div className="mt-1 text-sm text-white/80">{error}</div>
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+              <div className="text-sm font-semibold text-red-800">Submission failed</div>
+              <div className="mt-1 text-sm text-red-900">{error}</div>
             </div>
           ) : null}
 
-          {groups.map((g) => (
-            <div key={g.title} className="rounded-2xl border border-gray-200 p-6">
-              <div className="text-lg font-semibold text-gray-900">{g.title}</div>
-              <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {g.fields.map((f) => {
+          {currentGroup ? (
+            <div className="rounded-2xl border border-gray-200 p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-lg font-semibold text-gray-900">{currentGroup.title}</div>
+                  <div className="mt-1 text-sm text-gray-600">Step {step + 1} of {groups.length}</div>
+                </div>
+              </div>
+
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {currentGroup.fields.map((f) => {
                   const key = (f as any).name
                   const common = {
                     id: key,
@@ -163,7 +235,7 @@ export default function PartnerRegistrationFormClient({
                           value={values[key] ?? ''}
                           onChange={(e) => setField(key, e.target.value)}
                           placeholder={f.placeholder}
-                          className="mt-2 w-full min-h-[120px] rounded-xl border border-gray-200 px-4 py-3"
+                          className="mt-2 w-full min-h-[140px] rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 outline-none focus:border-dark-blue/40 focus:ring-4 focus:ring-dark-blue/10"
                         />
                       </label>
                     )
@@ -180,7 +252,7 @@ export default function PartnerRegistrationFormClient({
                           {...common}
                           value={values[key] ?? ''}
                           onChange={(e) => setField(key, e.target.value)}
-                          className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3"
+                          className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none focus:border-dark-blue/40 focus:ring-4 focus:ring-dark-blue/10"
                         >
                           <option value="">Select</option>
                           {f.options.map((o) => (
@@ -209,10 +281,7 @@ export default function PartnerRegistrationFormClient({
                                 key={o}
                                 type="button"
                                 onClick={() => {
-                                  setField(
-                                    key,
-                                    on ? selected.filter((x) => x !== o) : [...selected, o]
-                                  )
+                                  setField(key, on ? selected.filter((x) => x !== o) : [...selected, o])
                                 }}
                                 className={
                                   on
@@ -230,21 +299,48 @@ export default function PartnerRegistrationFormClient({
                   }
 
                   if (f.type === 'file') {
+                    const file = values[key] instanceof File ? (values[key] as File) : null
                     return (
-                      <label key={key} className="md:col-span-2 text-sm">
-                        <div className="font-semibold text-gray-900">
+                      <div key={key} className="md:col-span-2">
+                        <div className="text-sm font-semibold text-gray-900">
                           {f.label}
                           {f.required ? <span className="text-red-600"> *</span> : null}
                         </div>
                         {f.help ? <div className="mt-1 text-xs text-gray-600">{f.help}</div> : null}
-                        <input
-                          {...common}
-                          type="file"
-                          accept={f.accept}
-                          onChange={(e) => setField(key, e.target.files?.[0] ?? null)}
-                          className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3"
-                        />
-                      </label>
+
+                        <div className="mt-2 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="text-sm font-semibold text-gray-900">{file ? file.name : 'No file selected'}</div>
+                              {file ? (
+                                <div className="mt-1 text-xs text-gray-600">{Math.max(1, Math.round(file.size / 1024))} KB</div>
+                              ) : null}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <label className="inline-flex h-10 cursor-pointer items-center justify-center rounded-xl bg-dark-blue px-4 text-sm font-semibold text-white hover:bg-dark-blue/90">
+                                Choose file
+                                <input
+                                  {...common}
+                                  type="file"
+                                  accept={f.accept}
+                                  onChange={(e) => setField(key, e.target.files?.[0] ?? null)}
+                                  className="hidden"
+                                />
+                              </label>
+                              {file ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setField(key, null)}
+                                  className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-dark-blue hover:bg-gray-50"
+                                >
+                                  Remove
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     )
                   }
 
@@ -262,35 +358,79 @@ export default function PartnerRegistrationFormClient({
                         value={values[key] ?? ''}
                         onChange={(e) => setField(key, e.target.value)}
                         placeholder={(f as any).placeholder}
-                        className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3"
+                        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 outline-none focus:border-dark-blue/40 focus:ring-4 focus:ring-dark-blue/10"
                       />
                     </label>
                   )
                 })}
               </div>
             </div>
-          ))}
+          ) : null}
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-            <div className="text-sm font-semibold text-gray-900">Post-Submission & Next Steps</div>
-            <p className="mt-1 text-sm text-gray-600">
-              Thank you for your interest! Our partnership team will review your application and contact you within 3-5
-              business days. Next steps typically include: review, introductory call, agreement, and onboarding.
-            </p>
+          {step >= groups.length - 1 ? (
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+              <div className="text-sm font-semibold text-gray-900">Post-Submission & Next Steps</div>
+              <p className="mt-1 text-sm text-gray-600">
+                Thank you for your interest! Our partnership team will review your application and contact you within 3-5
+                business days. Next steps typically include: review, introductory call, agreement, and onboarding.
+              </p>
+            </div>
+          ) : null}
+
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (busy || successId) return
+                setError('')
+                setStep((s) => Math.max(0, s - 1))
+              }}
+              disabled={step === 0 || busy || Boolean(successId)}
+              className={
+                step > 0 && !busy && !successId
+                  ? 'inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-6 font-semibold text-dark-blue hover:bg-gray-50'
+                  : 'inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-6 font-semibold text-gray-400 cursor-not-allowed'
+              }
+            >
+              Back
+            </button>
+
+            {step < groups.length - 1 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (busy || successId) return
+                  if (!isStepComplete) {
+                    setError('Please complete all required fields to proceed.')
+                    return
+                  }
+                  setError('')
+                  setStep((s) => Math.min(groups.length - 1, s + 1))
+                }}
+                disabled={busy || Boolean(successId)}
+                className={
+                  !busy && !successId
+                    ? 'inline-flex h-11 items-center justify-center rounded-xl bg-dark-blue px-6 font-semibold text-white hover:bg-dark-blue/90'
+                    : 'inline-flex h-11 items-center justify-center rounded-xl bg-gray-200 px-6 font-semibold text-gray-500 cursor-not-allowed'
+                }
+              >
+                Proceed
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={!isComplete || busy || Boolean(successId)}
+                onClick={submit}
+                className={
+                  isComplete && !busy && !successId
+                    ? 'inline-flex h-11 items-center justify-center rounded-xl bg-dark-blue px-6 font-semibold text-white hover:bg-dark-blue/90'
+                    : 'inline-flex h-11 items-center justify-center rounded-xl bg-gray-200 px-6 font-semibold text-gray-500 cursor-not-allowed'
+                }
+              >
+                {busy ? 'Submitting…' : submitLabel}
+              </button>
+            )}
           </div>
-
-          <button
-            type="button"
-            disabled={!isComplete || busy}
-            onClick={submit}
-            className={
-              isComplete && !busy
-                ? 'inline-flex h-11 items-center justify-center rounded-xl bg-dark-blue px-6 font-semibold text-white hover:bg-dark-blue/90'
-                : 'inline-flex h-11 items-center justify-center rounded-xl bg-gray-200 px-6 font-semibold text-gray-500 cursor-not-allowed'
-            }
-          >
-            {busy ? 'Submitting…' : submitLabel}
-          </button>
         </div>
       </div>
     </div>
