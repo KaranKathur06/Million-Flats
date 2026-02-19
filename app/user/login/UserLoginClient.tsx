@@ -44,7 +44,6 @@ export default function UserLoginClient() {
       const result = await signIn('credentials', {
         email,
         password,
-        expectedRole: 'USER',
         redirect: false,
         callbackUrl,
       })

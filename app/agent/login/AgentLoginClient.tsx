@@ -36,7 +36,6 @@ export default function AgentLoginClient() {
       const result = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
-        expectedRole: 'AGENT',
         redirect: false,
         callbackUrl: '/auth/redirect?intent=agent',
       })

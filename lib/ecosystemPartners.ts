@@ -6,6 +6,10 @@ export type EcosystemCategorySlug =
   | 'packers-movers'
   | 'property-management'
   | 'vastu-feng-shui'
+  | 'tiles-surface-finishing'
+  | 'hardware-architectural-fittings'
+  | 'cement-structural'
+  | 'smart-home-automation'
 
 export type EcosystemCategory = {
   slug: EcosystemCategorySlug
@@ -17,6 +21,10 @@ export type EcosystemCategory = {
     | 'Packers & Movers'
     | 'Property Management'
     | 'Vastu / Feng Shui Consultants'
+    | 'Tiles & Surface Finishing'
+    | 'Hardware & Architectural Fittings'
+    | 'Cement & Structural'
+    | 'Smart Home & Automation'
   description: string
 }
 
@@ -62,6 +70,30 @@ export const ECOSYSTEM_CATEGORIES: EcosystemCategory[] = [
     name: 'Vastu / Feng Shui Consultants',
     description:
       'Consult authentic experts to evaluate and improve harmony, wellbeing, and energy flow for your space.',
+  },
+  {
+    slug: 'tiles-surface-finishing',
+    name: 'Tiles & Surface Finishing',
+    description:
+      'Discover trusted suppliers and installers for tiles, stone, and surface finishes—compare options and get matched with verified partners.',
+  },
+  {
+    slug: 'hardware-architectural-fittings',
+    name: 'Hardware & Architectural Fittings',
+    description:
+      'Source quality hardware, fittings, and architectural accessories from verified partners with clear specs and dependable fulfillment.',
+  },
+  {
+    slug: 'cement-structural',
+    name: 'Cement & Structural',
+    description:
+      'Connect with verified suppliers for cement and structural materials—transparent pricing, reliable delivery, and project-ready guidance.',
+  },
+  {
+    slug: 'smart-home-automation',
+    name: 'Smart Home & Automation',
+    description:
+      'Upgrade your home with verified automation partners—supported brands, clean installation, and ongoing AMC/service options.',
   },
 ]
 

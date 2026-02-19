@@ -28,11 +28,6 @@ export default function AuthAgentLoginClient() {
     if (authError === 'agent_not_registered') setError('This account is not registered as an agent. Apply as an agent to continue.')
     if (authError === 'email_not_registered') setError('Email not registered. Please register first.')
     if (authError === 'account_disabled') setError('Your account is disabled. Please contact support.')
-
-    if (authError?.startsWith('role_mismatch:')) {
-      const role = authError.split(':')[1] || 'USER'
-      setError(`This account is registered as a ${role}.`)
-    }
   }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,7 +40,6 @@ export default function AuthAgentLoginClient() {
       const result = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
-        expectedRole: 'AGENT',
         redirect: false,
         callbackUrl,
       })
@@ -69,9 +63,6 @@ export default function AuthAgentLoginClient() {
         setError('Your account is disabled. Please contact support.')
       } else if (raw === 'ACCOUNT_BANNED') {
         setError('Your account is banned. Please contact support.')
-      } else if (typeof raw === 'string' && raw.startsWith('ROLE_MISMATCH:')) {
-        const role = raw.split(':')[1] || 'USER'
-        setError(`This account is registered as a ${role}.`)
       } else {
         setError(raw)
       }

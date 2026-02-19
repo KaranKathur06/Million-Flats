@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
-import { getHomeRouteForRole, isRoleAllowedForShell } from '@/lib/roleHomeRoute'
+import { getRedirectPath } from '@/lib/auth/getRedirectPath'
+import { normalizeRole } from '@/lib/rbac'
 
 function getLoginPath(pathname: string) {
   if (pathname === '/agent-portal' || pathname.startsWith('/agent-portal/')) return '/auth/login'
@@ -98,143 +99,61 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  const isAgentPublic =
-    pathname === '/agent/login' ||
-    pathname.startsWith('/agent/login/') ||
-    pathname === '/agent/register' ||
-    pathname.startsWith('/agent/register/')
-
-  const isAgentProtected =
-    pathname === '/agent-portal' ||
-    pathname.startsWith('/agent-portal/') ||
-    pathname === '/agent/dashboard' ||
-    pathname.startsWith('/agent/dashboard/') ||
-    (pathname.startsWith('/agent/') && !isAgentPublic) ||
-    pathname === '/properties/new' ||
-    pathname.startsWith('/properties/new/')
-
-  const isAgentProfile = pathname === '/agent/profile' || pathname.startsWith('/agent/profile/')
-
   const isAdminProtected = pathname === '/admin' || pathname.startsWith('/admin/')
+  const isAgentProtected = pathname === '/agent' || pathname.startsWith('/agent/')
+  const isDashboardProtected = pathname === '/dashboard' || pathname.startsWith('/dashboard/')
+  const isEcosystemAdminProtected = pathname === '/ecosystem/admin' || pathname.startsWith('/ecosystem/admin/')
 
-  const isUserProtected = pathname === '/user' || pathname.startsWith('/user/')
+  const isProtected = isAdminProtected || isAgentProtected || isDashboardProtected || isEcosystemAdminProtected
 
   const secret = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET
   const nextAuthToken = secret ? await getToken({ req, secret }) : null
 
-  let role = String((nextAuthToken as any)?.role || '').toUpperCase()
-  const accountStatus = String((nextAuthToken as any)?.status || 'ACTIVE').toUpperCase()
-  const agentProfileStatus = String((nextAuthToken as any)?.agentProfileStatus || '').toUpperCase()
+  let roleRaw = String((nextAuthToken as any)?.role || '').toUpperCase()
 
-  if (!role) {
+  if (!roleRaw) {
     const legacyCookie = req.cookies.get('token')?.value
     const legacySecret = process.env.JWT_SECRET
     if (legacyCookie && legacySecret) {
       const legacyPayload = await verifyLegacyJwt(legacyCookie, legacySecret)
-      role = String((legacyPayload as any)?.role || '').toUpperCase()
+      roleRaw = String((legacyPayload as any)?.role || '').toUpperCase()
     }
   }
 
-  if (!role) {
+  const role = normalizeRole(roleRaw)
+
+  if (isProtected && !roleRaw) {
     const url = req.nextUrl.clone()
-
-    if (pathname.startsWith('/agent') && !isAgentPublic) {
-      url.pathname = '/'
-      url.search = ''
-      return NextResponse.redirect(url)
-    }
-
-    if (isAdminProtected) {
-      url.pathname = '/'
-      url.search = ''
-      return NextResponse.redirect(url)
-    }
-
     url.pathname = getLoginPath(pathname)
-    url.search = ''
+    url.search = `next=${encodeURIComponent(pathname)}`
     return NextResponse.redirect(url)
   }
 
-  const isAdminOrHigher = role === 'ADMIN' || role === 'SUPERADMIN'
-  if (isAdminProtected && !isAdminOrHigher) {
-    const url = req.nextUrl.clone()
-    url.pathname = getHomeRouteForRole(role)
-    url.search = 'error=admin_only'
-    return NextResponse.redirect(url)
-  }
-
-  if (isAgentProtected && role === 'AGENT' && accountStatus !== 'ACTIVE') {
-    const url = req.nextUrl.clone()
-    url.pathname = '/agent/login'
-    url.search = 'error=account_disabled'
-    return NextResponse.redirect(url)
-  }
-
-  if (isAgentProtected && role === 'AGENT' && agentProfileStatus === 'SUSPENDED') {
-    if (pathname !== '/suspended' && !pathname.startsWith('/suspended/')) {
+  if (isAdminProtected || isEcosystemAdminProtected) {
+    if (!(role === 'ADMIN' || role === 'SUPERADMIN')) {
       const url = req.nextUrl.clone()
-      url.pathname = '/suspended'
-      url.search = ''
+      url.pathname = '/unauthorized'
+      url.search = 'reason=admin_only'
       return NextResponse.redirect(url)
     }
   }
 
-  if (isAgentProtected && role === 'AGENT') {
-    const status = agentProfileStatus || 'DRAFT'
-
-    const isDashboard = pathname === '/agent/dashboard' || pathname.startsWith('/agent/dashboard/')
-    const isProfile = pathname === '/agent/profile' || pathname.startsWith('/agent/profile/')
-
-    if (status !== 'LIVE') {
-      if (isDashboard) {
-        const url = req.nextUrl.clone()
-        url.pathname = '/agent/profile'
-        url.search = ''
-        return NextResponse.redirect(url)
-      }
+  if (isAgentProtected) {
+    if (role !== 'AGENT') {
+      const url = req.nextUrl.clone()
+      url.pathname = '/unauthorized'
+      url.search = 'reason=agent_only'
+      return NextResponse.redirect(url)
     }
   }
 
-  if (isAgentProtected && role !== 'AGENT') {
-    const url = req.nextUrl.clone()
-    url.pathname = '/'
-    url.search = ''
-    return NextResponse.redirect(url)
-  }
-
-  if ((pathname === '/profile' || pathname.startsWith('/profile/')) && role === 'AGENT') {
-    const url = req.nextUrl.clone()
-    url.pathname = '/agent/profile'
-    url.search = ''
-    return NextResponse.redirect(url)
-  }
-
-  if (isUserProtected && role === 'AGENT') {
-    const url = req.nextUrl.clone()
-    url.pathname = getHomeRouteForRole(role)
-    url.search = 'error=user_only'
-    return NextResponse.redirect(url)
-  }
-
-  if (pathname.startsWith('/user/') && !isRoleAllowedForShell(role, 'user')) {
-    const url = req.nextUrl.clone()
-    url.pathname = getHomeRouteForRole(role)
-    url.search = 'error=shell_mismatch'
-    return NextResponse.redirect(url)
-  }
-
-  if (pathname.startsWith('/agent/') && !isRoleAllowedForShell(role, 'agent') && !isAgentProfile) {
-    const url = req.nextUrl.clone()
-    url.pathname = getHomeRouteForRole(role)
-    url.search = 'error=shell_mismatch'
-    return NextResponse.redirect(url)
-  }
-
-  if (pathname.startsWith('/admin/') && !isRoleAllowedForShell(role, 'admin')) {
-    const url = req.nextUrl.clone()
-    url.pathname = getHomeRouteForRole(role)
-    url.search = 'error=shell_mismatch'
-    return NextResponse.redirect(url)
+  if (isDashboardProtected) {
+    if (role !== 'USER') {
+      const url = req.nextUrl.clone()
+      url.pathname = getRedirectPath(role)
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
   }
 
   return NextResponse.next()
@@ -247,5 +166,6 @@ export const config = {
     '/agent/:path*',
     '/user/dashboard/:path*',
     '/user/profile/:path*',
+    '/ecosystem/admin/:path*',
   ],
 }

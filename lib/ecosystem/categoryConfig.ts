@@ -199,6 +199,94 @@ export const ECOSYSTEM_CATEGORY_CONFIG: Record<EcosystemCategorySlug, EcosystemC
     ],
     tool: null,
   },
+  'tiles-surface-finishing': {
+    slug: 'tiles-surface-finishing',
+    title: 'Tiles & Surface Finishing',
+    subtitle:
+      'Find verified suppliers and installers for tiles, stone, and surface finishes—compare options and get matched with partners built for quality delivery.',
+    heroImage: { src: '/images/ecosystem/tiles.jpg', alt: 'Tiles and surface finishing' },
+    meta: {
+      title: 'Tiles & Surface Finishing | Ecosystem Partners | MillionFlats',
+      description:
+        'Explore verified tile and surface finishing partners—compare materials, pricing bands, and installation support with clarity on MillionFlats.',
+      ogImage: '/images/ecosystem/tiles.jpg',
+    },
+    primaryCta: { label: 'Request Consultation' },
+    secondaryCta: { label: 'Explore Partners' },
+    benefits: [
+      { title: 'Verified Partners', description: 'Suppliers and installers shortlisted for quality and reliable fulfillment.' },
+      { title: 'Material Clarity', description: 'Compare finishes, durability, and recommended use-cases before you buy.' },
+      { title: 'Installation Support', description: 'Get guidance on quantities, wastage, and on-site installation timelines.' },
+    ],
+    faqs: [{ question: 'Do partners help with installation?', answer: 'Many partners offer installation or recommend verified installers depending on your city.' }],
+    tool: null,
+  },
+  'hardware-architectural-fittings': {
+    slug: 'hardware-architectural-fittings',
+    title: 'Hardware & Architectural Fittings',
+    subtitle:
+      'Source quality fittings with confidence—verified partners, clear specs, dependable delivery, and guidance for the right selection.',
+    heroImage: { src: '/images/ecosystem/hardware.jpg', alt: 'Hardware and architectural fittings' },
+    meta: {
+      title: 'Hardware & Architectural Fittings | Ecosystem Partners | MillionFlats',
+      description:
+        'Find verified partners for hardware and architectural fittings—clear specifications, pricing bands, and dependable sourcing on MillionFlats.',
+      ogImage: '/images/ecosystem/hardware.jpg',
+    },
+    primaryCta: { label: 'Request Consultation' },
+    secondaryCta: { label: 'Explore Partners' },
+    benefits: [
+      { title: 'Verified Suppliers', description: 'Shortlisted partners focused on genuine products and consistent fulfillment.' },
+      { title: 'Spec-first Selection', description: 'Choose the right fittings with clear specifications and compatibility checks.' },
+      { title: 'Project-ready Guidance', description: 'Partners help align choices with budgets, style, and durability needs.' },
+    ],
+    faqs: [{ question: 'Do partners support bulk orders?', answer: 'Yes—share your BOQ or requirements and partners can propose supply timelines and pricing.' }],
+    tool: null,
+  },
+  'cement-structural': {
+    slug: 'cement-structural',
+    title: 'Cement & Structural',
+    subtitle:
+      'Build on strong fundamentals—verified suppliers for cement and structural materials with transparent pricing and reliable delivery.',
+    heroImage: { src: '/images/ecosystem/cement.jpg', alt: 'Cement and structural materials' },
+    meta: {
+      title: 'Cement & Structural | Ecosystem Partners | MillionFlats',
+      description:
+        'Connect with verified cement and structural material partners—transparent pricing, reliable delivery, and project-ready support on MillionFlats.',
+      ogImage: '/images/ecosystem/cement.jpg',
+    },
+    primaryCta: { label: 'Request Consultation' },
+    secondaryCta: { label: 'Explore Partners' },
+    benefits: [
+      { title: 'Reliable Supply', description: 'Partners focused on timely delivery to keep your project on schedule.' },
+      { title: 'Transparent Pricing', description: 'Clear pricing bands with fewer last-minute surprises.' },
+      { title: 'Project Support', description: 'Guidance on quantities, grades, and logistical planning.' },
+    ],
+    faqs: [{ question: 'Can partners deliver to site?', answer: 'Yes—most suppliers offer site delivery depending on your location and order size.' }],
+    tool: null,
+  },
+  'smart-home-automation': {
+    slug: 'smart-home-automation',
+    title: 'Smart Home & Automation',
+    subtitle:
+      'Upgrade your home with verified automation partners—supported brands, clean installation, and optional AMC for peace of mind.',
+    heroImage: { src: '/images/ecosystem/smart-home.jpg', alt: 'Smart home automation' },
+    meta: {
+      title: 'Smart Home & Automation | Ecosystem Partners | MillionFlats',
+      description:
+        'Explore verified smart home and automation partners—supported brands, installation, and AMC options with clear proposals on MillionFlats.',
+      ogImage: '/images/ecosystem/smart-home.jpg',
+    },
+    primaryCta: { label: 'Request Consultation' },
+    secondaryCta: { label: 'Explore Partners' },
+    benefits: [
+      { title: 'Brand Compatibility', description: 'Partners help you choose devices and hubs that work well together.' },
+      { title: 'Clean Installation', description: 'Structured wiring planning and installation to reduce rework.' },
+      { title: 'Ongoing Support', description: 'Optional AMC/service plans for maintenance and troubleshooting.' },
+    ],
+    faqs: [{ question: 'Can I automate an existing home?', answer: 'Yes—partners can recommend retrofit-friendly options based on your wiring and requirements.' }],
+    tool: null,
+  },
 }
 
 export function getEcosystemCategoryConfig(slug: string) {

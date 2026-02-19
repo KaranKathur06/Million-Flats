@@ -10,6 +10,7 @@ const nav = [
   { href: '/admin/drafts', label: 'Drafts' },
   { href: '/admin/agents', label: 'Agents' },
   { href: '/admin/ecosystem-partners', label: 'Ecosystem Partners' },
+  { href: '/admin/ecosystem-directory', label: 'Ecosystem Directory' },
   { href: '/admin/users', label: 'Users' },
   { href: '/admin/audit-logs', label: 'Audit Logs' },
   { href: '/admin/settings', label: 'Settings' },

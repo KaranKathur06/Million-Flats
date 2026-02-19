@@ -666,8 +666,21 @@ model EcosystemPartner {
   locationCoverage String?
   contactEmail     String?
   contactPhone     String?
+  whatsapp         String?
+  website          String?
+  coverImage       String?
+  description      String?
+  contactPerson    String?
+  serviceAreas     Json?
+  gstNumber        String?
+  registrationNumber String?
+  pricingRange     String?
+  categoryData     Json?
+
+  status           EcosystemPartnerStatus @default(PENDING)
   isFeatured       Boolean @default(false)
   isVerified       Boolean @default(false)
+  subscriptionTier EcosystemSubscriptionTier @default(FREE)
   priorityOrder    Int     @default(0)
   isActive         Boolean @default(true)
 
@@ -681,7 +694,10 @@ model EcosystemPartner {
   @@index([priorityOrder])
   @@index([isFeatured])
   @@index([isVerified])
+  @@index([status])
+  @@index([subscriptionTier])
   @@index([isActive])
+  @@unique([categoryId, contactEmail])
 }
 
 model EcosystemLead {
@@ -693,6 +709,8 @@ model EcosystemLead {
   phone      String
   message    String
   source     String?
+  assignedTo String?
+  status     EcosystemLeadStatus @default(NEW)
 
   category EcosystemCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   partner  EcosystemPartner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
@@ -701,7 +719,30 @@ model EcosystemLead {
 
   @@index([categoryId])
   @@index([partnerId])
+  @@index([assignedTo])
+  @@index([status])
   @@index([createdAt])
+}
+
+enum EcosystemPartnerStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum EcosystemSubscriptionTier {
+  FREE
+  BOOSTED
+  PREMIUM
+  SPONSORED
+}
+
+enum EcosystemLeadStatus {
+  NEW
+  ASSIGNED
+  CONTACTED
+  WON
+  LOST
 }
 
 enum EcosystemPartnerApplicationStage {
@@ -738,4 +779,21 @@ model EcosystemPartnerApplication {
 
   @@index([category])
   @@index([stage])
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(uuid())
+  name      String
+  payload   Json?
+  path      String?
+  userId    String?
+  email     String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([name])
+  @@index([path])
+  @@index([userId])
+  @@index([createdAt])
 }

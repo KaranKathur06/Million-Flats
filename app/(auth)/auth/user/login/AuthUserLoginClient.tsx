@@ -27,11 +27,6 @@ export default function AuthUserLoginClient() {
       setError('Email not registered. Please register first.')
     }
 
-    if (authError?.startsWith('role_mismatch:')) {
-      const role = authError.split(':')[1] || 'USER'
-      setError(`This account is registered as a ${role}.`)
-    }
-
     const verified = searchParams?.get('verified')
     if (verified === '1') {
       setError('Email verified successfully. Please sign in to continue.')
@@ -48,7 +43,6 @@ export default function AuthUserLoginClient() {
       const result = await signIn('credentials', {
         email,
         password,
-        expectedRole: 'USER',
         redirect: false,
         callbackUrl,
       })
@@ -72,9 +66,6 @@ export default function AuthUserLoginClient() {
         setError('Your account is disabled. Please contact support.')
       } else if (raw === 'ACCOUNT_BANNED') {
         setError('Your account is banned. Please contact support.')
-      } else if (typeof raw === 'string' && raw.startsWith('ROLE_MISMATCH:')) {
-        const role = raw.split(':')[1] || 'USER'
-        setError(`This account is registered as a ${role}.`)
       } else {
         setError(raw)
       }

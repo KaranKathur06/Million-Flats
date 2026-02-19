@@ -20,12 +20,14 @@ export default function PartnerRegistrationFormClient({
   category,
   groups,
   submitLabel,
+  submitUrl,
 }: {
   title: string
   description: string
   category: string
   groups: { title: string; fields: Field[] }[]
   submitLabel: string
+  submitUrl?: string
 }) {
   const [values, setValues] = useState<Record<string, any>>({})
   const [busy, setBusy] = useState(false)
@@ -96,7 +98,7 @@ export default function PartnerRegistrationFormClient({
 
       trackEvent('ecosystem_partner_form_submit', { category })
 
-      const res = await fetch('/api/ecosystem-partners/apply', {
+      const res = await fetch(submitUrl || '/api/ecosystem-partners/apply', {
         method: 'POST',
         body: fd,
       })
@@ -105,7 +107,7 @@ export default function PartnerRegistrationFormClient({
         throw new Error(String(json?.message || 'Submission failed'))
       }
 
-      const id = String(json?.application?.id || '')
+      const id = String(json?.application?.id || json?.partner?.id || '')
       setSuccessId(id)
       trackEvent('ecosystem_partner_form_success', { category, id })
     } catch (e) {
