@@ -141,57 +141,58 @@ export default function PartnerRegistrationFormClient({
 
   return (
     <div className="rounded-3xl border border-gray-200 bg-white p-6 sm:p-8">
-      <div className="max-w-3xl">
-        <h1 className="text-3xl md:text-4xl font-serif font-bold text-dark-blue">{title}</h1>
-        <p className="mt-3 text-gray-600">{description}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8">
+          <h1 className="text-3xl md:text-4xl font-serif font-bold text-dark-blue">{title}</h1>
+          <p className="mt-3 text-gray-600">{description}</p>
 
-        <div className="mt-6">
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            {groups.map((g, i) => {
-              const active = i === step
-              const done = i < step
-              return (
-                <button
-                  key={g.title}
-                  type="button"
-                  onClick={() => {
-                    if (busy || successId) return
-                    setStep(i)
-                  }}
-                  className={
-                    active
-                      ? 'inline-flex h-9 items-center gap-2 rounded-xl border border-dark-blue/20 bg-dark-blue/5 px-3 font-semibold text-dark-blue'
-                      : done
-                        ? 'inline-flex h-9 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 font-semibold text-gray-700 hover:bg-gray-50'
-                        : 'inline-flex h-9 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 font-semibold text-gray-500'
-                  }
-                >
-                  <span
+          <div className="mt-6">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              {groups.map((g, i) => {
+                const active = i === step
+                const done = i < step
+                return (
+                  <button
+                    key={g.title}
+                    type="button"
+                    onClick={() => {
+                      if (busy || successId) return
+                      setStep(i)
+                    }}
                     className={
                       active
-                        ? 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-dark-blue text-[11px] font-bold text-white'
+                        ? 'inline-flex h-9 items-center gap-2 rounded-xl border border-dark-blue/20 bg-dark-blue/5 px-3 font-semibold text-dark-blue'
                         : done
-                          ? 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-[11px] font-bold text-white'
-                          : 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 text-[11px] font-bold text-gray-600'
+                          ? 'inline-flex h-9 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 font-semibold text-gray-700 hover:bg-gray-50'
+                          : 'inline-flex h-9 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 font-semibold text-gray-500'
                     }
                   >
-                    {i + 1}
-                  </span>
-                  <span>{g.title}</span>
-                </button>
-              )
-            })}
+                    <span
+                      className={
+                        active
+                          ? 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-dark-blue text-[11px] font-bold text-white'
+                          : done
+                            ? 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-[11px] font-bold text-white'
+                            : 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 text-[11px] font-bold text-gray-600'
+                      }
+                    >
+                      {i + 1}
+                    </span>
+                    <span>{g.title}</span>
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="mt-3 h-2 w-full rounded-full bg-gray-100">
+              <div
+                className="h-2 rounded-full bg-dark-blue transition-all"
+                style={{ width: `${((Math.min(step, groups.length - 1) + 1) / Math.max(1, groups.length)) * 100}%` }}
+              />
+            </div>
           </div>
 
-          <div className="mt-3 h-2 w-full rounded-full bg-gray-100">
-            <div
-              className="h-2 rounded-full bg-dark-blue transition-all"
-              style={{ width: `${((Math.min(step, groups.length - 1) + 1) / Math.max(1, groups.length)) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        <div className="mt-8 space-y-6">
+          <div className="mt-8 space-y-6">
           {successId ? (
             <div className="rounded-2xl border border-green-200 bg-green-50 p-5">
               <div className="text-sm font-semibold text-green-800">Registration submitted</div>
@@ -431,7 +432,55 @@ export default function PartnerRegistrationFormClient({
               </button>
             )}
           </div>
+          </div>
         </div>
+
+        <aside className="lg:col-span-4">
+          <div className="lg:sticky lg:top-24 space-y-4">
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+              <div className="text-sm font-semibold text-gray-900">What you’ll get</div>
+              <div className="mt-3 space-y-2 text-sm text-gray-600">
+                <div className="flex gap-2">
+                  <span className="mt-[2px] h-2 w-2 rounded-full bg-dark-blue" />
+                  <div>Listing in the MillionFlats partner directory after approval</div>
+                </div>
+                <div className="flex gap-2">
+                  <span className="mt-[2px] h-2 w-2 rounded-full bg-dark-blue" />
+                  <div>High-intent leads routed to verified partners</div>
+                </div>
+                <div className="flex gap-2">
+                  <span className="mt-[2px] h-2 w-2 rounded-full bg-dark-blue" />
+                  <div>Priority placement options after verification</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 bg-white p-5">
+              <div className="text-sm font-semibold text-gray-900">Review timeline</div>
+              <div className="mt-2 text-sm text-gray-600">
+                Most applications are reviewed within 3-5 business days.
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 bg-white p-5">
+              <div className="text-sm font-semibold text-gray-900">Tips for faster approval</div>
+              <div className="mt-3 space-y-2 text-sm text-gray-600">
+                <div className="flex gap-2">
+                  <span className="mt-[2px] h-2 w-2 rounded-full bg-gray-400" />
+                  <div>Use your official email and active phone number</div>
+                </div>
+                <div className="flex gap-2">
+                  <span className="mt-[2px] h-2 w-2 rounded-full bg-gray-400" />
+                  <div>Upload a clear logo (square works best)</div>
+                </div>
+                <div className="flex gap-2">
+                  <span className="mt-[2px] h-2 w-2 rounded-full bg-gray-400" />
+                  <div>Provide real service areas and a short, specific description</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   )
