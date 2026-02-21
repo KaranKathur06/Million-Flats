@@ -57,7 +57,7 @@ export async function POST() {
     const license = safeString(agent?.license)
     const phone = normalizePhone(safeString(agent?.user?.phone))
     const bio = safeString(agent?.bio)
-    const photo = safeString(agent?.profilePhoto)
+    const photo = safeString(agent?.profileImageUrl || agent?.profilePhoto)
 
     const errors: Record<string, string> = {}
 

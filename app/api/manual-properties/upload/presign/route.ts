@@ -36,9 +36,9 @@ function isAllowedVideoType(mime: string) {
 }
 
 function folderForUpload(category: string, propertyId: string) {
-  if (category === 'VIDEO') return `properties/videos/${propertyId}`
-  if (category === 'BROCHURE') return `documents/${propertyId}`
-  return `properties/images/${propertyId}`
+  if (category === 'VIDEO') return `public/properties/${propertyId}/videos`
+  if (category === 'BROCHURE') return `private/properties/${propertyId}/documents`
+  return `public/properties/${propertyId}/images`
 }
 
 export async function POST(req: Request) {

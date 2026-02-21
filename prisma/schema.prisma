@@ -210,6 +210,9 @@ model Agent {
   license  String? @map("license_number")
   whatsapp String? @map("whatsapp_number")
   profilePhoto String? @map("profile_photo")
+  profileImageUrl String? @map("profile_image_url")
+  profileImageKey String? @map("profile_image_key")
+  profileImageUpdatedAt DateTime? @map("profile_image_updated_at")
   approved Boolean @default(false)
 
   profileStatus AgentProfileStatus @default(DRAFT) @map("profile_status")

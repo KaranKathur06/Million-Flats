@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getAgentLifecycleUx } from '@/lib/agentLifecycle'
@@ -12,6 +12,7 @@ export default function AgentProfileClient({
   email,
   initialPhone,
   initialImage,
+  initialImageUpdatedAt,
   initialCompany,
   initialLicense,
   initialWhatsapp,
@@ -24,6 +25,7 @@ export default function AgentProfileClient({
   email: string
   initialPhone: string
   initialImage: string
+  initialImageUpdatedAt?: string
   initialCompany: string
   initialLicense: string
   initialWhatsapp: string
@@ -36,18 +38,21 @@ export default function AgentProfileClient({
   const [name, setName] = useState(initialName)
   const [phone, setPhone] = useState(initialPhone)
   const [image, setImage] = useState(initialImage)
+  const [imageUpdatedAt, setImageUpdatedAt] = useState<string>(initialImageUpdatedAt || '')
   const [company, setCompany] = useState(initialCompany)
   const [license, setLicense] = useState(initialLicense)
   const [whatsapp, setWhatsapp] = useState(initialWhatsapp)
   const [bio, setBio] = useState(initialBio)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string>('')
-  const [signedImageUrl, setSignedImageUrl] = useState<string>('')
   const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [bioTouched, setBioTouched] = useState(false)
+  const [dragActive, setDragActive] = useState(false)
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const router = useRouter()
 
@@ -76,39 +81,9 @@ export default function AgentProfileClient({
     return () => URL.revokeObjectURL(url)
   }, [selectedFile])
 
-  useEffect(() => {
-    const raw = String(image || '').trim()
-    const isS3 = raw.includes('.amazonaws.com/') || raw.includes('s3.')
-    if (!raw || !isS3) {
-      setSignedImageUrl('')
-      return
-    }
-
-    let cancelled = false
-
-    fetch('/api/media/signed-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: raw, expiresInSeconds: 900 }),
-    })
-      .then((r) => r.json())
-      .then((j) => {
-        if (cancelled) return
-        if (j?.success && typeof j?.url === 'string' && j.url.trim()) {
-          setSignedImageUrl(String(j.url))
-        } else {
-          setSignedImageUrl('')
-        }
-      })
-      .catch(() => {
-        if (cancelled) return
-        setSignedImageUrl('')
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [image])
+  function pickFile(f: File | null) {
+    setSelectedFile(f)
+  }
 
   const uploadPhoto = async () => {
     if (!selectedFile || uploading) return
@@ -131,15 +106,17 @@ export default function AgentProfileClient({
         return
       }
 
-      const url = String(json?.url || '').trim()
+      const agent = json?.agent
+      const url = String(agent?.profileImageUrl || agent?.profilePhoto || '').trim()
+      const updatedAt = String(agent?.profileImageUpdatedAt || '').trim()
       if (!url) {
         setError('Upload succeeded but URL is missing.')
         return
       }
 
       setImage(url)
+      setImageUpdatedAt(updatedAt || String(Date.now()))
       setSelectedFile(null)
-      router.refresh()
       setSuccess('Profile photo uploaded.')
     } catch {
       setError('An error occurred. Please try again.')
@@ -147,6 +124,17 @@ export default function AgentProfileClient({
       setUploading(false)
     }
   }
+
+  const dirty = useMemo(() => {
+    return (
+      name !== initialName ||
+      phone !== initialPhone ||
+      company !== initialCompany ||
+      license !== initialLicense ||
+      whatsapp !== initialWhatsapp ||
+      bio !== initialBio
+    )
+  }, [name, phone, company, license, whatsapp, bio, initialName, initialPhone, initialCompany, initialLicense, initialWhatsapp, initialBio])
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -180,7 +168,7 @@ export default function AgentProfileClient({
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-10">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-accent-orange font-semibold text-sm uppercase tracking-wider">Agent</p>
@@ -231,7 +219,132 @@ export default function AgentProfileClient({
             />
           </div>
 
-          <form onSubmit={onSubmit} className="mt-8 space-y-6">
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-4">
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="text-sm font-semibold text-gray-600">Profile Identity</div>
+                    <div className="mt-1 text-lg font-semibold text-dark-blue">{name || 'Agent'}</div>
+                    {company ? <div className="mt-1 text-sm text-gray-600">{company}</div> : null}
+                  </div>
+                  <div className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700">
+                    {dirty ? 'Unsaved changes' : 'Up to date'}
+                  </div>
+                </div>
+
+                <div className="mt-6 flex items-center justify-center">
+                  <div className="relative">
+                    <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-dark-blue via-accent-orange to-dark-blue opacity-80 blur-[2px]" />
+                    <div className="relative h-[140px] w-[140px] rounded-full bg-white p-1 shadow-lg">
+                      <div className="h-full w-full rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+                        {previewUrl || image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            key={imageUpdatedAt || image}
+                            src={previewUrl || image}
+                            alt="Profile"
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-sm font-semibold text-gray-600">No photo</span>
+                        )}
+                      </div>
+                      <div className="absolute bottom-2 right-2 rounded-full bg-white/95 border border-gray-200 px-2 py-1 text-[11px] font-semibold text-gray-700 shadow-sm">
+                        {String(profileStatus || '').toUpperCase()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className={
+                    dragActive
+                      ? 'mt-6 rounded-2xl border-2 border-dark-blue bg-dark-blue/5 p-5 transition'
+                      : 'mt-6 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-5 transition'
+                  }
+                  onDragEnter={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setDragActive(true)
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setDragActive(true)
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setDragActive(false)
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setDragActive(false)
+                    const f = e.dataTransfer?.files?.[0] || null
+                    if (f) pickFile(f)
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-gray-900">Upload profile photo</div>
+                      <div className="mt-1 text-xs text-gray-600">JPG/PNG/WebP up to 5MB.</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="inline-flex h-10 items-center justify-center rounded-xl bg-dark-blue px-4 text-sm font-semibold text-white hover:bg-dark-blue/90"
+                    >
+                      Browse
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(e) => {
+                        const f = e.target.files && e.target.files[0] ? e.target.files[0] : null
+                        pickFile(f)
+                        e.currentTarget.value = ''
+                      }}
+                      className="hidden"
+                    />
+                  </div>
+
+                  {selectedFile ? (
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-gray-900 truncate">{selectedFile.name}</div>
+                        <div className="mt-1 text-xs text-gray-600">{Math.max(1, Math.round(selectedFile.size / 1024))} KB</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => pickFile(null)}
+                          disabled={uploading}
+                          className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-dark-blue hover:bg-gray-50 disabled:opacity-50"
+                        >
+                          Remove
+                        </button>
+                        <button
+                          type="button"
+                          onClick={uploadPhoto}
+                          disabled={uploading}
+                          className="inline-flex h-10 items-center justify-center rounded-xl bg-dark-blue px-4 text-sm font-semibold text-white hover:bg-dark-blue/90 disabled:opacity-50"
+                        >
+                          {uploading ? 'Uploading…' : 'Upload'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3 text-xs text-gray-600">Drag & drop an image here.</div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-8">
+              <form onSubmit={onSubmit} className="space-y-6">
             {(error || success) && (
               <div
                 className={`rounded-xl border px-4 py-3 text-sm ${
@@ -270,44 +383,8 @@ export default function AgentProfileClient({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Profile photo</label>
-
-                  <div className="flex items-start gap-4">
-                    <div className="h-16 w-16 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center shrink-0">
-                      {previewUrl || signedImageUrl || image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={previewUrl || signedImageUrl || image}
-                          alt="Profile"
-                          className="h-16 w-16 object-cover"
-                        />
-                      ) : (
-                        <span className="text-xs font-semibold text-gray-600">No photo</span>
-                      )}
-                    </div>
-
-                    <div className="flex-1">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const f = e.target.files && e.target.files[0] ? e.target.files[0] : null
-                          setSelectedFile(f)
-                        }}
-                        className="block w-full text-sm text-gray-700 file:mr-4 file:rounded-xl file:border-0 file:bg-dark-blue file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-dark-blue/90"
-                      />
-
-                      <div className="mt-3 flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={uploadPhoto}
-                          disabled={!selectedFile || uploading}
-                          className="h-10 px-4 rounded-xl bg-dark-blue text-white font-semibold shadow-sm hover:bg-dark-blue/90 disabled:opacity-50"
-                        >
-                          {uploading ? 'Uploading...' : 'Upload'}
-                        </button>
-                        <p className="text-xs text-gray-500">JPG/PNG/WebP up to 5MB.</p>
-                      </div>
-                    </div>
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                    Use the upload panel on the left to update your profile photo.
                   </div>
                 </div>
 
@@ -452,7 +529,9 @@ export default function AgentProfileClient({
                 </button>
               </div>
             </section>
-          </form>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
     </div>

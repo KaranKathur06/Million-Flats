@@ -252,7 +252,7 @@ export default async function AgentProfilePage({
   const name = user?.name || 'Agent'
   const email = user?.email || ''
   const phone = user?.phone || ''
-  const image = safeString(agent?.profilePhoto) || ''
+  const image = safeString((agent as any)?.profileImageUrl) || safeString(agent?.profilePhoto) || ''
 
   const limit = Math.min(24, Math.max(6, safeInt(searchParams?.limit, 9)))
   const page = Math.max(1, safeInt(searchParams?.page, 1))

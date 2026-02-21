@@ -38,10 +38,10 @@ export async function PATCH(req: Request) {
     const bio = safeString(body?.bio)
 
     const currentAgent = await (prisma as any).agent
-      .findUnique({ where: { id: auth.agentId }, select: { profilePhoto: true } })
+      .findUnique({ where: { id: auth.agentId }, select: { profilePhoto: true, profileImageUrl: true } })
       .catch(() => null)
 
-    const hasPhoto = Boolean(String(currentAgent?.profilePhoto || '').trim())
+    const hasPhoto = Boolean(String(currentAgent?.profileImageUrl || currentAgent?.profilePhoto || '').trim())
     const hasBio = Boolean(bio)
     const hasPhone = Boolean(phone)
     const hasWhatsapp = Boolean(whatsapp)

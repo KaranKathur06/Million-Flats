@@ -35,7 +35,7 @@ export default async function AgentProfilePage() {
   const agentRow = await (prisma as any).agent
     .findUnique({
       where: { id: user.agent.id },
-      select: { id: true, profilePhoto: true, profileStatus: true, profileCompletion: true },
+      select: { id: true, profilePhoto: true, profileImageUrl: true, profileImageKey: true, profileImageUpdatedAt: true, profileStatus: true, profileCompletion: true },
     })
     .catch(() => null)
 
@@ -47,7 +47,8 @@ export default async function AgentProfilePage() {
       initialName={user.name || ''}
       email={user.email}
       initialPhone={user.phone || ''}
-      initialImage={String((agentRow as any)?.profilePhoto || '')}
+      initialImage={String((agentRow as any)?.profileImageUrl || (agentRow as any)?.profilePhoto || '')}
+      initialImageUpdatedAt={String((agentRow as any)?.profileImageUpdatedAt || '')}
       initialCompany={user.agent?.company || ''}
       initialLicense={user.agent?.license || ''}
       initialWhatsapp={user.agent?.whatsapp || ''}

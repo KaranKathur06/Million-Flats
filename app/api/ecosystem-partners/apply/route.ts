@@ -210,7 +210,7 @@ export async function POST(req: Request) {
     const logoUrl = await uploadOptionalFile({
       form,
       name: 'logo',
-      folder: `ecosystem/applications/${payload.category}/${appIdSeed}/logo`,
+      folder: `public/ecosystem/applications/${payload.category}/${appIdSeed}/logo`,
     }).catch((e) => {
       throw new Error(e instanceof Error ? e.message : 'Logo upload failed')
     })
@@ -218,7 +218,7 @@ export async function POST(req: Request) {
     const certificateUrl = await uploadOptionalFile({
       form,
       name: 'certificate',
-      folder: `ecosystem/applications/${payload.category}/${appIdSeed}/certificate`,
+      folder: `private/ecosystem/applications/${payload.category}/${appIdSeed}/documents`,
     }).catch(() => null)
 
     const created = await (prisma as any).ecosystemPartnerApplication.create({

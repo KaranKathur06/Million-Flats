@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAgentSession } from '@/lib/agentAuth'
-import { uploadToS3Key } from '@/lib/s3'
+import { buildAgentProfileImageKey, deleteFromS3, extractS3KeyFromUrl, uploadToS3Key } from '@/lib/s3'
 
 export const runtime = 'nodejs'
 
@@ -36,16 +36,45 @@ export async function POST(req: Request) {
   const buf = Buffer.from(await file.arrayBuffer())
 
   const ext = mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg'
+
+  const previous = await (prisma as any).agent
+    .findUnique({ where: { id: auth.agentId }, select: { profileImageKey: true, profileImageUrl: true, profilePhoto: true } })
+    .catch(() => null)
+
+  const ts = Date.now()
+  const key = buildAgentProfileImageKey({ agentId: auth.agentId, ext, timestamp: ts })
+
   const uploaded = await uploadToS3Key({
     buffer: buf,
-    key: `agents/${auth.agentId}/profile.${ext}`,
+    key,
     contentType: mime,
   })
 
-  await (prisma as any).agent.update({
+  const updatedAt = new Date(ts)
+
+  const updated = await (prisma as any).agent.update({
     where: { id: auth.agentId },
-    data: { profilePhoto: uploaded.objectUrl },
+    data: {
+      profilePhoto: uploaded.objectUrl,
+      profileImageUrl: uploaded.objectUrl,
+      profileImageKey: uploaded.key,
+      profileImageUpdatedAt: updatedAt,
+    } as any,
+    select: { id: true, profilePhoto: true, profileImageUrl: true, profileImageKey: true, profileImageUpdatedAt: true },
   })
 
-  return NextResponse.json({ success: true, url: uploaded.objectUrl })
+  const prevKey =
+    (previous && typeof previous.profileImageKey === 'string' && previous.profileImageKey.trim()
+      ? String(previous.profileImageKey)
+      : previous && typeof previous.profileImageUrl === 'string' && previous.profileImageUrl.trim()
+        ? extractS3KeyFromUrl(String(previous.profileImageUrl))
+        : previous && typeof previous.profilePhoto === 'string' && previous.profilePhoto.trim()
+          ? extractS3KeyFromUrl(String(previous.profilePhoto))
+          : null) || null
+
+  if (prevKey && prevKey !== uploaded.key) {
+    await deleteFromS3(prevKey).catch(() => null)
+  }
+
+  return NextResponse.json({ success: true, agent: updated })
 }
