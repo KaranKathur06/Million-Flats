@@ -5,7 +5,7 @@ const prisma = new PrismaClient()
 
 async function main() {
   for (const cfg of Object.values(ECOSYSTEM_CATEGORY_CONFIG)) {
-    await prisma.ecosystemCategory.upsert({
+    await (prisma as any).ecosystemCategory.upsert({
       where: { slug: cfg.slug },
       update: {
         title: cfg.title,

@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     const json = await req.json().catch(() => null)
     const payload = LeadSchema.parse(json)
 
-    const category = await prisma.ecosystemCategory.findUnique({
+    const category = await (prisma as any).ecosystemCategory.findUnique({
       where: { slug: payload.categorySlug },
       select: { id: true },
     })
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const created = await prisma.ecosystemLead.create({
+    const created = await (prisma as any).ecosystemLead.create({
       data: {
         categoryId: category.id,
         partnerId: partnerId || null,

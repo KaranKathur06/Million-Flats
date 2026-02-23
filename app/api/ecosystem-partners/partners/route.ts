@@ -27,7 +27,7 @@ export async function GET(req: Request) {
       minRating: searchParams.get('minRating') ?? undefined,
     })
 
-    const category = await prisma.ecosystemCategory.findUnique({
+    const category = await (prisma as any).ecosystemCategory.findUnique({
       where: { slug: parsed.slug },
       select: { id: true },
     })
