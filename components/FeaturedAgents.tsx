@@ -30,7 +30,7 @@ export default function FeaturedAgents({ market }: { market: CountryCode }) {
 
     const params = new URLSearchParams()
     params.set('country', market)
-    params.set('limit', '8')
+    params.set('limit', '4')
 
     fetch(`/api/featured/agents?${params.toString()}`, { cache: 'no-store' })
       .then((res) => res.json())
@@ -63,7 +63,7 @@ export default function FeaturedAgents({ market }: { market: CountryCode }) {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden">
                 <div className="relative h-56 bg-gray-100 animate-pulse" />
@@ -77,10 +77,10 @@ export default function FeaturedAgents({ market }: { market: CountryCode }) {
           </div>
         ) : agents.length === 0 ? (
           <div className="mt-10 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-10 text-center">
-            <p className="text-sm text-gray-600">No agents have been published yet.</p>
+            <p className="text-sm text-gray-600">No featured agents yet for this market.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {agents.map((a: any) => {
               const name = String(a?.name || 'Agent')
               const company = String(a?.company || '').trim()
@@ -88,7 +88,7 @@ export default function FeaturedAgents({ market }: { market: CountryCode }) {
               const slug = slugify(name)
               const href = `/agents/${slug ? `${slug}-` : ''}${encodeURIComponent(String(a.id))}`
               return (
-                <div key={a.id} className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden">
+                <div key={a.id} className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden flex flex-col h-full">
                   <div className="relative h-56 bg-white border-b border-gray-200 flex items-center justify-center">
                     {image ? (
                       <Image
@@ -105,12 +105,12 @@ export default function FeaturedAgents({ market }: { market: CountryCode }) {
                       </div>
                     )}
                   </div>
-                  <div className="p-6">
+                  <div className="p-6 flex flex-col flex-1">
                     <h3 className="text-lg font-semibold text-dark-blue">{name}</h3>
                     <p className="text-sm text-gray-600 mt-1">{company || 'MillionFlats Partner'}</p>
                     <GatedActionLink
                       href={href}
-                      className="mt-5 inline-flex items-center justify-center w-full h-11 rounded-xl bg-dark-blue text-white text-sm font-semibold hover:bg-opacity-90 transition"
+                      className="mt-auto pt-5 inline-flex items-center justify-center w-full h-11 rounded-xl bg-dark-blue text-white text-sm font-semibold hover:bg-opacity-90 transition"
                     >
                       View Profile
                     </GatedActionLink>

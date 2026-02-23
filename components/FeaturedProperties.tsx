@@ -96,7 +96,9 @@ export default function FeaturedProperties({ market }: { market: CountryCode }) 
           </p>
         </div>
 
-        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 transition-opacity duration-300 ${fade ? 'opacity-60' : 'opacity-100'}`}>
+        <div
+          className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 transition-opacity duration-300 ${fade ? 'opacity-60' : 'opacity-100'}`}
+        >
           {loading
             ? [0, 1, 2, 3].map((i) => (
                 <div key={i} className="bg-white rounded-lg overflow-hidden shadow-md">
@@ -131,7 +133,7 @@ export default function FeaturedProperties({ market }: { market: CountryCode }) 
               <Link
                 key={property.id}
                 href={href}
-                className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow group"
+                className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow group flex flex-col h-full"
               >
                 <div className="relative aspect-[4/3] overflow-hidden rounded-lg">
                   <Image
@@ -144,13 +146,15 @@ export default function FeaturedProperties({ market }: { market: CountryCode }) 
                     loading="lazy"
                   />
                 </div>
-                <div className="p-6">
+                <div className="p-6 flex flex-col flex-1">
                   <h3 className="text-xl font-semibold text-dark-blue mb-2">{property.title}</h3>
                   {property.developer ? <p className="text-sm text-gray-600 mb-1">{property.developer}</p> : null}
                   <p className="text-gray-600 mb-4">{property.location}</p>
-                  <p className="text-2xl font-bold text-dark-blue">
-                    {property.priceOnRequest ? 'Price on request' : `From ${formatCountryPrice(market, property.price)}`}
-                  </p>
+                  <div className="mt-auto">
+                    <p className="text-2xl font-bold text-dark-blue">
+                      {property.priceOnRequest ? 'Price on request' : `From ${formatCountryPrice(market, property.price)}`}
+                    </p>
+                  </div>
                 </div>
               </Link>
             )

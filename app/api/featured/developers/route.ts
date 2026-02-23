@@ -9,6 +9,17 @@ const QuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(24).optional(),
 })
 
+function shuffle<T>(input: T[]) {
+  const arr = input.slice()
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const tmp = arr[i]
+    arr[i] = arr[j]
+    arr[j] = tmp
+  }
+  return arr
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const parsed = QuerySchema.safeParse({
@@ -21,25 +32,41 @@ export async function GET(req: Request) {
   }
 
   const country = parsed.data.country || 'UAE'
-  const take = typeof parsed.data.limit === 'number' ? parsed.data.limit : 6
+  const take = 4
 
   try {
-    const rows = await (prisma as any).developer.findMany({
+    const featured = await (prisma as any).developer.findMany({
       where: { isFeatured: true, countryCode: country },
       orderBy: [{ updatedAt: 'desc' }],
-      take,
-      select: {
-        id: true,
-        name: true,
-        countryCode: true,
-      },
+      take: 24,
+      select: { id: true, name: true, countryCode: true },
     })
 
-    const items = (rows as any[]).map((d) => ({
-      id: String(d?.id || ''),
-      name: String(d?.name || 'Developer'),
-      countryCode: d?.countryCode === 'INDIA' ? 'INDIA' : 'UAE',
-    }))
+    let pool: any[] = Array.isArray(featured) ? featured : []
+    if (pool.length < take) {
+      const fallback = await (prisma as any).developer.findMany({
+        where: { countryCode: country },
+        orderBy: [{ updatedAt: 'desc' }],
+        take: 24,
+        select: { id: true, name: true, countryCode: true },
+      })
+
+      const seen = new Set(pool.map((r) => String(r?.id || '')))
+      for (const r of Array.isArray(fallback) ? fallback : []) {
+        const id = String(r?.id || '')
+        if (!id || seen.has(id)) continue
+        seen.add(id)
+        pool.push(r)
+      }
+    }
+
+    const items = shuffle(pool)
+      .slice(0, take)
+      .map((d) => ({
+        id: String(d?.id || ''),
+        name: String(d?.name || 'Developer'),
+        countryCode: d?.countryCode === 'INDIA' ? 'INDIA' : 'UAE',
+      }))
 
     return NextResponse.json({ success: true, country, items })
   } catch (e) {

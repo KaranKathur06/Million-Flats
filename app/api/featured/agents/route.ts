@@ -13,6 +13,17 @@ function safeString(v: unknown) {
   return typeof v === 'string' ? v : ''
 }
 
+function shuffle<T>(input: T[]) {
+  const arr = input.slice()
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const tmp = arr[i]
+    arr[i] = arr[j]
+    arr[j] = tmp
+  }
+  return arr
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
@@ -27,14 +38,41 @@ export async function GET(req: Request) {
     }
 
     const country = parsed.data.country || 'UAE'
-    const take = typeof parsed.data.limit === 'number' ? parsed.data.limit : 8
+    const take = 4
 
-    const agents = await (prisma as any).agent.findMany({
-      where: { approved: true, profileStatus: 'LIVE', isFeatured: true, countryCode: country, user: { status: 'ACTIVE' } },
+    const baseWhere = {
+      approved: true,
+      profileStatus: 'LIVE',
+      countryCode: country,
+      user: { status: 'ACTIVE' },
+    }
+
+    const featured = await (prisma as any).agent.findMany({
+      where: { ...baseWhere, isFeatured: true },
       include: { user: true },
       orderBy: [{ updatedAt: 'desc' }],
-      take,
+      take: 24,
     })
+
+    let pool: any[] = Array.isArray(featured) ? featured : []
+    if (pool.length < take) {
+      const fallback = await (prisma as any).agent.findMany({
+        where: baseWhere,
+        include: { user: true },
+        orderBy: [{ updatedAt: 'desc' }],
+        take: 24,
+      })
+
+      const seen = new Set(pool.map((r) => safeString(r?.id)))
+      for (const r of Array.isArray(fallback) ? fallback : []) {
+        const id = safeString(r?.id)
+        if (!id || seen.has(id)) continue
+        seen.add(id)
+        pool.push(r)
+      }
+    }
+
+    const agents = shuffle(pool).slice(0, take)
 
     const items = (agents as any[]).map((a) => {
       const user = a?.user
