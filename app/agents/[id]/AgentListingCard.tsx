@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { formatCountryPrice } from '@/lib/country'
+import { formatCountryPrice, type CountryCode } from '@/lib/country'
 import { resolvePropertyImages } from '@/lib/propertyImages'
 import { buildPropertySlugPath } from '@/lib/seo'
 
@@ -16,7 +16,7 @@ function canOptimizeUrl(src: string) {
 
 type Listing = {
   id: string
-  country: 'UAE' | 'India'
+  country: CountryCode
   title: string
   location: string
   price: number
