@@ -19,6 +19,8 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { data: session, status } = useSession()
 
+  const [mobileEl, setMobileEl] = useState<HTMLDivElement | null>(null)
+
   const role = String((session?.user as any)?.role || '').toUpperCase()
   const isAuthed = status === 'authenticated'
   const isAuthLoading = status === 'loading'
@@ -71,13 +73,60 @@ export default function Header() {
   }
 
   useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
     if (!mobileOpen) return
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setMobileOpen(false)
+
+      if (e.key === 'Tab' && mobileEl) {
+        const focusables = Array.from(
+          mobileEl.querySelectorAll<HTMLElement>(
+            'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+          )
+        ).filter((el) => !el.hasAttribute('disabled') && el.tabIndex !== -1)
+
+        if (focusables.length === 0) return
+
+        const first = focusables[0]
+        const last = focusables[focusables.length - 1]
+        const active = document.activeElement as HTMLElement | null
+
+        if (e.shiftKey) {
+          if (!active || active === first) {
+            e.preventDefault()
+            last.focus()
+          }
+        } else {
+          if (active === last) {
+            e.preventDefault()
+            first.focus()
+          }
+        }
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
+  }, [mobileEl, mobileOpen])
+
+  useEffect(() => {
+    if (!mobileOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
   }, [mobileOpen])
+
+  useEffect(() => {
+    if (!mobileOpen) return
+    window.setTimeout(() => {
+      const btn = mobileEl?.querySelector<HTMLElement>('button[aria-label="Close menu"]')
+      btn?.focus()
+    }, 0)
+  }, [mobileEl, mobileOpen])
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -212,6 +261,10 @@ export default function Header() {
           className={`absolute top-0 right-0 h-full w-[86%] max-w-sm bg-white shadow-2xl transition-transform duration-300 ${
             mobileOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mobile navigation"
+          ref={setMobileEl}
         >
           <div className="h-14 px-4 border-b border-gray-200 flex items-center justify-between">
             <span className="text-dark-blue font-semibold">Menu</span>

@@ -24,7 +24,7 @@ export default function EcosystemPartnersLandingPage() {
             <h1>Ecosystem Partners</h1>
           </div>
 
-          <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {ECOSYSTEM_CATEGORIES.map((c) => (
               <Link
                 key={c.slug}

@@ -703,8 +703,8 @@ export default async function AgentProfilePage({
       </div>
 
       {contactEnabled && (phone || whatsapp || email) && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white/95 backdrop-blur border-t border-gray-200">
-          <div className="mx-auto max-w-[1400px] px-4 py-3 flex items-center gap-2">
+        <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white/95 backdrop-blur-sm border-t border-gray-200">
+          <div className="mx-auto max-w-[1400px] px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center gap-2">
             {phone ? (
               <GatedActionLink
                 href={`tel:${phone}`}

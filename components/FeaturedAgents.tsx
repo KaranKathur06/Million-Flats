@@ -52,7 +52,7 @@ export default function FeaturedAgents({ market }: { market: CountryCode }) {
   }, [market])
 
   return (
-    <section className="py-20 bg-white">
+    <section className="section-spacing bg-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <p className="text-accent-orange font-semibold text-sm uppercase tracking-wider mb-2">LOCAL EXPERTS</p>
@@ -63,7 +63,7 @@ export default function FeaturedAgents({ market }: { market: CountryCode }) {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden">
                 <div className="relative h-56 bg-gray-100 animate-pulse" />
@@ -80,7 +80,7 @@ export default function FeaturedAgents({ market }: { market: CountryCode }) {
             <p className="text-sm text-gray-600">No agents have been published yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {agents.map((a: any) => {
               const name = String(a?.name || 'Agent')
               const company = String(a?.company || '').trim()

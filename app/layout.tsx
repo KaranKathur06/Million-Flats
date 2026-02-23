@@ -1,10 +1,12 @@
 import type { Metadata } from 'next'
 import React, { Suspense } from 'react'
 import { Public_Sans } from 'next/font/google'
+import { getServerSession } from 'next-auth'
 import './globals.css'
 import AppProviders from '@/components/AppProviders'
 import AppShell from '@/components/AppShell'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
+import { authOptions } from '@/lib/auth'
 
 const publicSans = Public_Sans({
   subsets: ['latin'],
@@ -22,18 +24,19 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const session = await getServerSession(authOptions)
   return (
     <html lang="en" className={publicSans.variable}>
       <body className="font-sans antialiased">
         <Suspense fallback={null}>
           <GoogleAnalytics />
         </Suspense>
-        <AppProviders>
+        <AppProviders session={session}>
           <Suspense fallback={null}>
             <AppShell>{children}</AppShell>
           </Suspense>

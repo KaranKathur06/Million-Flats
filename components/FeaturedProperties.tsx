@@ -82,7 +82,7 @@ export default function FeaturedProperties({ market }: { market: CountryCode }) 
   }, [market])
 
   return (
-    <section className="py-20 bg-gray-50">
+    <section className="section-spacing bg-gray-50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <p className="text-accent-orange font-semibold text-sm uppercase tracking-wider mb-2">
@@ -96,7 +96,7 @@ export default function FeaturedProperties({ market }: { market: CountryCode }) 
           </p>
         </div>
 
-        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 transition-opacity duration-300 ${fade ? 'opacity-60' : 'opacity-100'}`}>
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 transition-opacity duration-300 ${fade ? 'opacity-60' : 'opacity-100'}`}>
           {loading
             ? [0, 1, 2, 3].map((i) => (
                 <div key={i} className="bg-white rounded-lg overflow-hidden shadow-md">

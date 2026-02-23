@@ -86,7 +86,7 @@ const sections: TeamSection[] = [
 export default function TeamPage() {
   return (
     <div className="min-h-screen bg-white">
-      <section className="py-20">
+      <section className="section-spacing">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto">
             <p className="text-accent-orange font-semibold text-sm uppercase tracking-wider mb-2">
@@ -102,7 +102,7 @@ export default function TeamPage() {
         </div>
       </section>
 
-      <section className="py-20 bg-gray-50">
+      <section className="section-spacing bg-gray-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="space-y-16">
             {sections.map((section) => (

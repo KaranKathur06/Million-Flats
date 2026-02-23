@@ -43,25 +43,26 @@ export default async function Home({
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative w-full aspect-[16/9] max-h-[90vh] lg:max-h-[630px]">
+      <section className="relative w-full h-[70vh] max-h-[520px] sm:h-[78vh] sm:max-h-[600px] lg:h-[630px] lg:max-h-none">
         <Image
           src="/HOMEPAGE.jpg"
           alt="Luxury Home"
           fill
           className="object-cover"
           priority
+          quality={70}
           sizes="(max-width: 768px) 100vw, 1920px"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/35 to-black/55" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/45 sm:from-black/50 sm:via-black/35 sm:to-black/55" />
 
         <div className="absolute inset-0">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-end pt-12 pb-10 md:pt-16 md:pb-12">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-end pt-10 pb-8 sm:pt-14 sm:pb-10 lg:pt-16 lg:pb-12">
             <div className="w-full">
               <div className="max-w-3xl">
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white mb-6 drop-shadow-[0_2px_18px_rgba(0,0,0,0.55)]">
+                <h1 className="text-[clamp(28px,6.4vw,60px)] font-serif font-bold text-white mb-5 sm:mb-6 drop-shadow-[0_2px_18px_rgba(0,0,0,0.55)]">
                   Intelligent Property. Intelligent Choice.
                 </h1>
-                <p className="text-lg md:text-xl text-white/90 mb-8 drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)]">
+                <p className="text-[clamp(14px,2.5vw,20px)] text-white/90 mb-6 sm:mb-8 drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)]">
                   We’re your digital sales engine, not just another marketplace. We deliver qualified buyers and transaction-ready technology, connecting your properties with serious investors, buyers and sellers.
                 </p>
               </div>
@@ -89,7 +90,7 @@ export default async function Home({
       <FeaturedAgents market={market} />
 
       {/* CTA Section */}
-      <section className="bg-dark-blue py-20">
+      <section className="bg-dark-blue section-spacing">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-serif font-bold text-white mb-4">
             Ready to List Your Property?

@@ -63,16 +63,16 @@ export default function InternalPageBanner({
                   </nav>
                 ) : null}
 
-                <h1 className="mt-4 text-[42px] md:text-[48px] font-serif font-bold tracking-tight">{title}</h1>
-                {description ? <p className="mt-4 text-base md:text-lg text-white/90">{description}</p> : null}
+                <h1 className="mt-4 text-[clamp(30px,6vw,48px)] font-serif font-bold tracking-tight">{title}</h1>
+                {description ? <p className="mt-4 text-[clamp(14px,2.2vw,18px)] text-white/90">{description}</p> : null}
 
                 {ctas && ctas.length ? (
-                  <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <div className="mt-6 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
                     {ctas.map((c) => {
                       const cls =
                         c.variant === 'primary'
-                          ? 'inline-flex h-11 items-center justify-center rounded-xl bg-white px-6 font-semibold text-dark-blue hover:bg-white/95'
-                          : 'inline-flex h-11 items-center justify-center rounded-xl border border-white/35 bg-white/10 px-6 font-semibold text-white hover:bg-white/15'
+                          ? 'inline-flex h-11 w-full sm:w-auto items-center justify-center rounded-xl bg-white px-6 font-semibold text-dark-blue hover:bg-white/95'
+                          : 'inline-flex h-11 w-full sm:w-auto items-center justify-center rounded-xl border border-white/35 bg-white/10 px-6 font-semibold text-white hover:bg-white/15'
 
                       return (
                         <Link key={`${c.href}-${c.label}`} href={c.href} onClick={c.onClick} className={cls}>

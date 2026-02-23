@@ -189,6 +189,8 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [mobileFiltersVisible, setMobileFiltersVisible] = useState(false)
 
+  const [mobileFiltersEl, setMobileFiltersEl] = useState<HTMLDivElement | null>(null)
+
   const [purposeState, setPurposeState] = useState<Purpose>(() => {
     if (forcedPurpose) return forcedPurpose
     const fromUrl = searchParams?.get('purpose')
@@ -327,6 +329,55 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
     setMobileFiltersVisible(false)
     window.setTimeout(() => setMobileFiltersOpen(false), 220)
   }
+
+  useEffect(() => {
+    if (!mobileFiltersOpen) return
+
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeMobileFilters()
+
+      if (e.key === 'Tab' && mobileFiltersEl) {
+        const focusables = Array.from(
+          mobileFiltersEl.querySelectorAll<HTMLElement>(
+            'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+          )
+        ).filter((el) => !el.hasAttribute('disabled') && el.tabIndex !== -1)
+
+        if (focusables.length === 0) return
+
+        const first = focusables[0]
+        const last = focusables[focusables.length - 1]
+        const active = document.activeElement as HTMLElement | null
+
+        if (e.shiftKey) {
+          if (!active || active === first) {
+            e.preventDefault()
+            last.focus()
+          }
+        } else {
+          if (active === last) {
+            e.preventDefault()
+            first.focus()
+          }
+        }
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+
+    window.setTimeout(() => {
+      const btn = mobileFiltersEl?.querySelector<HTMLElement>('button[aria-label="Close"]')
+      btn?.focus()
+    }, 0)
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [mobileFiltersEl, mobileFiltersOpen])
 
   const fetchProperties = useCallback(async () => {
     setLoading(true)
@@ -1079,6 +1130,10 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
               className={`absolute inset-x-0 bottom-0 bg-white rounded-t-3xl border border-gray-200 transition-transform duration-200 ${
                 mobileFiltersVisible ? 'translate-y-0' : 'translate-y-6'
               }`}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Property Filters"
+              ref={setMobileFiltersEl}
             >
             <div className="px-4 pt-4 pb-24 space-y-4 overflow-auto max-h-[75vh]">
               <div className="flex items-center justify-between">

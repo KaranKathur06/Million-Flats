@@ -41,7 +41,7 @@ export default function FeaturedDevelopers({ market }: { market: CountryCode }) 
   }, [market])
 
   return (
-    <section className="pt-20 pb-16 bg-gray-50">
+    <section className="section-spacing bg-gray-50">
       <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-8 text-center">
         <div className="mb-12">
           <p className="text-accent-orange font-semibold text-sm uppercase tracking-wider mb-2">BUILT BY THE BEST</p>
@@ -49,10 +49,7 @@ export default function FeaturedDevelopers({ market }: { market: CountryCode }) 
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">Premium developers joining shortly.</p>
         </div>
 
-        <div
-          className={`grid gap-8 justify-center transition-opacity duration-150 ${fade ? 'opacity-60' : 'opacity-100'}`}
-          style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}
-        >
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 transition-opacity duration-150 ${fade ? 'opacity-60' : 'opacity-100'}`}>
           {loading
             ? [0, 1, 2].map((i) => (
                 <div key={i} className="rounded-2xl border border-black/[0.06] bg-white px-6 py-8 shadow-sm">

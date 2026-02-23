@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 
 type LeadPayload = {
@@ -25,12 +25,63 @@ export default function StickyLeadCaptureClient({
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
+  const [modalEl, setModalEl] = useState<HTMLDivElement | null>(null)
+
   const initial = useMemo(
     () => ({ name: '', email: '', phone: '', message: defaultMessage }),
     [defaultMessage]
   )
 
   const [form, setForm] = useState(initial)
+
+  useEffect(() => {
+    if (!open) return
+
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+
+      if (e.key === 'Tab' && modalEl) {
+        const focusables = Array.from(
+          modalEl.querySelectorAll<HTMLElement>(
+            'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+          )
+        ).filter((el) => !el.hasAttribute('disabled') && el.tabIndex !== -1)
+
+        if (focusables.length === 0) return
+
+        const first = focusables[0]
+        const last = focusables[focusables.length - 1]
+        const active = document.activeElement as HTMLElement | null
+
+        if (e.shiftKey) {
+          if (!active || active === first) {
+            e.preventDefault()
+            last.focus()
+          }
+        } else {
+          if (active === last) {
+            e.preventDefault()
+            first.focus()
+          }
+        }
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+
+    window.setTimeout(() => {
+      const btn = modalEl?.querySelector<HTMLElement>('button[data-role="close"]')
+      btn?.focus()
+    }, 0)
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [modalEl, open])
 
   async function submit() {
     if (busy) return
@@ -107,13 +158,24 @@ export default function StickyLeadCaptureClient({
       {open ? (
         <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
-          <div className="relative w-full lg:max-w-lg bg-white rounded-t-3xl lg:rounded-3xl border border-gray-200 p-6">
+          <div
+            className="relative w-full lg:max-w-lg bg-white rounded-t-3xl lg:rounded-3xl border border-gray-200 p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Request a Callback"
+            ref={setModalEl}
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-lg font-semibold text-dark-blue">Request a Callback</div>
                 <div className="mt-1 text-sm text-gray-600">Share your details and we’ll connect you with partners.</div>
               </div>
-              <button type="button" onClick={() => setOpen(false)} className="text-sm font-semibold text-gray-600 hover:text-dark-blue">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="text-sm font-semibold text-gray-600 hover:text-dark-blue"
+                data-role="close"
+              >
                 Close
               </button>
             </div>

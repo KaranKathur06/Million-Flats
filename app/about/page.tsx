@@ -13,7 +13,7 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-white py-20">
+      <section className="bg-white section-spacing">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <p className="text-accent-orange font-semibold text-sm uppercase tracking-wider mb-2">
@@ -30,7 +30,7 @@ export default function AboutPage() {
       </section>
 
       {/* Story Section */}
-      <section className="py-20 bg-gray-50">
+      <section className="section-spacing bg-gray-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
@@ -69,7 +69,7 @@ export default function AboutPage() {
       {/* Mission & Vision */}
       <MissionVision />
 
-      <section className="py-20 bg-white">
+      <section className="section-spacing bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <p className="text-accent-orange font-semibold text-sm uppercase tracking-wider mb-2">OUR TEAM</p>

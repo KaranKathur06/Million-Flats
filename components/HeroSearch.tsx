@@ -150,10 +150,10 @@ export default function HeroSearch() {
   return (
     <form
       onSubmit={handleSearch}
-      className="w-[94%] mx-auto md:w-full bg-black/30 md:bg-dark-blue/80 backdrop-blur-lg md:backdrop-blur-md border border-white/15 md:border-white/10 rounded-2xl p-4 md:p-7 shadow-2xl"
+      className="w-full bg-black/20 sm:bg-black/25 lg:bg-dark-blue/80 backdrop-blur-md lg:backdrop-blur-md border border-white/12 lg:border-white/10 rounded-2xl p-3 sm:p-4 lg:p-7 shadow-xl"
     >
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-3 md:gap-5 items-stretch">
-        <div className="md:col-span-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 lg:gap-5 items-stretch">
+        <div className="lg:col-span-1">
           <SelectDropdown
             variant="dark"
             label="Region"
@@ -168,7 +168,7 @@ export default function HeroSearch() {
           />
         </div>
 
-        <div className="md:col-span-1">
+        <div className="lg:col-span-1">
           <SelectDropdown
             variant="dark"
             label="Community"
@@ -182,7 +182,7 @@ export default function HeroSearch() {
           />
         </div>
 
-        <div className="md:col-span-1">
+        <div className="lg:col-span-1">
           <SelectDropdown
             variant="dark"
             label="Area"
@@ -193,7 +193,7 @@ export default function HeroSearch() {
           />
         </div>
 
-        <div className="md:col-span-1">
+        <div className="lg:col-span-1">
           <label className="block text-xs font-semibold text-white/80 mb-1">Min Price ({currencyCountry === 'INDIA' ? '₹' : 'AED'})</label>
           <div className="relative">
             <input
@@ -201,12 +201,12 @@ export default function HeroSearch() {
               value={minPrice}
               onChange={(e) => setMinPrice(e.target.value.replace(/[^0-9]/g, ''))}
               placeholder="Enter amount"
-              className="w-full h-12 md:h-14 px-4 rounded-xl bg-white/10 text-white text-sm font-semibold placeholder:text-white/40 border border-white/15 md:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent-yellow/70"
+              className="w-full h-12 lg:h-14 px-4 rounded-xl bg-white/10 text-white text-sm font-semibold placeholder:text-white/40 border border-white/15 lg:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent-yellow/70"
             />
           </div>
         </div>
 
-        <div className="md:col-span-1">
+        <div className="lg:col-span-1">
           <label className="block text-xs font-semibold text-white/80 mb-1">Max Price ({currencyCountry === 'INDIA' ? '₹' : 'AED'})</label>
           <div className="relative">
             <input
@@ -214,16 +214,16 @@ export default function HeroSearch() {
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value.replace(/[^0-9]/g, ''))}
               placeholder="Enter amount"
-              className="w-full h-12 md:h-14 px-4 rounded-xl bg-white/10 text-white text-sm font-semibold placeholder:text-white/40 border border-white/15 md:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent-yellow/70"
+              className="w-full h-12 lg:h-14 px-4 rounded-xl bg-white/10 text-white text-sm font-semibold placeholder:text-white/40 border border-white/15 lg:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent-yellow/70"
             />
           </div>
         </div>
 
-        <div className="md:col-span-1 flex flex-col">
-          <div className="block text-xs font-semibold text-white/80 mb-1 opacity-0 select-none">Browse Properties</div>
+        <div className="lg:col-span-1 flex flex-col">
+          <div className="hidden lg:block text-xs font-semibold text-white/80 mb-1 opacity-0 select-none">Browse Properties</div>
           <button
             type="submit"
-            className="w-full h-12 md:h-14 bg-accent-yellow text-dark-blue rounded-xl font-semibold hover:bg-accent-yellow/90 transition-colors"
+            className="w-full h-12 lg:h-14 bg-accent-yellow text-dark-blue rounded-xl font-semibold hover:bg-accent-yellow/90 transition-colors"
           >
             Browse Properties
           </button>
