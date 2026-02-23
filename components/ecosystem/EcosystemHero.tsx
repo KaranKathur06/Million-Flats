@@ -1,3 +1,5 @@
+ 'use client'
+
 import InternalPageBanner from '@/components/InternalPageBanner'
 import { trackEvent } from '@/lib/analytics'
 
