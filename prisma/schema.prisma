@@ -53,7 +53,7 @@ enum AgentVerificationStatus {
 
 enum CountryCode {
   UAE
-  India
+  INDIA
 }
 
 enum PropertySourceType {
@@ -206,9 +206,12 @@ model PasswordResetToken {
 model Agent {
   id       String  @id @default(uuid())
   userId   String  @unique @map("user_id")
+  agencyId String? @map("agency_id")
   company  String? @map("company_name")
   license  String? @map("license_number")
   whatsapp String? @map("whatsapp_number")
+  countryCode CountryCode @default(UAE) @map("country")
+  isFeatured Boolean @default(false) @map("is_featured")
   profilePhoto String? @map("profile_photo")
   profileImageUrl String? @map("profile_image_url")
   profileImageKey String? @map("profile_image_key")
@@ -222,6 +225,7 @@ model Agent {
   profileCompletionUpdatedAt DateTime? @map("profile_completion_updated_at")
 
   user  User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agency Agency? @relation(fields: [agencyId], references: [id], onDelete: SetNull)
   leads PropertyLead[]
   listings AgentListing[]
   manualProperties ManualProperty[]
@@ -236,7 +240,39 @@ model Agent {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([countryCode, isFeatured])
+  @@index([agencyId])
   @@map("agents")
+}
+
+model Agency {
+  id String @id @default(uuid())
+  name String
+  countryCode CountryCode @default(UAE) @map("country")
+  isFeatured Boolean @default(false) @map("is_featured")
+
+  agents Agent[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([countryCode, isFeatured])
+  @@map("agencies")
+}
+
+model Developer {
+  id String @id @default(uuid())
+  name String
+  countryCode CountryCode @default(UAE) @map("country")
+  isFeatured Boolean @default(false) @map("is_featured")
+
+  properties ManualProperty[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([countryCode, isFeatured])
+  @@map("developers")
 }
 
 model AgentServiceArea {
@@ -347,6 +383,7 @@ model AgentReview {
 model ManualProperty {
   id          String @id @default(uuid())
   agentId     String @map("agent_id")
+  developerId String? @map("developer_id")
   sourceType  PropertySourceType @default(MANUAL) @map("source_type")
   status      ManualPropertyStatus @default(DRAFT)
 
@@ -401,6 +438,7 @@ model ManualProperty {
   submittedAt DateTime? @map("submitted_at")
 
   agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  developer Developer? @relation(fields: [developerId], references: [id], onDelete: SetNull)
   media ManualPropertyMedia[]
   duplicateOverrideLogs ManualDuplicateOverrideLog[]
   moderationLogs ManualPropertyModerationLog[]
@@ -409,6 +447,7 @@ model ManualProperty {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([agentId])
+  @@index([developerId])
   @@index([status])
   @@index([sourceType])
   @@index([countryCode, city])

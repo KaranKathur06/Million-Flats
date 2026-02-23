@@ -3,14 +3,43 @@ import Link from 'next/link'
 import HeroSearch from '@/components/HeroSearch'
 import FeaturedProperties from '@/components/FeaturedProperties'
 import WhyMillionflats from '@/components/WhyMillionflats'
-import FeaturedLocations from '@/components/FeaturedLocations'
 import FeaturedAgencies from '@/components/FeaturedAgencies'
 import FeaturedDevelopers from '@/components/FeaturedDevelopers'
 import FeaturedAgents from '@/components/FeaturedAgents'
+import GlobalMarketSelectorBar from '@/components/GlobalMarketSelectorBar'
+import { DEFAULT_COUNTRY, isCountryCode, type CountryCode } from '@/lib/country'
 
 export const dynamic = 'force-dynamic'
 
-export default async function Home() {
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined }
+}) {
+  const marketRaw = typeof searchParams?.market === 'string' ? searchParams?.market : ''
+  const hasMarketParam = Boolean(marketRaw)
+
+  return {
+    alternates: {
+      canonical: '/',
+    },
+    robots: hasMarketParam ? { index: false, follow: true } : undefined,
+  }
+}
+
+function resolveMarket(searchParams?: { [key: string]: string | string[] | undefined }): CountryCode {
+  const raw = typeof searchParams?.market === 'string' ? searchParams?.market : ''
+  if (raw && isCountryCode(raw)) return raw
+  return DEFAULT_COUNTRY
+}
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined }
+}) {
+  const market = resolveMarket(searchParams)
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -47,17 +76,17 @@ export default async function Home() {
       {/* Why Millionflats Section */}
       <WhyMillionflats />
 
-      {/* Featured Properties */}
-      <FeaturedProperties />
+      <div className="bg-white pt-10">
+        <GlobalMarketSelectorBar market={market} />
+      </div>
 
-      {/* Featured Locations */}
-      <FeaturedLocations />
+      <FeaturedProperties market={market} />
 
-      <FeaturedAgencies />
+      <FeaturedAgencies market={market} />
 
-      <FeaturedDevelopers />
+      <FeaturedDevelopers market={market} />
 
-      <FeaturedAgents />
+      <FeaturedAgents market={market} />
 
       {/* CTA Section */}
       <section className="bg-dark-blue py-20">

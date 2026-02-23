@@ -117,7 +117,7 @@ export default function PropertyFilters({ filters, onFilterChange }: PropertyFil
               className="mf-select w-full px-4 py-3 pr-11 border border-gray-300 rounded-lg bg-white cursor-pointer hover:border-[#2b4d72] hover:bg-gray-50 focus:outline-none"
             >
               <option value="UAE">UAE</option>
-              <option value="India">India</option>
+              <option value="INDIA">India</option>
             </select>
             <svg
               className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500"

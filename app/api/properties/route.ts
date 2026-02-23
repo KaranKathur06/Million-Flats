@@ -51,11 +51,13 @@ function normalizeListResponse(raw: unknown) {
 
 const QuerySchema = z.object({
   purpose: z.enum(['rent', 'buy']).optional(),
-  country: z.enum(['UAE', 'India']).optional(),
+  country: z.enum(['UAE', 'INDIA']).optional(),
   city: z.string().trim().min(1).max(120).optional(),
   propertyType: z.string().trim().min(1).max(80).optional(),
   minPrice: z.coerce.number().finite().nonnegative().optional(),
   maxPrice: z.coerce.number().finite().nonnegative().optional(),
+  featured: z.enum(['true', 'false']).optional(),
+  limit: z.coerce.number().int().min(1).max(50).optional(),
 })
 
 function safeString(v: unknown) {
@@ -87,6 +89,8 @@ export async function GET(req: Request) {
       propertyType: searchParams.get('propertyType') || searchParams.get('type') || undefined,
       minPrice: searchParams.get('minPrice') || undefined,
       maxPrice: searchParams.get('maxPrice') || undefined,
+      featured: (searchParams.get('featured') || '').trim() || undefined,
+      limit: searchParams.get('limit') || undefined,
     })
 
     if (!parsed.success) {
@@ -110,6 +114,8 @@ export async function GET(req: Request) {
     if (q.purpose === 'rent') where.intent = 'RENT'
     if (q.purpose === 'buy') where.intent = 'SALE'
 
+    if (q.featured === 'true') where.exclusiveDeal = true
+
     if (typeof q.minPrice === 'number' && Number.isFinite(q.minPrice)) {
       where.price = { ...(where.price || {}), gte: q.minPrice }
     }
@@ -121,7 +127,7 @@ export async function GET(req: Request) {
       where,
       orderBy: { updatedAt: 'desc' },
       include: { media: true, agent: { include: { user: true } } },
-      take: 200,
+      take: typeof q.limit === 'number' && Number.isFinite(q.limit) ? q.limit : 200,
     })
 
     const items = (rows as any[]).map((p) => {
@@ -142,7 +148,7 @@ export async function GET(req: Request) {
         title: safeString(p.title) || 'Agent Listing',
         price: typeof p.price === 'number' ? p.price : safeNumber(p.price),
         currency: safeString(p.currency) || 'AED',
-        country: p.countryCode === 'India' ? 'India' : 'UAE',
+        country: p.countryCode === 'INDIA' ? 'INDIA' : 'UAE',
         city: safeString(p.city),
         community: safeString(p.community),
         propertyType: safeString(p.propertyType) || 'Property',

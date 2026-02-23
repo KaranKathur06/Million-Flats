@@ -3,9 +3,8 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { formatCountryPrice } from '@/lib/country'
+import { formatCountryPrice, type CountryCode } from '@/lib/country'
 import { buildProjectSeoPath, buildPropertySlugPath } from '@/lib/seo'
-import { useCountry } from '@/components/CountryProvider'
 
 function canOptimizeUrl(src: string) {
   if (!src.startsWith('http')) return true
@@ -17,49 +16,70 @@ function canOptimizeUrl(src: string) {
   }
 }
 
-export default function FeaturedProperties() {
+export default function FeaturedProperties({ market }: { market: CountryCode }) {
   const [properties, setProperties] = useState<any[]>([])
-  const { country } = useCountry()
+  const [loading, setLoading] = useState(true)
+  const [fade, setFade] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setFade(true)
+
     const params = new URLSearchParams()
-    params.set('country', country === 'India' ? 'India' : 'UAE')
+    params.set('country', market)
     params.set('limit', '4')
-    fetch(`/api/properties?${params.toString()}`)
+    fetch(`/api/featured/properties?${params.toString()}`, { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
+        if (cancelled) return
         const items = Array.isArray(data?.items) ? data.items : []
         const mapped = items
           .map((item: any) => {
             const id = String(item?.id ?? '')
             if (!id) return null
 
-            const region = String(item?.location?.region ?? '')
-            const district = String(item?.location?.district ?? '')
-            const sector = String(item?.location?.sector ?? '')
-            const location = [district, region].filter(Boolean).join(', ')
+            const city = String(item?.city ?? '')
+            const community = String(item?.community ?? '')
+            const location = [city, community].filter(Boolean).join(' · ')
 
-            const minPrice = Number(item?.min_price ?? 0)
-            const displayPrice = Number.isFinite(minPrice) ? minPrice : 0
+            const images: string[] = Array.isArray(item?.images) ? item.images : []
+            const coverImage = String(images?.[0] || '')
+
+            const price = Number(item?.price ?? 0)
+            const displayPrice = Number.isFinite(price) ? price : 0
 
             return {
               id,
-              title: String(item?.name ?? 'Project'),
-              developer: String(item?.developer ?? ''),
+              title: String(item?.title ?? 'Property'),
+              developer: String(item?.developerName ?? ''),
               location,
-              region,
-              district,
-              sector,
+              city,
+              community,
               price: displayPrice,
               priceOnRequest: displayPrice <= 0,
-              coverImage: String(item?.cover_image?.url ?? ''),
+              coverImage,
             }
           })
           .filter(Boolean)
+
         setProperties(mapped)
       })
-      .catch((err) => console.error('Error fetching properties:', err))
-  }, [country])
+      .catch((err) => {
+        if (!cancelled) console.error('Error fetching featured properties:', err)
+      })
+      .finally(() => {
+        if (cancelled) return
+        setLoading(false)
+        window.setTimeout(() => {
+          if (!cancelled) setFade(false)
+        }, 50)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [market])
 
   return (
     <section className="py-20 bg-gray-50">
@@ -76,8 +96,19 @@ export default function FeaturedProperties() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {properties.map((property: any) => {
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 transition-opacity duration-300 ${fade ? 'opacity-60' : 'opacity-100'}`}>
+          {loading
+            ? [0, 1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-lg overflow-hidden shadow-md">
+                  <div className="relative aspect-[4/3] bg-gray-100 animate-pulse" />
+                  <div className="p-6">
+                    <div className="h-5 w-3/4 bg-gray-100 rounded animate-pulse" />
+                    <div className="mt-3 h-4 w-2/3 bg-gray-100 rounded animate-pulse" />
+                    <div className="mt-6 h-6 w-1/2 bg-gray-100 rounded animate-pulse" />
+                  </div>
+                </div>
+              ))
+            : properties.map((property: any) => {
             const mainImage = property.coverImage || '/image-placeholder.svg'
             const unoptimized = mainImage.startsWith('http') && !canOptimizeUrl(mainImage)
 
@@ -91,9 +122,9 @@ export default function FeaturedProperties() {
               buildProjectSeoPath({
                 id: Number(property.id),
                 name: String(property.title || ''),
-                region: String(property.region || ''),
-                district: String(property.district || ''),
-                sector: String(property.sector || ''),
+                region: String(property.city || ''),
+                district: String(property.community || ''),
+                sector: '',
               }) || `/properties/${property.id}`
 
             return (
@@ -118,7 +149,7 @@ export default function FeaturedProperties() {
                   {property.developer ? <p className="text-sm text-gray-600 mb-1">{property.developer}</p> : null}
                   <p className="text-gray-600 mb-4">{property.location}</p>
                   <p className="text-2xl font-bold text-dark-blue">
-                    {property.priceOnRequest ? 'Price on request' : `From ${formatCountryPrice(country, property.price)}`}
+                    {property.priceOnRequest ? 'Price on request' : `From ${formatCountryPrice(market, property.price)}`}
                   </p>
                 </div>
               </Link>

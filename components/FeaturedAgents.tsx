@@ -1,6 +1,9 @@
+ 'use client'
+
 import Image from 'next/image'
 import GatedActionLink from '@/components/GatedActionLink'
-import { prisma } from '@/lib/prisma'
+import { useEffect, useState } from 'react'
+import type { CountryCode } from '@/lib/country'
 
 function slugify(input: string) {
   return input
@@ -17,15 +20,36 @@ function initials(name: string) {
   return `${first}${last}`.toUpperCase()
 }
 
-export default async function FeaturedAgents() {
-  const agents = await prisma.agent
-    .findMany({
-      where: { approved: true },
-      include: { user: true },
-      orderBy: { updatedAt: 'desc' },
-      take: 8,
-    })
-    .catch(() => [])
+export default function FeaturedAgents({ market }: { market: CountryCode }) {
+  const [agents, setAgents] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+
+    const params = new URLSearchParams()
+    params.set('country', market)
+    params.set('limit', '8')
+
+    fetch(`/api/featured/agents?${params.toString()}`, { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return
+        const items = Array.isArray(data?.items) ? data.items : []
+        setAgents(items)
+      })
+      .catch((e) => {
+        if (!cancelled) console.error('Featured agents: failed', e)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [market])
 
   return (
     <section className="py-20 bg-white">
@@ -38,16 +62,29 @@ export default async function FeaturedAgents() {
           </p>
         </div>
 
-        {agents.length === 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden">
+                <div className="relative h-56 bg-gray-100 animate-pulse" />
+                <div className="p-6">
+                  <div className="h-5 w-2/3 bg-gray-100 rounded animate-pulse" />
+                  <div className="mt-3 h-4 w-1/2 bg-gray-100 rounded animate-pulse" />
+                  <div className="mt-5 h-11 w-full bg-gray-100 rounded-xl animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : agents.length === 0 ? (
           <div className="mt-10 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-10 text-center">
             <p className="text-sm text-gray-600">No agents have been published yet.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {agents.map((a: any) => {
-              const name = String(a?.user?.name || 'Agent')
+              const name = String(a?.name || 'Agent')
               const company = String(a?.company || '').trim()
-              const image = String(a?.user?.image || '').trim()
+              const image = String(a?.profileImageUrl || '').trim()
               const slug = slugify(name)
               const href = `/agents/${slug ? `${slug}-` : ''}${encodeURIComponent(String(a.id))}`
               return (

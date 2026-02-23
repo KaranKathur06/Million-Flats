@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ECOSYSTEM_CATEGORIES, categoryHref } from '@/lib/ecosystemPartners'
+import InternalPageBanner from '@/components/InternalPageBanner'
 
 export const metadata = {
   title: 'Ecosystem Partners | MillionFlats',
@@ -10,14 +11,18 @@ export const metadata = {
 export default function EcosystemPartnersLandingPage() {
   return (
     <div className="min-h-screen bg-gray-50">
+      <InternalPageBanner
+        title="Ecosystem Partners"
+        description="Curated, verified partners across finance, legal, insurance, interiors, moving, management, and more."
+        image={{ src: '/HOMEPAGE.jpg', alt: 'Ecosystem Partners' }}
+        breadcrumb={[{ label: 'Home', href: '/' }, { label: 'Ecosystem', href: '/ecosystem-partners' }]}
+      />
+
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="max-w-4xl">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-dark-blue">Ecosystem Partners</h1>
-          <p className="mt-4 text-lg text-gray-600">
-            MillionFlats curates verified ecosystem partners to help buyers, sellers, investors, and NRIs make confident
-            property decisions—from financing and legal diligence to insurance, interiors, moving, management, and
-            wellbeing.
-          </p>
+          <div className="sr-only">
+            <h1>Ecosystem Partners</h1>
+          </div>
 
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
             {ECOSYSTEM_CATEGORIES.map((c) => (

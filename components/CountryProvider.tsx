@@ -25,6 +25,14 @@ export default function CountryProvider({ children }: { children: React.ReactNod
 
   useEffect(() => {
     try {
+      const sp = new URLSearchParams(window.location.search)
+      const fromUrl = sp.get('market') || sp.get('country')
+      if (fromUrl && isCountryCode(fromUrl)) {
+        setCountryState(fromUrl)
+        window.localStorage.setItem(STORAGE_KEY, fromUrl)
+        return
+      }
+
       const stored = window.localStorage.getItem(STORAGE_KEY)
       if (stored && isCountryCode(stored)) {
         setCountryState(stored)

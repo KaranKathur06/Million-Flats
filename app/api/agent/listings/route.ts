@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 
 const CreateListingSchema = z.object({
   externalId: z.string().trim().min(1).max(128),
-  countryCode: z.enum(['UAE', 'India']).optional(),
+  countryCode: z.enum(['UAE', 'INDIA']).optional(),
 })
 
 const DeleteListingSchema = z.object({

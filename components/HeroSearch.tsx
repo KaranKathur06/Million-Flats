@@ -122,7 +122,7 @@ export default function HeroSearch() {
     return Array.from(set).sort((a, b) => a.localeCompare(b))
   }, [projects, region, community])
 
-  const currencyCountry: CountryCode = normalize(region) === 'india' ? 'India' : 'UAE'
+  const currencyCountry: CountryCode = normalize(region) === 'india' ? 'INDIA' : 'UAE'
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -194,7 +194,7 @@ export default function HeroSearch() {
         </div>
 
         <div className="md:col-span-1">
-          <label className="block text-xs font-semibold text-white/80 mb-1">Min Price ({currencyCountry === 'India' ? '₹' : 'AED'})</label>
+          <label className="block text-xs font-semibold text-white/80 mb-1">Min Price ({currencyCountry === 'INDIA' ? '₹' : 'AED'})</label>
           <div className="relative">
             <input
               inputMode="numeric"
@@ -207,7 +207,7 @@ export default function HeroSearch() {
         </div>
 
         <div className="md:col-span-1">
-          <label className="block text-xs font-semibold text-white/80 mb-1">Max Price ({currencyCountry === 'India' ? '₹' : 'AED'})</label>
+          <label className="block text-xs font-semibold text-white/80 mb-1">Max Price ({currencyCountry === 'INDIA' ? '₹' : 'AED'})</label>
           <div className="relative">
             <input
               inputMode="numeric"

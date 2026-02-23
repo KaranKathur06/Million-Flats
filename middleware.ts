@@ -103,8 +103,16 @@ export async function middleware(req: NextRequest) {
   const isAgentProtected = pathname === '/agent' || pathname.startsWith('/agent/')
   const isDashboardProtected = pathname === '/dashboard' || pathname.startsWith('/dashboard/')
   const isEcosystemAdminProtected = pathname === '/ecosystem/admin' || pathname.startsWith('/ecosystem/admin/')
+  const isEcosystemPartnersProtected = pathname === '/ecosystem-partners' || pathname.startsWith('/ecosystem-partners/')
+  const isVerixProtected = pathname === '/verix' || pathname.startsWith('/verix/')
 
-  const isProtected = isAdminProtected || isAgentProtected || isDashboardProtected || isEcosystemAdminProtected
+  const isProtected =
+    isAdminProtected ||
+    isAgentProtected ||
+    isDashboardProtected ||
+    isEcosystemAdminProtected ||
+    isEcosystemPartnersProtected ||
+    isVerixProtected
 
   const secret = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET
   const nextAuthToken = secret ? await getToken({ req, secret }) : null
@@ -125,7 +133,8 @@ export async function middleware(req: NextRequest) {
   if (isProtected && !roleRaw) {
     const url = req.nextUrl.clone()
     url.pathname = getLoginPath(pathname)
-    url.search = `next=${encodeURIComponent(pathname)}`
+    const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`
+    url.search = `next=${encodeURIComponent(next)}`
     return NextResponse.redirect(url)
   }
 

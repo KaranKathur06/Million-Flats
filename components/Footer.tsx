@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import GatedActionLink from '@/components/GatedActionLink'
 
 export default function Footer() {
   return (
@@ -30,108 +31,108 @@ export default function Footer() {
             </h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/verix/view" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
+                <GatedActionLink href="/verix/view" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
                   VerixView<sup>™</sup>
-                </Link>
+                </GatedActionLink>
               </li>
               <li>
-                <Link href="/verix/shield" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
+                <GatedActionLink href="/verix/shield" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
                   VerixShield<sup>™</sup>
-                </Link>
+                </GatedActionLink>
               </li>
               <li>
-                <Link href="/verix/index" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
+                <GatedActionLink href="/verix/index" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
                   VerixIndex<sup>™</sup>
-                </Link>
+                </GatedActionLink>
               </li>
               <li>
-                <Link href="/verix/title" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
+                <GatedActionLink href="/verix/title" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
                   VerixTitle<sup>™</sup>
-                </Link>
+                </GatedActionLink>
               </li>
               <li>
-                <Link href="/verix/pro" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
+                <GatedActionLink href="/verix/pro" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
                   VerixPro<sup>™</sup>
-                </Link>
+                </GatedActionLink>
               </li>
             </ul>
           </div>
 
           <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Ecosystem / Partners</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">Ecosystem  Partners</h3>
             <ul className="space-y-2">
               <li>
-                <Link
+                <GatedActionLink
                   href="/ecosystem-partners/home-loans-finance"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap"
                 >
                   Home Loans &amp; Finance
-                </Link>
+                </GatedActionLink>
               </li>
               <li>
-                <Link
+                <GatedActionLink
                   href="/ecosystem-partners/legal-documentation"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap"
                 >
                   Legal &amp; Documentation
-                </Link>
+                </GatedActionLink>
               </li>
               <li>
-                <Link
+                <GatedActionLink
                   href="/ecosystem-partners/property-insurance"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap"
                 >
                   Property Insurance
-                </Link>
+                </GatedActionLink>
               </li>
               <li>
-                <Link
+                <GatedActionLink
                   href="/ecosystem-partners/interior-design-renovation"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap"
                 >
                   Interior Design &amp; Renovation
-                </Link>
+                </GatedActionLink>
               </li>
               <li>
-                <Link href="/ecosystem-partners/packers-movers" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
+                <GatedActionLink href="/ecosystem-partners/packers-movers" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
                   Packers &amp; Movers
-                </Link>
+                </GatedActionLink>
               </li>
               <li>
-                <Link
+                <GatedActionLink
                   href="/ecosystem-partners/property-management"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap"
                 >
                   Property Management
-                </Link>
+                </GatedActionLink>
               </li>
               <li>
-                <Link href="/ecosystem-partners/vastu-feng-shui" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
+                <GatedActionLink href="/ecosystem-partners/vastu-feng-shui" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
                   Vastu / Feng Shui 
-                </Link>
+                </GatedActionLink>
               </li>
               <li>
-                <Link href="/ecosystem-partners/tiles-surface-finishing" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
+                <GatedActionLink href="/ecosystem-partners/tiles-surface-finishing" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
                   Tiles &amp; Surface Finishing
-                </Link>
+                </GatedActionLink>
               </li>
               <li>
-                <Link
+                <GatedActionLink
                   href="/ecosystem-partners/hardware-architectural-fittings"
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap"
                 >
                   Hardware &amp; Architectural Fittings
-                </Link>
+                </GatedActionLink>
               </li>
               <li>
-                <Link href="/ecosystem-partners/cement-structural" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
+                <GatedActionLink href="/ecosystem-partners/cement-structural" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
                   Cement &amp; Structural
-                </Link>
+                </GatedActionLink>
               </li>
               <li>
-                <Link href="/ecosystem-partners/smart-home-automation" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
+                <GatedActionLink href="/ecosystem-partners/smart-home-automation" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
                   Smart Home &amp; Automation
-                </Link>
+                </GatedActionLink>
               </li>
             </ul>
           </div>

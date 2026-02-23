@@ -35,7 +35,7 @@ export default function GatedActionLink({ href, className, children }: Props) {
     if (isAuthed) return
     e.preventDefault()
     const next = buildNext(pathname, search)
-    router.push(`/user/login?next=${encodeURIComponent(next)}`)
+    router.push(`/auth/login?next=${encodeURIComponent(next)}`)
   }
 
   const isInternal = href.startsWith('/')

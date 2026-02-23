@@ -27,7 +27,7 @@ interface Agent {
 
 interface Property {
   id: string
-  country: 'UAE' | 'India'
+  country: 'UAE' | 'INDIA'
   title: string
   location: string
   price: number

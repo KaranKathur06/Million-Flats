@@ -19,7 +19,7 @@ interface Property {
   title: string
   location: string
   price: number
-  country: 'UAE' | 'India'
+  country: 'UAE' | 'INDIA'
   images: string[]
   featured: boolean
   bedrooms: number

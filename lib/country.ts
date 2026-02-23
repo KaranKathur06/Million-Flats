@@ -1,4 +1,4 @@
-export type CountryCode = 'UAE' | 'India'
+export type CountryCode = 'UAE' | 'INDIA'
 
 export const DEFAULT_COUNTRY: CountryCode = 'UAE'
 
@@ -39,7 +39,7 @@ export const INDIA_CITIES = [
 
 export const CITIES_BY_COUNTRY: Record<CountryCode, readonly string[]> = {
   UAE: UAE_CITIES,
-  India: INDIA_CITIES,
+  INDIA: INDIA_CITIES,
 }
 
 export const COUNTRY_META: Record<
@@ -61,7 +61,7 @@ export const COUNTRY_META: Record<
     maxPrice: 50000000,
     priceStep: 100000,
   },
-  India: {
+  INDIA: {
     currency: 'INR',
     locale: 'en-IN',
     currencyLabel: '₹',
@@ -72,18 +72,18 @@ export const COUNTRY_META: Record<
 }
 
 export function isCountryCode(value: unknown): value is CountryCode {
-  return value === 'UAE' || value === 'India'
+  return value === 'UAE' || value === 'INDIA'
 }
 
 export function uiPriceToAed(country: CountryCode, amount: number) {
-  if (country === 'India') {
+  if (country === 'INDIA') {
     return Math.round(amount / INR_PER_AED)
   }
   return amount
 }
 
 export function aedToUiPrice(country: CountryCode, amountAed: number) {
-  if (country === 'India') {
+  if (country === 'INDIA') {
     return Math.round(amountAed * INR_PER_AED)
   }
   return amountAed

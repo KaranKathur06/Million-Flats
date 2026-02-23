@@ -6,10 +6,11 @@ import Image from 'next/image'
 import PropertyListCard from '@/components/PropertyListCard'
 import { useCountry } from '@/components/CountryProvider'
 import { CITIES_BY_COUNTRY, COUNTRY_META, DEFAULT_COUNTRY, isCountryCode, uiPriceToAed, type CountryCode } from '@/lib/country'
+import InternalPageBanner from '@/components/InternalPageBanner'
 
 interface Property {
   id: string
-  country: 'UAE' | 'India'
+  country: 'UAE' | 'INDIA'
   title: string
   location: string
   price: number
@@ -361,7 +362,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
           if (!id) return null
 
           const title = typeof item?.title === 'string' ? item.title : 'Property'
-          const countryLabel: 'UAE' | 'India' = item?.country === 'India' ? 'India' : 'UAE'
+          const countryLabel: 'UAE' | 'INDIA' = item?.country === 'INDIA' ? 'INDIA' : 'UAE'
           const city = typeof item?.city === 'string' ? item.city : ''
           const community = typeof item?.community === 'string' ? item.community : ''
           const location = community ? `${city} · ${community}` : city
@@ -614,31 +615,17 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
       ? 'Discover premium rentals across curated markets. Refine by city, community, and price.'
       : 'Browse verified listings across curated markets. Refine by city, community, and price.'
 
+  const breadcrumbLabel = purpose === 'rent' ? 'Rent' : 'Buy'
+  const breadcrumbHref = purpose === 'rent' ? '/rent' : '/buy'
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {!forcedPurpose ? (
-        <section className="relative w-full aspect-[16/6] max-h-[500px] bg-gray-100 overflow-hidden">
-          <Image
-            src="/HOMEPAGE.jpg"
-            alt={heroTitle}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 1920px"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/60" />
-
-          <div className="absolute inset-0">
-            <div className="mx-auto max-w-[1800px] px-4 sm:px-6 lg:px-8 h-full flex flex-col items-center justify-center text-center">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif font-bold text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.55)]">
-                {heroTitle}
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm md:text-base text-white/90 drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)]">
-                {heroSubtitle}
-              </p>
-            </div>
-          </div>
-        </section>
-      ) : null}
+      <InternalPageBanner
+        title={heroTitle}
+        description={heroSubtitle}
+        image={{ src: '/HOMEPAGE.jpg', alt: heroTitle }}
+        breadcrumb={[{ label: 'Home', href: '/' }, { label: breadcrumbLabel, href: breadcrumbHref }]}
+      />
 
       <div className="mx-auto max-w-[1800px] px-4 sm:px-6 lg:px-8 pt-10 pb-14">
         <div className="mb-8">
@@ -669,7 +656,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
                     className="mf-select w-full h-12 md:h-11 px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
                   >
                     <option value="UAE">UAE</option>
-                    <option value="India">India</option>
+                    <option value="INDIA">India</option>
                   </select>
                   <svg
                     className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
