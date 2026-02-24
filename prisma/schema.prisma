@@ -261,8 +261,8 @@ model Agency {
 }
 
 model Developer {
-  id String @id @default(uuid())
-  name String
+  id String @id @default(dbgenerated("gen_random_uuid()::text")) @db.Text
+  name String @unique
   countryCode CountryCode @default(UAE) @map("country")
   isFeatured Boolean @default(false) @map("is_featured")
 
@@ -383,7 +383,7 @@ model AgentReview {
 model ManualProperty {
   id          String @id @default(uuid())
   agentId     String @map("agent_id")
-  developerId String? @map("developer_id")
+  developerId String? @map("developer_id") @db.Text
   sourceType  PropertySourceType @default(MANUAL) @map("source_type")
   status      ManualPropertyStatus @default(DRAFT)
 
