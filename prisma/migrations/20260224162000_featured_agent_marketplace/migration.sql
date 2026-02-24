@@ -9,8 +9,8 @@ CREATE INDEX IF NOT EXISTS "agents_country_iso2_featured_score_idx" ON "agents" 
 
 -- Analytics: featured agent click tracking
 CREATE TABLE IF NOT EXISTS "featured_agent_clicks" (
-  "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "agent_id" UUID NOT NULL,
+  "id" TEXT PRIMARY KEY,
+  "agent_id" TEXT NOT NULL,
   "country_iso2" CHAR(2),
   "clicked_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

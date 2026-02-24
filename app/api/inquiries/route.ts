@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { recomputeFeaturedScore } from '@/lib/featured/recomputeFeaturedScore'
 import { recomputeAgentResponseRate } from '@/lib/featured/agentPerformance'
+import { randomUUID } from 'crypto'
 
 export const runtime = 'nodejs'
 
@@ -55,6 +56,7 @@ export async function POST(req: Request) {
 
     const inquiry = await (prisma as any).inquiry.create({
       data: {
+        id: randomUUID(),
         propertyId: property.id,
         agentId: property.agentId,
         userId: dbUser.id,

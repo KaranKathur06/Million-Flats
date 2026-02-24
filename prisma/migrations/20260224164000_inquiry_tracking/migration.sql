@@ -2,10 +2,10 @@
 ALTER TABLE "agents" ADD COLUMN IF NOT EXISTS "responded_leads" INTEGER NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS "inquiries" (
-  "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "property_id" UUID NOT NULL,
-  "agent_id" UUID NOT NULL,
-  "user_id" UUID,
+  "id" TEXT PRIMARY KEY,
+  "property_id" TEXT NOT NULL,
+  "agent_id" TEXT NOT NULL,
+  "user_id" TEXT,
   "message" TEXT,
   "status" TEXT NOT NULL DEFAULT 'PENDING',
   "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),

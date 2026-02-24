@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import { randomUUID } from 'crypto'
 
 export const runtime = 'nodejs'
 
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
     await (prisma as any).featuredAgentClick
       .create({
         data: {
+          id: randomUUID(),
           agentId,
           countryIso2: countryIso2 || null,
         },
