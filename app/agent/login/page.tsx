@@ -9,12 +9,20 @@ export default async function AgentLoginPage({
   searchParams,
 }: {
   searchParams?: Record<string, string | string[] | undefined>
-}) {  const session = await getServerSession(authOptions)
+}) {
+  const session = await getServerSession(authOptions)
   const email = String((session?.user as any)?.email || '').trim().toLowerCase()
 
   if (email) {
     const user = await (prisma as any).user
-      .findUnique({ where: { email }, select: { role: true, status: true, agent: { select: { id: true, approved: true, profileStatus: true } } } })
+      .findUnique({
+        where: { email },
+        select: {
+          role: true,
+          status: true,
+          agent: { select: { id: true, approved: true, profileStatus: true, profileCompletion: true } },
+        },
+      })
       .catch(() => null)
 
     const status = String((user as any)?.status || 'ACTIVE').toUpperCase()
@@ -22,6 +30,7 @@ export default async function AgentLoginPage({
     const hasAgentRow = Boolean((user as any)?.agent?.id)
     const approved = Boolean((user as any)?.agent?.approved)
     const profileStatus = String((user as any)?.agent?.profileStatus || 'DRAFT').toUpperCase()
+    const profileCompletion = Number((user as any)?.agent?.profileCompletion ?? 0)
 
     if (status !== 'ACTIVE') {
       const errRaw = searchParams?.error
@@ -34,15 +43,18 @@ export default async function AgentLoginPage({
       }
     }
 
-    if (!hasAgentRow) {
-      redirect(role === 'AGENT' ? '/agent/onboarding' : role === 'ADMIN' || role === 'SUPERADMIN' ? '/admin/dashboard' : '/user/dashboard')
+    // Non-agent roles should not be on the agent login path
+    if (role !== 'AGENT') {
+      redirect('/')
     }
 
-    if (role === 'AGENT' && approved && profileStatus === 'LIVE') {
-      redirect('/agent/dashboard')
+    // If no agent row or profile is incomplete, force onboarding
+    if (!hasAgentRow || !approved || profileStatus !== 'LIVE' || profileCompletion < 100) {
+      redirect('/agent/onboarding')
     }
 
-    redirect(`/agent/profile?notice=${encodeURIComponent(profileStatus === 'SUBMITTED' ? 'under_review' : profileStatus === 'VERIFIED' ? 'not_approved' : 'complete_profile')}`)
+    // Fully verified agents go to dashboard
+    redirect('/agent/dashboard')
   }
 
   return (

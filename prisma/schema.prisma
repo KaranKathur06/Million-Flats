@@ -56,6 +56,28 @@ enum CountryCode {
   INDIA
 }
 
+model Country {
+  iso2      String   @id @db.Char(2)
+  iso3      String   @db.Char(3)
+  name      String
+  dialCode  String   @map("dial_code")
+  region    String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users       User[]
+  userPhones  User[]   @relation("UserPhoneCountry")
+  agents      Agent[]
+  agencies    Agency[]
+  developers  Developer[]
+  properties  ManualProperty[]
+
+  @@index([isActive])
+  @@index([region])
+  @@map("countries")
+}
+
 enum PropertySourceType {
   REELLY
   MANUAL
@@ -94,6 +116,12 @@ enum ManualModerationAction {
   REJECT
 }
 
+enum InquiryStatus {
+  PENDING
+  RESPONDED
+  CLOSED
+}
+
 model User {
   id        String   @id @default(uuid())
   role      Role     @default(USER)
@@ -107,6 +135,13 @@ model User {
   password  String?  @map("password_hash")
   googleId  String?  @unique @map("google_id")
   phone     String?
+  phoneCountryIso2   String?  @db.Char(2) @map("phone_country_iso2")
+  phoneNationalNumber String? @map("phone_national_number")
+
+  phoneCountry Country? @relation("UserPhoneCountry", fields: [phoneCountryIso2], references: [iso2])
+
+  countryIso2 String? @db.Char(2) @map("country_iso2")
+  country     Country? @relation(fields: [countryIso2], references: [iso2])
   verified  Boolean  @default(false) @map("is_verified")
 
   agent Agent?
@@ -208,9 +243,24 @@ model Agent {
   userId   String  @unique @map("user_id")
   agencyId String? @map("agency_id")
   company  String? @map("company_name")
-  license  String? @map("license_number")
+  license  String? @unique @map("license_number")
+  licenseAuthority String? @map("license_authority")
+  yearsExperience Int? @map("years_experience")
+  primaryMarket String? @map("primary_market")
+  specialization String[] @default([]) @map("specialization")
+  linkedinUrl String? @map("linkedin_url")
+  websiteUrl String? @map("website_url")
+  verificationStatus AgentVerificationStatus @default(PENDING) @map("verification_status")
+  isFeaturedManual Boolean @default(false) @map("is_featured_manual")
+  featuredScore Int @default(0) @map("featured_score")
+  totalListings Int @default(0) @map("total_listings")
+  totalLeads Int @default(0) @map("total_leads")
+  respondedLeads Int @default(0) @map("responded_leads")
+  responseRate Float @default(0) @map("response_rate")
   whatsapp String? @map("whatsapp_number")
   countryCode CountryCode @default(UAE) @map("country")
+  countryIso2 String? @db.Char(2) @map("country_iso2")
+  country     Country? @relation(fields: [countryIso2], references: [iso2])
   isFeatured Boolean @default(false) @map("is_featured")
   profilePhoto String? @map("profile_photo")
   profileImageUrl String? @map("profile_image_url")
@@ -236,19 +286,40 @@ model Agent {
   badges AgentBadge[]
   verifications AgentVerification[]
   reviews AgentReview[]
+  featuredClicks FeaturedAgentClick[]
+  inquiries Inquiry[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([countryCode, isFeatured])
+  @@index([countryIso2, isFeatured])
+  @@index([countryIso2, featuredScore])
   @@index([agencyId])
   @@map("agents")
+}
+
+model FeaturedAgentClick {
+  id String @id @default(uuid())
+  agentId String @map("agent_id")
+  countryIso2 String? @db.Char(2) @map("country_iso2")
+  clickedAt DateTime @default(now()) @map("clicked_at")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  country Country? @relation(fields: [countryIso2], references: [iso2], onDelete: SetNull)
+
+  @@index([agentId])
+  @@index([countryIso2])
+  @@index([clickedAt])
+  @@map("featured_agent_clicks")
 }
 
 model Agency {
   id String @id @default(uuid())
   name String
   countryCode CountryCode @default(UAE) @map("country")
+  countryIso2 String? @db.Char(2) @map("country_iso2")
+  country     Country? @relation(fields: [countryIso2], references: [iso2])
   isFeatured Boolean @default(false) @map("is_featured")
 
   agents Agent[]
@@ -257,6 +328,7 @@ model Agency {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([countryCode, isFeatured])
+  @@index([countryIso2, isFeatured])
   @@map("agencies")
 }
 
@@ -264,6 +336,8 @@ model Developer {
   id String @id @default(dbgenerated("gen_random_uuid()::text")) @db.Text
   name String @unique
   countryCode CountryCode @default(UAE) @map("country")
+  countryIso2 String? @db.Char(2) @map("country_iso2")
+  country     Country? @relation(fields: [countryIso2], references: [iso2])
   isFeatured Boolean @default(false) @map("is_featured")
 
   properties ManualProperty[]
@@ -272,6 +346,7 @@ model Developer {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([countryCode, isFeatured])
+  @@index([countryIso2, isFeatured])
   @@map("developers")
 }
 
@@ -409,6 +484,8 @@ model ManualProperty {
   squareFeet Float @default(0) @map("square_feet")
 
   countryCode CountryCode @default(UAE) @map("country")
+  countryIso2 String? @db.Char(2) @map("country_iso2")
+  country     Country? @relation(fields: [countryIso2], references: [iso2])
   city        String?
   community   String?
   address     String?
@@ -439,6 +516,7 @@ model ManualProperty {
 
   agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
   developer Developer? @relation(fields: [developerId], references: [id], onDelete: SetNull)
+  inquiries Inquiry[]
   media ManualPropertyMedia[]
   duplicateOverrideLogs ManualDuplicateOverrideLog[]
   moderationLogs ManualPropertyModerationLog[]
@@ -451,7 +529,31 @@ model ManualProperty {
   @@index([status])
   @@index([sourceType])
   @@index([countryCode, city])
+  @@index([countryIso2, city])
   @@map("manual_properties")
+}
+
+model Inquiry {
+  id String @id @default(uuid())
+  propertyId String @map("property_id")
+  agentId String @map("agent_id")
+  userId String? @map("user_id")
+
+  message String? @db.Text
+  status InquiryStatus @default(PENDING)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  respondedAt DateTime? @map("responded_at")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  property ManualProperty @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([agentId])
+  @@index([propertyId])
+  @@index([userId])
+  @@index([status])
+  @@map("inquiries")
 }
 
 enum AuditEntityType {

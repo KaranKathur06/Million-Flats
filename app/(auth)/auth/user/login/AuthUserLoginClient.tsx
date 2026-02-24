@@ -82,13 +82,13 @@ export default function AuthUserLoginClient() {
 
   return (
     <AuthLayout title="Welcome Back" subtitle="Continue as a user">
-      <form className="space-y-5" onSubmit={handleSubmit}>
+      <form className="space-y-4" onSubmit={handleSubmit}>
         {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">{error}</div>}
 
         {showResetCta && (
           <Link
             href={`/user/forgot-password?email=${encodeURIComponent(email)}`}
-            className="block w-full text-center h-12 leading-[3rem] rounded-xl font-medium bg-gray-900 text-white hover:bg-gray-800 transition-all duration-200"
+            className="block w-full text-center h-10 leading-10 rounded-xl font-medium bg-gray-900 text-white hover:bg-gray-800 transition-all duration-200"
           >
             Reset Password
           </Link>
@@ -97,7 +97,7 @@ export default function AuthUserLoginClient() {
         <button
           type="button"
           onClick={handleGoogleLogin}
-          className="w-full h-12 flex items-center justify-center gap-3 px-4 border border-gray-200 rounded-xl font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+          className="w-full h-10 flex items-center justify-center gap-3 px-4 border border-gray-200 rounded-xl font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path
@@ -141,7 +141,7 @@ export default function AuthUserLoginClient() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full h-12 px-4 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-dark-blue/20 focus:border-dark-blue/30 transition-all"
+            className="w-full h-10 px-3.5 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-dark-blue/20 focus:border-dark-blue/30 transition-all"
             placeholder="Enter your email"
           />
         </div>
@@ -159,13 +159,13 @@ export default function AuthUserLoginClient() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full h-12 px-4 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-dark-blue/20 focus:border-dark-blue/30 transition-all pr-12"
+              className="w-full h-10 px-3.5 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-dark-blue/20 focus:border-dark-blue/30 transition-all pr-12"
               placeholder="Enter your password"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl text-gray-400 hover:text-gray-600 inline-flex items-center justify-center"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 rounded-xl text-gray-400 hover:text-gray-600 inline-flex items-center justify-center"
             >
               {showPassword ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -200,7 +200,7 @@ export default function AuthUserLoginClient() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full h-12 bg-dark-blue text-white px-4 rounded-xl font-semibold hover:bg-dark-blue/90 focus:outline-none focus:ring-2 focus:ring-dark-blue/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full h-10 bg-dark-blue text-white px-4 rounded-xl font-semibold hover:bg-dark-blue/90 focus:outline-none focus:ring-2 focus:ring-dark-blue/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Signing in…' : 'Sign In'}
         </button>

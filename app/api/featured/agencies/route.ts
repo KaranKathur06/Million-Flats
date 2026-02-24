@@ -34,8 +34,13 @@ export async function GET(req: Request) {
   const country = parsed.data.country || 'UAE'
   const take = 4
 
+  const agencyModel = (prisma as any)?.agency
+  if (!agencyModel || typeof agencyModel.findMany !== 'function') {
+    return NextResponse.json({ success: true, country, items: [] })
+  }
+
   try {
-    const featured = await (prisma as any).agency.findMany({
+    const featured = await agencyModel.findMany({
       where: { isFeatured: true, countryCode: country },
       orderBy: [{ updatedAt: 'desc' }],
       take: 24,
@@ -44,7 +49,7 @@ export async function GET(req: Request) {
 
     let pool: any[] = Array.isArray(featured) ? featured : []
     if (pool.length < take) {
-      const fallback = await (prisma as any).agency.findMany({
+      const fallback = await agencyModel.findMany({
         where: { countryCode: country },
         orderBy: [{ updatedAt: 'desc' }],
         take: 24,

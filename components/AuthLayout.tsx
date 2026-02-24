@@ -10,7 +10,7 @@ interface AuthLayoutProps {
 
 export default function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-gradient-to-br from-white via-[#F5F8FF] to-white">
+    <div className="min-h-screen lg:h-screen lg:overflow-hidden flex flex-col lg:flex-row bg-gradient-to-br from-white via-[#F5F8FF] to-white">
       <div className="lg:hidden relative h-[28vh] min-h-[220px]">
         <Image
           src="/auth-bg.jpg"
@@ -36,11 +36,11 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
         <div className="absolute inset-0 bg-gradient-to-br from-dark-blue/95 via-dark-blue/80 to-dark-blue/90" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_24%,rgba(255,255,255,0.10),transparent_55%)]" />
 
-        <div className="relative z-10 flex flex-col justify-center p-14 text-white">
-          <h1 className="text-5xl font-serif font-bold leading-tight tracking-tight">
+        <div className="relative z-10 flex flex-col justify-center p-12 text-white">
+          <h1 className="text-[44px] font-serif font-bold leading-tight tracking-tight">
             Exclusive access begins here.
           </h1>
-          <p className="mt-5 text-lg text-white/90 max-w-xl">
+          <p className="mt-4 text-[17px] text-white/90 max-w-xl">
             For verified buyers and professional agents.
           </p>
         </div>
@@ -48,7 +48,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
 
       {/* Right Section - Auth Card */}
       <div className="w-full lg:w-[40%] flex flex-col bg-white lg:bg-gradient-to-br lg:from-white lg:via-[#F5F8FF] lg:to-white -mt-10 lg:mt-0 rounded-t-[28px] lg:rounded-none shadow-[0_-18px_45px_rgba(10,25,60,0.10)] lg:shadow-none relative z-10">
-        <div className="flex items-center justify-between px-6 sm:px-10 py-5">
+        <div className="flex items-center justify-between px-6 sm:px-8 py-5 lg:py-4">
           <Link href="/" className="inline-flex items-center gap-3">
             <span className="relative w-8 h-8">
               <Image src="/FAVICON.jpeg" alt="MillionFlats" fill className="object-contain" sizes="32px" priority />
@@ -60,13 +60,13 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
           </Link>
         </div>
 
-        <div className="flex-1 flex items-start lg:items-center justify-center px-4 sm:px-10 pb-[calc(3rem+env(safe-area-inset-bottom))]">
-          <div className="w-full max-w-[520px]">
-            <div className="rounded-[24px] border border-gray-200 bg-white shadow-[0_18px_50px_rgba(10,25,60,0.10)] p-6 sm:p-8">
-              <div className="mb-6">
-                <h2 className="text-[clamp(26px,6vw,36px)] font-serif font-bold text-dark-blue mb-1">{title}</h2>
-                {subtitle ? <p className="text-gray-600 mt-2">{subtitle}</p> : null}
-                <p className="text-[13px] text-gray-500 mt-3">Secure • Encrypted • Verified Access</p>
+        <div className="flex-1 flex items-start lg:items-center justify-center px-4 sm:px-8 pb-[calc(2rem+env(safe-area-inset-bottom))] lg:pb-5">
+          <div className="w-full max-w-[440px]">
+            <div className="rounded-2xl border border-gray-200 bg-white shadow-[0_18px_50px_rgba(10,25,60,0.10)] p-6 space-y-4">
+              <div>
+                <h2 className="text-[clamp(24px,4.6vw,32px)] font-serif font-bold text-dark-blue mb-2">{title}</h2>
+                {subtitle ? <p className="text-gray-600 mb-4">{subtitle}</p> : null}
+                <p className="text-xs text-gray-500">Secure • Encrypted • Verified Access</p>
               </div>
 
               {children}

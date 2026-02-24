@@ -143,7 +143,7 @@ export default function UserRegisterPage() {
       subtitle="Save properties, book tours, and receive personalized recommendations"
     >
       {stage === 'verify' ? (
-        <form className="space-y-5" onSubmit={handleVerify}>
+        <form className="space-y-4" onSubmit={handleVerify}>
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
           )}
@@ -165,7 +165,7 @@ export default function UserRegisterPage() {
               maxLength={6}
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all text-center text-2xl tracking-widest"
+              className="w-full h-10 px-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all text-center text-xl tracking-widest"
               placeholder="000000"
             />
           </div>
@@ -173,7 +173,7 @@ export default function UserRegisterPage() {
           <button
             type="submit"
             disabled={loading || otp.length !== 6}
-            className="w-full h-12 bg-dark-blue text-white px-4 rounded-xl font-semibold hover:bg-dark-blue/90 focus:outline-none focus:ring-2 focus:ring-dark-blue focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-dark-blue/20"
+            className="w-full h-10 bg-dark-blue text-white px-4 rounded-xl font-semibold hover:bg-dark-blue/90 focus:outline-none focus:ring-2 focus:ring-dark-blue focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-dark-blue/20"
           >
             {loading ? 'Verifying…' : 'Verify Email'}
           </button>
@@ -182,7 +182,7 @@ export default function UserRegisterPage() {
             type="button"
             disabled={loading || cooldownSeconds > 0}
             onClick={handleResend}
-            className="w-full h-12 border border-gray-300 rounded-xl font-semibold text-dark-blue hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-10 border border-gray-300 rounded-xl font-semibold text-dark-blue hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {cooldownSeconds > 0 ? `Resend code in ${cooldownSeconds}s` : 'Resend code'}
           </button>
@@ -204,17 +204,17 @@ export default function UserRegisterPage() {
           </div>
         </form>
       ) : (
-        <form className="space-y-5" onSubmit={handleSubmit}>
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
-        {info && (
-          <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm">
-            {info}
-          </div>
-        )}
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+          {info && (
+            <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm">
+              {info}
+            </div>
+          )}
 
         {/* Full Name */}
         <div>
@@ -228,7 +228,7 @@ export default function UserRegisterPage() {
             required
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
+            className="w-full h-10 px-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
             placeholder="Enter your full name"
           />
         </div>
@@ -246,7 +246,7 @@ export default function UserRegisterPage() {
             required
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
+            className="w-full h-10 px-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
             placeholder="Enter your email"
           />
         </div>
@@ -265,13 +265,13 @@ export default function UserRegisterPage() {
               required
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all pr-12"
+              className="w-full h-10 px-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all pr-12"
               placeholder="Create a password"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl text-gray-400 hover:text-gray-600 inline-flex items-center justify-center"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 rounded-xl text-gray-400 hover:text-gray-600 inline-flex items-center justify-center"
             >
               {showPassword ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -301,13 +301,13 @@ export default function UserRegisterPage() {
               required
               value={formData.confirmPassword}
               onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-              className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all pr-12"
+              className="w-full h-10 px-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all pr-12"
               placeholder="Confirm your password"
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl text-gray-400 hover:text-gray-600 inline-flex items-center justify-center"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 rounded-xl text-gray-400 hover:text-gray-600 inline-flex items-center justify-center"
             >
               {showConfirmPassword ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -349,7 +349,7 @@ export default function UserRegisterPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full h-12 bg-dark-blue text-white px-4 rounded-xl font-semibold hover:bg-dark-blue/90 focus:outline-none focus:ring-2 focus:ring-dark-blue focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-dark-blue/20"
+          className="w-full h-10 bg-dark-blue text-white px-4 rounded-xl font-semibold hover:bg-dark-blue/90 focus:outline-none focus:ring-2 focus:ring-dark-blue focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-dark-blue/20"
         >
           {loading ? (
             <span className="flex items-center justify-center">
@@ -367,7 +367,7 @@ export default function UserRegisterPage() {
         {/* Login Link */}
         <p className="text-center text-sm text-gray-600">
           Already have an account?{' '}
-          <Link href="/user/login" className="font-medium text-dark-blue hover:text-dark-blue/80 transition-colors">
+          <Link href="/auth/user/login" className="font-medium text-dark-blue hover:text-dark-blue/80 transition-colors">
             Sign in
           </Link>
         </p>

@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import 'react-phone-number-input/style.css';
+
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 255, 255, 255;
@@ -29,6 +31,40 @@ body {
     )
     rgb(var(--background-start-rgb));
   line-height: 1.55;
+}
+
+.mf-phone {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mf-phone .PhoneInputCountry {
+  margin: 0;
+}
+
+.mf-phone .PhoneInputCountrySelect {
+  height: 2.5rem;
+  padding: 0 0.5rem;
+  border: 1px solid rgb(229 231 235);
+  border-radius: 0.75rem;
+  background: white;
+}
+
+.mf-phone .PhoneInputInput {
+  height: 2.5rem;
+  width: 100%;
+  padding: 0 0.875rem;
+  border: 1px solid rgb(229 231 235);
+  border-radius: 0.75rem;
+  background: white;
+  color: rgb(17 24 39);
+}
+
+.mf-phone .PhoneInputInput:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(10, 25, 60, 0.2);
+  border-color: rgba(10, 25, 60, 0.3);
 }
 
 .mf-select {

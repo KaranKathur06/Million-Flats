@@ -57,7 +57,7 @@ const QuerySchema = z.object({
   minPrice: z.coerce.number().finite().nonnegative().optional(),
   maxPrice: z.coerce.number().finite().nonnegative().optional(),
   featured: z.enum(['true', 'false']).optional(),
-  limit: z.coerce.number().int().min(1).max(50).optional(),
+  limit: z.coerce.number().int().min(1).max(250).optional(),
 })
 
 function safeString(v: unknown) {
@@ -127,7 +127,7 @@ export async function GET(req: Request) {
       where,
       orderBy: { updatedAt: 'desc' },
       include: { media: true, agent: { include: { user: true } } },
-      take: typeof q.limit === 'number' && Number.isFinite(q.limit) ? q.limit : 200,
+      take: typeof q.limit === 'number' && Number.isFinite(q.limit) ? Math.min(q.limit, 250) : 200,
     })
 
     const items = (rows as any[]).map((p) => {

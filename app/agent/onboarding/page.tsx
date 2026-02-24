@@ -20,8 +20,17 @@ export default async function AgentOnboardingPage() {
     redirect('/agent/login')
   }
 
-  if (dbUser.role === 'AGENT' && dbUser.agent) {
+  // Only agents should be here
+  if (dbUser.role !== 'AGENT') {
     redirect(getHomeRouteForRole(dbUser.role))
+  }
+
+  const agent = dbUser.agent
+
+  // If agent profile is fully live and approved, go to dashboard
+  const profileStatus = agent ? String((agent as any).profileStatus || '') : ''
+  if (agent && agent.approved && profileStatus === 'LIVE') {
+    redirect('/agent/dashboard')
   }
 
   return (
@@ -32,7 +41,7 @@ export default async function AgentOnboardingPage() {
             <p className="text-accent-orange font-semibold text-sm uppercase tracking-wider">Agent Onboarding</p>
             <h1 className="mt-2 text-3xl md:text-4xl font-serif font-bold text-dark-blue">Complete your Agent Profile</h1>
             <p className="mt-3 text-gray-600">
-              To access the Agent Portal, complete your onboarding. We never auto-assign agent roles — your details will be reviewed.
+              To access the Agent Portal, complete your professional verification. We review every profile before granting full access.
             </p>
           </div>
 

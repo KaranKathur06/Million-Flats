@@ -4,12 +4,12 @@ import AuthLayout from '@/components/AuthLayout'
 export default function RegisterSelectPage() {
   return (
     <AuthLayout title="Create an Account" subtitle="Choose your access type">
-      <div className="space-y-4">
+      <div className="space-y-6">
         <Link
           href="/auth/user/register"
           className="group block rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-[#F5F8FF] p-6 transition-all hover:-translate-y-0.5 hover:border-dark-blue/30 hover:shadow-[0_18px_45px_rgba(10,25,60,0.12)]"
         >
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <div className="w-1.5 self-stretch rounded-full bg-gradient-to-b from-dark-blue to-blue-600/70 transition-opacity group-hover:opacity-100 opacity-80" />
             <div className="flex-1">
               <div className="flex items-start justify-between gap-4">

@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { z } from 'zod'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { recomputeAgentTotalListings } from '@/lib/featured/agentListings'
+import { recomputeFeaturedScore } from '@/lib/featured/recomputeFeaturedScore'
 
 const CreateListingSchema = z.object({
   externalId: z.string().trim().min(1).max(128),
@@ -86,6 +88,9 @@ export async function POST(req: Request) {
     select: { id: true, externalId: true, countryCode: true, createdAt: true, updatedAt: true },
   })
 
+  await recomputeAgentTotalListings(auth.agentId).catch(() => null)
+  await recomputeFeaturedScore(auth.agentId).catch(() => null)
+
   return NextResponse.json({ success: true, item: created })
 }
 
@@ -111,6 +116,9 @@ export async function DELETE(req: Request) {
       },
     })
     .catch(() => null)
+
+  await recomputeAgentTotalListings(auth.agentId).catch(() => null)
+  await recomputeFeaturedScore(auth.agentId).catch(() => null)
 
   return NextResponse.json({ success: true })
 }
