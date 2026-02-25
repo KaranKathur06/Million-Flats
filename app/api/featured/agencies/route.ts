@@ -34,27 +34,24 @@ export async function GET(req: Request) {
   const country = parsed.data.country || 'UAE'
   const take = 4
 
-  const agencyModel = (prisma as any)?.agency
-  if (!agencyModel || typeof agencyModel.findMany !== 'function') {
-    return NextResponse.json({ success: true, country, items: [] })
-  }
-
   try {
-    const featured = await agencyModel.findMany({
-      where: { isFeatured: true, countryCode: country },
-      orderBy: [{ updatedAt: 'desc' }],
-      take: 24,
-      select: { id: true, name: true, countryCode: true },
-    })
+    const featured = await prisma.$queryRaw<Array<{ id: string; name: string; country: string | null }>>`
+      SELECT id, name, country
+      FROM agencies
+      WHERE is_featured = true AND country = ${country}
+      ORDER BY updated_at DESC
+      LIMIT 24
+    `
 
     let pool: any[] = Array.isArray(featured) ? featured : []
     if (pool.length < take) {
-      const fallback = await agencyModel.findMany({
-        where: { countryCode: country },
-        orderBy: [{ updatedAt: 'desc' }],
-        take: 24,
-        select: { id: true, name: true, countryCode: true },
-      })
+      const fallback = await prisma.$queryRaw<Array<{ id: string; name: string; country: string | null }>>`
+        SELECT id, name, country
+        FROM agencies
+        WHERE country = ${country}
+        ORDER BY updated_at DESC
+        LIMIT 24
+      `
 
       const seen = new Set(pool.map((r) => String(r?.id || '')))
       for (const r of Array.isArray(fallback) ? fallback : []) {
@@ -70,7 +67,7 @@ export async function GET(req: Request) {
       .map((a) => ({
         id: String(a?.id || ''),
         name: String(a?.name || 'Agency'),
-        countryCode: a?.countryCode === 'INDIA' ? 'INDIA' : 'UAE',
+        countryCode: String(a?.country || '').toUpperCase() === 'INDIA' ? 'INDIA' : 'UAE',
       }))
 
     return NextResponse.json({ success: true, country, items })

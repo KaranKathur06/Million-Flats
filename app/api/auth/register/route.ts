@@ -49,6 +49,7 @@ async function validateAndNormalizePhone(params: {
       ok: true
       phoneE164: string
       phoneCountryIso2: string
+      phoneCountryIso2ForFk: string | null
       phoneNationalNumber: string
     }
 > {
@@ -95,7 +96,13 @@ async function validateAndNormalizePhone(params: {
     return { ok: false, message: 'Phone number does not match selected country.' }
   }
 
-  return { ok: true, phoneE164, phoneCountryIso2, phoneNationalNumber }
+  return {
+    ok: true,
+    phoneE164,
+    phoneCountryIso2,
+    phoneCountryIso2ForFk: country?.iso2 ? String(country.iso2) : null,
+    phoneNationalNumber,
+  }
 }
 
 function isStrongPassword(pw: string) {
@@ -235,7 +242,7 @@ export async function POST(req: Request) {
           email,
           password: hashedPassword,
           phone: phoneNormalized && phoneNormalized.ok ? phoneNormalized.phoneE164 : phone || null,
-          phoneCountryIso2: phoneNormalized && phoneNormalized.ok ? phoneNormalized.phoneCountryIso2 : null,
+          phoneCountryIso2: phoneNormalized && phoneNormalized.ok ? phoneNormalized.phoneCountryIso2ForFk : null,
           phoneNationalNumber: phoneNormalized && phoneNormalized.ok ? phoneNormalized.phoneNationalNumber : null,
           role: 'USER',
           verified: false,
@@ -331,7 +338,7 @@ export async function POST(req: Request) {
               name: existingUser.name || name,
               password: existingUser.password || hashedPassword,
               phone: existingUser.phone || phoneNormalized.phoneE164 || null,
-              phoneCountryIso2: (existingUser as any).phoneCountryIso2 || phoneNormalized.phoneCountryIso2 || null,
+              phoneCountryIso2: (existingUser as any).phoneCountryIso2 || phoneNormalized.phoneCountryIso2ForFk || null,
               phoneNationalNumber: (existingUser as any).phoneNationalNumber || phoneNormalized.phoneNationalNumber || null,
               role: 'AGENT',
             },
@@ -342,7 +349,7 @@ export async function POST(req: Request) {
               email,
               password: hashedPassword,
               phone: phoneNormalized.phoneE164 || null,
-              phoneCountryIso2: phoneNormalized.phoneCountryIso2 || null,
+              phoneCountryIso2: phoneNormalized.phoneCountryIso2ForFk || null,
               phoneNationalNumber: phoneNormalized.phoneNationalNumber || null,
               role: 'AGENT',
               verified: false,
