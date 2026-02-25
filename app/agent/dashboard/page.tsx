@@ -126,7 +126,7 @@ export default async function AgentDashboardPage() {
       distinct: ['externalId'],
       select: { externalId: true },
     })
-    .then((rows) => rows.length)
+    .then((rows: Array<{ externalId: string | null }>) => rows.length)
 
   const totalListings = agentListingCount > 0 ? agentListingCount : leadListingCount
 

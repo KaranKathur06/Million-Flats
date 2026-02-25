@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { syncCountriesFromRestCountries } from '@/lib/system/syncCountries'
 
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 type CountryDto = {
   id: string
