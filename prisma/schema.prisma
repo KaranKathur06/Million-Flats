@@ -72,6 +72,7 @@ model Country {
   agencies    Agency[]
   developers  Developer[]
   properties  ManualProperty[]
+  featuredAgentClicks FeaturedAgentClick[]
 
   @@index([isActive])
   @@index([region])
@@ -158,6 +159,7 @@ model User {
 
   manualPropertyModerationLogs ManualPropertyModerationLog[] @relation("ManualPropertyModerationAdmin")
   auditLogs AuditLog[] @relation("AuditLogPerformedBy")
+  inquiries Inquiry[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
