@@ -61,7 +61,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     userRole: String(agent?.user?.role || ''),
   }
 
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx: any) => {
     const updatedAgent = await (tx as any).agent.update({
       where: { id: agentId },
       data: { approved: true, profileStatus: 'VERIFIED' } as any,
