@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
@@ -56,9 +55,7 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
   const qRaw = typeof searchParams?.q === 'string' ? searchParams?.q : Array.isArray(searchParams?.q) ? searchParams?.q[0] : ''
   const q = safeString(qRaw)
 
-  type AgentWithUser = Prisma.AgentGetPayload<{ include: { user: true } }>
-
-  const agents: AgentWithUser[] = await prisma.agent
+  const agents = await prisma.agent
     .findMany({
       include: { user: true },
       where: { profileStatus: 'LIVE', user: { status: 'ACTIVE', emailVerified: true } } as any,
@@ -67,10 +64,10 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
     })
     .catch((error: unknown) => {
       console.error('Agents directory: failed to load agents', error)
-      return [] as AgentWithUser[]
+      return []
     })
 
-  const agentIds = agents.map((a) => a.id)
+  const agentIds = agents.map((a: any) => a.id)
 
   const listingCounts: Array<{ agentId: string; _count: { _all: number } }> = agentIds.length
     ? await (prisma as any).agentListing
@@ -107,7 +104,7 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
   for (const row of listingCounts) countMap.set(String(row.agentId), (countMap.get(String(row.agentId)) || 0) + (row._count?._all || 0))
   for (const row of manualCounts) countMap.set(String(row.agentId), (countMap.get(String(row.agentId)) || 0) + (row._count?._all || 0))
 
-  const filtered = agents.filter((a) => {
+  const filtered = agents.filter((a: any) => {
     if (!q) return true
     const name = safeString(a.user?.name)
     const company = safeString(a.company)
