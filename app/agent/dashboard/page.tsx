@@ -298,7 +298,7 @@ export default async function AgentDashboardPage() {
       }}
       draftListings={Array.isArray(draftListings) ? draftListings : []}
       listings={Array.isArray(publishedManualListings) ? publishedManualListings : []}
-      leads={leads.map((l) => ({
+      leads={leads.map((l: (typeof leads)[number]) => ({
         id: l.id,
         propertyTitle: `Property ${l.externalId}`,
         contactMethod: 'Enquiry',
