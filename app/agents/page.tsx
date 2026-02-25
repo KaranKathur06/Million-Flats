@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
@@ -55,7 +56,9 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
   const qRaw = typeof searchParams?.q === 'string' ? searchParams?.q : Array.isArray(searchParams?.q) ? searchParams?.q[0] : ''
   const q = safeString(qRaw)
 
-  const agents = await prisma.agent
+  type AgentWithUser = Prisma.AgentGetPayload<{ include: { user: true } }>
+
+  const agents: AgentWithUser[] = await prisma.agent
     .findMany({
       include: { user: true },
       where: { profileStatus: 'LIVE', user: { status: 'ACTIVE', emailVerified: true } } as any,
@@ -64,7 +67,7 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
     })
     .catch((error: unknown) => {
       console.error('Agents directory: failed to load agents', error)
-      return []
+      return [] as AgentWithUser[]
     })
 
   const agentIds = agents.map((a) => a.id)
