@@ -34,6 +34,12 @@ function normalizeAgentProfileStatus(input: unknown) {
   return ''
 }
 
+function normalizeAgentVerificationStatus(input: unknown) {
+  const s = typeof input === 'string' ? input.trim().toUpperCase() : ''
+  if (s === 'PENDING' || s === 'APPROVED' || s === 'REJECTED') return s
+  return ''
+}
+
 let didAttemptRoleBackfill = false
 
 async function backfillNullRoles() {
@@ -178,6 +184,14 @@ export const authOptions: NextAuthOptions = {
         if ((safeUser as any).agentProfileStatus) {
           ;(token as any).agentProfileStatus = normalizeAgentProfileStatus((safeUser as any).agentProfileStatus)
         }
+
+        if (typeof (safeUser as any).agentApproved === 'boolean') {
+          ;(token as any).agentApproved = Boolean((safeUser as any).agentApproved)
+        }
+
+        if ((safeUser as any).agentVerificationStatus) {
+          ;(token as any).agentVerificationStatus = normalizeAgentVerificationStatus((safeUser as any).agentVerificationStatus)
+        }
       }
 
       const hasId = Boolean((token as any)?.id)
@@ -192,13 +206,20 @@ export const authOptions: NextAuthOptions = {
             normalizeStatus((token as any)?.status) === 'ACTIVE' &&
             normalizeAgentProfileStatus((token as any)?.agentProfileStatus) !== 'LIVE'
 
-          if (shouldBackfillIdentity || shouldRefreshAgentStatus) {
+          const shouldRefreshAgentAuthz =
+            normalizeRole((token as any)?.role) === 'AGENT' &&
+            normalizeStatus((token as any)?.status) === 'ACTIVE' &&
+            (typeof (token as any)?.agentApproved !== 'boolean' || !String((token as any)?.agentVerificationStatus || ''))
+
+          if (shouldBackfillIdentity || shouldRefreshAgentStatus || shouldRefreshAgentAuthz) {
             const dbUser = await prisma.user.findUnique({ where: { email }, include: { agent: true } }).catch(() => null)
             if (dbUser) {
               ;(token as any).id = (token as any).id || dbUser.id
               ;(token as any).role = normalizeRole((dbUser as any).role)
               ;(token as any).status = normalizeStatus((dbUser as any).status)
               ;(token as any).agentProfileStatus = normalizeAgentProfileStatus((dbUser as any)?.agent?.profileStatus)
+              ;(token as any).agentApproved = Boolean((dbUser as any)?.agent?.approved)
+              ;(token as any).agentVerificationStatus = normalizeAgentVerificationStatus((dbUser as any)?.agent?.verificationStatus)
 
               if (!(dbUser as any).role) {
                 await prisma.user.update({ where: { id: dbUser.id }, data: { role: 'USER' } as any }).catch(() => null)
@@ -216,6 +237,9 @@ export const authOptions: NextAuthOptions = {
       if ((token as any).agentProfileStatus) {
         ;(token as any).agentProfileStatus = normalizeAgentProfileStatus((token as any).agentProfileStatus)
       }
+      if ((token as any).agentVerificationStatus) {
+        ;(token as any).agentVerificationStatus = normalizeAgentVerificationStatus((token as any).agentVerificationStatus)
+      }
       return token
     },
     async session({ session, token }: any) {
@@ -224,6 +248,8 @@ export const authOptions: NextAuthOptions = {
         const tokenRole = (token as any)?.role
         const tokenStatus = (token as any)?.status
         const tokenAgentProfileStatus = (token as any)?.agentProfileStatus
+        const tokenAgentApproved = (token as any)?.agentApproved
+        const tokenAgentVerificationStatus = (token as any)?.agentVerificationStatus
         if (tokenId) {
           ;(session.user as any).id = tokenId
         }
@@ -231,6 +257,12 @@ export const authOptions: NextAuthOptions = {
         ;(session.user as any).status = normalizeStatus(tokenStatus)
         if (tokenAgentProfileStatus) {
           ;(session.user as any).agentProfileStatus = normalizeAgentProfileStatus(tokenAgentProfileStatus)
+        }
+        if (typeof tokenAgentApproved === 'boolean') {
+          ;(session.user as any).agentApproved = tokenAgentApproved
+        }
+        if (tokenAgentVerificationStatus) {
+          ;(session.user as any).agentVerificationStatus = normalizeAgentVerificationStatus(tokenAgentVerificationStatus)
         }
       }
       return session

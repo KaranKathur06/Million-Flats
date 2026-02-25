@@ -379,10 +379,29 @@ export async function POST(req: Request) {
         }
       }
 
+      const otp = generateOtp()
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
+
+      await prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } })
+      await prisma.emailVerificationToken.create({
+        data: {
+          userId: user.id,
+          token: otp,
+          expiresAt,
+        },
+      })
+
+      await sendEmail({
+        to: email,
+        subject: 'Your MillionFlats verification code',
+        html: `<p>Your verification code is:</p><p style="font-size:24px;letter-spacing:4px;"><strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
+      }).catch(() => null)
+
       return NextResponse.json(
         {
           success: true,
-          message: 'Agent registration successful. Please login.',
+          message: 'Registration successful. Please verify your email.',
+          requiresVerification: true,
         },
         { status: 200 }
       )

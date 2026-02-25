@@ -118,6 +118,8 @@ export async function middleware(req: NextRequest) {
   const nextAuthToken = secret ? await getToken({ req, secret }) : null
 
   let roleRaw = String((nextAuthToken as any)?.role || '').toUpperCase()
+  const agentApproved = Boolean((nextAuthToken as any)?.agentApproved)
+  const agentVerificationStatus = String((nextAuthToken as any)?.agentVerificationStatus || '').toUpperCase()
 
   if (!roleRaw) {
     const legacyCookie = req.cookies.get('token')?.value
@@ -153,6 +155,33 @@ export async function middleware(req: NextRequest) {
       url.pathname = '/unauthorized'
       url.search = 'reason=agent_only'
       return NextResponse.redirect(url)
+    }
+
+    const isAgentDashboard = pathname === '/agent/dashboard' || pathname.startsWith('/agent/dashboard/')
+    const isAgentOnHold = pathname === '/agent/on-hold' || pathname.startsWith('/agent/on-hold/')
+    const isAgentRejected = pathname === '/agent/rejected' || pathname.startsWith('/agent/rejected/')
+
+    if (agentVerificationStatus === 'REJECTED') {
+      if (!isAgentRejected) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/agent/rejected'
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
+    } else if (!agentApproved) {
+      if (isAgentDashboard || isAgentRejected) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/agent/on-hold'
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
+    } else {
+      if (isAgentOnHold || isAgentRejected) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/agent/dashboard'
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
     }
   }
 

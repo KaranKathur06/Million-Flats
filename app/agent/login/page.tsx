@@ -20,7 +20,7 @@ export default async function AgentLoginPage({
         select: {
           role: true,
           status: true,
-          agent: { select: { id: true, approved: true, profileStatus: true, profileCompletion: true } },
+          agent: { select: { id: true, approved: true, profileStatus: true, profileCompletion: true, verificationStatus: true } },
         },
       })
       .catch(() => null)
@@ -30,6 +30,7 @@ export default async function AgentLoginPage({
     const hasAgentRow = Boolean((user as any)?.agent?.id)
     const approved = Boolean((user as any)?.agent?.approved)
     const profileStatus = String((user as any)?.agent?.profileStatus || 'DRAFT').toUpperCase()
+    const verificationStatus = String((user as any)?.agent?.verificationStatus || 'PENDING').toUpperCase()
     const profileCompletion = Number((user as any)?.agent?.profileCompletion ?? 0)
 
     if (status !== 'ACTIVE') {
@@ -48,8 +49,16 @@ export default async function AgentLoginPage({
       redirect('/')
     }
 
+    if (verificationStatus === 'REJECTED') {
+      redirect('/agent/rejected')
+    }
+
+    if (!approved) {
+      redirect('/agent/on-hold')
+    }
+
     // If no agent row or profile is incomplete, force onboarding
-    if (!hasAgentRow || !approved || profileStatus !== 'LIVE' || profileCompletion < 100) {
+    if (!hasAgentRow || profileStatus !== 'LIVE' || profileCompletion < 100) {
       redirect('/agent/onboarding')
     }
 

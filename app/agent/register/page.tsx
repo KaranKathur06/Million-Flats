@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { signIn } from 'next-auth/react'
 import PhoneInput from 'react-phone-number-input'
 import { parsePhoneNumberFromString } from 'libphonenumber-js'
 import AgentAuthLayout from '@/components/AgentAuthLayout'
@@ -90,19 +89,7 @@ export default function AgentRegisterPage() {
       const data = await res.json()
 
       if (res.ok) {
-        const result = await signIn('credentials', {
-          email: formData.email,
-          password: formData.password,
-          redirect: false,
-          callbackUrl: '/agent/onboarding',
-        })
-
-        if (result?.ok && result.url) {
-          router.push(result.url)
-          return
-        }
-
-        router.push('/agent/onboarding')
+        router.push(`/agent/verify?email=${encodeURIComponent(formData.email)}`)
       } else {
         setError(data.message || 'Registration failed')
       }

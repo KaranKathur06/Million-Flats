@@ -47,7 +47,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 })
     }
 
-    if (type !== 'user') {
+    if (type !== 'user' && type !== 'agent') {
       return NextResponse.json({ success: false, message: 'Invalid user type' }, { status: 400 })
     }
 
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { verified: true },
+      data: { verified: true, emailVerified: true, emailVerifiedAt: new Date() } as any,
     })
 
     await prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } })
