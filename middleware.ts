@@ -103,7 +103,8 @@ export async function middleware(req: NextRequest) {
   const isAgentProtected = pathname === '/agent' || pathname.startsWith('/agent/')
   const isDashboardProtected = pathname === '/dashboard' || pathname.startsWith('/dashboard/')
   const isEcosystemAdminProtected = pathname === '/ecosystem/admin' || pathname.startsWith('/ecosystem/admin/')
-  const isEcosystemPartnersProtected = pathname === '/ecosystem-partners' || pathname.startsWith('/ecosystem-partners/')
+  const isEcosystemDashboardProtected = pathname === '/ecosystem/dashboard' || pathname.startsWith('/ecosystem/dashboard/')
+  const isEcosystemManageProtected = pathname === '/ecosystem/manage' || pathname.startsWith('/ecosystem/manage/')
   const isVerixProtected = pathname === '/verix' || pathname.startsWith('/verix/')
 
   const isProtected =
@@ -111,7 +112,8 @@ export async function middleware(req: NextRequest) {
     isAgentProtected ||
     isDashboardProtected ||
     isEcosystemAdminProtected ||
-    isEcosystemPartnersProtected ||
+    isEcosystemDashboardProtected ||
+    isEcosystemManageProtected ||
     isVerixProtected
 
   const secret = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET
@@ -141,6 +143,23 @@ export async function middleware(req: NextRequest) {
   }
 
   if (isAdminProtected || isEcosystemAdminProtected) {
+    if (!(role === 'ADMIN' || role === 'SUPERADMIN')) {
+      const url = req.nextUrl.clone()
+      url.pathname = '/unauthorized'
+      url.search = 'reason=admin_only'
+      return NextResponse.redirect(url)
+    }
+  }
+
+  if (isEcosystemDashboardProtected || isEcosystemManageProtected) {
+    if (!roleRaw) {
+      const url = req.nextUrl.clone()
+      url.pathname = getLoginPath(pathname)
+      const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`
+      url.search = `next=${encodeURIComponent(next)}`
+      return NextResponse.redirect(url)
+    }
+
     if (!(role === 'ADMIN' || role === 'SUPERADMIN')) {
       const url = req.nextUrl.clone()
       url.pathname = '/unauthorized'
@@ -205,5 +224,7 @@ export const config = {
     '/user/dashboard/:path*',
     '/user/profile/:path*',
     '/ecosystem/admin/:path*',
+    '/ecosystem/dashboard/:path*',
+    '/ecosystem/manage/:path*',
   ],
 }
