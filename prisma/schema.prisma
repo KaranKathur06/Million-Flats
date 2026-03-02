@@ -10,6 +10,8 @@ generator client {
 enum Role {
   USER
   AGENT
+  MODERATOR
+  COMPLIANCE
   ADMIN
   SUPERADMIN
 }
@@ -26,6 +28,19 @@ enum AgentProfileStatus {
   VERIFIED
   LIVE
   SUSPENDED
+}
+
+enum AgentSubscriptionPlan {
+  BASIC
+  PROFESSIONAL
+  PREMIUM
+}
+
+enum AgentSubscriptionStatus {
+  TRIAL
+  ACTIVE
+  CANCELLED
+  EXPIRED
 }
 
 enum AgentPropertyType {
@@ -123,6 +138,38 @@ enum InquiryStatus {
   CLOSED
 }
 
+ enum ModerationEntityType {
+   MANUAL_PROPERTY
+   AGENT
+   USER
+   ECOSYSTEM_PARTNER
+   ECOSYSTEM_PARTNER_APPLICATION
+ }
+
+ enum ModerationCaseStatus {
+   OPEN
+   CLOSED
+ }
+
+ enum ModerationQueue {
+   NORMAL
+   HIGH_RISK
+ }
+
+ enum ModerationDecision {
+   APPROVED
+   REJECTED
+   FLAGGED
+   ESCALATED
+   REQUEST_INFO
+ }
+
+ enum ReportStatus {
+   OPEN
+   REVIEWED
+   CLOSED
+ }
+
 model User {
   id        String   @id @default(uuid())
   role      Role     @default(USER)
@@ -159,6 +206,10 @@ model User {
 
   manualPropertyModerationLogs ManualPropertyModerationLog[] @relation("ManualPropertyModerationAdmin")
   auditLogs AuditLog[] @relation("AuditLogPerformedBy")
+  moderationCases ModerationCase[] @relation("ModerationCaseCreatedBy")
+  moderationActions ModerationAction[] @relation("ModerationActionActor")
+  moderationMessages ModerationMessage[] @relation("ModerationMessageActor")
+  reportsSubmitted Report[] @relation("ReportSubmittedBy")
   inquiries Inquiry[]
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -291,6 +342,8 @@ model Agent {
   featuredClicks FeaturedAgentClick[]
   inquiries Inquiry[]
 
+  subscription AgentSubscription?
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -299,6 +352,35 @@ model Agent {
   @@index([countryIso2, featuredScore])
   @@index([agencyId])
   @@map("agents")
+}
+
+model AgentSubscription {
+  id        String @id @default(uuid())
+  agentId   String @unique @map("agent_id")
+
+  plan      AgentSubscriptionPlan @default(BASIC)
+  status    AgentSubscriptionStatus @default(TRIAL)
+
+  startDate DateTime? @map("start_date")
+  endDate   DateTime? @map("end_date")
+  trialEndsAt DateTime? @map("trial_ends_at")
+  cancelledAt DateTime? @map("cancelled_at")
+
+  listingsLimit Int? @map("listings_limit")
+  leadLimit     Int? @map("lead_limit")
+  verixAccessLevel Int? @map("verix_access_level")
+
+  provider String? @map("provider")
+  providerSubscriptionId String? @map("provider_subscription_id")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([plan])
+  @@map("agent_subscriptions")
 }
 
 model FeaturedAgentClick {
@@ -562,6 +644,7 @@ enum AuditEntityType {
   MANUAL_PROPERTY
   AGENT
   USER
+  ECOSYSTEM_PARTNER
   ECOSYSTEM_PARTNER_APPLICATION
 }
 
@@ -571,12 +654,16 @@ enum AuditAction {
   PUBLISHED_CLONED_TO_DRAFT
   ADMIN_APPROVED
   ADMIN_REJECTED
+  ADMIN_FLAGGED
+  ADMIN_ESCALATED
+  ADMIN_REQUEST_INFO
   ADMIN_ARCHIVED
   ADMIN_RESTORED
   ADMIN_CLONED_TO_DRAFT
   ADMIN_AGENT_APPROVED
   AGENT_APPROVED
   AGENT_APPROVED_OVERRIDE
+  AGENT_REJECTED
   ADMIN_AGENT_GO_LIVE
   ADMIN_AGENT_UNSUSPENDED
   ADMIN_AGENT_SUSPENDED
@@ -614,6 +701,98 @@ model AuditLog {
   @@index([performedByUserId])
   @@map("audit_logs")
 }
+
+ model ModerationCase {
+   id         String @id @default(uuid())
+   entityType ModerationEntityType @map("entity_type")
+   entityId   String @map("entity_id")
+   status     ModerationCaseStatus @default(OPEN)
+   queue      ModerationQueue @default(NORMAL)
+
+   currentRiskScore Int @default(0) @map("current_risk_score")
+   currentRiskReasons Json? @map("current_risk_reasons")
+   currentRiskEngineVersion String @default("1.0.0") @map("current_risk_engine_version")
+   lastEvaluatedAt DateTime? @map("last_evaluated_at")
+
+   createdByUserId String? @map("created_by_user_id")
+   createdByUser User? @relation("ModerationCaseCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+   actions  ModerationAction[]
+   messages ModerationMessage[]
+   reports  Report[]
+
+   createdAt DateTime @default(now()) @map("created_at")
+   updatedAt DateTime @updatedAt @map("updated_at")
+
+   @@unique([entityType, entityId])
+   @@index([status, queue])
+   @@index([entityType, entityId])
+   @@index([createdAt])
+   @@map("moderation_cases")
+ }
+
+ model ModerationAction {
+   id        String @id @default(uuid())
+   caseId    String @map("case_id")
+   actorUserId String? @map("actor_user_id")
+   decision  ModerationDecision
+   note      String? @db.Text
+
+   riskScoreSnapshot Int @map("risk_score_snapshot")
+   riskReasonsSnapshot Json? @map("risk_reasons_snapshot")
+   riskEngineVersion String @map("risk_engine_version")
+
+   moderationCase ModerationCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+   actorUser User? @relation("ModerationActionActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+   createdAt DateTime @default(now()) @map("created_at")
+
+   @@index([caseId])
+   @@index([actorUserId])
+   @@index([decision])
+   @@index([createdAt])
+   @@map("moderation_actions")
+ }
+
+ model ModerationMessage {
+   id        String @id @default(uuid())
+   caseId    String @map("case_id")
+   actorUserId String? @map("actor_user_id")
+   message   String @db.Text
+
+   moderationCase ModerationCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+   actorUser User? @relation("ModerationMessageActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+   createdAt DateTime @default(now()) @map("created_at")
+
+   @@index([caseId])
+   @@index([actorUserId])
+   @@index([createdAt])
+   @@map("moderation_messages")
+ }
+
+ model Report {
+   id        String @id @default(uuid())
+   caseId    String @map("case_id")
+   submittedByUserId String? @map("submitted_by_user_id")
+
+   entityType ModerationEntityType @map("entity_type")
+   entityId   String @map("entity_id")
+   reason     String @db.Text
+   status     ReportStatus @default(OPEN)
+
+   moderationCase ModerationCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+   submittedByUser User? @relation("ReportSubmittedBy", fields: [submittedByUserId], references: [id], onDelete: SetNull)
+
+   createdAt DateTime @default(now()) @map("created_at")
+   updatedAt DateTime @updatedAt @map("updated_at")
+
+   @@index([caseId])
+   @@index([status])
+   @@index([entityType, entityId])
+   @@index([submittedByUserId])
+   @@map("reports")
+ }
 
 model ManualPropertyModerationLog {
   id         String @id @default(uuid())

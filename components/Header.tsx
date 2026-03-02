@@ -38,6 +38,7 @@ export default function Header() {
     { href: '/buy', label: 'Buy' },
     { href: '/rent', label: 'Rent' },
     { href: '/agents', label: 'Find an Agent' },
+    { href: '/agents/pricing', label: 'Pricing' },
     ...(showVerfix ? [{ href: verfixHref, label: <span>Verix System<sup>™</sup></span> }] : []),
   ]
 
@@ -46,17 +47,18 @@ export default function Header() {
     { href: '/buy', label: 'Buy' },
     { href: '/rent', label: 'Rent' },
     { href: '/agents', label: 'Find an Agent' },
+    { href: '/agents/pricing', label: 'Pricing' },
     ...(showVerfix ? [{ href: verfixHref, label: <span>Verix System<sup>™</sup></span> }] : []),
     { href: '/market-analysis', label: 'Market Analysis' },
   ]
 
   const servicesLinks: NavItem[] = showServices
     ? [
-        { href: '/explore-3d', label: '3D Tours' },
-        { href: '/ai-analytics', label: 'AI Analytics' },
-        { href: '/featured-listings', label: 'Featured Listings' },
-        { href: '/premium-ads', label: 'Premium Ads' },
-        { href: '/partnerships', label: 'Partnerships' },
+        { href: '/services/3d-tours', label: '3D Tours' },
+        { href: '/services/ai-analytics', label: 'AI Analytics' },
+        { href: '/services/featured-listings', label: 'Featured Listings' },
+        { href: '/services/advertising', label: 'Premium Ads' },
+        { href: '/services/partnerships', label: 'Partnerships' },
       ]
     : []
 

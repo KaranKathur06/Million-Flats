@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAgentProfileSession } from '@/lib/agentAuth'
 import { writeAuditLog } from '@/lib/audit'
+import { evaluateAgentRisk } from '@/lib/services/riskEngine'
+import { ensureModerationCase, setCaseRiskWithReasons, setModerationQueue } from '@/lib/services/moderation.service'
 
 const MIN_BIO_LENGTH = 150
 
@@ -112,14 +114,36 @@ export async function POST() {
       )
     }
 
-    const updated = await (prisma as any).agent.update({
-      where: { id: auth.agentId },
-      data: {
-        profileStatus: 'SUBMITTED',
-        profileCompletion: completion,
-        profileCompletionUpdatedAt: new Date(),
-      },
-      select: { id: true, profileStatus: true, profileCompletion: true },
+    const updated = await prisma.$transaction(async (tx: any) => {
+      const updatedAgent = await (tx as any).agent.update({
+        where: { id: auth.agentId },
+        data: {
+          profileStatus: 'SUBMITTED',
+          profileCompletion: completion,
+          profileCompletionUpdatedAt: new Date(),
+        },
+        select: { id: true, profileStatus: true, profileCompletion: true },
+      })
+
+      const mcase = await ensureModerationCase(tx, {
+        entityType: 'AGENT',
+        entityId: String(auth.agentId),
+        createdByUserId: auth.userId,
+      })
+
+      const risk = await evaluateAgentRisk({ agentId: String(auth.agentId) })
+      await setCaseRiskWithReasons(tx, {
+        caseId: mcase.id,
+        currentRiskScore: risk.score,
+        currentRiskReasons: risk.reasons,
+        riskEngineVersion: risk.version,
+      })
+
+      if (risk.score >= 50) {
+        await setModerationQueue(tx, { caseId: mcase.id, queue: 'HIGH_RISK' })
+      }
+
+      return updatedAgent
     })
 
     await writeAuditLog({

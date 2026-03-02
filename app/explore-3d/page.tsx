@@ -2,15 +2,8 @@ export const metadata = {
   title: 'Explore in 3D - millionflats',
 }
 
+import Service3DToursPage from '../services/3d-tours/page'
+
 export default function Explore3DPage() {
-  return (
-    <div className="min-h-screen bg-gray-50 py-16">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-4xl md:text-5xl font-serif font-bold text-dark-blue mb-4">Explore in 3D</h1>
-        <p className="text-lg text-gray-600 max-w-2xl">
-          This page is coming soon. Immersive property tours and interactive experiences will be available here.
-        </p>
-      </div>
-    </div>
-  )
+  return <Service3DToursPage />
 }

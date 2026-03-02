@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { writeAuditLog } from '@/lib/audit'
 import { checkAdminRateLimit } from '@/lib/adminRateLimit'
+import { approveAgent } from '@/lib/services/agentGovernance.service'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ success: false, message: msg }, { status })
@@ -35,81 +35,36 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const agentId = String(params?.id || '').trim()
   if (!agentId) return bad('Not found', 404)
 
-  const agent = await (prisma as any).agent.findFirst({
-    where: { id: agentId },
-    select: { id: true, approved: true, profileStatus: true, userId: true, user: { select: { status: true, role: true } } },
+  const result = await approveAgent({
+    agentId,
+    actorUserId: auth.userId,
+    actorRole: auth.role,
+    allowDraftOverride: isSuperadmin,
   })
 
-  if (!agent) return bad('Not found', 404)
-
-  const currentProfileStatus = String(agent?.profileStatus || 'DRAFT').toUpperCase()
-
-  if (!isSuperadmin && currentProfileStatus !== 'SUBMITTED') {
-    return bad('Agent must submit profile before approval', 409)
-  }
-
-  if (isSuperadmin && currentProfileStatus !== 'SUBMITTED' && currentProfileStatus !== 'DRAFT') {
-    return bad(`Cannot approve agent from ${currentProfileStatus} state`, 409)
-  }
-
-  const wasOverride = isSuperadmin && currentProfileStatus === 'DRAFT'
-
-  const beforeState = {
-    approved: Boolean(agent.approved),
-    profileStatus: currentProfileStatus,
-    userStatus: String(agent?.user?.status || 'ACTIVE'),
-    userRole: String(agent?.user?.role || ''),
-  }
-
-  const updated = await prisma.$transaction(async (tx: any) => {
-    const updatedAgent = await (tx as any).agent.update({
-      where: { id: agentId },
-      data: { approved: true, profileStatus: 'VERIFIED' } as any,
-      select: { id: true, approved: true, profileStatus: true, userId: true },
-    })
-
-    if (String(agent?.user?.role || '').toUpperCase() !== 'AGENT') {
-      await (tx as any).user.update({
-        where: { id: String(agent.userId) },
-        data: { role: 'AGENT' } as any,
-        select: { id: true },
-      })
-    }
-
-    const userAfter = await (tx as any).user.findUnique({
-      where: { id: String(agent.userId) },
-      select: { role: true },
-    })
-
-    return { agent: updatedAgent, userAfter }
-  })
-
-  const afterState = {
-    approved: Boolean(updated.agent.approved),
-    profileStatus: String(updated.agent?.profileStatus || '').toUpperCase(),
-    userStatus: String(agent?.user?.status || 'ACTIVE'),
-    userRole: String(updated.userAfter?.role || agent?.user?.role || ''),
+  if (!result.ok) {
+    return bad(result.message, result.status)
   }
 
   await writeAuditLog({
     entityType: 'AGENT',
     entityId: agentId,
-    action: wasOverride ? 'AGENT_APPROVED_OVERRIDE' : 'AGENT_APPROVED',
+    action: result.wasOverride ? 'AGENT_APPROVED_OVERRIDE' : 'AGENT_APPROVED',
     performedByUserId: auth.userId,
     ipAddress: getIp(req),
-    beforeState,
-    afterState,
+    beforeState: result.beforeState,
+    afterState: result.afterState,
     meta: {
       actorUserId: auth.userId,
       actorRole: auth.role,
       agentId,
-      previousStatus: currentProfileStatus,
-      newStatus: String(updated.agent?.profileStatus || '').toUpperCase(),
-      wasOverride,
+      previousStatus: String(result.beforeState?.profileStatus || ''),
+      newStatus: String(result.afterState?.profileStatus || ''),
+      wasOverride: result.wasOverride,
       ip: getIp(req),
-      previousApproved: Boolean(agent.approved),
+      previousApproved: Boolean((result.beforeState as any)?.approved),
     },
   })
 
-  return NextResponse.json({ success: true, agent: updated.agent })
+  return NextResponse.json({ success: true, agent: result.agent })
 }

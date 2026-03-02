@@ -151,6 +151,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/agents/pricing" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
+                  Agent Pricing
+                </Link>
+              </li>
+              <li>
                 <Link href="/agent/login" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
                   Agent Login
                 </Link>

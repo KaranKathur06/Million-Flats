@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAgentSession } from '@/lib/agentAuth'
+import { evaluateManualPropertyRisk } from '@/lib/services/riskEngine'
+import { ensureModerationCase, setCaseRiskWithReasons, setModerationQueue } from '@/lib/services/moderation.service'
 
 const SubmitSchema = z.object({
   duplicateOverrideConfirmed: z.boolean().optional(),
@@ -71,15 +73,37 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return bad('Duplicate warning requires confirmation.')
     }
 
-    const updated = await (prisma as any).manualProperty.update({
-      where: { id: property.id },
-      data: {
-        status: 'PENDING_REVIEW',
-        submittedAt: new Date(),
-        rejectionReason: null,
-        duplicateOverrideConfirmed: Boolean(parsed.data.duplicateOverrideConfirmed) || property.duplicateOverrideConfirmed,
-      } as any,
-      select: { id: true, status: true },
+    const updated = await prisma.$transaction(async (tx: any) => {
+      const updatedProperty = await (tx as any).manualProperty.update({
+        where: { id: property.id },
+        data: {
+          status: 'PENDING_REVIEW',
+          submittedAt: new Date(),
+          rejectionReason: null,
+          duplicateOverrideConfirmed: Boolean(parsed.data.duplicateOverrideConfirmed) || property.duplicateOverrideConfirmed,
+        } as any,
+        select: { id: true, status: true },
+      })
+
+      const mcase = await ensureModerationCase(tx, {
+        entityType: 'MANUAL_PROPERTY',
+        entityId: String(property.id),
+        createdByUserId: auth.userId,
+      })
+
+      const risk = await evaluateManualPropertyRisk({ propertyId: String(property.id) })
+      await setCaseRiskWithReasons(tx, {
+        caseId: mcase.id,
+        currentRiskScore: risk.score,
+        currentRiskReasons: risk.reasons,
+        riskEngineVersion: risk.version,
+      })
+
+      if (risk.score >= 50) {
+        await setModerationQueue(tx, { caseId: mcase.id, queue: 'HIGH_RISK' })
+      }
+
+      return updatedProperty
     })
 
     if (score > 75 && (parsed.data.duplicateOverrideConfirmed || property.duplicateOverrideConfirmed) && property.duplicateMatchedProjectId) {

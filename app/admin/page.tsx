@@ -63,7 +63,7 @@ export default async function AdminHomePage() {
 
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
-            href="/admin/moderation/properties"
+            href="/admin/governance?entityType=MANUAL_PROPERTY"
             className="inline-flex items-center justify-center h-11 px-6 rounded-xl bg-amber-400 text-[#0b1220] font-semibold hover:bg-amber-300"
           >
             Moderation Queue

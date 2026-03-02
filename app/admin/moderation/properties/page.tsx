@@ -26,6 +26,8 @@ export default async function AdminModerationQueuePage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined }
 }) {
+  redirect('/admin/governance?entityType=MANUAL_PROPERTY')
+
   const session = await getServerSession(authOptions)
   const role = normalizeRole((session?.user as any)?.role)
 

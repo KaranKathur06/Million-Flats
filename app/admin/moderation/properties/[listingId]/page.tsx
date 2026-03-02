@@ -31,6 +31,24 @@ export default async function AdminModerationReviewPage({ params }: { params: { 
   const id = safeString(params?.listingId)
   if (!id) notFound()
 
+  const existingCase = await (prisma as any).moderationCase
+    .findUnique({
+      where: {
+        entityType_entityId: {
+          entityType: 'MANUAL_PROPERTY',
+          entityId: id,
+        },
+      },
+      select: { id: true },
+    })
+    .catch(() => null)
+
+  if (existingCase?.id) {
+    redirect(`/admin/governance/cases/${encodeURIComponent(String(existingCase.id))}`)
+  }
+
+  redirect('/admin/governance?entityType=MANUAL_PROPERTY')
+
   const property = await (prisma as any).manualProperty
     .findFirst({
       where: { id, sourceType: 'MANUAL' },

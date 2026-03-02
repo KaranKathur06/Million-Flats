@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { writeAuditLog } from '@/lib/audit'
 import { checkAdminRateLimit } from '@/lib/adminRateLimit'
+import { approveManualProperty } from '@/lib/services/manualPropertyGovernance.service'
+import { prisma } from '@/lib/prisma'
+import { decideModerationCase } from '@/lib/services/caseDecision.service'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ success: false, message: msg }, { status })
@@ -73,35 +75,53 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const id = String(params?.id || '')
   if (!id) return bad('Not found', 404)
 
-  const property = await (prisma as any).manualProperty.findFirst({
-    where: { id, sourceType: 'MANUAL' },
-    include: { media: true },
-  })
+  const mcase = await (prisma as any).moderationCase
+    .upsert({
+      where: { entityType_entityId: { entityType: 'MANUAL_PROPERTY', entityId: id } },
+      create: {
+        entityType: 'MANUAL_PROPERTY',
+        entityId: id,
+        status: 'OPEN',
+        queue: 'NORMAL',
+        currentRiskScore: 0,
+        createdByUserId: auth.userId,
+      },
+      update: {},
+      select: { id: true },
+    })
+    .catch(() => null)
 
-  const check = validateForApproval(property)
-  if (!check.ok) return bad(check.message)
+  if (mcase?.id) {
+    const decided = await decideModerationCase({
+      caseId: String(mcase.id),
+      actorUserId: auth.userId,
+      actorRole: auth.role,
+      decision: 'APPROVED',
+      note: null,
+    })
 
-  const beforeState = { status: String(property.status || 'PENDING_REVIEW') }
+    if (!decided.ok) {
+      return bad(decided.message, decided.status)
+    }
 
-  const updated = await (prisma as any).manualProperty.update({
-    where: { id },
-    data: {
-      status: 'APPROVED',
-      rejectionReason: null,
-    } as any,
-    select: { id: true, status: true },
-  })
+    await writeAuditLog({
+      entityType: 'MANUAL_PROPERTY',
+      entityId: id,
+      action: 'ADMIN_APPROVED',
+      performedByUserId: auth.userId,
+      ipAddress: getIp(req),
+      beforeState: null,
+      afterState: { decision: 'APPROVED', caseId: String(mcase.id) },
+      meta: { actor: 'admin', source: 'legacy_route' },
+    })
 
-  const afterState = { status: String(updated.status || 'APPROVED') }
+    return NextResponse.json({ success: true, case: decided.case })
+  }
 
-  await (prisma as any).manualPropertyModerationLog.create({
-    data: {
-      propertyId: id,
-      adminId: auth.userId,
-      action: 'APPROVE',
-      reason: null,
-    } as any,
-  })
+  const result = await approveManualProperty({ propertyId: id, actorUserId: auth.userId })
+  if (!result.ok) {
+    return bad(result.message, result.status)
+  }
 
   await writeAuditLog({
     entityType: 'MANUAL_PROPERTY',
@@ -109,10 +129,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     action: 'ADMIN_APPROVED',
     performedByUserId: auth.userId,
     ipAddress: getIp(req),
-    beforeState,
-    afterState,
+    beforeState: result.beforeState,
+    afterState: result.afterState,
     meta: { actor: 'admin' },
   })
 
-  return NextResponse.json({ success: true, property: updated })
+  return NextResponse.json({ success: true, property: result.property })
 }
