@@ -172,7 +172,7 @@ export default function PricingClient() {
         <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 pb-14">
           <div className="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
             <div className="px-6 py-6 border-b border-gray-200">
-              <h2 className="text-2xl font-serif font-bold text-dark-blue">What's Included</h2>
+              <h2 className="text-2xl font-serif font-bold text-dark-blue">What{'\''}s Included</h2>
               <p className="mt-2 text-gray-600 text-sm">Feature comparison across plans (India).</p>
             </div>
 
@@ -492,7 +492,7 @@ export default function PricingClient() {
           </div>
 
           <div className="mt-10 text-center text-sm text-gray-600">
-            MillionFlats – India's Gateway to Dubai Real Estate. Official Corporate Agent of DAMAC Properties.
+            MillionFlats – India{'\''}s Gateway to Dubai Real Estate. Official Corporate Agent of DAMAC Properties.
           </div>
         </div>
       </section>
