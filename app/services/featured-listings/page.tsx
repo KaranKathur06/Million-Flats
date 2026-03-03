@@ -46,7 +46,7 @@ export default function ServiceFeaturedListingsPage() {
                   ['Top of search results', 'Appear before non-featured listings'],
                   ['Featured badge', 'Stand out with a visual trust marker'],
                   ['AI priority matching', 'Recommended to matched buyers first'],
-                  ['Verix™ score display', 'Showcase verified trust scores prominently'],
+                  ['Verix<sup>™</sup> score display', 'Showcase verified trust scores prominently'],
                   ['Social media promotion', 'Featured on Instagram/LinkedIn'],
                   ['WhatsApp broadcast', 'Included in weekly property alerts'],
                 ].map((r) => (
@@ -71,7 +71,7 @@ export default function ServiceFeaturedListingsPage() {
               {[
                 ['1', 'List your property', 'Basic listing is free'],
                 ['2', 'Upgrade to Featured', 'Pick duration and placement'],
-                ['3', 'Get verified', 'Optional 3D + Verix™ signals'],
+                ['3', 'Get verified', 'Optional 3D + Verix<sup>™</sup> signals'],
                 ['4', 'Reach more buyers', 'Priority placement everywhere'],
               ].map((s) => (
                 <div key={s[0]} className="rounded-2xl border border-gray-200 bg-gray-50 p-5">

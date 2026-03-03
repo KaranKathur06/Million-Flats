@@ -188,10 +188,10 @@ export default function PricingClient() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {[
-                    ['VerixView™ (Authenticity)', '✓ Basic', '✓ Full', '✓ Full + Priority'],
-                    ['VerixShield™ (Fair Pricing)', '✗', '✓', '✓ + Alerts'],
-                    ['VerixIndex™ (Investment Potential)', '✗', '✓ Basic', '✓ Advanced'],
-                    ['VerixPro™ Agent Score', '✓ Standard', '✓ Enhanced', '✓ Featured Badge'],
+                    { key: 'view', label: <>VerixView<sup>™</sup> (Authenticity)</>, cols: ['✓ Basic', '✓ Full', '✓ Full + Priority'] },
+                    { key: 'shield', label: <>VerixShield<sup>™</sup> (Fair Pricing)</>, cols: ['✗', '✓', '✓ + Alerts'] },
+                    { key: 'index', label: <>VerixIndex<sup>™</sup> (Investment Potential)</>, cols: ['✗', '✓ Basic', '✓ Advanced'] },
+                    { key: 'pro', label: <>VerixPro<sup>™</sup> Agent Score</>, cols: ['✓ Standard', '✓ Enhanced', '✓ Featured Badge'] },
                     ['Agent Profile', 'Standard', 'Featured', 'Premium + Verified'],
                     ['Listings Included', '20 properties', '100 properties', 'Unlimited'],
                     ['Lead Alerts', 'Weekly', 'Daily', 'Real-time'],
@@ -199,12 +199,12 @@ export default function PricingClient() {
                     ['Ecosystem Partner Access', 'Basic', 'Preferred Rates', 'VIP Access'],
                     ['3D Tour Discount', '10% off', '25% off', '30% off'],
                     ['Support', 'Email', 'Priority Email', 'Dedicated WhatsApp'],
-                  ].map((row, idx) => (
-                    <tr key={idx} className="bg-white">
-                      <td className="px-6 py-4 text-gray-900 font-medium">{row[0] as string}</td>
-                      <td className="px-6 py-4 text-gray-700">{row[1] as string}</td>
-                      <td className="px-6 py-4 text-gray-700">{row[2] as string}</td>
-                      <td className="px-6 py-4 text-gray-700">{row[3] as string}</td>
+                  ].map((row: any, idx) => (
+                    <tr key={row.key || idx} className="bg-white">
+                      <td className="px-6 py-4 text-gray-900 font-medium">{row.label || row[0]}</td>
+                      <td className="px-6 py-4 text-gray-700">{(row.cols || row)[0]}</td>
+                      <td className="px-6 py-4 text-gray-700">{(row.cols || row)[1]}</td>
+                      <td className="px-6 py-4 text-gray-700">{(row.cols || row)[2]}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -307,7 +307,7 @@ export default function PricingClient() {
             {[
               {
                 title: 'Win More Listings',
-                desc: 'Verix™ scores prove your listings are verified – sellers trust you more.',
+                desc: 'Verix<sup>™</sup> scores prove your listings are verified – sellers trust you more.',
               },
               {
                 title: 'Close Deals Faster',
@@ -315,7 +315,11 @@ export default function PricingClient() {
               },
               {
                 title: 'Build Trust Instantly',
-                desc: 'VerixPro™ badge shows clients your verified track record.',
+                desc: (
+                  <>
+                    VerixPro<sup>™</sup> badge shows clients your verified track record.
+                  </>
+                ),
               },
               {
                 title: 'Save Time',

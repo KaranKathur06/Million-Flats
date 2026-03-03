@@ -10,7 +10,7 @@ export default function ServiceAIAnalyticsPage() {
           <div className="max-w-3xl">
             <h1 className="text-4xl sm:text-5xl font-serif font-bold text-dark-blue">Make Data-Backed Property Decisions</h1>
             <p className="mt-4 text-lg text-gray-600">
-              Our Verix™ AI suite analyzes millions of data points to give you accurate pricing, investment forecasts, and risk assessment – so you
+              Our Verix<sup>™</sup> AI suite analyzes millions of data points to give you accurate pricing, investment forecasts, and risk assessment – so you
               never rely on guesswork again.
             </p>
             <div className="mt-7 flex flex-col sm:flex-row gap-3">
@@ -30,26 +30,26 @@ export default function ServiceAIAnalyticsPage() {
         <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             <div className="rounded-3xl border border-gray-200 bg-white shadow-sm p-7 self-start h-fit">
-              <h2 className="text-2xl font-serif font-bold text-dark-blue">What Is Verix™ AI Analytics?</h2>
+              <h2 className="text-2xl font-serif font-bold text-dark-blue">What Is Verix<sup>™</sup> AI Analytics?</h2>
               <p className="mt-3 text-gray-600 text-sm leading-relaxed">
-                Our proprietary Verix™ AI suite analyzes locality growth patterns, historical sales signals, infrastructure impact, amenities, and market
+                Our proprietary Verix<sup>™</sup> AI suite analyzes locality growth patterns, historical sales signals, infrastructure impact, amenities, and market
                 trends to generate insights that would take humans weeks to compile.
               </p>
             </div>
 
             <div className="rounded-3xl border border-blue-200 bg-blue-50 shadow-sm p-7 self-start h-fit">
-              <h3 className="text-lg font-semibold text-dark-blue">Verix™ Trust Scores</h3>
+              <h3 className="text-lg font-semibold text-dark-blue">Verix<sup>™</sup> Trust Scores</h3>
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 {[
-                  ['VerixView™', 'Authenticity – Is the property as presented?'],
-                  ['VerixShield™', 'Pricing fairness – Flags over/under-pricing'],
-                  ['VerixIndex™', 'Investment potential – Forecasts appreciation'],
-                  ['VerixTitle™', 'Legal safety – Checks for hidden issues'],
-                  ['VerixPro™', 'Agent performance – Who can you trust?'],
+                  { key: 'view', title: <>VerixView<sup>™</sup></>, desc: 'Authenticity – Is the property as presented?' },
+                  { key: 'shield', title: <>VerixShield<sup>™</sup></>, desc: 'Pricing fairness – Flags over/under-pricing' },
+                  { key: 'index', title: <>VerixIndex<sup>™</sup></>, desc: 'Investment potential – Forecasts appreciation' },
+                  { key: 'title', title: <>VerixTitle<sup>™</sup></>, desc: 'Legal safety – Checks for hidden issues' },
+                  { key: 'pro', title: <>VerixPro<sup>™</sup></>, desc: 'Agent performance – Who can you trust?' },
                 ].map((r) => (
-                  <div key={r[0]} className="rounded-2xl bg-white border border-blue-100 p-4">
-                    <div className="font-semibold text-gray-900">{r[0]}</div>
-                    <div className="mt-1 text-xs text-gray-600">{r[1]}</div>
+                  <div key={r.key} className="rounded-2xl bg-white border border-blue-100 p-4">
+                    <div className="font-semibold text-gray-900">{r.title}</div>
+                    <div className="mt-1 text-xs text-gray-600">{r.desc}</div>
                   </div>
                 ))}
               </div>
@@ -137,19 +137,19 @@ export default function ServiceAIAnalyticsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {[
-                    ['VerixView™ (Authenticity)', '✓ Basic', '✓ Full', '✓ Full + Priority'],
-                    ['VerixShield™ (Pricing)', '✗', '✓', '✓ + Alerts'],
-                    ['VerixIndex™ (Investment)', '✗', '✓ Basic', '✓ Advanced'],
-                    ['VerixPro™ Agent Score', '✓ Standard', '✓ Enhanced', '✓ Featured Badge'],
+                    { key: 'view', label: <>VerixView<sup>™</sup> (Authenticity)</>, cols: ['✓ Basic', '✓ Full', '✓ Full + Priority'] },
+                    { key: 'shield', label: <>VerixShield<sup>™</sup> (Pricing)</>, cols: ['✗', '✓', '✓ + Alerts'] },
+                    { key: 'index', label: <>VerixIndex<sup>™</sup> (Investment)</>, cols: ['✗', '✓ Basic', '✓ Advanced'] },
+                    { key: 'pro', label: <>VerixPro<sup>™</sup> Agent Score</>, cols: ['✓ Standard', '✓ Enhanced', '✓ Featured Badge'] },
                     ['Property valuations', '50/month', '200/month', 'Unlimited'],
                     ['Neighborhood heatmaps', '✗', '✓', '✓'],
                     ['Lead alerts', 'Weekly', 'Daily', 'Real-time'],
-                  ].map((r) => (
-                    <tr key={r[0]} className="bg-white">
-                      <td className="px-6 py-4 text-gray-900 font-medium">{r[0]}</td>
-                      <td className="px-6 py-4 text-gray-700">{r[1]}</td>
-                      <td className="px-6 py-4 text-gray-700">{r[2]}</td>
-                      <td className="px-6 py-4 text-gray-700">{r[3]}</td>
+                  ].map((r: any) => (
+                    <tr key={r.key || r[0]} className="bg-white">
+                      <td className="px-6 py-4 text-gray-900 font-medium">{r.label || r[0]}</td>
+                      <td className="px-6 py-4 text-gray-700">{(r.cols || r)[0]}</td>
+                      <td className="px-6 py-4 text-gray-700">{(r.cols || r)[1]}</td>
+                      <td className="px-6 py-4 text-gray-700">{(r.cols || r)[2]}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -171,7 +171,7 @@ export default function ServiceAIAnalyticsPage() {
       <section className="bg-dark-blue">
         <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 py-12">
           <div className="rounded-3xl bg-white/5 border border-white/10 p-8 text-center">
-            <div className="text-white font-serif font-bold text-3xl">Unlock Verix™ AI Tools</div>
+            <div className="text-white font-serif font-bold text-3xl">Unlock Verix<sup>™</sup> AI Tools</div>
             <div className="mt-3 text-white/80">Upgrade your workflow with AI-driven insights.</div>
             <div className="mt-7 flex items-center justify-center">
               <a href="/agents/pricing" className="inline-flex items-center justify-center h-12 px-7 rounded-xl bg-white text-dark-blue font-semibold hover:bg-white/95">

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 const QuerySchema = z.object({
   countryIso2: z
