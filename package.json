@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start -p 3000",
+    "start": "node -e \"const fs=require('fs'); if(!fs.existsSync('.next')){console.error('Missing .next build output. Run npm run build first.'); process.exit(1)}\" && next start -p 3000",
     "lint": "next lint",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",

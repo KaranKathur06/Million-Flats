@@ -62,7 +62,152 @@ export default function AdminUsersTableClient({
     <div>
       {error ? <p className="mb-4 text-sm font-semibold text-red-300">{error}</p> : null}
 
-      <div className="overflow-x-auto">
+      <div className="md:hidden space-y-3">
+        {items.map((u) => {
+          const isBusy = busyId === u.id
+          const targetRole = safeString(u.role).toUpperCase()
+          const status = safeString(u.status || 'ACTIVE').toUpperCase() || 'ACTIVE'
+          const isTargetSuperadmin = targetRole === 'SUPERADMIN'
+
+          const canVerifyEmail = caps.users.verifyEmail
+          const canBan = caps.users.ban && !isTargetSuperadmin && status !== 'BANNED'
+          const canDelete = caps.users.delete && !isTargetSuperadmin
+          const canRoleChange = caps.users.changeRole && !isTargetSuperadmin
+
+          const verifyTitle = canVerifyEmail ? '' : 'Forbidden'
+          const banTitle = caps.users.ban ? (isTargetSuperadmin ? 'Forbidden' : '') : 'Forbidden'
+          const deleteTitle = caps.users.delete ? (isTargetSuperadmin ? 'Forbidden' : '') : 'Forbidden'
+          const roleTitle = caps.users.changeRole ? (isTargetSuperadmin ? 'Forbidden' : '') : 'Forbidden'
+
+          return (
+            <div key={u.id} className="rounded-2xl border border-white/10 bg-[#0f1a2e] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-white font-semibold break-all">{safeString(u.email)}</div>
+                  <div className="mt-1 text-xs text-white/70">{safeString(u.name) || '—'}</div>
+                </div>
+
+                <div className="flex flex-col items-end gap-2">
+                  <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold text-white/90">
+                    {safeString(u.role) || 'USER'}
+                  </span>
+                  <span
+                    className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${
+                      status === 'BANNED'
+                        ? 'border-red-500/30 bg-red-500/10 text-red-200'
+                        : status === 'SUSPENDED'
+                          ? 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+                          : 'border-white/10 bg-black/20 text-white/90'
+                    }`}
+                  >
+                    {status}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-white/80">
+                <div>
+                  <div className="text-white/60">Verified</div>
+                  <div className="font-semibold text-white/90">{u.emailVerified ? 'Yes' : 'No'}</div>
+                </div>
+                <div>
+                  <div className="text-white/60">Created</div>
+                  <div className="font-semibold text-white/90">{u.createdAt || '—'}</div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {u.emailVerified ? (
+                  <span className="inline-flex h-9 items-center rounded-lg px-3 text-xs font-semibold border border-green-500/30 bg-green-500/10 text-green-200">
+                    Verified
+                  </span>
+                ) : (
+                  <button
+                    title={verifyTitle}
+                    disabled={!canVerifyEmail || isBusy}
+                    onClick={() =>
+                      doAction(u.id, async () => {
+                        const ok = window.confirm('Mark this user email as verified?')
+                        if (!ok) return
+                        await postJson(`/api/admin/users/${encodeURIComponent(u.id)}/verify-email`)
+                      })
+                    }
+                    className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                      canVerifyEmail && !isBusy
+                        ? 'border border-white/10 bg-transparent text-white/90 hover:bg-white/5'
+                        : 'bg-white/5 text-white/30 cursor-not-allowed'
+                    }`}
+                  >
+                    Verify email
+                  </button>
+                )}
+
+                <button
+                  title={banTitle}
+                  disabled={!canBan || isBusy}
+                  onClick={() =>
+                    doAction(u.id, async () => {
+                      const ok = window.confirm('Ban this user? This disables login.')
+                      if (!ok) return
+                      await postJson(`/api/admin/users/${encodeURIComponent(u.id)}/ban`)
+                    })
+                  }
+                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                    canBan && !isBusy
+                      ? 'bg-red-500/20 text-red-200 border border-red-500/30 hover:bg-red-500/25'
+                      : 'bg-white/5 text-white/30 cursor-not-allowed'
+                  }`}
+                >
+                  Ban
+                </button>
+
+                <button
+                  title={roleTitle}
+                  disabled={!canRoleChange || isBusy}
+                  onClick={() =>
+                    doAction(u.id, async () => {
+                      const nextRole = targetRole === 'ADMIN' ? 'USER' : 'ADMIN'
+                      const ok = window.confirm(`Change role to ${nextRole}?`)
+                      if (!ok) return
+                      await postJson(`/api/admin/users/${encodeURIComponent(u.id)}/role`, { role: nextRole })
+                    })
+                  }
+                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                    canRoleChange && !isBusy
+                      ? 'border border-white/10 bg-transparent text-white/90 hover:bg-white/5'
+                      : 'bg-white/5 text-white/30 cursor-not-allowed'
+                  }`}
+                >
+                  {targetRole === 'ADMIN' ? 'Demote to USER' : 'Promote to ADMIN'}
+                </button>
+
+                <button
+                  title={deleteTitle}
+                  disabled={!canDelete || isBusy}
+                  onClick={() =>
+                    doAction(u.id, async () => {
+                      const ok = window.confirm('Delete this user? This is permanent.')
+                      if (!ok) return
+                      await postJson(`/api/admin/users/${encodeURIComponent(u.id)}/delete`)
+                    })
+                  }
+                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                    canDelete && !isBusy
+                      ? 'border border-red-500/30 bg-transparent text-red-200 hover:bg-red-500/10'
+                      : 'bg-white/5 text-white/30 cursor-not-allowed'
+                  }`}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          )
+        })}
+
+        {items.length === 0 ? <div className="py-10 text-center text-white/60">No users found.</div> : null}
+      </div>
+
+      <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="text-left text-white/70 border-b border-white/10">

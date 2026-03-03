@@ -60,7 +60,66 @@ export default function AdminDraftsTableClient({
     <div>
       {error ? <p className="mb-4 text-sm font-semibold text-red-300">{error}</p> : null}
 
-      <div className="overflow-x-auto">
+      <div className="md:hidden space-y-3">
+        {items.map((it) => {
+          const isBusy = busyId === it.id
+          const canDelete = capabilities.drafts.delete
+          const deleteReason = canDelete ? '' : 'You do not have permission to delete drafts.'
+
+          return (
+            <div key={it.id} className="rounded-2xl border border-white/10 bg-[#0f1a2e] p-4">
+              <div className="text-white font-semibold">{it.title}</div>
+              <div className="mt-1 text-xs text-white/60 break-all">{it.id}</div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-white/80">
+                <div>
+                  <div className="text-white/60">Agent</div>
+                  <div className="font-semibold text-white/90">{it.agentName}</div>
+                  <div className="text-[11px] text-white/60 break-all">{it.agentEmail}</div>
+                </div>
+                <div>
+                  <div className="text-white/60">Location</div>
+                  <div className="font-semibold text-white/90">{it.location}</div>
+                </div>
+                <div>
+                  <div className="text-white/60">Last step</div>
+                  <div className="font-semibold text-white/90">{it.lastCompletedStep}</div>
+                </div>
+                <div>
+                  <div className="text-white/60">Updated</div>
+                  <div className="font-semibold text-white/90">{it.updatedAt || '—'}</div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  disabled={isBusy || !canDelete}
+                  title={deleteReason}
+                  onClick={() =>
+                    doAction(it.id, async () => {
+                      if (!canDelete) throw new Error(deleteReason)
+                      const ok = window.confirm('Delete this draft? This cannot be undone.')
+                      if (!ok) return
+                      await postJson(`/api/admin/drafts/${encodeURIComponent(it.id)}/delete`)
+                    })
+                  }
+                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                    !isBusy && canDelete
+                      ? 'border border-white/10 bg-transparent text-white hover:bg-white/5'
+                      : 'bg-white/5 text-white/30 cursor-not-allowed'
+                  }`}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          )
+        })}
+
+        {items.length === 0 ? <div className="py-10 text-center text-white/60">No drafts found.</div> : null}
+      </div>
+
+      <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="text-left text-white/70 border-b border-white/10">

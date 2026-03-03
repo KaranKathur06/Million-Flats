@@ -85,7 +85,184 @@ export default function AdminListingsTableClient({
         ))}
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="md:hidden space-y-3">
+        {items.map((it) => {
+          const isBusy = busyId === it.id
+
+          const canApproveByState = it.status === 'PENDING_REVIEW'
+          const canRejectByState = it.status === 'PENDING_REVIEW'
+          const canArchiveByState = it.status === 'APPROVED'
+          const canRestoreByState = it.status === 'ARCHIVED'
+          const canEditByState = it.status === 'APPROVED'
+
+          const canApprove = capabilities.listings.approve && canApproveByState
+          const canReject = capabilities.listings.reject && canRejectByState
+          const canArchive = capabilities.listings.archive && canArchiveByState
+          const canRestore = capabilities.listings.restore && canRestoreByState
+          const canEdit = capabilities.listings.editSafely && canEditByState
+
+          const approveReason = !capabilities.listings.approve
+            ? 'You do not have permission to approve listings.'
+            : !canApproveByState
+              ? 'Only pending listings can be approved.'
+              : ''
+
+          const rejectReason = !capabilities.listings.reject
+            ? 'You do not have permission to reject listings.'
+            : !canRejectByState
+              ? 'Only pending listings can be rejected.'
+              : ''
+
+          const editReason = !capabilities.listings.editSafely
+            ? 'You do not have permission to edit listings.'
+            : !canEditByState
+              ? 'Only approved listings can be edited safely.'
+              : ''
+
+          const archiveReason = !capabilities.listings.archive
+            ? 'You do not have permission to archive listings.'
+            : !canArchiveByState
+              ? 'Only approved listings can be archived.'
+              : ''
+
+          const restoreReason = !capabilities.listings.restore
+            ? 'You do not have permission to restore listings.'
+            : !canRestoreByState
+              ? 'Only archived listings can be restored.'
+              : ''
+
+          return (
+            <div key={it.id} className="rounded-2xl border border-white/10 bg-[#0f1a2e] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-white font-semibold">{it.title}</div>
+                  <div className="mt-1 text-xs text-white/70">{it.location}</div>
+                  <div className="mt-1 text-xs text-white/60 break-all">Agent: {it.agentName} ({it.agentEmail})</div>
+                </div>
+                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold text-white/90">
+                  {it.status || '—'}
+                </span>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-white/80">
+                <div>
+                  <div className="text-white/60">Price</div>
+                  <div className="font-semibold text-white/90">{it.priceLabel}</div>
+                </div>
+                <div>
+                  <div className="text-white/60">Created</div>
+                  <div className="font-semibold text-white/90">{it.createdAt || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-white/60">Submitted</div>
+                  <div className="font-semibold text-white/90">{it.submittedAt || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-white/60">ID</div>
+                  <div className="font-semibold text-white/90 break-all">{it.id}</div>
+                </div>
+              </div>
+
+              {it.rejectionReason ? <div className="mt-2 text-xs text-red-300">Rejected: {it.rejectionReason}</div> : null}
+              {it.archivedAt ? <div className="mt-2 text-xs text-amber-200">Archived: {it.archivedAt}</div> : null}
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  disabled={!canApprove || isBusy}
+                  title={approveReason}
+                  onClick={() =>
+                    doAction(it.id, async () => {
+                      await postJson(`/api/admin/listings/${encodeURIComponent(it.id)}/approve`)
+                    })
+                  }
+                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                    canApprove && !isBusy ? 'bg-amber-400 text-[#0b1220] hover:bg-amber-300' : 'bg-white/5 text-white/30 cursor-not-allowed'
+                  }`}
+                >
+                  Approve
+                </button>
+
+                <button
+                  disabled={!canReject || isBusy}
+                  title={rejectReason}
+                  onClick={() =>
+                    doAction(it.id, async () => {
+                      const reason = window.prompt('Rejection reason (visible to agent):') || ''
+                      if (reason.trim().length < 3) throw new Error('Rejection reason is required.')
+                      await postJson(`/api/admin/listings/${encodeURIComponent(it.id)}/reject`, { reason })
+                    })
+                  }
+                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                    canReject && !isBusy
+                      ? 'border border-white/10 bg-transparent text-white hover:bg-white/5'
+                      : 'bg-white/5 text-white/30 cursor-not-allowed'
+                  }`}
+                >
+                  Reject
+                </button>
+
+                <button
+                  disabled={!canEdit || isBusy}
+                  title={editReason}
+                  onClick={() =>
+                    doAction(it.id, async () => {
+                      const json = await postJson(`/api/admin/listings/${encodeURIComponent(it.id)}/edit`)
+                      const draftId = safeString(json?.draftId)
+                      if (!draftId) throw new Error('Draft creation failed')
+                      router.push(`/properties/new/manual?mode=edit&draftId=${encodeURIComponent(draftId)}`)
+                    })
+                  }
+                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                    canEdit && !isBusy
+                      ? 'border border-white/10 bg-transparent text-white hover:bg-white/5'
+                      : 'bg-white/5 text-white/30 cursor-not-allowed'
+                  }`}
+                >
+                  Edit safely
+                </button>
+
+                <button
+                  disabled={!canArchive || isBusy}
+                  title={archiveReason}
+                  onClick={() =>
+                    doAction(it.id, async () => {
+                      await postJson(`/api/admin/listings/${encodeURIComponent(it.id)}/archive`)
+                    })
+                  }
+                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                    canArchive && !isBusy
+                      ? 'border border-white/10 bg-transparent text-white hover:bg-white/5'
+                      : 'bg-white/5 text-white/30 cursor-not-allowed'
+                  }`}
+                >
+                  Archive
+                </button>
+
+                <button
+                  disabled={!canRestore || isBusy}
+                  title={restoreReason}
+                  onClick={() =>
+                    doAction(it.id, async () => {
+                      await postJson(`/api/admin/listings/${encodeURIComponent(it.id)}/restore`)
+                    })
+                  }
+                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                    canRestore && !isBusy
+                      ? 'bg-white text-[#0b1220] hover:bg-white/90'
+                      : 'bg-white/5 text-white/30 cursor-not-allowed'
+                  }`}
+                >
+                  Restore
+                </button>
+              </div>
+            </div>
+          )
+        })}
+
+        {items.length === 0 ? <div className="py-10 text-center text-white/60">No listings found.</div> : null}
+      </div>
+
+      <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="text-left text-white/70 border-b border-white/10">

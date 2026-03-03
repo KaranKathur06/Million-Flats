@@ -89,7 +89,8 @@ export default function AgentRegisterPage() {
       const data = await res.json()
 
       if (res.ok) {
-        router.push(`/agent/verify?email=${encodeURIComponent(formData.email)}`)
+        const to = data?.redirectTo && typeof data.redirectTo === 'string' ? data.redirectTo : '/auth/agent/login'
+        router.push(to)
       } else {
         setError(data.message || 'Registration failed')
       }

@@ -17,6 +17,14 @@ function roleLabel(role: string) {
   return 'User'
 }
 
+function getRoleScopedLoginRedirect(type: string, email?: string) {
+  const t = String(type || '').toLowerCase()
+  const base = t === 'agent' ? '/auth/agent/login' : '/auth/user/login'
+  const safeEmail = typeof email === 'string' ? email.trim().toLowerCase() : ''
+  if (!safeEmail) return base
+  return `${base}?email=${encodeURIComponent(safeEmail)}`
+}
+
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
@@ -178,12 +186,16 @@ export async function POST(req: Request) {
                 success: true,
                 message: 'Password set successfully. Please verify your email.',
                 requiresVerification: true,
+                redirectTo: getRoleScopedLoginRedirect('user', email),
               },
               { status: 200 }
             )
           }
 
-          return NextResponse.json({ success: true, message: 'Password set successfully' }, { status: 200 })
+          return NextResponse.json(
+            { success: true, message: 'Password set successfully', redirectTo: getRoleScopedLoginRedirect('user', email) },
+            { status: 200 }
+          )
         }
 
         const isValidPassword = await bcrypt.compare(password, existingUser.password)
@@ -215,12 +227,20 @@ export async function POST(req: Request) {
               success: true,
               message: 'OTP sent to your email',
               requiresVerification: true,
+              redirectTo: getRoleScopedLoginRedirect('user', email),
             },
             { status: 200 }
           )
         }
 
-        return NextResponse.json({ success: true, message: 'Account already exists. Please sign in.' }, { status: 200 })
+        return NextResponse.json(
+          {
+            success: true,
+            message: 'Account already exists. Please sign in.',
+            redirectTo: getRoleScopedLoginRedirect('user', email),
+          },
+          { status: 200 }
+        )
       }
 
       const hashedPassword = await bcrypt.hash(password, 10)
@@ -272,6 +292,7 @@ export async function POST(req: Request) {
           success: true,
           message: 'Registration successful. Please verify your email.',
           requiresVerification: true,
+          redirectTo: getRoleScopedLoginRedirect('user', email),
         },
         { status: 200 }
       )
@@ -402,6 +423,7 @@ export async function POST(req: Request) {
           success: true,
           message: 'Registration successful. Please verify your email.',
           requiresVerification: true,
+          redirectTo: getRoleScopedLoginRedirect('agent', email),
         },
         { status: 200 }
       )

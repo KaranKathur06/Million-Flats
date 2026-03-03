@@ -48,7 +48,7 @@ export async function POST(req: Request) {
   const emailRaw = safeString(body?.email).toLowerCase()
 
   if (!emailRaw) {
-    return NextResponse.json({ success: true, message: 'If an account exists, a reset link will be sent.' }, { status: 200 })
+    return NextResponse.json({ success: false, code: 'MISSING_EMAIL', message: 'Email is required.' }, { status: 400 })
   }
 
   if (!allow(emailRate, emailRaw, 3, windowMs)) {
@@ -58,12 +58,40 @@ export async function POST(req: Request) {
   const user = await prisma.user.findUnique({ where: { email: emailRaw } }).catch(() => null)
 
   if (!user) {
-    return NextResponse.json({ success: true, message: 'If an account exists, a reset link will be sent.' }, { status: 200 })
+    return NextResponse.json(
+      {
+        success: false,
+        code: 'EMAIL_NOT_REGISTERED',
+        message: 'No account found with this email. Please register first.',
+      },
+      { status: 404 }
+    )
+  }
+
+  const status = String((user as any)?.status || '').toUpperCase()
+  if (status === 'SUSPENDED') {
+    return NextResponse.json(
+      { success: false, code: 'ACCOUNT_SUSPENDED', message: 'Your account is currently restricted. Contact support.' },
+      { status: 403 }
+    )
+  }
+  if (status === 'BANNED') {
+    return NextResponse.json(
+      { success: false, code: 'ACCOUNT_BANNED', message: 'Your account is banned. Please contact support.' },
+      { status: 403 }
+    )
   }
 
   const isEmailVerified = Boolean((user as any).emailVerified) || Boolean((user as any).verified)
   if (!isEmailVerified) {
-    return NextResponse.json({ success: true, message: 'If an account exists, a reset link will be sent.' }, { status: 200 })
+    return NextResponse.json(
+      {
+        success: false,
+        code: 'EMAIL_NOT_VERIFIED',
+        message: 'Please verify your email first. Then you can reset your password.',
+      },
+      { status: 403 }
+    )
   }
 
   const token = crypto.randomBytes(32).toString('hex')
@@ -92,5 +120,5 @@ export async function POST(req: Request) {
     html: `<p>We received a request to reset your password.</p><p><a href="${resetUrl}">Reset Password</a></p><p>This link expires in 20 minutes.</p>`,
   }).catch(() => null)
 
-  return NextResponse.json({ success: true, message: 'If an account exists, a reset link will be sent.' }, { status: 200 })
+  return NextResponse.json({ success: true, message: 'Reset link sent to your email.' }, { status: 200 })
 }

@@ -24,6 +24,11 @@ export async function requireAgentSession() {
     return { ok: false as const, status: 403, message: 'Forbidden', reason: 'NOT_AN_AGENT' as const }
   }
 
+  const isEmailVerified = Boolean((dbUser as any).emailVerified) || Boolean((dbUser as any).verified)
+  if (!isEmailVerified) {
+    return { ok: false as const, status: 403, message: 'Forbidden', reason: 'EMAIL_NOT_VERIFIED' as const }
+  }
+
   const status = asUpper((dbUser as any)?.status || 'ACTIVE')
   if (status !== 'ACTIVE') {
     return { ok: false as const, status: 403, message: 'Forbidden', reason: status === 'BANNED' ? ('BANNED' as const) : ('SUSPENDED' as const) }
@@ -32,6 +37,14 @@ export async function requireAgentSession() {
   const agentStatus = asUpper((dbUser.agent as any)?.profileStatus || 'DRAFT')
   if (role !== 'AGENT') {
     return { ok: false as const, status: 403, message: 'Forbidden', reason: 'NOT_PROMOTED' as const, profileStatus: agentStatus }
+  }
+
+  const verificationStatus = asUpper((dbUser.agent as any)?.verificationStatus || 'PENDING')
+  if (verificationStatus === 'REJECTED') {
+    return { ok: false as const, status: 403, message: 'Forbidden', reason: 'REJECTED' as const, profileStatus: agentStatus }
+  }
+  if (verificationStatus !== 'APPROVED') {
+    return { ok: false as const, status: 403, message: 'Forbidden', reason: 'PENDING' as const, profileStatus: agentStatus }
   }
 
   if (!dbUser.agent.approved) {

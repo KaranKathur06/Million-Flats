@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAgentProfileSession } from '@/lib/agentAuth'
+import { requireAgentSession } from '@/lib/agentAuth'
 
 function bad(message: string, status = 400) {
   return NextResponse.json({ success: false, message }, { status })
 }
 
 export async function GET() {
-  const auth = await requireAgentProfileSession()
+  const auth = await requireAgentSession()
   if (!auth.ok) {
     return bad(auth.message, auth.status)
   }

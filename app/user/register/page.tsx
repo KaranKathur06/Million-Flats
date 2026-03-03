@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import AuthLayout from '@/components/AuthLayout'
-import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 
 export default function UserRegisterPage() {
   const router = useRouter()
@@ -63,16 +62,8 @@ export default function UserRegisterPage() {
       const data = await res.json()
 
       if (res.ok) {
-        if (data.requiresVerification) {
-          const email = normalizedEmail
-          setVerifyEmail(email)
-          setStage('verify')
-          setOtp('')
-          setCooldownSeconds(60)
-          setInfo(`We’ve sent a verification code to ${email}.`)
-        } else {
-          router.push(getHomeRouteForRole('USER'))
-        }
+        const to = data?.redirectTo && typeof data.redirectTo === 'string' ? data.redirectTo : '/auth/user/login'
+        router.push(to)
       } else {
         setError(data.message || 'Registration failed')
       }

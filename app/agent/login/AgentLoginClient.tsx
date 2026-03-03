@@ -18,6 +18,9 @@ export default function AgentLoginClient() {
   const [error, setError] = useState('')
   const [showResetCta, setShowResetCta] = useState(false)
 
+  const next = searchParams?.get('next')
+  const safeNext = typeof next === 'string' && next.startsWith('/') ? next : ''
+
   useEffect(() => {
     const authError = searchParams?.get('error')
     if (authError === 'not_registered') setError('This account is not registered as an agent. Apply as an agent to continue.')
@@ -33,35 +36,25 @@ export default function AgentLoginClient() {
     setShowResetCta(false)
 
     try {
-      const result = await signIn('credentials', {
-        email: formData.email,
-        password: formData.password,
-        redirect: false,
-        callbackUrl: '/auth/redirect?intent=agent',
+      const res = await fetch('/api/auth/login-otp/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, password: formData.password, intent: 'agent' }),
       })
 
-      if (result?.ok && result.url) {
-        router.push(result.url)
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        const code = (data && data.code) || ''
+        const msg = (data && data.message) || 'Login failed'
+        setError(msg)
+        if (code === 'PASSWORD_NOT_SET') {
+          setShowResetCta(true)
+        }
         return
       }
 
-      const raw = (result as any)?.error || 'Login failed'
-      if (raw === 'CredentialsSignin') {
-        setError('Invalid email or password.')
-      } else if (raw === 'PASSWORD_NOT_SET') {
-        setError('This account does not have a password set. Please reset your password to continue.')
-        setShowResetCta(true)
-      } else if (raw === 'EMAIL_NOT_VERIFIED') {
-        setError('Please verify your email to continue.')
-      } else if (raw === 'INVALID_PASSWORD') {
-        setError('Invalid password.')
-      } else if (raw === 'ACCOUNT_DISABLED') {
-        setError('Your account is disabled. Please contact support.')
-      } else if (raw === 'ACCOUNT_BANNED') {
-        setError('Your account is banned. Please contact support.')
-      } else {
-        setError(raw)
-      }
+      const url = `/auth/verify-otp?role=agent&email=${encodeURIComponent(formData.email)}${safeNext ? `&next=${encodeURIComponent(safeNext)}` : ''}`
+      router.push(url)
     } catch (error) {
       setError('An error occurred. Please try again.')
     } finally {

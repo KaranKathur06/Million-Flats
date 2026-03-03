@@ -38,7 +38,51 @@ export default async function AdminReportsPage() {
         <h1 className="mt-2 text-3xl font-serif font-bold">Open Reports</h1>
         <p className="mt-2 text-white/60">User-submitted reports linked to cases.</p>
 
-        <div className="mt-8 overflow-x-auto">
+        <div className="mt-8 md:hidden space-y-3">
+          {(Array.isArray(reports) ? reports : []).map((r: any) => (
+            <div key={r.id} className="rounded-2xl border border-white/10 bg-[#0b1220] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-semibold text-white">{safeString(r.entityType) || '—'}</div>
+                  <div className="mt-1 text-xs text-white/50 break-all">{safeString(r.entityId) || '—'}</div>
+                </div>
+                <div className="text-xs text-white/60">{safeString(r.createdAt) ? new Date(r.createdAt).toLocaleString() : '-'}</div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-white/80">
+                <div>
+                  <div className="text-white/50">Queue</div>
+                  <div className="font-semibold text-white/90">{safeString(r?.moderationCase?.queue) || '-'}</div>
+                </div>
+                <div>
+                  <div className="text-white/50">Risk</div>
+                  <div className="font-semibold text-white/90">{Number(r?.moderationCase?.currentRiskScore || 0)}</div>
+                </div>
+              </div>
+
+              <div className="mt-3 text-xs text-white/70 whitespace-pre-wrap">{safeString(r.reason) || '-'}</div>
+
+              <div className="mt-4">
+                {r?.moderationCase?.id ? (
+                  <Link
+                    href={`/admin/governance/cases/${String(r.moderationCase.id)}`}
+                    className="inline-flex items-center justify-center h-9 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-sm font-semibold"
+                  >
+                    Review
+                  </Link>
+                ) : (
+                  <span className="text-white/40">-</span>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {(Array.isArray(reports) ? reports.length : 0) === 0 ? (
+            <div className="py-10 text-center text-white/60">No open reports.</div>
+          ) : null}
+        </div>
+
+        <div className="mt-8 hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="text-white/60">

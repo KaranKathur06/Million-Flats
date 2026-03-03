@@ -24,6 +24,10 @@ export default function LoanToolsClient() {
   const [rate, setRate] = useState(9)
   const [tenureYears, setTenureYears] = useState(20)
 
+  const [amountInput, setAmountInput] = useState(String(5000000))
+  const [rateInput, setRateInput] = useState(String(9))
+  const [tenureInput, setTenureInput] = useState(String(20))
+
   const months = useMemo(() => clamp(Math.round(tenureYears * 12), 12, 360), [tenureYears])
 
   const emi = useMemo(() => calcEmi(amount, rate, months), [amount, rate, months])
@@ -67,6 +71,24 @@ export default function LoanToolsClient() {
               <span className="font-semibold text-gray-900">Loan Amount</span>
               <span className="text-gray-600">₹ {formatINR(amount)}</span>
             </div>
+
+            <input
+              inputMode="numeric"
+              value={amountInput}
+              onChange={(e) => {
+                const v = e.target.value.replace(/[^0-9]/g, '')
+                setAmountInput(v)
+              }}
+              onBlur={() => {
+                const n = Number(amountInput)
+                const next = clamp(Number.isFinite(n) ? n : amount, 500000, 50000000)
+                setAmount(next)
+                setAmountInput(String(next))
+              }}
+              className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3"
+              placeholder="e.g., 5000000"
+            />
+
             <input
               type="range"
               min={500000}
@@ -76,6 +98,7 @@ export default function LoanToolsClient() {
               onChange={(e) => {
                 const v = Number(e.target.value)
                 setAmount(v)
+                setAmountInput(String(v))
                 trackEvent('ecosystem_tool_use', { tool: 'emi_calculator', field: 'amount', value: v })
               }}
               className="mt-2 w-full"
@@ -87,6 +110,24 @@ export default function LoanToolsClient() {
               <span className="font-semibold text-gray-900">Interest Rate</span>
               <span className="text-gray-600">{rate.toFixed(2)}%</span>
             </div>
+
+            <input
+              inputMode="decimal"
+              value={rateInput}
+              onChange={(e) => {
+                const v = e.target.value.replace(/[^0-9.]/g, '')
+                setRateInput(v)
+              }}
+              onBlur={() => {
+                const n = Number(rateInput)
+                const next = clamp(Number.isFinite(n) ? n : rate, 6, 16)
+                setRate(next)
+                setRateInput(next.toFixed(2))
+              }}
+              className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3"
+              placeholder="e.g., 9"
+            />
+
             <input
               type="range"
               min={6}
@@ -96,6 +137,7 @@ export default function LoanToolsClient() {
               onChange={(e) => {
                 const v = Number(e.target.value)
                 setRate(v)
+                setRateInput(String(v))
                 trackEvent('ecosystem_tool_use', { tool: 'emi_calculator', field: 'rate', value: v })
               }}
               className="mt-2 w-full"
@@ -107,6 +149,24 @@ export default function LoanToolsClient() {
               <span className="font-semibold text-gray-900">Tenure</span>
               <span className="text-gray-600">{tenureYears} years</span>
             </div>
+
+            <input
+              inputMode="numeric"
+              value={tenureInput}
+              onChange={(e) => {
+                const v = e.target.value.replace(/[^0-9]/g, '')
+                setTenureInput(v)
+              }}
+              onBlur={() => {
+                const n = Number(tenureInput)
+                const next = clamp(Number.isFinite(n) ? n : tenureYears, 1, 30)
+                setTenureYears(next)
+                setTenureInput(String(next))
+              }}
+              className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3"
+              placeholder="e.g., 20"
+            />
+
             <input
               type="range"
               min={1}
@@ -116,6 +176,7 @@ export default function LoanToolsClient() {
               onChange={(e) => {
                 const v = Number(e.target.value)
                 setTenureYears(v)
+                setTenureInput(String(v))
                 trackEvent('ecosystem_tool_use', { tool: 'emi_calculator', field: 'tenure_years', value: v })
               }}
               className="mt-2 w-full"

@@ -291,6 +291,29 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+model LoginOtp {
+  id        String   @id @default(uuid())
+  email     String
+  role      String
+  codeHash  String   @map("code_hash")
+  attempts  Int      @default(0)
+  expiresAt DateTime @map("expires_at")
+  consumed  Boolean  @default(false)
+  loginTokenHash String? @map("login_token_hash")
+  loginTokenExpiresAt DateTime? @map("login_token_expires_at")
+  usedAt    DateTime? @map("used_at")
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([email])
+  @@index([role])
+  @@index([expiresAt])
+  @@index([consumed])
+  @@index([loginTokenExpiresAt])
+  @@index([usedAt])
+  @@map("login_otps")
+}
+
 model Agent {
   id       String  @id @default(uuid())
   userId   String  @unique @map("user_id")

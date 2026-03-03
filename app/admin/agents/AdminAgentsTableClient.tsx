@@ -68,7 +68,191 @@ export default function AdminAgentsTableClient({
     <div>
       {error ? <p className="mb-4 text-sm font-semibold text-red-300">{error}</p> : null}
 
-      <div className="overflow-x-auto">
+      <div className="md:hidden space-y-3">
+        {items.map((it) => {
+          const isBusy = busyId === it.agentId
+          const profileStatus = safeString(it.profileStatus || 'DRAFT').toUpperCase() || 'DRAFT'
+          const status = safeString(it.status || 'ACTIVE').toUpperCase() || 'ACTIVE'
+
+          const canApprove =
+            caps.agents.approve &&
+            it.agentId &&
+            (profileStatus === 'SUBMITTED' || (isSuperadmin && profileStatus === 'DRAFT'))
+          const canGoLive = caps.agents.approve && it.agentId && it.approved && profileStatus === 'VERIFIED'
+          const canSuspend = caps.agents.suspend && it.agentId && profileStatus === 'LIVE'
+          const canUnsuspend = caps.agents.suspend && it.agentId && profileStatus === 'SUSPENDED'
+          const canBan = caps.agents.ban && Boolean(it.agentId) && status !== 'BANNED'
+          const canRevokeRole = caps.agents.revokeRole && Boolean(it.agentId)
+
+          const approveTitle = !caps.agents.approve
+            ? 'Forbidden'
+            : !isSuperadmin && profileStatus !== 'SUBMITTED'
+              ? 'Agent must submit profile before approval.'
+              : ''
+          const suspendTitle = caps.agents.suspend ? '' : 'Forbidden'
+          const banTitle = caps.agents.ban ? '' : 'Forbidden'
+          const revokeTitle = caps.agents.revokeRole ? '' : 'Forbidden'
+
+          return (
+            <div key={it.agentId || it.userId} className="rounded-2xl border border-white/10 bg-[#0f1a2e] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-white font-semibold">{it.name}</div>
+                  <div className="text-xs text-white/70 break-all">{it.email}</div>
+                  {it.phone ? <div className="text-xs text-white/60">{it.phone}</div> : null}
+                </div>
+
+                <div className="flex flex-col items-end gap-2">
+                  <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold text-white/90">
+                    {profileStatus}
+                  </span>
+                  <span
+                    className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${
+                      status === 'BANNED'
+                        ? 'border-red-500/30 bg-red-500/10 text-red-200'
+                        : status === 'SUSPENDED'
+                          ? 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+                          : 'border-white/10 bg-black/20 text-white/90'
+                    }`}
+                  >
+                    {status}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-white/80">
+                <div>
+                  <div className="text-white/60">Company</div>
+                  <div className="font-semibold text-white/90">{it.company || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-white/60">License</div>
+                  <div className="font-semibold text-white/90">{it.license || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-white/60">Completion</div>
+                  <div className="font-semibold text-white/90">{String(it.profileCompletion)}%</div>
+                </div>
+                <div>
+                  <div className="text-white/60">Approved</div>
+                  <div className="font-semibold text-white/90">{it.approved ? 'Approved' : 'Pending'}</div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  title={approveTitle}
+                  disabled={!canApprove || isBusy}
+                  onClick={() =>
+                    doAction(it.agentId, async () => {
+                      if (isSuperadmin && profileStatus === 'DRAFT') {
+                        const ok = window.confirm('You are overriding submission requirement. Continue?')
+                        if (!ok) return
+                      }
+                      await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/approve`)
+                    })
+                  }
+                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                    canApprove && !isBusy
+                      ? 'bg-amber-400 text-[#0b1220] hover:bg-amber-300'
+                      : 'bg-white/5 text-white/30 cursor-not-allowed'
+                  }`}
+                >
+                  Approve
+                </button>
+
+                <button
+                  title={approveTitle}
+                  disabled={!canGoLive || isBusy}
+                  onClick={() =>
+                    doAction(it.agentId, async () => {
+                      const ok = window.confirm('Go live? This will promote role to AGENT and activate the profile.')
+                      if (!ok) return
+                      await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/go-live`)
+                    })
+                  }
+                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                    canGoLive && !isBusy
+                      ? 'bg-green-500/20 text-green-200 border border-green-500/30 hover:bg-green-500/25'
+                      : 'bg-white/5 text-white/30 cursor-not-allowed'
+                  }`}
+                >
+                  Go Live
+                </button>
+
+                <button
+                  title={suspendTitle}
+                  disabled={(!canSuspend && !canUnsuspend) || isBusy}
+                  onClick={() =>
+                    doAction(it.agentId, async () => {
+                      if (canSuspend) {
+                        const ok = window.confirm('Suspend this agent?')
+                        if (!ok) return
+                        await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/suspend`)
+                        return
+                      }
+                      if (canUnsuspend) {
+                        const ok = window.confirm('Unsuspend this agent?')
+                        if (!ok) return
+                        await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/unsuspend`)
+                      }
+                    })
+                  }
+                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                    !isBusy && (canSuspend || canUnsuspend)
+                      ? 'border border-white/10 bg-transparent text-white hover:bg-white/5'
+                      : 'bg-white/5 text-white/30 cursor-not-allowed'
+                  }`}
+                >
+                  {canUnsuspend ? 'Unsuspend' : 'Suspend'}
+                </button>
+
+                <button
+                  title={banTitle}
+                  disabled={!canBan || isBusy}
+                  onClick={() =>
+                    doAction(it.agentId, async () => {
+                      const ok = window.confirm('Ban this agent? This disables login and hides all listings.')
+                      if (!ok) return
+                      await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/ban`)
+                    })
+                  }
+                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                    canBan && !isBusy
+                      ? 'bg-red-500/20 text-red-200 border border-red-500/30 hover:bg-red-500/25'
+                      : 'bg-white/5 text-white/30 cursor-not-allowed'
+                  }`}
+                >
+                  Ban
+                </button>
+
+                <button
+                  title={revokeTitle}
+                  disabled={!canRevokeRole || isBusy}
+                  onClick={() =>
+                    doAction(it.agentId, async () => {
+                      const ok = window.confirm('Revoke AGENT role? This will demote to USER and remove agent access.')
+                      if (!ok) return
+                      await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/revoke-role`)
+                    })
+                  }
+                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                    canRevokeRole && !isBusy
+                      ? 'border border-red-500/30 bg-transparent text-red-200 hover:bg-red-500/10'
+                      : 'bg-white/5 text-white/30 cursor-not-allowed'
+                  }`}
+                >
+                  Revoke role
+                </button>
+              </div>
+            </div>
+          )
+        })}
+
+        {items.length === 0 ? <div className="py-10 text-center text-white/60">No agents found.</div> : null}
+      </div>
+
+      <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="text-left text-white/70 border-b border-white/10">

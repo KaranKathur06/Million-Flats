@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAgentProfileSession } from '@/lib/agentAuth'
+import { requireAgentSession } from '@/lib/agentAuth'
 
 export const runtime = 'nodejs'
 
@@ -15,7 +15,7 @@ function addDays(d: Date, days: number) {
 }
 
 export async function POST() {
-  const auth = await requireAgentProfileSession()
+  const auth = await requireAgentSession()
   if (!auth.ok) {
     return bad(auth.message, auth.status)
   }

@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import HeroSearch from '@/components/HeroSearch'
 import FeaturedProperties from '@/components/FeaturedProperties'
+import FeaturedProjects from '@/components/FeaturedProjects'
 import WhyMillionflats from '@/components/WhyMillionflats'
 import FeaturedAgencies from '@/components/FeaturedAgencies'
 import FeaturedDevelopers from '@/components/FeaturedDevelopers'
@@ -80,6 +81,10 @@ export default async function Home({
       <div className="bg-white pt-10">
         <GlobalMarketSelectorBar market={market} />
       </div>
+
+      {/* Featured Projects — curated strategic showcase */}
+      <div className="border-t border-gray-200" />
+      <FeaturedProjects market={market} />
 
       <FeaturedProperties market={market} />
 

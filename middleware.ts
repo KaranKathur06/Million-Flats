@@ -81,6 +81,8 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith('/auth/agent/login/') ||
     pathname === '/auth/agent/register' ||
     pathname.startsWith('/auth/agent/register/') ||
+    pathname === '/auth/verify-otp' ||
+    pathname.startsWith('/auth/verify-otp/') ||
     pathname === '/user/login' ||
     pathname.startsWith('/user/login/') ||
     pathname === '/user/register' ||
@@ -120,6 +122,7 @@ export async function middleware(req: NextRequest) {
   const nextAuthToken = secret ? await getToken({ req, secret }) : null
 
   let roleRaw = String((nextAuthToken as any)?.role || '').toUpperCase()
+  const emailVerified = Boolean((nextAuthToken as any)?.emailVerified)
   const agentApproved = Boolean((nextAuthToken as any)?.agentApproved)
   const agentVerificationStatus = String((nextAuthToken as any)?.agentVerificationStatus || '').toUpperCase()
 
@@ -171,14 +174,32 @@ export async function middleware(req: NextRequest) {
   if (isAgentProtected) {
     if (role !== 'AGENT') {
       const url = req.nextUrl.clone()
-      url.pathname = '/unauthorized'
-      url.search = 'reason=agent_only'
+      url.pathname = '/auth/agent/login'
+      const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`
+      url.search = `next=${encodeURIComponent(next)}`
+      return NextResponse.redirect(url)
+    }
+
+    if (!emailVerified) {
+      const url = req.nextUrl.clone()
+      url.pathname = '/auth/agent/login'
+      const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`
+      url.search = `next=${encodeURIComponent(next)}`
       return NextResponse.redirect(url)
     }
 
     const isAgentDashboard = pathname === '/agent/dashboard' || pathname.startsWith('/agent/dashboard/')
     const isAgentOnHold = pathname === '/agent/on-hold' || pathname.startsWith('/agent/on-hold/')
     const isAgentRejected = pathname === '/agent/rejected' || pathname.startsWith('/agent/rejected/')
+    const isAgentPortalTool =
+      pathname === '/agent/listings' ||
+      pathname.startsWith('/agent/listings/') ||
+      pathname === '/agent/leads' ||
+      pathname.startsWith('/agent/leads/') ||
+      pathname === '/agent/analytics' ||
+      pathname.startsWith('/agent/analytics/') ||
+      pathname === '/agent/settings' ||
+      pathname.startsWith('/agent/settings/')
 
     if (agentVerificationStatus === 'REJECTED') {
       if (!isAgentRejected) {
@@ -187,8 +208,8 @@ export async function middleware(req: NextRequest) {
         url.search = ''
         return NextResponse.redirect(url)
       }
-    } else if (!agentApproved) {
-      if (isAgentDashboard || isAgentRejected) {
+    } else if (agentVerificationStatus !== 'APPROVED' || !agentApproved) {
+      if (isAgentDashboard || isAgentPortalTool || isAgentRejected) {
         const url = req.nextUrl.clone()
         url.pathname = '/agent/on-hold'
         url.search = ''
@@ -201,6 +222,38 @@ export async function middleware(req: NextRequest) {
         url.search = ''
         return NextResponse.redirect(url)
       }
+    }
+  }
+
+  if (isVerixProtected) {
+    if (role !== 'AGENT') {
+      const url = req.nextUrl.clone()
+      url.pathname = '/auth/agent/login'
+      const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`
+      url.search = `next=${encodeURIComponent(next)}`
+      return NextResponse.redirect(url)
+    }
+
+    if (!emailVerified) {
+      const url = req.nextUrl.clone()
+      url.pathname = '/auth/agent/login'
+      const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`
+      url.search = `next=${encodeURIComponent(next)}`
+      return NextResponse.redirect(url)
+    }
+
+    if (agentVerificationStatus === 'REJECTED') {
+      const url = req.nextUrl.clone()
+      url.pathname = '/agent/rejected'
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
+
+    if (agentVerificationStatus !== 'APPROVED' || !agentApproved) {
+      const url = req.nextUrl.clone()
+      url.pathname = '/agent/on-hold'
+      url.search = ''
+      return NextResponse.redirect(url)
     }
   }
 
@@ -226,5 +279,6 @@ export const config = {
     '/ecosystem/admin/:path*',
     '/ecosystem/dashboard/:path*',
     '/ecosystem/manage/:path*',
+    '/verix/:path*',
   ],
 }

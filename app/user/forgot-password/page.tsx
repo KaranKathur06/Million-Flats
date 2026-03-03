@@ -8,12 +8,14 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [errorCode, setErrorCode] = useState('')
   const [success, setSuccess] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setErrorCode('')
     setSuccess('')
 
     try {
@@ -26,11 +28,12 @@ export default function ForgotPasswordPage() {
       const data = await res.json().catch(() => null)
 
       if (!res.ok) {
+        setErrorCode((data && data.code) || '')
         setError((data && data.message) || 'Something went wrong. Please try again.')
         return
       }
 
-      setSuccess('If an account exists, a reset link will be sent to that email.')
+      setSuccess((data && data.message) || 'Reset link sent to your email.')
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {
@@ -43,6 +46,30 @@ export default function ForgotPasswordPage() {
       <form className="space-y-5" onSubmit={handleSubmit}>
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
+        )}
+        {error && errorCode === 'EMAIL_NOT_REGISTERED' && (
+          <Link
+            href={`/auth/user/register?email=${encodeURIComponent(email)}`}
+            className="block w-full text-center h-12 leading-[3rem] rounded-xl font-medium bg-gray-900 text-white hover:bg-gray-800 transition-all duration-200"
+          >
+            Register
+          </Link>
+        )}
+        {error && errorCode === 'EMAIL_NOT_VERIFIED' && (
+          <Link
+            href={`/user/verify?email=${encodeURIComponent(email)}`}
+            className="block w-full text-center h-12 leading-[3rem] rounded-xl font-medium bg-gray-900 text-white hover:bg-gray-800 transition-all duration-200"
+          >
+            Verify Email
+          </Link>
+        )}
+        {error && (errorCode === 'ACCOUNT_SUSPENDED' || errorCode === 'ACCOUNT_BANNED') && (
+          <Link
+            href="/contact"
+            className="block w-full text-center h-12 leading-[3rem] rounded-xl font-medium bg-gray-900 text-white hover:bg-gray-800 transition-all duration-200"
+          >
+            Contact Support
+          </Link>
         )}
         {success && (
           <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm">{success}</div>
