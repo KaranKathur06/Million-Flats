@@ -16,7 +16,7 @@ export default function VerifyOtpPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const role = useMemo(() => safeRole(searchParams?.get('role')), [searchParams])
+  const role = useMemo(() => safeRole(searchParams ? searchParams.get('role') : null), [searchParams])
   const email = searchParams?.get('email') || ''
   const next = searchParams?.get('next') || ''
   const safeNext = typeof next === 'string' && next.startsWith('/') ? next : ''
