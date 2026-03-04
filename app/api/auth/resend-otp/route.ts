@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { sendEmail } from '@/lib/mailer'
+import { sendEmail } from '@/lib/email/sendEmail'
+import OTPEmail from '@/lib/email/templates/otpEmail'
 
 export const runtime = 'nodejs'
 
@@ -78,7 +79,7 @@ export async function POST(req: Request) {
   await sendEmail({
     to: user.email,
     subject: 'Your MillionFlats verification code',
-    html: `<p>Your verification code is:</p><p style="font-size:24px;letter-spacing:4px;"><strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
+    react: OTPEmail({ otp }),
   }).catch(() => null)
 
   return NextResponse.json({ success: true, message: 'If an account exists, a code will be sent.' }, { status: 200 })

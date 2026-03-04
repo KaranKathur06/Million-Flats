@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { formatEcosystemLeadEmail, sendEmail } from '@/lib/email'
+import { formatEcosystemLeadEmail, sendEmail } from '@/lib/email/sendEmail'
 
 export const runtime = 'nodejs'
 

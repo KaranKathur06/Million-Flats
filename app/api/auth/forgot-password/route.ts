@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
-import { buildAbsoluteUrl, sendEmail } from '@/lib/mailer'
+import { buildAbsoluteUrl, sendEmail } from '@/lib/email/sendEmail'
+import PasswordReset from '@/lib/email/templates/passwordReset'
 
 export const runtime = 'nodejs'
 
@@ -117,7 +118,7 @@ export async function POST(req: Request) {
   await sendEmail({
     to: user.email,
     subject: 'Reset your MillionFlats password',
-    html: `<p>We received a request to reset your password.</p><p><a href="${resetUrl}">Reset Password</a></p><p>This link expires in 20 minutes.</p>`,
+    react: PasswordReset({ link: resetUrl }),
   }).catch(() => null)
 
   return NextResponse.json({ success: true, message: 'Reset link sent to your email.' }, { status: 200 })

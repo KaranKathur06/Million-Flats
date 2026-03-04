@@ -2,11 +2,19 @@ import { Text, Button, Section } from "@react-email/components";
 import * as React from "react";
 import EmailLayout, { brandColors } from "./layout";
 
-interface WelcomeEmailProps {
-    name: string;
+interface ListingRejectedProps {
+    agentName: string;
+    title: string;
+    reason: string;
+    dashboardLink: string;
 }
 
-export default function WelcomeEmail({ name }: WelcomeEmailProps) {
+export default function ListingRejected({
+    agentName,
+    title,
+    reason,
+    dashboardLink,
+}: ListingRejectedProps) {
     return (
         <EmailLayout>
             <Section style={{ textAlign: "center" as const, marginBottom: "24px" }}>
@@ -17,51 +25,44 @@ export default function WelcomeEmail({ name }: WelcomeEmailProps) {
                         height: "56px",
                         lineHeight: "56px",
                         borderRadius: "50%",
-                        backgroundColor: "#eff6ff",
+                        backgroundColor: "#fef2f2",
                         fontSize: "24px",
                         textAlign: "center" as const,
                     }}
                 >
-                    🏠
+                    ❌
                 </div>
             </Section>
 
-            <Text style={styles.heading}>Welcome to MillionFlats</Text>
+            <Text style={styles.heading}>Listing Rejected</Text>
 
-            <Text style={styles.greeting}>Hi {name},</Text>
+            <Text style={styles.greeting}>Hi {agentName},</Text>
 
             <Text style={styles.body}>
-                Thank you for joining MillionFlats — your gateway to premium global
-                real estate investments. We&apos;re thrilled to have you on board.
+                Your listing <strong>{title}</strong> has been reviewed and was not
+                approved by our moderation team.
             </Text>
 
-            <Text style={styles.body}>Here&apos;s what you can do next:</Text>
-
-            {/* Feature list */}
-            <Section style={styles.featureList}>
-                <Text style={styles.featureItem}>
-                    🏢 &nbsp;Browse verified premium property listings
-                </Text>
-                <Text style={styles.featureItem}>
-                    📊 &nbsp;Access market analysis and investment insights
-                </Text>
-                <Text style={styles.featureItem}>
-                    🤝 &nbsp;Connect with certified real estate agents
-                </Text>
+            {/* Reason card */}
+            <Section style={styles.reasonCard}>
+                <Text style={styles.reasonLabel}>Reason for rejection</Text>
+                <Text style={styles.reasonText}>{reason}</Text>
             </Section>
 
+            <Text style={styles.body}>
+                You can review the feedback, make the necessary changes, and resubmit
+                your listing from your agent dashboard.
+            </Text>
+
             <Section style={{ textAlign: "center" as const, margin: "28px 0 8px" }}>
-                <Button href="https://millionflats.com" style={styles.button}>
-                    Explore Properties
+                <Button href={dashboardLink} style={styles.button}>
+                    Go to Dashboard
                 </Button>
             </Section>
 
             <Text style={styles.disclaimer}>
-                Need help? Reply to this email or visit our{" "}
-                <a href="https://millionflats.com/contact" style={{ color: brandColors.primary }}>
-                    support page
-                </a>
-                .
+                If you have questions about this decision, please contact our support
+                team.
             </Text>
         </EmailLayout>
     );
@@ -91,18 +92,28 @@ const styles = {
         lineHeight: "1.6",
     } as React.CSSProperties,
 
-    featureList: {
-        margin: "16px 0 8px",
-        padding: "16px 20px",
-        backgroundColor: "#f8fafc",
+    reasonCard: {
+        margin: "16px 0 24px",
+        padding: "20px",
+        backgroundColor: "#fef2f2",
         borderRadius: "10px",
-        border: `1px solid ${brandColors.border}`,
+        border: "1px solid #fecaca",
+        borderLeft: "4px solid #ef4444",
     } as React.CSSProperties,
 
-    featureItem: {
+    reasonLabel: {
+        fontSize: "11px",
+        fontWeight: "700" as const,
+        textTransform: "uppercase" as const,
+        letterSpacing: "0.5px",
+        color: "#991b1b",
+        margin: "0 0 6px",
+    } as React.CSSProperties,
+
+    reasonText: {
         fontSize: "14px",
-        color: brandColors.textPrimary,
-        margin: "0 0 8px",
+        color: "#7f1d1d",
+        margin: "0",
         lineHeight: "1.5",
     } as React.CSSProperties,
 

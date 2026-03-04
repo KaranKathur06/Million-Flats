@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
-import { sendEmail } from '@/lib/mailer'
+import { sendEmail } from '@/lib/email/sendEmail'
+import OTPEmail from '@/lib/email/templates/otpEmail'
 import { parsePhoneNumberFromString } from 'libphonenumber-js'
 
 export const runtime = 'nodejs'
@@ -54,12 +55,12 @@ async function validateAndNormalizePhone(params: {
 }): Promise<
   | { ok: false; message: string }
   | {
-      ok: true
-      phoneE164: string
-      phoneCountryIso2: string
-      phoneCountryIso2ForFk: string | null
-      phoneNationalNumber: string
-    }
+    ok: true
+    phoneE164: string
+    phoneCountryIso2: string
+    phoneCountryIso2ForFk: string | null
+    phoneNationalNumber: string
+  }
 > {
   const phoneE164 = normalizePhone(params.phoneRaw)
   if (!phoneE164.startsWith('+') || phoneE164.replace(/[^0-9]/g, '').length < 8) {
@@ -178,7 +179,7 @@ export async function POST(req: Request) {
             await sendEmail({
               to: email,
               subject: 'Your MillionFlats verification code',
-              html: `<p>Your verification code is:</p><p style="font-size:24px;letter-spacing:4px;"><strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
+              react: OTPEmail({ otp }),
             }).catch(() => null)
 
             return NextResponse.json(
@@ -219,7 +220,7 @@ export async function POST(req: Request) {
           await sendEmail({
             to: email,
             subject: 'Your MillionFlats verification code',
-            html: `<p>Your verification code is:</p><p style="font-size:24px;letter-spacing:4px;"><strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
+            react: OTPEmail({ otp }),
           }).catch(() => null)
 
           return NextResponse.json(
@@ -246,10 +247,10 @@ export async function POST(req: Request) {
       const hashedPassword = await bcrypt.hash(password, 10)
       const phoneNormalized = phone
         ? await validateAndNormalizePhone({
-            phoneRaw: phone,
-            phoneCountryIso2Raw: phoneCountryIso2,
-            phoneNationalNumberRaw: phoneNationalNumber,
-          })
+          phoneRaw: phone,
+          phoneCountryIso2Raw: phoneCountryIso2,
+          phoneNationalNumberRaw: phoneNationalNumber,
+        })
         : null
 
       if (phoneNormalized && !phoneNormalized.ok) {
@@ -284,7 +285,7 @@ export async function POST(req: Request) {
       await sendEmail({
         to: email,
         subject: 'Your MillionFlats verification code',
-        html: `<p>Your verification code is:</p><p style="font-size:24px;letter-spacing:4px;"><strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
+        react: OTPEmail({ otp }),
       }).catch(() => null)
 
       return NextResponse.json(
@@ -354,28 +355,28 @@ export async function POST(req: Request) {
 
       const user = existingUser
         ? await (prisma as any).user.update({
-            where: { id: existingUser.id },
-            data: {
-              name: existingUser.name || name,
-              password: existingUser.password || hashedPassword,
-              phone: existingUser.phone || phoneNormalized.phoneE164 || null,
-              phoneCountryIso2: (existingUser as any).phoneCountryIso2 || phoneNormalized.phoneCountryIso2ForFk || null,
-              phoneNationalNumber: (existingUser as any).phoneNationalNumber || phoneNormalized.phoneNationalNumber || null,
-              role: 'AGENT',
-            },
-          })
+          where: { id: existingUser.id },
+          data: {
+            name: existingUser.name || name,
+            password: existingUser.password || hashedPassword,
+            phone: existingUser.phone || phoneNormalized.phoneE164 || null,
+            phoneCountryIso2: (existingUser as any).phoneCountryIso2 || phoneNormalized.phoneCountryIso2ForFk || null,
+            phoneNationalNumber: (existingUser as any).phoneNationalNumber || phoneNormalized.phoneNationalNumber || null,
+            role: 'AGENT',
+          },
+        })
         : await (prisma as any).user.create({
-            data: {
-              name,
-              email,
-              password: hashedPassword,
-              phone: phoneNormalized.phoneE164 || null,
-              phoneCountryIso2: phoneNormalized.phoneCountryIso2ForFk || null,
-              phoneNationalNumber: phoneNormalized.phoneNationalNumber || null,
-              role: 'AGENT',
-              verified: false,
-            },
-          })
+          data: {
+            name,
+            email,
+            password: hashedPassword,
+            phone: phoneNormalized.phoneE164 || null,
+            phoneCountryIso2: phoneNormalized.phoneCountryIso2ForFk || null,
+            phoneNationalNumber: phoneNormalized.phoneNationalNumber || null,
+            role: 'AGENT',
+            verified: false,
+          },
+        })
 
       if (!existingUser?.agent) {
         try {
@@ -415,7 +416,7 @@ export async function POST(req: Request) {
       await sendEmail({
         to: email,
         subject: 'Your MillionFlats verification code',
-        html: `<p>Your verification code is:</p><p style="font-size:24px;letter-spacing:4px;"><strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
+        react: OTPEmail({ otp }),
       }).catch(() => null)
 
       return NextResponse.json(

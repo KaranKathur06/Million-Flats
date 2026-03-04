@@ -3,7 +3,8 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { writeAuditLog } from '@/lib/audit'
-import { sendEmail, buildAbsoluteUrl } from '@/lib/mailer'
+import { sendEmail, buildAbsoluteUrl } from '@/lib/email/sendEmail'
+import ListingRejected from '@/lib/email/templates/listingRejected'
 import { checkAdminRateLimit } from '@/lib/adminRateLimit'
 
 const RejectSchema = z.object({
@@ -93,16 +94,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     await sendEmail({
       to: agentEmail,
       subject: `Listing rejected: ${title}`,
-      html: `
-        <div style="font-family:Arial,sans-serif;line-height:1.5">
-          <p>Hi ${agentName},</p>
-          <p>Your listing <strong>${title}</strong> was rejected by our team.</p>
-          <p><strong>Reason:</strong></p>
-          <p>${parsed.data.reason.replace(/</g, '&lt;')}</p>
-          <p>You can review and resubmit from your dashboard:</p>
-          <p><a href="${href}">${href}</a></p>
-        </div>
-      `,
+      react: ListingRejected({
+        agentName,
+        title,
+        reason: parsed.data.reason,
+        dashboardLink: href,
+      }),
     }).catch(() => null)
   }
 
