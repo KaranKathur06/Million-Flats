@@ -40,9 +40,9 @@ export default function EmailLayout({ children }: { children: React.ReactNode })
                             <tr>
                                 <td style={{ textAlign: "center", padding: "28px 0" }}>
                                     <Img
-                                        src="https://millionflats.com/logo.png"
-                                        width="160"
-                                        height="40"
+                                        src="https://millionflats.com/LOGO.jpeg"
+                                        width="180"
+                                        height="auto"
                                         alt="MillionFlats"
                                         style={{ display: "inline-block" }}
                                     />
