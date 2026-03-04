@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import * as React from "react";
+import { render } from "@react-email/render";
 
 // ---------- Resend client (singleton) ----------
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -36,6 +37,7 @@ type SendEmailInput = {
 /**
  * Unified email sending gateway via Resend.
  * Supports React Email components, raw HTML, or plain text.
+ * React components are pre-rendered to HTML to avoid Next.js production bundling issues.
  */
 export async function sendEmail(input: SendEmailInput) {
     const from =
@@ -50,7 +52,9 @@ export async function sendEmail(input: SendEmailInput) {
         };
 
         if ("react" in input && input.react) {
-            payload.react = input.react;
+            // Pre-render React component to HTML to avoid production bundler issues
+            const htmlContent = await render(input.react);
+            payload.html = htmlContent;
         } else if ("html" in input && input.html) {
             payload.html = input.html;
         } else if ("text" in input && input.text) {
