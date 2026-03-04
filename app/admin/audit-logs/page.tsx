@@ -41,75 +41,95 @@ export default async function AdminAuditLogsPage({
   })
 
   return (
-    <div className="mx-auto max-w-[1500px]">
-      <div className="rounded-2xl border border-white/10 bg-[#0f1a2e] p-7">
-        <p className="text-amber-300 font-semibold text-sm uppercase tracking-wider">Admin</p>
-        <div className="mt-2 flex items-center justify-between gap-4">
-          <h1 className="text-3xl font-serif font-bold">Audit Logs</h1>
-          <Link href="/admin" className="text-sm font-semibold text-white/80 hover:text-white">
-            Back to dashboard
-          </Link>
+    <div className="mx-auto max-w-[1500px] space-y-6">
+      {/* Page header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-6 items-center rounded-md bg-amber-400/10 px-2 text-[11px] font-bold uppercase tracking-wider text-amber-400">
+              Admin
+            </span>
+          </div>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight">Audit Logs</h1>
         </div>
+        <Link href="/admin" className="mt-2 inline-flex items-center gap-1 text-[13px] font-semibold text-white/50 hover:text-white/80 transition-colors">
+          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Dashboard
+        </Link>
+      </div>
 
-        <form className="mt-6 flex flex-wrap items-end gap-3" method="get">
-          <input
-            name="entityType"
-            defaultValue={entityType}
-            placeholder="Entity type (MANUAL_PROPERTY / AGENT / USER)"
-            className="h-11 w-full md:w-[320px] rounded-xl border border-white/10 bg-[#0b1220] px-3 text-sm text-white placeholder:text-white/40"
-          />
-          <input
-            name="action"
-            defaultValue={action}
-            placeholder="Action"
-            className="h-11 w-full md:w-[280px] rounded-xl border border-white/10 bg-[#0b1220] px-3 text-sm text-white placeholder:text-white/40"
-          />
-          <button className="h-11 rounded-xl bg-amber-400 text-[#0b1220] font-semibold px-6 hover:bg-amber-300">Apply</button>
-        </form>
+      {/* Filter form */}
+      <form className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5" method="get">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35">Entity Type</label>
+            <input
+              name="entityType"
+              defaultValue={entityType}
+              placeholder="MANUAL_PROPERTY / AGENT / USER"
+              className="h-10 w-full md:w-[280px] rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-[13px] text-white/90 placeholder:text-white/25 transition-all hover:bg-white/[0.06] hover:border-white/[0.12] focus:outline-none focus:border-amber-400/40"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35">Action</label>
+            <input
+              name="action"
+              defaultValue={action}
+              placeholder="Action type"
+              className="h-10 w-full md:w-[240px] rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-[13px] text-white/90 placeholder:text-white/25 transition-all hover:bg-white/[0.06] hover:border-white/[0.12] focus:outline-none focus:border-amber-400/40"
+            />
+          </div>
+          <button className="h-10 px-5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-[13px] text-[#0b1220] font-semibold shadow-md shadow-amber-500/20 hover:shadow-lg hover:shadow-amber-500/30 hover:from-amber-300 hover:to-amber-400 transition-all duration-200">
+            Apply
+          </button>
+        </div>
+      </form>
 
-        <div className="mt-6 overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left text-white/70 border-b border-white/10">
-                <th className="py-3 pr-4">Time</th>
-                <th className="py-3 pr-4">Entity</th>
-                <th className="py-3 pr-4">Action</th>
-                <th className="py-3 pr-4">Performed By</th>
-                <th className="py-3 pr-4">Meta</th>
+      {/* Table */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 overflow-x-auto">
+        <table className="min-w-full text-[13px]">
+          <thead>
+            <tr className="text-left border-b border-white/[0.06]">
+              <th className="py-3 pr-4 text-[11px] font-semibold uppercase tracking-wider text-white/35">Time</th>
+              <th className="py-3 pr-4 text-[11px] font-semibold uppercase tracking-wider text-white/35">Entity</th>
+              <th className="py-3 pr-4 text-[11px] font-semibold uppercase tracking-wider text-white/35">Action</th>
+              <th className="py-3 pr-4 text-[11px] font-semibold uppercase tracking-wider text-white/35">Performed By</th>
+              <th className="py-3 pr-4 text-[11px] font-semibold uppercase tracking-wider text-white/35">Meta</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r: any) => (
+              <tr key={String(r.id)} className="border-b border-white/[0.04] align-top hover:bg-white/[0.02] transition-colors">
+                <td className="py-4 pr-4 text-white/55 whitespace-nowrap text-[12px]">
+                  {r.createdAt ? new Date(r.createdAt).toLocaleString() : '—'}
+                </td>
+                <td className="py-4 pr-4">
+                  <div className="text-white/90 font-semibold">{safeString(r.entityType)}</div>
+                  <div className="text-[11px] text-white/35 break-all mt-0.5">{safeString(r.entityId)}</div>
+                </td>
+                <td className="py-4 pr-4 text-white/75">{safeString(r.action)}</td>
+                <td className="py-4 pr-4 text-white/65">
+                  {safeString(r.performedBy?.name) || safeString(r.performedBy?.email) || '—'}
+                </td>
+                <td className="py-4 pr-4">
+                  <pre className="max-w-[480px] whitespace-pre-wrap break-words rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-[11px] text-white/55">
+                    {JSON.stringify(r.meta ?? null, null, 2)}
+                  </pre>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {rows.map((r: any) => (
-                <tr key={String(r.id)} className="border-b border-white/5 align-top">
-                  <td className="py-4 pr-4 text-white/70 whitespace-nowrap">
-                    {r.createdAt ? new Date(r.createdAt).toLocaleString() : '—'}
-                  </td>
-                  <td className="py-4 pr-4">
-                    <div className="text-white font-semibold">{safeString(r.entityType)}</div>
-                    <div className="text-xs text-white/60 break-all">{safeString(r.entityId)}</div>
-                  </td>
-                  <td className="py-4 pr-4 text-white/90">{safeString(r.action)}</td>
-                  <td className="py-4 pr-4 text-white/80">
-                    {safeString(r.performedBy?.name) || safeString(r.performedBy?.email) || '—'}
-                  </td>
-                  <td className="py-4 pr-4 text-xs text-white/70">
-                    <pre className="max-w-[520px] whitespace-pre-wrap break-words rounded-xl border border-white/10 bg-black/10 p-3">
-                      {JSON.stringify(r.meta ?? null, null, 2)}
-                    </pre>
-                  </td>
-                </tr>
-              ))}
+            ))}
 
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-10 text-center text-white/60">
-                    No audit logs found.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="py-12 text-center text-white/30 text-[13px]">
+                  No audit logs found.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
       </div>
     </div>
   )

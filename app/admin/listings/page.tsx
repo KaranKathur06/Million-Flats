@@ -120,21 +120,34 @@ export default async function AdminListingsPage({
   })
 
   return (
-    <div className="mx-auto max-w-[1500px]">
-      <div className="rounded-2xl border border-white/10 bg-[#0f1a2e] p-7">
-        <p className="text-amber-300 font-semibold text-sm uppercase tracking-wider">Admin</p>
-        <div className="mt-2 flex items-center justify-between gap-4">
-          <h1 className="text-3xl font-serif font-bold">Listings</h1>
-          <Link href="/admin" className="text-sm font-semibold text-white/80 hover:text-white">
-            Back to dashboard
-          </Link>
+    <div className="mx-auto max-w-[1500px] space-y-6">
+      {/* Page header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-6 items-center rounded-md bg-amber-400/10 px-2 text-[11px] font-bold uppercase tracking-wider text-amber-400">
+              Admin
+            </span>
+          </div>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight">Listings</h1>
         </div>
+        <Link href="/admin" className="mt-2 inline-flex items-center gap-1 text-[13px] font-semibold text-white/50 hover:text-white/80 transition-colors">
+          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Dashboard
+        </Link>
+      </div>
 
-        <form className="mt-6 grid grid-cols-1 md:grid-cols-6 gap-3" method="get">
+      {/* Filter form */}
+      <form className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5" method="get">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35">Status</label>
             <select
               name="status"
               defaultValue={status}
-              className="h-11 rounded-xl border border-white/10 bg-[#0b1220] px-3 text-sm text-white"
+              className="mf-select h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-[13px] text-white/90 transition-all hover:bg-white/[0.06] hover:border-white/[0.12] focus:border-amber-400/40"
             >
               <option value="">All statuses</option>
               <option value="DRAFT">Draft</option>
@@ -143,44 +156,59 @@ export default async function AdminListingsPage({
               <option value="REJECTED">Rejected</option>
               <option value="ARCHIVED">Archived</option>
             </select>
+          </div>
 
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35">Agent</label>
             <input
               name="agent"
               defaultValue={agent}
-              placeholder="Agent name/email"
-              className="h-11 rounded-xl border border-white/10 bg-[#0b1220] px-3 text-sm text-white placeholder:text-white/40"
+              placeholder="Name or email"
+              className="h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-[13px] text-white/90 placeholder:text-white/25 transition-all hover:bg-white/[0.06] hover:border-white/[0.12] focus:outline-none focus:border-amber-400/40"
             />
+          </div>
 
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35">City</label>
             <input
               name="city"
               defaultValue={city}
-              placeholder="City"
-              className="h-11 rounded-xl border border-white/10 bg-[#0b1220] px-3 text-sm text-white placeholder:text-white/40"
+              placeholder="City name"
+              className="h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-[13px] text-white/90 placeholder:text-white/25 transition-all hover:bg-white/[0.06] hover:border-white/[0.12] focus:outline-none focus:border-amber-400/40"
             />
+          </div>
 
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35">Min Price</label>
             <input
               name="minPrice"
               defaultValue={Number.isFinite(minPrice) ? String(minPrice) : ''}
-              placeholder="Min price"
-              className="h-11 rounded-xl border border-white/10 bg-[#0b1220] px-3 text-sm text-white placeholder:text-white/40"
+              placeholder="0"
+              className="h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-[13px] text-white/90 placeholder:text-white/25 transition-all hover:bg-white/[0.06] hover:border-white/[0.12] focus:outline-none focus:border-amber-400/40"
             />
+          </div>
 
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35">Max Price</label>
             <input
               name="maxPrice"
               defaultValue={Number.isFinite(maxPrice) ? String(maxPrice) : ''}
-              placeholder="Max price"
-              className="h-11 rounded-xl border border-white/10 bg-[#0b1220] px-3 text-sm text-white placeholder:text-white/40"
+              placeholder="∞"
+              className="h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-[13px] text-white/90 placeholder:text-white/25 transition-all hover:bg-white/[0.06] hover:border-white/[0.12] focus:outline-none focus:border-amber-400/40"
             />
+          </div>
 
-            <button className="h-11 rounded-xl bg-amber-400 text-[#0b1220] font-semibold hover:bg-amber-300">
+          <div className="flex items-end">
+            <button className="h-10 w-full rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-[13px] text-[#0b1220] font-semibold shadow-md shadow-amber-500/20 hover:shadow-lg hover:shadow-amber-500/30 hover:from-amber-300 hover:to-amber-400 transition-all duration-200">
               Apply
             </button>
-
-        </form>
-
-        <div className="mt-6">
-          <AdminListingsTableClient items={items} currentRole={role} />
+          </div>
         </div>
+      </form>
+
+      {/* Table */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+        <AdminListingsTableClient items={items} currentRole={role} />
       </div>
     </div>
   )

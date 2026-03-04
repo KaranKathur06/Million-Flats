@@ -71,11 +71,16 @@ body {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  background-image: none;
   outline: none;
   box-shadow: none;
   -webkit-tap-highlight-color: transparent;
   transition: all 0.22s ease;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 12px;
+  padding-right: 2rem;
+  cursor: pointer;
 }
 
 .mf-select:focus {
@@ -84,12 +89,50 @@ body {
 }
 
 .mf-select:focus-visible {
-  outline: 2px solid rgba(255, 193, 7, 0.6);
+  outline: 2px solid rgba(255, 193, 7, 0.5);
   outline-offset: 2px;
 }
 
 .mf-select::-ms-expand {
   display: none;
+}
+
+.mf-select option {
+  background: #0f1726;
+  color: rgba(255, 255, 255, 0.9);
+  padding: 8px 12px;
+}
+
+/* Admin scrollbar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Dark color scheme for date inputs */
+input[type="date"][class*="bg-white"] {
+  color-scheme: light;
+}
+
+input[type="date"]:not([class*="bg-white"]) {
+  color-scheme: dark;
 }
 
 a {
