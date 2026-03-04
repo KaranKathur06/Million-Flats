@@ -25,7 +25,7 @@ export default function PasswordReset({ link }: { link: string }) {
             </Button>
 
             <Text>
-                If you didn't request this, you can safely ignore this email.
+                If you didn&apos;t request this, you can safely ignore this email.
             </Text>
         </EmailLayout>
     );
