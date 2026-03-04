@@ -4,8 +4,19 @@ import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/sendEmail'
 import OTPEmail from '@/lib/email/templates/otpEmail'
 import { parsePhoneNumberFromString } from 'libphonenumber-js'
+import crypto from 'crypto'
 
 export const runtime = 'nodejs'
+
+function getClientIp(req: Request) {
+  const xf = req.headers.get('x-forwarded-for')
+  if (xf) return xf.split(',')[0]?.trim() || 'unknown'
+  return 'unknown'
+}
+
+function hashOtp(code: string) {
+  return crypto.createHash('sha256').update(code).digest('hex')
+}
 
 function safeString(v: unknown) {
   if (typeof v !== 'string') return ''
@@ -139,6 +150,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 })
     }
 
+    const ip = getClientIp(req)
+
     if (type === 'user') {
       if (!password) {
         return NextResponse.json({ success: false, message: 'Password required' }, { status: 400 })
@@ -166,15 +179,25 @@ export async function POST(req: Request) {
           if (!updated.verified) {
             const otp = generateOtp()
             const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
+            const codeHash = hashOtp(otp)
 
-            await prisma.emailVerificationToken.deleteMany({ where: { userId: updated.id } })
-            await prisma.emailVerificationToken.create({
+            await (prisma as any).loginOtp.updateMany({
+              where: { email: updated.email, role: 'USER', consumed: false, usedAt: null },
+              data: { consumed: true },
+            }).catch(() => null)
+
+            await (prisma as any).loginOtp.create({
               data: {
-                userId: updated.id,
-                token: otp,
+                id: crypto.randomUUID(),
+                email: updated.email,
+                role: 'USER',
+                codeHash,
+                attempts: 0,
                 expiresAt,
+                consumed: false,
+                ipAddress: ip,
               },
-            })
+            }).catch(() => null)
 
             await sendEmail({
               to: email,
@@ -207,15 +230,25 @@ export async function POST(req: Request) {
         if (!existingUser.verified) {
           const otp = generateOtp()
           const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
+          const codeHash = hashOtp(otp)
 
-          await prisma.emailVerificationToken.deleteMany({ where: { userId: existingUser.id } })
-          await prisma.emailVerificationToken.create({
+          await (prisma as any).loginOtp.updateMany({
+            where: { email: existingUser.email, role: 'USER', consumed: false, usedAt: null },
+            data: { consumed: true },
+          }).catch(() => null)
+
+          await (prisma as any).loginOtp.create({
             data: {
-              userId: existingUser.id,
-              token: otp,
+              id: crypto.randomUUID(),
+              email: existingUser.email,
+              role: 'USER',
+              codeHash,
+              attempts: 0,
               expiresAt,
+              consumed: false,
+              ipAddress: ip,
             },
-          })
+          }).catch(() => null)
 
           await sendEmail({
             to: email,
@@ -272,15 +305,25 @@ export async function POST(req: Request) {
 
       const otp = generateOtp()
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
+      const codeHash = hashOtp(otp)
 
-      await prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } })
-      await prisma.emailVerificationToken.create({
+      await (prisma as any).loginOtp.updateMany({
+        where: { email: user.email, role: 'USER', consumed: false, usedAt: null },
+        data: { consumed: true },
+      }).catch(() => null)
+
+      await (prisma as any).loginOtp.create({
         data: {
-          userId: user.id,
-          token: otp,
+          id: crypto.randomUUID(),
+          email: user.email,
+          role: 'USER',
+          codeHash,
+          attempts: 0,
           expiresAt,
+          consumed: false,
+          ipAddress: ip,
         },
-      })
+      }).catch(() => null)
 
       await sendEmail({
         to: email,
@@ -403,15 +446,25 @@ export async function POST(req: Request) {
 
       const otp = generateOtp()
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
+      const codeHash = hashOtp(otp)
 
-      await prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } })
-      await prisma.emailVerificationToken.create({
+      await (prisma as any).loginOtp.updateMany({
+        where: { email: user.email, role: 'AGENT', consumed: false, usedAt: null },
+        data: { consumed: true },
+      }).catch(() => null)
+
+      await (prisma as any).loginOtp.create({
         data: {
-          userId: user.id,
-          token: otp,
+          id: crypto.randomUUID(),
+          email: user.email,
+          role: 'AGENT',
+          codeHash,
+          attempts: 0,
           expiresAt,
+          consumed: false,
+          ipAddress: ip,
         },
-      })
+      }).catch(() => null)
 
       await sendEmail({
         to: email,

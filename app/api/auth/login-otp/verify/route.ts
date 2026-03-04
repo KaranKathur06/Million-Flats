@@ -108,6 +108,15 @@ export async function POST(req: Request) {
     })
     .catch(() => null)
 
+  await (prisma as any).user.update({
+    where: { email },
+    data: {
+      verified: true,
+      emailVerified: true,
+      emailVerifiedAt: new Date()
+    }
+  }).catch(() => null)
+
   return NextResponse.json(
     {
       success: true,
