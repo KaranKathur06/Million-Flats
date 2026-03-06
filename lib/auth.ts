@@ -84,11 +84,11 @@ export const authOptions: NextAuthOptions = {
   providers: [
     ...(googleClientId && googleClientSecret
       ? [
-          GoogleProvider({
-            clientId: googleClientId,
-            clientSecret: googleClientSecret,
-          }),
-        ]
+        GoogleProvider({
+          clientId: googleClientId,
+          clientSecret: googleClientSecret,
+        }),
+      ]
       : []),
     CredentialsProvider({
       name: 'Credentials',
@@ -113,25 +113,40 @@ export const authOptions: NextAuthOptions = {
           const tokenHash = crypto.createHash('sha256').update(loginToken).digest('hex')
           const now = new Date()
 
-          const otpRow = await (prisma as any).loginOtp
-            .findFirst({
-              where: {
-                email,
-                role: expectedRole,
-                consumed: true,
-                usedAt: null,
-                loginTokenHash: tokenHash,
-                loginTokenExpiresAt: { gt: now },
-              },
-              orderBy: { createdAt: 'desc' },
-            })
-            .catch(() => null)
+          let otpRow;
+          try {
+            otpRow = await (prisma as any).loginOtp
+              .findFirst({
+                where: {
+                  email,
+                  role: expectedRole,
+                  consumed: true,
+                  usedAt: null,
+                  loginTokenHash: tokenHash,
+                  loginTokenExpiresAt: { gt: now },
+                },
+                orderBy: { createdAt: 'desc' },
+              });
+          } catch (error) {
+            console.error('[auth] Database error querying loginOtp:', error);
+            throw new Error('DATABASE_ERROR');
+          }
 
           if (!otpRow) return null
 
-          await (prisma as any).loginOtp.update({ where: { id: otpRow.id }, data: { usedAt: now } }).catch(() => null)
+          try {
+            await (prisma as any).loginOtp.update({ where: { id: otpRow.id }, data: { usedAt: now } });
+          } catch (error) {
+            console.error('[auth] Database error updating loginOtp:', error);
+          }
 
-          const user = await prisma.user.findUnique({ where: { email } }).catch(() => null)
+          let user;
+          try {
+            user = await prisma.user.findUnique({ where: { email } });
+          } catch (error) {
+            console.error('[auth] Database error querying user:', error);
+            throw new Error('DATABASE_ERROR');
+          }
           if (!user) return null
 
           const status = String((user as any).status || 'ACTIVE')
@@ -143,7 +158,13 @@ export const authOptions: NextAuthOptions = {
 
           if (intent === 'agent') {
             const role = String((user as any)?.role || '').toUpperCase()
-            const agent = await (prisma as any).agent.findUnique({ where: { userId: user.id } }).catch(() => null)
+            let agent;
+            try {
+              agent = await (prisma as any).agent.findUnique({ where: { userId: user.id } });
+            } catch (error) {
+              console.error('[auth] Database error querying agent:', error);
+              throw new Error('DATABASE_ERROR');
+            }
             if (role !== 'AGENT' && !agent) throw new Error('AGENT_NOT_REGISTERED')
           }
 
@@ -193,8 +214,8 @@ export const authOptions: NextAuthOptions = {
         })
 
         if (user && typeof user === 'object') {
-          ;(user as any).id = updated.id
-          ;(user as any).role = normalizeRole(updated.role)
+          ; (user as any).id = updated.id
+            ; (user as any).role = normalizeRole(updated.role)
         }
         return true
       } catch {
@@ -213,15 +234,15 @@ export const authOptions: NextAuthOptions = {
         token.role = role
         token.status = status
         if ((safeUser as any).agentProfileStatus) {
-          ;(token as any).agentProfileStatus = normalizeAgentProfileStatus((safeUser as any).agentProfileStatus)
+          ; (token as any).agentProfileStatus = normalizeAgentProfileStatus((safeUser as any).agentProfileStatus)
         }
 
         if (typeof (safeUser as any).agentApproved === 'boolean') {
-          ;(token as any).agentApproved = Boolean((safeUser as any).agentApproved)
+          ; (token as any).agentApproved = Boolean((safeUser as any).agentApproved)
         }
 
         if ((safeUser as any).agentVerificationStatus) {
-          ;(token as any).agentVerificationStatus = normalizeAgentVerificationStatus((safeUser as any).agentVerificationStatus)
+          ; (token as any).agentVerificationStatus = normalizeAgentVerificationStatus((safeUser as any).agentVerificationStatus)
         }
       }
 
@@ -245,32 +266,32 @@ export const authOptions: NextAuthOptions = {
           if (shouldBackfillIdentity || shouldRefreshAgentStatus || shouldRefreshAgentAuthz) {
             const dbUser = await prisma.user.findUnique({ where: { email }, include: { agent: true } }).catch(() => null)
             if (dbUser) {
-              ;(token as any).id = (token as any).id || dbUser.id
-              ;(token as any).role = normalizeRole((dbUser as any).role)
-              ;(token as any).status = normalizeStatus((dbUser as any).status)
-              ;(token as any).emailVerified = Boolean((dbUser as any).emailVerified) || Boolean((dbUser as any).verified)
-              ;(token as any).agentProfileStatus = normalizeAgentProfileStatus((dbUser as any)?.agent?.profileStatus)
-              ;(token as any).agentApproved = Boolean((dbUser as any)?.agent?.approved)
-              ;(token as any).agentVerificationStatus = normalizeAgentVerificationStatus((dbUser as any)?.agent?.verificationStatus)
+              ; (token as any).id = (token as any).id || dbUser.id
+                ; (token as any).role = normalizeRole((dbUser as any).role)
+                ; (token as any).status = normalizeStatus((dbUser as any).status)
+                ; (token as any).emailVerified = Boolean((dbUser as any).emailVerified) || Boolean((dbUser as any).verified)
+                ; (token as any).agentProfileStatus = normalizeAgentProfileStatus((dbUser as any)?.agent?.profileStatus)
+                ; (token as any).agentApproved = Boolean((dbUser as any)?.agent?.approved)
+                ; (token as any).agentVerificationStatus = normalizeAgentVerificationStatus((dbUser as any)?.agent?.verificationStatus)
 
               if (!(dbUser as any).role) {
                 await prisma.user.update({ where: { id: dbUser.id }, data: { role: 'USER' } as any }).catch(() => null)
               }
             } else {
-              ;(token as any).role = normalizeRole((token as any).role)
-              ;(token as any).status = normalizeStatus((token as any).status)
+              ; (token as any).role = normalizeRole((token as any).role)
+                ; (token as any).status = normalizeStatus((token as any).status)
             }
           }
         }
       }
 
-      ;(token as any).role = normalizeRole((token as any).role)
-      ;(token as any).status = normalizeStatus((token as any).status)
+      ; (token as any).role = normalizeRole((token as any).role)
+        ; (token as any).status = normalizeStatus((token as any).status)
       if ((token as any).agentProfileStatus) {
-        ;(token as any).agentProfileStatus = normalizeAgentProfileStatus((token as any).agentProfileStatus)
+        ; (token as any).agentProfileStatus = normalizeAgentProfileStatus((token as any).agentProfileStatus)
       }
       if ((token as any).agentVerificationStatus) {
-        ;(token as any).agentVerificationStatus = normalizeAgentVerificationStatus((token as any).agentVerificationStatus)
+        ; (token as any).agentVerificationStatus = normalizeAgentVerificationStatus((token as any).agentVerificationStatus)
       }
       return token
     },
@@ -284,21 +305,21 @@ export const authOptions: NextAuthOptions = {
         const tokenAgentApproved = (token as any)?.agentApproved
         const tokenAgentVerificationStatus = (token as any)?.agentVerificationStatus
         if (tokenId) {
-          ;(session.user as any).id = tokenId
+          ; (session.user as any).id = tokenId
         }
-        ;(session.user as any).role = normalizeRole(tokenRole)
-        ;(session.user as any).status = normalizeStatus(tokenStatus)
+        ; (session.user as any).role = normalizeRole(tokenRole)
+          ; (session.user as any).status = normalizeStatus(tokenStatus)
         if (typeof tokenEmailVerified === 'boolean') {
-          ;(session.user as any).emailVerified = tokenEmailVerified
+          ; (session.user as any).emailVerified = tokenEmailVerified
         }
         if (tokenAgentProfileStatus) {
-          ;(session.user as any).agentProfileStatus = normalizeAgentProfileStatus(tokenAgentProfileStatus)
+          ; (session.user as any).agentProfileStatus = normalizeAgentProfileStatus(tokenAgentProfileStatus)
         }
         if (typeof tokenAgentApproved === 'boolean') {
-          ;(session.user as any).agentApproved = tokenAgentApproved
+          ; (session.user as any).agentApproved = tokenAgentApproved
         }
         if (tokenAgentVerificationStatus) {
-          ;(session.user as any).agentVerificationStatus = normalizeAgentVerificationStatus(tokenAgentVerificationStatus)
+          ; (session.user as any).agentVerificationStatus = normalizeAgentVerificationStatus(tokenAgentVerificationStatus)
         }
       }
       return session

@@ -69,7 +69,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, code: 'RATE_LIMITED', message: 'Too many requests. Try again later.' }, { status: 429 })
   }
 
-  const user = await prisma.user.findUnique({ where: { email }, include: { agent: true } }).catch(() => null)
+  let user;
+  try {
+    user = await prisma.user.findUnique({ where: { email }, include: { agent: true } });
+  } catch (error) {
+    console.error('[login-otp/start] Database error when querying user:', error);
+    return NextResponse.json(
+      { success: false, code: 'INTERNAL_ERROR', message: 'An internal database error occurred. If a recent site update was made, migrations might be missing.' },
+      { status: 500 }
+    );
+  }
+
   if (!user) {
     return NextResponse.json({ success: false, code: 'EMAIL_NOT_REGISTERED', message: 'No account found with this email. Please register first.' }, { status: 404 })
   }
