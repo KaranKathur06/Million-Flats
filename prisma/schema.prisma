@@ -11,7 +11,7 @@ enum Role {
   USER
   AGENT
   MODERATOR
-  COMPLIANCE
+  VERIFIER
   ADMIN
   SUPERADMIN
 }
@@ -58,9 +58,26 @@ enum AgentServiceType {
 enum AgentVerificationDocumentType {
   LICENSE
   ID
+  PAN
+  AADHAR
+  PASSPORT
+  RERA_CERTIFICATE
+  BROKER_LICENSE
+  GST_CERTIFICATE
+  ADDRESS_PROOF
+  SELFIE_ID
 }
 
 enum AgentVerificationStatus {
+  PENDING
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  FLAGGED
+}
+
+enum DocumentStatus {
   PENDING
   APPROVED
   REJECTED
@@ -350,6 +367,11 @@ model Agent {
   profileCompletion Int @default(0) @map("profile_completion")
   profileCompletionUpdatedAt DateTime? @map("profile_completion_updated_at")
 
+  riskScore         Int @default(0) @map("risk_score")
+  approvedBy        String? @map("approved_by")
+  approvedAt        DateTime? @map("approved_at")
+  rejectionReason   String? @db.Text @map("rejection_reason")
+
   user  User @relation(fields: [userId], references: [id], onDelete: Cascade)
   agency Agency? @relation(fields: [agencyId], references: [id], onDelete: SetNull)
   leads PropertyLead[]
@@ -364,6 +386,8 @@ model Agent {
   reviews AgentReview[]
   featuredClicks FeaturedAgentClick[]
   inquiries Inquiry[]
+  documents AgentDocument[]
+  verificationProgress AgentVerificationProgress?
 
   subscription AgentSubscription?
 
@@ -374,6 +398,8 @@ model Agent {
   @@index([countryIso2, isFeatured])
   @@index([countryIso2, featuredScore])
   @@index([agencyId])
+  @@index([verificationStatus])
+  @@index([riskScore])
   @@map("agents")
 }
 
@@ -694,6 +720,11 @@ enum AuditAction {
   ADMIN_AGENT_ROLE_REVOKED
   ADMIN_AGENT_DELETED
   ADMIN_AGENT_PROFILESTATUS_OVERRIDDEN
+  ADMIN_AGENT_UNDER_REVIEW
+  ADMIN_AGENT_REJECTED
+  ADMIN_AGENT_FLAGGED
+  ADMIN_DOCUMENT_APPROVED
+  ADMIN_DOCUMENT_REJECTED
   ADMIN_USER_BANNED
   ADMIN_USER_DELETED
   ADMIN_USER_ROLE_CHANGED
@@ -1144,4 +1175,41 @@ model AnalyticsEvent {
   @@index([path])
   @@index([userId])
   @@index([createdAt])
+}
+
+model AgentDocument {
+  id          String @id @default(uuid())
+  agentId     String @map("agent_id")
+  type        AgentVerificationDocumentType @map("document_type")
+  fileUrl     String @map("file_url")
+  status      DocumentStatus @default(PENDING)
+  reviewedBy  String? @map("reviewed_by")
+  reviewedAt  DateTime? @map("reviewed_at")
+  rejectionReason String? @db.Text @map("rejection_reason")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([agentId])
+  @@index([status])
+  @@index([type])
+  @@map("agent_documents")
+}
+
+model AgentVerificationProgress {
+  id                     String @id @default(uuid())
+  agentId                String @unique @map("agent_id")
+  identityCompleted      Boolean @default(false) @map("identity_completed")
+  documentsUploaded      Boolean @default(false) @map("documents_uploaded")
+  businessInfoCompleted  Boolean @default(false) @map("business_info_completed")
+  profileCompleted       Boolean @default(false) @map("profile_completed")
+  completionPercentage   Int @default(0) @map("completion_percentage")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("agent_verification_progress")
 }

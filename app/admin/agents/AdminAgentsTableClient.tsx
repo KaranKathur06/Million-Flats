@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { getAdminCapabilities } from '@/lib/adminCapabilities'
 
 type AgentRow = {
@@ -20,10 +21,39 @@ type AgentRow = {
   approved: boolean
   profileStatus: string
   profileCompletion: number
+  verificationStatus: string
+  riskScore: number
+  totalDocs: number
+  approvedDocs: number
+  completionPercentage: number
 }
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v : ''
+}
+
+function getRiskBadge(score: number) {
+  if (score >= 70) return { label: 'HIGH', cls: 'border-red-500/30 bg-red-500/10 text-red-300' }
+  if (score >= 30) return { label: 'MEDIUM', cls: 'border-amber-500/30 bg-amber-500/10 text-amber-300' }
+  return { label: 'LOW', cls: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' }
+}
+
+function getStatusBadge(status: string) {
+  const s = status.toUpperCase()
+  switch (s) {
+    case 'APPROVED':
+      return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+    case 'REJECTED':
+      return 'border-red-500/30 bg-red-500/10 text-red-300'
+    case 'UNDER_REVIEW':
+      return 'border-blue-500/30 bg-blue-500/10 text-blue-300'
+    case 'SUBMITTED':
+      return 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+    case 'FLAGGED':
+      return 'border-orange-500/30 bg-orange-500/10 text-orange-300'
+    default:
+      return 'border-white/10 bg-black/20 text-white/70'
+  }
 }
 
 async function postJson(url: string) {
@@ -68,30 +98,12 @@ export default function AdminAgentsTableClient({
     <div>
       {error ? <p className="mb-4 text-sm font-semibold text-red-300">{error}</p> : null}
 
+      {/* Mobile cards */}
       <div className="md:hidden space-y-3">
         {items.map((it) => {
           const isBusy = busyId === it.agentId
-          const profileStatus = safeString(it.profileStatus || 'DRAFT').toUpperCase() || 'DRAFT'
-          const status = safeString(it.status || 'ACTIVE').toUpperCase() || 'ACTIVE'
-
-          const canApprove =
-            caps.agents.approve &&
-            it.agentId &&
-            (profileStatus === 'SUBMITTED' || (isSuperadmin && profileStatus === 'DRAFT'))
-          const canGoLive = caps.agents.approve && it.agentId && it.approved && profileStatus === 'VERIFIED'
-          const canSuspend = caps.agents.suspend && it.agentId && profileStatus === 'LIVE'
-          const canUnsuspend = caps.agents.suspend && it.agentId && profileStatus === 'SUSPENDED'
-          const canBan = caps.agents.ban && Boolean(it.agentId) && status !== 'BANNED'
-          const canRevokeRole = caps.agents.revokeRole && Boolean(it.agentId)
-
-          const approveTitle = !caps.agents.approve
-            ? 'Forbidden'
-            : !isSuperadmin && profileStatus !== 'SUBMITTED'
-              ? 'Agent must submit profile before approval.'
-              : ''
-          const suspendTitle = caps.agents.suspend ? '' : 'Forbidden'
-          const banTitle = caps.agents.ban ? '' : 'Forbidden'
-          const revokeTitle = caps.agents.revokeRole ? '' : 'Forbidden'
+          const vs = it.verificationStatus.toUpperCase() || 'PENDING'
+          const risk = getRiskBadge(it.riskScore)
 
           return (
             <div key={it.agentId || it.userId} className="rounded-2xl border border-white/10 bg-[#0f1a2e] p-4">
@@ -99,353 +111,130 @@ export default function AdminAgentsTableClient({
                 <div>
                   <div className="text-white font-semibold">{it.name}</div>
                   <div className="text-xs text-white/70 break-all">{it.email}</div>
-                  {it.phone ? <div className="text-xs text-white/60">{it.phone}</div> : null}
                 </div>
-
                 <div className="flex flex-col items-end gap-2">
-                  <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold text-white/90">
-                    {profileStatus}
+                  <span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase ${getStatusBadge(vs)}`}>
+                    {vs.replace('_', ' ')}
                   </span>
-                  <span
-                    className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${
-                      status === 'BANNED'
-                        ? 'border-red-500/30 bg-red-500/10 text-red-200'
-                        : status === 'SUSPENDED'
-                          ? 'border-amber-500/30 bg-amber-500/10 text-amber-200'
-                          : 'border-white/10 bg-black/20 text-white/90'
-                    }`}
-                  >
-                    {status}
+                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${risk.cls}`}>
+                    {risk.label}
                   </span>
                 </div>
               </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-white/80">
+              <div className="mt-3 grid grid-cols-3 gap-3 text-xs text-white/80">
                 <div>
-                  <div className="text-white/60">Company</div>
-                  <div className="font-semibold text-white/90">{it.company || '—'}</div>
+                  <div className="text-white/50">Company</div>
+                  <div className="font-semibold text-white/90 truncate">{it.company || '—'}</div>
                 </div>
                 <div>
-                  <div className="text-white/60">License</div>
-                  <div className="font-semibold text-white/90">{it.license || '—'}</div>
+                  <div className="text-white/50">Documents</div>
+                  <div className="font-semibold text-white/90">{it.approvedDocs}/{it.totalDocs}</div>
                 </div>
                 <div>
-                  <div className="text-white/60">Completion</div>
-                  <div className="font-semibold text-white/90">{String(it.profileCompletion)}%</div>
+                  <div className="text-white/50">Progress</div>
+                  <div className="font-semibold text-white/90">{it.completionPercentage}%</div>
                 </div>
-                <div>
-                  <div className="text-white/60">Approved</div>
-                  <div className="font-semibold text-white/90">{it.approved ? 'Approved' : 'Pending'}</div>
-                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div className="mt-3 h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-500"
+                  style={{ width: `${Math.min(100, it.completionPercentage)}%` }}
+                />
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  title={approveTitle}
-                  disabled={!canApprove || isBusy}
-                  onClick={() =>
-                    doAction(it.agentId, async () => {
-                      if (isSuperadmin && profileStatus === 'DRAFT') {
-                        const ok = window.confirm('You are overriding submission requirement. Continue?')
-                        if (!ok) return
-                      }
-                      await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/approve`)
-                    })
-                  }
-                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
-                    canApprove && !isBusy
-                      ? 'bg-amber-400 text-[#0b1220] hover:bg-amber-300'
-                      : 'bg-white/5 text-white/30 cursor-not-allowed'
-                  }`}
-                >
-                  Approve
-                </button>
-
-                <button
-                  title={approveTitle}
-                  disabled={!canGoLive || isBusy}
-                  onClick={() =>
-                    doAction(it.agentId, async () => {
-                      const ok = window.confirm('Go live? This will promote role to AGENT and activate the profile.')
-                      if (!ok) return
-                      await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/go-live`)
-                    })
-                  }
-                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
-                    canGoLive && !isBusy
-                      ? 'bg-green-500/20 text-green-200 border border-green-500/30 hover:bg-green-500/25'
-                      : 'bg-white/5 text-white/30 cursor-not-allowed'
-                  }`}
-                >
-                  Go Live
-                </button>
-
-                <button
-                  title={suspendTitle}
-                  disabled={(!canSuspend && !canUnsuspend) || isBusy}
-                  onClick={() =>
-                    doAction(it.agentId, async () => {
-                      if (canSuspend) {
-                        const ok = window.confirm('Suspend this agent?')
-                        if (!ok) return
-                        await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/suspend`)
-                        return
-                      }
-                      if (canUnsuspend) {
-                        const ok = window.confirm('Unsuspend this agent?')
-                        if (!ok) return
-                        await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/unsuspend`)
-                      }
-                    })
-                  }
-                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
-                    !isBusy && (canSuspend || canUnsuspend)
-                      ? 'border border-white/10 bg-transparent text-white hover:bg-white/5'
-                      : 'bg-white/5 text-white/30 cursor-not-allowed'
-                  }`}
-                >
-                  {canUnsuspend ? 'Unsuspend' : 'Suspend'}
-                </button>
-
-                <button
-                  title={banTitle}
-                  disabled={!canBan || isBusy}
-                  onClick={() =>
-                    doAction(it.agentId, async () => {
-                      const ok = window.confirm('Ban this agent? This disables login and hides all listings.')
-                      if (!ok) return
-                      await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/ban`)
-                    })
-                  }
-                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
-                    canBan && !isBusy
-                      ? 'bg-red-500/20 text-red-200 border border-red-500/30 hover:bg-red-500/25'
-                      : 'bg-white/5 text-white/30 cursor-not-allowed'
-                  }`}
-                >
-                  Ban
-                </button>
-
-                <button
-                  title={revokeTitle}
-                  disabled={!canRevokeRole || isBusy}
-                  onClick={() =>
-                    doAction(it.agentId, async () => {
-                      const ok = window.confirm('Revoke AGENT role? This will demote to USER and remove agent access.')
-                      if (!ok) return
-                      await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/revoke-role`)
-                    })
-                  }
-                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
-                    canRevokeRole && !isBusy
-                      ? 'border border-red-500/30 bg-transparent text-red-200 hover:bg-red-500/10'
-                      : 'bg-white/5 text-white/30 cursor-not-allowed'
-                  }`}
-                >
-                  Revoke role
-                </button>
+                {it.agentId && (
+                  <Link
+                    href={`/admin/agents/${it.agentId}`}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-400/90 to-amber-500/90 px-4 text-xs font-bold text-[#0b1220] shadow-md shadow-amber-500/20 hover:shadow-lg hover:from-amber-300 hover:to-amber-400 transition-all duration-200"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    Review
+                  </Link>
+                )}
               </div>
             </div>
           )
         })}
-
         {items.length === 0 ? <div className="py-10 text-center text-white/60">No agents found.</div> : null}
       </div>
 
+      {/* Desktop table */}
       <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
-            <tr className="text-left text-white/70 border-b border-white/10">
+            <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-white/40 border-b border-white/[0.08]">
               <th className="py-3 pr-4">Agent</th>
               <th className="py-3 pr-4">Company</th>
-              <th className="py-3 pr-4">License</th>
-              <th className="py-3 pr-4">Profile</th>
-              <th className="py-3 pr-4">Completion</th>
-              <th className="py-3 pr-4">Approved</th>
-              <th className="py-3 pr-4">Account</th>
-              <th className="py-3 pr-4">Created</th>
+              <th className="py-3 pr-4">Documents</th>
+              <th className="py-3 pr-4">Progress</th>
+              <th className="py-3 pr-4">Risk</th>
+              <th className="py-3 pr-4">Verification</th>
+              <th className="py-3 pr-4">Submitted</th>
               <th className="py-3 pr-4">Actions</th>
             </tr>
           </thead>
           <tbody>
             {items.map((it) => {
-              const isBusy = busyId === it.agentId
-              const profileStatus = safeString(it.profileStatus || 'DRAFT').toUpperCase() || 'DRAFT'
-              const canApprove =
-                caps.agents.approve &&
-                it.agentId &&
-                (profileStatus === 'SUBMITTED' || (isSuperadmin && profileStatus === 'DRAFT'))
-              const canGoLive = caps.agents.approve && it.agentId && it.approved && profileStatus === 'VERIFIED'
-              const canSuspend = caps.agents.suspend && it.agentId && profileStatus === 'LIVE'
-              const canUnsuspend = caps.agents.suspend && it.agentId && profileStatus === 'SUSPENDED'
-              const status = safeString(it.status || 'ACTIVE').toUpperCase() || 'ACTIVE'
-              const canBan = caps.agents.ban && Boolean(it.agentId) && status !== 'BANNED'
-              const canRevokeRole = caps.agents.revokeRole && Boolean(it.agentId)
-
-              const approveTitle = !caps.agents.approve
-                ? 'Forbidden'
-                : !isSuperadmin && profileStatus !== 'SUBMITTED'
-                  ? 'Agent must submit profile before approval.'
-                  : ''
-              const suspendTitle = caps.agents.suspend ? '' : 'Forbidden'
-              const banTitle = caps.agents.ban ? '' : 'Forbidden'
-              const revokeTitle = caps.agents.revokeRole ? '' : 'Forbidden'
+              const vs = it.verificationStatus.toUpperCase() || 'PENDING'
+              const risk = getRiskBadge(it.riskScore)
 
               return (
-                <tr key={it.agentId || it.userId} className="border-b border-white/5">
+                <tr key={it.agentId || it.userId} className="border-b border-white/[0.04] hover:bg-white/[0.015] transition-colors">
                   <td className="py-4 pr-4">
                     <div className="font-semibold text-white">{it.name}</div>
-                    <div className="text-xs text-white/60">{it.email}</div>
-                    {it.phone ? <div className="text-xs text-white/60">{it.phone}</div> : null}
-                    <div className="text-xs text-white/60">Verified: {it.verified ? 'Yes' : 'No'}</div>
+                    <div className="text-xs text-white/50 mt-0.5">{it.email}</div>
                   </td>
                   <td className="py-4 pr-4 text-white/80">{it.company || '—'}</td>
-                  <td className="py-4 pr-4 text-white/80">{it.license || '—'}</td>
                   <td className="py-4 pr-4">
-                    <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-semibold text-white/90">
-                      {profileStatus}
-                    </span>
-                  </td>
-                  <td className="py-4 pr-4 text-white/80">{String(it.profileCompletion)}%</td>
-                  <td className="py-4 pr-4">
-                    <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-semibold text-white/90">
-                      {it.approved ? 'Approved' : 'Pending'}
-                    </span>
-                  </td>
-                  <td className="py-4 pr-4">
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                        status === 'BANNED'
-                          ? 'border-red-500/30 bg-red-500/10 text-red-200'
-                          : status === 'SUSPENDED'
-                            ? 'border-amber-500/30 bg-amber-500/10 text-amber-200'
-                            : 'border-white/10 bg-black/20 text-white/90'
-                      }`}
-                    >
-                      {status}
-                    </span>
-                  </td>
-                  <td className="py-4 pr-4 text-white/70">{it.createdAt || '—'}</td>
-                  <td className="py-4 pr-4">
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        title={approveTitle}
-                        disabled={!canApprove || isBusy}
-                        onClick={() =>
-                          doAction(it.agentId, async () => {
-                            if (isSuperadmin && profileStatus === 'DRAFT') {
-                              const ok = window.confirm(
-                                'You are overriding submission requirement. Continue?'
-                              )
-                              if (!ok) return
-                            }
-                            await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/approve`)
-                          })
-                        }
-                        className={`h-9 rounded-lg px-3 text-xs font-semibold ${
-                          canApprove && !isBusy
-                            ? 'bg-amber-400 text-[#0b1220] hover:bg-amber-300'
-                            : 'bg-white/5 text-white/30 cursor-not-allowed'
-                        }`}
-                      >
-                        Approve
-                      </button>
-
-                      <button
-                        title={approveTitle}
-                        disabled={!canGoLive || isBusy}
-                        onClick={() =>
-                          doAction(it.agentId, async () => {
-                            const ok = window.confirm('Go live? This will promote role to AGENT and activate the profile.')
-                            if (!ok) return
-                            await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/go-live`)
-                          })
-                        }
-                        className={`h-9 rounded-lg px-3 text-xs font-semibold ${
-                          canGoLive && !isBusy
-                            ? 'bg-green-500/20 text-green-200 border border-green-500/30 hover:bg-green-500/25'
-                            : 'bg-white/5 text-white/30 cursor-not-allowed'
-                        }`}
-                      >
-                        Go Live
-                      </button>
-
-                      <button
-                        title={suspendTitle}
-                        disabled={!canSuspend || isBusy}
-                        onClick={() =>
-                          doAction(it.agentId, async () => {
-                            const ok = window.confirm('Suspend this agent?')
-                            if (!ok) return
-                            await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/suspend`)
-                          })
-                        }
-                        className={`h-9 rounded-lg px-3 text-xs font-semibold ${
-                          canSuspend && !isBusy
-                            ? 'border border-white/10 bg-transparent text-white hover:bg-white/5'
-                            : 'bg-white/5 text-white/30 cursor-not-allowed'
-                        }`}
-                      >
-                        Suspend
-                      </button>
-
-                      <button
-                        title={suspendTitle}
-                        disabled={!canUnsuspend || isBusy}
-                        onClick={() =>
-                          doAction(it.agentId, async () => {
-                            const ok = window.confirm('Unsuspend this agent?')
-                            if (!ok) return
-                            await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/unsuspend`)
-                          })
-                        }
-                        className={`h-9 rounded-lg px-3 text-xs font-semibold ${
-                          canUnsuspend && !isBusy
-                            ? 'border border-white/10 bg-transparent text-white hover:bg-white/5'
-                            : 'bg-white/5 text-white/30 cursor-not-allowed'
-                        }`}
-                      >
-                        Unsuspend
-                      </button>
-
-                      <button
-                        title={banTitle}
-                        disabled={!canBan || isBusy}
-                        onClick={() =>
-                          doAction(it.agentId, async () => {
-                            const ok = window.confirm('Ban this agent? This disables login and hides all listings.')
-                            if (!ok) return
-                            await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/ban`)
-                          })
-                        }
-                        className={`h-9 rounded-lg px-3 text-xs font-semibold ${
-                          canBan && !isBusy
-                            ? 'bg-red-500/20 text-red-200 border border-red-500/30 hover:bg-red-500/25'
-                            : 'bg-white/5 text-white/30 cursor-not-allowed'
-                        }`}
-                      >
-                        Ban
-                      </button>
-
-                      <button
-                        title={revokeTitle}
-                        disabled={!canRevokeRole || isBusy}
-                        onClick={() =>
-                          doAction(it.agentId, async () => {
-                            const ok = window.confirm('Revoke AGENT role? This demotes the account to USER and disables agent access.')
-                            if (!ok) return
-                            await postJson(`/api/admin/agents/${encodeURIComponent(it.agentId)}/revoke-role`)
-                          })
-                        }
-                        className={`h-9 rounded-lg px-3 text-xs font-semibold ${
-                          canRevokeRole && !isBusy
-                            ? 'border border-white/10 bg-transparent text-white/90 hover:bg-white/5'
-                            : 'bg-white/5 text-white/30 cursor-not-allowed'
-                        }`}
-                      >
-                        Revoke role
-                      </button>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white/90 font-semibold">{it.approvedDocs}</span>
+                      <span className="text-white/30">/</span>
+                      <span className="text-white/60">{it.totalDocs}</span>
+                      <span className="text-[10px] text-white/40">docs</span>
                     </div>
+                  </td>
+                  <td className="py-4 pr-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-20 rounded-full bg-white/[0.06] overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-500"
+                          style={{ width: `${Math.min(100, it.completionPercentage)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-white/60 font-medium">{it.completionPercentage}%</span>
+                    </div>
+                  </td>
+                  <td className="py-4 pr-4">
+                    <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${risk.cls}`}>
+                      {risk.label}
+                    </span>
+                  </td>
+                  <td className="py-4 pr-4">
+                    <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-bold uppercase ${getStatusBadge(vs)}`}>
+                      {vs.replace('_', ' ')}
+                    </span>
+                  </td>
+                  <td className="py-4 pr-4 text-xs text-white/50">{it.createdAt || '—'}</td>
+                  <td className="py-4 pr-4">
+                    {it.agentId && (
+                      <Link
+                        href={`/admin/agents/${it.agentId}`}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-400/90 to-amber-500/90 px-4 text-[11px] font-bold text-[#0b1220] shadow-sm shadow-amber-500/20 hover:shadow-md hover:from-amber-300 hover:to-amber-400 transition-all duration-200"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Review
+                      </Link>
+                    )}
                   </td>
                 </tr>
               )
@@ -453,8 +242,13 @@ export default function AdminAgentsTableClient({
 
             {items.length === 0 ? (
               <tr>
-                <td colSpan={9} className="py-10 text-center text-white/60">
-                  No agents found.
+                <td colSpan={8} className="py-16 text-center">
+                  <div className="text-white/30">
+                    <svg className="mx-auto h-12 w-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p className="text-sm font-medium">No agents in this queue</p>
+                  </div>
                 </td>
               </tr>
             ) : null}

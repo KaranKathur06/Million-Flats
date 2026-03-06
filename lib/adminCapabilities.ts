@@ -1,15 +1,17 @@
-type AppRole = 'USER' | 'AGENT' | 'ADMIN' | 'SUPERADMIN'
+type AppRole = 'USER' | 'AGENT' | 'MODERATOR' | 'VERIFIER' | 'ADMIN' | 'SUPERADMIN'
 
 const ROLE_POWER: Record<AppRole, number> = {
   USER: 1,
   AGENT: 2,
-  ADMIN: 3,
-  SUPERADMIN: 4,
+  MODERATOR: 3,
+  VERIFIER: 4,
+  ADMIN: 5,
+  SUPERADMIN: 6,
 }
 
 function normalizeRole(input: unknown): AppRole {
   const r = typeof input === 'string' ? input.trim().toUpperCase() : ''
-  if (r === 'SUPERADMIN' || r === 'ADMIN' || r === 'AGENT' || r === 'USER') return r
+  if (r === 'SUPERADMIN' || r === 'ADMIN' || r === 'VERIFIER' || r === 'MODERATOR' || r === 'AGENT' || r === 'USER') return r
   return 'USER'
 }
 
@@ -27,9 +29,14 @@ export type AdminCapabilities = {
   }
   agents: {
     approve: boolean
+    reject: boolean
+    review: boolean
     suspend: boolean
     ban: boolean
     revokeRole: boolean
+    viewDocuments: boolean
+    approveDocument: boolean
+    rejectDocument: boolean
   }
   listings: {
     approve: boolean
@@ -61,9 +68,14 @@ export function getAdminCapabilities(userRole: unknown): AdminCapabilities {
     },
     agents: {
       approve: hasMinRole(role, 'ADMIN'),
+      reject: hasMinRole(role, 'ADMIN'),
+      review: hasMinRole(role, 'ADMIN'),
       suspend: hasMinRole(role, 'ADMIN'),
       ban: hasMinRole(role, 'SUPERADMIN'),
       revokeRole: hasMinRole(role, 'SUPERADMIN'),
+      viewDocuments: hasMinRole(role, 'ADMIN'),
+      approveDocument: hasMinRole(role, 'ADMIN'),
+      rejectDocument: hasMinRole(role, 'ADMIN'),
     },
     listings: {
       approve: hasMinRole(role, 'ADMIN'),

@@ -90,7 +90,10 @@ export default async function AdminUsersPage({
               <option value="">All roles</option>
               <option value="USER">USER</option>
               <option value="AGENT">AGENT</option>
+              <option value="MODERATOR">MODERATOR</option>
+              <option value="VERIFIER">VERIFIER</option>
               <option value="ADMIN">ADMIN</option>
+              <option value="SUPERADMIN">SUPERADMIN</option>
             </select>
           </div>
           <button className="h-10 px-5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-[13px] text-[#0b1220] font-semibold shadow-md shadow-amber-500/20 hover:shadow-lg hover:shadow-amber-500/30 hover:from-amber-300 hover:to-amber-400 transition-all duration-200">
