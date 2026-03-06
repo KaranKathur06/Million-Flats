@@ -193,18 +193,19 @@ export default function AdminShellLayoutClient({ children }: { children: React.R
           aria-modal="true"
           aria-label="Admin navigation"
         >
-          <div className="h-14 px-5 border-b border-white/[0.06] flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="relative flex h-8 w-8 shrink-0 overflow-hidden items-center justify-center rounded-xl bg-[#0b1220] border-2 border-[#151f32] shadow-xl shadow-black/40 ring-1 ring-white/5 p-0.5">
-                <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-transparent to-amber-300/5" />
-                <img src="/LOGO.jpeg" alt="MF Logo" className="relative z-10 h-[90%] w-[90%] object-contain drop-shadow-md mix-blend-screen opacity-90 grayscale-[0.2] contrast-125" />
+          <div className="h-16 px-6 border-b border-white/[0.04] flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="relative flex h-[34px] w-[34px] shrink-0 overflow-hidden items-center justify-center rounded-[12px] bg-[#0b1220] border border-white/[0.08] shadow-lg shadow-black/40 ring-1 ring-black/50 p-0.5 group">
+                <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/20 via-transparent to-amber-300/5 opacity-80" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.1),transparent_50%)]" />
+                <img src="/LOGO.jpeg" alt="MF Logo" className="relative z-10 h-[85%] w-[85%] object-contain drop-shadow-md mix-blend-screen opacity-95 grayscale-[0.1] contrast-125" />
               </div>
-              <span className="text-[13px] font-bold text-white/80">MillionFlats</span>
+              <span className="text-[14px] font-extrabold tracking-wide text-white/95">MillionFlats</span>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-white/[0.08] bg-white/[0.04] text-white/60 hover:bg-white/[0.08] hover:text-white transition-all"
+              className="inline-flex items-center justify-center h-8 w-8 rounded-xl border border-white/[0.08] bg-white/[0.02] text-white/50 hover:bg-white/[0.06] hover:text-white transition-all"
               aria-label="Close"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
