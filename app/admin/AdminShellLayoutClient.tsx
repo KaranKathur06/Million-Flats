@@ -195,8 +195,8 @@ export default function AdminShellLayoutClient({ children }: { children: React.R
         >
           <div className="h-14 px-5 border-b border-white/[0.06] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 overflow-hidden items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-600">
-                <img src="/LOGO.jpeg" alt="MF Logo" className="h-full w-full object-cover" />
+              <div className="flex h-7 w-7 overflow-hidden items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 p-0.5">
+                <img src="/LOGO.jpeg" alt="MF Logo" className="h-full w-full object-contain mix-blend-multiply" />
               </div>
               <span className="text-[13px] font-bold text-white/80">MillionFlats</span>
             </div>

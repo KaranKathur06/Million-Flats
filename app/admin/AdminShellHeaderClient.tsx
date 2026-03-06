@@ -32,8 +32,8 @@ export default function AdminShellHeaderClient() {
     <div className="flex items-center justify-between gap-4 px-5 py-4">
       {/* Brand */}
       <div className="flex items-center gap-3">
-        <div className="relative flex h-9 w-9 overflow-hidden items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg shadow-amber-500/20">
-          <img src="/LOGO.jpeg" alt="MF Logo" className="h-full w-full object-cover" />
+        <div className="relative flex h-9 w-9 overflow-hidden items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg shadow-amber-500/20 p-1">
+          <img src="/LOGO.jpeg" alt="MF Logo" className="h-full w-full object-contain mix-blend-multiply" />
         </div>
         <div>
           <div className="text-[13px] font-bold tracking-wide text-white/90">MillionFlats</div>
@@ -65,8 +65,8 @@ export default function AdminShellHeaderClient() {
             }
           }}
           className={`group relative h-9 overflow-hidden rounded-xl px-4 text-[13px] font-semibold transition-all duration-200 ${!busy && status === 'authenticated'
-              ? 'bg-white/[0.06] text-white/80 hover:bg-white/[0.12] hover:text-white border border-white/[0.08] hover:border-white/[0.15]'
-              : 'bg-white/[0.03] text-white/30 cursor-not-allowed border border-white/[0.05]'
+            ? 'bg-white/[0.06] text-white/80 hover:bg-white/[0.12] hover:text-white border border-white/[0.08] hover:border-white/[0.15]'
+            : 'bg-white/[0.03] text-white/30 cursor-not-allowed border border-white/[0.05]'
             }`}
         >
           <span className="relative z-10 flex items-center gap-1.5">
