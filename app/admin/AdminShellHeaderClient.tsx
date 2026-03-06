@@ -32,8 +32,9 @@ export default function AdminShellHeaderClient() {
     <div className="flex items-center justify-between gap-4 px-5 py-4">
       {/* Brand */}
       <div className="flex items-center gap-3">
-        <div className="relative flex h-9 w-9 overflow-hidden items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg shadow-amber-500/20 p-1">
-          <img src="/LOGO.jpeg" alt="MF Logo" className="h-full w-full object-contain mix-blend-multiply" />
+        <div className="relative flex h-10 w-10 shrink-0 overflow-hidden items-center justify-center rounded-[14px] bg-[#0b1220] border-2 border-[#151f32] shadow-xl shadow-black/40 ring-1 ring-white/5 transition-transform hover:scale-105 duration-300 p-0.5">
+          <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-transparent to-amber-300/5" />
+          <img src="/LOGO.jpeg" alt="MF Logo" className="relative z-10 h-[90%] w-[90%] object-contain drop-shadow-md mix-blend-screen opacity-90 grayscale-[0.2] contrast-125" />
         </div>
         <div>
           <div className="text-[13px] font-bold tracking-wide text-white/90">MillionFlats</div>
