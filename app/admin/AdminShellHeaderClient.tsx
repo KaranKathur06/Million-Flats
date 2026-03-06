@@ -32,19 +32,17 @@ export default function AdminShellHeaderClient() {
     <div className="sticky top-0 z-40 bg-[#0a1019]/80 backdrop-blur-xl border-b border-white/[0.04] flex items-center justify-between gap-4 px-6 lg:px-8 py-4 sm:py-5">
       {/* Brand & Logo Area */}
       <div className="flex items-center gap-4">
-        <div className="relative flex h-11 w-11 shrink-0 overflow-hidden items-center justify-center rounded-[16px] bg-[#0b1220] border border-white/[0.08] shadow-2xl shadow-amber-500/10 ring-1 ring-black/50 transition-all hover:scale-105 hover:shadow-amber-500/20 duration-300 p-0.5 group">
-          <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/20 via-transparent to-amber-300/5 opacity-80 group-hover:opacity-100 transition-opacity duration-500" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.1),transparent_50%)]" />
-          <img src="/LOGO.jpeg" alt="MF Logo" className="relative z-10 h-[85%] w-[85%] object-contain drop-shadow-xl mix-blend-screen opacity-95 grayscale-[0.1] contrast-125" />
+        <div className="relative flex h-[50px] w-auto aspect-video shrink-0 px-2 overflow-hidden items-center justify-center rounded-[12px] bg-white border border-white/[0.08] shadow-2xl shadow-amber-500/10 ring-1 ring-black/50 transition-all hover:scale-105 hover:shadow-amber-500/20 duration-300 group">
+          <img src="/LOGO.jpeg" alt="MF Logo" className="relative z-10 w-full object-contain" />
         </div>
         <div className="flex flex-col justify-center">
-          <div className="text-[15px] sm:text-base font-extrabold tracking-wide text-white/95 leading-tight">MillionFlats</div>
+          <div className="text-[17px] sm:text-[19px] font-extrabold tracking-tight text-white/95 leading-tight">MillionFlats</div>
           <div className="flex items-center gap-2 mt-0.5">
             <span className="inline-flex h-[20px] items-center rounded-md bg-gradient-to-r from-amber-400/20 to-amber-500/10 px-2 text-[10px] font-bold uppercase tracking-[0.1em] text-amber-400 border border-amber-400/20 shadow-[0_0_10px_rgba(251,191,36,0.1)]">
               {roleLabel}
             </span>
             <span className="h-1 w-1 rounded-full bg-white/20 hidden sm:block" />
-            <span className="text-[11px] font-medium text-white/40 tracking-wider hidden sm:block">WORKSPACE</span>
+            <span className="text-[11px] font-bold text-white/50 tracking-[0.15em] hidden sm:block">WORKSPACE</span>
           </div>
         </div>
       </div>
