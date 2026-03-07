@@ -468,12 +468,15 @@ model Agency {
 model Developer {
   id String @id @default(dbgenerated("gen_random_uuid()::text")) @db.Text
   name String @unique
+  slug String? @unique
+  logo String?
   countryCode CountryCode @default(UAE) @map("country")
   countryIso2 String? @db.Char(2) @map("country_iso2")
   country     Country? @relation(fields: [countryIso2], references: [iso2])
   isFeatured Boolean @default(false) @map("is_featured")
 
   properties ManualProperty[]
+  projects   Project[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -1212,4 +1215,102 @@ model AgentVerificationProgress {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("agent_verification_progress")
+}
+
+// ─── Developer Projects System ───────────────────────────────────────
+
+enum ProjectStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Project {
+  id              String   @id @default(uuid())
+  name            String
+  slug            String   @unique
+
+  developerId     String   @map("developer_id") @db.Text
+  developer       Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
+
+  countryIso2     String?  @db.Char(2) @map("country_iso2")
+  city            String?
+  community       String?
+
+  description     String?  @db.Text
+
+  completionYear  Int?     @map("completion_year")
+  startingPrice   Float?   @map("starting_price")
+
+  goldenVisa      Boolean  @default(false) @map("golden_visa")
+
+  coverImage      String?  @map("cover_image")
+
+  status          ProjectStatus @default(DRAFT)
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  media           ProjectMedia[]
+  unitTypes       ProjectUnitType[]
+  leads           ProjectLead[]
+
+  @@index([developerId])
+  @@index([status])
+  @@index([city])
+  @@index([goldenVisa])
+  @@index([name])
+  @@index([countryIso2, city])
+  @@map("projects")
+}
+
+model ProjectMedia {
+  id        String   @id @default(uuid())
+
+  projectId String   @map("project_id")
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  mediaUrl  String   @map("media_url")
+  mediaType String   @map("media_type")
+  s3Key     String?  @map("s3_key")
+  sortOrder Int?     @map("sort_order")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([projectId])
+  @@map("project_media")
+}
+
+model ProjectUnitType {
+  id        String   @id @default(uuid())
+
+  projectId String   @map("project_id")
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  unitType  String   @map("unit_type")
+  sizeFrom  Int?     @map("size_from")
+  sizeTo    Int?     @map("size_to")
+
+  priceFrom Float?   @map("price_from")
+
+  @@index([projectId])
+  @@map("project_unit_types")
+}
+
+model ProjectLead {
+  id        String   @id @default(uuid())
+
+  projectId String   @map("project_id")
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name      String
+  email     String
+  phone     String
+  message   String?  @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([projectId])
+  @@index([email])
+  @@map("project_leads")
 }

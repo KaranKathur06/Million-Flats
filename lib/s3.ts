@@ -143,6 +143,21 @@ export function buildEcosystemRegistrationDocKey(params: { registrationId: strin
   return `private/ecosystem/registrations/${id}/documents/${uuid}.${ext}`
 }
 
+export function buildProjectMediaKey(params: { developerSlug: string; projectSlug: string; ext?: string; contentType?: string }) {
+  const ext = sanitizeFilename(params.ext || guessExtensionFromContentType(params.contentType || '') || 'bin').replace('.', '')
+  const devSlug = sanitizeFilename(params.developerSlug || 'unknown')
+  const projSlug = sanitizeFilename(params.projectSlug || 'unknown')
+  const uuid = crypto.randomUUID()
+  return `public/developers/${devSlug}/${projSlug}/media/${uuid}.${ext}`
+}
+
+export function buildDeveloperLogoKey(params: { developerSlug: string; ext?: string; contentType?: string }) {
+  const ext = sanitizeFilename(params.ext || guessExtensionFromContentType(params.contentType || '') || 'bin').replace('.', '')
+  const devSlug = sanitizeFilename(params.developerSlug || 'unknown')
+  const uuid = crypto.randomUUID()
+  return `public/developers/${devSlug}/logo/${uuid}.${ext}`
+}
+
 export async function uploadToS3(params: {
   buffer: Buffer
   folder: string
