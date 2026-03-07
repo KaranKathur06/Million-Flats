@@ -235,7 +235,7 @@ export default function FeaturedProjects({ market }: { market: CountryCode }) {
                 {/* "View All Projects" CTA */}
                 <div className="text-center mt-12">
                     <Link
-                        href="/buy"
+                        href="/projects"
                         className="inline-block bg-dark-blue text-white px-8 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors"
                     >
                         View All Projects

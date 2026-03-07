@@ -103,6 +103,16 @@ export default function AdminProjectsPage() {
                     </select>
 
                     <Link
+                        href="/admin/projects/bulk-import"
+                        className="inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-5 py-2.5 text-sm font-semibold text-white/70 hover:bg-white/[0.08] hover:text-white/90 transition-all"
+                    >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        Bulk Import
+                    </Link>
+
+                    <Link
                         href="/admin/projects/new"
                         className="inline-flex items-center gap-2 rounded-xl bg-amber-400/90 px-5 py-2.5 text-sm font-semibold text-black hover:bg-amber-300 transition-colors shadow-lg shadow-amber-400/20"
                     >
@@ -202,8 +212,8 @@ export default function AdminProjectsPage() {
                                                     onClick={() => toggleStatus(p)}
                                                     disabled={publishing === p.id}
                                                     className={`rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-all disabled:opacity-50 ${p.status === 'PUBLISHED'
-                                                            ? 'border-yellow-500/20 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20'
-                                                            : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
+                                                        ? 'border-yellow-500/20 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20'
+                                                        : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
                                                         }`}
                                                 >
                                                     {publishing === p.id ? '...' : p.status === 'PUBLISHED' ? 'Unpublish' : 'Publish'}

@@ -37,6 +37,7 @@ export default function Header() {
     { href: '/', label: 'Home' },
     { href: '/buy', label: 'Buy' },
     { href: '/rent', label: 'Rent' },
+    { href: '/projects', label: 'Projects' },
     { href: '/agents', label: 'Find an Agent' },
     { href: '/agents/pricing', label: 'Pricing' },
     ...(showVerfix ? [{ href: verfixHref, label: <span>Verix System<sup>™</sup></span> }] : []),
@@ -46,6 +47,7 @@ export default function Header() {
     { href: '/', label: 'Home' },
     { href: '/buy', label: 'Buy' },
     { href: '/rent', label: 'Rent' },
+    { href: '/projects', label: 'Projects' },
     { href: '/agents', label: 'Find an Agent' },
     { href: '/agents/pricing', label: 'Pricing' },
     ...(showVerfix ? [{ href: verfixHref, label: <span>Verix System<sup>™</sup></span> }] : []),
@@ -54,12 +56,12 @@ export default function Header() {
 
   const servicesLinks: NavItem[] = showServices
     ? [
-        { href: '/services/3d-tours', label: '3D Tours' },
-        { href: '/services/ai-analytics', label: 'AI Analytics' },
-        { href: '/services/featured-listings', label: 'Featured Listings' },
-        { href: '/services/advertising', label: 'Premium Ads' },
-        { href: '/services/partnerships', label: 'Partnerships' },
-      ]
+      { href: '/services/3d-tours', label: '3D Tours' },
+      { href: '/services/ai-analytics', label: 'AI Analytics' },
+      { href: '/services/featured-listings', label: 'Featured Listings' },
+      { href: '/services/advertising', label: 'Premium Ads' },
+      { href: '/services/partnerships', label: 'Partnerships' },
+    ]
     : []
 
   const agentLinks: NavItem[] = [
@@ -155,9 +157,8 @@ export default function Header() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`text-sm font-medium transition-colors ${
-                    isActive(item.href) ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-                  }`}
+                  className={`text-sm font-medium transition-colors ${isActive(item.href) ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+                    }`}
                 >
                   {item.label}
                 </Link>
@@ -167,9 +168,8 @@ export default function Header() {
                 <div className="relative group">
                   <button
                     type="button"
-                    className={`text-sm font-medium transition-colors inline-flex items-center gap-1 ${
-                      servicesLinks.some((l) => isActive(l.href)) ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-                    }`}
+                    className={`text-sm font-medium transition-colors inline-flex items-center gap-1 ${servicesLinks.some((l) => isActive(l.href)) ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
+                      }`}
                     aria-haspopup="menu"
                   >
                     Services
@@ -183,9 +183,8 @@ export default function Header() {
                         <Link
                           key={s.href}
                           href={s.href}
-                          className={`block px-4 py-3 text-sm transition-colors ${
-                            isActive(s.href) ? 'bg-gray-50 text-dark-blue font-medium' : 'text-gray-700 hover:bg-gray-50 hover:text-dark-blue'
-                          }`}
+                          className={`block px-4 py-3 text-sm transition-colors ${isActive(s.href) ? 'bg-gray-50 text-dark-blue font-medium' : 'text-gray-700 hover:bg-gray-50 hover:text-dark-blue'
+                            }`}
                         >
                           {s.label}
                         </Link>
@@ -260,9 +259,8 @@ export default function Header() {
           onClick={() => setMobileOpen(false)}
         />
         <div
-          className={`absolute top-0 right-0 h-full w-[86%] max-w-sm bg-white shadow-2xl transition-transform duration-300 ${
-            mobileOpen ? 'translate-x-0' : 'translate-x-full'
-          }`}
+          className={`absolute top-0 right-0 h-full w-[86%] max-w-sm bg-white shadow-2xl transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : 'translate-x-full'
+            }`}
           role="dialog"
           aria-modal="true"
           aria-label="Mobile navigation"
@@ -287,9 +285,8 @@ export default function Header() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                  isActive(item.href) ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-                }`}
+                className={`block px-4 py-3 rounded-xl text-sm font-medium ${isActive(item.href) ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+                  }`}
                 onClick={() => setMobileOpen(false)}
               >
                 {item.label}
@@ -304,9 +301,8 @@ export default function Header() {
                     <Link
                       key={s.href}
                       href={s.href}
-                      className={`block px-4 py-3 rounded-xl text-sm font-medium ${
-                        isActive(s.href) ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-                      }`}
+                      className={`block px-4 py-3 rounded-xl text-sm font-medium ${isActive(s.href) ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
+                        }`}
                       onClick={() => setMobileOpen(false)}
                     >
                       {s.label}
