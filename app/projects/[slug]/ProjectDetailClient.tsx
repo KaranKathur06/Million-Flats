@@ -55,7 +55,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
         setSubmitting(true)
         setFormError('')
         try {
-            const res = await fetch(`/api/projects/${project.id}/lead`, {
+            const res = await fetch(`/api/projects/${project.slug}/lead`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -68,7 +68,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
         } finally {
             setSubmitting(false)
         }
-    }, [formData, project.id])
+    }, [formData, project.slug])
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -149,8 +149,8 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                                 key={img.id}
                                                 onClick={() => setSelectedImg(idx)}
                                                 className={`flex-shrink-0 rounded-xl overflow-hidden h-16 w-24 border-2 transition-all ${idx === selectedImg
-                                                        ? 'border-amber-500 shadow-md shadow-amber-500/20'
-                                                        : 'border-transparent opacity-60 hover:opacity-100'
+                                                    ? 'border-amber-500 shadow-md shadow-amber-500/20'
+                                                    : 'border-transparent opacity-60 hover:opacity-100'
                                                     }`}
                                             >
                                                 <img src={img.mediaUrl} alt="" className="w-full h-full object-cover" loading="lazy" />

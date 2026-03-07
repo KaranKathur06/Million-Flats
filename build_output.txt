@@ -1,0 +1,306 @@
+
+> millionflats@1.0.0 build
+> next build
+
+  ▲ Next.js 14.2.35
+  - Environments: .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+
+./app/admin/AdminShellHeaderClient.tsx
+36:11  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./app/admin/AdminShellLayoutClient.tsx
+217:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./app/admin/agents/[agentId]/AgentReviewClient.tsx
+615:33  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./app/admin/developers/page.tsx
+98:49  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./app/admin/projects/page.tsx
+158:53  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./app/admin/projects/[id]/page.tsx
+325:37  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./app/projects/[slug]/ProjectDetailClient.tsx
+78:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+106:41  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+139:41  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+156:49  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+324:45  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/152) ...
+[GET /api/projects/search] B [Error]: Dynamic server usage: Route /api/projects/search couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at l (C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\.next\server\app\api\projects\search\route.js:1:604)
+    at C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/projects/search couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[GET /api/projects] B [Error]: Dynamic server usage: Route /api/projects couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at p (C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\.next\server\app\api\projects\route.js:1:604)
+    at C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at C:\STUDY\FREELANCING PROJECTS\MILLIONFLATS\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/projects couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+   Generating static pages (38/152) 
+   Generating static pages (76/152) 
+   Generating static pages (114/152) 
+ ✓ Generating static pages (152/152)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                                              Size     First Load JS
+┌ ƒ /                                                                    8.94 kB         120 kB
+├ ƒ /_not-found                                                          237 B          87.7 kB
+├ ƒ /about                                                               297 B          92.9 kB
+├ ƒ /about/team                                                          832 B          93.4 kB
+├ ƒ /admin                                                               212 B          96.4 kB
+├ ƒ /admin/agents                                                        2.52 kB        98.7 kB
+├ ƒ /admin/agents/[agentId]                                              4.97 kB         101 kB
+├ ƒ /admin/audit-logs                                                    212 B          96.4 kB
+├ ƒ /admin/dashboard                                                     212 B          96.4 kB
+├ ƒ /admin/developers                                                    1.96 kB        98.1 kB
+├ ƒ /admin/developers/new                                                1.69 kB        89.1 kB
+├ ƒ /admin/drafts                                                        1.84 kB          98 kB
+├ ƒ /admin/ecosystem-directory                                           2.48 kB        98.6 kB
+├ ƒ /admin/ecosystem-partners                                            2.02 kB        98.2 kB
+├ ƒ /admin/governance                                                    212 B          96.4 kB
+├ ƒ /admin/governance/cases/[id]                                         1.17 kB        88.6 kB
+├ ƒ /admin/listings                                                      2.61 kB        98.8 kB
+├ ƒ /admin/moderation/properties                                         212 B          96.4 kB
+├ ƒ /admin/moderation/properties/[listingId]                             2.31 kB         107 kB
+├ ƒ /admin/projects                                                      2.71 kB        98.9 kB
+├ ƒ /admin/projects/[id]                                                 4 kB           91.4 kB
+├ ƒ /admin/projects/new                                                  3.72 kB        91.2 kB
+├ ƒ /admin/reports                                                       212 B          96.4 kB
+├ ƒ /admin/settings                                                      212 B          96.4 kB
+├ ƒ /admin/users                                                         3.38 kB        99.5 kB
+├ ƒ /agent-portal                                                        237 B          87.7 kB
+├ ƒ /agent/dashboard                                                     4.83 kB         101 kB
+├ ƒ /agent/login                                                         4.08 kB         115 kB
+├ ƒ /agent/on-hold                                                       858 B          88.3 kB
+├ ƒ /agent/onboarding                                                    213 B          96.4 kB
+├ ƒ /agent/onboarding/submit                                             0 B                0 B
+├ ƒ /agent/profile                                                       5.11 kB         101 kB
+├ ƒ /agent/register                                                      185 B           155 kB
+├ ƒ /agent/rejected                                                      827 B          88.3 kB
+├ ƒ /agent/verify                                                        1.31 kB        88.8 kB
+├ ƒ /agents                                                              195 B           101 kB
+├ ƒ /agents/[id]                                                         2.91 kB         114 kB
+├ ƒ /agents/pricing                                                      4.72 kB        92.2 kB
+├ ƒ /ai-analytics                                                        237 B          87.7 kB
+├ ƒ /api/admin/agents                                                    0 B                0 B
+├ ƒ /api/admin/agents/[id]/approve                                       0 B                0 B
+├ ƒ /api/admin/agents/[id]/ban                                           0 B                0 B
+├ ƒ /api/admin/agents/[id]/detail                                        0 B                0 B
+├ ƒ /api/admin/agents/[id]/go-live                                       0 B                0 B
+├ ƒ /api/admin/agents/[id]/reject                                        0 B                0 B
+├ ƒ /api/admin/agents/[id]/review                                        0 B                0 B
+├ ƒ /api/admin/agents/[id]/revoke-role                                   0 B                0 B
+├ ƒ /api/admin/agents/[id]/suspend                                       0 B                0 B
+├ ƒ /api/admin/agents/[id]/unsuspend                                     0 B                0 B
+├ ƒ /api/admin/audit-logs                                                0 B                0 B
+├ ƒ /api/admin/developers                                                0 B                0 B
+├ ƒ /api/admin/documents/[id]/approve                                    0 B                0 B
+├ ƒ /api/admin/documents/[id]/reject                                     0 B                0 B
+├ ƒ /api/admin/drafts                                                    0 B                0 B
+├ ƒ /api/admin/drafts/[id]/delete                                        0 B                0 B
+├ ƒ /api/admin/ecosystem-directory/[id]/update                           0 B                0 B
+├ ƒ /api/admin/ecosystem-partners/[id]/stage                             0 B                0 B
+├ ƒ /api/admin/listings                                                  0 B                0 B
+├ ƒ /api/admin/listings/[id]/approve                                     0 B                0 B
+├ ƒ /api/admin/listings/[id]/archive                                     0 B                0 B
+├ ƒ /api/admin/listings/[id]/edit                                        0 B                0 B
+├ ƒ /api/admin/listings/[id]/reject                                      0 B                0 B
+├ ƒ /api/admin/listings/[id]/restore                                     0 B                0 B
+├ ƒ /api/admin/moderation/cases/[id]                                     0 B                0 B
+├ ƒ /api/admin/moderation/cases/[id]/approve                             0 B                0 B
+├ ƒ /api/admin/moderation/cases/[id]/escalate                            0 B                0 B
+├ ƒ /api/admin/moderation/cases/[id]/flag                                0 B                0 B
+├ ƒ /api/admin/moderation/cases/[id]/reject                              0 B                0 B
+├ ƒ /api/admin/moderation/cases/[id]/request-info                        0 B                0 B
+├ ƒ /api/admin/moderation/properties                                     0 B                0 B
+├ ƒ /api/admin/moderation/properties/[id]                                0 B                0 B
+├ ƒ /api/admin/moderation/properties/[id]/approve                        0 B                0 B
+├ ƒ /api/admin/moderation/properties/[id]/reject                         0 B                0 B
+├ ƒ /api/admin/moderation/queue                                          0 B                0 B
+├ ƒ /api/admin/projects                                                  0 B                0 B
+├ ƒ /api/admin/projects/[id]                                             0 B                0 B
+├ ƒ /api/admin/projects/[id]/media                                       0 B                0 B
+├ ƒ /api/admin/projects/[id]/media/[mediaId]                             0 B                0 B
+├ ƒ /api/admin/projects/[id]/publish                                     0 B                0 B
+├ ƒ /api/admin/users                                                     0 B                0 B
+├ ƒ /api/admin/users/[id]/ban                                            0 B                0 B
+├ ƒ /api/admin/users/[id]/delete                                         0 B                0 B
+├ ƒ /api/admin/users/[id]/role                                           0 B                0 B
+├ ƒ /api/admin/users/[id]/verify-email                                   0 B                0 B
+├ ƒ /api/agent/listings                                                  0 B                0 B
+├ ƒ /api/agent/profile                                                   0 B                0 B
+├ ƒ /api/agent/profile-image                                             0 B                0 B
+├ ƒ /api/agent/profile/submit                                            0 B                0 B
+├ ƒ /api/agent/subscription                                              0 B                0 B
+├ ƒ /api/agent/subscription/checkout                                     0 B                0 B
+├ ƒ /api/agent/subscription/start-trial                                  0 B                0 B
+├ ƒ /api/agent/upload-photo                                              0 B                0 B
+├ ○ /api/amenities-index                                                 0 B                0 B
+├ ƒ /api/analytics/event                                                 0 B                0 B
+├ ƒ /api/auth/[...nextauth]                                              0 B                0 B
+├ ƒ /api/auth/forgot-password                                            0 B                0 B
+├ ƒ /api/auth/login-otp/resend                                           0 B                0 B
+├ ƒ /api/auth/login-otp/start                                            0 B                0 B
+├ ƒ /api/auth/login-otp/verify                                           0 B                0 B
+├ ƒ /api/auth/logout                                                     0 B                0 B
+├ ƒ /api/auth/register                                                   0 B                0 B
+├ ƒ /api/auth/reset-password                                             0 B                0 B
+├ ƒ /api/ecosystem-partners/apply                                        0 B                0 B
+├ ƒ /api/ecosystem-partners/leads                                        0 B                0 B
+├ ƒ /api/ecosystem-partners/partners                                     0 B                0 B
+├ ƒ /api/ecosystem/register                                              0 B                0 B
+├ ƒ /api/featured/agencies                                               0 B                0 B
+├ ƒ /api/featured/agents                                                 0 B                0 B
+├ ƒ /api/featured/agents/click                                           0 B                0 B
+├ ƒ /api/featured/developers                                             0 B                0 B
+├ ƒ /api/featured/properties                                             0 B                0 B
+├ ƒ /api/inquiries                                                       0 B                0 B
+├ ƒ /api/inquiries/[id]/respond                                          0 B                0 B
+├ ƒ /api/manual-properties                                               0 B                0 B
+├ ƒ /api/manual-properties/[id]                                          0 B                0 B
+├ ƒ /api/manual-properties/[id]/archive                                  0 B                0 B
+├ ƒ /api/manual-properties/[id]/delete                                   0 B                0 B
+├ ƒ /api/manual-properties/[id]/edit                                     0 B                0 B
+├ ƒ /api/manual-properties/[id]/submit                                   0 B                0 B
+├ ƒ /api/manual-properties/draft                                         0 B                0 B
+├ ƒ /api/manual-properties/duplicate-check                               0 B                0 B
+├ ƒ /api/manual-properties/media/[mediaId]                               0 B                0 B
+├ ƒ /api/manual-properties/upload                                        0 B                0 B
+├ ƒ /api/manual-properties/upload/complete                               0 B                0 B
+├ ƒ /api/manual-properties/upload/presign                                0 B                0 B
+├ ƒ /api/media/signed-url                                                0 B                0 B
+├ ƒ /api/projects                                                        0 B                0 B
+├ ƒ /api/projects/[slug]                                                 0 B                0 B
+├ ƒ /api/projects/[slug]/lead                                            0 B                0 B
+├ ƒ /api/projects/search                                                 0 B                0 B
+├ ƒ /api/properties                                                      0 B                0 B
+├ ƒ /api/properties/[id]                                                 0 B                0 B
+├ ƒ /api/properties/reelly                                               0 B                0 B
+├ ƒ /api/properties/reelly/[id]                                          0 B                0 B
+├ ƒ /api/reports                                                         0 B                0 B
+├ ƒ /api/system/countries                                                0 B                0 B
+├ ƒ /api/user/profile                                                    0 B                0 B
+├ ○ /apple-icon                                                          0 B                0 B
+├ ƒ /auth/agent/login                                                    4.04 kB         115 kB
+├ ƒ /auth/agent/register                                                 183 B           155 kB
+├ ƒ /auth/error                                                          212 B          96.4 kB
+├ ƒ /auth/login                                                          195 B           101 kB
+├ ƒ /auth/redirect                                                       238 B          87.7 kB
+├ ƒ /auth/register                                                       195 B           101 kB
+├ ƒ /auth/register/agent                                                 238 B          87.7 kB
+├ ƒ /auth/register/user                                                  238 B          87.7 kB
+├ ƒ /auth/user/login                                                     3.85 kB         115 kB
+├ ƒ /auth/user/register                                                  181 B           106 kB
+├ ƒ /auth/verify-otp                                                     3.38 kB         114 kB
+├ ƒ /blog                                                                237 B          87.7 kB
+├ ƒ /buy                                                                 147 B           112 kB
+├ ƒ /buy/project/[region]/[district]/[sector]/[slug]                     210 B           105 kB
+├ ƒ /contact                                                             3.11 kB        90.6 kB
+├ ƒ /dashboard                                                           1.32 kB        97.5 kB
+├ ƒ /ecosystem-partners                                                  1.42 kB         103 kB
+├ ƒ /ecosystem-partners/[slug]                                           151 B           110 kB
+├ ƒ /ecosystem-partners/home-loans-finance                               151 B           110 kB
+├ ƒ /ecosystem-partners/home-loans-finance/partner-registration          138 B          91.1 kB
+├ ƒ /ecosystem-partners/interior-design-renovation                       151 B           110 kB
+├ ƒ /ecosystem-partners/interior-design-renovation/partner-registration  138 B          91.1 kB
+├ ƒ /ecosystem-partners/legal-documentation                              151 B           110 kB
+├ ƒ /ecosystem-partners/legal-documentation/partner-registration         138 B          91.1 kB
+├ ƒ /ecosystem-partners/packers-movers                                   151 B           110 kB
+├ ƒ /ecosystem-partners/packers-movers/partner-registration              138 B          91.1 kB
+├ ƒ /ecosystem-partners/property-insurance                               151 B           110 kB
+├ ƒ /ecosystem-partners/property-insurance/partner-registration          137 B          91.1 kB
+├ ƒ /ecosystem-partners/property-management                              151 B           110 kB
+├ ƒ /ecosystem-partners/property-management/partner-registration         138 B          91.1 kB
+├ ƒ /ecosystem-partners/vastu-feng-shui                                  151 B           110 kB
+├ ƒ /ecosystem-partners/vastu-feng-shui/partner-registration             137 B          91.1 kB
+├ ƒ /ecosystem/register/[categorySlug]                                   138 B          91.1 kB
+├ ƒ /explore-3d                                                          238 B          87.7 kB
+├ ƒ /featured-listings                                                   239 B          87.7 kB
+├ ○ /icon                                                                0 B                0 B
+├ ƒ /market-analysis                                                     238 B          87.7 kB
+├ ƒ /partnerships                                                        238 B          87.7 kB
+├ ƒ /premium-ads                                                         238 B          87.7 kB
+├ ƒ /privacy                                                             238 B          87.7 kB
+├ ƒ /profile                                                             237 B          87.7 kB
+├ ƒ /projects/[slug]                                                     3.4 kB         90.8 kB
+├ ƒ /properties                                                          147 B           112 kB
+├ ƒ /properties/[id]                                                     210 B           105 kB
+├ ƒ /properties/new                                                      237 B          87.7 kB
+├ ƒ /properties/new/manual                                               9.74 kB         111 kB
+├ ƒ /properties/new/verified                                             237 B          87.7 kB
+├ ƒ /rent                                                                148 B           112 kB
+├ ƒ /sell                                                                238 B          87.7 kB
+├ ƒ /services                                                            238 B          87.7 kB
+├ ƒ /services/3d-tours                                                   237 B          87.7 kB
+├ ƒ /services/advertising                                                237 B          87.7 kB
+├ ƒ /services/ai-analytics                                               238 B          87.7 kB
+├ ƒ /services/featured-listings                                          237 B          87.7 kB
+├ ƒ /services/partnerships                                               237 B          87.7 kB
+├ ƒ /settings                                                            237 B          87.7 kB
+├ ƒ /suspended                                                           237 B          87.7 kB
+├ ƒ /terms                                                               238 B          87.7 kB
+├ ƒ /tokenized                                                           237 B          87.7 kB
+├ ƒ /unauthorized                                                        212 B          96.4 kB
+├ ƒ /user/dashboard                                                      1.32 kB        97.5 kB
+├ ƒ /user/forgot-password                                                2.63 kB         104 kB
+├ ƒ /user/login                                                          4.01 kB         115 kB
+├ ƒ /user/profile                                                        1.6 kB         97.7 kB
+├ ƒ /user/register                                                       181 B           106 kB
+├ ƒ /user/reset-password                                                 2.7 kB          104 kB
+├ ƒ /user/verify                                                         1.3 kB         88.7 kB
+├ ƒ /verfix-system                                                       238 B          87.7 kB
+├ ƒ /verix/index                                                         237 B          87.7 kB
+├ ƒ /verix/pro                                                           237 B          87.7 kB
+├ ƒ /verix/shield                                                        238 B          87.7 kB
+├ ƒ /verix/title                                                         237 B          87.7 kB
+└ ƒ /verix/view                                                          237 B          87.7 kB
++ First Load JS shared by all                                            87.4 kB
+  ├ chunks/2117-dc859af7652604d5.js                                      31.7 kB
+  ├ chunks/fd9d1056-06aff85e33f3a391.js                                  53.6 kB
+  └ other shared chunks (total)                                          2.07 kB
+
+Route (pages)                                                            Size     First Load JS
+┌ ƒ /api/auth/google                                                     0 B            82.2 kB
+├ ƒ /api/auth/google/callback                                            0 B            82.2 kB
+├ ƒ /api/auth/login                                                      0 B            82.2 kB
+└ ƒ /api/contact                                                         0 B            82.2 kB
++ First Load JS shared by all                                            82.2 kB
+  ├ chunks/framework-a63c59c368572696.js                                 44.8 kB
+  ├ chunks/main-e5f09a176e0c74a5.js                                      35.3 kB
+  └ other shared chunks (total)                                          2.04 kB
+
+ƒ Middleware                                                             48.9 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

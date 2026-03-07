@@ -352,7 +352,7 @@ export default function AdminAddProjectPage() {
                     )}
 
                     {unitTypes.length === 0 && (
-                        <p className="text-xs text-white/25 py-2">No unit types added yet. Click "Add Row" to add one.</p>
+                        <p className="text-xs text-white/25 py-2">No unit types added yet. Click &quot;Add Row&quot; to add one.</p>
                     )}
                 </div>
 

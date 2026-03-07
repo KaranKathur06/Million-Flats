@@ -16,7 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function AdminEditProjectPage() {
     const router = useRouter()
     const params = useParams()
-    const projectId = params.id as string
+    const projectId = params?.id as string
 
     const [developers, setDevelopers] = useState<DevOption[]>([])
     const [loading, setLoading] = useState(true)
@@ -399,7 +399,7 @@ export default function AdminEditProjectPage() {
                             </table>
                         </div>
                     ) : (
-                        <p className="text-xs text-white/25 py-2">No unit types. Click "Add Row" to add one.</p>
+                        <p className="text-xs text-white/25 py-2">No unit types. Click &quot;Add Row&quot; to add one.</p>
                     )}
                 </div>
 

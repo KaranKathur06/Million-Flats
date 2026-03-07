@@ -9,11 +9,11 @@ const leadSchema = z.object({
     message: z.string().max(2000).optional(),
 })
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: { slug: string } }) {
     try {
-        const projectId = (params.id || '').trim()
-        if (!projectId) {
-            return NextResponse.json({ success: false, message: 'Missing project id' }, { status: 400 })
+        const projectSlug = (params.slug || '').trim()
+        if (!projectSlug) {
+            return NextResponse.json({ success: false, message: 'Missing project slug' }, { status: 400 })
         }
 
         const body = await req.json().catch(() => ({}))
@@ -27,7 +27,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
         // Verify project exists and is published
         const project = await (prisma as any).project.findUnique({
-            where: { id: projectId },
+            where: { slug: projectSlug },
             select: { id: true, status: true },
         })
 
@@ -37,7 +37,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
         const lead = await (prisma as any).projectLead.create({
             data: {
-                projectId,
+                projectId: project.id, // need the id for relation
                 name: parsed.data.name,
                 email: parsed.data.email,
                 phone: parsed.data.phone,
@@ -47,7 +47,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
         return NextResponse.json({ success: true, leadId: lead.id }, { status: 201 })
     } catch (err: any) {
-        console.error('[POST /api/projects/[id]/lead]', err)
+        console.error('[POST /api/projects/[slug]/lead]', err)
         return NextResponse.json({ success: false, message: 'Internal error' }, { status: 500 })
     }
 }
