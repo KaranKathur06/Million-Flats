@@ -354,6 +354,9 @@ async function main() {
                 console.log(`      → ${c.cyan(`${uploadedMedia.length} media`)}, ${c.cyan(`${data.nearbyPlaces?.length || 0} nearby`)}, ${c.cyan(`${data.highlights?.length || 0} highlights`)}`)
 
                 results.push({ slug: data.slug, status: action, projectId: project.id })
+            }, {
+                maxWait: 10000, // default is 2000
+                timeout: 120000, // default is 5000 (120 secs allows plenty of time)
             })
         } catch (err) {
             console.log(c.red(`    ✗ Import failed: ${err.message}`))
