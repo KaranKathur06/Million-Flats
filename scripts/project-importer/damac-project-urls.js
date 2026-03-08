@@ -1,0 +1,39 @@
+/**
+ * MillionFlats — DAMAC Project URLs from PropJunction
+ * 33 projects to scrape and import
+ */
+module.exports = [
+    "https://www.propjunction.ae/projects/damac-islands-phase-2",
+    "https://www.propjunction.ae/projects/damac-district",
+    "https://www.propjunction.ae/projects/damac-chelsea-residences",
+    "https://www.propjunction.ae/projects/damac-safa-gate",
+    "https://www.propjunction.ae/projects/damac-riverside-views",
+    "https://www.propjunction.ae/projects/damac-riverside",
+    "https://www.propjunction.ae/projects/damac-cavalli-couture",
+    "https://www.propjunction.ae/projects/damac-altitude",
+    "https://www.propjunction.ae/projects/damac-lagoon-views",
+    "https://www.propjunction.ae/projects/damac-casa-tower",
+    "https://www.propjunction.ae/projects/golf-greens-at-damac-hills",
+    "https://www.propjunction.ae/projects/damac-canal-crown",
+    "https://www.propjunction.ae/projects/damac-canal-heights",
+    "https://www.propjunction.ae/projects/damac-canal-heights-2",
+    "https://www.propjunction.ae/projects/damac-bay-cavalli",
+    "https://www.propjunction.ae/projects/damac-bay-2-cavalli",
+    "https://www.propjunction.ae/projects/damac-harbour-lights",
+    "https://www.propjunction.ae/projects/damac-safa-two",
+    "https://www.propjunction.ae/projects/damac-cavalli-towers",
+    "https://www.propjunction.ae/projects/duo-prestige-villas",
+    "https://www.propjunction.ae/projects/damac-towers-by-paramount-hotels",
+    "https://www.propjunction.ae/projects/belair-phase-2",
+    "https://www.propjunction.ae/projects/damac-park-town",
+    "https://www.propjunction.ae/projects/aykon-city-tower-b",
+    "https://www.propjunction.ae/projects/majestine",
+    "https://www.propjunction.ae/projects/volta-residence",
+    "https://www.propjunction.ae/projects/chic-tower",
+    "https://www.propjunction.ae/projects/cavalli-estates",
+    "https://www.propjunction.ae/projects/safa-one-by-de-grisogono",
+    "https://www.propjunction.ae/projects/damac-residenze",
+    "https://www.propjunction.ae/projects/maison-canal-views",
+    "https://www.damacproperties.com/en-in/projects/damac-paramount-tower-hotel-and-residences-dubai/",
+    "https://www.damacproperties.com/en-in/communities/damac-hills-community/projects/golf-town-at-damac-hills/"
+]

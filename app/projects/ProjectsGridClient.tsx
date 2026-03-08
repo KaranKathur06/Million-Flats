@@ -174,7 +174,7 @@ export default function ProjectsGridClient() {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* ─── Hero Banner ─── */}
-            <section className="relative overflow-hidden bg-gradient-to-br from-[#0c1d37] via-[#162d50] to-[#1e3a5f] py-16 sm:py-20 lg:py-28">
+            <section className="relative overflow-hidden bg-gradient-to-br from-[#0c1d37] via-[#162d50] to-[#1e3a5f] pt-8 pb-12 sm:pt-10 sm:pb-14 lg:pt-12 lg:pb-16">
                 {/* Decorative grid pattern */}
                 <div className="pointer-events-none absolute inset-0 opacity-[0.04]" style={{
                     backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
@@ -224,7 +224,7 @@ export default function ProjectsGridClient() {
                             id="filter-city"
                             value={city}
                             onChange={(e) => setCity(e.target.value)}
-                            className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-dark-blue focus:ring-1 focus:ring-dark-blue/20 transition-all cursor-pointer"
+                            className="appearance-none bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-full px-5 py-2.5 pr-10 shadow-sm hover:shadow-md hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 transition-all duration-200 ease-in-out cursor-pointer bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px_20px] bg-[position:right_12px_center] bg-no-repeat"
                         >
                             <option value="">All Cities</option>
                             {uniqueCities.map((c) => (
@@ -237,7 +237,7 @@ export default function ProjectsGridClient() {
                             id="filter-developer"
                             value={developer}
                             onChange={(e) => setDeveloper(e.target.value)}
-                            className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-dark-blue focus:ring-1 focus:ring-dark-blue/20 transition-all cursor-pointer"
+                            className="appearance-none bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-full px-5 py-2.5 pr-10 shadow-sm hover:shadow-md hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 transition-all duration-200 ease-in-out cursor-pointer bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px_20px] bg-[position:right_12px_center] bg-no-repeat"
                         >
                             <option value="">All Developers</option>
                             {uniqueDevelopers.map((d) => (
@@ -250,7 +250,7 @@ export default function ProjectsGridClient() {
                             id="filter-golden-visa"
                             value={goldenVisa}
                             onChange={(e) => setGoldenVisa(e.target.value)}
-                            className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-dark-blue focus:ring-1 focus:ring-dark-blue/20 transition-all cursor-pointer"
+                            className="appearance-none bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-full px-5 py-2.5 pr-10 shadow-sm hover:shadow-md hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 transition-all duration-200 ease-in-out cursor-pointer bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px_20px] bg-[position:right_12px_center] bg-no-repeat"
                         >
                             <option value="">Golden Visa</option>
                             <option value="true">Eligible Only</option>

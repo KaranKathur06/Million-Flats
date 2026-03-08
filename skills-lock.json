@@ -6,6 +6,11 @@
       "sourceType": "github",
       "computedHash": "516bd2154eb843a8240e43d5b285229129853114ad7075a5e141e1c08e408c84"
     },
+    "system-design": {
+      "source": "jwynia/agent-skills",
+      "sourceType": "github",
+      "computedHash": "e7e6a7e5947b8d142b6505484a7c2157933dc4690a1f405d64454c9677fbdae2"
+    },
     "ui-ux-pro-max": {
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",
       "sourceType": "github",

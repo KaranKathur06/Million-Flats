@@ -20,9 +20,48 @@ async function getProject(slug: string) {
                 developer: { select: { id: true, name: true, slug: true, logo: true } },
                 media: { orderBy: { sortOrder: 'asc' } },
                 unitTypes: true,
+                amenities: true,
+                paymentPlans: { orderBy: { sortOrder: 'asc' } },
+                floorPlans: true,
+                videos: { orderBy: { sortOrder: 'asc' } },
+                location: true,
+                nearbyPlaces: { orderBy: { sortOrder: 'asc' } },
             },
         })
-        return project
+        if (!project) return null
+
+        // Parse highlights JSON
+        let highlights: string[] = []
+        if (project.highlights) {
+            try { highlights = JSON.parse(project.highlights) } catch { highlights = [] }
+        }
+
+        // Fetch similar projects
+        const similarProjects = await (prisma as any).project.findMany({
+            where: {
+                status: 'PUBLISHED',
+                id: { not: project.id },
+                OR: [
+                    { developerId: project.developer?.id },
+                    { city: project.city },
+                ],
+            },
+            take: 4,
+            orderBy: { createdAt: 'desc' },
+            select: {
+                id: true,
+                name: true,
+                slug: true,
+                city: true,
+                community: true,
+                startingPrice: true,
+                goldenVisa: true,
+                coverImage: true,
+                developer: { select: { name: true } },
+            },
+        })
+
+        return { ...project, highlights, similarProjects }
     } catch {
         return null
     }

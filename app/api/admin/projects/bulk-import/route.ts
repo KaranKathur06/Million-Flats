@@ -11,6 +11,32 @@ function slugify(text: string) {
         .slice(0, 120)
 }
 
+const amenitySchema = z.object({
+    name: z.string().min(1),
+    icon: z.string().optional().nullable(),
+    category: z.string().optional().nullable(),
+})
+
+const paymentPlanSchema = z.object({
+    stage: z.string().min(1),
+    percentage: z.number().min(0).max(100),
+    milestone: z.string().optional().nullable(),
+})
+
+const floorPlanSchema = z.object({
+    unitType: z.string().min(1),
+    bedrooms: z.number().int().optional().nullable(),
+    size: z.string().optional().nullable(),
+    price: z.string().optional().nullable(),
+    imageUrl: z.string().optional().nullable(),
+})
+
+const nearbyPlaceSchema = z.object({
+    name: z.string().min(1),
+    category: z.string().optional().nullable(),
+    distance: z.string().optional().nullable(),
+})
+
 const projectItemSchema = z.object({
     name: z.string().min(1).max(300),
     slug: z.string().min(1).max(200).optional(),
@@ -21,9 +47,15 @@ const projectItemSchema = z.object({
     completionYear: z.number().int().min(2000).max(2100).optional().nullable(),
     startingPrice: z.number().min(0).optional().nullable(),
     status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).optional().default('PUBLISHED'),
-    description: z.string().max(10000).optional().nullable(),
+    description: z.string().max(50000).optional().nullable(),
+    highlights: z.array(z.string()).optional().nullable(),
     coverImage: z.string().max(2000).optional().nullable(),
     sourceUrl: z.string().max(2000).optional().nullable(),
+    amenities: z.array(amenitySchema).optional().nullable(),
+    paymentPlans: z.array(paymentPlanSchema).optional().nullable(),
+    floorPlans: z.array(floorPlanSchema).optional().nullable(),
+    nearbyPlaces: z.array(nearbyPlaceSchema).optional().nullable(),
+    locationAddress: z.string().max(5000).optional().nullable(),
 })
 
 const bulkImportSchema = z.object({
@@ -53,19 +85,11 @@ export async function POST(req: Request) {
         // Find or create developer
         let developer = await (prisma as any).developer.findUnique({ where: { slug: developerSlug } })
         if (!developer) {
-            // Try by name
             const name = developerName || developerSlug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
             developer = await (prisma as any).developer.findUnique({ where: { name } })
-
             if (!developer) {
-                // Create developer
                 developer = await (prisma as any).developer.create({
-                    data: {
-                        name,
-                        slug: developerSlug,
-                        countryCode: 'UAE',
-                        countryIso2: 'AE',
-                    },
+                    data: { name, slug: developerSlug, countryCode: 'UAE', countryIso2: 'AE' },
                 })
             }
         }
@@ -75,29 +99,93 @@ export async function POST(req: Request) {
         for (const item of projects) {
             try {
                 const slug = item.slug || slugify(item.name)
-
-                // Check if already exists
                 const existing = await (prisma as any).project.findUnique({ where: { slug } })
                 if (existing) {
                     results.push({ name: item.name, slug, status: 'skipped', reason: 'Slug already exists' })
                     continue
                 }
 
-                await (prisma as any).project.create({
-                    data: {
-                        name: item.name,
-                        slug,
-                        developerId: developer.id,
-                        countryIso2: item.countryIso2 || 'AE',
-                        city: item.city || null,
-                        community: item.community || null,
-                        description: item.description || null,
-                        completionYear: item.completionYear ?? null,
-                        startingPrice: item.startingPrice ?? null,
-                        goldenVisa: item.goldenVisa || false,
-                        coverImage: item.coverImage || null,
-                        status: item.status || 'PUBLISHED',
-                    },
+                // Use Prisma transaction to insert everything atomically
+                await (prisma as any).$transaction(async (tx: any) => {
+                    const project = await tx.project.create({
+                        data: {
+                            name: item.name,
+                            slug,
+                            developerId: developer.id,
+                            countryIso2: item.countryIso2 || 'AE',
+                            city: item.city || null,
+                            community: item.community || null,
+                            description: item.description || null,
+                            highlights: item.highlights ? JSON.stringify(item.highlights) : null,
+                            completionYear: item.completionYear ?? null,
+                            startingPrice: item.startingPrice ?? null,
+                            goldenVisa: item.goldenVisa || false,
+                            coverImage: item.coverImage || null,
+                            status: item.status || 'PUBLISHED',
+                        },
+                    })
+
+                    // Amenities
+                    if (item.amenities && item.amenities.length > 0) {
+                        await tx.projectAmenity.createMany({
+                            data: item.amenities.map((a: any) => ({
+                                projectId: project.id,
+                                name: a.name,
+                                icon: a.icon || null,
+                                category: a.category || null,
+                            })),
+                        })
+                    }
+
+                    // Payment plans
+                    if (item.paymentPlans && item.paymentPlans.length > 0) {
+                        await tx.projectPaymentPlan.createMany({
+                            data: item.paymentPlans.map((pp: any, idx: number) => ({
+                                projectId: project.id,
+                                stage: pp.stage,
+                                percentage: pp.percentage,
+                                milestone: pp.milestone || null,
+                                sortOrder: idx,
+                            })),
+                        })
+                    }
+
+                    // Floor plans
+                    if (item.floorPlans && item.floorPlans.length > 0) {
+                        await tx.projectFloorPlan.createMany({
+                            data: item.floorPlans.map((fp: any) => ({
+                                projectId: project.id,
+                                unitType: fp.unitType,
+                                bedrooms: fp.bedrooms ?? null,
+                                size: fp.size || null,
+                                price: fp.price || null,
+                                imageUrl: fp.imageUrl || null,
+                            })),
+                        })
+                    }
+
+                    // Nearby places
+                    if (item.nearbyPlaces && item.nearbyPlaces.length > 0) {
+                        await tx.projectNearbyPlace.createMany({
+                            data: item.nearbyPlaces.map((np: any, idx: number) => ({
+                                projectId: project.id,
+                                name: np.name,
+                                category: np.category || null,
+                                distance: np.distance || null,
+                                sortOrder: idx,
+                            })),
+                        })
+                    }
+
+                    // Location
+                    if (item.locationAddress) {
+                        await tx.projectLocation.create({
+                            data: {
+                                projectId: project.id,
+                                address: item.locationAddress,
+                            },
+                        })
+                    }
                 })
 
                 results.push({ name: item.name, slug, status: 'created' })

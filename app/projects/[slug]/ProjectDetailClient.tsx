@@ -3,6 +3,9 @@
 import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
 
+/* ═══════════════════════════════════════════════
+   TYPE DEFINITIONS
+   ═══════════════════════════════════════════════ */
 interface ProjectData {
     id: string
     name: string
@@ -11,6 +14,7 @@ interface ProjectData {
     community: string | null
     countryIso2: string | null
     description: string | null
+    highlights: string[]
     completionYear: number | null
     startingPrice: number | null
     goldenVisa: boolean
@@ -20,21 +24,63 @@ interface ProjectData {
     developer: { id: string; name: string; slug: string | null; logo: string | null } | null
     media: { id: string; mediaUrl: string; mediaType: string; sortOrder: number | null }[]
     unitTypes: { id: string; unitType: string; sizeFrom: number | null; sizeTo: number | null; priceFrom: number | null }[]
+    amenities: { id: string; name: string; icon: string | null; category: string | null }[]
+    paymentPlans: { id: string; stage: string; percentage: number; milestone: string | null; sortOrder: number | null }[]
+    floorPlans: { id: string; unitType: string; bedrooms: number | null; size: string | null; price: string | null; imageUrl: string | null }[]
+    videos: { id: string; videoUrl: string; title: string | null; thumbnail: string | null; sortOrder: number | null }[]
+    location: { id: string; latitude: number | null; longitude: number | null; address: string | null; mapUrl: string | null } | null
+    nearbyPlaces: { id: string; name: string; category: string | null; distance: string | null; sortOrder: number | null }[]
+    similarProjects: { id: string; name: string; slug: string; city: string | null; community: string | null; startingPrice: number | null; goldenVisa: boolean; coverImage: string | null; developer: { name: string } | null }[]
 }
 
+/* ═══════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════ */
 function formatPrice(price: number | null | undefined) {
     if (!price) return 'TBD'
+    if (price >= 1_000_000_000) return `AED ${(price / 1_000_000_000).toFixed(1)}B`
     if (price >= 1_000_000) return `AED ${(price / 1_000_000).toFixed(1)}M`
     if (price >= 1_000) return `AED ${(price / 1_000).toFixed(0)}K`
     return `AED ${price.toLocaleString()}`
 }
 
+/* Amenity Icon Component */
+function AmenityIcon({ icon }: { icon: string | null }) {
+    const iconMap: Record<string, string> = {
+        pool: '🏊', gym: '💪', restaurant: '🍽️', bike: '🚴', run: '🏃',
+        park: '🌳', garden: '🌿', security: '🔒', parking: '🅿️',
+        shopping: '🛒', health: '🏥', spa: '🧖', club: '🏘️',
+        community: '🏛️', yoga: '🧘', tennis: '🎾', basketball: '🏀',
+        kids: '👶', entertainment: '🎭', power: '⚡', water: '💧',
+        nature: '🌱', events: '🎪', sports: '⚽',
+    }
+    return <span className="text-lg">{iconMap[icon || ''] || '✨'}</span>
+}
+
+/* ─── Section Header ─── */
+function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+    return (
+        <div className="mb-6">
+            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                <span className="w-1 h-6 bg-amber-500 rounded-full" />
+                {title}
+            </h2>
+            {subtitle && <p className="text-sm text-gray-500 mt-1 ml-4">{subtitle}</p>}
+        </div>
+    )
+}
+
+/* ═══════════════════════════════════════════════
+   MAIN COMPONENT
+   ═══════════════════════════════════════════════ */
 export default function ProjectDetailClient({ project }: { project: ProjectData }) {
     const [selectedImg, setSelectedImg] = useState(0)
     const [formData, setFormData] = useState({ name: '', email: '', phone: '', message: '' })
     const [submitting, setSubmitting] = useState(false)
     const [submitted, setSubmitted] = useState(false)
     const [formError, setFormError] = useState('')
+    const [showAllAmenities, setShowAllAmenities] = useState(false)
+    const [activeTab, setActiveTab] = useState<'overview' | 'amenities' | 'plans' | 'gallery' | 'location'>('overview')
 
     const galleryImages = useMemo(() => {
         const images = project.media.filter((m) => m.mediaType === 'gallery' || m.mediaType === 'cover' || m.mediaType === 'image')
@@ -45,6 +91,18 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
     }, [project.media, project.coverImage])
 
     const heroImage = project.coverImage || galleryImages[0]?.mediaUrl || null
+
+    const amenityCategories = useMemo(() => {
+        const cats: Record<string, typeof project.amenities> = {}
+        project.amenities.forEach((a) => {
+            const cat = a.category || 'general'
+            if (!cats[cat]) cats[cat] = []
+            cats[cat].push(a)
+        })
+        return cats
+    }, [project.amenities])
+
+    const displayedAmenities = showAllAmenities ? project.amenities : project.amenities.slice(0, 12)
 
     const handleSubmitLead = useCallback(async (e: React.FormEvent) => {
         e.preventDefault()
@@ -72,146 +130,258 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Hero Section */}
+            {/* ═══ HERO SECTION ═══ */}
             <div className="relative h-[50vh] sm:h-[60vh] lg:h-[70vh] overflow-hidden bg-gray-900">
                 {heroImage ? (
-                    <img
-                        src={heroImage}
-                        alt={project.name}
-                        className="absolute inset-0 w-full h-full object-cover"
-                        loading="eager"
-                    />
+                    <img src={heroImage} alt={project.name} className="absolute inset-0 w-full h-full object-cover" loading="eager" />
                 ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900" />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+                {/* Breadcrumb */}
+                <div className="absolute top-6 left-0 right-0 z-10">
+                    <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                        <nav className="flex items-center gap-2 text-sm text-white/60">
+                            <Link href="/" className="hover:text-white transition-colors">Home</Link>
+                            <span>›</span>
+                            <Link href="/projects" className="hover:text-white transition-colors">Projects</Link>
+                            <span>›</span>
+                            <span className="text-white/90">{project.name}</span>
+                        </nav>
+                    </div>
+                </div>
 
                 <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10 lg:p-16">
                     <div className="container mx-auto max-w-7xl">
-                        {project.goldenVisa && (
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/90 px-3 py-1 text-xs font-bold text-black mb-3 shadow-lg">
-                                <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                </svg>
-                                Golden Visa Eligible
-                            </span>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                            {project.goldenVisa && (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/90 px-3 py-1 text-xs font-bold text-black shadow-lg">
+                                    <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                    Golden Visa Eligible
+                                </span>
+                            )}
+                            {project.developer && (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1 text-xs font-semibold text-white border border-white/20">
+                                    by {project.developer.name}
+                                </span>
+                            )}
+                        </div>
                         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight">
                             {project.name}
                         </h1>
-                        <div className="flex flex-wrap items-center gap-3 mt-3 text-white/80 text-sm">
-                            {project.developer && (
-                                <span className="flex items-center gap-2">
-                                    {project.developer.logo && (
-                                        <img src={project.developer.logo} alt="" className="h-5 w-5 rounded object-cover" />
-                                    )}
-                                    by <span className="font-semibold text-white">{project.developer.name}</span>
+                        <div className="flex flex-wrap items-center gap-4 mt-4">
+                            {project.city && (
+                                <span className="flex items-center gap-1.5 text-white/80 text-sm">
+                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                    {project.city}{project.community ? `, ${project.community}` : ''}
                                 </span>
                             )}
-                            {project.city && (
-                                <>
-                                    <span className="text-white/30">•</span>
-                                    <span>{project.city}{project.community ? `, ${project.community}` : ''}</span>
-                                </>
-                            )}
                             {project.startingPrice && (
-                                <>
-                                    <span className="text-white/30">•</span>
-                                    <span className="font-semibold text-amber-300">From {formatPrice(project.startingPrice)}</span>
-                                </>
+                                <span className="flex items-center gap-1.5 text-amber-300 font-bold text-sm">
+                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    From {formatPrice(project.startingPrice)}
+                                </span>
+                            )}
+                            {project.completionYear && (
+                                <span className="flex items-center gap-1.5 text-white/80 text-sm">
+                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                    Completion: {project.completionYear}
+                                </span>
                             )}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Content */}
+            {/* ═══ TAB NAVIGATION ═══ */}
+            <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
+                <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <nav className="flex gap-1 overflow-x-auto scrollbar-none -mb-px">
+                        {(['overview', 'amenities', 'plans', 'gallery', 'location'] as const).map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => {
+                                    setActiveTab(tab)
+                                    document.getElementById(`section-${tab}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                                }}
+                                className={`whitespace-nowrap px-4 py-3 text-sm font-semibold border-b-2 transition-all capitalize ${activeTab === tab
+                                    ? 'border-amber-500 text-amber-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                            >
+                                {tab === 'plans' ? 'Floor Plans' : tab}
+                            </button>
+                        ))}
+                    </nav>
+                </div>
+            </div>
+
+            {/* ═══ CONTENT ═══ */}
             <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 lg:py-16">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 lg:gap-12">
-                    {/* Main Column */}
-                    <div className="lg:col-span-2 space-y-10">
-                        {/* Gallery */}
-                        {galleryImages.length > 1 && (
+                    {/* ─── MAIN COLUMN ─── */}
+                    <div className="lg:col-span-2 space-y-12">
+
+                        {/* OVERVIEW SECTION */}
+                        <section id="section-overview">
+                            {project.description && (
+                                <>
+                                    <SectionHeader title="Project Overview" />
+                                    <div className="prose prose-gray max-w-none">
+                                        <p className="text-gray-600 leading-relaxed whitespace-pre-line">{project.description}</p>
+                                    </div>
+                                </>
+                            )}
+                        </section>
+
+                        {/* HIGHLIGHTS */}
+                        {project.highlights && project.highlights.length > 0 && (
                             <section>
-                                <h2 className="text-lg font-bold text-gray-900 mb-4">Gallery</h2>
+                                <SectionHeader title="Key Highlights" />
                                 <div className="space-y-3">
-                                    <div className="relative rounded-2xl overflow-hidden bg-gray-100 aspect-video">
-                                        <img
-                                            src={galleryImages[selectedImg]?.mediaUrl || ''}
-                                            alt={`${project.name} gallery`}
-                                            className="w-full h-full object-cover transition-opacity duration-300"
-                                            loading="lazy"
-                                        />
-                                    </div>
-                                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
-                                        {galleryImages.map((img, idx) => (
-                                            <button
-                                                key={img.id}
-                                                onClick={() => setSelectedImg(idx)}
-                                                className={`flex-shrink-0 rounded-xl overflow-hidden h-16 w-24 border-2 transition-all ${idx === selectedImg
-                                                    ? 'border-amber-500 shadow-md shadow-amber-500/20'
-                                                    : 'border-transparent opacity-60 hover:opacity-100'
-                                                    }`}
-                                            >
-                                                <img src={img.mediaUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
-                                            </button>
-                                        ))}
-                                    </div>
+                                    {project.highlights.map((h, idx) => (
+                                        <div key={idx} className="flex gap-3 p-4 rounded-xl bg-amber-50/60 border border-amber-100">
+                                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold mt-0.5">
+                                                {idx + 1}
+                                            </div>
+                                            <p className="text-sm text-gray-700 leading-relaxed">{h}</p>
+                                        </div>
+                                    ))}
                                 </div>
                             </section>
                         )}
 
-                        {/* Overview */}
-                        {project.description && (
-                            <section>
-                                <h2 className="text-lg font-bold text-gray-900 mb-4">Project Overview</h2>
-                                <div className="prose prose-gray max-w-none">
-                                    <p className="text-gray-600 leading-relaxed whitespace-pre-line">{project.description}</p>
-                                </div>
-                            </section>
-                        )}
-
-                        {/* Key Details */}
+                        {/* KEY DETAILS GRID */}
                         <section>
-                            <h2 className="text-lg font-bold text-gray-900 mb-4">Key Details</h2>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            <SectionHeader title="Key Details" />
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                                 {project.developer && (
-                                    <div className="rounded-xl border border-gray-200 bg-white p-4">
+                                    <div className="rounded-xl border border-gray-200 bg-white p-4 hover:shadow-md transition-shadow">
                                         <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Developer</p>
                                         <p className="text-sm font-semibold text-gray-900">{project.developer.name}</p>
                                     </div>
                                 )}
                                 {project.city && (
-                                    <div className="rounded-xl border border-gray-200 bg-white p-4">
+                                    <div className="rounded-xl border border-gray-200 bg-white p-4 hover:shadow-md transition-shadow">
                                         <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Location</p>
                                         <p className="text-sm font-semibold text-gray-900">{project.city}{project.community ? `, ${project.community}` : ''}</p>
                                     </div>
                                 )}
                                 {project.completionYear && (
-                                    <div className="rounded-xl border border-gray-200 bg-white p-4">
+                                    <div className="rounded-xl border border-gray-200 bg-white p-4 hover:shadow-md transition-shadow">
                                         <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Completion</p>
                                         <p className="text-sm font-semibold text-gray-900">{project.completionYear}</p>
                                     </div>
                                 )}
                                 {project.startingPrice && (
-                                    <div className="rounded-xl border border-gray-200 bg-white p-4">
+                                    <div className="rounded-xl border border-gray-200 bg-white p-4 hover:shadow-md transition-shadow">
                                         <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Starting From</p>
                                         <p className="text-sm font-semibold text-amber-600">{formatPrice(project.startingPrice)}</p>
                                     </div>
                                 )}
                                 {project.goldenVisa && (
-                                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 hover:shadow-md transition-shadow">
                                         <p className="text-xs text-amber-600 font-semibold uppercase tracking-wider mb-1">Golden Visa</p>
                                         <p className="text-sm font-semibold text-amber-800">Eligible ✓</p>
+                                    </div>
+                                )}
+                                {project.unitTypes.length > 0 && (
+                                    <div className="rounded-xl border border-gray-200 bg-white p-4 hover:shadow-md transition-shadow">
+                                        <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Unit Types</p>
+                                        <p className="text-sm font-semibold text-gray-900">{project.unitTypes.length} Available</p>
                                     </div>
                                 )}
                             </div>
                         </section>
 
-                        {/* Unit Types */}
-                        {project.unitTypes.length > 0 && (
+                        {/* AMENITIES GRID */}
+                        {project.amenities.length > 0 && (
+                            <section id="section-amenities">
+                                <SectionHeader title="Amenities & Facilities" subtitle={`${project.amenities.length} amenities available`} />
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                    {displayedAmenities.map((a) => (
+                                        <div key={a.id} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:border-amber-200 hover:shadow-sm transition-all">
+                                            <AmenityIcon icon={a.icon} />
+                                            <span className="text-sm text-gray-700 font-medium">{a.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                {project.amenities.length > 12 && (
+                                    <button
+                                        onClick={() => setShowAllAmenities(!showAllAmenities)}
+                                        className="mt-4 text-sm font-semibold text-amber-600 hover:text-amber-700 transition-colors"
+                                    >
+                                        {showAllAmenities ? 'Show Less' : `Show All ${project.amenities.length} Amenities →`}
+                                    </button>
+                                )}
+                            </section>
+                        )}
+
+                        {/* PAYMENT PLAN */}
+                        {project.paymentPlans.length > 0 && (
                             <section>
-                                <h2 className="text-lg font-bold text-gray-900 mb-4">Available Unit Types</h2>
+                                <SectionHeader title="Payment Plan" />
+                                <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+                                    <div className="flex items-stretch">
+                                        {project.paymentPlans.map((pp, idx) => (
+                                            <div key={pp.id} className={`flex-1 p-5 text-center ${idx > 0 ? 'border-l border-gray-200' : ''}`}>
+                                                <div className="text-3xl font-bold text-amber-600 mb-1">{pp.percentage}%</div>
+                                                <div className="text-sm font-semibold text-gray-900 mb-0.5">{pp.stage}</div>
+                                                {pp.milestone && <div className="text-xs text-gray-400">{pp.milestone}</div>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {/* Progress bar showing proportions */}
+                                    <div className="flex h-2">
+                                        {project.paymentPlans.map((pp, idx) => {
+                                            const colors = ['bg-amber-500', 'bg-amber-400', 'bg-amber-300', 'bg-amber-200']
+                                            return (
+                                                <div
+                                                    key={pp.id}
+                                                    className={`${colors[idx % colors.length]} transition-all`}
+                                                    style={{ width: `${pp.percentage}%` }}
+                                                />
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            </section>
+                        )}
+
+                        {/* FLOOR PLANS */}
+                        {project.floorPlans.length > 0 && (
+                            <section id="section-plans">
+                                <SectionHeader title="Floor Plans" subtitle="Available unit configurations" />
+                                <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="bg-gray-50 border-b border-gray-200">
+                                                <th className="text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-gray-500">Unit Type</th>
+                                                <th className="text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-gray-500">Bedrooms</th>
+                                                <th className="text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-gray-500">Size</th>
+                                                <th className="text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-gray-500">Price</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {project.floorPlans.map((fp) => (
+                                                <tr key={fp.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors">
+                                                    <td className="px-5 py-3.5 font-semibold text-gray-900">{fp.unitType}</td>
+                                                    <td className="px-5 py-3.5 text-gray-600">{fp.bedrooms ? `${fp.bedrooms} BR` : '—'}</td>
+                                                    <td className="px-5 py-3.5 text-gray-600">{fp.size || '—'}</td>
+                                                    <td className="px-5 py-3.5 font-semibold text-amber-600">{fp.price || 'On Request'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
+                        )}
+
+                        {/* UNIT TYPES TABLE */}
+                        {project.unitTypes.length > 0 && project.floorPlans.length === 0 && (
+                            <section>
+                                <SectionHeader title="Available Unit Types" />
                                 <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white">
                                     <table className="w-full text-sm">
                                         <thead>
@@ -230,13 +400,9 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                                             ? `${ut.sizeFrom.toLocaleString()} – ${ut.sizeTo.toLocaleString()}`
                                                             : ut.sizeFrom
                                                                 ? `From ${ut.sizeFrom.toLocaleString()}`
-                                                                : ut.sizeTo
-                                                                    ? `Up to ${ut.sizeTo.toLocaleString()}`
-                                                                    : '—'}
+                                                                : '—'}
                                                     </td>
-                                                    <td className="px-5 py-3.5 font-semibold text-amber-600">
-                                                        {ut.priceFrom ? formatPrice(ut.priceFrom) : '—'}
-                                                    </td>
+                                                    <td className="px-5 py-3.5 font-semibold text-amber-600">{ut.priceFrom ? formatPrice(ut.priceFrom) : '—'}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -244,20 +410,159 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                 </div>
                             </section>
                         )}
+
+                        {/* GALLERY */}
+                        {galleryImages.length > 0 && (
+                            <section id="section-gallery">
+                                <SectionHeader title="Gallery" subtitle={`${galleryImages.length} images`} />
+                                <div className="space-y-3">
+                                    <div className="relative rounded-2xl overflow-hidden bg-gray-100 aspect-video shadow-lg">
+                                        <img
+                                            src={galleryImages[selectedImg]?.mediaUrl || ''}
+                                            alt={`${project.name} gallery`}
+                                            className="w-full h-full object-cover transition-opacity duration-300"
+                                            loading="lazy"
+                                        />
+                                        {/* Image counter */}
+                                        <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 text-xs text-white font-medium">
+                                            {selectedImg + 1} / {galleryImages.length}
+                                        </div>
+                                        {/* Nav arrows */}
+                                        {galleryImages.length > 1 && (
+                                            <>
+                                                <button
+                                                    onClick={() => setSelectedImg((p) => (p === 0 ? galleryImages.length - 1 : p - 1))}
+                                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+                                                >
+                                                    ‹
+                                                </button>
+                                                <button
+                                                    onClick={() => setSelectedImg((p) => (p === galleryImages.length - 1 ? 0 : p + 1))}
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+                                                >
+                                                    ›
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                    {galleryImages.length > 1 && (
+                                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                                            {galleryImages.map((img, idx) => (
+                                                <button
+                                                    key={img.id}
+                                                    onClick={() => setSelectedImg(idx)}
+                                                    className={`flex-shrink-0 rounded-xl overflow-hidden h-16 w-24 border-2 transition-all ${idx === selectedImg
+                                                        ? 'border-amber-500 shadow-md shadow-amber-500/20'
+                                                        : 'border-transparent opacity-60 hover:opacity-100'
+                                                        }`}
+                                                >
+                                                    <img src={img.mediaUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </section>
+                        )}
+
+                        {/* VIDEOS */}
+                        {project.videos.length > 0 && (
+                            <section>
+                                <SectionHeader title="Videos" subtitle={`${project.videos.length} project ${project.videos.length === 1 ? 'video' : 'videos'}`} />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {project.videos.map((v) => (
+                                        <div key={v.id} className="rounded-2xl overflow-hidden bg-gray-100 aspect-video">
+                                            {v.videoUrl.includes('youtube') ? (
+                                                <iframe
+                                                    src={v.videoUrl.replace('watch?v=', 'embed/')}
+                                                    title={v.title || 'Project Video'}
+                                                    className="w-full h-full"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+                                                    allowFullScreen
+                                                    loading="lazy"
+                                                />
+                                            ) : (
+                                                <video src={v.videoUrl} controls className="w-full h-full object-cover" />
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
+                        {/* LOCATION */}
+                        {(project.location?.address || project.nearbyPlaces.length > 0) && (
+                            <section id="section-location">
+                                <SectionHeader title="Location" subtitle={project.community ? `${project.community}, ${project.city}` : project.city || undefined} />
+                                {project.location?.address && (
+                                    <div className="prose prose-gray max-w-none mb-6">
+                                        <p className="text-gray-600 leading-relaxed text-sm">{project.location.address}</p>
+                                    </div>
+                                )}
+                                {/* Nearby Places */}
+                                {project.nearbyPlaces.length > 0 && (
+                                    <div>
+                                        <h3 className="text-sm font-bold text-gray-900 mb-3">Nearby Landmarks</h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {project.nearbyPlaces.map((np) => (
+                                                <div key={np.id} className="flex items-center justify-between p-3 rounded-xl bg-white border border-gray-100 hover:border-amber-200 transition-colors">
+                                                    <span className="text-sm text-gray-700 font-medium flex items-center gap-2">
+                                                        <svg className="h-4 w-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
+                                                        {np.name}
+                                                    </span>
+                                                    {np.distance && (
+                                                        <span className="text-xs text-gray-400 font-medium">{np.distance}</span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </section>
+                        )}
+
+                        {/* SIMILAR PROJECTS */}
+                        {project.similarProjects && project.similarProjects.length > 0 && (
+                            <section>
+                                <SectionHeader title="Similar Projects" />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {project.similarProjects.map((sp) => (
+                                        <Link key={sp.id} href={`/projects/${sp.slug}`} className="group rounded-2xl overflow-hidden border border-gray-200 bg-white hover:shadow-lg transition-all">
+                                            <div className="relative h-40 overflow-hidden bg-gray-100">
+                                                {sp.coverImage ? (
+                                                    <img src={sp.coverImage} alt={sp.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                                                ) : (
+                                                    <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300" />
+                                                )}
+                                                {sp.goldenVisa && (
+                                                    <span className="absolute top-2 right-2 bg-amber-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full">Golden Visa</span>
+                                                )}
+                                            </div>
+                                            <div className="p-4">
+                                                <h4 className="font-semibold text-gray-900 group-hover:text-amber-600 transition-colors">{sp.name}</h4>
+                                                <p className="text-xs text-gray-500 mt-1">{sp.developer?.name} • {sp.city}{sp.community ? `, ${sp.community}` : ''}</p>
+                                                {sp.startingPrice && (
+                                                    <p className="text-sm font-bold text-amber-600 mt-2">From {formatPrice(sp.startingPrice)}</p>
+                                                )}
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
                     </div>
 
-                    {/* Sidebar — Inquiry Form */}
+                    {/* ─── SIDEBAR ─── */}
                     <div className="lg:col-span-1">
-                        <div className="sticky top-24">
+                        <div className="sticky top-16 space-y-4">
+                            {/* Inquiry Form */}
                             <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                                 <h3 className="text-lg font-bold text-gray-900 mb-1">Interested in {project.name}?</h3>
                                 <p className="text-sm text-gray-500 mb-6">Fill in your details and our team will get back to you</p>
 
                                 {submitted ? (
                                     <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-6 text-center">
-                                        <svg className="mx-auto h-10 w-10 text-emerald-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
+                                        <svg className="mx-auto h-10 w-10 text-emerald-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                         <p className="font-semibold text-emerald-800 mb-1">Inquiry Submitted!</p>
                                         <p className="text-sm text-emerald-600">We&apos;ll get in touch with you shortly.</p>
                                     </div>
@@ -266,64 +571,35 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                         {formError && (
                                             <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-600">{formError}</div>
                                         )}
-                                        <div>
-                                            <input
-                                                type="text"
-                                                placeholder="Your Name *"
-                                                value={formData.name}
-                                                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                                                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
-                                            />
-                                        </div>
-                                        <div>
-                                            <input
-                                                type="email"
-                                                placeholder="Email Address *"
-                                                value={formData.email}
-                                                onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-                                                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
-                                            />
-                                        </div>
-                                        <div>
-                                            <input
-                                                type="tel"
-                                                placeholder="Phone Number *"
-                                                value={formData.phone}
-                                                onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
-                                                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
-                                            />
-                                        </div>
-                                        <div>
-                                            <textarea
-                                                placeholder="Message (optional)"
-                                                rows={3}
-                                                value={formData.message}
-                                                onChange={(e) => setFormData((prev) => ({ ...prev, message: e.target.value }))}
-                                                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all resize-none"
-                                            />
-                                        </div>
-                                        <button
-                                            type="submit"
-                                            disabled={submitting}
-                                            className="w-full rounded-xl bg-amber-500 px-6 py-3.5 text-sm font-bold text-white hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/20 disabled:opacity-50"
-                                        >
+                                        <input type="text" placeholder="Your Name *" value={formData.name}
+                                            onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
+                                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all" />
+                                        <input type="email" placeholder="Email Address *" value={formData.email}
+                                            onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
+                                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all" />
+                                        <input type="tel" placeholder="Phone Number *" value={formData.phone}
+                                            onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
+                                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all" />
+                                        <textarea placeholder="Message (optional)" rows={3} value={formData.message}
+                                            onChange={(e) => setFormData((p) => ({ ...p, message: e.target.value }))}
+                                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all resize-none" />
+                                        <button type="submit" disabled={submitting}
+                                            className="w-full rounded-xl bg-amber-500 px-6 py-3.5 text-sm font-bold text-white hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/20 disabled:opacity-50">
                                             {submitting ? 'Sending…' : 'Send Inquiry'}
                                         </button>
-                                        <p className="text-[11px] text-gray-400 text-center">
-                                            By submitting, you agree to our terms and privacy policy.
-                                        </p>
+                                        <p className="text-[11px] text-gray-400 text-center">By submitting, you agree to our terms and privacy policy.</p>
                                     </form>
                                 )}
                             </div>
 
                             {/* Developer Card */}
                             {project.developer && (
-                                <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-5">
+                                <div className="rounded-2xl border border-gray-200 bg-white p-5">
                                     <div className="flex items-center gap-3">
                                         {project.developer.logo ? (
-                                            <img src={project.developer.logo} alt={project.developer.name} className="h-10 w-10 rounded-xl object-cover border border-gray-100" />
+                                            <img src={project.developer.logo} alt={project.developer.name} className="h-12 w-12 rounded-xl object-cover border border-gray-100" />
                                         ) : (
-                                            <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-400">
+                                            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center text-lg font-bold text-white">
                                                 {project.developer.name.charAt(0)}
                                             </div>
                                         )}
@@ -334,6 +610,25 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                     </div>
                                 </div>
                             )}
+
+                            {/* Quick Stats */}
+                            <div className="rounded-2xl border border-gray-200 bg-white p-5">
+                                <h4 className="text-sm font-bold text-gray-900 mb-3">Quick Summary</h4>
+                                <div className="space-y-3 text-sm">
+                                    {project.amenities.length > 0 && (
+                                        <div className="flex justify-between"><span className="text-gray-500">Amenities</span><span className="font-semibold text-gray-900">{project.amenities.length}</span></div>
+                                    )}
+                                    {project.floorPlans.length > 0 && (
+                                        <div className="flex justify-between"><span className="text-gray-500">Floor Plans</span><span className="font-semibold text-gray-900">{project.floorPlans.length}</span></div>
+                                    )}
+                                    {galleryImages.length > 0 && (
+                                        <div className="flex justify-between"><span className="text-gray-500">Gallery Images</span><span className="font-semibold text-gray-900">{galleryImages.length}</span></div>
+                                    )}
+                                    {project.paymentPlans.length > 0 && (
+                                        <div className="flex justify-between"><span className="text-gray-500">Payment Plan</span><span className="font-semibold text-amber-600">{project.paymentPlans.map(p => `${p.percentage}%`).join(' / ')}</span></div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
