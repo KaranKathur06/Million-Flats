@@ -123,18 +123,20 @@ async function main() {
 
         if (DRY_RUN) {
             console.log(c.dim("    → Dry run, skipping"))
+            console.log(c.dim(`      Amenities: ${data.amenities?.length || 0}, Highlights: ${data.highlights?.length || 0}`))
+            console.log(c.dim(`      Floor Plans: ${data.floorPlans?.length || 0}, Nearby: ${data.nearbyPlaces?.length || 0}`))
+            console.log(c.dim(`      Payment Plans: ${data.paymentPlans?.length || 0}, Gallery: ${data.gallery?.length || 0}`))
             results.push({ slug: data.slug, status: "dry-run" })
             console.log("")
             continue
         }
 
-        // ─── Check duplicate ───
+        // ─── Check if project already exists ───
         const existing = await prisma.project.findUnique({ where: { slug: data.slug } })
-        if (existing) {
-            console.log(c.yellow(`    ⊘ Already exists, skipping`))
-            results.push({ slug: data.slug, status: "skipped" })
-            console.log("")
-            continue
+        const isUpdate = !!existing
+
+        if (isUpdate) {
+            console.log(c.cyan(`    ↻ Exists — enriching with structured data...`))
         }
 
         // ─── Upload media to S3 ───
@@ -177,31 +179,71 @@ async function main() {
             }
         }
 
-        // ─── Prisma Transaction — Insert everything atomically ───
+        // ─── Prisma Transaction — UPSERT + ENRICH atomically ───
         try {
             await prisma.$transaction(async (tx) => {
-                // 1. Create project
-                const project = await tx.project.create({
-                    data: {
-                        name: data.name,
-                        slug: data.slug,
-                        developerId: developer.id,
-                        countryIso2: data.countryIso2 || "AE",
-                        city: data.city || "Dubai",
-                        community: data.community || null,
-                        description: data.description || null,
-                        highlights: data.highlights && data.highlights.length > 0
-                            ? JSON.stringify(data.highlights)
-                            : null,
-                        completionYear: data.completionYear ?? null,
-                        startingPrice: data.startingPrice ?? null,
-                        goldenVisa: data.goldenVisa || false,
-                        coverImage: coverImageUrl,
-                        status: "PUBLISHED",
-                    },
-                })
+                let project
 
-                // 2. Insert media
+                if (isUpdate) {
+                    // ═══ UPDATE existing project fields ═══
+                    project = await tx.project.update({
+                        where: { id: existing.id },
+                        data: {
+                            description: data.description || existing.description,
+                            highlights: data.highlights && data.highlights.length > 0
+                                ? JSON.stringify(data.highlights)
+                                : existing.highlights || null,
+                            city: data.city || existing.city,
+                            community: data.community || existing.community,
+                            startingPrice: data.startingPrice ?? existing.startingPrice,
+                            goldenVisa: data.goldenVisa ?? existing.goldenVisa,
+                            coverImage: coverImageUrl || existing.coverImage,
+                        },
+                    })
+
+                    // ═══ DELETE old structured data (clean slate) ═══
+                    await tx.projectAmenity.deleteMany({ where: { projectId: project.id } })
+                    await tx.projectPaymentPlan.deleteMany({ where: { projectId: project.id } })
+                    await tx.projectFloorPlan.deleteMany({ where: { projectId: project.id } })
+                    await tx.projectVideo.deleteMany({ where: { projectId: project.id } })
+                    await tx.projectLocation.deleteMany({ where: { projectId: project.id } })
+                    await tx.projectNearbyPlace.deleteMany({ where: { projectId: project.id } })
+                    // Keep existing media if no new uploads
+                    if (uploadedMedia.length > 0) {
+                        await tx.projectMedia.deleteMany({ where: { projectId: project.id } })
+                    }
+                    // Keep existing unit types if we have new floor plans
+                    if (data.floorPlans && data.floorPlans.length > 0) {
+                        await tx.projectUnitType.deleteMany({ where: { projectId: project.id } })
+                    }
+
+                    console.log(c.dim(`    ✓ Project updated, old sub-records cleared`))
+                } else {
+                    // ═══ CREATE new project ═══
+                    project = await tx.project.create({
+                        data: {
+                            name: data.name,
+                            slug: data.slug,
+                            developerId: developer.id,
+                            countryIso2: data.countryIso2 || "AE",
+                            city: data.city || "Dubai",
+                            community: data.community || null,
+                            description: data.description || null,
+                            highlights: data.highlights && data.highlights.length > 0
+                                ? JSON.stringify(data.highlights)
+                                : null,
+                            completionYear: data.completionYear ?? null,
+                            startingPrice: data.startingPrice ?? null,
+                            goldenVisa: data.goldenVisa || false,
+                            coverImage: coverImageUrl,
+                            status: "PUBLISHED",
+                        },
+                    })
+                }
+
+                // ═══ INSERT all structured data ═══
+
+                // 2. Media
                 if (uploadedMedia.length > 0) {
                     await tx.projectMedia.createMany({
                         data: uploadedMedia.map((m) => ({
@@ -214,7 +256,7 @@ async function main() {
                     })
                 }
 
-                // 3. Insert amenities
+                // 3. Amenities
                 if (data.amenities && data.amenities.length > 0) {
                     await tx.projectAmenity.createMany({
                         data: data.amenities.map((a) => ({
@@ -226,7 +268,7 @@ async function main() {
                     })
                 }
 
-                // 4. Insert payment plans
+                // 4. Payment plans
                 if (data.paymentPlans && data.paymentPlans.length > 0) {
                     await tx.projectPaymentPlan.createMany({
                         data: data.paymentPlans.map((pp, idx) => ({
@@ -239,7 +281,7 @@ async function main() {
                     })
                 }
 
-                // 5. Insert floor plans
+                // 5. Floor plans
                 if (data.floorPlans && data.floorPlans.length > 0) {
                     await tx.projectFloorPlan.createMany({
                         data: data.floorPlans.map((fp, idx) => ({
@@ -254,7 +296,7 @@ async function main() {
                     })
                 }
 
-                // 6. Insert unit types (from floor plans)
+                // 6. Unit types (from floor plans)
                 if (data.floorPlans && data.floorPlans.length > 0) {
                     await tx.projectUnitType.createMany({
                         data: data.floorPlans.map((fp) => ({
@@ -267,7 +309,7 @@ async function main() {
                     })
                 }
 
-                // 7. Insert videos
+                // 7. Videos
                 if (data.videos && data.videos.length > 0) {
                     await tx.projectVideo.createMany({
                         data: data.videos.map((v, idx) => ({
@@ -280,7 +322,7 @@ async function main() {
                     })
                 }
 
-                // 8. Insert location
+                // 8. Location
                 if (data.location && (data.location.address || data.location.latitude)) {
                     await tx.projectLocation.create({
                         data: {
@@ -293,7 +335,7 @@ async function main() {
                     })
                 }
 
-                // 9. Insert nearby places
+                // 9. Nearby places
                 if (data.nearbyPlaces && data.nearbyPlaces.length > 0) {
                     await tx.projectNearbyPlace.createMany({
                         data: data.nearbyPlaces.map((np, idx) => ({
@@ -306,10 +348,12 @@ async function main() {
                     })
                 }
 
-                console.log(c.green(`    ✓ Project created: ${project.id}`))
-                console.log(c.dim(`      → ${uploadedMedia.length} media, ${data.amenities?.length || 0} amenities, ${data.paymentPlans?.length || 0} plans, ${data.floorPlans?.length || 0} floor plans`))
+                const action = isUpdate ? "enriched" : "created"
+                console.log(c.green(`    ✓ Project ${action}: ${project.id}`))
+                console.log(`      → ${c.cyan(`${data.amenities?.length || 0} amenities`)}, ${c.cyan(`${data.paymentPlans?.length || 0} plans`)}, ${c.cyan(`${data.floorPlans?.length || 0} floor plans`)}`)
+                console.log(`      → ${c.cyan(`${uploadedMedia.length} media`)}, ${c.cyan(`${data.nearbyPlaces?.length || 0} nearby`)}, ${c.cyan(`${data.highlights?.length || 0} highlights`)}`)
 
-                results.push({ slug: data.slug, status: "created", projectId: project.id })
+                results.push({ slug: data.slug, status: action, projectId: project.id })
             })
         } catch (err) {
             console.log(c.red(`    ✗ Import failed: ${err.message}`))
@@ -322,6 +366,7 @@ async function main() {
 
     // ─── Summary ───
     const created = results.filter((r) => r.status === "created").length
+    const enriched = results.filter((r) => r.status === "enriched").length
     const skipped = results.filter((r) => r.status === "skipped").length
     const errors = results.filter((r) => r.status === "error").length
     const dryRun = results.filter((r) => r.status === "dry-run").length
@@ -331,6 +376,7 @@ async function main() {
     console.log(c.bold("═══════════════════════════════════════════════"))
     console.log(`  Total: ${results.length}`)
     if (created > 0) console.log(c.green(`  ✓ Created: ${created}`))
+    if (enriched > 0) console.log(c.green(`  ↻ Enriched: ${enriched}`))
     if (skipped > 0) console.log(c.yellow(`  ⊘ Skipped: ${skipped}`))
     if (errors > 0) console.log(c.red(`  ✗ Errors: ${errors}`))
     if (dryRun > 0) console.log(c.cyan(`  📝 Dry-run: ${dryRun}`))
