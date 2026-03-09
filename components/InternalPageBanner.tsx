@@ -32,7 +32,7 @@ export default function InternalPageBanner({
 
   return (
     <section className="bg-white border-b border-gray-200">
-      <div className="relative w-full min-h-[220px] sm:min-h-[260px] lg:min-h-[320px] overflow-hidden">
+      <div className="relative w-full h-[120px] sm:h-[180px] lg:h-[220px] xl:h-[250px] overflow-hidden">
         {imgSrc ? (
           <Image
             src={imgSrc}
@@ -48,7 +48,7 @@ export default function InternalPageBanner({
 
         <div className="absolute inset-0">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
-            <div className="w-full" style={{ paddingTop: 60, paddingBottom: 60 }}>
+            <div className="w-full py-10 sm:py-12">
               <div className="max-w-[650px] text-white">
                 {breadcrumb && breadcrumb.length ? (
                   <nav className="text-xs sm:text-sm text-white/80">
