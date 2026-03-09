@@ -35,7 +35,7 @@ export default function ServiceAdvertisingPage() {
         </h1>
 
         <p className="mt-8 text-xl text-slate-600 leading-relaxed font-medium max-w-2xl mx-auto">
-          Targeted hyper-local advertising visually dominating India’s most strictly verified PropTech platform. Display your brand unequivocally to investors, NRIs, and active homebuyers.
+          Targeted hyper-local advertising visually dominating India&apos;s most strictly verified PropTech platform. Display your brand unequivocally to investors, NRIs, and active homebuyers.
         </p>
 
         <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-5 w-full sm:w-auto">

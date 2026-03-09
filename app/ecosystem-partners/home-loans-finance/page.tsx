@@ -344,7 +344,7 @@ export default function HomeLoansFinancePage() {
             Ready to take the next step?
           </h2>
           <p className="text-emerald-100/80 text-lg font-medium leading-relaxed mb-12">
-            Secure the keys to your dream property with India’s most strictly verified finance ecosystem. Let us do the hard negotiations for you.
+            Secure the keys to your dream property with India&apos;s most strictly verified finance ecosystem. Let us do the hard negotiations for you.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-5 justify-center items-center pb-16 border-b border-emerald-800/50">

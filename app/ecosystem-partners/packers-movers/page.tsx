@@ -361,7 +361,7 @@ export default function PackersMoversPage() {
             </div>
             <h3 className="text-2xl font-bold text-white mb-3">Become a Verified Logistics Partner</h3>
             <p className="text-gray-400 text-sm font-medium mb-6">
-              Access completely exclusive high-tier absolutely verified customers instantly moving within MillionFlats' premium ecosystem perfectly scaling your strictly vast fleet.
+              Access completely exclusive high-tier absolutely verified customers instantly moving within MillionFlats&apos; premium ecosystem perfectly scaling your strictly vast fleet.
             </p>
             <Link href="https://millionflats.com/ecosystem/register/packers-movers" className="text-amber-500 hover:text-white font-extrabold text-sm uppercase tracking-widest inline-flex items-center gap-2 transition-colors">
               Submit Fleet Application <span>&rarr;</span>

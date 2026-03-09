@@ -62,7 +62,7 @@ export default function ServiceFeaturedListingsPage() {
               Featured Listings on MillionFlats get unconditional priority placement in universally visible areas: search results, category pages, and native AI-driven buyer recommendations.
             </p>
             <p className="text-lg text-slate-600 leading-relaxed font-medium">
-              Your property isn't just listed – it’s proactively pushed to high-intent buyers who are actively searching. Premium placements objectively receive <strong className="text-dark-blue bg-amber-100 px-2 py-0.5 rounded">3x more views</strong> and <strong className="text-dark-blue bg-amber-100 px-2 py-0.5 rounded">2x more inquiries</strong> than standard listings.
+              Your property isn&apos;t just listed – it&apos;s proactively pushed to high-intent buyers who are actively searching. Premium placements objectively receive <strong className="text-dark-blue bg-amber-100 px-2 py-0.5 rounded">3x more views</strong> and <strong className="text-dark-blue bg-amber-100 px-2 py-0.5 rounded">2x more inquiries</strong> than standard listings.
             </p>
           </div>
 
@@ -189,7 +189,7 @@ export default function ServiceFeaturedListingsPage() {
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9InJnYmEoMjU1LCAyNTUsIDI1NSwgMC4wNykiLz48L3N2Zz4=')] mix-blend-screen pointer-events-none"></div>
         <div className="max-w-4xl mx-auto relative z-10">
           <h2 className="text-white font-serif font-extrabold text-5xl tracking-tight leading-tight">Secure Premium Eyeballs Today</h2>
-          <p className="text-blue-200 mt-6 text-xl font-medium max-w-2xl mx-auto leading-relaxed">Don't let your luxury property drown in thousands of standard additions. Get seen by ultra-serious buyers who hold verified purchasing intent.</p>
+          <p className="text-blue-200 mt-6 text-xl font-medium max-w-2xl mx-auto leading-relaxed">Don&apos;t let your luxury property drown in thousands of standard additions. Get seen by ultra-serious buyers who hold verified purchasing intent.</p>
 
           <div className="mt-10 mb-8 pt-8 border-t border-blue-800/80">
             <div className="inline-flex items-center gap-3 bg-white/10 px-6 py-2 rounded-full border border-white/20">

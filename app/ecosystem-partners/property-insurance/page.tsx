@@ -327,7 +327,7 @@ export default function PropertyInsurancePage() {
 
         <div className="mx-auto max-w-[800px] px-4 sm:px-6 lg:px-8 relative z-10">
           <h2 className="text-4xl sm:text-5xl font-sans font-extrabold text-white leading-[1.1] mb-6 tracking-tight">
-            Don't wait for misfortune to strike.
+            Don&apos;t wait for misfortune to strike.
           </h2>
           <p className="text-sky-100/80 text-lg font-medium leading-relaxed mb-12">
             Protect your most valuable asset today completely transparently natively on MillionFlats with zero waste policies.

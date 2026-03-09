@@ -357,7 +357,7 @@ export default function InteriorDesignPage() {
             </div>
             <h3 className="text-2xl font-bold text-white mb-3">Showcase Your Talent to Homeowners Ready to Invest</h3>
             <p className="text-rose-200/70 text-sm font-medium mb-6">
-              Join MillionFlats' curated network of design professionals and intelligently connect with qualified, verified clients actively seeking to renovate, decorate, and strictly transform their spaces.
+              Join MillionFlats&apos; curated network of design professionals and intelligently connect with qualified, verified clients actively seeking to renovate, decorate, and strictly transform their spaces.
             </p>
             <Link href="https://millionflats.com/ecosystem/register/interior-design-renovation" className="text-rose-400 hover:text-white font-extrabold text-sm uppercase tracking-widest inline-flex items-center gap-2 transition-colors">
               Submit Architect / Studio Application <span>&rarr;</span>

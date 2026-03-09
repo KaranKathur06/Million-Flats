@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 export const metadata = {
   title: '3D Development Solutions - MillionFlats x Meta-dology',
-  description: 'The world\'s most advanced 3D development platform for property developers.',
+  description: "The world's most advanced 3D development platform for property developers.",
 }
 
 export default function Service3DToursPage() {
@@ -29,7 +29,7 @@ export default function Service3DToursPage() {
         </h1>
 
         <p className="mt-8 text-xl text-slate-600 leading-relaxed font-medium max-w-2xl mx-auto">
-          The world's most advanced 3D development platform — for property developers, builders, consultants, port & marine authorities, and city planners. From first sketch to final sale, in one living, breathing digital world.
+          The world&apos;s most advanced 3D development platform — for property developers, builders, consultants, port & marine authorities, and city planners. From first sketch to final sale, in one living, breathing digital world.
         </p>
 
         <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-5 w-full sm:w-auto">
@@ -92,7 +92,7 @@ export default function Service3DToursPage() {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">build</span> the world.
           </h2>
           <p className="mt-6 text-slate-600 max-w-2xl text-lg font-medium leading-relaxed">
-            Whether you're planning a township, developing a port, designing a city district, or selling luxury residences - this platform transforms how you plan, align, and go to market.
+            Whether you&apos;re planning a township, developing a port, designing a city district, or selling luxury residences - this platform transforms how you plan, align, and go to market.
           </p>
         </div>
 

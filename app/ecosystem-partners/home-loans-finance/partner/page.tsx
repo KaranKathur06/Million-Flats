@@ -42,7 +42,7 @@ export default function HomeLoansPartnerRegistration() {
                         Grow Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">Loan Book.</span>
                     </h1>
                     <p className="text-xl text-emerald-100/70 font-medium leading-relaxed max-w-xl mb-12">
-                        Access India's most highly qualified pipeline of verified property buyers actively seeking disbursement.
+                        Access India&apos;s most highly qualified pipeline of verified property buyers actively seeking disbursement.
                     </p>
 
                     <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Value Proposition</h3>

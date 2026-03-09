@@ -466,7 +466,7 @@ export default function PricingClient() {
           </div>
 
           <div className="mt-16 pt-8 border-t border-blue-800/60 text-blue-200/60 text-[13px] flex flex-col items-center gap-3">
-            <span className="font-semibold uppercase tracking-wider">MillionFlats – India's Gateway to Dubai Real Estate. Official Corporate Agent of DAMAC Properties.</span>
+            <span className="font-semibold uppercase tracking-wider">MillionFlats – India&apos;s Gateway to Dubai Real Estate. Official Corporate Agent of DAMAC Properties.</span>
             <div className="flex gap-4 font-medium">
               <a href="/terms" className="hover:text-white transition-colors">Terms of Service</a>
               <span className="opacity-50">•</span>

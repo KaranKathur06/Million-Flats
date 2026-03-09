@@ -294,7 +294,7 @@ export default function LegalDocumentationPage() {
 
         <div className="mx-auto max-w-[800px] px-4 sm:px-6 lg:px-8 relative z-10">
           <h2 className="text-4xl sm:text-5xl font-sans font-extrabold text-white leading-[1.1] mb-6 tracking-tight">
-            Don't let legal complexities risk your investment.
+            Don&apos;t let legal complexities risk your investment.
           </h2>
           <p className="text-indigo-100/80 text-lg font-medium leading-relaxed mb-12">
             Engage with MillionFlats verified legal specialists and aggressively secure your asset flawlessly.
