@@ -262,8 +262,8 @@ export default function Service3DToursPage() {
                 </div>
                 <h2 className="text-4xl sm:text-5xl font-sans font-extrabold text-dark-blue mb-6 tracking-tight leading-tight">Global Leaders in<br />3D Property Experiences</h2>
                 <div className="space-y-5 text-slate-600 font-medium leading-relaxed text-[15px]">
-                  <p>Meta-dology built the technology that powers what you see on this page. They are the world's foremost specialists in real-time 3D property and development environments — working with developers, builders, and infrastructure bodies across UAE, UK, South Africa, USA, and beyond.</p>
-                  <p><strong className="text-dark-blue font-extrabold bg-blue-50 px-2 py-0.5 rounded border border-blue-100">MillionFlats is their official Associate Partner.</strong> When you engage through MillionFlats, you get Meta-dology's full platform capability with a dedicated team that understands the Indian, South Asian, and Middle East development markets.</p>
+                  <p>Meta-dology built the technology that powers what you see on this page. They are the world&apos;s foremost specialists in real-time 3D property and development environments — working with developers, builders, and infrastructure bodies across UAE, UK, South Africa, USA, and beyond.</p>
+                  <p><strong className="text-dark-blue font-extrabold bg-blue-50 px-2 py-0.5 rounded border border-blue-100">MillionFlats is their official Associate Partner.</strong> When you engage through MillionFlats, you get Meta-dology&apos;s full platform capability with a dedicated team that understands the Indian, South Asian, and Middle East development markets.</p>
                 </div>
                 <div className="mt-10 bg-slate-50 border border-slate-100 p-5 rounded-2xl flex gap-4 items-start">
                   <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0 mt-0.5">
