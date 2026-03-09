@@ -525,8 +525,8 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                         {project.similarProjects && project.similarProjects.length > 0 && (
                             <section>
                                 <SectionHeader title="Similar Projects" />
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {project.similarProjects.map((sp) => (
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    {project.similarProjects.slice(0, 3).map((sp) => (
                                         <Link key={sp.id} href={`/projects/${sp.slug}`} className="group rounded-2xl overflow-hidden border border-gray-200 bg-white hover:shadow-lg transition-all">
                                             <div className="relative h-40 overflow-hidden bg-gray-100">
                                                 {sp.coverImage ? (

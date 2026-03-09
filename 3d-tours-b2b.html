@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Development Solutions — MillionFlats × Meta-dology</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --red:    #C0272D;
+  --red2:   #8B1A1E;
+  --gold:   #C9A84C;
+  --dark:   #0A0A0A;
+  --dark2:  #111111;
+  --dark3:  #181818;
+  --dark4:  #202020;
+  --mid:    #2C2C2C;
+  --white:  #FFFFFF;
+  --off:    #E8E4DF;
+  --muted:  #7A7A72;
+  --muted2: #444440;
+  --green:  #2A6B4A;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--dark);
+  color: var(--off);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 300;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ── Cursor ─────────────────────────────────────────── */
+.cur { width:10px;height:10px;background:var(--red);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:transform .15s,background .2s; }
+.cur-r { width:32px;height:32px;border:1px solid rgba(192,39,45,.35);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:transform .4s ease; }
+
+/* ── Nav ─────────────────────────────────────────────── */
+nav {
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 56px;
+  background:linear-gradient(to bottom,rgba(10,10,10,.97),transparent);
+  transition:background .3s;
+}
+nav.scrolled { background:rgba(10,10,10,.97);border-bottom:1px solid #1a1a1a; }
+.nav-logo { font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:3px;color:var(--white);text-decoration:none; }
+.nav-logo span { color:var(--red); }
+.nav-links { display:flex;gap:32px;list-style:none; }
+.nav-links a { font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .2s; }
+.nav-links a:hover { color:var(--white); }
+.nav-actions { display:flex;gap:12px; }
+.nav-demo {
+  background:var(--red);color:var(--white);
+  padding:10px 22px;font-size:11px;letter-spacing:2px;text-transform:uppercase;
+  text-decoration:none;transition:background .2s;
+  font-family:'Outfit',sans-serif;font-weight:500;
+}
+.nav-demo:hover { background:var(--red2); }
+.nav-meeting {
+  border:1px solid var(--mid);color:var(--muted);
+  padding:10px 22px;font-size:11px;letter-spacing:2px;text-transform:uppercase;
+  text-decoration:none;transition:border-color .2s,color .2s;
+  font-family:'Outfit',sans-serif;
+}
+.nav-meeting:hover { border-color:var(--white);color:var(--white); }
+
+/* ── Hero ─────────────────────────────────────────────── */
+.hero {
+  min-height:100vh;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:120px 56px 80px;
+  position:relative;overflow:hidden;
+}
+.hero-bg {
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 70% 70% at 80% 20%, rgba(192,39,45,.1) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 60% at 10% 90%, rgba(201,168,76,.05) 0%, transparent 50%),
+    #0A0A0A;
+}
+/* Blueprint grid */
+.hero-grid {
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(192,39,45,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(192,39,45,.06) 1px, transparent 1px);
+  background-size:60px 60px;
+}
+/* Diagonal accent line */
+.hero-line {
+  position:absolute;top:0;right:120px;width:1px;height:100%;
+  background:linear-gradient(to bottom,transparent,rgba(192,39,45,.3),transparent);
+}
+.hero-line2 {
+  position:absolute;top:0;right:200px;width:1px;height:100%;
+  background:linear-gradient(to bottom,transparent,rgba(255,255,255,.04),transparent);
+}
+
+.hero-eyebrow {
+  display:inline-flex;align-items:center;gap:12px;
+  font-family:'Space Mono',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;
+  color:var(--red);margin-bottom:28px;
+  animation:fadeUp .8s ease both;
+}
+.eyebrow-line { width:32px;height:1px;background:var(--red); }
+
+.hero-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(64px,9vw,140px);
+  line-height:.92;letter-spacing:1px;
+  color:var(--white);
+  animation:fadeUp .8s ease .1s both;
+}
+.hero-title .accent { color:var(--red); }
+.hero-title .stroke {
+  -webkit-text-stroke:1px rgba(255,255,255,.2);
+  color:transparent;
+}
+
+.hero-sub {
+  max-width:580px;margin-top:32px;
+  font-size:17px;line-height:1.75;color:var(--muted);font-weight:300;
+  animation:fadeUp .8s ease .2s both;
+}
+
+.hero-ctas {
+  display:flex;gap:16px;align-items:center;margin-top:48px;flex-wrap:wrap;
+  animation:fadeUp .8s ease .3s both;
+}
+.btn-red {
+  background:var(--red);color:var(--white);
+  padding:16px 40px;font-size:13px;letter-spacing:2px;text-transform:uppercase;
+  text-decoration:none;font-weight:500;
+  transition:background .2s,transform .2s;display:inline-block;
+}
+.btn-red:hover { background:var(--red2);transform:translateY(-2px); }
+.btn-outline {
+  border:1px solid var(--mid);color:var(--muted);
+  padding:15px 36px;font-size:13px;letter-spacing:2px;text-transform:uppercase;
+  text-decoration:none;font-weight:400;
+  transition:border-color .2s,color .2s;display:inline-block;
+}
+.btn-outline:hover { border-color:var(--white);color:var(--white); }
+
+/* Corner stats */
+.hero-stats {
+  position:absolute;bottom:60px;right:56px;
+  display:flex;flex-direction:column;gap:28px;align-items:flex-end;
+  animation:fadeUp .8s ease .5s both;
+}
+.h-stat-num {
+  font-family:'Bebas Neue',sans-serif;font-size:52px;line-height:1;color:var(--white);
+}
+.h-stat-num span { color:var(--red); }
+.h-stat-lbl { font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:2px; }
+
+/* Blueprint corner marks */
+.c-mark { position:absolute;width:20px;height:20px;border-color:var(--red);border-style:solid; }
+.c-mark.tl { top:120px;left:56px;border-width:2px 0 0 2px; }
+.c-mark.br { bottom:60px;left:56px;border-width:0 0 2px 2px; }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(28px);}to{opacity:1;transform:translateY(0);} }
+
+/* ── Industries ticker ──────────────────────────────── */
+.ticker-bar {
+  background:var(--dark2);border-top:1px solid #1a1a1a;border-bottom:1px solid #1a1a1a;
+  padding:13px 0;overflow:hidden;white-space:nowrap;
+}
+.ticker-inner { display:inline-flex;gap:0;animation:tick 35s linear infinite; }
+.ticker-inner span { font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted2);padding:0 28px; }
+.ticker-inner .hi { color:var(--red); }
+.ticker-inner .sep { color:#1e1e1e;padding:0 4px; }
+@keyframes tick { from{transform:translateX(0);}to{transform:translateX(-50%);} }
+
+/* ── Section helpers ────────────────────────────────── */
+section { padding:110px 56px; }
+.s-label {
+  font-family:'Space Mono',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;
+  color:var(--red);display:inline-flex;align-items:center;gap:10px;margin-bottom:18px;
+}
+.s-label::before { content:'';width:20px;height:1px;background:var(--red); }
+.s-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(40px,5.5vw,80px);line-height:.95;letter-spacing:.5px;color:var(--white);
+}
+.s-title em { font-style:normal;color:var(--red); }
+.s-title .stroke { -webkit-text-stroke:1px rgba(255,255,255,.2);color:transparent; }
+.s-body { font-size:16px;line-height:1.8;color:var(--muted);max-width:580px;margin-top:18px; }
+
+/* ── Reveal ─────────────────────────────────────────── */
+.rev { opacity:0;transform:translateY(36px);transition:opacity .8s ease,transform .8s ease; }
+.rev.vis { opacity:1;transform:translateY(0); }
+.d1{transition-delay:.1s}.d2{transition-delay:.2s}.d3{transition-delay:.3s}.d4{transition-delay:.4s}
+
+/* ── WHO IS THIS FOR ─────────────────────────────────── */
+.who-section { background:var(--dark2); }
+.who-grid {
+  display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:56px;
+}
+.who-card {
+  background:var(--dark3);padding:40px 32px;
+  border-top:2px solid transparent;position:relative;overflow:hidden;
+  transition:background .3s,border-color .3s;cursor:default;
+}
+.who-card:hover { background:var(--dark4);border-top-color:var(--red); }
+.who-card::after {
+  content:attr(data-num);
+  position:absolute;bottom:-10px;right:16px;
+  font-family:'Bebas Neue',sans-serif;font-size:100px;
+  color:rgba(192,39,45,.05);line-height:1;pointer-events:none;
+}
+.who-icon { font-size:34px;margin-bottom:20px; }
+.who-name {
+  font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.5px;
+  color:var(--white);margin-bottom:12px;line-height:1;
+}
+.who-desc { font-size:14px;line-height:1.7;color:var(--muted); }
+.who-tags { display:flex;flex-wrap:wrap;gap:6px;margin-top:18px; }
+.who-tag {
+  background:rgba(192,39,45,.08);border:1px solid rgba(192,39,45,.15);
+  padding:3px 10px;font-size:10px;letter-spacing:1px;color:var(--red);text-transform:uppercase;
+}
+
+/* ── WHAT IT DOES ────────────────────────────────────── */
+.stages-section { background:var(--dark); }
+.stages-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:56px; }
+.stage {
+  background:var(--dark2);padding:36px 28px;
+  position:relative;overflow:hidden;
+  transition:background .3s;
+}
+.stage:hover { background:var(--dark3); }
+.stage::before {
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--red);transform:scaleX(0);transform-origin:left;
+  transition:transform .4s ease;
+}
+.stage:hover::before { transform:scaleX(1); }
+.stage-n {
+  font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--red);margin-bottom:20px;
+}
+.stage-icon { font-size:28px;margin-bottom:14px; }
+.stage-title {
+  font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.5px;
+  color:var(--white);margin-bottom:10px;line-height:1.1;
+}
+.stage-desc { font-size:13px;line-height:1.65;color:var(--muted); }
+.stage-chips { display:flex;flex-wrap:wrap;gap:5px;margin-top:16px; }
+.chip {
+  background:rgba(255,255,255,.03);border:1px solid #252525;
+  padding:3px 9px;font-size:10px;letter-spacing:.5px;color:var(--muted2);
+}
+
+/* ── COST SAVINGS ────────────────────────────────────── */
+.savings-section {
+  background:var(--dark2);
+  display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;
+}
+.savings-visual {
+  background:var(--dark3);border:1px solid #1e1e1e;
+  padding:40px;position:relative;
+}
+.savings-big {
+  font-family:'Bebas Neue',sans-serif;font-size:120px;line-height:.9;
+  color:var(--white);letter-spacing:-2px;
+}
+.savings-big span { color:var(--red); }
+.savings-label { font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted);margin-top:8px; }
+.savings-list { list-style:none;margin-top:36px;display:flex;flex-direction:column;gap:0; }
+.savings-list li {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:13px 0;border-bottom:1px solid #1e1e1e;
+  font-size:13px;color:var(--muted);
+}
+.savings-list li:last-child { border-bottom:none; }
+.savings-list li strong { color:var(--off);font-weight:500; }
+.savings-bar-wrap { width:80px;height:4px;background:#1e1e1e;position:relative; }
+.savings-bar { height:100%;background:var(--red); }
+
+.savings-right .s-body { max-width:100%; }
+.savings-items { display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-top:32px; }
+.savings-item {
+  background:var(--dark3);border:1px solid #1e1e1e;
+  padding:18px;display:flex;gap:12px;align-items:flex-start;
+  transition:border-color .3s;
+}
+.savings-item:hover { border-color:rgba(192,39,45,.2); }
+.s-item-dot { width:6px;height:6px;background:var(--red);border-radius:50%;margin-top:6px;flex-shrink:0; }
+.s-item-text { font-size:13px;color:var(--muted);line-height:1.5; }
+.s-item-text strong { display:block;color:var(--off);font-size:13px;font-weight:500;margin-bottom:2px; }
+
+/* ── INDUSTRIES ──────────────────────────────────────── */
+.industries-section { background:var(--dark); }
+.ind-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:56px; }
+.ind-card {
+  background:var(--dark2);padding:44px 36px;
+  position:relative;overflow:hidden;
+  border-left:2px solid transparent;
+  transition:background .3s,border-color .3s;
+}
+.ind-card:hover { background:var(--dark3);border-left-color:var(--red); }
+.ind-card .bg-icon {
+  position:absolute;top:20px;right:24px;font-size:64px;opacity:.04;
+  pointer-events:none;transition:opacity .3s;
+}
+.ind-card:hover .bg-icon { opacity:.08; }
+.ind-icon { font-size:36px;margin-bottom:20px; }
+.ind-title {
+  font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.5px;
+  color:var(--white);margin-bottom:12px;line-height:1;
+}
+.ind-desc { font-size:14px;line-height:1.75;color:var(--muted);margin-bottom:20px; }
+.ind-use { list-style:none;display:flex;flex-direction:column;gap:7px; }
+.ind-use li {
+  font-size:12px;color:var(--muted2);display:flex;gap:10px;align-items:flex-start;
+}
+.ind-use li::before { content:'→';color:var(--red);flex-shrink:0;font-size:11px;margin-top:1px; }
+
+/* ── OUTCOME ─────────────────────────────────────────── */
+.outcome-section {
+  background:var(--dark2);
+  display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;
+}
+.outcome-left { }
+.outcome-quote {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(28px,3.5vw,48px);line-height:1.1;color:var(--white);
+  border-left:3px solid var(--red);padding-left:24px;margin:32px 0;
+}
+.outcome-quote span { color:var(--red); }
+.outcome-items { list-style:none;display:flex;flex-direction:column;gap:16px;margin-top:32px; }
+.outcome-items li {
+  display:flex;gap:16px;align-items:flex-start;padding:16px 0;
+  border-bottom:1px solid #1e1e1e;font-size:14px;color:var(--muted);line-height:1.6;
+}
+.outcome-items li:last-child { border-bottom:none; }
+.outcome-items li .oi { width:28px;height:28px;background:rgba(192,39,45,.1);border:1px solid rgba(192,39,45,.2);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0; }
+.outcome-right { }
+.metric-grid { display:grid;grid-template-columns:1fr 1fr;gap:2px; }
+.metric-card { background:var(--dark3);padding:32px;text-align:center; }
+.metric-num { font-family:'Bebas Neue',sans-serif;font-size:56px;line-height:1;color:var(--white); }
+.metric-num span { color:var(--red); }
+.metric-lbl { font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:6px; }
+.metric-desc { font-size:12px;color:var(--muted2);margin-top:8px;line-height:1.4; }
+
+/* ── TESTIMONIALS ────────────────────────────────────── */
+.testi-section { background:var(--dark); }
+.testi-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:56px; }
+.testi-card {
+  background:var(--dark2);padding:36px 30px;
+  border-top:1px solid #1e1e1e;position:relative;
+  transition:background .3s;
+}
+.testi-card:hover { background:var(--dark3); }
+.testi-quote { font-size:38px;color:var(--red);font-family:'Bebas Neue',sans-serif;line-height:1;margin-bottom:16px; }
+.testi-text { font-size:14px;line-height:1.75;color:var(--off);font-style:italic;margin-bottom:24px; }
+.testi-author { font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted); }
+.testi-author strong { display:block;color:var(--off);margin-bottom:2px;font-size:11px;letter-spacing:1px; }
+
+/* ── META-DOLOGY PARTNERSHIP ─────────────────────────── */
+.partner-section { background:var(--dark2); }
+.partner-box {
+  background:var(--dark3);border:1px solid #222;
+  padding:64px;display:grid;grid-template-columns:1fr 1fr;gap:72px;
+  position:relative;overflow:hidden;margin-top:56px;
+}
+.partner-box::after {
+  content:'';position:absolute;top:-80px;right:-80px;width:320px;height:320px;
+  background:radial-gradient(circle,rgba(192,39,45,.06),transparent 70%);pointer-events:none;
+}
+.p-logo-bar {
+  display:inline-flex;align-items:center;gap:0;margin-bottom:28px;
+}
+.p-logo-mf {
+  background:var(--red);padding:10px 16px;
+  font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--white);
+}
+.p-logo-x {
+  background:var(--dark);padding:10px 12px;
+  font-family:'Space Mono',monospace;font-size:12px;color:var(--muted2);
+}
+.p-logo-md {
+  background:var(--dark4);border:1px solid #2a2a2a;padding:10px 16px;
+  font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--white);
+}
+.p-title {
+  font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;color:var(--white);margin-bottom:16px;
+}
+.p-desc { font-size:15px;line-height:1.8;color:var(--muted);margin-bottom:28px; }
+.p-link {
+  display:inline-flex;align-items:center;gap:10px;
+  color:var(--red);font-size:13px;letter-spacing:1px;text-decoration:none;
+  border-bottom:1px solid rgba(192,39,45,.3);padding-bottom:4px;
+  transition:gap .2s,border-color .2s;
+}
+.p-link:hover { gap:16px;border-color:var(--red); }
+.p-note {
+  margin-top:24px;padding:14px 18px;background:rgba(255,255,255,.02);
+  border:1px solid #1e1e1e;font-size:11px;color:var(--muted2);line-height:1.6;
+}
+.p-caps { display:flex;flex-direction:column;gap:14px; }
+.p-cap {
+  background:var(--dark);border:1px solid #1e1e1e;
+  padding:18px 20px;display:flex;gap:14px;align-items:flex-start;
+  transition:border-color .3s;
+}
+.p-cap:hover { border-color:rgba(192,39,45,.2); }
+.p-cap-icon { font-size:18px;flex-shrink:0;margin-top:2px; }
+.p-cap-title { font-size:13px;font-weight:600;color:var(--off);margin-bottom:3px; }
+.p-cap-desc { font-size:12px;color:var(--muted);line-height:1.5; }
+
+/* ── BOOK CTA ────────────────────────────────────────── */
+.cta-section {
+  background:var(--dark);
+  text-align:center;padding:140px 56px;
+  position:relative;overflow:hidden;
+}
+.cta-bg { position:absolute;inset:0;background:radial-gradient(ellipse 70% 50% at 50% 50%,rgba(192,39,45,.09),transparent); }
+.cta-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(52px,7vw,110px);line-height:.92;letter-spacing:.5px;
+  color:var(--white);margin-bottom:24px;
+}
+.cta-title em { font-style:normal;color:var(--red); }
+.cta-sub { font-size:17px;line-height:1.7;color:var(--muted);max-width:520px;margin:0 auto 48px; }
+.cta-btns { display:flex;gap:16px;justify-content:center;flex-wrap:wrap; }
+
+/* Book modal overlay */
+.modal-overlay {
+  position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .3s;
+}
+.modal-overlay.open { opacity:1;pointer-events:all; }
+.modal {
+  background:var(--dark2);border:1px solid #222;
+  width:100%;max-width:560px;padding:48px;position:relative;
+  transform:translateY(30px);transition:transform .3s;
+  max-height:90vh;overflow-y:auto;
+}
+.modal-overlay.open .modal { transform:translateY(0); }
+.modal-close {
+  position:absolute;top:16px;right:20px;
+  font-size:22px;color:var(--muted);cursor:none;
+  background:none;border:none;transition:color .2s;
+}
+.modal-close:hover { color:var(--white); }
+.modal-title {
+  font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--white);
+  letter-spacing:.5px;margin-bottom:6px;
+}
+.modal-sub { font-size:14px;color:var(--muted);margin-bottom:32px; }
+.form-row { display:grid;grid-template-columns:1fr 1fr;gap:14px; }
+.form-group { display:flex;flex-direction:column;gap:8px;margin-bottom:16px; }
+.form-group label { font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted); }
+.form-group input,
+.form-group select,
+.form-group textarea {
+  background:var(--dark3);border:1px solid #252525;
+  padding:12px 14px;font-family:'Outfit',sans-serif;font-size:14px;
+  color:var(--off);outline:none;transition:border-color .2s;
+  -webkit-appearance:none;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus { border-color:var(--red); }
+.form-group select option { background:var(--dark3); }
+.form-group textarea { resize:vertical;min-height:90px; }
+.form-submit {
+  width:100%;background:var(--red);color:var(--white);
+  border:none;padding:15px;
+  font-family:'Outfit',sans-serif;font-size:13px;letter-spacing:2px;text-transform:uppercase;
+  cursor:none;transition:background .2s;margin-top:8px;font-weight:500;
+}
+.form-submit:hover { background:var(--red2); }
+.form-note { font-size:11px;color:var(--muted2);text-align:center;margin-top:12px;line-height:1.5; }
+
+/* ── Footer ──────────────────────────────────────────── */
+.foot {
+  background:var(--dark2);border-top:1px solid #1a1a1a;
+  padding:20px 56px;display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:12px;
+}
+.foot p { font-size:12px;color:var(--muted2); }
+.foot a { color:var(--red);text-decoration:none; }
+
+/* ── Responsive ──────────────────────────────────────── */
+@media(max-width:1024px){
+  nav{padding:18px 24px;}
+  .nav-links{display:none;}
+  section{padding:80px 24px;}
+  .hero{padding:100px 24px 80px;}
+  .hero-stats{display:none;}
+  .who-grid,.stages-grid,.ind-grid,.testi-grid{grid-template-columns:1fr;}
+  .savings-section,.outcome-section,.partner-box{grid-template-columns:1fr;gap:40px;}
+  .partner-box{padding:36px 24px;}
+  .metric-grid{grid-template-columns:1fr 1fr;}
+  .foot{flex-direction:column;text-align:center;}
+  .form-row{grid-template-columns:1fr;}
+  .modal{padding:32px 24px;margin:16px;}
+}
+</style>
+</head>
+<body>
+
+<div class="cur" id="cur"></div>
+<div class="cur-r" id="curR"></div>
+
+<!-- ══ NAV ═══════════════════════════════════════════════ -->
+<nav id="nav">
+  <a href="https://millionflats.com" class="nav-logo">Million<span>Flats</span></a>
+  <ul class="nav-links">
+    <li><a href="https://millionflats.com">Home</a></li>
+    <li><a href="https://millionflats.com/properties">Properties</a></li>
+    <li><a href="https://millionflats.com/services">Services</a></li>
+    <li><a href="https://millionflats.com/about">About</a></li>
+  </ul>
+  <div class="nav-actions">
+    <a href="#" class="nav-meeting" onclick="openModal('meeting');return false;">Book a Meeting</a>
+    <a href="#" class="nav-demo" onclick="openModal('demo');return false;">Book a Demo</a>
+  </div>
+</nav>
+
+<!-- ══ HERO ═══════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-line"></div>
+  <div class="hero-line2"></div>
+  <div class="c-mark tl"></div>
+  <div class="c-mark br"></div>
+
+  <div style="position:relative;z-index:2;">
+    <div class="hero-eyebrow">
+      <div class="eyebrow-line"></div>
+      MillionFlats × Meta-dology — 3D Development Solutions
+    </div>
+
+    <h1 class="hero-title">
+      Build<br>
+      <span class="accent">smarter.</span><br>
+      <span class="stroke">Sell faster.</span>
+    </h1>
+
+    <p class="hero-sub">
+      The world's most advanced 3D development platform — for property developers,
+      builders, consultants, port & marine authorities, and city planners.
+      From first sketch to final sale, in one living, breathing digital world.
+    </p>
+
+    <div class="hero-ctas">
+      <a href="#" class="btn-red" onclick="openModal('demo');return false;">Book a Free Demo</a>
+      <a href="#" class="btn-outline" onclick="openModal('meeting');return false;">Book a Meeting</a>
+      <a href="#industries" class="btn-outline" style="border-color:transparent;padding-left:0;">See All Industries ↓</a>
+    </div>
+  </div>
+
+  <div class="hero-stats">
+    <div>
+      <div class="h-stat-num">8<span>–</span>11<span>%</span></div>
+      <div class="h-stat-lbl">Avg Cost Savings</div>
+    </div>
+    <div>
+      <div class="h-stat-num">72<span>h</span></div>
+      <div class="h-stat-lbl">Rapid Prototype</div>
+    </div>
+    <div>
+      <div class="h-stat-num">4</div>
+      <div class="h-stat-lbl">Stage Process</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ TICKER ════════════════════════════════════════════ -->
+<div class="ticker-bar">
+  <div class="ticker-inner">
+    <span class="hi">PROPERTY DEVELOPMENT</span><span class="sep">|</span>
+    <span>RESIDENTIAL</span><span class="sep">|</span>
+    <span>COMMERCIAL</span><span class="sep">|</span>
+    <span class="hi">PORT & MARINE</span><span class="sep">|</span>
+    <span>CITY PLANNING</span><span class="sep">|</span>
+    <span>MIXED-USE</span><span class="sep">|</span>
+    <span class="hi">CONSTRUCTION</span><span class="sep">|</span>
+    <span>REAL ESTATE CONSULTING</span><span class="sep">|</span>
+    <span>INDUSTRIAL</span><span class="sep">|</span>
+    <span class="hi">INFRASTRUCTURE</span><span class="sep">|</span>
+    <span>HOSPITALITY</span><span class="sep">|</span>
+    <span>RETAIL DEVELOPMENTS</span><span class="sep">|</span>
+    <!-- duplicate -->
+    <span class="hi">PROPERTY DEVELOPMENT</span><span class="sep">|</span>
+    <span>RESIDENTIAL</span><span class="sep">|</span>
+    <span>COMMERCIAL</span><span class="sep">|</span>
+    <span class="hi">PORT & MARINE</span><span class="sep">|</span>
+    <span>CITY PLANNING</span><span class="sep">|</span>
+    <span>MIXED-USE</span><span class="sep">|</span>
+    <span class="hi">CONSTRUCTION</span><span class="sep">|</span>
+    <span>REAL ESTATE CONSULTING</span><span class="sep">|</span>
+    <span>INDUSTRIAL</span><span class="sep">|</span>
+    <span class="hi">INFRASTRUCTURE</span><span class="sep">|</span>
+    <span>HOSPITALITY</span><span class="sep">|</span>
+    <span>RETAIL DEVELOPMENTS</span><span class="sep">|</span>
+  </div>
+</div>
+
+<!-- ══ WHO IS THIS FOR ═══════════════════════════════════ -->
+<section class="who-section">
+  <div class="s-label rev">Who This Is For</div>
+  <h2 class="s-title rev">Built for the<br>people who <em>build</em><br>the world.</h2>
+  <p class="s-body rev">Whether you're planning a township, developing a port, designing a city district, or selling luxury residences — this platform transforms how you plan, align, and go to market.</p>
+
+  <div class="who-grid">
+    <div class="who-card rev d1" data-num="01">
+      <div class="who-icon">🏗️</div>
+      <div class="who-name">Property Developers</div>
+      <p class="who-desc">Residential, commercial, mixed-use, and off-plan developers who need to visualise their development, align stakeholders, and sell units before a single brick is laid.</p>
+      <div class="who-tags">
+        <span class="who-tag">Residential</span>
+        <span class="who-tag">Commercial</span>
+        <span class="who-tag">Off-Plan</span>
+        <span class="who-tag">Mixed-Use</span>
+        <span class="who-tag">Luxury</span>
+      </div>
+    </div>
+    <div class="who-card rev d2" data-num="02">
+      <div class="who-icon">👷</div>
+      <div class="who-name">Builders & Contractors</div>
+      <p class="who-desc">Construction companies and main contractors who need crystal-clear 3D models to coordinate subcontractors, catch design oversights before they cost money, and reduce costly variations.</p>
+      <div class="who-tags">
+        <span class="who-tag">General Contractors</span>
+        <span class="who-tag">Civil Works</span>
+        <span class="who-tag">Fit-Out</span>
+        <span class="who-tag">Subcontractors</span>
+      </div>
+    </div>
+    <div class="who-card rev d3" data-num="03">
+      <div class="who-icon">📐</div>
+      <div class="who-name">Architects & Consultants</div>
+      <p class="who-desc">Design consultants, architects, planning firms, and quantity surveyors who need real-time 3D models to present concepts to clients, win approvals faster, and eliminate rework.</p>
+      <div class="who-tags">
+        <span class="who-tag">Architecture</span>
+        <span class="who-tag">Urban Planning</span>
+        <span class="who-tag">QS & Cost</span>
+        <span class="who-tag">Engineering</span>
+      </div>
+    </div>
+    <div class="who-card rev d1" data-num="04">
+      <div class="who-icon">⚓</div>
+      <div class="who-name">Port & Marine Industry</div>
+      <p class="who-desc">Port authorities, marine terminal developers, offshore facility planners, and shipyard developers who require large-scale 3D models integrating GIS data, utility grids, and real-world environmental conditions.</p>
+      <div class="who-tags">
+        <span class="who-tag">Port Authorities</span>
+        <span class="who-tag">Marine Terminals</span>
+        <span class="who-tag">Offshore</span>
+        <span class="who-tag">Shipyards</span>
+      </div>
+    </div>
+    <div class="who-card rev d2" data-num="05">
+      <div class="who-icon">🏙️</div>
+      <div class="who-name">City & Urban Development</div>
+      <p class="who-desc">Municipal authorities, smart city planners, urban regeneration bodies, and government agencies developing master plans, new towns, and infrastructure at city scale — needing community buy-in and regulatory approval.</p>
+      <div class="who-tags">
+        <span class="who-tag">Smart Cities</span>
+        <span class="who-tag">Master Planning</span>
+        <span class="who-tag">Municipalities</span>
+        <span class="who-tag">Regeneration</span>
+      </div>
+    </div>
+    <div class="who-card rev d3" data-num="06">
+      <div class="who-icon">🏨</div>
+      <div class="who-name">Property Owners & Investors</div>
+      <p class="who-desc">Individual property owners, REITs, family offices, and institutional investors developing or repositioning assets — who need compelling visual tools to attract co-investors, tenants, or buyers at scale.</p>
+      <div class="who-tags">
+        <span class="who-tag">REITs</span>
+        <span class="who-tag">Family Offices</span>
+        <span class="who-tag">HNI Owners</span>
+        <span class="who-tag">Hospitality</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ WHAT IT DOES — 4 STAGES ═══════════════════════════ -->
+<section class="stages-section" id="how">
+  <div class="s-label rev">The Platform</div>
+  <h2 class="s-title rev">One platform.<br><em>Four stages.</em><br><span class="stroke">Zero confusion.</span></h2>
+  <p class="s-body rev">From concept sketch to live sales suite — a single, connected 3D workflow that eliminates fragmented tools, outdated plans, and costly miscommunication.</p>
+
+  <div class="stages-grid">
+    <div class="stage rev d1">
+      <div class="stage-n">STAGE 01</div>
+      <div class="stage-icon">🛰️</div>
+      <div class="stage-title">Rapid Prototype</div>
+      <p class="stage-desc">With as little as a sketch and GPS coordinates, we build a full high-fidelity 3D model of your development in 72 hours. Satellite-scanned surroundings, sun-mapped lighting, real views from every window or vantage point.</p>
+      <div class="stage-chips">
+        <span class="chip">72-Hour Delivery</span>
+        <span class="chip">Satellite Scan</span>
+        <span class="chip">Sun Mapping</span>
+        <span class="chip">Real Views</span>
+      </div>
+    </div>
+    <div class="stage rev d2">
+      <div class="stage-n">STAGE 02</div>
+      <div class="stage-icon">🔄</div>
+      <div class="stage-title">Real-Time Adjustments</div>
+      <p class="stage-desc">All stakeholders — developer, engineer, architect, planning authority — view the same live model and make changes in real time. Say goodbye to outdated 2D plans, fragmented tools, and weeks of back-and-forth.</p>
+      <div class="stage-chips">
+        <span class="chip">Live Collaboration</span>
+        <span class="chip">Stakeholder Alignment</span>
+        <span class="chip">Cost Planning</span>
+        <span class="chip">Instant Updates</span>
+      </div>
+    </div>
+    <div class="stage rev d3">
+      <div class="stage-n">STAGE 03</div>
+      <div class="stage-icon">🔬</div>
+      <div class="stage-title">Clarity for Construction</div>
+      <p class="stage-desc">Peel away layers to reveal what's underneath — electrical conduits, water pipes, air vents, utility grids, GIS data, demographic insights, weather simulations, and municipal zoning — before construction begins.</p>
+      <div class="stage-chips">
+        <span class="chip">GIS Integration</span>
+        <span class="chip">Utility Grids</span>
+        <span class="chip">X-Ray Layers</span>
+        <span class="chip">Weather Sim</span>
+        <span class="chip">Zoning Data</span>
+      </div>
+    </div>
+    <div class="stage rev d4">
+      <div class="stage-n">STAGE 04</div>
+      <div class="stage-icon">🚀</div>
+      <div class="stage-title">Go to Market</div>
+      <p class="stage-desc">The planning tool becomes the sales platform. Integrated CRM, payment portal, multiple virtual models, agent management, calendar, meeting tools, inventory tracking, lead management, and guided buyer tours — all in one.</p>
+      <div class="stage-chips">
+        <span class="chip">CRM Built-In</span>
+        <span class="chip">Payment Portal</span>
+        <span class="chip">Virtual Tours</span>
+        <span class="chip">Lead Management</span>
+        <span class="chip">Guided Tours</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ COST SAVINGS ══════════════════════════════════════ -->
+<section class="savings-section">
+  <div class="savings-visual rev">
+    <div class="savings-big">8<span>–</span><br>11<span>%</span></div>
+    <div class="savings-label">Average project cost savings</div>
+    <ul class="savings-list">
+      <li><strong>Design oversight catch</strong><div class="savings-bar-wrap"><div class="savings-bar" style="width:90%"></div></div></li>
+      <li><strong>Render cost elimination</strong><div class="savings-bar-wrap"><div class="savings-bar" style="width:100%"></div></div></li>
+      <li><strong>Faster funding access</strong><div class="savings-bar-wrap"><div class="savings-bar" style="width:75%"></div></div></li>
+      <li><strong>Reduced marketing spend</strong><div class="savings-bar-wrap"><div class="savings-bar" style="width:85%"></div></div></li>
+      <li><strong>Fewer variation orders</strong><div class="savings-bar-wrap"><div class="savings-bar" style="width:70%"></div></div></li>
+      <li><strong>Shorter loan periods</strong><div class="savings-bar-wrap"><div class="savings-bar" style="width:65%"></div></div></li>
+    </ul>
+  </div>
+  <div class="savings-right rev d2">
+    <div class="s-label">Why It Pays for Itself</div>
+    <h2 class="s-title">Every project saves<br>more than it <em>costs.</em></h2>
+    <p class="s-body">The platform pays for itself — and then some — by eliminating the hidden costs that bleed every development project. Average savings of 8–11% across the project lifecycle.</p>
+    <div class="savings-items">
+      <div class="savings-item"><div class="s-item-dot"></div><div class="s-item-text"><strong>Design Oversights</strong>Catch structural, spatial, and utility conflicts in 3D before they become expensive site variations.</div></div>
+      <div class="savings-item"><div class="s-item-dot"></div><div class="s-item-text"><strong>Render Costs Eliminated</strong>No more paying architects and agencies for static renders. The live 3D model IS the marketing material.</div></div>
+      <div class="savings-item"><div class="s-item-dot"></div><div class="s-item-text"><strong>Faster Funding Access</strong>A fully visualised, stakeholder-approved model accelerates investor confidence and loan drawdown.</div></div>
+      <div class="savings-item"><div class="s-item-dot"></div><div class="s-item-text"><strong>Fewer Iterations</strong>Real-time adjustments with all parties in one model reduces the cycle of emails, revisions, and delays.</div></div>
+      <div class="savings-item"><div class="s-item-dot"></div><div class="s-item-text"><strong>Marketing Video Costs</strong>Interactive 3D tours replace expensive marketing videos and physical show suites for off-plan launches.</div></div>
+      <div class="savings-item"><div class="s-item-dot"></div><div class="s-item-text"><strong>Interior Design Costs</strong>Virtual staging and finish selection tools reduce physical sample costs and showroom requirements.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ INDUSTRIES ════════════════════════════════════════ -->
+<section class="industries-section" id="industries">
+  <div class="s-label rev">Industry Applications</div>
+  <h2 class="s-title rev">One platform.<br><em>Every</em> built<br>environment.</h2>
+  <p class="s-body rev">From a single residential villa to an entire port expansion — the technology scales to any project, any size, any sector.</p>
+
+  <div class="ind-grid">
+    <div class="ind-card rev d1">
+      <div class="bg-icon">🏘️</div>
+      <div class="ind-icon">🏘️</div>
+      <div class="ind-title">Residential Development</div>
+      <p class="ind-desc">From single plots to large-scale township developments. Sell off-plan with confidence — buyers tour units before foundation is laid.</p>
+      <ul class="ind-use">
+        <li>Off-plan apartment launches with virtual show suites</li>
+        <li>Villa and townhouse community visualisation</li>
+        <li>Mixed-income housing stakeholder presentations</li>
+        <li>HOA and community master plan walkthroughs</li>
+      </ul>
+    </div>
+    <div class="ind-card rev d2">
+      <div class="bg-icon">🏢</div>
+      <div class="ind-icon">🏢</div>
+      <div class="ind-title">Commercial & Retail</div>
+      <p class="ind-desc">Office towers, retail centres, logistics parks, and business districts. Lease and sell commercial space before the building exists.</p>
+      <ul class="ind-use">
+        <li>Tenant leasing tours for office and retail space</li>
+        <li>Retail mall anchor tenant presentations</li>
+        <li>Industrial park and logistics hub planning</li>
+        <li>Co-working and serviced office visualisation</li>
+      </ul>
+    </div>
+    <div class="ind-card rev d3">
+      <div class="bg-icon">⚓</div>
+      <div class="ind-icon">⚓</div>
+      <div class="ind-title">Port & Marine Industry</div>
+      <p class="ind-desc">Complex infrastructure projects demand precision. Model entire port expansions, marine terminals, and offshore facilities with full GIS and utility integration.</p>
+      <ul class="ind-use">
+        <li>Port authority expansion planning and stakeholder approval</li>
+        <li>Marine terminal layout and operational flow simulation</li>
+        <li>Offshore platform and shipyard facility visualisation</li>
+        <li>Coastal development environmental impact walkthroughs</li>
+        <li>Berth and quay design with tidal and weather overlays</li>
+      </ul>
+    </div>
+    <div class="ind-card rev d1">
+      <div class="bg-icon">🏙️</div>
+      <div class="ind-icon">🏙️</div>
+      <div class="ind-title">City & Urban Development</div>
+      <p class="ind-desc">Smart cities, new towns, regeneration zones, and master-planned communities. Win community buy-in and regulatory approval with living city-scale 3D models.</p>
+      <ul class="ind-use">
+        <li>Smart city master plan visualisation for government bodies</li>
+        <li>Urban regeneration zone public consultation models</li>
+        <li>Transit-oriented development planning</li>
+        <li>Municipal infrastructure overlay — roads, utilities, zoning</li>
+        <li>Demographic and population flow simulation</li>
+      </ul>
+    </div>
+    <div class="ind-card rev d2">
+      <div class="bg-icon">🏨</div>
+      <div class="ind-icon">🏨</div>
+      <div class="ind-title">Hospitality & Tourism</div>
+      <p class="ind-desc">Hotels, resorts, serviced apartments, and destination developments. Attract investors, franchise partners, and operators with immersive pre-completion experiences.</p>
+      <ul class="ind-use">
+        <li>Hotel and resort pre-opening investor presentations</li>
+        <li>Branded residence and serviced apartment launches</li>
+        <li>Tourism destination master plan visualisations</li>
+        <li>Convention centre and event venue planning</li>
+      </ul>
+    </div>
+    <div class="ind-card rev d3">
+      <div class="bg-icon">🏭</div>
+      <div class="ind-icon">🏭</div>
+      <div class="ind-title">Industrial & Infrastructure</div>
+      <p class="ind-desc">Factories, warehouses, energy facilities, and major infrastructure projects. Coordinate complex multi-discipline teams with a single source of truth.</p>
+      <ul class="ind-use">
+        <li>Manufacturing plant and warehouse facility planning</li>
+        <li>Renewable energy site — solar, wind, hydro — visualisation</li>
+        <li>Road and bridge infrastructure stakeholder presentations</li>
+        <li>Data centre and tech campus development planning</li>
+        <li>Utility and grid infrastructure coordination</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══ OUTCOME ═══════════════════════════════════════════ -->
+<section class="outcome-section">
+  <div class="outcome-left rev">
+    <div class="s-label">The Outcome</div>
+    <h2 class="s-title">A project that arrives<br><em>approved, costed,</em><br>and market-ready.</h2>
+    <div class="outcome-quote">
+      "A thoroughly costed, stakeholder-approved, and market-ready development — advanced with fewer design iterations, clearer data, and <span>reduced financial exposure</span> in the earliest stages."
+    </div>
+    <ul class="outcome-items">
+      <li><div class="oi">✓</div>All stakeholders aligned on a single, living model — no version conflicts</li>
+      <li><div class="oi">✓</div>Design oversights caught in 3D before they become site variations costing 10× more to fix</li>
+      <li><div class="oi">✓</div>Funding secured faster — banks and investors respond to a visualised, costed development</li>
+      <li><div class="oi">✓</div>Planning approvals accelerated — authorities can walk through the project in their office</li>
+      <li><div class="oi">✓</div>Sales launched before construction is complete — units sold while foundations are being dug</li>
+      <li><div class="oi">✓</div>One platform from sketch to handover — no switching between 5 fragmented tools</li>
+    </ul>
+    <div style="margin-top:36px;">
+      <a href="#" class="btn-red" onclick="openModal('demo');return false;">See It In Action — Book Demo</a>
+    </div>
+  </div>
+  <div class="outcome-right rev d2">
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div class="metric-num">72<span>h</span></div>
+        <div class="metric-lbl">First Model Ready</div>
+        <div class="metric-desc">From coordinates + sketch to full 3D prototype</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num">8<span>–</span>11<span>%</span></div>
+        <div class="metric-lbl">Cost Savings</div>
+        <div class="metric-desc">Average savings across project lifecycle</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num">4</div>
+        <div class="metric-lbl">Stage Process</div>
+        <div class="metric-desc">Prototype → Adjust → Build → Sell</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num">1</div>
+        <div class="metric-lbl">Platform</div>
+        <div class="metric-desc">Plan, approve, build, and sell from one model</div>
+      </div>
+    </div>
+    <div style="margin-top:2px;background:var(--dark3);padding:24px;border:1px solid #1e1e1e;">
+      <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--red);margin-bottom:10px;text-transform:uppercase;">Shared Success Model</div>
+      <p style="font-size:14px;color:var(--muted);line-height:1.7;"><strong style="color:var(--off);">We only get paid when you do.</strong> Meta-dology's commercial model is structured around shared success — the platform is invested in the outcome of your project, not just its delivery.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ TESTIMONIALS ══════════════════════════════════════ -->
+<section class="testi-section">
+  <div class="s-label rev">What Clients Say</div>
+  <h2 class="s-title rev">Heard from the<br>people who've <em>used it.</em></h2>
+
+  <div class="testi-grid">
+    <div class="testi-card rev d1">
+      <div class="testi-quote">"</div>
+      <p class="testi-text">Super impressed by your offering. Blown away. The live renders are amazing — you zoom in and you can't tell the difference between what's real and what's not. It's incredible.</p>
+      <div class="testi-author"><strong>Alex Impey</strong>Property Developer</div>
+    </div>
+    <div class="testi-card rev d2">
+      <div class="testi-quote">"</div>
+      <p class="testi-text">The whole team is professional, the way they talk to you, the way they deliver on schedule. On the technology — I thoroughly recommend this for anyone on any kind of development.</p>
+      <div class="testi-author"><strong>Bernardo Pena</strong>Property Developer</div>
+    </div>
+    <div class="testi-card rev d3">
+      <div class="testi-quote">"</div>
+      <p class="testi-text">My management is going to fall off their chairs. This is amazing.</p>
+      <div class="testi-author"><strong>Fredrick Kotzé</strong>Media Manager — on first Rapid Prototype reveal</div>
+    </div>
+    <div class="testi-card rev d1">
+      <div class="testi-quote">"</div>
+      <p class="testi-text">I like what I'm seeing. I can make this work. This is money right here.</p>
+      <div class="testi-author"><strong>Rick Foster</strong>Property Owner</div>
+    </div>
+    <div class="testi-card rev d2">
+      <div class="testi-quote">"</div>
+      <p class="testi-text">Truly professional. Delivered ahead of schedule with great attention to detail.</p>
+      <div class="testi-author"><strong>COO</strong>InnovateCo</div>
+    </div>
+    <div class="testi-card rev d3">
+      <div class="testi-quote">"</div>
+      <p class="testi-text">Mike & the team were one of a kind. Highly recommend this forward-thinking company.</p>
+      <div class="testi-author"><strong>CEO</strong>Broll Property Group</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ META-DOLOGY PARTNERSHIP ═══════════════════════════ -->
+<section class="partner-section">
+  <div class="s-label rev">Technology Partner</div>
+  <h2 class="s-title rev">Powered by the<br><em>global leader</em><br>in 3D property.</h2>
+
+  <div class="partner-box rev">
+    <div>
+      <div class="p-logo-bar">
+        <div class="p-logo-mf">MillionFlats</div>
+        <div class="p-logo-x">×</div>
+        <div class="p-logo-md">Meta-dology</div>
+      </div>
+      <div class="p-title">Global Leaders in<br>3D Property Experiences</div>
+      <p class="p-desc">
+        Meta-dology built the technology that powers what you see on this page. They are the world's foremost specialists in real-time 3D property and development environments — working with developers, builders, and infrastructure bodies across UAE, UK, South Africa, USA, and beyond.
+        <br><br>
+        MillionFlats is their official Associate Partner. When you engage through MillionFlats, you get Meta-dology's full platform capability with a dedicated team that understands the Indian, South Asian, and Middle East development markets — from regulatory frameworks to investor sensitivities.
+      </p>
+      <a href="https://meta-dology.com" target="_blank" rel="noopener" class="p-link">Explore Meta-dology's full platform →</a>
+      <div class="p-note">
+        <strong>Associate Partnership Notice:</strong> The 3D world platform, AI scanning tools, and real-time model technology are owned and operated by Meta-dology. MillionFlats acts as Associate Partner, facilitating access and providing market-specific advisory for clients in India, UAE, and internationally.
+      </div>
+    </div>
+    <div class="p-caps">
+      <div class="p-cap"><div class="p-cap-icon">🛰️</div><div><div class="p-cap-title">Stage 1 — Rapid Prototype in 72h</div><div class="p-cap-desc">Satellite scan, sun mapping, real views from every window — from sketch to full 3D model in 72 hours.</div></div></div>
+      <div class="p-cap"><div class="p-cap-icon">⚡</div><div><div class="p-cap-title">Stage 2 — Real-Time Stakeholder Alignment</div><div class="p-cap-desc">Everyone on the same live model. Instant adjustments. No more fragmented PDFs and conflicting versions.</div></div></div>
+      <div class="p-cap"><div class="p-cap-icon">🔬</div><div><div class="p-cap-title">Stage 3 — Construction Clarity</div><div class="p-cap-desc">X-ray layers revealing utilities, GIS data, municipal grids, and demographic insights — before you build.</div></div></div>
+      <div class="p-cap"><div class="p-cap-icon">🚀</div><div><div class="p-cap-title">Stage 4 — Integrated Sales Suite</div><div class="p-cap-desc">CRM, payment portal, virtual tours, agent manager, lead management — a complete go-to-market platform.</div></div></div>
+      <div class="p-cap"><div class="p-cap-icon">💰</div><div><div class="p-cap-title">Shared Success Commercial Model</div><div class="p-cap-desc">"We only get paid when you do." Meta-dology's model aligns incentives with your project's outcome.</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CTA ════════════════════════════════════════════════ -->
+<section class="cta-section">
+  <div class="cta-bg"></div>
+  <div style="position:relative;z-index:2;">
+    <div class="s-label" style="justify-content:center;">Get Started</div>
+    <h2 class="cta-title rev">
+      Your project.<br>
+      <em>Visualised.</em><br>
+      Approved. Sold.
+    </h2>
+    <p class="cta-sub rev">Book a free demo and see your development come to life in 3D — or book a meeting with our team to discuss how this applies to your specific project.</p>
+    <div class="cta-btns rev">
+      <a href="#" class="btn-red" onclick="openModal('demo');return false;">Book a Free Demo</a>
+      <a href="#" class="btn-outline" onclick="openModal('meeting');return false;">Book a Meeting</a>
+    </div>
+    <p style="font-size:12px;color:var(--muted2);margin-top:20px;letter-spacing:1px;" class="rev">No commitment · Worldwide · Delivered via video call</p>
+  </div>
+</section>
+
+<!-- ══ FOOTER ════════════════════════════════════════════ -->
+<div class="foot">
+  <p>© 2025 MillionFlats Technologies Pvt. Ltd. · <a href="https://millionflats.com">millionflats.com</a> · +91 95101 55835</p>
+  <p>3D Platform by <a href="https://meta-dology.com" target="_blank">Meta-dology</a> · Associate Partner · <a href="https://millionflats.com/contact">Contact Us</a></p>
+</div>
+
+<!-- ══ BOOKING MODAL ═════════════════════════════════════ -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title" id="modal-title">Book a Free Demo</div>
+    <p class="modal-sub" id="modal-sub">See your development visualised in 3D. We'll walk you through the full platform in 30 minutes.</p>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>First Name *</label>
+        <input type="text" placeholder="Tarique">
+      </div>
+      <div class="form-group">
+        <label>Last Name *</label>
+        <input type="text" placeholder="Mansuri">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Company / Organisation *</label>
+      <input type="text" placeholder="Your company name">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Email *</label>
+        <input type="email" placeholder="you@company.com">
+      </div>
+      <div class="form-group">
+        <label>WhatsApp / Phone *</label>
+        <input type="tel" placeholder="+91 or +971...">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Your Industry *</label>
+      <select>
+        <option value="">Select your industry</option>
+        <option>Residential Property Development</option>
+        <option>Commercial Property Development</option>
+        <option>Construction / Building Contractor</option>
+        <option>Architecture / Consultancy</option>
+        <option>Port & Marine Industry</option>
+        <option>City / Urban Development</option>
+        <option>Hospitality & Tourism Development</option>
+        <option>Industrial & Infrastructure</option>
+        <option>Property Owner / Investor</option>
+        <option>Real Estate Agency / Brokerage</option>
+        <option>Government / Municipal Authority</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Project Description</label>
+      <textarea placeholder="Briefly describe your development project or what you'd like to see in the demo..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>Preferred Meeting Time</label>
+      <select>
+        <option value="">Any time works</option>
+        <option>Morning (9am – 12pm IST)</option>
+        <option>Afternoon (12pm – 4pm IST)</option>
+        <option>Evening (4pm – 7pm IST)</option>
+        <option>UAE / Gulf time preferred</option>
+        <option>UK / Europe time preferred</option>
+      </select>
+    </div>
+    <button class="form-submit" onclick="submitForm()">Submit Request →</button>
+    <p class="form-note">We'll confirm your booking within 4 working hours via WhatsApp or email. · <a href="https://meta-dology.com" target="_blank" style="color:var(--red);">meta-dology.com</a></p>
+  </div>
+</div>
+
+<!-- ══ SCRIPTS ══════════════════════════════════════════ -->
+<script>
+// Cursor
+const cur = document.getElementById('cur');
+const curR = document.getElementById('curR');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+(function anim(){
+  cur.style.left=mx+'px';cur.style.top=my+'px';
+  rx+=(mx-rx)*.12;ry+=(my-ry)*.12;
+  curR.style.left=rx+'px';curR.style.top=ry+'px';
+  requestAnimationFrame(anim);
+})();
+document.querySelectorAll('a,button,input,select,textarea').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cur.style.transform='translate(-50%,-50%) scale(2.5)';cur.style.background='transparent';cur.style.border='1px solid var(--red)';});
+  el.addEventListener('mouseleave',()=>{cur.style.transform='translate(-50%,-50%) scale(1)';cur.style.background='var(--red)';cur.style.border='none';});
+});
+
+// Sticky nav
+const nav=document.getElementById('nav');
+window.addEventListener('scroll',()=>nav.classList.toggle('scrolled',scrollY>60));
+
+// Scroll reveal
+const revs=document.querySelectorAll('.rev');
+new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('vis');}),{threshold:.08}).observe
+&&new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('vis');}),{threshold:.08,rootMargin:'0px 0px -40px 0px'}).observe(document.body)
+||0;
+const ro=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('vis');}),{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+revs.forEach(el=>ro.observe(el));
+
+// Modal
+function openModal(type){
+  const m=document.getElementById('modal');
+  const t=document.getElementById('modal-title');
+  const s=document.getElementById('modal-sub');
+  if(type==='meeting'){
+    t.textContent='Book a Meeting';
+    s.textContent='Talk to our team about how 3D development solutions apply to your specific project.';
+  } else {
+    t.textContent='Book a Free Demo';
+    s.textContent='See your development visualised in 3D. A 30-minute walkthrough of the full platform.';
+  }
+  m.classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal(){
+  document.getElementById('modal').classList.remove('open');
+  document.body.style.overflow='';
+}
+document.getElementById('modal').addEventListener('click',function(e){
+  if(e.target===this)closeModal();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+function submitForm(){
+  alert('Thank you! We will confirm your booking within 4 working hours via WhatsApp or email.\n\nMillionFlats × Meta-dology');
+  closeModal();
+}
+</script>
+</body>
+</html>
