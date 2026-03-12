@@ -1,14 +1,27 @@
 
-
 const fs = require("fs")
 const path = require("path")
 const { PrismaClient } = require("@prisma/client")
 const db = new PrismaClient()
 
+function slugify(text) {
+    return String(text || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+        .slice(0, 120)
+}
+
 async function updateProject(data) {
 
+    if (!db.project) {
+        console.log('❌ Prisma Client does not expose `project` model. Regenerate Prisma Client against the current schema on the environment where you run this updater.')
+        return
+    }
+
     const project = await db.project.findFirst({
-        where: { slug: data.slug }
+        where: { slug: data.slug },
+        select: { id: true, developerId: true }
     })
 
     if (!project) {
@@ -16,29 +29,136 @@ async function updateProject(data) {
         return
     }
 
-    const updateData = {
-        name: data.name,
-        developer: data.developer,
-        location: data.location,
-        propertyType: data.propertyType,
-        description: data.description,
-        unitTypes: data.unitTypes,
-        highlights: data.highlights,
-        amenities: data.amenities,
-        gallery: data.gallery,
-        // Safely apply other fields if available in data
-        ...(data.startingPrices && { startingPrices: data.startingPrices }),
-        ...(data.handover && { handover: data.handover }),
-        ...(data.ecoConcept && { ecoConcept: data.ecoConcept }),
-        ...(data.paymentPlan && { paymentPlan: data.paymentPlan }),
-        ...(data.connectivity && { connectivity: data.connectivity })
-    };
+    // Parse highlights or ecoConcepts into JSON array
+    let highlightsJson = undefined;
+    if (data.highlights) {
+        highlightsJson = JSON.stringify(data.highlights);
+    } else if (data.ecoConcept) {
+        highlightsJson = JSON.stringify(data.ecoConcept);
+    }
 
+    // Calculate minimum starting price
+    let startingPrice = undefined;
+    if (data.startingPrices) {
+        const prices = Object.values(data.startingPrices).map(p => {
+            const num = parseFloat(p.replace(/[^0-9.]/g, ''));
+            if (p.includes('M')) return num * 1000000;
+            if (p.includes('K')) return num * 1000;
+            return num;
+        });
+        if (prices.length > 0) {
+            startingPrice = Math.min(...prices);
+        }
+    }
+
+    // Parse payment plans
+    const paymentPlanRecords = [];
+    if (data.paymentPlan) {
+        let sortOrder = 0;
+        for (const [key, val] of Object.entries(data.paymentPlan)) {
+            paymentPlanRecords.push({
+                stage: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+                percentage: parseFloat(val.replace('%', '')),
+                sortOrder: sortOrder++
+            });
+        }
+    }
+
+    // Parse unit types
+    const unitTypeRecords = [];
+    if (data.unitTypes) {
+        data.unitTypes.forEach(u => {
+            let priceStr = undefined;
+            if (data.startingPrices) {
+                const match = Object.keys(data.startingPrices).find(k => k && u.includes(k.replace('BR', ' Bedroom')));
+                if (!match) {
+                    const match2 = Object.keys(data.startingPrices).find(k => u.includes(k.charAt(0)));
+                    if (match2) priceStr = data.startingPrices[match2];
+                } else {
+                    priceStr = data.startingPrices[match];
+                }
+            }
+
+            let priceFrom = null;
+            if (priceStr) {
+                const num = parseFloat(priceStr.replace(/[^0-9.]/g, ''));
+                if (priceStr.includes('M')) priceFrom = num * 1000000;
+                else if (priceStr.includes('K')) priceFrom = num * 1000;
+            }
+
+            unitTypeRecords.push({
+                unitType: u,
+                priceFrom: priceFrom
+            });
+        });
+    }
+
+    // Apply updates as Nested Writes in Prisma
     try {
+        let developerNestedWrite = undefined
+        if (data.developer && typeof data.developer === 'string' && data.developer.trim()) {
+            const developerName = data.developer.trim()
+
+            // If the project already has a developerId, keep it stable by connecting to it.
+            // Otherwise, connect (or create) by name.
+            developerNestedWrite = project.developerId
+                ? { connect: { id: project.developerId } }
+                : {
+                    connectOrCreate: {
+                        where: { name: developerName },
+                        create: {
+                            name: developerName,
+                            slug: slugify(developerName),
+                        },
+                    },
+                }
+        }
+
         await db.project.update({
             where: { id: project.id },
-            data: updateData
-        })
+            data: {
+                ...(developerNestedWrite !== undefined && { developer: developerNestedWrite }),
+                description: data.description,
+                city: data.location || undefined,
+                ...(highlightsJson !== undefined && { highlights: highlightsJson }),
+                ...(startingPrice !== undefined && { startingPrice }),
+
+                amenities: data.amenities ? {
+                    deleteMany: {},
+                    create: data.amenities.map(a => ({ name: a }))
+                } : undefined,
+
+                media: data.gallery ? {
+                    // Delete previously added images, but not floor plans or videos
+                    deleteMany: { mediaType: 'IMAGE' },
+                    create: data.gallery.map((url, i) => ({
+                        mediaUrl: url,
+                        mediaType: 'IMAGE',
+                        sortOrder: i
+                    }))
+                } : undefined,
+
+                nearbyPlaces: data.connectivity ? {
+                    deleteMany: {},
+                    create: data.connectivity.map((c, i) => ({
+                        name: c.place,
+                        distance: c.time,
+                        sortOrder: i
+                    }))
+                } : undefined,
+
+                unitTypes: data.unitTypes ? {
+                    deleteMany: {},
+                    create: unitTypeRecords
+                } : undefined,
+
+                paymentPlans: paymentPlanRecords.length > 0 ? {
+                    deleteMany: {},
+                    create: paymentPlanRecords
+                } : undefined
+            }
+        });
+
         console.log(`✅ Updated ${data.name}`)
     } catch (err) {
         console.log(`❌ Failed to update ${data.name}:`, err.message)
@@ -47,9 +167,7 @@ async function updateProject(data) {
 
 async function run() {
 
-    console.log("\n══════════════════════════════════════")
-    console.log(" MillionFlats — Project Updater")
-    console.log("══════════════════════════════════════\n")
+    console.log("MillionFlats - Project Updater")
 
     const chelsea = require("./data/chelsea-residences.json")
     const islands = require("./data/damac-islands-2.json")
@@ -61,4 +179,8 @@ async function run() {
     await db.$disconnect()
 }
 
-run()
+run().catch(err => {
+    fs.writeFileSync('error-log.txt', err.stack)
+    console.error("Wrote to error-log.txt")
+    process.exit(1)
+})
