@@ -1,0 +1,74 @@
+{
+    "slug": "chelsea-residences",
+    "name": "Chelsea Residences by DAMAC",
+    "developer": "DAMAC Properties",
+    "location": "Dubai Maritime City",
+    "propertyType": "Apartments",
+    "unitTypes": [
+        "1 Bedroom",
+        "2 Bedroom",
+        "3 Bedroom"
+    ],
+    "towers": 6,
+    "floors": "G + 2 Podium + 25–33 Floors",
+    "description": "Chelsea Residences by DAMAC is a luxury waterfront development located in Dubai Maritime City created in partnership with Chelsea Football Club. The six towers are inspired by coral reefs and offer resort style living with panoramic sea views and world class sports and wellness amenities.",
+    "highlights": [
+        "Waterfront apartments",
+        "Chelsea FC themed residences",
+        "Rooftop football pitch",
+        "270 degree sea views",
+        "Private beach access",
+        "Resort style amenities"
+    ],
+    "amenities": [
+        "Infinity Pool",
+        "Coral Reef Pool",
+        "Chelsea Lion Beach",
+        "Football Simulation Room",
+        "Rooftop Football Pitch",
+        "Jogging Track",
+        "Outdoor Gym",
+        "Meditation Garden",
+        "Serenity Spa",
+        "Cryotherapy",
+        "Rain Therapy Room",
+        "Starlit Wellness Centre",
+        "Sunset Bar",
+        "Fine Dining Restaurant",
+        "Stamford Cinema",
+        "Kids Pool",
+        "Indoor Kids Play Area"
+    ],
+    "connectivity": [
+        {
+            "place": "J1 Beach",
+            "time": "14 Minutes"
+        },
+        {
+            "place": "City Walk",
+            "time": "15 Minutes"
+        },
+        {
+            "place": "Metro Station",
+            "time": "18 Minutes"
+        },
+        {
+            "place": "Downtown Dubai",
+            "time": "22 Minutes"
+        },
+        {
+            "place": "Dubai International Airport",
+            "time": "23 Minutes"
+        }
+    ],
+    "gallery": [
+        "/projects/chelsea-residences/hero.webp",
+        "/projects/chelsea-residences/tower-aerial.webp",
+        "/projects/chelsea-residences/rooftop-pitch.webp",
+        "/projects/chelsea-residences/coral-reef-pool.webp",
+        "/projects/chelsea-residences/infinity-pool.webp",
+        "/projects/chelsea-residences/wellness-centre.webp",
+        "/projects/chelsea-residences/living-room.webp",
+        "/projects/chelsea-residences/master-bedroom.webp"
+    ]
+}

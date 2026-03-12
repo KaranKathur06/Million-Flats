@@ -1,0 +1,61 @@
+{
+    "slug": "damac-islands-2",
+    "name": "DAMAC Islands Phase 2",
+    "developer": "DAMAC Properties",
+    "location": "Dubai Land",
+    "propertyType": "Villas and Townhouses",
+    "unitTypes": [
+        "4 Bedroom Townhouse",
+        "5 Bedroom Townhouse",
+        "5 Bedroom Twin Villa",
+        "6 Bedroom Villa"
+    ],
+    "startingPrices": {
+        "4BR": "AED 2.75M",
+        "5BR": "AED 3.67M",
+        "6BR": "AED 9.51M"
+    },
+    "handover": "30 June 2030",
+    "description": "DAMAC Islands Phase 2 is a tropical island inspired residential community offering eco living villas and townhouses surrounded by water landscapes nature parks and wellness spaces.",
+    "ecoConcept": [
+        "Nature Based Living",
+        "Wellness Living",
+        "Adventure Living",
+        "Social Living",
+        "Cultural Living"
+    ],
+    "amenities": [
+        "Tranquil Lake",
+        "Zen Garden",
+        "Botanic Garden",
+        "Butterfly Nest",
+        "Whispering Waterfall",
+        "Solar Charging Stations",
+        "Eco Gym",
+        "Hydrotherapy Pools",
+        "Healing Spa",
+        "Zipline Park",
+        "Treehouse Park",
+        "Canopy Walk",
+        "Eco Co Working Hub",
+        "Natural Swimming Lagoon",
+        "Farm to Table Dining",
+        "Museum Library",
+        "Cultural Square"
+    ],
+    "paymentPlan": {
+        "downPayment": "20%",
+        "duringConstruction": "55%",
+        "onCompletion": "25%"
+    },
+    "gallery": [
+        "/projects/damac-islands-2/hero.webp",
+        "/projects/damac-islands-2/community-aerial.webp",
+        "/projects/damac-islands-2/eco-park.webp",
+        "/projects/damac-islands-2/zen-garden.webp",
+        "/projects/damac-islands-2/treehouse-park.webp",
+        "/projects/damac-islands-2/clubhouse.webp",
+        "/projects/damac-islands-2/villa-exterior.webp",
+        "/projects/damac-islands-2/living-room.webp"
+    ]
+}
