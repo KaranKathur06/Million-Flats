@@ -57,12 +57,23 @@ function resolvePublicMediaUrl(input: string) {
     const v = String(input || '').trim()
     if (!v) return ''
 
+    // Already a full URL or absolute path
     if (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('/')) return v
 
+    // S3 key - convert to full S3 URL
     if (v.startsWith('public/') || v.startsWith('private/')) {
         const base = String(process.env.NEXT_PUBLIC_S3_PUBLIC_BASE_URL || '').trim().replace(/\/$/, '')
-        if (!base) return v
-        return `${base}/${encodeURIComponent(v).replace(/%2F/g, '/')}`
+        if (base) {
+            return `${base}/${encodeURIComponent(v).replace(/%2F/g, '/')}`
+        }
+        // Fallback: build S3 URL directly from bucket/region
+        try {
+            const { buildS3ObjectUrl } = require('@/lib/s3')
+            return buildS3ObjectUrl({ key: v })
+        } catch {
+            // Last resort - return as-is (will likely fail, but visible for debugging)
+            return v
+        }
     }
 
     return v
@@ -146,15 +157,18 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
     const tabImages = useMemo(() => {
         const tabs = structuredMedia?.tabs
         if (tabs && (tabs.exterior?.length || tabs.amenities?.length || tabs.interiors?.length || tabs.lifestyle?.length)) {
+            // Filter out hero from tabs to avoid duplication
+            const hero = structuredMedia?.hero
+            const filterHero = (list: string[]) => list.filter((img) => img !== hero)
             return {
-                exterior: uniqueStrings(tabs.exterior || []),
-                amenities: uniqueStrings(tabs.amenities || []),
-                interiors: uniqueStrings(tabs.interiors || []),
-                lifestyle: uniqueStrings(tabs.lifestyle || []),
+                exterior: uniqueStrings(filterHero(tabs.exterior || [])),
+                amenities: uniqueStrings(filterHero(tabs.amenities || [])),
+                interiors: uniqueStrings(filterHero(tabs.interiors || [])),
+                lifestyle: uniqueStrings(filterHero(tabs.lifestyle || [])),
             }
         }
 
-        const all = legacyGalleryImages.map((m) => m.mediaUrl)
+        const all = legacyGalleryImages.map((m) => m.mediaUrl).filter((url) => url !== structuredMedia?.hero)
         return { exterior: all, amenities: all, interiors: all, lifestyle: all }
     }, [structuredMedia, legacyGalleryImages])
 
