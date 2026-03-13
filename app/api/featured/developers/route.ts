@@ -38,7 +38,7 @@ export async function GET(req: Request) {
     const featured = await prisma.$queryRaw<Array<{ id: string; name: string; country: string | null }>>`
       SELECT id, name, country
       FROM developers
-      WHERE is_featured = true AND country = ${country}
+      WHERE is_featured = true AND country = ${country}::"CountryCode"
       ORDER BY updated_at DESC
       LIMIT 24
     `
@@ -48,7 +48,7 @@ export async function GET(req: Request) {
       const fallback = await prisma.$queryRaw<Array<{ id: string; name: string; country: string | null }>>`
         SELECT id, name, country
         FROM developers
-        WHERE country = ${country}
+        WHERE country = ${country}::"CountryCode"
         ORDER BY updated_at DESC
         LIMIT 24
       `
