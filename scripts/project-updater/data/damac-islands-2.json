@@ -1,6 +1,6 @@
 {
     "slug": "damac-islands-2",
-    "name": "DAMAC Islands Phase 2",
+    "name": "damac-islands-2",
     "developer": "DAMAC Properties",
     "location": "Dubai Land",
     "propertyType": "Villas and Townhouses",
@@ -49,7 +49,7 @@
         "onCompletion": "25%"
     },
     "media": {
-        "hero": "public/projects/damac/damac-islands-2/gallery/HERO.webp",
+        "hero": "public/projects/damac/damac-islands-2/hero/HERO.webp",
         "featured": [
             "public/projects/damac/damac-islands-2/gallery/BUILDINGS.webp",
             "public/projects/damac/damac-islands-2/gallery/TOWNHOUSE - FRONT.webp",

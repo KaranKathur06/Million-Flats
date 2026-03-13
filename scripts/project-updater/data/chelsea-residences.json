@@ -1,6 +1,6 @@
 {
     "slug": "chelsea-residences",
-    "name": "Chelsea Residences by DAMAC",
+    "name": "Chelsea Residences",
     "developer": "DAMAC Properties",
     "location": "Dubai Maritime City",
     "propertyType": "Apartments",
@@ -62,7 +62,7 @@
         }
     ],
     "media": {
-        "hero": "public/projects/damac/chelsea-residences/gallery/hero.webp",
+        "hero": "public/projects/damac/chelsea-residences/hero/hero.webp",
         "featured": [
             "public/projects/damac/chelsea-residences/gallery/BUILDINGS.webp",
             "public/projects/damac/chelsea-residences/gallery/EXTERIOR - 1.webp",
