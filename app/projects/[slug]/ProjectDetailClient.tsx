@@ -79,6 +79,27 @@ function resolvePublicMediaUrl(input: string) {
     return v
 }
 
+/** Extract a human-readable image name from its URL or S3 key */
+function extractImageName(input: string): string {
+    const v = String(input || '').trim()
+    if (!v) return ''
+    // Decode URI components first
+    let decoded = v
+    try { decoded = decodeURIComponent(v) } catch { /* ignore */ }
+    // Get the filename from the path
+    const parts = decoded.split('/')
+    let filename = parts[parts.length - 1] || ''
+    // Remove file extension
+    filename = filename.replace(/\.[^.]+$/, '')
+    // Clean up: replace dashes/underscores with spaces, trim
+    filename = filename.replace(/[-_]+/g, ' ').trim()
+    // Title case
+    return filename
+        .split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ')
+}
+
 /* ═══════════════════════════════════════════════
    HELPERS
    ═══════════════════════════════════════════════ */
@@ -133,31 +154,38 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
     const [galleryModalOpen, setGalleryModalOpen] = useState(false)
     const [modalImgIndex, setModalImgIndex] = useState(0)
 
-    const legacyGalleryImages = useMemo(() => {
-        const images = project.media.filter((m) => m.mediaType === 'gallery' || m.mediaType === 'cover' || m.mediaType === 'image' || m.mediaType === 'IMAGE')
+    // Recognised gallery media types (tab-specific + legacy ones)
+    const GALLERY_MEDIA_TYPES = useMemo(() => new Set(['gallery', 'cover', 'image', 'IMAGE', 'featured', 'exterior', 'amenities', 'interiors', 'lifestyle']), [])
+
+    const allGalleryMedia = useMemo(() => {
+        const images = project.media.filter((m) => GALLERY_MEDIA_TYPES.has(m.mediaType))
         if (images.length === 0 && project.coverImage) {
             return [{ id: 'cover', mediaUrl: project.coverImage, mediaType: 'cover', sortOrder: 0 }]
         }
         return images
-    }, [project.media, project.coverImage])
+    }, [project.media, project.coverImage, GALLERY_MEDIA_TYPES])
 
     const structuredMedia = project.mediaStructured || null
 
-    const heroImage = structuredMedia?.hero || project.coverImage || legacyGalleryImages[0]?.mediaUrl || null
+    const heroImage = structuredMedia?.hero || project.coverImage || allGalleryMedia[0]?.mediaUrl || null
     const heroImageResolved = heroImage ? resolvePublicMediaUrl(heroImage) : null
 
+    // Featured images: from structuredMedia, from 'featured' mediaType records, or first 5 gallery images
     const featuredImages = useMemo(() => {
         if (structuredMedia?.featured && structuredMedia.featured.length > 0) return structuredMedia.featured
-        if (legacyGalleryImages.length > 0) return legacyGalleryImages.slice(0, 5).map((m) => m.mediaUrl)
+        const featuredRecords = allGalleryMedia.filter(m => m.mediaType === 'featured')
+        if (featuredRecords.length > 0) return featuredRecords.map(m => m.mediaUrl)
+        if (allGalleryMedia.length > 0) return allGalleryMedia.slice(0, 5).map((m) => m.mediaUrl)
         return []
-    }, [structuredMedia, legacyGalleryImages])
+    }, [structuredMedia, allGalleryMedia])
 
     const featuredImagesResolved = useMemo(() => featuredImages.map(resolvePublicMediaUrl).filter(Boolean), [featuredImages])
 
+    // Tab images: from structuredMedia tabs, from mediaType-based records, or fallback to all
     const tabImages = useMemo(() => {
+        // Approach 1: structuredMedia has explicit tabs
         const tabs = structuredMedia?.tabs
         if (tabs && (tabs.exterior?.length || tabs.amenities?.length || tabs.interiors?.length || tabs.lifestyle?.length)) {
-            // Filter out hero from tabs to avoid duplication
             const hero = structuredMedia?.hero
             const filterHero = (list: string[]) => list.filter((img) => img !== hero)
             return {
@@ -168,9 +196,25 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
             }
         }
 
-        const all = legacyGalleryImages.map((m) => m.mediaUrl).filter((url) => url !== structuredMedia?.hero)
+        // Approach 2: DB records have tab-specific mediaTypes
+        const byType = (type: string) => allGalleryMedia.filter(m => m.mediaType === type).map(m => m.mediaUrl)
+        const ext = byType('exterior')
+        const amen = byType('amenities')
+        const inter = byType('interiors')
+        const life = byType('lifestyle')
+        if (ext.length > 0 || amen.length > 0 || inter.length > 0 || life.length > 0) {
+            return {
+                exterior: uniqueStrings(ext),
+                amenities: uniqueStrings(amen),
+                interiors: uniqueStrings(inter),
+                lifestyle: uniqueStrings(life),
+            }
+        }
+
+        // Fallback: show all in every tab
+        const all = allGalleryMedia.map((m) => m.mediaUrl).filter((url) => url !== structuredMedia?.hero)
         return { exterior: all, amenities: all, interiors: all, lifestyle: all }
-    }, [structuredMedia, legacyGalleryImages])
+    }, [structuredMedia, allGalleryMedia])
 
     const tabImagesResolved = useMemo(() => {
         return {
@@ -190,6 +234,10 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
     const modalImages = useMemo(() => {
         return activeGalleryImages
     }, [activeGalleryImages])
+
+    // Zoom state for premium viewer
+    const [zoomLevel, setZoomLevel] = useState(1)
+    const [isFullscreen, setIsFullscreen] = useState(false)
 
     const amenityCategories = useMemo(() => {
         const cats: Record<string, typeof project.amenities> = {}
@@ -547,15 +595,20 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                                 onClick={() => {
                                                     setGalleryModalOpen(true)
                                                     setModalImgIndex(0)
+                                                    setZoomLevel(1)
                                                 }}
-                                                className="relative md:col-span-2 md:row-span-2 aspect-[16/10] rounded-2xl overflow-hidden bg-gray-100 group"
+                                                className="relative md:col-span-2 md:row-span-2 aspect-[16/10] rounded-2xl overflow-hidden bg-gray-100 group cursor-pointer"
                                             >
                                                 <img
                                                     src={featuredImagesResolved[0]}
-                                                    alt="Featured"
-                                                    className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                                                    alt={extractImageName(featuredImages[0]) || 'Featured'}
+                                                    className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
                                                     loading="lazy"
                                                 />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                                <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                                                    <span className="text-white text-sm font-semibold drop-shadow-lg">{extractImageName(featuredImages[0]) || 'Featured'}</span>
+                                                </div>
                                             </button>
 
                                             {featuredImagesResolved.slice(1, 5).map((src, idx) => (
@@ -565,15 +618,20 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                                     onClick={() => {
                                                         setGalleryModalOpen(true)
                                                         setModalImgIndex(idx + 1)
+                                                        setZoomLevel(1)
                                                     }}
-                                                    className="relative aspect-[16/10] rounded-2xl overflow-hidden bg-gray-100 group"
+                                                    className="relative aspect-[16/10] rounded-2xl overflow-hidden bg-gray-100 group cursor-pointer"
                                                 >
                                                     <img
                                                         src={src}
-                                                        alt="Featured"
-                                                        className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                                                        alt={extractImageName(featuredImages[idx + 1]) || 'Featured'}
+                                                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
                                                         loading="lazy"
                                                     />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                                    <div className="absolute bottom-0 left-0 right-0 p-2 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                                                        <span className="text-white text-xs font-semibold drop-shadow-lg">{extractImageName(featuredImages[idx + 1]) || 'Featured'}</span>
+                                                    </div>
                                                 </button>
                                             ))}
                                         </div>
@@ -583,44 +641,59 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                 {/* Gallery Tabs */}
                                 <div className="mt-6">
                                     <div className="flex flex-wrap gap-2">
-                                        {(['exterior', 'amenities', 'interiors', 'lifestyle'] as const).map((t) => (
-                                            <button
-                                                key={t}
-                                                type="button"
-                                                onClick={() => {
-                                                    setGalleryCategory(t)
-                                                    setGalleryVisibleCount(12)
-                                                }}
-                                                className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all capitalize ${galleryCategory === t
-                                                    ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
-                                                    : 'bg-white text-gray-600 border-gray-200 hover:border-amber-200 hover:text-amber-700'
-                                                    }`}
-                                            >
-                                                {t}
-                                            </button>
-                                        ))}
+                                        {(['exterior', 'amenities', 'interiors', 'lifestyle'] as const).map((t) => {
+                                            const count = tabImagesResolved[t]?.length || 0
+                                            return (
+                                                <button
+                                                    key={t}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setGalleryCategory(t)
+                                                        setGalleryVisibleCount(12)
+                                                    }}
+                                                    className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all capitalize cursor-pointer flex items-center gap-1.5 ${galleryCategory === t
+                                                        ? 'bg-amber-500 text-white border-amber-500 shadow-sm shadow-amber-500/20'
+                                                        : 'bg-white text-gray-600 border-gray-200 hover:border-amber-200 hover:text-amber-700'
+                                                        }`}
+                                                >
+                                                    {t}
+                                                    {count > 0 && (
+                                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${galleryCategory === t ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>{count}</span>
+                                                    )}
+                                                </button>
+                                            )
+                                        })}
                                     </div>
 
                                     {/* Tab Grid */}
                                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                                        {visibleGalleryImages.map((src, idx) => (
-                                            <button
-                                                key={`${src}-${idx}`}
-                                                type="button"
-                                                onClick={() => {
-                                                    setGalleryModalOpen(true)
-                                                    setModalImgIndex(idx)
-                                                }}
-                                                className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 group"
-                                            >
-                                                <img
-                                                    src={src}
-                                                    alt={`${project.name} ${galleryCategory}`}
-                                                    className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
-                                                    loading="lazy"
-                                                />
-                                            </button>
-                                        ))}
+                                        {visibleGalleryImages.map((src, idx) => {
+                                            const imgName = extractImageName(tabImages[galleryCategory]?.[idx] || src)
+                                            return (
+                                                <button
+                                                    key={`${src}-${idx}`}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setGalleryModalOpen(true)
+                                                        setModalImgIndex(idx)
+                                                        setZoomLevel(1)
+                                                    }}
+                                                    className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 group cursor-pointer"
+                                                >
+                                                    <img
+                                                        src={src}
+                                                        alt={imgName || `${project.name} ${galleryCategory}`}
+                                                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                                                        loading="lazy"
+                                                    />
+                                                    {/* Image name overlay */}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent" />
+                                                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                                                        <span className="text-white text-xs font-semibold drop-shadow-lg leading-tight">{imgName}</span>
+                                                    </div>
+                                                </button>
+                                            )
+                                        })}
                                     </div>
 
                                     {activeGalleryImages.length > galleryVisibleCount && (
@@ -628,63 +701,181 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                             <button
                                                 type="button"
                                                 onClick={() => setGalleryVisibleCount((c) => c + 12)}
-                                                className="h-12 px-6 rounded-xl bg-gray-900 text-white font-bold text-sm hover:bg-black transition-colors"
+                                                className="h-12 px-8 rounded-xl bg-gray-900 text-white font-bold text-sm hover:bg-black transition-colors cursor-pointer"
                                             >
-                                                Load More
+                                                Load More Images
                                             </button>
                                         </div>
                                     )}
                                 </div>
 
-                                {/* Full Gallery Modal */}
+                                {/* ═══ PREMIUM IMAGE VIEWER MODAL ═══ */}
                                 {galleryModalOpen && modalImages.length > 0 && (
                                     <div
-                                        className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
-                                        onClick={() => setGalleryModalOpen(false)}
+                                        className="fixed inset-0 z-[100] bg-black/95 flex flex-col"
+                                        onClick={() => { setGalleryModalOpen(false); setZoomLevel(1); setIsFullscreen(false) }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Escape') { setGalleryModalOpen(false); setZoomLevel(1); setIsFullscreen(false) }
+                                            if (e.key === 'ArrowLeft') setModalImgIndex((p) => (p === 0 ? modalImages.length - 1 : p - 1))
+                                            if (e.key === 'ArrowRight') setModalImgIndex((p) => (p === modalImages.length - 1 ? 0 : p + 1))
+                                        }}
+                                        tabIndex={0}
+                                        role="dialog"
+                                        aria-modal="true"
+                                        aria-label="Image gallery viewer"
                                     >
+                                        {/* Top Bar */}
                                         <div
-                                            className="relative w-full max-w-5xl rounded-2xl overflow-hidden bg-black"
+                                            className="flex items-center justify-between px-4 sm:px-6 py-3 bg-black/40 backdrop-blur-sm z-10"
                                             onClick={(e) => e.stopPropagation()}
                                         >
-                                            <img
-                                                src={modalImages[modalImgIndex]}
-                                                alt="Gallery"
-                                                className="w-full max-h-[80vh] object-contain bg-black"
-                                                loading="eager"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setGalleryModalOpen(false)}
-                                                className="absolute top-3 right-3 h-10 w-10 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-                                                aria-label="Close"
-                                            >
-                                                ✕
-                                            </button>
+                                            {/* Counter */}
+                                            <div className="text-white/90 text-sm font-semibold tracking-wide">
+                                                <span className="text-white font-bold">{modalImgIndex + 1}</span>
+                                                <span className="text-white/50 mx-1">/</span>
+                                                <span className="text-white/50">{modalImages.length}</span>
+                                            </div>
 
+                                            {/* Toolbar */}
+                                            <div className="flex items-center gap-1">
+                                                {/* Zoom Out */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setZoomLevel(z => Math.max(0.5, z - 0.25))}
+                                                    className="h-9 w-9 rounded-lg bg-white/10 text-white/80 hover:bg-white/20 hover:text-white transition-all flex items-center justify-center cursor-pointer"
+                                                    aria-label="Zoom out"
+                                                    title="Zoom out"
+                                                >
+                                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" strokeWidth={2}/><path strokeLinecap="round" strokeWidth={2} d="m21 21-4.35-4.35M8 11h6"/></svg>
+                                                </button>
+                                                {/* Zoom In */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setZoomLevel(z => Math.min(3, z + 0.25))}
+                                                    className="h-9 w-9 rounded-lg bg-white/10 text-white/80 hover:bg-white/20 hover:text-white transition-all flex items-center justify-center cursor-pointer"
+                                                    aria-label="Zoom in"
+                                                    title="Zoom in"
+                                                >
+                                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" strokeWidth={2}/><path strokeLinecap="round" strokeWidth={2} d="m21 21-4.35-4.35M8 11h6M11 8v6"/></svg>
+                                                </button>
+                                                {/* Fullscreen */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsFullscreen(f => !f)}
+                                                    className="h-9 w-9 rounded-lg bg-white/10 text-white/80 hover:bg-white/20 hover:text-white transition-all flex items-center justify-center cursor-pointer"
+                                                    aria-label="Toggle fullscreen"
+                                                    title="Toggle fullscreen"
+                                                >
+                                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"/></svg>
+                                                </button>
+                                                {/* Divider */}
+                                                <div className="w-px h-5 bg-white/20 mx-1" />
+                                                {/* Close */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setGalleryModalOpen(false); setZoomLevel(1); setIsFullscreen(false) }}
+                                                    className="h-9 w-9 rounded-lg bg-white/10 text-white/80 hover:bg-red-500/80 hover:text-white transition-all flex items-center justify-center cursor-pointer"
+                                                    aria-label="Close gallery"
+                                                    title="Close"
+                                                >
+                                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Main Image Area */}
+                                        <div
+                                            className="flex-1 flex items-center justify-center relative overflow-hidden"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            {/* Navigation Arrows */}
                                             {modalImages.length > 1 && (
                                                 <>
                                                     <button
                                                         type="button"
-                                                        onClick={() => setModalImgIndex((p) => (p === 0 ? modalImages.length - 1 : p - 1))}
-                                                        className="absolute left-3 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-                                                        aria-label="Previous"
+                                                        onClick={() => { setModalImgIndex((p) => (p === 0 ? modalImages.length - 1 : p - 1)); setZoomLevel(1) }}
+                                                        className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-10 h-12 w-12 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-white/20 transition-all flex items-center justify-center cursor-pointer border border-white/10"
+                                                        aria-label="Previous image"
                                                     >
-                                                        ‹
+                                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        onClick={() => setModalImgIndex((p) => (p === modalImages.length - 1 ? 0 : p + 1))}
-                                                        className="absolute right-3 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-                                                        aria-label="Next"
+                                                        onClick={() => { setModalImgIndex((p) => (p === modalImages.length - 1 ? 0 : p + 1)); setZoomLevel(1) }}
+                                                        className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-10 h-12 w-12 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-white/20 transition-all flex items-center justify-center cursor-pointer border border-white/10"
+                                                        aria-label="Next image"
                                                     >
-                                                        ›
+                                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
                                                     </button>
                                                 </>
                                             )}
 
-                                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
-                                                {modalImgIndex + 1} / {modalImages.length}
+                                            {/* Image */}
+                                            <img
+                                                src={modalImages[modalImgIndex]}
+                                                alt={extractImageName(tabImages[galleryCategory]?.[modalImgIndex] || modalImages[modalImgIndex])}
+                                                className="max-h-[calc(100vh-200px)] max-w-full object-contain transition-transform duration-300 select-none"
+                                                style={{ transform: `scale(${zoomLevel})` }}
+                                                loading="eager"
+                                                draggable={false}
+                                            />
+                                        </div>
+
+                                        {/* Bottom Area: Dots + Caption + Thumbnails */}
+                                        <div
+                                            className="bg-black/40 backdrop-blur-sm"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            {/* Dot Indicators (only show if <= 20 images) */}
+                                            {modalImages.length > 1 && modalImages.length <= 20 && (
+                                                <div className="flex items-center justify-center gap-1.5 pt-3 pb-1">
+                                                    {modalImages.map((_, dotIdx) => (
+                                                        <button
+                                                            key={dotIdx}
+                                                            type="button"
+                                                            onClick={() => { setModalImgIndex(dotIdx); setZoomLevel(1) }}
+                                                            className={`rounded-full transition-all duration-200 cursor-pointer ${dotIdx === modalImgIndex
+                                                                ? 'w-6 h-2 bg-amber-400'
+                                                                : 'w-2 h-2 bg-white/30 hover:bg-white/50'
+                                                                }`}
+                                                            aria-label={`Go to image ${dotIdx + 1}`}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* Image Caption */}
+                                            <div className="text-center py-2">
+                                                <p className="text-white/90 text-sm font-semibold">
+                                                    {extractImageName(tabImages[galleryCategory]?.[modalImgIndex] || modalImages[modalImgIndex])}
+                                                </p>
                                             </div>
+
+                                            {/* Thumbnail Strip */}
+                                            {modalImages.length > 1 && (
+                                                <div className="flex items-center justify-center gap-1.5 px-4 pb-3 overflow-x-auto scrollbar-none">
+                                                    {modalImages.map((thumbSrc, thumbIdx) => (
+                                                        <button
+                                                            key={`thumb-${thumbIdx}`}
+                                                            type="button"
+                                                            onClick={() => { setModalImgIndex(thumbIdx); setZoomLevel(1) }}
+                                                            className={`flex-shrink-0 w-14 h-10 sm:w-16 sm:h-11 rounded-lg overflow-hidden transition-all duration-200 cursor-pointer border-2 ${
+                                                                thumbIdx === modalImgIndex
+                                                                    ? 'border-amber-400 opacity-100 ring-1 ring-amber-400/50'
+                                                                    : 'border-transparent opacity-50 hover:opacity-80'
+                                                            }`}
+                                                            aria-label={`View image ${thumbIdx + 1}`}
+                                                        >
+                                                            <img
+                                                                src={thumbSrc}
+                                                                alt=""
+                                                                className="w-full h-full object-cover"
+                                                                loading="lazy"
+                                                            />
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}

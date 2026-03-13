@@ -93,8 +93,8 @@ async function updateProject(data) {
         });
     }
 
-    // Build gallery array from structured media object
-    let galleryUrls = []
+    // Build gallery records with tab category from structured media object
+    let galleryRecords = []
     let heroUrl = undefined
     if (data.media && typeof data.media === 'object') {
         // Set hero / cover image
@@ -102,25 +102,25 @@ async function updateProject(data) {
             heroUrl = data.media.hero
         }
 
-        // Collect all unique image URLs from featured + tabs
+        // Collect all unique image records with their category
         const seen = new Set()
-        const addUrl = (url) => {
+        const addRecord = (url, category) => {
             if (url && !seen.has(url)) {
                 seen.add(url)
-                galleryUrls.push(url)
+                galleryRecords.push({ url, category })
             }
         }
 
         // Add featured images
         if (Array.isArray(data.media.featured)) {
-            data.media.featured.forEach(addUrl)
+            data.media.featured.forEach(u => addRecord(u, 'featured'))
         }
 
-        // Add tab images
+        // Add tab images with their respective category
         if (data.media.tabs && typeof data.media.tabs === 'object') {
-            for (const tabImages of Object.values(data.media.tabs)) {
+            for (const [tabName, tabImages] of Object.entries(data.media.tabs)) {
                 if (Array.isArray(tabImages)) {
-                    tabImages.forEach(addUrl)
+                    tabImages.forEach(u => addRecord(u, tabName))
                 }
             }
         }
@@ -147,6 +147,9 @@ async function updateProject(data) {
                 }
         }
 
+        // Delete all old gallery media before re-creating
+        const mediaTypeCategories = ['IMAGE', 'featured', 'exterior', 'amenities', 'interiors', 'lifestyle']
+
         await db.project.update({
             where: { id: project.id },
             data: {
@@ -162,12 +165,11 @@ async function updateProject(data) {
                     create: data.amenities.map(a => ({ name: a }))
                 } : undefined,
 
-                media: galleryUrls.length > 0 ? {
-                    // Delete previously added images, but not floor plans or videos
-                    deleteMany: { mediaType: 'IMAGE' },
-                    create: galleryUrls.map((url, i) => ({
-                        mediaUrl: url,
-                        mediaType: 'IMAGE',
+                media: galleryRecords.length > 0 ? {
+                    deleteMany: { mediaType: { in: mediaTypeCategories } },
+                    create: galleryRecords.map((r, i) => ({
+                        mediaUrl: r.url,
+                        mediaType: r.category,
                         sortOrder: i
                     }))
                 } : undefined,
