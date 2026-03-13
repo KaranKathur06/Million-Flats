@@ -36,16 +36,20 @@ async function getProject(slug: string) {
             try { highlights = JSON.parse(project.highlights) } catch { highlights = [] }
         }
 
-        // Parse structured media JSON (supports `mediaStructured` or `media` field depending on DB column)
+        // Parse structured media JSON (only if an explicit mediaStructured column exists as a JSON string)
         let mediaStructured: any = null
-        const rawMediaStructured = (project as any).mediaStructured ?? (project as any).media
+        const rawMediaStructured = (project as any).mediaStructured
         if (typeof rawMediaStructured === 'string' && rawMediaStructured.trim()) {
             try {
-                mediaStructured = JSON.parse(rawMediaStructured)
+                const parsed = JSON.parse(rawMediaStructured)
+                // Only use if it has the expected structure (hero/featured/tabs)
+                if (parsed && (parsed.hero || parsed.featured || parsed.tabs)) {
+                    mediaStructured = parsed
+                }
             } catch {
                 mediaStructured = null
             }
-        } else if (rawMediaStructured && typeof rawMediaStructured === 'object') {
+        } else if (rawMediaStructured && typeof rawMediaStructured === 'object' && !Array.isArray(rawMediaStructured) && (rawMediaStructured.hero || rawMediaStructured.featured || rawMediaStructured.tabs)) {
             mediaStructured = rawMediaStructured
         }
 

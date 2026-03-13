@@ -93,6 +93,39 @@ async function updateProject(data) {
         });
     }
 
+    // Build gallery array from structured media object
+    let galleryUrls = []
+    let heroUrl = undefined
+    if (data.media && typeof data.media === 'object') {
+        // Set hero / cover image
+        if (data.media.hero) {
+            heroUrl = data.media.hero
+        }
+
+        // Collect all unique image URLs from featured + tabs
+        const seen = new Set()
+        const addUrl = (url) => {
+            if (url && !seen.has(url)) {
+                seen.add(url)
+                galleryUrls.push(url)
+            }
+        }
+
+        // Add featured images
+        if (Array.isArray(data.media.featured)) {
+            data.media.featured.forEach(addUrl)
+        }
+
+        // Add tab images
+        if (data.media.tabs && typeof data.media.tabs === 'object') {
+            for (const tabImages of Object.values(data.media.tabs)) {
+                if (Array.isArray(tabImages)) {
+                    tabImages.forEach(addUrl)
+                }
+            }
+        }
+    }
+
     // Apply updates as Nested Writes in Prisma
     try {
         let developerNestedWrite = undefined
@@ -122,16 +155,17 @@ async function updateProject(data) {
                 city: data.location || undefined,
                 ...(highlightsJson !== undefined && { highlights: highlightsJson }),
                 ...(startingPrice !== undefined && { startingPrice }),
+                ...(heroUrl !== undefined && { coverImage: heroUrl }),
 
                 amenities: data.amenities ? {
                     deleteMany: {},
                     create: data.amenities.map(a => ({ name: a }))
                 } : undefined,
 
-                media: data.gallery ? {
+                media: galleryUrls.length > 0 ? {
                     // Delete previously added images, but not floor plans or videos
                     deleteMany: { mediaType: 'IMAGE' },
-                    create: data.gallery.map((url, i) => ({
+                    create: galleryUrls.map((url, i) => ({
                         mediaUrl: url,
                         mediaType: 'IMAGE',
                         sortOrder: i

@@ -62,7 +62,7 @@
         }
     ],
     "media": {
-        "hero": "public/projects/damac/chelsea-residences/hero/hero.webp",
+        "hero": "public/projects/damac/chelsea-residences/gallery/hero.webp",
         "featured": [
             "public/projects/damac/chelsea-residences/gallery/BUILDINGS.webp",
             "public/projects/damac/chelsea-residences/gallery/EXTERIOR - 1.webp",
