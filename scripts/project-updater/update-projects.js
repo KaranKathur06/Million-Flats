@@ -102,25 +102,28 @@ async function updateProject(data) {
             heroUrl = data.media.hero
         }
 
-        // Collect all unique image records with their category
-        const seen = new Set()
-        const addRecord = (url, category) => {
-            if (url && !seen.has(url)) {
-                seen.add(url)
-                galleryRecords.push({ url, category })
-            }
-        }
-
-        // Add featured images
+        // Add featured images (deduplicate within featured only)
         if (Array.isArray(data.media.featured)) {
-            data.media.featured.forEach(u => addRecord(u, 'featured'))
+            const featuredSeen = new Set()
+            data.media.featured.forEach(u => {
+                if (u && !featuredSeen.has(u)) {
+                    featuredSeen.add(u)
+                    galleryRecords.push({ url: u, category: 'featured' })
+                }
+            })
         }
 
-        // Add tab images with their respective category
+        // Add tab images (deduplicate within each tab only, NOT across tabs/featured)
         if (data.media.tabs && typeof data.media.tabs === 'object') {
             for (const [tabName, tabImages] of Object.entries(data.media.tabs)) {
                 if (Array.isArray(tabImages)) {
-                    tabImages.forEach(u => addRecord(u, tabName))
+                    const tabSeen = new Set()
+                    tabImages.forEach(u => {
+                        if (u && !tabSeen.has(u)) {
+                            tabSeen.add(u)
+                            galleryRecords.push({ url: u, category: tabName })
+                        }
+                    })
                 }
             }
         }

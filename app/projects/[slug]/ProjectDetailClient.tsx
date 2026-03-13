@@ -149,10 +149,11 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
     const [showAllAmenities, setShowAllAmenities] = useState(false)
     const [activeTab, setActiveTab] = useState<'overview' | 'amenities' | 'plans' | 'gallery' | 'location'>('overview')
 
-    const [galleryCategory, setGalleryCategory] = useState<'exterior' | 'amenities' | 'interiors' | 'lifestyle'>('exterior')
-    const [galleryVisibleCount, setGalleryVisibleCount] = useState(12)
+    const [galleryCategory, setGalleryCategory] = useState<'all' | 'exterior' | 'amenities' | 'interiors' | 'lifestyle'>('all')
+    const [galleryVisibleCount, setGalleryVisibleCount] = useState(100)
     const [galleryModalOpen, setGalleryModalOpen] = useState(false)
     const [modalImgIndex, setModalImgIndex] = useState(0)
+    const [modalSource, setModalSource] = useState<'featured' | 'tab'>('tab')
 
     // Recognised gallery media types (tab-specific + legacy ones)
     const GALLERY_MEDIA_TYPES = useMemo(() => new Set(['gallery', 'cover', 'image', 'IMAGE', 'featured', 'exterior', 'amenities', 'interiors', 'lifestyle']), [])
@@ -225,15 +226,32 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
         }
     }, [tabImages])
 
-    const activeGalleryImages = tabImagesResolved[galleryCategory] || []
+    // "All" tab: combine all unique images across all tabs
+    const allTabImages = useMemo(() => uniqueStrings([
+        ...tabImages.exterior, ...tabImages.amenities, ...tabImages.interiors, ...tabImages.lifestyle,
+    ]), [tabImages])
+    const allTabImagesResolved = useMemo(() => allTabImages.map(resolvePublicMediaUrl).filter(Boolean), [allTabImages])
+
+    const activeGalleryImages = galleryCategory === 'all' ? allTabImagesResolved : (tabImagesResolved[galleryCategory] || [])
+
+    // Raw (unresolved) images for name extraction
+    const activeGalleryRawImages = galleryCategory === 'all' ? allTabImages : (tabImages[galleryCategory] || [])
 
     const visibleGalleryImages = useMemo(() => {
         return activeGalleryImages.slice(0, galleryVisibleCount)
     }, [activeGalleryImages, galleryVisibleCount])
 
+    // Modal images: depends on whether opened from featured section or tab grid
     const modalImages = useMemo(() => {
+        if (modalSource === 'featured') return featuredImagesResolved
         return activeGalleryImages
-    }, [activeGalleryImages])
+    }, [modalSource, featuredImagesResolved, activeGalleryImages])
+
+    // Raw images for modal name extraction
+    const modalRawImages = useMemo(() => {
+        if (modalSource === 'featured') return featuredImages
+        return activeGalleryRawImages
+    }, [modalSource, featuredImages, activeGalleryRawImages])
 
     // Zoom state for premium viewer
     const [zoomLevel, setZoomLevel] = useState(1)
@@ -577,13 +595,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                             <section id="section-gallery">
                                 <SectionHeader
                                     title="Gallery"
-                                    subtitle={`${uniqueStrings([
-                                        ...featuredImagesResolved,
-                                        ...tabImagesResolved.exterior,
-                                        ...tabImagesResolved.amenities,
-                                        ...tabImagesResolved.interiors,
-                                        ...tabImagesResolved.lifestyle,
-                                    ]).length} images`}
+                                    subtitle={`${allTabImagesResolved.length} images`}
                                 />
 
                                 {/* Featured Gallery */}
@@ -593,6 +605,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                             <button
                                                 type="button"
                                                 onClick={() => {
+                                                    setModalSource('featured')
                                                     setGalleryModalOpen(true)
                                                     setModalImgIndex(0)
                                                     setZoomLevel(1)
@@ -616,6 +629,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                                     key={`${src}-${idx}`}
                                                     type="button"
                                                     onClick={() => {
+                                                        setModalSource('featured')
                                                         setGalleryModalOpen(true)
                                                         setModalImgIndex(idx + 1)
                                                         setZoomLevel(1)
@@ -641,15 +655,15 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                 {/* Gallery Tabs */}
                                 <div className="mt-6">
                                     <div className="flex flex-wrap gap-2">
-                                        {(['exterior', 'amenities', 'interiors', 'lifestyle'] as const).map((t) => {
-                                            const count = tabImagesResolved[t]?.length || 0
+                                        {(['all', 'exterior', 'amenities', 'interiors', 'lifestyle'] as const).map((t) => {
+                                            const count = t === 'all' ? allTabImagesResolved.length : (tabImagesResolved[t]?.length || 0)
                                             return (
                                                 <button
                                                     key={t}
                                                     type="button"
                                                     onClick={() => {
                                                         setGalleryCategory(t)
-                                                        setGalleryVisibleCount(12)
+                                                        setGalleryVisibleCount(100)
                                                     }}
                                                     className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all capitalize cursor-pointer flex items-center gap-1.5 ${galleryCategory === t
                                                         ? 'bg-amber-500 text-white border-amber-500 shadow-sm shadow-amber-500/20'
@@ -668,12 +682,13 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                     {/* Tab Grid */}
                                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                                         {visibleGalleryImages.map((src, idx) => {
-                                            const imgName = extractImageName(tabImages[galleryCategory]?.[idx] || src)
+                                            const imgName = extractImageName(activeGalleryRawImages[idx] || src)
                                             return (
                                                 <button
                                                     key={`${src}-${idx}`}
                                                     type="button"
                                                     onClick={() => {
+                                                        setModalSource('tab')
                                                         setGalleryModalOpen(true)
                                                         setModalImgIndex(idx)
                                                         setZoomLevel(1)
@@ -700,10 +715,10 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                         <div className="mt-6 flex justify-center">
                                             <button
                                                 type="button"
-                                                onClick={() => setGalleryVisibleCount((c) => c + 12)}
+                                                onClick={() => setGalleryVisibleCount(activeGalleryImages.length)}
                                                 className="h-12 px-8 rounded-xl bg-gray-900 text-white font-bold text-sm hover:bg-black transition-colors cursor-pointer"
                                             >
-                                                Load More Images
+                                                Load All {activeGalleryImages.length} Images
                                             </button>
                                         </div>
                                     )}
@@ -813,7 +828,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                             {/* Image */}
                                             <img
                                                 src={modalImages[modalImgIndex]}
-                                                alt={extractImageName(tabImages[galleryCategory]?.[modalImgIndex] || modalImages[modalImgIndex])}
+                                                alt={extractImageName(modalRawImages[modalImgIndex] || modalImages[modalImgIndex])}
                                                 className="max-h-[calc(100vh-200px)] max-w-full object-contain transition-transform duration-300 select-none"
                                                 style={{ transform: `scale(${zoomLevel})` }}
                                                 loading="eager"
@@ -847,7 +862,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                             {/* Image Caption */}
                                             <div className="text-center py-2">
                                                 <p className="text-white/90 text-sm font-semibold">
-                                                    {extractImageName(tabImages[galleryCategory]?.[modalImgIndex] || modalImages[modalImgIndex])}
+                                                    {extractImageName(modalRawImages[modalImgIndex] || modalImages[modalImgIndex])}
                                                 </p>
                                             </div>
 
