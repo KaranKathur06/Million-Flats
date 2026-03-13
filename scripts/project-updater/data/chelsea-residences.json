@@ -62,48 +62,48 @@
         }
     ],
     "media": {
-        "hero": "/projects/chelsea-residences/hero.webp",
+        "hero": "public/projects/damac/chelsea-residences/gallery/hero.webp",
         "featured": [
-            "/projects/chelsea-residences/BUILDINGS.webp",
-            "/projects/chelsea-residences/EXTERIOR - 1.webp",
-            "/projects/chelsea-residences/CHELSEA LION BEACH.webp",
-            "/projects/chelsea-residences/LIVING & KITCHEN.webp",
-            "/projects/chelsea-residences/STARLIT WELLNESS CENTRE.webp"
+            "public/projects/damac/chelsea-residences/gallery/BUILDINGS.webp",
+            "public/projects/damac/chelsea-residences/gallery/EXTERIOR - 1.webp",
+            "public/projects/damac/chelsea-residences/gallery/CHELSEA LION BEACH.webp",
+            "public/projects/damac/chelsea-residences/gallery/LIVING & KITCHEN.webp",
+            "public/projects/damac/chelsea-residences/gallery/STARLIT WELLNESS CENTRE.webp"
         ],
         "tabs": {
             "exterior": [
-                "/projects/chelsea-residences/BUILDINGS.webp",
-                "/projects/chelsea-residences/EXTERIOR - 1.webp",
-                "/projects/chelsea-residences/EXTERIOR - 2.webp",
-                "/projects/chelsea-residences/EXTERIOR - 3.webp",
-                "/projects/chelsea-residences/EXTERIOR - 4.webp"
+                "public/projects/damac/chelsea-residences/gallery/BUILDINGS.webp",
+                "public/projects/damac/chelsea-residences/gallery/EXTERIOR - 1.webp",
+                "public/projects/damac/chelsea-residences/gallery/EXTERIOR - 2.webp",
+                "public/projects/damac/chelsea-residences/gallery/EXTERIOR - 3.webp",
+                "public/projects/damac/chelsea-residences/gallery/EXTERIOR - 4.webp"
             ],
             "amenities": [
-                "/projects/chelsea-residences/CHELSEA LION BEACH.webp",
-                "/projects/chelsea-residences/CHELSEA SUNSET BAR.webp",
-                "/projects/chelsea-residences/CHELSEA POWERHOUSE LOUNGE.webp",
-                "/projects/chelsea-residences/FINE DINING.webp",
-                "/projects/chelsea-residences/STAMFORD CINEMA.webp",
-                "/projects/chelsea-residences/TRANQUILLITY FALLS.webp"
+                "public/projects/damac/chelsea-residences/gallery/CHELSEA LION BEACH.webp",
+                "public/projects/damac/chelsea-residences/gallery/CHELSEA SUNSET BAR.webp",
+                "public/projects/damac/chelsea-residences/gallery/CHELSEA POWERHOUSE LOUNGE.webp",
+                "public/projects/damac/chelsea-residences/gallery/FINE DINING.webp",
+                "public/projects/damac/chelsea-residences/gallery/STAMFORD CINEMA.webp",
+                "public/projects/damac/chelsea-residences/gallery/TRANQUILLITY FALLS.webp"
             ],
             "interiors": [
-                "/projects/chelsea-residences/LIVING & KITCHEN.webp",
-                "/projects/chelsea-residences/LIVING & KITCHEN 2.webp",
-                "/projects/chelsea-residences/MASTER BEDROOM.webp",
-                "/projects/chelsea-residences/MASTER BEDROOM 2.webp",
-                "/projects/chelsea-residences/MASTER BATHROOM.webp",
-                "/projects/chelsea-residences/WALK-IN CLOSET.webp",
-                "/projects/chelsea-residences/GRAND ATRIUM.webp"
+                "public/projects/damac/chelsea-residences/gallery/LIVING & KITCHEN.webp",
+                "public/projects/damac/chelsea-residences/gallery/LIVING & KITCHEN 2.webp",
+                "public/projects/damac/chelsea-residences/gallery/MASTER BEDROOM.webp",
+                "public/projects/damac/chelsea-residences/gallery/MASTER BEDROOM 2.webp",
+                "public/projects/damac/chelsea-residences/gallery/MASTER BATHROOM.webp",
+                "public/projects/damac/chelsea-residences/gallery/WALK-IN CLOSET.webp",
+                "public/projects/damac/chelsea-residences/gallery/GRAND ATRIUM.webp"
             ],
             "lifestyle": [
-                "/projects/chelsea-residences/AERIAL YOGA.webp",
-                "/projects/chelsea-residences/ATHLETE PERFORMANCE TRAINING CENTRE.webp",
-                "/projects/chelsea-residences/FOOTBALL SIMULATION ROOM.webp",
-                "/projects/chelsea-residences/STAMFORD SUMMIT.webp",
-                "/projects/chelsea-residences/UNDERWATER-THEMED KIDS AREA.webp",
-                "/projects/chelsea-residences/WATER TREATMENT TUNNEL.webp",
-                "/projects/chelsea-residences/FOREST RELAXATION PODS.webp",
-                "/projects/chelsea-residences/STARLIT WELLNESS CENTRE.webp"
+                "public/projects/damac/chelsea-residences/gallery/AERIAL YOGA.webp",
+                "public/projects/damac/chelsea-residences/gallery/ATHLETE PERFORMANCE TRAINING CENTRE.webp",
+                "public/projects/damac/chelsea-residences/gallery/FOOTBALL SIMULATION ROOM.webp",
+                "public/projects/damac/chelsea-residences/gallery/STAMFORD SUMMIT.webp",
+                "public/projects/damac/chelsea-residences/gallery/UNDERWATER-THEMED KIDS AREA.webp",
+                "public/projects/damac/chelsea-residences/gallery/WATER TREATMENT TUNNEL.webp",
+                "public/projects/damac/chelsea-residences/gallery/FOREST RELAXATION PODS.webp",
+                "public/projects/damac/chelsea-residences/gallery/STARLIT WELLNESS CENTRE.webp"
             ]
         }
     },

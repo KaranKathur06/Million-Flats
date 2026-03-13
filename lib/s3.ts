@@ -81,6 +81,15 @@ export function buildS3ObjectUrl(params: { key: string }) {
   return `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key).replace(/%2F/g, '/')}`
 }
 
+export function buildPublicAssetUrl(params: { key: string }) {
+  const key = normalizePrefix(params.key)
+  const base = String(process.env.NEXT_PUBLIC_S3_PUBLIC_BASE_URL || '').trim().replace(/\/$/, '')
+  if (base) {
+    return `${base}/${encodeURIComponent(key).replace(/%2F/g, '/')}`
+  }
+  return buildS3ObjectUrl({ key })
+}
+
 export function buildS3Key(folder: string, filename: string) {
   const safeFolder = folder.replace(/^\/+/, '').replace(/\/+$/, '')
   const parsed = sanitizeFilename(filename || 'upload')

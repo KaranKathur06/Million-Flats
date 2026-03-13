@@ -49,48 +49,48 @@
         "onCompletion": "25%"
     },
     "media": {
-        "hero": "/projects/damac-islands-2/hero.webp",
+        "hero": "public/projects/damac/damac-islands-2/gallery/HERO.webp",
         "featured": [
-            "/projects/damac-islands-2/BUILDINGS.webp",
-            "/projects/damac-islands-2/TOWNHOUSE - FRONT.webp",
-            "/projects/damac-islands-2/ECO HUB CLUBHOUSE OUTDOOR.webp",
-            "/projects/damac-islands-2/V45 VILLA - FAMILY LIVING ROOM.webp",
-            "/projects/damac-islands-2/WHISPERING WATERFALL.webp"
+            "public/projects/damac/damac-islands-2/gallery/BUILDINGS.webp",
+            "public/projects/damac/damac-islands-2/gallery/TOWNHOUSE - FRONT.webp",
+            "public/projects/damac/damac-islands-2/gallery/ECO HUB CLUBHOUSE OUTDOOR.webp",
+            "public/projects/damac/damac-islands-2/gallery/V45 VILLA - FAMILY LIVING ROOM.webp",
+            "public/projects/damac/damac-islands-2/gallery/WHISPERING WATERFALL.webp"
         ],
         "tabs": {
             "exterior": [
-                "/projects/damac-islands-2/BUILDINGS.webp",
-                "/projects/damac-islands-2/TOWNHOUSE - FRONT.webp",
-                "/projects/damac-islands-2/TOWNHOUSE - BACK.webp",
-                "/projects/damac-islands-2/TWIN VILLA – 5-BEDROOM FRONT.webp",
-                "/projects/damac-islands-2/TWIN VILLA – 5-BEDROOM BACK.webp",
-                "/projects/damac-islands-2/V45 – 6-BEDROOM VILLA FRONT.webp",
-                "/projects/damac-islands-2/V45 – 6-BEDROOM VILLA BACK.webp"
+                "public/projects/damac/damac-islands-2/gallery/BUILDINGS.webp",
+                "public/projects/damac/damac-islands-2/gallery/TOWNHOUSE - FRONT.webp",
+                "public/projects/damac/damac-islands-2/gallery/TOWNHOUSE - BACK.webp",
+                "public/projects/damac/damac-islands-2/gallery/TWIN VILLA – 5-BEDROOM FRONT.webp",
+                "public/projects/damac/damac-islands-2/gallery/TWIN VILLA – 5-BEDROOM BACK.webp",
+                "public/projects/damac/damac-islands-2/gallery/V45 – 6-BEDROOM VILLA FRONT.webp",
+                "public/projects/damac/damac-islands-2/gallery/V45 – 6-BEDROOM VILLA BACK.webp"
             ],
             "amenities": [
-                "/projects/damac-islands-2/ECO HUB CLUBHOUSE INDOOR.webp",
-                "/projects/damac-islands-2/ECO HUB CLUBHOUSE OUTDOOR.webp",
-                "/projects/damac-islands-2/ECO LODGE HOSPITALITY.webp",
-                "/projects/damac-islands-2/ECO- PERFORMANCE GROUNDS.webp",
-                "/projects/damac-islands-2/HYDROTHERAPY.webp",
-                "/projects/damac-islands-2/ISLAND VIDA WELLNESS.webp"
+                "public/projects/damac/damac-islands-2/gallery/ECO HUB CLUBHOUSE INDOOR.webp",
+                "public/projects/damac/damac-islands-2/gallery/ECO HUB CLUBHOUSE OUTDOOR.webp",
+                "public/projects/damac/damac-islands-2/gallery/ECO LODGE HOSPITALITY.webp",
+                "public/projects/damac/damac-islands-2/gallery/ECO- PERFORMANCE GROUNDS.webp",
+                "public/projects/damac/damac-islands-2/gallery/HYDROTHERAPY.webp",
+                "public/projects/damac/damac-islands-2/gallery/ISLAND VIDA WELLNESS.webp"
             ],
             "interiors": [
-                "/projects/damac-islands-2/V45 VILLA - FAMILY LIVING ROOM.webp",
-                "/projects/damac-islands-2/V45 VILLA - MASTER BEDROOM.webp",
-                "/projects/damac-islands-2/V45 VILLA - MASTER BATHROOM.webp",
-                "/projects/damac-islands-2/TWIN VILLA - LIVING ROOM & DINNING .webp",
-                "/projects/damac-islands-2/TWIN VILLA - MASTER BEDROOM.webp"
+                "public/projects/damac/damac-islands-2/gallery/V45 VILLA - FAMILY LIVING ROOM.webp",
+                "public/projects/damac/damac-islands-2/gallery/V45 VILLA - MASTER BEDROOM.webp",
+                "public/projects/damac/damac-islands-2/gallery/V45 VILLA - MASTER BATHROOM.webp",
+                "public/projects/damac/damac-islands-2/gallery/TWIN VILLA - LIVING ROOM & DINNING .webp",
+                "public/projects/damac/damac-islands-2/gallery/TWIN VILLA - MASTER BEDROOM.webp"
             ],
             "lifestyle": [
-                "/projects/damac-islands-2/ECO SMART CO-WORKING.webp",
-                "/projects/damac-islands-2/ECO EXPLORERS LAND.webp",
-                "/projects/damac-islands-2/SKY WOODS ADVENTURE.webp",
-                "/projects/damac-islands-2/THE CULTURAL SQUARE.webp",
-                "/projects/damac-islands-2/GARDEN OF INSIGHT.webp",
-                "/projects/damac-islands-2/NATURE’S JOURNEY.webp",
-                "/projects/damac-islands-2/SOLAR LINK PARK.webp",
-                "/projects/damac-islands-2/WHISPERING WATERFALL.webp"
+                "public/projects/damac/damac-islands-2/gallery/ECO SMART CO-WORKING.webp",
+                "public/projects/damac/damac-islands-2/gallery/ECO EXPLORERS LAND.webp",
+                "public/projects/damac/damac-islands-2/gallery/SKY WOODS ADVENTURE.webp",
+                "public/projects/damac/damac-islands-2/gallery/THE CULTURAL SQUARE.webp",
+                "public/projects/damac/damac-islands-2/gallery/GARDEN OF INSIGHT.webp",
+                "public/projects/damac/damac-islands-2/gallery/NATURE’S JOURNEY.webp",
+                "public/projects/damac/damac-islands-2/gallery/SOLAR LINK PARK.webp",
+                "public/projects/damac/damac-islands-2/gallery/WHISPERING WATERFALL.webp"
             ]
         }
     },

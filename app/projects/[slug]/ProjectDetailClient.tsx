@@ -53,6 +53,21 @@ function uniqueStrings(list: (string | undefined | null)[]) {
     return Array.from(set)
 }
 
+function resolvePublicMediaUrl(input: string) {
+    const v = String(input || '').trim()
+    if (!v) return ''
+
+    if (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('/')) return v
+
+    if (v.startsWith('public/') || v.startsWith('private/')) {
+        const base = String(process.env.NEXT_PUBLIC_S3_PUBLIC_BASE_URL || '').trim().replace(/\/$/, '')
+        if (!base) return v
+        return `${base}/${encodeURIComponent(v).replace(/%2F/g, '/')}`
+    }
+
+    return v
+}
+
 /* ═══════════════════════════════════════════════
    HELPERS
    ═══════════════════════════════════════════════ */
@@ -118,12 +133,15 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
     const structuredMedia = project.mediaStructured || null
 
     const heroImage = structuredMedia?.hero || project.coverImage || legacyGalleryImages[0]?.mediaUrl || null
+    const heroImageResolved = heroImage ? resolvePublicMediaUrl(heroImage) : null
 
     const featuredImages = useMemo(() => {
         if (structuredMedia?.featured && structuredMedia.featured.length > 0) return structuredMedia.featured
         if (legacyGalleryImages.length > 0) return legacyGalleryImages.slice(0, 5).map((m) => m.mediaUrl)
         return []
     }, [structuredMedia, legacyGalleryImages])
+
+    const featuredImagesResolved = useMemo(() => featuredImages.map(resolvePublicMediaUrl).filter(Boolean), [featuredImages])
 
     const tabImages = useMemo(() => {
         const tabs = structuredMedia?.tabs
@@ -140,7 +158,16 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
         return { exterior: all, amenities: all, interiors: all, lifestyle: all }
     }, [structuredMedia, legacyGalleryImages])
 
-    const activeGalleryImages = tabImages[galleryCategory] || []
+    const tabImagesResolved = useMemo(() => {
+        return {
+            exterior: tabImages.exterior.map(resolvePublicMediaUrl).filter(Boolean),
+            amenities: tabImages.amenities.map(resolvePublicMediaUrl).filter(Boolean),
+            interiors: tabImages.interiors.map(resolvePublicMediaUrl).filter(Boolean),
+            lifestyle: tabImages.lifestyle.map(resolvePublicMediaUrl).filter(Boolean),
+        }
+    }, [tabImages])
+
+    const activeGalleryImages = tabImagesResolved[galleryCategory] || []
 
     const visibleGalleryImages = useMemo(() => {
         return activeGalleryImages.slice(0, galleryVisibleCount)
@@ -190,8 +217,8 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
         <div className="min-h-screen bg-gray-50">
             {/* ═══ HERO SECTION ═══ */}
             <div className="relative h-[50vh] sm:h-[60vh] lg:h-[70vh] overflow-hidden bg-gray-900">
-                {heroImage ? (
-                    <img src={heroImage} alt={project.name} className="absolute inset-0 w-full h-full object-cover" loading="eager" />
+                {heroImageResolved ? (
+                    <img src={heroImageResolved} alt={project.name} className="absolute inset-0 w-full h-full object-cover" loading="eager" />
                 ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900" />
                 )}
@@ -484,21 +511,21 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                         )}
 
                         {/* GALLERY */}
-                        {(featuredImages.length > 0 || activeGalleryImages.length > 0) && (
+                        {(featuredImagesResolved.length > 0 || activeGalleryImages.length > 0) && (
                             <section id="section-gallery">
                                 <SectionHeader
                                     title="Gallery"
                                     subtitle={`${uniqueStrings([
-                                        ...featuredImages,
-                                        ...tabImages.exterior,
-                                        ...tabImages.amenities,
-                                        ...tabImages.interiors,
-                                        ...tabImages.lifestyle,
+                                        ...featuredImagesResolved,
+                                        ...tabImagesResolved.exterior,
+                                        ...tabImagesResolved.amenities,
+                                        ...tabImagesResolved.interiors,
+                                        ...tabImagesResolved.lifestyle,
                                     ]).length} images`}
                                 />
 
                                 {/* Featured Gallery */}
-                                {featuredImages.length > 0 && (
+                                {featuredImagesResolved.length > 0 && (
                                     <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
                                         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                                             <button
@@ -510,14 +537,14 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                                 className="relative md:col-span-2 md:row-span-2 aspect-[16/10] rounded-2xl overflow-hidden bg-gray-100 group"
                                             >
                                                 <img
-                                                    src={featuredImages[0]}
+                                                    src={featuredImagesResolved[0]}
                                                     alt="Featured"
                                                     className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
                                                     loading="lazy"
                                                 />
                                             </button>
 
-                                            {featuredImages.slice(1, 5).map((src, idx) => (
+                                            {featuredImagesResolved.slice(1, 5).map((src, idx) => (
                                                 <button
                                                     key={`${src}-${idx}`}
                                                     type="button"
@@ -808,11 +835,11 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                     )}
                                     {(featuredImages.length > 0 || activeGalleryImages.length > 0) && (
                                         <div className="flex justify-between"><span className="text-gray-500">Gallery Images</span><span className="font-semibold text-gray-900">{uniqueStrings([
-                                            ...featuredImages,
-                                            ...tabImages.exterior,
-                                            ...tabImages.amenities,
-                                            ...tabImages.interiors,
-                                            ...tabImages.lifestyle,
+                                            ...featuredImagesResolved,
+                                            ...tabImagesResolved.exterior,
+                                            ...tabImagesResolved.amenities,
+                                            ...tabImagesResolved.interiors,
+                                            ...tabImagesResolved.lifestyle,
                                         ]).length}</span></div>
                                     )}
                                     {project.paymentPlans.length > 0 && (
