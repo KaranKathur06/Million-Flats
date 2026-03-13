@@ -36,6 +36,32 @@ async function getProject(slug: string) {
             try { highlights = JSON.parse(project.highlights) } catch { highlights = [] }
         }
 
+        // Parse structured media JSON (supports `mediaStructured` or `media` field depending on DB column)
+        let mediaStructured: any = null
+        const rawMediaStructured = (project as any).mediaStructured ?? (project as any).media
+        if (typeof rawMediaStructured === 'string' && rawMediaStructured.trim()) {
+            try {
+                mediaStructured = JSON.parse(rawMediaStructured)
+            } catch {
+                mediaStructured = null
+            }
+        } else if (rawMediaStructured && typeof rawMediaStructured === 'object') {
+            mediaStructured = rawMediaStructured
+        }
+
+        // Parse brochure JSON (if stored as JSON string)
+        let brochure: any = null
+        const rawBrochure = (project as any).brochure
+        if (typeof rawBrochure === 'string' && rawBrochure.trim()) {
+            try {
+                brochure = JSON.parse(rawBrochure)
+            } catch {
+                brochure = null
+            }
+        } else if (rawBrochure && typeof rawBrochure === 'object') {
+            brochure = rawBrochure
+        }
+
         // Fetch similar projects
         const similarProjects = await (prisma as any).project.findMany({
             where: {
@@ -61,7 +87,7 @@ async function getProject(slug: string) {
             },
         })
 
-        return { ...project, highlights, similarProjects }
+        return { ...project, highlights, mediaStructured, brochure, similarProjects }
     } catch {
         return null
     }

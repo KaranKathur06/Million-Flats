@@ -23,6 +23,17 @@ interface ProjectData {
     createdAt: string
     developer: { id: string; name: string; slug: string | null; logo: string | null } | null
     media: { id: string; mediaUrl: string; mediaType: string; sortOrder: number | null }[]
+    mediaStructured?: {
+        hero?: string
+        featured?: string[]
+        tabs?: {
+            exterior?: string[]
+            amenities?: string[]
+            interiors?: string[]
+            lifestyle?: string[]
+        }
+    } | null
+    brochure?: { title: string; file: string } | null
     unitTypes: { id: string; unitType: string; sizeFrom: number | null; sizeTo: number | null; priceFrom: number | null }[]
     amenities: { id: string; name: string; icon: string | null; category: string | null }[]
     paymentPlans: { id: string; stage: string; percentage: number; milestone: string | null; sortOrder: number | null }[]
@@ -31,6 +42,15 @@ interface ProjectData {
     location: { id: string; latitude: number | null; longitude: number | null; address: string | null; mapUrl: string | null } | null
     nearbyPlaces: { id: string; name: string; category: string | null; distance: string | null; sortOrder: number | null }[]
     similarProjects: { id: string; name: string; slug: string; city: string | null; community: string | null; startingPrice: number | null; goldenVisa: boolean; coverImage: string | null; developer: { name: string } | null }[]
+}
+
+function uniqueStrings(list: (string | undefined | null)[]) {
+    const set = new Set<string>()
+    for (const item of list) {
+        const v = typeof item === 'string' ? item.trim() : ''
+        if (v) set.add(v)
+    }
+    return Array.from(set)
 }
 
 /* ═══════════════════════════════════════════════
@@ -82,15 +102,53 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
     const [showAllAmenities, setShowAllAmenities] = useState(false)
     const [activeTab, setActiveTab] = useState<'overview' | 'amenities' | 'plans' | 'gallery' | 'location'>('overview')
 
-    const galleryImages = useMemo(() => {
-        const images = project.media.filter((m) => m.mediaType === 'gallery' || m.mediaType === 'cover' || m.mediaType === 'image')
+    const [galleryCategory, setGalleryCategory] = useState<'exterior' | 'amenities' | 'interiors' | 'lifestyle'>('exterior')
+    const [galleryVisibleCount, setGalleryVisibleCount] = useState(12)
+    const [galleryModalOpen, setGalleryModalOpen] = useState(false)
+    const [modalImgIndex, setModalImgIndex] = useState(0)
+
+    const legacyGalleryImages = useMemo(() => {
+        const images = project.media.filter((m) => m.mediaType === 'gallery' || m.mediaType === 'cover' || m.mediaType === 'image' || m.mediaType === 'IMAGE')
         if (images.length === 0 && project.coverImage) {
             return [{ id: 'cover', mediaUrl: project.coverImage, mediaType: 'cover', sortOrder: 0 }]
         }
         return images
     }, [project.media, project.coverImage])
 
-    const heroImage = project.coverImage || galleryImages[0]?.mediaUrl || null
+    const structuredMedia = project.mediaStructured || null
+
+    const heroImage = structuredMedia?.hero || project.coverImage || legacyGalleryImages[0]?.mediaUrl || null
+
+    const featuredImages = useMemo(() => {
+        if (structuredMedia?.featured && structuredMedia.featured.length > 0) return structuredMedia.featured
+        if (legacyGalleryImages.length > 0) return legacyGalleryImages.slice(0, 5).map((m) => m.mediaUrl)
+        return []
+    }, [structuredMedia, legacyGalleryImages])
+
+    const tabImages = useMemo(() => {
+        const tabs = structuredMedia?.tabs
+        if (tabs && (tabs.exterior?.length || tabs.amenities?.length || tabs.interiors?.length || tabs.lifestyle?.length)) {
+            return {
+                exterior: uniqueStrings(tabs.exterior || []),
+                amenities: uniqueStrings(tabs.amenities || []),
+                interiors: uniqueStrings(tabs.interiors || []),
+                lifestyle: uniqueStrings(tabs.lifestyle || []),
+            }
+        }
+
+        const all = legacyGalleryImages.map((m) => m.mediaUrl)
+        return { exterior: all, amenities: all, interiors: all, lifestyle: all }
+    }, [structuredMedia, legacyGalleryImages])
+
+    const activeGalleryImages = tabImages[galleryCategory] || []
+
+    const visibleGalleryImages = useMemo(() => {
+        return activeGalleryImages.slice(0, galleryVisibleCount)
+    }, [activeGalleryImages, galleryVisibleCount])
+
+    const modalImages = useMemo(() => {
+        return activeGalleryImages
+    }, [activeGalleryImages])
 
     const amenityCategories = useMemo(() => {
         const cats: Record<string, typeof project.amenities> = {}
@@ -249,6 +307,20 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                         </div>
                                     ))}
                                 </div>
+
+                                {project.brochure?.file && (
+                                    <div className="mt-6">
+                                        <a
+                                            href={project.brochure.file}
+                                            download
+                                            rel="noopener"
+                                            className="inline-flex items-center justify-center gap-3 h-12 px-6 rounded-xl bg-red-600 text-white font-bold text-sm shadow-lg shadow-red-600/20 hover:bg-red-700 transition-colors w-full sm:w-auto"
+                                        >
+                                            <span className="text-lg">📄</span>
+                                            Download Brochure
+                                        </a>
+                                    </div>
+                                )}
                             </section>
                         )}
 
@@ -412,56 +484,169 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                         )}
 
                         {/* GALLERY */}
-                        {galleryImages.length > 0 && (
+                        {(featuredImages.length > 0 || activeGalleryImages.length > 0) && (
                             <section id="section-gallery">
-                                <SectionHeader title="Gallery" subtitle={`${galleryImages.length} images`} />
-                                <div className="space-y-3">
-                                    <div className="relative rounded-2xl overflow-hidden bg-gray-100 aspect-video shadow-lg">
-                                        <img
-                                            src={galleryImages[selectedImg]?.mediaUrl || ''}
-                                            alt={`${project.name} gallery`}
-                                            className="w-full h-full object-cover transition-opacity duration-300"
-                                            loading="lazy"
-                                        />
-                                        {/* Image counter */}
-                                        <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 text-xs text-white font-medium">
-                                            {selectedImg + 1} / {galleryImages.length}
-                                        </div>
-                                        {/* Nav arrows */}
-                                        {galleryImages.length > 1 && (
-                                            <>
+                                <SectionHeader
+                                    title="Gallery"
+                                    subtitle={`${uniqueStrings([
+                                        ...featuredImages,
+                                        ...tabImages.exterior,
+                                        ...tabImages.amenities,
+                                        ...tabImages.interiors,
+                                        ...tabImages.lifestyle,
+                                    ]).length} images`}
+                                />
+
+                                {/* Featured Gallery */}
+                                {featuredImages.length > 0 && (
+                                    <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
+                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setGalleryModalOpen(true)
+                                                    setModalImgIndex(0)
+                                                }}
+                                                className="relative md:col-span-2 md:row-span-2 aspect-[16/10] rounded-2xl overflow-hidden bg-gray-100 group"
+                                            >
+                                                <img
+                                                    src={featuredImages[0]}
+                                                    alt="Featured"
+                                                    className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                                                    loading="lazy"
+                                                />
+                                            </button>
+
+                                            {featuredImages.slice(1, 5).map((src, idx) => (
                                                 <button
-                                                    onClick={() => setSelectedImg((p) => (p === 0 ? galleryImages.length - 1 : p - 1))}
-                                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+                                                    key={`${src}-${idx}`}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setGalleryModalOpen(true)
+                                                        setModalImgIndex(idx + 1)
+                                                    }}
+                                                    className="relative aspect-[16/10] rounded-2xl overflow-hidden bg-gray-100 group"
                                                 >
-                                                    ‹
-                                                </button>
-                                                <button
-                                                    onClick={() => setSelectedImg((p) => (p === galleryImages.length - 1 ? 0 : p + 1))}
-                                                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
-                                                >
-                                                    ›
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                    {galleryImages.length > 1 && (
-                                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
-                                            {galleryImages.map((img, idx) => (
-                                                <button
-                                                    key={img.id}
-                                                    onClick={() => setSelectedImg(idx)}
-                                                    className={`flex-shrink-0 rounded-xl overflow-hidden h-16 w-24 border-2 transition-all ${idx === selectedImg
-                                                        ? 'border-amber-500 shadow-md shadow-amber-500/20'
-                                                        : 'border-transparent opacity-60 hover:opacity-100'
-                                                        }`}
-                                                >
-                                                    <img src={img.mediaUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+                                                    <img
+                                                        src={src}
+                                                        alt="Featured"
+                                                        className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                                                        loading="lazy"
+                                                    />
                                                 </button>
                                             ))}
                                         </div>
+                                    </div>
+                                )}
+
+                                {/* Gallery Tabs */}
+                                <div className="mt-6">
+                                    <div className="flex flex-wrap gap-2">
+                                        {(['exterior', 'amenities', 'interiors', 'lifestyle'] as const).map((t) => (
+                                            <button
+                                                key={t}
+                                                type="button"
+                                                onClick={() => {
+                                                    setGalleryCategory(t)
+                                                    setGalleryVisibleCount(12)
+                                                }}
+                                                className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all capitalize ${galleryCategory === t
+                                                    ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
+                                                    : 'bg-white text-gray-600 border-gray-200 hover:border-amber-200 hover:text-amber-700'
+                                                    }`}
+                                            >
+                                                {t}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Tab Grid */}
+                                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                        {visibleGalleryImages.map((src, idx) => (
+                                            <button
+                                                key={`${src}-${idx}`}
+                                                type="button"
+                                                onClick={() => {
+                                                    setGalleryModalOpen(true)
+                                                    setModalImgIndex(idx)
+                                                }}
+                                                className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 group"
+                                            >
+                                                <img
+                                                    src={src}
+                                                    alt={`${project.name} ${galleryCategory}`}
+                                                    className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                                                    loading="lazy"
+                                                />
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {activeGalleryImages.length > galleryVisibleCount && (
+                                        <div className="mt-6 flex justify-center">
+                                            <button
+                                                type="button"
+                                                onClick={() => setGalleryVisibleCount((c) => c + 12)}
+                                                className="h-12 px-6 rounded-xl bg-gray-900 text-white font-bold text-sm hover:bg-black transition-colors"
+                                            >
+                                                Load More
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
+
+                                {/* Full Gallery Modal */}
+                                {galleryModalOpen && modalImages.length > 0 && (
+                                    <div
+                                        className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+                                        onClick={() => setGalleryModalOpen(false)}
+                                    >
+                                        <div
+                                            className="relative w-full max-w-5xl rounded-2xl overflow-hidden bg-black"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <img
+                                                src={modalImages[modalImgIndex]}
+                                                alt="Gallery"
+                                                className="w-full max-h-[80vh] object-contain bg-black"
+                                                loading="eager"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setGalleryModalOpen(false)}
+                                                className="absolute top-3 right-3 h-10 w-10 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                                                aria-label="Close"
+                                            >
+                                                ✕
+                                            </button>
+
+                                            {modalImages.length > 1 && (
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setModalImgIndex((p) => (p === 0 ? modalImages.length - 1 : p - 1))}
+                                                        className="absolute left-3 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                                                        aria-label="Previous"
+                                                    >
+                                                        ‹
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setModalImgIndex((p) => (p === modalImages.length - 1 ? 0 : p + 1))}
+                                                        className="absolute right-3 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                                                        aria-label="Next"
+                                                    >
+                                                        ›
+                                                    </button>
+                                                </>
+                                            )}
+
+                                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
+                                                {modalImgIndex + 1} / {modalImages.length}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </section>
                         )}
 
@@ -621,8 +806,14 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                     {project.floorPlans.length > 0 && (
                                         <div className="flex justify-between"><span className="text-gray-500">Floor Plans</span><span className="font-semibold text-gray-900">{project.floorPlans.length}</span></div>
                                     )}
-                                    {galleryImages.length > 0 && (
-                                        <div className="flex justify-between"><span className="text-gray-500">Gallery Images</span><span className="font-semibold text-gray-900">{galleryImages.length}</span></div>
+                                    {(featuredImages.length > 0 || activeGalleryImages.length > 0) && (
+                                        <div className="flex justify-between"><span className="text-gray-500">Gallery Images</span><span className="font-semibold text-gray-900">{uniqueStrings([
+                                            ...featuredImages,
+                                            ...tabImages.exterior,
+                                            ...tabImages.amenities,
+                                            ...tabImages.interiors,
+                                            ...tabImages.lifestyle,
+                                        ]).length}</span></div>
                                     )}
                                     {project.paymentPlans.length > 0 && (
                                         <div className="flex justify-between"><span className="text-gray-500">Payment Plan</span><span className="font-semibold text-amber-600">{project.paymentPlans.map(p => `${p.percentage}%`).join(' / ')}</span></div>

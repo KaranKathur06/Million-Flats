@@ -61,14 +61,54 @@
             "time": "23 Minutes"
         }
     ],
-    "gallery": [
-        "/projects/chelsea-residences/hero.webp",
-        "/projects/chelsea-residences/tower-aerial.webp",
-        "/projects/chelsea-residences/rooftop-pitch.webp",
-        "/projects/chelsea-residences/coral-reef-pool.webp",
-        "/projects/chelsea-residences/infinity-pool.webp",
-        "/projects/chelsea-residences/wellness-centre.webp",
-        "/projects/chelsea-residences/living-room.webp",
-        "/projects/chelsea-residences/master-bedroom.webp"
-    ]
+    "media": {
+        "hero": "/projects/chelsea-residences/hero.webp",
+        "featured": [
+            "/projects/chelsea-residences/BUILDINGS.webp",
+            "/projects/chelsea-residences/EXTERIOR - 1.webp",
+            "/projects/chelsea-residences/CHELSEA LION BEACH.webp",
+            "/projects/chelsea-residences/LIVING & KITCHEN.webp",
+            "/projects/chelsea-residences/STARLIT WELLNESS CENTRE.webp"
+        ],
+        "tabs": {
+            "exterior": [
+                "/projects/chelsea-residences/BUILDINGS.webp",
+                "/projects/chelsea-residences/EXTERIOR - 1.webp",
+                "/projects/chelsea-residences/EXTERIOR - 2.webp",
+                "/projects/chelsea-residences/EXTERIOR - 3.webp",
+                "/projects/chelsea-residences/EXTERIOR - 4.webp"
+            ],
+            "amenities": [
+                "/projects/chelsea-residences/CHELSEA LION BEACH.webp",
+                "/projects/chelsea-residences/CHELSEA SUNSET BAR.webp",
+                "/projects/chelsea-residences/CHELSEA POWERHOUSE LOUNGE.webp",
+                "/projects/chelsea-residences/FINE DINING.webp",
+                "/projects/chelsea-residences/STAMFORD CINEMA.webp",
+                "/projects/chelsea-residences/TRANQUILLITY FALLS.webp"
+            ],
+            "interiors": [
+                "/projects/chelsea-residences/LIVING & KITCHEN.webp",
+                "/projects/chelsea-residences/LIVING & KITCHEN 2.webp",
+                "/projects/chelsea-residences/MASTER BEDROOM.webp",
+                "/projects/chelsea-residences/MASTER BEDROOM 2.webp",
+                "/projects/chelsea-residences/MASTER BATHROOM.webp",
+                "/projects/chelsea-residences/WALK-IN CLOSET.webp",
+                "/projects/chelsea-residences/GRAND ATRIUM.webp"
+            ],
+            "lifestyle": [
+                "/projects/chelsea-residences/AERIAL YOGA.webp",
+                "/projects/chelsea-residences/ATHLETE PERFORMANCE TRAINING CENTRE.webp",
+                "/projects/chelsea-residences/FOOTBALL SIMULATION ROOM.webp",
+                "/projects/chelsea-residences/STAMFORD SUMMIT.webp",
+                "/projects/chelsea-residences/UNDERWATER-THEMED KIDS AREA.webp",
+                "/projects/chelsea-residences/WATER TREATMENT TUNNEL.webp",
+                "/projects/chelsea-residences/FOREST RELAXATION PODS.webp",
+                "/projects/chelsea-residences/STARLIT WELLNESS CENTRE.webp"
+            ]
+        }
+    },
+    "brochure": {
+        "title": "Chelsea Residences by DAMAC Brochure",
+        "file": "/brochures/chelsea-residences-damac.pdf"
+    }
 }
