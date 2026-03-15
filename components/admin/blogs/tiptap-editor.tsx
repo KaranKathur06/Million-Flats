@@ -25,7 +25,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
     editorProps: {
       attributes: {
         class:
-          'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl max-w-none p-4 focus:outline-none min-h-[500px]',
+          'prose prose-invert prose-sm sm:prose-base max-w-none p-5 focus:outline-none min-h-[500px] text-white/85',
         placeholder,
       },
     },
@@ -42,141 +42,168 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
 
   if (!editor) return null
 
+  const ToolbarButton = ({
+    onClick,
+    isActive,
+    title,
+    children,
+  }: {
+    onClick: () => void
+    isActive?: boolean
+    title: string
+    children: React.ReactNode
+  }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`h-8 min-w-[32px] px-2 rounded-lg text-xs font-semibold transition-all duration-200 ${
+        isActive
+          ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
+          : 'text-white/50 hover:bg-white/[0.06] hover:text-white/80 border border-transparent'
+      }`}
+      title={title}
+    >
+      {children}
+    </button>
+  )
+
+  const ToolbarDivider = () => (
+    <div className="w-px h-5 bg-white/[0.08] mx-0.5" />
+  )
+
   return (
-    <div className="border border-gray-300 rounded-lg overflow-hidden">
+    <div className="rounded-xl border border-white/[0.08] overflow-hidden">
       {/* Toolbar */}
-      <div className="bg-gray-50 border-b border-gray-200 p-2 flex flex-wrap gap-1">
-        <button
+      <div className="bg-white/[0.03] border-b border-white/[0.06] px-3 py-2 flex flex-wrap items-center gap-0.5">
+        <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`p-2 rounded hover:bg-gray-200 text-sm font-bold ${editor.isActive('bold') ? 'bg-gray-200' : ''}`}
+          isActive={editor.isActive('bold')}
           title="Bold"
         >
-          B
-        </button>
+          <strong>B</strong>
+        </ToolbarButton>
 
-        <button
+        <ToolbarButton
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`p-2 rounded hover:bg-gray-200 text-sm italic ${editor.isActive('italic') ? 'bg-gray-200' : ''}`}
+          isActive={editor.isActive('italic')}
           title="Italic"
         >
-          I
-        </button>
+          <em>I</em>
+        </ToolbarButton>
 
-        <div className="w-px bg-gray-300 mx-1" />
+        <ToolbarDivider />
 
-        <button
+        <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={`p-2 rounded hover:bg-gray-200 text-sm font-bold ${editor.isActive('heading', { level: 2 }) ? 'bg-gray-200' : ''}`}
+          isActive={editor.isActive('heading', { level: 2 })}
           title="Heading 2"
         >
           H2
-        </button>
+        </ToolbarButton>
 
-        <button
+        <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          className={`p-2 rounded hover:bg-gray-200 text-sm font-bold ${editor.isActive('heading', { level: 3 }) ? 'bg-gray-200' : ''}`}
+          isActive={editor.isActive('heading', { level: 3 })}
           title="Heading 3"
         >
           H3
-        </button>
+        </ToolbarButton>
 
-        <div className="w-px bg-gray-300 mx-1" />
+        <ToolbarDivider />
 
-        <button
+        <ToolbarButton
           onClick={() => editor.chain().focus().insertContent('<hr>').run()}
-          className="p-2 rounded hover:bg-gray-200 text-sm"
           title="Horizontal Line"
         >
           HR
-        </button>
+        </ToolbarButton>
 
-        <button
+        <ToolbarButton
           onClick={() => {
             const url = prompt('Enter URL:')
             if (url) editor.chain().focus().setLink({ href: url }).run()
           }}
-          className={`p-2 rounded hover:bg-gray-200 text-sm ${editor.isActive('link') ? 'bg-gray-200' : ''}`}
+          isActive={editor.isActive('link')}
           title="Link"
         >
           🔗
-        </button>
+        </ToolbarButton>
 
-        <button
+        <ToolbarButton
           onClick={() => {
             const url = prompt('Enter image URL:')
             if (url) editor.chain().focus().insertContent(`<img src="${url}" alt="" />`).run()
           }}
-          className="p-2 rounded hover:bg-gray-200 text-sm"
           title="Image"
         >
           🖼️
-        </button>
+        </ToolbarButton>
 
-        <button
+        <ToolbarButton
           onClick={() => {
-            const html = editor.getHTML()
-            // Simple table insertion for now
             editor.chain().focus().insertContent('<table><tbody><tr><td>Cell 1</td><td>Cell 2</td></tr><tr><td>Cell 3</td><td>Cell 4</td></tr></tbody></table>').run()
           }}
-          className="p-2 rounded hover:bg-gray-200 text-sm"
           title="Table"
         >
           Table
-        </button>
+        </ToolbarButton>
 
-        <button
+        <ToolbarButton
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={`p-2 rounded hover:bg-gray-200 text-sm ${editor.isActive('blockquote') ? 'bg-gray-200' : ''}`}
+          isActive={editor.isActive('blockquote')}
           title="Blockquote"
         >
           &quot;
-        </button>
+        </ToolbarButton>
 
-        <button
+        <ToolbarButton
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`p-2 rounded hover:bg-gray-200 text-sm ${editor.isActive('bulletList') ? 'bg-gray-200' : ''}`}
+          isActive={editor.isActive('bulletList')}
           title="Bullet List"
         >
-          List
-        </button>
+          • List
+        </ToolbarButton>
 
-        <button
+        <ToolbarButton
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={`p-2 rounded hover:bg-gray-200 text-sm ${editor.isActive('orderedList') ? 'bg-gray-200' : ''}`}
+          isActive={editor.isActive('orderedList')}
           title="Ordered List"
         >
           1.
-        </button>
+        </ToolbarButton>
 
-        <div className="w-px bg-gray-300 mx-1" />
+        <ToolbarDivider />
 
-        <button
+        <ToolbarButton
           onClick={() => editor.chain().focus().undo().run()}
-          className="p-2 rounded hover:bg-gray-200 text-sm"
           title="Undo"
         >
           ↩️
-        </button>
+        </ToolbarButton>
 
-        <button
+        <ToolbarButton
           onClick={() => editor.chain().focus().redo().run()}
-          className="p-2 rounded hover:bg-gray-200 text-sm"
           title="Redo"
         >
           ↪️
-        </button>
+        </ToolbarButton>
       </div>
 
       {/* Editor Content */}
-      <EditorContent editor={editor} />
+      <div className="bg-white/[0.02]">
+        <EditorContent editor={editor} />
+      </div>
 
       {/* Word count */}
-      <div className="bg-gray-50 border-t border-gray-200 px-4 py-2 flex justify-between text-sm text-gray-500">
-        <div>
-          Words: {content.trim().split(/\s+/).filter(Boolean).length}
+      <div className="bg-white/[0.03] border-t border-white/[0.06] px-4 py-2 flex justify-between text-xs text-white/40">
+        <div className="flex items-center gap-1.5">
+          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Words: <span className="text-white/60 font-medium">{content.trim().split(/\s+/).filter(Boolean).length}</span>
         </div>
         <div>
-          Characters: {content.length}
+          Characters: <span className="text-white/60 font-medium">{content.length}</span>
         </div>
       </div>
     </div>
