@@ -322,53 +322,6 @@ enum InquiryStatus {
    CLOSED
  }
 
-model User {
-  id        String   @id @default(uuid())
-  role      Role     @default(USER)
-  status    UserStatus @default(ACTIVE)
-  name      String?
-  email     String   @unique
-  emailVerified Boolean  @default(false) @map("email_verified")
-  emailVerifiedAt DateTime? @map("email_verified_at")
-  emailVerifiedByAdminId String? @map("email_verified_by_admin_id")
-  image     String?
-  password  String?  @map("password_hash")
-  googleId  String?  @unique @map("google_id")
-  phone     String?
-  phoneCountryIso2   String?  @db.Char(2) @map("phone_country_iso2")
-  phoneNationalNumber String? @map("phone_national_number")
-
-  phoneCountry Country? @relation("UserPhoneCountry", fields: [phoneCountryIso2], references: [iso2])
-
-  countryIso2 String? @db.Char(2) @map("country_iso2")
-  country     Country? @relation(fields: [countryIso2], references: [iso2])
-  verified  Boolean  @default(false) @map("is_verified")
-
-  agent Agent?
-
-  accounts Account[]
-  sessions Session[]
-
-  emailVerificationTokens EmailVerificationToken[]
-  passwordResetTokens PasswordResetToken[]
-
-  savedProperties SavedProperty[]
-  propertyLeads   PropertyLead[]
-  preference      UserPreference?
-
-  manualPropertyModerationLogs ManualPropertyModerationLog[] @relation("ManualPropertyModerationAdmin")
-  auditLogs AuditLog[] @relation("AuditLogPerformedBy")
-  moderationCases ModerationCase[] @relation("ModerationCaseCreatedBy")
-  moderationActions ModerationAction[] @relation("ModerationActionActor")
-  moderationMessages ModerationMessage[] @relation("ModerationMessageActor")
-  reportsSubmitted Report[] @relation("ReportSubmittedBy")
-  inquiries Inquiry[]
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("users")
-}
 
 model Account {
   id                String  @id @default(uuid())
