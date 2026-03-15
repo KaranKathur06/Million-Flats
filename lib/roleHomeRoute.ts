@@ -9,7 +9,7 @@ function normalizeRole(input: unknown): AppRole {
 export function getHomeRouteForRole(role: unknown): string {
   const r = normalizeRole(role)
 
-  if (r === 'ADMIN' || r === 'SUPERADMIN') return '/admin/dashboard'
+  if (r === 'ADMIN' || r === 'SUPERADMIN') return '/admin'
   if (r === 'AGENT') return '/agent/dashboard'
   return '/dashboard'
 }

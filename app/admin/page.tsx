@@ -18,13 +18,17 @@ export default async function AdminHomePage() {
     redirect(`${getHomeRouteForRole(role)}?error=admin_only`)
   }
 
-  const [total, drafts, pending, approved, rejected, archived] = await Promise.all([
+  const [total, drafts, pending, approved, rejected, archived, blogTotal, blogPublished, blogScheduled, blogDrafts] = await Promise.all([
     (prisma as any).manualProperty.count({ where: { sourceType: 'MANUAL' } }).catch(() => 0),
     (prisma as any).manualProperty.count({ where: { sourceType: 'MANUAL', status: 'DRAFT' } }).catch(() => 0),
     (prisma as any).manualProperty.count({ where: { sourceType: 'MANUAL', status: 'PENDING_REVIEW' } }).catch(() => 0),
     (prisma as any).manualProperty.count({ where: { sourceType: 'MANUAL', status: 'APPROVED' } }).catch(() => 0),
     (prisma as any).manualProperty.count({ where: { sourceType: 'MANUAL', status: 'REJECTED' } }).catch(() => 0),
     (prisma as any).manualProperty.count({ where: { sourceType: 'MANUAL', status: 'ARCHIVED' } }).catch(() => 0),
+    (prisma as any).blog.count().catch(() => 0),
+    (prisma as any).blog.count({ where: { status: 'PUBLISHED' } }).catch(() => 0),
+    (prisma as any).blog.count({ where: { status: 'SCHEDULED' } }).catch(() => 0),
+    (prisma as any).blog.count({ where: { status: 'DRAFT' } }).catch(() => 0),
   ])
 
   const stats = [
@@ -42,6 +46,7 @@ export default async function AdminHomePage() {
     { href: '/admin/drafts', label: 'Drafts' },
     { href: '/admin/agents', label: 'Agents' },
     { href: '/admin/users', label: 'Users' },
+    { href: '/admin/blogs', label: 'Blogs' },
   ]
 
   return (
@@ -93,6 +98,49 @@ export default async function AdminHomePage() {
           ))}
         </div>
       </div>
+
+      {/* Blogs Overview Card */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/5 border border-blue-500/20 flex items-center justify-center">
+              <svg className="h-4.5 w-4.5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-[15px] font-bold text-white/90">Blog System</h2>
+              <p className="text-[11px] text-white/40">Content management overview</p>
+            </div>
+          </div>
+          <Link
+            href="/admin/blogs"
+            className="inline-flex items-center gap-1 text-[12px] font-semibold text-amber-400/80 hover:text-amber-300 transition-colors"
+          >
+            Manage Blogs →
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Total</p>
+            <p className="mt-1.5 text-xl font-bold text-white/80">{blogTotal}</p>
+          </div>
+          <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/[0.04] p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-300/60">Published</p>
+            <p className="mt-1.5 text-xl font-bold text-emerald-300">{blogPublished}</p>
+          </div>
+          <div className="rounded-xl border border-amber-500/15 bg-amber-500/[0.04] p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-300/60">Scheduled</p>
+            <p className="mt-1.5 text-xl font-bold text-amber-300">{blogScheduled}</p>
+          </div>
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Drafts</p>
+            <p className="mt-1.5 text-xl font-bold text-white/60">{blogDrafts}</p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
+

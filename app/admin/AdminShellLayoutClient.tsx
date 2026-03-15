@@ -4,7 +4,25 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-const nav = [
+/* ---------- flat nav items (no children) ---------- */
+type NavItem = {
+  href: string
+  label: string
+  icon: React.ReactNode
+}
+
+/* ---------- nav group with sub-items ---------- */
+type NavGroup = {
+  label: string
+  icon: React.ReactNode
+  basePath: string
+  children: { href: string; label: string }[]
+}
+
+type NavEntry = NavItem | NavGroup
+const isGroup = (e: NavEntry): e is NavGroup => 'children' in e
+
+const navEntries: NavEntry[] = [
   {
     href: '/admin',
     label: 'Dashboard',
@@ -41,14 +59,21 @@ const nav = [
       </svg>
     ),
   },
+  /* ---- BLOGS GROUP ---- */
   {
-    href: '/admin/blogs',
     label: 'Blogs',
+    basePath: '/admin/blogs',
     icon: (
       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
       </svg>
     ),
+    children: [
+      { href: '/admin/blogs/dashboard', label: 'Dashboard' },
+      { href: '/admin/blogs/all', label: 'All Blogs' },
+      { href: '/admin/blogs/new', label: 'Create Blog' },
+      { href: '/admin/blogs/categories', label: 'Categories' },
+    ],
   },
   {
     href: '/admin/agents',
@@ -134,8 +159,36 @@ const nav = [
   },
 ]
 
+/* ============ Chevron icon for collapsable groups ============ */
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      className={`h-3.5 w-3.5 text-white/30 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+  )
+}
+
+/* ============ Nav links component ============ */
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname() ?? ''
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
+    // Auto-expand groups whose basePath matches the current URL
+    const init: Record<string, boolean> = {}
+    navEntries.forEach((e) => {
+      if (isGroup(e) && pathname.startsWith(e.basePath)) {
+        init[e.label] = true
+      }
+    })
+    return init
+  })
+
+  const toggle = (label: string) =>
+    setExpanded((prev) => ({ ...prev, [label]: !prev[label] }))
 
   return (
     <nav className="px-3 py-5">
@@ -143,13 +196,69 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
         <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">Navigation</p>
       </div>
       <div className="space-y-0.5">
-        {nav.map((item) => {
-          const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))
+        {navEntries.map((entry) => {
+          if (isGroup(entry)) {
+            const isOpen = !!expanded[entry.label]
+            const groupActive = pathname.startsWith(entry.basePath)
+
+            return (
+              <div key={entry.label}>
+                {/* Group header (click to expand/collapse) */}
+                <button
+                  type="button"
+                  onClick={() => toggle(entry.label)}
+                  className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200 ${
+                    groupActive
+                      ? 'bg-gradient-to-r from-amber-400/[0.15] to-amber-400/[0.05] text-white shadow-sm border border-amber-400/[0.15]'
+                      : 'text-white/55 hover:bg-white/[0.04] hover:text-white/90 border border-transparent'
+                  }`}
+                >
+                  <span className={`flex-shrink-0 transition-colors duration-200 ${groupActive ? 'text-amber-300' : 'text-white/40 group-hover:text-white/70'}`}>
+                    {entry.icon}
+                  </span>
+                  <span className="flex-1 text-left">{entry.label}</span>
+                  <ChevronIcon expanded={isOpen} />
+                  {groupActive && (
+                    <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-amber-400 shadow-sm shadow-amber-400/50" />
+                  )}
+                </button>
+
+                {/* Sub-items (animated) */}
+                <div
+                  className={`overflow-hidden transition-all duration-200 ease-in-out ${isOpen ? 'max-h-60 opacity-100 mt-0.5' : 'max-h-0 opacity-0'}`}
+                >
+                  <div className="ml-4 pl-4 border-l border-white/[0.06] space-y-0.5 py-0.5">
+                    {entry.children.map((child) => {
+                      const childActive = pathname === child.href || pathname.startsWith(child.href + '/')
+
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          onClick={onNavigate}
+                          className={`block rounded-lg px-3 py-2 text-[12px] font-medium transition-all duration-200 ${
+                            childActive
+                              ? 'text-amber-300 bg-amber-400/[0.08]'
+                              : 'text-white/45 hover:text-white/80 hover:bg-white/[0.03]'
+                          }`}
+                        >
+                          {child.label}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            )
+          }
+
+          /* ---- Flat nav item ---- */
+          const isActive = pathname === entry.href || (entry.href !== '/admin' && pathname.startsWith(entry.href))
 
           return (
             <Link
-              key={item.href}
-              href={item.href}
+              key={entry.href}
+              href={entry.href}
               onClick={onNavigate}
               className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200 ${isActive
                 ? 'bg-gradient-to-r from-amber-400/[0.15] to-amber-400/[0.05] text-white shadow-sm border border-amber-400/[0.15]'
@@ -157,9 +266,9 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
                 }`}
             >
               <span className={`flex-shrink-0 transition-colors duration-200 ${isActive ? 'text-amber-300' : 'text-white/40 group-hover:text-white/70'}`}>
-                {item.icon}
+                {entry.icon}
               </span>
-              <span>{item.label}</span>
+              <span>{entry.label}</span>
               {isActive && (
                 <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-amber-400 shadow-sm shadow-amber-400/50" />
               )}
