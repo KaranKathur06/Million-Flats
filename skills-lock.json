@@ -1,10 +1,20 @@
 {
   "version": 1,
   "skills": {
+    "brainstorming": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "computedHash": "a0943c399704a12b1ba4a84045c81f69680ca7e2193359bd110a678bb07d338d"
+    },
     "frontend-design": {
       "source": "anthropics/skills",
       "sourceType": "github",
       "computedHash": "516bd2154eb843a8240e43d5b285229129853114ad7075a5e141e1c08e408c84"
+    },
+    "seo-audit": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "computedHash": "941f6f4db0f79248f6480256cf1838ed19bc1a0d70f499bb756f491142625cb4"
     },
     "system-design": {
       "source": "jwynia/agent-skills",
