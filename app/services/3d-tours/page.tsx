@@ -1,4 +1,17 @@
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+
+const TourShowcase = dynamic(() => import('@/components/3DTourShowcase'), {
+  ssr: false,
+  loading: () => (
+    <div className="py-24 text-center text-slate-400">
+      <div className="inline-flex items-center gap-3 text-sm font-semibold">
+        <div className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+        Loading showcase...
+      </div>
+    </div>
+  ),
+})
 
 export const metadata = {
   title: '3D Development Solutions - MillionFlats x Meta-dology',
@@ -165,6 +178,9 @@ export default function Service3DToursPage() {
           </div>
         </div>
       </section>
+
+      {/* VIDEO & IMAGE SHOWCASE — injected between stages and cost savings */}
+      <TourShowcase />
 
       {/* COST SAVINGS */}
       <section className="bg-slate-900 py-24 relative overflow-hidden">
