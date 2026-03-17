@@ -30,21 +30,22 @@ export function ModuleLock({ status, moduleName, children, isLocked }: ModuleLoc
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
         </div>
-        h2 className="text-xl font-bold text-dark-blue mb-2"
-        {moduleName} Locked
-      </div>
-      <p className="text-gray-600 max-w-sm mb-6">
-        You cannot access this feature until your profile is approved. {ux.message}
-      </p>
+        <h2 className="text-xl font-bold text-dark-blue mb-2">
+          {moduleName} Locked
+        </h2>
+        <p className="text-gray-600 max-w-sm mb-6">
+          You cannot access this feature until your profile is approved. {ux.message}
+        </p>
 
-      {ux.ctaLabel && ux.ctaHref && (
-        <Link
-          href={ux.ctaHref}
-          className="px-6 py-2.5 bg-dark-blue text-white font-semibold rounded-xl hover:bg-dark-blue/90 transition-colors shadow-sm"
-        >
-          {ux.ctaLabel}
-        </Link>
-      )}
+        {ux.ctaLabel && ux.ctaHref && (
+          <Link
+            href={ux.ctaHref}
+            className="px-6 py-2.5 bg-dark-blue text-white font-semibold rounded-xl hover:bg-dark-blue/90 transition-colors shadow-sm"
+          >
+            {ux.ctaLabel}
+          </Link>
+        )}
+      </div>
     </div>
   )
 }

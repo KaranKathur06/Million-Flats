@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   }
 
   // 1. Find property and its owner agent
-  const property = await prisma.manualProperty.findUnique({
+  const property: any = await (prisma as any).manualProperty.findUnique({
     where: { id: propertyId },
     select: {
       id: true,
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     assignedAgentId = property.agent.id
   } else {
     // 3. Fallback: route by subscription tier + rating + response rate
-    const candidates = await prisma.agent.findMany({
+    const candidates: any[] = await (prisma as any).agent.findMany({
       where: {
         status: 'APPROVED' as any,
         subscription: {
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
 
     // Score each candidate
     const scored = candidates
-      .map((agent) => {
+      .map((agent: any) => {
         const plan = (agent.subscription?.plan ?? 'BASIC') as any
         const subStatus = (agent.subscription?.status ?? 'ACTIVE') as any
         const baseScore = getLeadRoutingScore(plan, subStatus)
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
   }
 
   // 4. Create the Inquiry record
-  const inquiry = await prisma.inquiry.create({
+  const inquiry = await (prisma as any).inquiry.create({
     data: {
       propertyId,
       agentId: assignedAgentId,
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
   })
 
   // 5. Increment agent lead counter
-  await prisma.agent.update({
+  await (prisma as any).agent.update({
     where: { id: assignedAgentId },
     data: { totalLeads: { increment: 1 } },
   })

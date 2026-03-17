@@ -19,7 +19,7 @@ export async function GET(req: Request) {
   const skip = (page - 1) * pageSize
 
   const [subscriptions, total] = await Promise.all([
-    prisma.agentSubscription.findMany({
+    (prisma as any).agentSubscription.findMany({
       skip,
       take: pageSize,
       orderBy: { updatedAt: 'desc' },
@@ -33,7 +33,7 @@ export async function GET(req: Request) {
         },
       },
     }),
-    prisma.agentSubscription.count(),
+    (prisma as any).agentSubscription.count(),
   ])
 
   return NextResponse.json({ subscriptions, total, page, pageSize })
@@ -53,12 +53,12 @@ export async function POST(req: Request) {
   const normalizedPlan = normalizePlan(plan)
   const limits = PLAN_LIMITS[normalizedPlan]
 
-  const agent = await prisma.agent.findUnique({ where: { id: agentId } })
+  const agent = await (prisma as any).agent.findUnique({ where: { id: agentId } })
   if (!agent) {
     return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
   }
 
-  const existing = await prisma.agentSubscription.findUnique({ where: { agentId } })
+  const existing = await (prisma as any).agentSubscription.findUnique({ where: { agentId } })
 
   const now = new Date()
   // Calculate new end date
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
   const newEndDate = new Date(baseDate)
   newEndDate.setDate(newEndDate.getDate() + (extensionDays ?? 30))
 
-  const subscription = await prisma.agentSubscription.upsert({
+  const subscription = await (prisma as any).agentSubscription.upsert({
     where: { agentId },
     create: {
       agentId,

@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   const now = new Date()
 
   // Find all active/trial subscriptions that have passed their endDate
-  const expired = await prisma.agentSubscription.findMany({
+  const expired: any[] = await (prisma as any).agentSubscription.findMany({
     where: {
       status: { in: ['ACTIVE', 'TRIAL'] as any[] },
       endDate: { lte: now },
@@ -36,8 +36,8 @@ export async function POST(req: Request) {
 
   // Downgrade each to BASIC + mark as EXPIRED
   const updates = await Promise.all(
-    expired.map((sub) =>
-      prisma.agentSubscription.update({
+    expired.map((sub: any) =>
+      (prisma as any).agentSubscription.update({
         where: { id: sub.id },
         data: {
           status: 'EXPIRED' as any,

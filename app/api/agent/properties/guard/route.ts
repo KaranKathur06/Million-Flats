@@ -21,7 +21,7 @@ export async function GET() {
     return NextResponse.json({ allowed: false, reason: 'Not authenticated.', code: 'UNAUTHENTICATED' }, { status: 401 })
   }
 
-  const user = await prisma.user.findUnique({
+  const user: any = await (prisma as any).user.findUnique({
     where: { email: session.user.email },
     select: {
       agent: {

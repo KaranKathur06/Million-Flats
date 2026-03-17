@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { getAgentLifecycleUx } from '@/lib/agentLifecycle'
+import { getAgentLifecycleUx, AgentStatus } from '@/lib/agentLifecycle'
 import AgentProfileSubmitPanel, { ProfileStatusBadge } from '../_components/AgentProfileSubmitPanel'
 
 export default function AgentProfileClient({
@@ -58,7 +58,7 @@ export default function AgentProfileClient({
 
   const searchParams = useSearchParams()
 
-  const lifecycle = useMemo(() => getAgentLifecycleUx({ profileStatus }), [profileStatus])
+  const lifecycle = useMemo(() => getAgentLifecycleUx({ status: profileStatus as AgentStatus }), [profileStatus])
   const notice = useMemo(() => String(searchParams?.get('notice') || '').trim(), [searchParams])
 
   const noticeText =

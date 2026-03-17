@@ -30,41 +30,40 @@ export async function POST(
     return NextResponse.json({ error: 'action must be APPROVED or REJECTED' }, { status: 400 })
   }
 
-  const document = await prisma.agentDocument.findFirst({
+  const document = await (prisma as any).agentVerification.findFirst({
     where: { id: documentId, agentId },
   })
   if (!document) {
     return NextResponse.json({ error: 'Document not found' }, { status: 404 })
   }
 
-  const updated = await prisma.agentDocument.update({
+  const updated = await (prisma as any).agentVerification.update({
     where: { id: documentId },
     data: {
       status: action as any,
       reviewedAt: new Date(),
-      rejectionReason: action === 'REJECTED' ? (rejectionReason ?? null) : null,
     },
   })
 
   // If agent has all required docs APPROVED → advance to UNDER_REVIEW
   const REQUIRED_TYPES = ['GOVERNMENT_ID', 'REAL_ESTATE_LICENSE']
-  const requiredDocs = await prisma.agentDocument.findMany({
-    where: { agentId, type: { in: REQUIRED_TYPES as any[] } },
+  const requiredDocs = await (prisma as any).agentVerification.findMany({
+    where: { agentId, documentType: { in: REQUIRED_TYPES as any[] } },
   })
 
   const allApproved = REQUIRED_TYPES.every((t) =>
-    requiredDocs.some((d) => d.type === t && d.status === 'APPROVED')
+    (requiredDocs as any[]).some((d: any) => d.documentType === t && d.status === 'APPROVED')
   )
 
   let agentStatus: string | undefined
   if (allApproved) {
-    const agent = await prisma.agent.findUnique({ where: { id: agentId }, select: { status: true } })
+    const agent = await (prisma as any).agent.findUnique({ where: { id: agentId }, select: { status: true } })
     if (
       agent &&
       agent.status !== 'APPROVED' &&
       agent.status !== 'REJECTED'
     ) {
-      await prisma.agent.update({
+      await (prisma as any).agent.update({
         where: { id: agentId },
         data: { status: 'UNDER_REVIEW' as any },
       })
