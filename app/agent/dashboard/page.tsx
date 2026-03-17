@@ -279,6 +279,7 @@ export default async function AgentDashboardPage() {
       company={agent.company || ''}
       license={agent.license || ''}
       approved={Boolean(agent.approved)}
+      agentStatus={(agent as any)?.status || 'REGISTERED'}
       profileStatus={String((agentRow as any)?.profileStatus || (agent as any)?.profileStatus || 'DRAFT')}
       publicProfileHref={publicProfileHref}
       stats={{

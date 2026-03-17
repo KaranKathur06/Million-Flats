@@ -3,9 +3,10 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { formatCountryPrice } from '@/lib/country'
 import { buildPropertySlugPath } from '@/lib/seo'
 import AgentProfileSubmitPanel, { ProfileStatusBadge } from '../_components/AgentProfileSubmitPanel'
+import { ModuleLock } from '../../_components/agent/ModuleLock'
+import { AgentStatus, agentModuleAccessMap } from '@/lib/agentLifecycle'
 
 type Listing = {
   id: string
@@ -38,6 +39,7 @@ export default function AgentDashboardClient({
   company,
   license,
   approved,
+  agentStatus,
   profileStatus,
   publicProfileHref,
   stats,
@@ -51,6 +53,7 @@ export default function AgentDashboardClient({
   company: string
   license: string
   approved: boolean
+  agentStatus: AgentStatus
   profileStatus: string
   publicProfileHref: string
   stats: {
@@ -77,6 +80,8 @@ export default function AgentDashboardClient({
     const last = parts.length > 1 ? parts[parts.length - 1]?.[0] || '' : ''
     return `${first}${last}`.toUpperCase()
   }, [agentName])
+
+  const access = agentModuleAccessMap(agentStatus)
 
   const deleteDraft = async (id: string) => {
     if (!id || busyId) return
@@ -218,8 +223,9 @@ export default function AgentDashboardClient({
 
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            {draftListings.length > 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-200 p-6">
+            <ModuleLock status={agentStatus} moduleName="Listings" isLocked={!access.properties}>
+              {draftListings.length > 0 ? (
+                <div className="bg-white rounded-2xl border border-gray-200 p-6">
                 <div className="flex items-start justify-between gap-6">
                   <div>
                     <h2 className="text-xl font-serif font-bold text-dark-blue">Draft Listings</h2>
@@ -453,7 +459,9 @@ export default function AgentDashboardClient({
                 </div>
               )}
             </div>
+            </ModuleLock>
 
+            <ModuleLock status={agentStatus} moduleName="Leads Tracking" isLocked={!access.leads}>
             <div className="bg-white rounded-2xl border border-gray-200 p-6">
               <div className="flex items-start justify-between gap-6">
                 <div>
@@ -497,6 +505,7 @@ export default function AgentDashboardClient({
                 </div>
               )}
             </div>
+            </ModuleLock>
           </div>
 
           <div className="space-y-6">

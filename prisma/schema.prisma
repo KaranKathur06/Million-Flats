@@ -9,7 +9,9 @@ generator client {
 
 enum Role {
   USER
+  BUYER
   AGENT
+  DEVELOPER
   MODERATOR
   VERIFIER
   ADMIN
@@ -22,11 +24,15 @@ enum UserStatus {
   BANNED
 }
 
-enum AgentProfileStatus {
-  DRAFT
-  SUBMITTED
-  VERIFIED
-  LIVE
+enum AgentStatus {
+  REGISTERED
+  EMAIL_VERIFIED
+  PROFILE_INCOMPLETE
+  PROFILE_COMPLETED
+  DOCUMENTS_UPLOADED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
   SUSPENDED
 }
 
@@ -56,16 +62,11 @@ enum AgentServiceType {
 }
 
 enum AgentVerificationDocumentType {
-  LICENSE
-  ID
-  PAN
-  AADHAR
-  PASSPORT
-  RERA_CERTIFICATE
-  BROKER_LICENSE
-  GST_CERTIFICATE
+  GOVERNMENT_ID
+  REAL_ESTATE_LICENSE
+  SELFIE_VERIFICATION
   ADDRESS_PROOF
-  SELFIE_ID
+  AGENCY_CERTIFICATE
 }
 
 enum AgentVerificationStatus {
@@ -190,6 +191,7 @@ model User {
   country     Country? @relation(fields: [countryIso2], references: [iso2])
   verified  Boolean  @default(false) @map("is_verified")
 
+  buyer Buyer?
   agent Agent?
 
   accounts Account[]
@@ -256,6 +258,7 @@ enum ManualPropertyStatus {
   PENDING_REVIEW
   APPROVED
   REJECTED
+  SOLD
   ARCHIVED
 }
 
@@ -285,9 +288,12 @@ enum ManualModerationAction {
 }
 
 enum InquiryStatus {
-  PENDING
-  RESPONDED
+  NEW
+  CONTACTED
+  VISIT_SCHEDULED
+  NEGOTIATION
   CLOSED
+  LOST
 }
 
  enum ModerationEntityType {
@@ -431,7 +437,6 @@ model Agent {
   specialization String[] @default([]) @map("specialization")
   linkedinUrl String? @map("linkedin_url")
   websiteUrl String? @map("website_url")
-  verificationStatus AgentVerificationStatus @default(PENDING) @map("verification_status")
   isFeaturedManual Boolean @default(false) @map("is_featured_manual")
   featuredScore Int @default(0) @map("featured_score")
   totalListings Int @default(0) @map("total_listings")
@@ -449,7 +454,7 @@ model Agent {
   profileImageUpdatedAt DateTime? @map("profile_image_updated_at")
   approved Boolean @default(false)
 
-  profileStatus AgentProfileStatus @default(DRAFT) @map("profile_status")
+  status AgentStatus @default(REGISTERED) @map("status")
 
   bio String? @db.Text
   profileCompletion Int @default(0) @map("profile_completion")
@@ -486,7 +491,7 @@ model Agent {
   @@index([countryIso2, isFeatured])
   @@index([countryIso2, featuredScore])
   @@index([agencyId])
-  @@index([verificationStatus])
+  @@index([status])
   @@index([riskScore])
   @@map("agents")
 }
@@ -504,7 +509,9 @@ model AgentSubscription {
   cancelledAt DateTime? @map("cancelled_at")
 
   listingsLimit Int? @map("listings_limit")
+  featuredLimit Int? @map("featured_limit")
   leadLimit     Int? @map("lead_limit")
+  leadPriority  String? @map("lead_priority")
   verixAccessLevel Int? @map("verix_access_level")
 
   provider String? @map("provider")
@@ -762,9 +769,14 @@ model Inquiry {
   propertyId String @map("property_id")
   agentId String @map("agent_id")
   userId String? @map("user_id")
+  buyerId String? @map("buyer_id")
+
+  name String?
+  email String?
+  phone String?
 
   message String? @db.Text
-  status InquiryStatus @default(PENDING)
+  status InquiryStatus @default(NEW)
 
   createdAt DateTime @default(now()) @map("created_at")
   respondedAt DateTime? @map("responded_at")
@@ -772,10 +784,12 @@ model Inquiry {
   agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
   property ManualProperty @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  buyer Buyer? @relation(fields: [buyerId], references: [id], onDelete: SetNull)
 
   @@index([agentId])
   @@index([propertyId])
   @@index([userId])
+  @@index([buyerId])
   @@index([status])
   @@map("inquiries")
 }
@@ -1511,4 +1525,21 @@ model ProjectNearbyPlace {
 
   @@index([projectId])
   @@map("project_nearby_places")
+}
+
+// ─── Buyer System ────────────────────────────────────────────────────────
+
+model Buyer {
+  id String @id @default(uuid())
+  userId String @unique @map("user_id")
+  preferredLocations String[] @default([]) @map("preferred_locations")
+  budgetRange String? @map("budget_range")
+  propertyType String? @map("property_type")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inquiries Inquiry[]
+
+  @@map("buyers")
 }
