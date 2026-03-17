@@ -2,11 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 
 function safeString(v: unknown) {
   if (typeof v !== 'string') return ''
   return v.trim()
+}
+
+/**
+ * Build an absolute redirect URL that works both locally and behind a reverse-proxy.
+ * req.nextUrl.clone() can resolve to `localhost:3000` when the request comes in
+ * via a form POST from the browser through a proxy — instead we read the
+ * forwarded host / protocol from the incoming request headers.
+ */
+function redirectTo(req: NextRequest, path: string, search = '') {
+  // Prefer the forwarded host (behind nginx/Cloudflare), fall back to the request host
+  const proto = req.headers.get('x-forwarded-proto') || 'https'
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || 'millionflats.com'
+  const base = `${proto}://${host}`
+  return NextResponse.redirect(`${base}${path}${search}`, { status: 303 })
 }
 
 export async function POST(req: NextRequest) {
@@ -14,9 +27,7 @@ export async function POST(req: NextRequest) {
   const email = safeString((session?.user as any)?.email).toLowerCase()
 
   if (!email) {
-    const url = req.nextUrl.clone()
-    url.pathname = '/agent/login'
-    return NextResponse.redirect(url)
+    return redirectTo(req, '/agent/login')
   }
 
   const form = await req.formData()
@@ -25,16 +36,15 @@ export async function POST(req: NextRequest) {
   const phone = safeString(form.get('phone'))
 
   if (!license) {
-    const url = req.nextUrl.clone()
-    url.pathname = '/agent/onboarding'
-    return NextResponse.redirect(url)
+    return redirectTo(req, '/agent/onboarding')
   }
 
-  const dbUser = await prisma.user.findUnique({ where: { email }, include: { agent: true, accounts: true } })
+  const dbUser = await prisma.user.findUnique({
+    where: { email },
+    include: { agent: true, accounts: true },
+  })
   if (!dbUser) {
-    const url = req.nextUrl.clone()
-    url.pathname = '/agent/login'
-    return NextResponse.redirect(url)
+    return redirectTo(req, '/agent/login')
   }
 
   const isEmailVerified = Boolean((dbUser as any).emailVerified) || Boolean((dbUser as any).verified)
@@ -47,43 +57,30 @@ export async function POST(req: NextRequest) {
         company: company || null,
         whatsapp: null,
         approved: false,
-        // Set initial status: EMAIL_VERIFIED if email is verified, else REGISTERED
         status: isEmailVerified ? 'EMAIL_VERIFIED' : 'REGISTERED',
       } as any,
     })
   } else {
-    // Agent exists: update license/company and advance status to PROFILE_INCOMPLETE
     const currentStatus = String((dbUser.agent as any)?.status || 'REGISTERED')
     const nextStatus =
-      currentStatus === 'REGISTERED' ? 'EMAIL_VERIFIED' :
+      currentStatus === 'REGISTERED'    ? 'EMAIL_VERIFIED' :
       currentStatus === 'EMAIL_VERIFIED' ? 'PROFILE_INCOMPLETE' :
-      currentStatus // keep existing status if further along
+      currentStatus
 
     await prisma.agent.update({
       where: { userId: dbUser.id },
-      data: {
-        license,
-        company: company || null,
-        status: nextStatus,
-      } as any,
+      data: { license, company: company || null, status: nextStatus } as any,
     })
   }
 
   if (phone && phone !== dbUser.phone) {
     await prisma.user.update({
       where: { id: dbUser.id },
-      data: {
-        phone,
-        role: 'AGENT',
-      },
+      data: { phone, role: 'AGENT' },
     })
   } else if (String((dbUser as any)?.role || '').toUpperCase() !== 'AGENT') {
     await prisma.user.update({ where: { id: dbUser.id }, data: { role: 'AGENT' } as any }).catch(() => null)
   }
 
-  // Redirect to profile page to continue onboarding
-  const url = req.nextUrl.clone()
-  url.pathname = '/agent/profile'
-  url.search = '?notice=complete_profile'
-  return NextResponse.redirect(url)
+  return redirectTo(req, '/agent/profile', '?notice=complete_profile')
 }
