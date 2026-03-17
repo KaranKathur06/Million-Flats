@@ -16,9 +16,6 @@ async function doLogout() {
 
 export default function Header() {
   const pathname = usePathname() ?? ''
-
-  if (pathname === '/agent' || pathname.startsWith('/agent/')) return null
-
   const [mobileOpen, setMobileOpen] = useState(false)
   const { data: session, status } = useSession()
 
@@ -79,6 +76,8 @@ export default function Header() {
     return pathname === href || pathname.startsWith(`${href}/`)
   }
 
+  const isAgentPath = pathname === '/agent' || pathname.startsWith('/agent/')
+
   useEffect(() => {
     setMobileOpen(false)
   }, [pathname])
@@ -128,12 +127,14 @@ export default function Header() {
   }, [mobileOpen])
 
   useEffect(() => {
-    if (!mobileOpen) return
+    if (!mobileOpen || !mobileEl) return
     window.setTimeout(() => {
       const btn = mobileEl?.querySelector<HTMLElement>('button[aria-label="Close menu"]')
       btn?.focus()
     }, 0)
   }, [mobileEl, mobileOpen])
+
+  if (isAgentPath) return null
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
