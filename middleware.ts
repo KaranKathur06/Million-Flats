@@ -129,6 +129,19 @@ export async function middleware(req: NextRequest) {
 
   const role = normalizeRole(roleRaw)
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Global redirect rule: admin-panel roles should never see landing page
+  // Trigger only for '/' to avoid impacting public pages like /buy, /rent, etc.
+  // ─────────────────────────────────────────────────────────────────────────────
+  const isRoot = pathname === '/'
+  const isAdminPanelRole = role === 'VERIFIER' || role === 'MODERATOR' || role === 'ADMIN' || role === 'SUPERADMIN'
+  if (isRoot && roleRaw && isAdminPanelRole) {
+    const url = req.nextUrl.clone()
+    url.pathname = '/admin'
+    url.search = ''
+    return NextResponse.redirect(url)
+  }
+
   // ── Unauthenticated redirect ──
   if (isProtected && !roleRaw) {
     const url = req.nextUrl.clone()
@@ -142,7 +155,7 @@ export async function middleware(req: NextRequest) {
   // ADMIN guard
   // ─────────────────────────────────────────────────────────────────────────────
   if (isAdminProtected || isEcosystemAdminProtected) {
-    if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
+    if (role !== 'VERIFIER' && role !== 'MODERATOR' && role !== 'ADMIN' && role !== 'SUPERADMIN') {
       const url = req.nextUrl.clone()
       url.pathname = '/unauthorized'
       url.search = 'reason=admin_only'
@@ -356,6 +369,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
+    '/',
     '/dashboard/:path*',
     '/admin/:path*',
     '/agent/:path*',

@@ -1,5 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { getServerSession } from 'next-auth'
 import HeroSearch from '@/components/HeroSearch'
 import FeaturedProperties from '@/components/FeaturedProperties'
 import FeaturedProjects from '@/components/FeaturedProjects'
@@ -9,6 +11,8 @@ import FeaturedDevelopers from '@/components/FeaturedDevelopers'
 import FeaturedAgents from '@/components/FeaturedAgents'
 import GlobalMarketSelectorBar from '@/components/GlobalMarketSelectorBar'
 import { DEFAULT_COUNTRY, isCountryCode, type CountryCode } from '@/lib/country'
+import { authOptions } from '@/lib/auth'
+import { isAdminPanelRole } from '@/lib/roleHomeRoute'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,6 +43,12 @@ export default async function Home({
 }: {
   searchParams?: { [key: string]: string | string[] | undefined }
 }) {
+  const session = await getServerSession(authOptions)
+  const role = String((session?.user as any)?.role || '').toUpperCase()
+  if (session?.user && isAdminPanelRole(role)) {
+    redirect('/admin')
+  }
+
   const market = resolveMarket(searchParams)
 
   return (

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
-import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
+import { getHomeRouteForRole, isAdminPanelRole } from '@/lib/roleHomeRoute'
 
 type NavItem = { href: string; label: React.ReactNode }
 
@@ -27,7 +27,7 @@ export default function Header() {
   const dashboardHref = getHomeRouteForRole(role)
 
   const isAgent = isAuthed && role === 'AGENT'
-  const isAdminOrHigher = isAuthed && (role === 'ADMIN' || role === 'SUPERADMIN')
+  const isAdminOrHigher = isAuthed && isAdminPanelRole(role)
   const showServices = !isAuthed || role === 'USER'
 
   const showVerfix = !isAuthed || role === 'USER'

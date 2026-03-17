@@ -2,7 +2,7 @@ import { requireRole } from '@/lib/rbacServer'
 import { NextResponse } from 'next/server'
 
 export async function requireAdminSession() {
-  const auth = await requireRole('ADMIN')
+  const auth = await requireRole('MODERATOR')
   if (!auth.ok) return auth
   return { ok: true as const, userId: auth.userId, email: auth.email, role: auth.role }
 }

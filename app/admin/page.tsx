@@ -14,7 +14,7 @@ export default async function AdminHomePage() {
     redirect('/auth/login?next=%2Fadmin')
   }
 
-  if (!hasMinRole(role, 'ADMIN')) {
+  if (!hasMinRole(role, 'MODERATOR')) {
     redirect(`${getHomeRouteForRole(role)}?error=admin_only`)
   }
 
