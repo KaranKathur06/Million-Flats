@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { AgentStatus, agentModuleAccessMap } from '@/lib/agentLifecycle'
 import { AGENT_NAV_ITEMS, checkAgentAccess, NavItemKey } from '@/lib/agentRouteGuard'
 import AccessGuardModal from './AccessGuardModal'
@@ -143,10 +144,16 @@ export default function AgentNavbar({
             {/* Logo */}
             <div className="flex-shrink-0">
               <Link href="/agent/dashboard" className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
-                  <span className="text-gray-900 font-bold text-sm">MF</span>
-                </div>
-                <span className="text-base font-semibold text-gray-900 hidden sm:block">MillionFlats</span>
+                <span className="relative h-10 w-[112px]">
+                  <Image
+                    src="/LOGO.jpeg"
+                    alt="Millionflats"
+                    fill
+                    className="object-contain"
+                    sizes="150px"
+                    priority
+                  />
+                </span>
               </Link>
             </div>
 
