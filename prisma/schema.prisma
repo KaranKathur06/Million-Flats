@@ -93,6 +93,14 @@ enum DocumentStatus {
   REJECTED
 }
 
+enum AgentProfileStatus {
+  DRAFT
+  SUBMITTED
+  VERIFIED
+  LIVE
+  SUSPENDED
+}
+
 enum BlogStatus {
   DRAFT
   PUBLISHED
@@ -464,8 +472,8 @@ model Agent {
   profileImageKey String? @map("profile_image_key")
   profileImageUpdatedAt DateTime? @map("profile_image_updated_at")
   approved Boolean @default(false)
-  profileStatus String? @map("profile_status")
-  verificationStatus String? @map("verification_status")
+  profileStatus AgentProfileStatus? @map("profile_status")
+  verificationStatus AgentVerificationStatus? @map("verification_status")
 
   status AgentStatus @default(REGISTERED) @map("status")
 
