@@ -93,9 +93,7 @@ export default async function AgentDashboardPage() {
     })
 
   const profileStatus = String((agentRow as any)?.profileStatus || (agent as any)?.profileStatus || 'DRAFT').toUpperCase()
-  if (profileStatus !== 'LIVE') {
-    redirect('/agent/profile?notice=complete_verification')
-  }
+  // Removed: hard redirect for non-LIVE agents — dashboard now shows onboarding progress tracker instead
 
   const hasPhoto = Boolean(String((agentRow as any)?.profileImageUrl || (agentRow as any)?.profilePhoto || '').trim())
   const hasBio = Boolean(String(agentRow?.bio || '').trim())
