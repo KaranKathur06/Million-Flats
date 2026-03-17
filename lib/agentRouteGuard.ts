@@ -5,7 +5,7 @@
 
 import { AgentStatus, agentModuleAccessMap, getAgentLifecycleUx, type AgentDashboardModule } from './agentLifecycle'
 
-export type NavItemKey = 'dashboard' | 'properties' | 'leads' | 'profile' | 'verification' | 'subscription'
+export type NavItemKey = 'dashboard' | 'properties' | 'leads' | 'verification' | 'subscription'
 
 export interface NavItemConfig {
   key: NavItemKey
@@ -17,11 +17,10 @@ export interface NavItemConfig {
 
 export const AGENT_NAV_ITEMS: NavItemConfig[] = [
   { key: 'dashboard', label: 'Dashboard', href: '/agent/dashboard', module: 'overview' },
-  { key: 'properties', label: 'Properties', href: '/agent/properties', module: 'properties' },
-  { key: 'leads', label: 'Leads', href: '/agent/leads', module: 'leads' },
-  { key: 'profile', label: 'Profile', href: '/agent/profile', module: 'profile' },
+  { key: 'properties', label: 'Properties', href: '/properties/new/manual', module: 'properties' },
+  { key: 'leads', label: 'Leads', href: '/agent/dashboard#leads', module: 'leads' },
   { key: 'verification', label: 'Verification', href: '/agent/verification', module: 'verification' },
-  { key: 'subscription', label: 'Subscription', href: '/agent/subscription', module: 'subscription' },
+  { key: 'subscription', label: 'Subscription', href: '/agents/pricing', module: 'subscription' },
 ]
 
 export interface AccessCheckResult {

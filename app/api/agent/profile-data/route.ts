@@ -29,7 +29,10 @@ export async function GET() {
           select: {
             id: true,
             status: true,
-            profileCompletion: true,
+            company: true,
+            license: true,
+            bio: true,
+            whatsapp: true,
             profileImageUrl: true,
             profilePhoto: true,
           } as any,
@@ -43,9 +46,28 @@ export async function GET() {
 
     const agent = user.agent
 
+    const MIN_BIO_LENGTH = 150
+    const name = String(user?.name || '').trim()
+    const phone = String(user?.phone || '').trim()
+    const company = String(agent?.company || '').trim()
+    const license = String(agent?.license || '').trim()
+    const bio = String(agent?.bio || '').trim()
+    const photo = String(agent?.profileImageUrl || agent?.profilePhoto || '').trim()
+
+    const checks = [
+      Boolean(name),
+      Boolean(phone),
+      Boolean(photo),
+      bio.length >= MIN_BIO_LENGTH,
+      Boolean(company),
+      Boolean(license),
+    ]
+    const completed = checks.filter(Boolean).length
+    const computedProfileCompletion = Math.round((completed / checks.length) * 100)
+
     return NextResponse.json({
       status: agent.status || 'REGISTERED',
-      profileCompletion: agent.profileCompletion || 0,
+      profileCompletion: computedProfileCompletion,
       profileImageUrl: agent.profileImageUrl || agent.profilePhoto || null,
     })
   } catch (error) {

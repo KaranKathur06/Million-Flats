@@ -88,7 +88,7 @@ export default function AgentLayout({ children }: { children: ReactNode }) {
         profileCompletion={agentData?.profileCompletion}
       />
 
-      {/* Main Content - 64px padding for navbar */}
+      {/* Main Content */}
       <main className="pt-16">
         {children}
       </main>
