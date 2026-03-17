@@ -123,6 +123,14 @@ export function buildAgentProfileImageKey(params: { agentId: string; ext: string
   return `public/agents/${agentId}/profile-${ts}.${safeExt}`
 }
 
+export function buildAgentDocumentKey(params: { agentId: string; documentType: string; ext?: string; contentType?: string }) {
+  const ext = sanitizeFilename(params.ext || guessExtensionFromContentType(params.contentType || '') || 'bin').replace('.', '')
+  const agentId = sanitizeFilename(params.agentId || '')
+  const docType = sanitizeFilename(params.documentType || 'document')
+  const uuid = crypto.randomUUID()
+  return `private/agents/${agentId}/documents/${docType}/${uuid}.${ext}`
+}
+
 export function buildPropertyImageKey(params: { propertyId: string; ext?: string; contentType?: string }) {
   const ext = sanitizeFilename(params.ext || guessExtensionFromContentType(params.contentType || '') || 'bin').replace('.', '')
   const pid = sanitizeFilename(params.propertyId || '')

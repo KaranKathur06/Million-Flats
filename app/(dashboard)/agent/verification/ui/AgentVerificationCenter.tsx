@@ -116,22 +116,61 @@ export default function AgentVerificationCenter({
     if (!file) return
     setUploading(docType)
     try {
-      const presignedRes = await fetch('/api/media/upload-url', {
+      // 1. Get presigned URL from new agent documents presign endpoint
+      const presignRes = await fetch('/api/agent/documents/presign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: file.name, contentType: file.type, folder: 'agent-docs' }),
+        body: JSON.stringify({
+          documentType: docType,
+          filename: file.name,
+          contentType: file.type || 'application/octet-stream',
+          sizeBytes: file.size,
+        }),
       })
-      if (!presignedRes.ok) throw new Error('Failed to get upload URL')
-      const { url, fileUrl } = await presignedRes.json()
-      await fetch(url, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
+
+      if (!presignRes.ok) {
+        const errData = await presignRes.json().catch(() => null)
+        throw new Error(errData?.message || 'Failed to get upload URL')
+      }
+
+      const presignData = await presignRes.json()
+      if (!presignData.success) {
+        throw new Error(presignData.message || 'Failed to get upload URL')
+      }
+
+      // 2. Upload to S3 using presigned URL
+      const uploadRes = await fetch(presignData.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        body: file,
+      })
+
+      if (!uploadRes.ok) {
+        throw new Error('Upload to storage failed')
+      }
+
+      // 3. Save document metadata to database
       const saveRes = await fetch('/api/agent/documents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ documentType: docType, fileUrl }),
+        body: JSON.stringify({
+          documentType: docType,
+          fileUrl: presignData.objectUrl,
+          s3Key: presignData.key,
+          fileName: file.name,
+          mimeType: file.type,
+          sizeBytes: file.size,
+        }),
       })
-      if (saveRes.ok) await fetchDocuments()
-    } catch {
-      alert('Upload failed. Please try again.')
+
+      if (!saveRes.ok) {
+        const errData = await saveRes.json().catch(() => null)
+        throw new Error(errData?.error || 'Failed to save document')
+      }
+
+      await fetchDocuments()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Upload failed. Please try again.')
     } finally {
       setUploading(null)
     }

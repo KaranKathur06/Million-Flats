@@ -369,7 +369,25 @@ export default function AgentReviewClient({
                                     {/* Actions */}
                                     <div className="flex items-center gap-2 flex-shrink-0">
                                         <button
-                                            onClick={() => setPreviewUrl(doc.fileUrl)}
+                                            onClick={async () => {
+                                                // Fetch signed URL for private documents
+                                                try {
+                                                    const res = await fetch('/api/admin/agent-documents/signed-url', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ documentId: doc.id, fileUrl: doc.fileUrl }),
+                                                    })
+                                                    const data = await res.json()
+                                                    if (res.ok && data.success && data.url) {
+                                                        setPreviewUrl(data.url)
+                                                    } else {
+                                                        // Fallback to direct URL (for public/legacy docs)
+                                                        setPreviewUrl(doc.fileUrl)
+                                                    }
+                                                } catch {
+                                                    setPreviewUrl(doc.fileUrl)
+                                                }
+                                            }}
                                             className="h-8 rounded-lg border border-white/10 bg-white/[0.02] px-3 text-[11px] font-semibold text-white/70 hover:bg-white/[0.06] hover:text-white transition-all"
                                         >
                                             Preview
