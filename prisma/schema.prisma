@@ -62,6 +62,15 @@ enum AgentServiceType {
 }
 
 enum AgentVerificationDocumentType {
+  LICENSE
+  ID
+  PAN
+  AADHAR
+  PASSPORT
+  RERA_CERTIFICATE
+  BROKER_LICENSE
+  GST_CERTIFICATE
+  SELFIE_ID
   GOVERNMENT_ID
   REAL_ESTATE_LICENSE
   SELFIE_VERIFICATION
@@ -288,6 +297,8 @@ enum ManualModerationAction {
 }
 
 enum InquiryStatus {
+  PENDING
+  RESPONDED
   NEW
   CONTACTED
   VISIT_SCHEDULED
@@ -453,6 +464,8 @@ model Agent {
   profileImageKey String? @map("profile_image_key")
   profileImageUpdatedAt DateTime? @map("profile_image_updated_at")
   approved Boolean @default(false)
+  profileStatus String? @map("profile_status")
+  verificationStatus String? @map("verification_status")
 
   status AgentStatus @default(REGISTERED) @map("status")
 
