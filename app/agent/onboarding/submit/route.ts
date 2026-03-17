@@ -37,6 +37,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  const isEmailVerified = Boolean((dbUser as any).emailVerified) || Boolean((dbUser as any).verified)
+
   if (!dbUser.agent) {
     await prisma.agent.create({
       data: {
@@ -45,16 +47,25 @@ export async function POST(req: NextRequest) {
         company: company || null,
         whatsapp: null,
         approved: false,
-        profileStatus: 'DRAFT',
+        // Set initial status: EMAIL_VERIFIED if email is verified, else REGISTERED
+        status: isEmailVerified ? 'EMAIL_VERIFIED' : 'REGISTERED',
       } as any,
     })
   } else {
+    // Agent exists: update license/company and advance status to PROFILE_INCOMPLETE
+    const currentStatus = String((dbUser.agent as any)?.status || 'REGISTERED')
+    const nextStatus =
+      currentStatus === 'REGISTERED' ? 'EMAIL_VERIFIED' :
+      currentStatus === 'EMAIL_VERIFIED' ? 'PROFILE_INCOMPLETE' :
+      currentStatus // keep existing status if further along
+
     await prisma.agent.update({
       where: { userId: dbUser.id },
       data: {
         license,
         company: company || null,
-      },
+        status: nextStatus,
+      } as any,
     })
   }
 
@@ -70,7 +81,9 @@ export async function POST(req: NextRequest) {
     await prisma.user.update({ where: { id: dbUser.id }, data: { role: 'AGENT' } as any }).catch(() => null)
   }
 
+  // Redirect to profile page to continue onboarding
   const url = req.nextUrl.clone()
   url.pathname = '/agent/profile'
+  url.search = '?notice=complete_profile'
   return NextResponse.redirect(url)
 }

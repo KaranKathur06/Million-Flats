@@ -26,7 +26,8 @@ export default function VerifyClient() {
       const data = await res.json()
 
       if (res.ok) {
-        router.push(`/agent/login?email=${encodeURIComponent(email)}&verified=1`)
+        // After email verified, redirect straight to onboarding
+        router.push(`/agent/onboarding`)
       } else {
         setError(data.message || 'Verification failed')
       }

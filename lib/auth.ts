@@ -255,8 +255,7 @@ export const authOptions: NextAuthOptions = {
           const shouldBackfillIdentity = !hasId || !hasRole
           const shouldRefreshAgentStatus =
             normalizeRole((token as any)?.role) === 'AGENT' &&
-            normalizeStatus((token as any)?.status) === 'ACTIVE' &&
-            normalizeAgentProfileStatus((token as any)?.agentProfileStatus) !== 'LIVE'
+            normalizeStatus((token as any)?.status) === 'ACTIVE'
 
           const shouldRefreshAgentAuthz =
             normalizeRole((token as any)?.role) === 'AGENT' &&
@@ -273,6 +272,8 @@ export const authOptions: NextAuthOptions = {
                 ; (token as any).agentProfileStatus = normalizeAgentProfileStatus((dbUser as any)?.agent?.profileStatus)
                 ; (token as any).agentApproved = Boolean((dbUser as any)?.agent?.approved)
                 ; (token as any).agentVerificationStatus = normalizeAgentVerificationStatus((dbUser as any)?.agent?.verificationStatus)
+                // ✅ KEY FIX: Populate the new unified agentStatus from agent.status
+                ; (token as any).agentStatus = String((dbUser as any)?.agent?.status || 'REGISTERED')
 
               if (!(dbUser as any).role) {
                 await prisma.user.update({ where: { id: dbUser.id }, data: { role: 'USER' } as any }).catch(() => null)

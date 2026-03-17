@@ -22,6 +22,7 @@ const PUBLIC_AUTH_PREFIXES = [
   '/agent/register',
   '/agent/forgot-password',
   '/agent/verify-email',
+  '/agent/verify',
 ]
 
 function isPublicAuth(pathname: string) {
@@ -173,23 +174,17 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    if (!emailVerified) {
-      const url = req.nextUrl.clone()
-      url.pathname = '/auth/agent/login'
-      const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`
-      url.search = `next=${encodeURIComponent(next)}`
-      return NextResponse.redirect(url)
-    }
-
-    // Pages accessible regardless of approval status
+    // Pages always accessible regardless of status
     const isAlwaysAllowed =
       pathname.startsWith('/agent/verification') ||
+      pathname.startsWith('/agent/verify') ||
       pathname.startsWith('/agent/profile') ||
       pathname.startsWith('/agent/subscription') ||
       pathname.startsWith('/agent/settings') ||
       pathname.startsWith('/agent/onboarding') ||
       pathname === '/agent/on-hold' ||
-      pathname === '/agent/rejected'
+      pathname === '/agent/rejected' ||
+      pathname === '/agent/suspended'
 
     // Pages that require APPROVED status
     const isApprovalGated =
@@ -199,7 +194,69 @@ export async function middleware(req: NextRequest) {
       pathname.startsWith('/agent/deals') ||
       pathname.startsWith('/agent/analytics')
 
-    // ── State: REJECTED ──
+    // ── State Machine Redirects ──
+
+    // REGISTERED: email not verified yet → send to verify page
+    if (agentStatus === 'REGISTERED' || agentStatus === '') {
+      if (!isAlwaysAllowed) {
+        if (!emailVerified) {
+          const url = req.nextUrl.clone()
+          url.pathname = '/agent/verify-email'
+          url.search = ''
+          return NextResponse.redirect(url)
+        } else {
+          // Email verified but status not updated yet, go to onboarding
+          if (pathname !== '/agent/onboarding' && !pathname.startsWith('/agent/onboarding/')) {
+            const url = req.nextUrl.clone()
+            url.pathname = '/agent/onboarding'
+            url.search = ''
+            return NextResponse.redirect(url)
+          }
+        }
+      }
+    }
+
+    // EMAIL_VERIFIED: must complete onboarding form
+    if (agentStatus === 'EMAIL_VERIFIED') {
+      if (!pathname.startsWith('/agent/onboarding') && !isAlwaysAllowed) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/agent/onboarding'
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
+    }
+
+    // PROFILE_INCOMPLETE: must complete profile
+    if (agentStatus === 'PROFILE_INCOMPLETE') {
+      if (!pathname.startsWith('/agent/profile') && !pathname.startsWith('/agent/onboarding') && !isAlwaysAllowed) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/agent/profile'
+        url.search = '?notice=complete_profile'
+        return NextResponse.redirect(url)
+      }
+    }
+
+    // PROFILE_COMPLETED: must upload documents
+    if (agentStatus === 'PROFILE_COMPLETED') {
+      if (!pathname.startsWith('/agent/verification') && !pathname.startsWith('/agent/profile') && !isAlwaysAllowed) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/agent/verification'
+        url.search = '?notice=upload_documents'
+        return NextResponse.redirect(url)
+      }
+    }
+
+    // DOCUMENTS_UPLOADED / UNDER_REVIEW: redirect to on-hold page
+    if (agentStatus === 'DOCUMENTS_UPLOADED' || agentStatus === 'UNDER_REVIEW') {
+      if (isApprovalGated) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/agent/on-hold'
+        url.search = `reason=${agentStatus.toLowerCase()}`
+        return NextResponse.redirect(url)
+      }
+    }
+
+    // REJECTED: forced to rejected page
     if (agentStatus === 'REJECTED') {
       if (pathname !== '/agent/rejected' && !pathname.startsWith('/agent/rejected/')) {
         const url = req.nextUrl.clone()
@@ -210,7 +267,7 @@ export async function middleware(req: NextRequest) {
       return NextResponse.next()
     }
 
-    // ── State: SUSPENDED ──
+    // SUSPENDED: forced to suspended page
     if (agentStatus === 'SUSPENDED') {
       if (pathname !== '/agent/suspended') {
         const url = req.nextUrl.clone()
@@ -221,35 +278,32 @@ export async function middleware(req: NextRequest) {
       return NextResponse.next()
     }
 
-    // ── Approval-gated features ──
-    if (isApprovalGated && agentStatus !== 'APPROVED') {
-      const url = req.nextUrl.clone()
-      url.pathname = '/agent/on-hold'
-      url.search = 'reason=not_approved'
-      return NextResponse.redirect(url)
-    }
-
-    // ── Subscription-gated property creation ──
-    // If agent is approved but subscription expired, block property creation
-    if (
-      agentStatus === 'APPROVED' &&
-      subscriptionStatus === 'EXPIRED' &&
-      (pathname === '/agent/properties/add' || pathname.startsWith('/agent/properties/add/'))
-    ) {
-      const url = req.nextUrl.clone()
-      url.pathname = '/agent/subscription'
-      url.search = 'reason=subscription_expired'
-      return NextResponse.redirect(url)
-    }
-
-    // ── Redirect approved agents away from hold/rejected pages ──
+    // APPROVED: block property creation if subscription expired
     if (agentStatus === 'APPROVED') {
+      if (
+        subscriptionStatus === 'EXPIRED' &&
+        (pathname === '/agent/properties/add' || pathname.startsWith('/agent/properties/add/'))
+      ) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/agent/subscription'
+        url.search = 'reason=subscription_expired'
+        return NextResponse.redirect(url)
+      }
+      // Redirect approved agents away from hold/rejected pages
       if (pathname === '/agent/on-hold' || pathname === '/agent/rejected' || pathname === '/agent/suspended') {
         const url = req.nextUrl.clone()
         url.pathname = '/agent/dashboard'
         url.search = ''
         return NextResponse.redirect(url)
       }
+    }
+
+    // For non-APPROVED agents, gate approval-required pages
+    if (isApprovalGated && agentStatus !== 'APPROVED') {
+      const url = req.nextUrl.clone()
+      url.pathname = '/agent/on-hold'
+      url.search = 'reason=not_approved'
+      return NextResponse.redirect(url)
     }
   }
 
