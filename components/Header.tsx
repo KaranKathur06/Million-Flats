@@ -16,6 +16,9 @@ async function doLogout() {
 
 export default function Header() {
   const pathname = usePathname() ?? ''
+
+  if (pathname === '/agent' || pathname.startsWith('/agent/')) return null
+
   const [mobileOpen, setMobileOpen] = useState(false)
   const { data: session, status } = useSession()
 

@@ -25,8 +25,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const isAuthRoute = AUTH_PREFIXES.some((p) => pathname?.startsWith(p))
   const isAdminRoute = pathname === '/admin' || pathname?.startsWith('/admin/')
+  const isAgentRoute = pathname === '/agent' || pathname?.startsWith('/agent/')
 
-  if (isAuthRoute || isAdminRoute) {
+  if (isAuthRoute || isAdminRoute || isAgentRoute) {
     return <main className="min-h-screen">{children}</main>
   }
 
