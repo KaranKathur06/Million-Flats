@@ -6,7 +6,16 @@ interface Tag {
   id: string
   name: string
   slug: string
-  _count?: { blogTags: number }
+  _count?: { blogs: number }
+}
+
+function generateSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
 }
 
 export function TagManager({ initialTags }: { initialTags: Tag[] }) {
@@ -23,10 +32,12 @@ export function TagManager({ initialTags }: { initialTags: Tag[] }) {
     setError(null)
 
     try {
+      const name = newTagName.trim()
+      const slug = generateSlug(name)
       const res = await fetch('/api/admin/tags', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newTagName.trim() }),
+        body: JSON.stringify({ name, slug }),
       })
 
       const data = await res.json()
@@ -86,7 +97,7 @@ export function TagManager({ initialTags }: { initialTags: Tag[] }) {
                 className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-white/70 hover:bg-white/[0.08] transition-all duration-200"
               >
                 <span>{tag.name}</span>
-                <span className="text-xs text-white/40">({tag._count?.blogTags || 0})</span>
+                <span className="text-xs text-white/40">({tag._count?.blogs || 0})</span>
               </div>
             ))}
           </div>

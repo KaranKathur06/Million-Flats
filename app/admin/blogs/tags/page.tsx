@@ -28,6 +28,12 @@ export default async function BlogTagsPage() {
     },
   }).catch(() => [])
 
+  // Transform for TagManager
+  const transformedTags = (tags as any[]).map(t => ({
+    ...t,
+    _count: { blogs: t._count?.blogTags || 0 }
+  }))
+
   return (
     <div className="mx-auto max-w-[1500px] space-y-6">
       {/* Header */}
@@ -52,7 +58,7 @@ export default async function BlogTagsPage() {
         </Link>
       </div>
 
-      <TagManager initialTags={tags} />
+      <TagManager initialTags={transformedTags} />
     </div>
   )
 }

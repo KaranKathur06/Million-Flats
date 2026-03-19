@@ -60,8 +60,8 @@ export default function CreateBlogPage() {
           fetch('/api/admin/tags').then((r) => r.json()).catch(() => null),
         ])
 
-        setCategories(categoriesRes?.data || [])
-        setTags(tagsRes?.data || [])
+        setCategories(categoriesRes?.success ? categoriesRes.data || [] : [])
+        setTags(tagsRes?.success ? tagsRes.data || [] : [])
       } catch (error) {
         console.error('Failed to fetch data:', error)
       }

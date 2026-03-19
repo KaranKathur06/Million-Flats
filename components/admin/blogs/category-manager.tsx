@@ -9,6 +9,15 @@ interface Category {
   _count?: { blogs: number }
 }
 
+function generateSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 export function CategoryManager({ initialCategories }: { initialCategories: Category[] }) {
   const [categories, setCategories] = useState<Category[]>(initialCategories)
   const [newCategoryName, setNewCategoryName] = useState('')
@@ -23,10 +32,12 @@ export function CategoryManager({ initialCategories }: { initialCategories: Cate
     setError(null)
 
     try {
+      const name = newCategoryName.trim()
+      const slug = generateSlug(name)
       const res = await fetch('/api/admin/categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newCategoryName.trim() }),
+        body: JSON.stringify({ name, slug }),
       })
 
       const data = await res.json()
