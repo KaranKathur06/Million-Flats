@@ -6,7 +6,7 @@ interface Tag {
   id: string
   name: string
   slug: string
-  _count?: { blogs: number }
+  _count?: { blogTags: number }
 }
 
 export function TagManager({ initialTags }: { initialTags: Tag[] }) {
@@ -86,7 +86,7 @@ export function TagManager({ initialTags }: { initialTags: Tag[] }) {
                 className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-white/70 hover:bg-white/[0.08] transition-all duration-200"
               >
                 <span>{tag.name}</span>
-                <span className="text-xs text-white/40">({tag._count?.blogs || 0})</span>
+                <span className="text-xs text-white/40">({tag._count?.blogTags || 0})</span>
               </div>
             ))}
           </div>
