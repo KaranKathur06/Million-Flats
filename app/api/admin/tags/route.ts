@@ -14,7 +14,7 @@ export async function GET() {
       orderBy: { name: 'asc' },
       include: {
         _count: {
-          select: { blogs: true },
+          select: { blogTags: true },
         },
       },
     })
