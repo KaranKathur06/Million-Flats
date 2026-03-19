@@ -5,28 +5,34 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { hasMinRole, normalizeRole } from '@/lib/rbac'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
-import { CategoryManager } from '@/components/admin/blogs/category-manager'
+import { TagManager } from '@/components/admin/blogs/tag-manager'
 
-export default async function BlogCategoriesPage() {
+export default async function BlogTagsPage() {
   const session = await getServerSession(authOptions)
   const role = normalizeRole((session?.user as any)?.role)
 
   if (!session?.user) {
-    redirect('/user/login?next=%2Fadmin%2Fblogs%2Fcategories')
+    redirect('/user/login?next=%2Fadmin%2Fblogs%2Ftags')
   }
 
   if (!hasMinRole(role as any, 'ADMIN' as any) && !hasMinRole(role as any, 'EDITOR' as any)) {
     redirect(`${getHomeRouteForRole(role)}?error=admin_only`)
   }
 
-  const categories = await (prisma as any).category.findMany({
+  const tags = await (prisma as any).tag.findMany({
     orderBy: { name: 'asc' },
     include: {
       _count: {
-        select: { blogs: true },
+        select: { blogTags: true },
       },
     },
   }).catch(() => [])
+
+  // Transform for TagManager
+  const transformedTags = (tags as any[]).map(t => ({
+    ...t,
+    _count: { blogs: t._count?.blogTags || 0 }
+  }))
 
   return (
     <div className="mx-auto max-w-[1500px] space-y-6">
@@ -38,8 +44,8 @@ export default async function BlogCategoriesPage() {
               Blog CMS
             </span>
           </div>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">Categories</h1>
-          <p className="mt-1 text-sm text-white/50">Manage blog categories and organization</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight">Tags</h1>
+          <p className="mt-1 text-sm text-white/50">Manage blog tags for better organization</p>
         </div>
         <Link
           href="/admin/blogs/dashboard"
@@ -52,7 +58,7 @@ export default async function BlogCategoriesPage() {
         </Link>
       </div>
 
-      <CategoryManager initialCategories={categories} />
+      <TagManager initialTags={transformedTags} />
     </div>
   )
 }

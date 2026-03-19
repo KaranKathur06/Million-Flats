@@ -49,6 +49,7 @@ export default async function BlogDashboardPage() {
     { href: '/admin/blogs/all', label: 'All Blogs', primary: false },
     { href: '/admin/blogs/new', label: 'Create Blog', primary: true },
     { href: '/admin/blogs/categories', label: 'Categories', primary: false },
+    { href: '/admin/blogs/tags', label: 'Tags', primary: false },
   ]
 
   const formatDate = (date: any) => {

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import Link from '@tiptap/extension-link'
 
 interface TiptapEditorProps {
   content: string
@@ -18,6 +19,20 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
       StarterKit.configure({
         heading: {
           levels: [1, 2, 3],
+        },
+        bulletList: {
+          keepMarks: true,
+          keepAttributes: false,
+        },
+        orderedList: {
+          keepMarks: true,
+          keepAttributes: false,
+        },
+      }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-amber-400 underline hover:text-amber-300',
         },
       }),
     ],
@@ -120,8 +135,12 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
 
         <ToolbarButton
           onClick={() => {
-            const url = prompt('Enter URL:')
-            if (url) editor.chain().focus().setLink({ href: url }).run()
+            if (editor.isActive('link')) {
+              editor.chain().focus().unsetLink().run()
+            } else {
+              const url = prompt('Enter URL:')
+              if (url) editor.chain().focus().setLink({ href: url }).run()
+            }
           }}
           isActive={editor.isActive('link')}
           title="Link"

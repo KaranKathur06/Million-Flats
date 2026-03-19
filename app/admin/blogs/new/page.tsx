@@ -98,14 +98,16 @@ export default function CreateBlogPage() {
         body: JSON.stringify(data),
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to create blog')
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to create blog')
       }
 
-      router.push('/admin/blogs')
+      router.push('/admin/blogs/all')
     } catch (error) {
       console.error('Error creating blog:', error)
-      alert('Failed to create blog')
+      alert(error instanceof Error ? error.message : 'Failed to create blog')
     } finally {
       setIsSubmitting(false)
     }
@@ -254,6 +256,56 @@ export default function CreateBlogPage() {
           {/* Tags */}
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
             <label className="block text-sm font-semibold text-white/80 mb-3">Tags</label>
+            
+            {/* Add new tag input */}
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                placeholder="Add new tag..."
+                className="flex-1 px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.04] text-white text-sm placeholder-white/30 focus:outline-none focus:border-amber-400/40 transition-all duration-200"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    const input = e.target as HTMLInputElement
+                    const tagName = input.value.trim()
+                    if (tagName && !tags.some(t => t.name.toLowerCase() === tagName.toLowerCase())) {
+                      // Add to local tags list
+                      setTags(prev => [...prev, { id: `new-${Date.now()}`, name: tagName, slug: tagName.toLowerCase().replace(/\s+/g, '-') }])
+                      // Select the tag
+                      setValue('tags', [...(watchedValues.tags || []), tagName])
+                    } else if (tagName) {
+                      // Just select existing tag
+                      const currentTags = watchedValues.tags || []
+                      if (!currentTags.includes(tagName)) {
+                        setValue('tags', [...currentTags, tagName])
+                      }
+                    }
+                    input.value = ''
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={(e) => {
+                  const input = e.currentTarget.previousElementSibling as HTMLInputElement
+                  const tagName = input.value.trim()
+                  if (tagName && !tags.some(t => t.name.toLowerCase() === tagName.toLowerCase())) {
+                    setTags(prev => [...prev, { id: `new-${Date.now()}`, name: tagName, slug: tagName.toLowerCase().replace(/\s+/g, '-') }])
+                    setValue('tags', [...(watchedValues.tags || []), tagName])
+                  } else if (tagName) {
+                    const currentTags = watchedValues.tags || []
+                    if (!currentTags.includes(tagName)) {
+                      setValue('tags', [...currentTags, tagName])
+                    }
+                  }
+                  input.value = ''
+                }}
+                className="px-3 py-2 rounded-lg border border-amber-400/30 bg-amber-400/10 text-amber-300 text-xs font-semibold hover:bg-amber-400/20 transition-all duration-200"
+              >
+                Add
+              </button>
+            </div>
+            
             <div className="flex flex-wrap gap-2">
               {tags.map((tag) => (
                 <button
@@ -277,7 +329,7 @@ export default function CreateBlogPage() {
                 </button>
               ))}
               {tags.length === 0 && (
-                <p className="text-white/30 text-xs">No tags available</p>
+                <p className="text-white/30 text-xs">Type a tag name above and press Enter to create</p>
               )}
             </div>
           </div>

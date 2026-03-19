@@ -95,6 +95,14 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { title, excerpt, content, featuredImageUrl, featuredImageAlt, targetKeyword, metaTitle, metaDescription, canonicalUrl, status, publishAt, categoryId, tags } = body
 
+    // Validate required fields
+    if (!title || !content || !metaTitle || !metaDescription || !categoryId) {
+      return NextResponse.json(
+        { success: false, message: 'Title, content, meta title, meta description, and category are required' },
+        { status: 400 }
+      )
+    }
+
     // Validate author
     const authorId = auth.userId
 
@@ -106,7 +114,7 @@ export async function POST(req: Request) {
 
     if (!category) {
       return NextResponse.json(
-        { success: false, message: 'Invalid category' },
+        { success: false, message: 'Invalid category. Please create a category first.' },
         { status: 400 }
       )
     }
@@ -119,27 +127,47 @@ export async function POST(req: Request) {
       title,
       metaDescription,
       content,
-      targetKeyword,
+      targetKeyword || '',
       !!featuredImageUrl,
       featuredImageAlt,
       extractInternalLinks(content, '').length,
-      excerpt
+      excerpt || ''
     )
+
+    // Generate unique slug
+    const baseSlug = generateSlug(title)
+    let slug = baseSlug
+    let counter = 1
+
+    const existingBlog = await (prisma as any).blog.findUnique({
+      where: { slug },
+      select: { id: true },
+    })
+
+    while (existingBlog) {
+      slug = `${baseSlug}-${counter}`
+      counter++
+      const checkSlug = await (prisma as any).blog.findUnique({
+        where: { slug },
+        select: { id: true },
+      })
+      if (!checkSlug) break
+    }
 
     const blog = await (prisma as any).blog.create({
       data: {
         title,
-        slug: generateSlug(title),
-        excerpt,
+        slug,
+        excerpt: excerpt || '',
         content,
         featuredImageUrl,
         featuredImageAlt,
-        targetKeyword,
+        targetKeyword: targetKeyword || '',
         metaTitle,
         metaDescription,
         canonicalUrl,
-        status: status.toUpperCase(),
-        publishAt: status.toUpperCase() === 'SCHEDULED' ? new Date(publishAt) : null,
+        status: (status || 'DRAFT').toUpperCase(),
+        publishAt: status?.toUpperCase() === 'SCHEDULED' ? new Date(publishAt) : null,
         authorId,
         categoryId,
         seoScore,
@@ -148,18 +176,21 @@ export async function POST(req: Request) {
     })
 
     // Add tags
-    if (tags && tags.length > 0) {
+    if (tags && Array.isArray(tags) && tags.length > 0) {
       for (const tagName of tags) {
+        if (!tagName || typeof tagName !== 'string') continue
+        
+        const tagSlug = generateSlug(tagName)
         let tag = await (prisma as any).tag.findUnique({
-          where: { slug: generateSlug(tagName) },
+          where: { slug: tagSlug },
           select: { id: true },
         })
 
         if (!tag) {
           tag = await (prisma as any).tag.create({
             data: {
-              name: tagName,
-              slug: generateSlug(tagName),
+              name: tagName.trim(),
+              slug: tagSlug,
             },
             select: { id: true },
           })
@@ -176,8 +207,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, data: blog })
   } catch (error) {
+    console.error('Blog creation error:', error)
+    const message = error instanceof Error ? error.message : 'Failed to create blog'
     return NextResponse.json(
-      { success: false, message: 'Failed to create blog' },
+      { success: false, message },
       { status: 500 }
     )
   }
