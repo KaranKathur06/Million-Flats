@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Suspense } from 'react'
+import SelectDropdown from '@/components/SelectDropdown'
 
 interface WebhooksClientProps {
   webhooks: any[]
@@ -72,27 +73,39 @@ function WebhooksClientContent({ webhooks, pagination }: WebhooksClientProps) {
       {/* Filters */}
       <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4">
         <div className="flex flex-wrap gap-4">
-          <select
-            value={filters.event}
-            onChange={(e) => updateFilters('event', e.target.value)}
-            className="h-10 px-4 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[13px] text-white/90 focus:outline-none focus:border-amber-400/30 focus:bg-white/[0.06] transition-all"
-          >
-            <option value="">All Events</option>
-            <option value="payment.captured">Payment Captured</option>
-            <option value="payment.failed">Payment Failed</option>
-            <option value="payment.refunded">Payment Refunded</option>
-            <option value="order.paid">Order Paid</option>
-          </select>
+          <div className="w-[160px]">
+            <SelectDropdown
+              label="Event"
+              showLabel={false}
+              dense
+              variant="dark"
+              value={filters.event}
+              onChange={(v) => updateFilters('event', v)}
+              options={[
+                { value: '', label: 'All Events' },
+                { value: 'payment.captured', label: 'Payment Captured' },
+                { value: 'payment.failed', label: 'Payment Failed' },
+                { value: 'payment.refunded', label: 'Payment Refunded' },
+                { value: 'order.paid', label: 'Order Paid' },
+              ]}
+            />
+          </div>
 
-          <select
-            value={filters.processed}
-            onChange={(e) => updateFilters('processed', e.target.value)}
-            className="h-10 px-4 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[13px] text-white/90 focus:outline-none focus:border-amber-400/30 focus:bg-white/[0.06] transition-all"
-          >
-            <option value="">All Status</option>
-            <option value="true">Processed</option>
-            <option value="false">Failed</option>
-          </select>
+          <div className="w-[140px]">
+            <SelectDropdown
+              label="Status"
+              showLabel={false}
+              dense
+              variant="dark"
+              value={filters.processed}
+              onChange={(v) => updateFilters('processed', v)}
+              options={[
+                { value: '', label: 'All Status' },
+                { value: 'true', label: 'Processed' },
+                { value: 'false', label: 'Failed' },
+              ]}
+            />
+          </div>
 
           {(filters.event || filters.processed) && (
             <button

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import SelectDropdown from '@/components/SelectDropdown'
 
 interface ProjectItem {
     id: string
@@ -91,16 +92,22 @@ export default function AdminProjectsPage() {
                 </div>
                 <div className="flex items-center gap-3">
                     {/* Status filter */}
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all"
-                    >
-                        <option value="" className="bg-[#0a1019]">All Statuses</option>
-                        <option value="DRAFT" className="bg-[#0a1019]">Draft</option>
-                        <option value="PUBLISHED" className="bg-[#0a1019]">Published</option>
-                        <option value="ARCHIVED" className="bg-[#0a1019]">Archived</option>
-                    </select>
+                    <div className="w-[160px]">
+                        <SelectDropdown
+                            label="Status"
+                            showLabel={false}
+                            dense
+                            variant="dark"
+                            value={statusFilter}
+                            onChange={setStatusFilter}
+                            options={[
+                                { value: '', label: 'All Statuses' },
+                                { value: 'DRAFT', label: 'Draft' },
+                                { value: 'PUBLISHED', label: 'Published' },
+                                { value: 'ARCHIVED', label: 'Archived' },
+                            ]}
+                        />
+                    </div>
 
                     <Link
                         href="/admin/projects/bulk-import"

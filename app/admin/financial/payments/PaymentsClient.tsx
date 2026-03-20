@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Suspense } from 'react'
+import SelectDropdown from '@/components/SelectDropdown'
 
 interface PaymentsClientProps {
   payments: any[]
@@ -92,29 +93,41 @@ function PaymentsClientContent({ payments, pagination }: PaymentsClientProps) {
           </div>
 
           {/* Status Filter */}
-          <select
-            value={filters.status}
-            onChange={(e) => updateFilters('status', e.target.value)}
-            className="h-10 px-4 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[13px] text-white/90 focus:outline-none focus:border-amber-400/30 focus:bg-white/[0.06] transition-all"
-          >
-            <option value="">All Status</option>
-            <option value="CAPTURED">Captured</option>
-            <option value="FAILED">Failed</option>
-            <option value="PENDING">Pending</option>
-            <option value="REFUNDED">Refunded</option>
-          </select>
+          <div className="w-[140px]">
+            <SelectDropdown
+              label="Status"
+              showLabel={false}
+              dense
+              variant="dark"
+              value={filters.status}
+              onChange={(v) => updateFilters('status', v)}
+              options={[
+                { value: '', label: 'All Status' },
+                { value: 'CAPTURED', label: 'Captured' },
+                { value: 'FAILED', label: 'Failed' },
+                { value: 'PENDING', label: 'Pending' },
+                { value: 'REFUNDED', label: 'Refunded' },
+              ]}
+            />
+          </div>
 
           {/* Plan Filter */}
-          <select
-            value={filters.plan}
-            onChange={(e) => updateFilters('plan', e.target.value)}
-            className="h-10 px-4 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[13px] text-white/90 focus:outline-none focus:border-amber-400/30 focus:bg-white/[0.06] transition-all"
-          >
-            <option value="">All Plans</option>
-            <option value="BASIC">Basic</option>
-            <option value="PROFESSIONAL">Professional</option>
-            <option value="PREMIUM">Premium</option>
-          </select>
+          <div className="w-[140px]">
+            <SelectDropdown
+              label="Plan"
+              showLabel={false}
+              dense
+              variant="dark"
+              value={filters.plan}
+              onChange={(v) => updateFilters('plan', v)}
+              options={[
+                { value: '', label: 'All Plans' },
+                { value: 'BASIC', label: 'Basic' },
+                { value: 'PROFESSIONAL', label: 'Professional' },
+                { value: 'PREMIUM', label: 'Premium' },
+              ]}
+            />
+          </div>
 
           {/* Clear Filters */}
           {(filters.status || filters.plan || filters.search) && (

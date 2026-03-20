@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import SelectDropdown from '@/components/SelectDropdown'
 
 function slugify(text: string) {
     return text
@@ -100,14 +101,17 @@ export default function AdminAddDeveloperPage() {
                         <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">
                             Country
                         </label>
-                        <select
+                        <SelectDropdown
+                            label="Country"
+                            showLabel={false}
+                            variant="dark"
                             value={countryIso2}
-                            onChange={(e) => setCountryIso2(e.target.value)}
-                            className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30 focus:ring-1 focus:ring-amber-400/20 transition-all"
-                        >
-                            <option value="AE" className="bg-[#0a1019]">UAE</option>
-                            <option value="IN" className="bg-[#0a1019]">India</option>
-                        </select>
+                            onChange={setCountryIso2}
+                            options={[
+                                { value: 'AE', label: 'UAE' },
+                                { value: 'IN', label: 'India' },
+                            ]}
+                        />
                     </div>
                 </div>
 

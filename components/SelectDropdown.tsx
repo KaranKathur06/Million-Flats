@@ -8,6 +8,7 @@ export type SelectOption = {
 }
 
 type Props = {
+  name?: string
   label: string
   value: string
   onChange: (value: string) => void
@@ -15,6 +16,8 @@ type Props = {
   placeholder?: string
   disabled?: boolean
   variant?: 'light' | 'dark'
+  dense?: boolean
+  showLabel?: boolean
   className?: string
 }
 
@@ -23,6 +26,7 @@ function normalize(s: string) {
 }
 
 export default function SelectDropdown({
+  name,
   label,
   value,
   onChange,
@@ -30,6 +34,8 @@ export default function SelectDropdown({
   placeholder = 'Select',
   disabled,
   variant = 'light',
+  dense = false,
+  showLabel = true,
   className,
 }: Props) {
   const id = useId()
@@ -113,32 +119,36 @@ export default function SelectDropdown({
   }, [open, resolvedOptions, typeahead])
 
   const baseLight =
-    'w-full h-12 md:h-11 rounded-xl border bg-white text-dark-blue text-sm font-medium px-4 pr-11 flex items-center justify-between ' +
+    `w-full ${dense ? 'h-10' : 'h-12 md:h-11'} rounded-xl border bg-white text-dark-blue text-[13px] font-medium px-4 pr-11 flex items-center justify-between ` +
     'shadow-sm hover:shadow transition-shadow focus:outline-none focus:ring-2 focus:ring-dark-blue/25 focus:border-dark-blue/40 ' +
     'disabled:opacity-60 disabled:cursor-not-allowed'
 
   const baseDark =
-    'w-full h-12 md:h-14 rounded-xl border bg-white/10 text-white text-sm font-semibold px-4 pr-11 flex items-center justify-between ' +
-    'hover:bg-white/15 hover:border-white/25 focus:outline-none focus:ring-2 focus:ring-accent-yellow/70 focus:border-white/30 ' +
+    `w-full ${dense ? 'h-10' : 'h-12 md:h-14'} rounded-xl border bg-white/[0.04] border-white/[0.08] text-white/90 text-[13px] px-4 pr-11 flex items-center justify-between ` +
+    'hover:bg-white/[0.06] hover:border-white/[0.12] focus:outline-none focus:border-amber-400/30 focus:bg-white/[0.06] transition-all ' +
     'disabled:opacity-60 disabled:cursor-not-allowed'
 
   const base = variant === 'dark' ? baseDark : baseLight
 
   const labelClassName = variant === 'dark' ? 'text-white/80' : 'text-gray-600'
-  const placeholderClassName = variant === 'dark' ? 'text-white/70' : 'text-gray-500'
-  const valueClassName = variant === 'dark' ? 'text-white' : 'text-dark-blue'
-  const caretClassName = variant === 'dark' ? 'text-white/70' : 'text-gray-500'
-  const menuClassName = variant === 'dark' ? 'border-white/15 bg-[#0b1f33]/95 backdrop-blur-md' : 'border-gray-200 bg-white'
-  const emptyClassName = variant === 'dark' ? 'text-white/70' : 'text-gray-500'
+  const placeholderClassName = variant === 'dark' ? 'text-white/40' : 'text-gray-500'
+  const valueClassName = variant === 'dark' ? 'text-white/90' : 'text-dark-blue'
+  const caretClassName = variant === 'dark' ? 'text-white/40' : 'text-gray-500'
+  const menuClassName = variant === 'dark' ? 'border-white/[0.08] bg-[#0a1019] shadow-2xl' : 'border-gray-200 bg-white'
+  const emptyClassName = variant === 'dark' ? 'text-white/50' : 'text-gray-500'
 
   return (
     <div
       ref={rootRef}
       className={`${open ? 'relative z-50' : 'relative z-0'}${className ? ` ${className}` : ''}`}
     >
-      <label htmlFor={id} className={`block text-xs font-semibold mb-1 ${labelClassName}`}>
-        {label}
-      </label>
+      {showLabel ? (
+        <label htmlFor={id} className={`block text-xs font-semibold mb-1 ${labelClassName}`}>
+          {label}
+        </label>
+      ) : null}
+
+      {name ? <input type="hidden" name={name} value={value} /> : null}
 
       <div className="relative">
         <button
@@ -192,10 +202,10 @@ export default function SelectDropdown({
           className={`${base} ${
             open
               ? variant === 'dark'
-                ? 'border-white/30 ring-2 ring-white/10'
+                ? 'border-amber-400/30 ring-2 ring-amber-400/10'
                 : 'border-dark-blue/40 ring-2 ring-dark-blue/15'
               : variant === 'dark'
-                ? 'border-white/15'
+                ? 'border-white/[0.08]'
                 : 'border-gray-200'
           }`}
         >
@@ -211,11 +221,11 @@ export default function SelectDropdown({
         </button>
 
         <div
-          className={`absolute z-50 left-0 right-0 mt-2 origin-top rounded-2xl border shadow-xl overflow-hidden transition-all duration-150 ${menuClassName} ${
+          className={`absolute z-50 left-0 right-0 mt-2 origin-top rounded-2xl border overflow-hidden transition-all duration-150 ${menuClassName} ${
             open ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
           }`}
         >
-          <div ref={listRef} role="listbox" aria-label={label} className="max-h-64 overflow-auto py-1">
+          <div ref={listRef} role="listbox" aria-label={label} className="max-h-64 overflow-auto py-1 scrollbar-thin">
             {resolvedOptions.length === 0 ? (
               <div className={`px-4 py-3 text-sm ${emptyClassName}`}>No options</div>
             ) : (
@@ -237,13 +247,13 @@ export default function SelectDropdown({
                       setOpen(false)
                       buttonRef.current?.focus()
                     }}
-                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                    className={`w-full text-left px-4 py-2.5 text-[13px] transition-colors ${
                       variant === 'dark'
                         ? selected
-                          ? 'bg-white text-dark-blue'
+                          ? 'bg-white/[0.06] text-white font-medium'
                           : active
-                            ? 'bg-white/10 text-white'
-                            : 'bg-transparent text-white/85'
+                            ? 'bg-white/[0.03] text-white/90'
+                            : 'bg-transparent text-white/60'
                         : selected
                           ? 'bg-dark-blue text-white'
                           : active
