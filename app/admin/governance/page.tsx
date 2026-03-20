@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { hasMinRole, normalizeRole } from '@/lib/rbac'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import { prisma } from '@/lib/prisma'
+import FormSelect from '@/components/FormSelect'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
@@ -187,45 +188,48 @@ export default async function AdminGovernancePage({
       <form method="get" className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
           <div className="space-y-1.5">
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35">Status</label>
-            <select
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35 mb-1.5">Status</label>
+            <FormSelect
               name="status"
               defaultValue={status}
-              className="mf-select h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-[13px] text-white/90 transition-all hover:bg-white/[0.06] hover:border-white/[0.12] focus:border-amber-400/40"
-            >
-              <option value="OPEN">OPEN</option>
-              <option value="CLOSED">CLOSED</option>
-            </select>
+              options={[
+                { value: 'OPEN', label: 'OPEN' },
+                { value: 'CLOSED', label: 'CLOSED' },
+              ]}
+              dense
+            />
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35">Entity Type</label>
-            <select
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35 mb-1.5">Entity Type</label>
+            <FormSelect
               name="entityType"
               defaultValue={entityType}
-              className="mf-select h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-[13px] text-white/90 transition-all hover:bg-white/[0.06] hover:border-white/[0.12] focus:border-amber-400/40"
-            >
-              <option value="">All entity types</option>
-              <option value="MANUAL_PROPERTY">MANUAL_PROPERTY</option>
-              <option value="AGENT">AGENT</option>
-              <option value="USER">USER</option>
-              <option value="ECOSYSTEM_PARTNER">ECOSYSTEM_PARTNER</option>
-              <option value="ECOSYSTEM_PARTNER_APPLICATION">ECOSYSTEM_PARTNER_APPLICATION</option>
-            </select>
+              options={[
+                { value: '', label: 'All entity types' },
+                { value: 'MANUAL_PROPERTY', label: 'MANUAL_PROPERTY' },
+                { value: 'AGENT', label: 'AGENT' },
+                { value: 'USER', label: 'USER' },
+                { value: 'ECOSYSTEM_PARTNER', label: 'ECOSYSTEM_PARTNER' },
+                { value: 'ECOSYSTEM_PARTNER_APPLICATION', label: 'ECOSYSTEM_PARTNER_APPLICATION' },
+              ]}
+              dense
+            />
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35">Queue</label>
-            <select
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35 mb-1.5">Queue</label>
+            <FormSelect
               name="queue"
               defaultValue={queue}
-              className="mf-select h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-[13px] text-white/90 transition-all hover:bg-white/[0.06] hover:border-white/[0.12] focus:border-amber-400/40"
-            >
-              <option value="">All queues</option>
-              <option value="NORMAL">NORMAL</option>
-              <option value="HIGH_RISK">HIGH_RISK</option>
-              <option value="ESCALATED">ESCALATED</option>
-            </select>
+              options={[
+                { value: '', label: 'All queues' },
+                { value: 'NORMAL', label: 'NORMAL' },
+                { value: 'HIGH_RISK', label: 'HIGH_RISK' },
+                { value: 'ESCALATED', label: 'ESCALATED' },
+              ]}
+              dense
+            />
           </div>
 
           <div className="space-y-1.5">
@@ -261,17 +265,18 @@ export default async function AdminGovernancePage({
 
         <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="space-y-1.5">
-              <select
+            <div className="space-y-1.5 w-[120px]">
+              <FormSelect
                 name="pageSize"
                 defaultValue={String(pageSizeNum)}
-                className="mf-select h-10 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 pr-8 text-[13px] text-white/90 transition-all hover:bg-white/[0.06] hover:border-white/[0.12] focus:border-amber-400/40"
-              >
-                <option value="10">10 / page</option>
-                <option value="25">25 / page</option>
-                <option value="50">50 / page</option>
-                <option value="100">100 / page</option>
-              </select>
+                options={[
+                  { value: '10', label: '10 / page' },
+                  { value: '25', label: '25 / page' },
+                  { value: '50', label: '50 / page' },
+                  { value: '100', label: '100 / page' },
+                ]}
+                dense
+              />
             </div>
 
             <button

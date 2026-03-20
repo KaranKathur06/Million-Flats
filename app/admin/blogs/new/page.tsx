@@ -8,6 +8,7 @@ import * as z from 'zod'
 import { SEOScore } from '@/components/admin/blogs/seo-score'
 import { TiptapEditor } from '@/components/admin/blogs/tiptap-editor'
 import { CloudinaryUpload } from '@/components/admin/blogs/cloudinary-upload'
+import SelectDropdown from '@/components/SelectDropdown'
 
 const blogSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -239,17 +240,16 @@ export default function CreateBlogPage() {
           {/* Category */}
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
             <label className="block text-sm font-semibold text-white/80 mb-2">Category</label>
-            <select
-              {...register('categoryId')}
-              className="w-full px-4 py-3 rounded-xl border border-white/[0.08] bg-[#0d1526] text-white/80 focus:outline-none focus:border-amber-400/40 focus:ring-1 focus:ring-amber-400/20 transition-all duration-200 appearance-none cursor-pointer"
-            >
-              <option value="">Select a category...</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+            <SelectDropdown
+              label="Category"
+              showLabel={false}
+              value={watchedValues.categoryId || ''}
+              onChange={(v) => setValue('categoryId', v, { shouldValidate: true })}
+              options={[
+                { value: '', label: 'Select a category...' },
+                ...categories.map((cat) => ({ value: cat.id, label: cat.name }))
+              ]}
+            />
             {errors.categoryId && <p className="text-red-400 text-sm mt-2">{errors.categoryId.message}</p>}
           </div>
 
@@ -392,14 +392,17 @@ export default function CreateBlogPage() {
 
             <div>
               <label className="block text-sm font-medium text-white/60 mb-1.5">Status</label>
-              <select
-                {...register('status')}
-                className="w-full px-4 py-2.5 rounded-xl border border-white/[0.08] bg-[#0d1526] text-white/80 focus:outline-none focus:border-amber-400/40 focus:ring-1 focus:ring-amber-400/20 transition-all duration-200 appearance-none cursor-pointer"
-              >
-                <option value="DRAFT">Draft</option>
-                <option value="PUBLISHED">Publish Now</option>
-                <option value="SCHEDULED">Schedule</option>
-              </select>
+              <SelectDropdown
+                label="Status"
+                showLabel={false}
+                value={watchedValues.status || 'DRAFT'}
+                onChange={(v) => setValue('status', v as any)}
+                options={[
+                  { value: 'DRAFT', label: 'Draft' },
+                  { value: 'PUBLISHED', label: 'Publish Now' },
+                  { value: 'SCHEDULED', label: 'Schedule' }
+                ]}
+              />
             </div>
 
             {watchedValues.status === 'SCHEDULED' && (

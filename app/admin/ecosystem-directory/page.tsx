@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { hasMinRole, normalizeRole } from '@/lib/rbac'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import AdminEcosystemDirectoryTableClient from './AdminEcosystemDirectoryTableClient'
+import FormSelect from '@/components/FormSelect'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
@@ -130,32 +131,33 @@ export default async function AdminEcosystemDirectoryPage({
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1.5">
             <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35">Status</label>
-            <select
+            <FormSelect
               name="status"
               defaultValue={status || ''}
-              className="mf-select h-10 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 pr-8 text-[13px] text-white/90 transition-all hover:bg-white/[0.06] hover:border-white/[0.12] focus:border-amber-400/40"
-            >
-              <option value="">All statuses</option>
-              <option value="PENDING">PENDING</option>
-              <option value="APPROVED">APPROVED</option>
-              <option value="REJECTED">REJECTED</option>
-            </select>
+              options={[
+                { value: '', label: 'All statuses' },
+                { value: 'PENDING', label: 'PENDING' },
+                { value: 'APPROVED', label: 'APPROVED' },
+                { value: 'REJECTED', label: 'REJECTED' },
+              ]}
+              dense
+            />
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 min-w-[150px]">
             <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35">Category</label>
-            <select
+            <FormSelect
               name="category"
               defaultValue={categorySlug}
-              className="mf-select h-10 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 pr-8 text-[13px] text-white/90 transition-all hover:bg-white/[0.06] hover:border-white/[0.12] focus:border-amber-400/40"
-            >
-              <option value="">All categories</option>
-              {(categories as any[]).map((c) => (
-                <option key={String(c.id)} value={safeString(c.slug)}>
-                  {safeString(c.title)}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: '', label: 'All categories' },
+                ...(categories as any[]).map((c) => ({
+                  value: safeString(c.slug),
+                  label: safeString(c.title),
+                })),
+              ]}
+              dense
+            />
           </div>
 
           <div className="space-y-1.5 flex-1 min-w-[200px]">

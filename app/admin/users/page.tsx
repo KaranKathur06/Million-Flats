@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { hasMinRole, normalizeRole } from '@/lib/rbac'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import AdminUsersTableClient from './AdminUsersTableClient'
+import FormSelect from '@/components/FormSelect'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
@@ -82,19 +83,20 @@ export default async function AdminUsersPage({
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1.5">
             <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35">Role</label>
-            <select
+            <FormSelect
               name="role"
               defaultValue={roleFilter}
-              className="mf-select h-10 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 pr-8 text-[13px] text-white/90 transition-all hover:bg-white/[0.06] hover:border-white/[0.12] focus:border-amber-400/40"
-            >
-              <option value="">All roles</option>
-              <option value="USER">USER</option>
-              <option value="AGENT">AGENT</option>
-              <option value="MODERATOR">MODERATOR</option>
-              <option value="VERIFIER">VERIFIER</option>
-              <option value="ADMIN">ADMIN</option>
-              <option value="SUPERADMIN">SUPERADMIN</option>
-            </select>
+              options={[
+                { value: '', label: 'All roles' },
+                { value: 'USER', label: 'USER' },
+                { value: 'AGENT', label: 'AGENT' },
+                { value: 'MODERATOR', label: 'MODERATOR' },
+                { value: 'VERIFIER', label: 'VERIFIER' },
+                { value: 'ADMIN', label: 'ADMIN' },
+                { value: 'SUPERADMIN', label: 'SUPERADMIN' },
+              ]}
+              dense
+            />
           </div>
           <button className="h-10 px-5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-[13px] text-[#0b1220] font-semibold shadow-md shadow-amber-500/20 hover:shadow-lg hover:shadow-amber-500/30 hover:from-amber-300 hover:to-amber-400 transition-all duration-200">
             Apply

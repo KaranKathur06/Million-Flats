@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import SelectDropdown from '@/components/SelectDropdown'
 
 interface DevOption { id: string; name: string; slug: string | null }
 interface MediaItem { id: string; mediaUrl: string; mediaType: string; sortOrder: number | null; s3Key: string | null }
@@ -260,11 +261,29 @@ export default function AdminEditProjectPage() {
                         </div>
                         <div>
                             <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Developer</label>
-                            <select value={developerId} onChange={(e) => setDeveloperId(e.target.value)}
-                                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all">
-                                <option value="" className="bg-[#0a1019]">Select…</option>
-                                {developers.map((d) => <option key={d.id} value={d.id} className="bg-[#0a1019]">{d.name}</option>)}
-                            </select>
+                            <SelectDropdown
+                                label="Developer"
+                                value={developerId}
+                                onChange={setDeveloperId}
+                                options={[
+                                    { value: '', label: 'Select…' },
+                                    ...developers.map((d) => ({ value: d.id, label: d.name }))
+                                ]}
+                                showLabel={false}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Country</label>
+                            <SelectDropdown
+                                label="Country"
+                                value={countryIso2}
+                                onChange={setCountryIso2}
+                                options={[
+                                    { value: 'AE', label: 'UAE' },
+                                    { value: 'IN', label: 'India' }
+                                ]}
+                                showLabel={false}
+                            />
                         </div>
                         <div>
                             <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">City</label>

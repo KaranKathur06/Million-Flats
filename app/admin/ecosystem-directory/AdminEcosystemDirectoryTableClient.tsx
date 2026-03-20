@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAdminCapabilities } from '@/lib/adminCapabilities'
+import SelectDropdown from '@/components/SelectDropdown'
 
 type Row = {
   id: string
@@ -218,24 +219,28 @@ export default function AdminEcosystemDirectoryTableClient({
                           {it.isFeatured ? 'Unfeature' : 'Feature'}
                         </button>
 
-                        <select
-                          defaultValue={it.subscriptionTier || 'FREE'}
-                          disabled={!canModerate || isBusy}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            doAction(it.id, async () => {
-                              await postJson(`/api/admin/ecosystem-directory/${encodeURIComponent(it.id)}/update`, {
-                                subscriptionTier: val,
+                        <div className="w-[120px]">
+                          <SelectDropdown
+                            label="Tier"
+                            showLabel={false}
+                            value={it.subscriptionTier || 'FREE'}
+                            dense
+                            disabled={!canModerate || isBusy}
+                            onChange={(val: string) => {
+                              doAction(it.id, async () => {
+                                await postJson(`/api/admin/ecosystem-directory/${encodeURIComponent(it.id)}/update`, {
+                                  subscriptionTier: val,
+                                })
                               })
-                            })
-                          }}
-                          className="h-9 rounded-lg border border-white/10 bg-[#0b1220] px-2 text-xs text-white"
-                        >
-                          <option value="FREE">FREE</option>
-                          <option value="BOOSTED">BOOSTED</option>
-                          <option value="PREMIUM">PREMIUM</option>
-                          <option value="SPONSORED">SPONSORED</option>
-                        </select>
+                            }}
+                            options={[
+                              { value: 'FREE', label: 'FREE' },
+                              { value: 'BOOSTED', label: 'BOOSTED' },
+                              { value: 'PREMIUM', label: 'PREMIUM' },
+                              { value: 'SPONSORED', label: 'SPONSORED' },
+                            ]}
+                          />
+                        </div>
 
                         <button
                           type="button"

@@ -127,11 +127,11 @@ body {
 }
 
 /* Dark color scheme for date inputs */
-input[type="date"][class*="bg-white"] {
+input[type="date"].bg-white {
   color-scheme: light;
 }
 
-input[type="date"]:not([class*="bg-white"]) {
+input[type="date"]:not(.bg-white) {
   color-scheme: dark;
 }
 

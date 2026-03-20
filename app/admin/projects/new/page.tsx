@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import SelectDropdown from '@/components/SelectDropdown'
 
 interface DevOption {
     id: string
@@ -186,13 +187,16 @@ export default function AdminAddProjectPage() {
                             <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">
                                 Developer <span className="text-red-400">*</span>
                             </label>
-                            <select value={developerId} onChange={(e) => setDeveloperId(e.target.value)}
-                                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all">
-                                <option value="" className="bg-[#0a1019]">Select developer…</option>
-                                {developers.map((d) => (
-                                    <option key={d.id} value={d.id} className="bg-[#0a1019]">{d.name}</option>
-                                ))}
-                            </select>
+                            <SelectDropdown
+                                label="Developer"
+                                value={developerId}
+                                onChange={setDeveloperId}
+                                options={[
+                                    { value: '', label: 'Select developer…' },
+                                    ...developers.map((d) => ({ value: d.id, label: d.name }))
+                                ]}
+                                showLabel={false}
+                            />
                         </div>
 
                         <div>
@@ -209,11 +213,16 @@ export default function AdminAddProjectPage() {
 
                         <div>
                             <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Country</label>
-                            <select value={countryIso2} onChange={(e) => setCountryIso2(e.target.value)}
-                                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all">
-                                <option value="AE" className="bg-[#0a1019]">UAE</option>
-                                <option value="IN" className="bg-[#0a1019]">India</option>
-                            </select>
+                            <SelectDropdown
+                                label="Country"
+                                value={countryIso2}
+                                onChange={setCountryIso2}
+                                options={[
+                                    { value: 'AE', label: 'UAE' },
+                                    { value: 'IN', label: 'India' }
+                                ]}
+                                showLabel={false}
+                            />
                         </div>
 
                         <div>

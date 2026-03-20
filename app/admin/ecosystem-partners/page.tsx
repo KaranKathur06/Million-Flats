@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { hasMinRole, normalizeRole } from '@/lib/rbac'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import AdminEcosystemPartnersTableClient from './AdminEcosystemPartnersTableClient'
+import FormSelect from '@/components/FormSelect'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
@@ -96,17 +97,18 @@ export default async function AdminEcosystemPartnersPage({
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1.5">
             <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35">Stage</label>
-            <select
+            <FormSelect
               name="stage"
               defaultValue={stage}
-              className="mf-select h-10 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 pr-8 text-[13px] text-white/90 transition-all hover:bg-white/[0.06] hover:border-white/[0.12] focus:border-amber-400/40"
-            >
-              <option value="">All stages</option>
-              <option value="APPLIED">APPLIED</option>
-              <option value="UNDER_REVIEW">UNDER_REVIEW</option>
-              <option value="APPROVED">APPROVED</option>
-              <option value="ONBOARDED">ONBOARDED</option>
-            </select>
+              options={[
+                { value: '', label: 'All stages' },
+                { value: 'APPLIED', label: 'APPLIED' },
+                { value: 'UNDER_REVIEW', label: 'UNDER_REVIEW' },
+                { value: 'APPROVED', label: 'APPROVED' },
+                { value: 'ONBOARDED', label: 'ONBOARDED' },
+              ]}
+              dense
+            />
           </div>
 
           <div className="space-y-1.5">

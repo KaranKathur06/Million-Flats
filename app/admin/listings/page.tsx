@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { hasMinRole, normalizeRole } from '@/lib/rbac'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import AdminListingsTableClient from './AdminListingsTableClient'
+import FormSelect from '@/components/FormSelect'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
@@ -143,19 +144,20 @@ export default async function AdminListingsPage({
       <form className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5" method="get">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
           <div className="space-y-1.5">
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35">Status</label>
-            <select
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35 mb-1.5">Status</label>
+            <FormSelect
               name="status"
               defaultValue={status}
-              className="mf-select h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-[13px] text-white/90 transition-all hover:bg-white/[0.06] hover:border-white/[0.12] focus:border-amber-400/40"
-            >
-              <option value="">All statuses</option>
-              <option value="DRAFT">Draft</option>
-              <option value="PENDING_REVIEW">Pending</option>
-              <option value="APPROVED">Published</option>
-              <option value="REJECTED">Rejected</option>
-              <option value="ARCHIVED">Archived</option>
-            </select>
+              options={[
+                { value: '', label: 'All statuses' },
+                { value: 'DRAFT', label: 'Draft' },
+                { value: 'PENDING_REVIEW', label: 'Pending' },
+                { value: 'APPROVED', label: 'Published' },
+                { value: 'REJECTED', label: 'Rejected' },
+                { value: 'ARCHIVED', label: 'Archived' },
+              ]}
+              dense
+            />
           </div>
 
           <div className="space-y-1.5">

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import SelectDropdown from '@/components/SelectDropdown'
 
 type Subscription = {
   id: string
@@ -144,15 +145,18 @@ export default function AdminSubscriptionsClient() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Plan Tier</label>
-                <select 
+                <SelectDropdown
+                  variant="light"
+                  label="Plan Tier"
+                  showLabel={false}
                   value={editPlan}
-                  onChange={(e) => setEditPlan(e.target.value as any)}
-                  className="w-full rounded-xl border border-gray-300 p-2.5 focus:border-dark-blue focus:ring-1 focus:ring-dark-blue"
-                >
-                  <option value="BASIC">Basic</option>
-                  <option value="PROFESSIONAL">Professional</option>
-                  <option value="PREMIUM">Premium</option>
-                </select>
+                  onChange={(val) => setEditPlan(val as any)}
+                  options={[
+                    { value: 'BASIC', label: 'Basic' },
+                    { value: 'PROFESSIONAL', label: 'Professional' },
+                    { value: 'PREMIUM', label: 'Premium' },
+                  ]}
+                />
               </div>
 
               <div>

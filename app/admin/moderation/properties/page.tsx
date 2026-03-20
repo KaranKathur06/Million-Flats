@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { hasMinRole, normalizeRole } from '@/lib/rbac'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
+import FormSelect from '@/components/FormSelect'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
@@ -104,16 +105,18 @@ export default async function AdminModerationQueuePage({
           <p className="mt-2 text-gray-600">Only manual listings are reviewed.</p>
 
           <form className="mt-6 grid grid-cols-1 md:grid-cols-5 gap-3" method="get">
-            <select
+            <FormSelect
               name="status"
               defaultValue={status}
-              className="h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm"
-            >
-              <option value="PENDING_REVIEW">Pending Review</option>
-              <option value="APPROVED">Approved</option>
-              <option value="REJECTED">Rejected</option>
-              <option value="DRAFT">Draft</option>
-            </select>
+              className="w-[180px]"
+              options={[
+                { value: 'PENDING_REVIEW', label: 'Pending Review' },
+                { value: 'APPROVED', label: 'Approved' },
+                { value: 'REJECTED', label: 'Rejected' },
+                { value: 'DRAFT', label: 'Draft' }
+              ]}
+              dense
+            />
 
             <input
               name="agent"
