@@ -4,11 +4,18 @@ import WebhooksClient from './WebhooksClient'
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
-async function getWebhooks(searchParams: URLSearchParams) {
-  const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-  const limit = Math.min(50, Math.max(10, parseInt(searchParams.get('limit') || '25')))
-  const eventType = searchParams.get('event')
-  const processed = searchParams.get('processed')
+function getParam(sp: { [key: string]: string | string[] | undefined } | undefined, key: string) {
+  const v = sp?.[key]
+  if (typeof v === 'string') return v
+  if (Array.isArray(v)) return v[0]
+  return undefined
+}
+
+async function getWebhooks(searchParams: { [key: string]: string | string[] | undefined } | undefined) {
+  const page = Math.max(1, parseInt(getParam(searchParams, 'page') || '1'))
+  const limit = Math.min(50, Math.max(10, parseInt(getParam(searchParams, 'limit') || '25')))
+  const eventType = getParam(searchParams, 'event')
+  const processed = getParam(searchParams, 'processed')
 
   const where: any = {}
   if (eventType) where.eventType = eventType
@@ -45,7 +52,11 @@ async function getWebhooks(searchParams: URLSearchParams) {
   }
 }
 
-export default async function WebhooksPage({ searchParams }: { searchParams: URLSearchParams }) {
+export default async function WebhooksPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined }
+}) {
   const data = await getWebhooks(searchParams)
 
   return <WebhooksClient webhooks={data.webhooks} pagination={data.pagination} />

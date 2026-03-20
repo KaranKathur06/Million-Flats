@@ -4,12 +4,19 @@ import SubscriptionsClient from './SubscriptionsClient'
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
-async function getSubscriptions(searchParams: URLSearchParams) {
-  const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-  const limit = Math.min(50, Math.max(10, parseInt(searchParams.get('limit') || '25')))
-  const status = searchParams.get('status')?.toUpperCase()
-  const plan = searchParams.get('plan')?.toUpperCase()
-  const search = searchParams.get('search')
+function getParam(sp: { [key: string]: string | string[] | undefined } | undefined, key: string) {
+  const v = sp?.[key]
+  if (typeof v === 'string') return v
+  if (Array.isArray(v)) return v[0]
+  return undefined
+}
+
+async function getSubscriptions(searchParams: { [key: string]: string | string[] | undefined } | undefined) {
+  const page = Math.max(1, parseInt(getParam(searchParams, 'page') || '1'))
+  const limit = Math.min(50, Math.max(10, parseInt(getParam(searchParams, 'limit') || '25')))
+  const status = getParam(searchParams, 'status')?.toUpperCase()
+  const plan = getParam(searchParams, 'plan')?.toUpperCase()
+  const search = getParam(searchParams, 'search')
 
   const where: any = {}
   if (status) where.status = status
@@ -57,7 +64,11 @@ async function getSubscriptions(searchParams: URLSearchParams) {
   }
 }
 
-export default async function SubscriptionsPage({ searchParams }: { searchParams: URLSearchParams }) {
+export default async function SubscriptionsPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined }
+}) {
   const data = await getSubscriptions(searchParams)
 
   return <SubscriptionsClient subscriptions={data.subscriptions} pagination={data.pagination} />
