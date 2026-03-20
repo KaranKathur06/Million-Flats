@@ -26,6 +26,10 @@ type AgentRow = {
   totalDocs: number
   approvedDocs: number
   completionPercentage: number
+  subscriptionPlan: string
+  subscriptionStatus: string
+  subscriptionEndDate: string | null
+  subscriptionDaysRemaining: number | null
 }
 
 function safeString(v: unknown) {
@@ -176,6 +180,9 @@ export default function AdminAgentsTableClient({
               <th className="py-3 pr-4">Progress</th>
               <th className="py-3 pr-4">Risk</th>
               <th className="py-3 pr-4">Verification</th>
+              <th className="py-3 pr-4">Plan</th>
+              <th className="py-3 pr-4">Subscription</th>
+              <th className="py-3 pr-4">Days Left</th>
               <th className="py-3 pr-4">Submitted</th>
               <th className="py-3 pr-4">Actions</th>
             </tr>
@@ -220,6 +227,49 @@ export default function AdminAgentsTableClient({
                     <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-bold uppercase ${getStatusBadge(vs)}`}>
                       {vs.replace('_', ' ')}
                     </span>
+                  </td>
+                  <td className="py-4 pr-4">
+                    {it.subscriptionPlan ? (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[11px] font-semibold text-white/80">
+                        {it.subscriptionPlan}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-white/40">—</span>
+                    )}
+                  </td>
+                  <td className="py-4 pr-4">
+                    {it.subscriptionStatus ? (
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${
+                          it.subscriptionStatus === 'ACTIVE' || it.subscriptionStatus === 'TRIAL'
+                            ? 'bg-emerald-500/10 border-emerald-400/20 text-emerald-400'
+                            : it.subscriptionStatus === 'EXPIRED'
+                            ? 'bg-red-500/10 border-red-400/20 text-red-400'
+                            : 'bg-gray-500/10 border-gray-400/20 text-gray-400'
+                        }`}
+                      >
+                        {it.subscriptionStatus}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-white/40">—</span>
+                    )}
+                  </td>
+                  <td className="py-4 pr-4">
+                    {it.subscriptionDaysRemaining !== null ? (
+                      <span
+                        className={`text-xs font-semibold ${
+                          it.subscriptionDaysRemaining === 0
+                            ? 'text-red-400'
+                            : it.subscriptionDaysRemaining <= 7
+                            ? 'text-amber-400'
+                            : 'text-emerald-400'
+                        }`}
+                      >
+                        {it.subscriptionDaysRemaining}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-white/40">—</span>
+                    )}
                   </td>
                   <td className="py-4 pr-4 text-xs text-white/50">{it.createdAt || '—'}</td>
                   <td className="py-4 pr-4">

@@ -1,23 +1,25 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { requireAgentProfileSession } from '@/lib/agentAuth'
-import { createRazorpayOrder, generateReceiptId, inrToPaise, getRazorpayKeyId, isRazorpayConfigured } from '@/lib/razorpay'
-import { PLAN_LIMITS } from '@/lib/subscriptionPlans'
 import { prisma } from '@/lib/prisma'
+import { requireAgentProfileSession } from '@/lib/agentAuth'
+import {
+  createRazorpayOrder,
+  generateReceiptId,
+  inrToPaise,
+  getRazorpayKeyId,
+  isRazorpayConfigured,
+} from '@/lib/razorpay'
+import { PLAN_LIMITS, normalizePlan } from '@/lib/subscriptionPlans'
 
 export const runtime = 'nodejs'
 
-const BodySchema = z.object({
+const CreateOrderSchema = z.object({
   plan: z.enum(['BASIC', 'PROFESSIONAL', 'PREMIUM']),
   billingCycle: z.enum(['MONTHLY', 'ANNUAL']),
 })
 
-// Annual discount
+// Annual discount percentage
 const ANNUAL_DISCOUNT_PERCENT = 20
-
-function bad(message: string, status = 400) {
-  return NextResponse.json({ success: false, message }, { status })
-}
 
 /**
  * Calculate price based on plan and billing cycle
@@ -27,15 +29,17 @@ function calculatePrice(plan: 'BASIC' | 'PROFESSIONAL' | 'PREMIUM', billingCycle
   amountPaise: number
   subscriptionDays: number
 } {
-  const basePrice = PLAN_LIMITS[plan].price
+  const basePrice = PLAN_LIMITS[plan].price // Monthly price in INR
 
   let amountInr: number
   let subscriptionDays: number
 
   if (billingCycle === 'ANNUAL') {
+    // Annual: 12 months with discount
     amountInr = Math.round(basePrice * 12 * (1 - ANNUAL_DISCOUNT_PERCENT / 100))
     subscriptionDays = 365
   } else {
+    // Monthly
     amountInr = basePrice
     subscriptionDays = 30
   }
@@ -48,47 +52,57 @@ function calculatePrice(plan: 'BASIC' | 'PROFESSIONAL' | 'PREMIUM', billingCycle
 }
 
 /**
- * POST /api/agent/subscription/checkout
+ * POST /api/agent/payments/create-order
  * 
- * Creates a Razorpay order for subscription checkout
+ * Creates a Razorpay order for subscription purchase
  * 
- * Request:
+ * Request body:
  *   - plan: BASIC | PROFESSIONAL | PREMIUM
  *   - billingCycle: MONTHLY | ANNUAL
  * 
  * Response:
  *   - success: true
- *   - order: { id, amount, currency }
- *   - keyId: Razorpay key ID for frontend
- *   - prefill: { name, email }
+ *   - order: { id, amount, currency, keyId }
+ *   - payment: Payment record ID
  */
 export async function POST(req: Request) {
-  const auth = await requireAgentProfileSession()
-  if (!auth.ok) {
-    return bad(auth.message, auth.status)
-  }
-
-  // Check if Razorpay is configured
-  if (!isRazorpayConfigured()) {
-    return bad('Payment system not configured. Please contact support.', 503)
-  }
-
-  const json = await req.json().catch(() => null)
-  const parsed = BodySchema.safeParse(json)
-  if (!parsed.success) {
-    return bad('Invalid payload. Plan and billingCycle are required.', 400)
-  }
-
-  const { plan, billingCycle } = parsed.data
-  const { amountPaise, subscriptionDays } = calculatePrice(plan, billingCycle)
-
   try {
-    // Check for existing pending order (reuse within 30 min)
+    // Check Razorpay configuration
+    if (!isRazorpayConfigured()) {
+      return NextResponse.json(
+        { success: false, message: 'Payment system not configured' },
+        { status: 503 }
+      )
+    }
+
+    // Authenticate agent
+    const auth = await requireAgentProfileSession()
+    if (!auth.ok) {
+      return NextResponse.json(
+        { success: false, message: auth.message },
+        { status: auth.status }
+      )
+    }
+
+    // Parse and validate request
+    const body = await req.json().catch(() => null)
+    const parsed = CreateOrderSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid request parameters' },
+        { status: 400 }
+      )
+    }
+
+    const { plan, billingCycle } = parsed.data
+    const { amountPaise, subscriptionDays } = calculatePrice(plan, billingCycle)
+
+    // Check for existing pending order
     const existingPending = await (prisma as any).payment.findFirst({
       where: {
         agentId: auth.agentId,
         status: 'PENDING',
-        createdAt: { gte: new Date(Date.now() - 30 * 60 * 1000) },
+        createdAt: { gte: new Date(Date.now() - 30 * 60 * 1000) }, // Within last 30 min
       },
       select: {
         id: true,
@@ -99,14 +113,13 @@ export async function POST(req: Request) {
       },
     })
 
+    // If valid pending order exists, return it instead of creating new
     if (existingPending?.razorpayOrderId) {
       return NextResponse.json({
         success: true,
-        order: {
-          id: existingPending.razorpayOrderId,
-          amount: existingPending.amount,
-          currency: 'INR',
-        },
+        orderId: existingPending.razorpayOrderId,
+        amount: existingPending.amount,
+        currency: 'INR',
         keyId: getRazorpayKeyId(),
         paymentId: existingPending.id,
         plan: existingPending.plan,
@@ -131,7 +144,7 @@ export async function POST(req: Request) {
       },
     })
 
-    // Create Payment record
+    // Create Payment record in database
     const payment = await (prisma as any).payment.create({
       data: {
         agentId: auth.agentId,
@@ -147,39 +160,33 @@ export async function POST(req: Request) {
         notes: {
           razorpay_order_id: razorpayOrder.id,
           receipt,
+          created_by: auth.userId,
         },
       },
-      select: { id: true },
-    })
-
-    // Get agent details for prefill
-    const agent = await (prisma as any).agent.findUnique({
-      where: { id: auth.agentId },
       select: {
-        user: { select: { name: true, email: true } },
+        id: true,
+        razorpayOrderId: true,
+        amount: true,
       },
     })
 
     return NextResponse.json({
       success: true,
-      order: {
-        id: razorpayOrder.id,
-        amount: razorpayOrder.amount,
-        currency: razorpayOrder.currency,
-      },
+      orderId: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
       keyId: getRazorpayKeyId(),
       paymentId: payment.id,
       plan,
       billingCycle,
       subscriptionDays,
-      prefill: {
-        name: agent?.user?.name || '',
-        email: agent?.user?.email || '',
-      },
     })
   } catch (error) {
-    console.error('Checkout error:', error)
-    const message = error instanceof Error ? error.message : 'Failed to create checkout session'
-    return bad(message, 500)
+    console.error('Create order error:', error)
+    const message = error instanceof Error ? error.message : 'Failed to create order'
+    return NextResponse.json(
+      { success: false, message },
+      { status: 500 }
+    )
   }
 }

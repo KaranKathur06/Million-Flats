@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { hasMinRole, normalizeRole } from '@/lib/rbac'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
@@ -40,8 +41,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
     }
 
-    const userRole = (session.user as any)?.role
-    if (!['ADMIN', 'EDITOR'].includes(userRole)) {
+    const userRole = normalizeRole((session.user as any)?.role)
+    if (!hasMinRole(userRole, 'ADMIN')) {
       return NextResponse.json(
         { success: false, message: 'Forbidden' },
         { status: 403 }

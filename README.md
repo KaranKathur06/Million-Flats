@@ -67,6 +67,11 @@ millionflats/
    ```env
    JWT_SECRET=your-secret-key-here
    NEXT_PUBLIC_BASE_URL=http://localhost:3000
+
+   # Razorpay (required for payments/subscriptions)
+   RAZORPAY_KEY_ID=rzp_test_...
+   RAZORPAY_KEY_SECRET=...
+   RAZORPAY_WEBHOOK_SECRET=...
    ```
 
 4. **Run the development server**
@@ -117,6 +122,22 @@ millionflats/
 
 ### Contact
 - `POST /api/contact` - Submit contact form
+
+### Agent Payments & Subscriptions
+- `POST /api/agent/subscription/checkout` - Create Razorpay order for subscription checkout
+- `GET /api/agent/subscription` - Get agent subscription status
+- `POST /api/agent/subscription/start-trial` - Start agent trial (idempotent)
+- `POST /api/agent/payments/create-order` - Create Razorpay order (subscription purchase)
+- `POST /api/agent/payments/verify` - Verify Razorpay payment signature and activate subscription
+- `GET /api/agent/payments/history` - List agent payment history
+
+### Webhooks
+- `POST /api/webhooks/razorpay` - Razorpay webhook receiver (signature verified + idempotent)
+
+### Admin Payments
+- `GET /api/admin/payments` - List/search payments
+- `GET /api/admin/payments/plans` - List subscription plan prices
+- `POST /api/admin/payments/plans` - Create/update subscription plan price
 
 ## Mock Data
 

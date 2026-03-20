@@ -504,6 +504,7 @@ model Agent {
   verificationProgress AgentVerificationProgress?
 
   subscription AgentSubscription?
+  payments     Payment[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -539,6 +540,7 @@ model AgentSubscription {
   providerSubscriptionId String? @map("provider_subscription_id")
 
   agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  payments Payment[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -1569,4 +1571,127 @@ model Buyer {
   inquiries Inquiry[]
 
   @@map("buyers")
+}
+
+// ─── Payment System (Razorpay) ───────────────────────────────────────────
+
+enum PaymentProvider {
+  RAZORPAY
+  STRIPE
+  MANUAL
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  CANCELLED
+}
+
+enum PaymentType {
+  SUBSCRIPTION
+  FEATURED_LISTING
+  VERIFICATION
+  ADDON
+}
+
+model SubscriptionPlanPrice {
+  id              String @id @default(uuid())
+  plan            AgentSubscriptionPlan
+  billingCycle    String @map("billing_cycle") // MONTHLY, ANNUAL
+  price           Int @map("price") // in paise (INR * 100)
+  currency        String @default("INR")
+  razorpayPlanId  String? @map("razorpay_plan_id")
+  isActive        Boolean @default(true) @map("is_active")
+  features        Json? // JSON object with feature limits
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([plan, billingCycle])
+  @@index([isActive])
+  @@map("subscription_plan_prices")
+}
+
+model Payment {
+  id                      String @id @default(uuid())
+  agentId                 String @map("agent_id")
+  subscriptionId          String? @map("subscription_id")
+
+  // Razorpay identifiers
+  razorpayOrderId         String? @unique @map("razorpay_order_id")
+  razorpayPaymentId       String? @map("razorpay_payment_id")
+  razorpaySignature       String? @map("razorpay_signature")
+
+  // Payment details
+  provider                PaymentProvider @default(RAZORPAY)
+  status                  PaymentStatus @default(PENDING)
+  type                    PaymentType @default(SUBSCRIPTION)
+
+  amount                  Int @map("amount") // in paise
+  currency                String @default("INR")
+  amountPaid              Int @default(0) @map("amount_paid")
+  amountRefunded          Int @default(0) @map("amount_refunded")
+
+  // Subscription details
+  plan                    AgentSubscriptionPlan
+  billingCycle            String @map("billing_cycle") // MONTHLY, ANNUAL
+  subscriptionDays        Int @default(30) @map("subscription_days")
+
+  // Metadata
+  notes                   Json? // additional notes from Razorpay
+  failureReason           String? @map("failure_reason")
+  failureCode             String? @map("failure_code")
+
+  // Timestamps
+  paidAt                  DateTime? @map("paid_at")
+  refundedAt              DateTime? @map("refunded_at")
+  cancelledAt             DateTime? @map("cancelled_at")
+
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  agent                   Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  subscription            AgentSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  webhooks                PaymentWebhook[]
+
+  @@index([agentId])
+  @@index([status])
+  @@index([provider])
+  @@index([razorpayPaymentId])
+  @@index([createdAt])
+  @@map("payments")
+}
+
+model PaymentWebhook {
+  id                  String @id @default(uuid())
+  paymentId           String? @map("payment_id")
+
+  // Webhook data
+  razorpayEventId     String? @unique @map("razorpay_event_id")
+  eventType           String @map("event_type")
+  payload             Json
+  signature           String?
+
+  // Processing status
+  processed           Boolean @default(false)
+  processedAt         DateTime? @map("processed_at")
+  processingError     String? @map("processing_error")
+  retryCount          Int @default(0) @map("retry_count")
+
+  // Idempotency
+  idempotencyKey      String @unique @map("idempotency_key")
+
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  payment             Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([eventType])
+  @@index([processed])
+  @@index([createdAt])
+  @@map("payment_webhooks")
 }

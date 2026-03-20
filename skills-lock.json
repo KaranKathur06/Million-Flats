@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "api-design-principles": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "b242f962d5f78bf8bc147e92f2aa0341459b9f5f2f955e9867a8c41b85f22648"
+    },
     "auth-implementation-patterns": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -35,6 +40,11 @@
       "source": "anthropics/knowledge-work-plugins",
       "sourceType": "github",
       "computedHash": "9b334dd1bc654fda2ed014680e1910f33fcb4b0daa6fee2b91ef50156f401b81"
+    },
+    "ui-design-pro": {
+      "source": "ceorkm/ui-design-pro",
+      "sourceType": "github",
+      "computedHash": "352df4e02cc4bc450cc7241196d23a8917d117cd5d91ac99a2848ceef6a74d65"
     },
     "ui-ux-pro-max": {
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",

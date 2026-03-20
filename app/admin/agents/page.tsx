@@ -65,6 +65,16 @@ export default async function AdminAgentsPage({
           verificationProgress: {
             select: { completionPercentage: true },
           },
+          subscription: {
+            select: {
+              id: true,
+              plan: true,
+              status: true,
+              startDate: true,
+              endDate: true,
+              trialEndsAt: true,
+            },
+          },
         },
       },
     },
@@ -78,6 +88,16 @@ export default async function AdminAgentsPage({
     ]
     const totalDocs = allDocs.length
     const approvedDocs = allDocs.filter((d: any) => String(d.status).toUpperCase() === 'APPROVED').length
+
+    // Calculate days remaining for subscription
+    const subscription = agent?.subscription
+    let daysRemaining: number | null = null
+    if (subscription?.endDate) {
+      const now = new Date()
+      const end = new Date(subscription.endDate)
+      const diff = end.getTime() - now.getTime()
+      daysRemaining = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
+    }
 
     return {
       userId: String(u.id),
@@ -100,6 +120,11 @@ export default async function AdminAgentsPage({
       totalDocs,
       approvedDocs,
       completionPercentage: agent?.verificationProgress?.completionPercentage ?? agent?.profileCompletion ?? 0,
+      // Subscription fields
+      subscriptionPlan: safeString(subscription?.plan),
+      subscriptionStatus: safeString(subscription?.status),
+      subscriptionEndDate: subscription?.endDate,
+      subscriptionDaysRemaining: daysRemaining,
     }
   })
 
