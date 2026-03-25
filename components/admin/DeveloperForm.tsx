@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import SelectDropdown from '@/components/SelectDropdown'
+import UploadBox from '@/components/admin/UploadBox'
 
 function slugify(text: string) {
   return text
@@ -53,198 +54,6 @@ interface DeveloperFormProps {
   initial?: Partial<DeveloperFormData>
 }
 
-// ─── Image Upload Dropzone ──────────────────────────────────
-function ImageDropzone({
-  label,
-  hint,
-  type,
-  currentUrl,
-  developerSlug,
-  onUploaded,
-  aspectRatio = 'square',
-}: {
-  label: string
-  hint: string
-  type: 'logo' | 'banner'
-  currentUrl: string
-  developerSlug: string
-  onUploaded: (url: string) => void
-  aspectRatio?: 'square' | 'banner'
-}) {
-  const [uploading, setUploading] = useState(false)
-  const [uploadError, setUploadError] = useState('')
-  const [previewUrl, setPreviewUrl] = useState(currentUrl)
-  const fileRef = useRef<HTMLInputElement>(null)
-
-  const handleFile = useCallback(
-    async (file: File) => {
-      if (!file) return
-      const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-      if (!allowed.includes(file.type)) {
-        setUploadError('Only PNG, JPG, WebP allowed')
-        return
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        setUploadError('Max file size is 5MB')
-        return
-      }
-
-      setUploading(true)
-      setUploadError('')
-
-      // Optimistic preview
-      const reader = new FileReader()
-      reader.onload = (e) => setPreviewUrl(e.target?.result as string)
-      reader.readAsDataURL(file)
-
-      try {
-        const form = new FormData()
-        form.append('file', file)
-        form.append('type', type)
-        form.append('developerSlug', developerSlug || 'developer')
-
-        const res = await fetch('/api/admin/developers/upload', {
-          method: 'POST',
-          body: form,
-        })
-        const json = await res.json()
-        if (!json.success) throw new Error(json.message || 'Upload failed')
-
-        setPreviewUrl(json.url)
-        onUploaded(json.url)
-      } catch (err: any) {
-        setUploadError(err.message || 'Upload failed')
-        setPreviewUrl(currentUrl) // revert preview
-      } finally {
-        setUploading(false)
-      }
-    },
-    [type, developerSlug, currentUrl, onUploaded]
-  )
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      const file = e.dataTransfer.files?.[0]
-      if (file) handleFile(file)
-    },
-    [handleFile]
-  )
-
-  const handleRemove = () => {
-    setPreviewUrl('')
-    onUploaded('')
-    if (fileRef.current) fileRef.current.value = ''
-  }
-
-  const isSquare = aspectRatio === 'square'
-
-  return (
-    <div>
-      <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">
-        {label}
-      </label>
-
-      {previewUrl ? (
-        <div className="relative group">
-          {isSquare ? (
-            <div className="h-24 w-24 rounded-xl border border-white/[0.08] bg-white overflow-hidden p-1.5">
-              <img
-                src={previewUrl}
-                alt={label}
-                className="h-full w-full object-contain"
-                onError={() => setPreviewUrl('')}
-              />
-            </div>
-          ) : (
-            <div className="h-36 rounded-xl border border-white/[0.08] overflow-hidden">
-              <img
-                src={previewUrl}
-                alt={label}
-                className="h-full w-full object-cover"
-                onError={() => setPreviewUrl('')}
-              />
-            </div>
-          )}
-
-          {/* Hover overlay */}
-          <div className="absolute inset-0 rounded-xl bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-400/20 border border-amber-400/30 px-3 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-400/30 transition-colors"
-            >
-              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-              Replace
-            </button>
-            <button
-              type="button"
-              onClick={handleRemove}
-              className="inline-flex items-center gap-1 rounded-lg bg-red-500/20 border border-red-500/30 px-3 py-1.5 text-xs font-semibold text-red-300 hover:bg-red-500/30 transition-colors"
-            >
-              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              Remove
-            </button>
-          </div>
-
-          {uploading && (
-            <div className="absolute inset-0 rounded-xl bg-black/70 flex items-center justify-center">
-              <svg className="h-6 w-6 animate-spin text-amber-400" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-            </div>
-          )}
-        </div>
-      ) : (
-        <label
-          onDrop={handleDrop}
-          onDragOver={(e) => e.preventDefault()}
-          className={`group relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 ${
-            uploading
-              ? 'border-amber-400/40 bg-amber-400/[0.04]'
-              : 'border-white/[0.10] bg-white/[0.02] hover:border-amber-400/30 hover:bg-amber-400/[0.03]'
-          } ${isSquare ? 'h-24 w-24' : 'h-28 w-full'}`}
-        >
-          {uploading ? (
-            <svg className="h-6 w-6 animate-spin text-amber-400" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-          ) : (
-            <div className="flex flex-col items-center gap-1.5 px-3">
-              <div className="h-9 w-9 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center group-hover:bg-amber-400/10 group-hover:border-amber-400/20 transition-all">
-                <svg className="h-4 w-4 text-white/30 group-hover:text-amber-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              {!isSquare && (
-                <p className="text-[10px] text-white/30 group-hover:text-white/50 text-center leading-tight transition-colors">
-                  Click or drag to upload
-                </p>
-              )}
-            </div>
-          )}
-        </label>
-      )}
-
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/png,image/jpg,image/jpeg,image/webp"
-        className="sr-only"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
-      />
-
-      {hint && <p className="mt-1.5 text-[10px] text-white/25">{hint}</p>}
-      {uploadError && <p className="mt-1.5 text-[10px] text-red-400">{uploadError}</p>}
-    </div>
-  )
-}
 
 // ─── Form Input ──────────────────────────────────────────────
 function FormInput({
@@ -383,7 +192,7 @@ export default function DeveloperForm({ isEditMode = false, developerId, initial
   const logoSlug = form.slug || form.name ? slugify(form.name || 'developer') : 'developer'
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 pb-28">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {/* ── Feedback ── */}
       {error && (
         <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300 flex items-start gap-2">
@@ -458,24 +267,22 @@ export default function DeveloperForm({ isEditMode = false, developerId, initial
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {/* Logo */}
           <div>
-            <ImageDropzone
+            <UploadBox
               label="Logo"
               hint="Square image recommended (200×200). PNG, JPG, WebP. Max 5MB."
-              type="logo"
+              uploadData={{ type: 'logo', developerSlug: logoSlug }}
               currentUrl={form.logo}
-              developerSlug={logoSlug}
               onUploaded={(url) => update('logo', url)}
               aspectRatio="square"
             />
           </div>
           {/* Banner */}
           <div>
-            <ImageDropzone
+            <UploadBox
               label="Banner"
               hint="Recommended 1200×400. Wide landscape image. Max 5MB."
-              type="banner"
+              uploadData={{ type: 'banner', developerSlug: logoSlug }}
               currentUrl={form.banner}
-              developerSlug={logoSlug}
               onUploaded={(url) => update('banner', url)}
               aspectRatio="banner"
             />
@@ -607,41 +414,34 @@ export default function DeveloperForm({ isEditMode = false, developerId, initial
         </div>
       </div>
 
-      {/* ── Sticky Action Bar ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/[0.06] bg-[#0a0a0f]/95 backdrop-blur-md px-6 py-4">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={saving || !!success}
-            className="inline-flex items-center gap-2 rounded-xl bg-amber-400/90 px-6 py-2.5 text-sm font-semibold text-black hover:bg-amber-300 transition-colors shadow-lg shadow-amber-400/20 disabled:opacity-50"
-          >
-            {saving ? (
-              <>
-                <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                {isEditMode ? 'Updating…' : 'Creating…'}
-              </>
-            ) : isEditMode ? (
-              'Update Developer'
-            ) : (
-              'Create Developer'
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push('/admin/developers')}
-            className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-6 py-2.5 text-sm font-medium text-white/60 hover:bg-white/[0.08] hover:text-white/80 transition-all"
-          >
-            Cancel
-          </button>
-          {isEditMode && (
-            <p className="text-xs text-white/30 ml-auto hidden sm:block">
-              Changes are saved immediately after clicking Update
-            </p>
+      {/* ── Action Buttons ── */}
+      <div className="pt-6 flex items-center justify-end gap-3 border-t border-white/[0.06]">
+        <button
+          type="button"
+          onClick={() => router.push('/admin/developers')}
+          className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-6 py-2.5 text-sm font-medium text-white/70 hover:bg-white/[0.08] hover:text-white transition-all"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={saving || !!success}
+          className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-6 py-2.5 text-sm font-semibold text-black hover:bg-amber-300 transition-colors shadow-lg shadow-amber-400/20 disabled:opacity-50"
+        >
+          {saving ? (
+            <>
+              <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              {isEditMode ? 'Updating…' : 'Creating…'}
+            </>
+          ) : isEditMode ? (
+            'Update Developer'
+          ) : (
+            'Create Developer'
           )}
-        </div>
+        </button>
       </div>
     </form>
   )

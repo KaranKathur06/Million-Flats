@@ -4,13 +4,13 @@
             "name": "Ladani Group",
             "slug": "ladani-group",
             "country": "India",
-            "city": "",
+            "city": "Ahmedabad",
             "logo": "/developers/ladani/logo.png",
             "banner": "/developers/ladani/banner.jpg",
-            "short_description": "Rajkot-based residential & commercial developer",
-            "description": "",
-            "website": "https://www.ladaniassociates.com",
-            "founded_year": 1994,
+            "short_description": "Ahmedabad-based residential & commercial developer",
+            "description": "Ladani Group is a real estate developer based in Ahmedabad, Gujarat, focused on residential and commercial developments with an emphasis on quality construction and modern living spaces.",
+            "website": "https://www.ladanigroup.com",
+            "founded_year": null,
             "is_featured": true,
             "featured_rank": 1,
             "status": "active"
@@ -91,6 +91,21 @@
             "status": "active"
         },
         {
+            "name": "DAMAC Properties",
+            "slug": "damac",
+            "country": "UAE",
+            "city": "Dubai",
+            "logo": "/developers/damac/logo.png",
+            "banner": "/developers/damac/banner.jpg",
+            "short_description": "Luxury real estate developer in Dubai",
+            "description": "DAMAC Properties is a leading luxury real estate developer in Dubai delivering high-end residential, leisure, and commercial properties across the Middle East.",
+            "website": "https://www.damacproperties.com",
+            "founded_year": 2002,
+            "is_featured": true,
+            "featured_rank": 7,
+            "status": "active"
+        },
+        {
             "name": "Emaar Properties",
             "slug": "emaar",
             "country": "UAE",
@@ -102,7 +117,7 @@
             "website": "https://www.emaar.com",
             "founded_year": 1997,
             "is_featured": true,
-            "featured_rank": 7,
+            "featured_rank": 8,
             "status": "active"
         },
         {
@@ -117,7 +132,7 @@
             "website": "https://binghatti.com",
             "founded_year": null,
             "is_featured": true,
-            "featured_rank": 8,
+            "featured_rank": 9,
             "status": "active"
         },
         {
@@ -132,7 +147,7 @@
             "website": "https://www.azizidevelopments.com",
             "founded_year": null,
             "is_featured": true,
-            "featured_rank": 9,
+            "featured_rank": 10,
             "status": "active"
         },
         {
