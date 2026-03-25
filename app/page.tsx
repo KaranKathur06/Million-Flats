@@ -53,34 +53,49 @@ export default async function Home({
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative w-full h-[70vh] max-h-[520px] sm:h-[78vh] sm:max-h-[600px] lg:h-[630px] lg:max-h-none">
-        <Image
-          src="/HOMEPAGE.jpg"
-          alt="Luxury Home"
-          fill
-          className="object-cover"
-          priority
-          quality={70}
-          sizes="(max-width: 768px) 100vw, 1920px"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/45 sm:from-black/50 sm:via-black/35 sm:to-black/55" />
-
+      {/* Hero Section — full bleed image, content + search perfectly contained */}
+      <section className="relative w-full flex flex-col">
+        {/* Background image layer */}
         <div className="absolute inset-0">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-end pt-10 pb-8 sm:pt-14 sm:pb-10 lg:pt-16 lg:pb-12">
-            <div className="w-full">
-              <div className="max-w-3xl">
-                <h1 className="text-[clamp(28px,6.4vw,60px)] font-serif font-bold text-white mb-5 sm:mb-6 drop-shadow-[0_2px_18px_rgba(0,0,0,0.55)]">
-                  Intelligent Property. Intelligent Choice.
-                </h1>
-                <p className="text-[clamp(14px,2.5vw,20px)] text-white/90 mb-6 sm:mb-8 drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)]">
-                  We’re your digital sales engine, not just another marketplace. We deliver qualified buyers and transaction-ready technology, connecting your properties with serious investors, buyers and sellers.
-                </p>
-              </div>
-              <div className="w-full max-w-[1400px] mx-auto">
-                <HeroSearch />
-              </div>
+          <Image
+            src="/HOMEPAGE.jpg"
+            alt="Luxury Dubai Property"
+            fill
+            className="object-cover object-center"
+            priority
+            quality={75}
+            sizes="100vw"
+          />
+          {/* Layered overlays for cinematic depth */}
+          <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/40 to-[#1e3a5f]/60" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0d1f38]/80 via-transparent to-transparent" />
+        </div>
+
+        {/* Hero text content */}
+        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 lg:pt-24 pb-28 sm:pb-32">
+          <div className="max-w-3xl">
+            {/* Eyebrow badge */}
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-3 py-1 mb-5">
+              <span className="w-2 h-2 rounded-full bg-accent-yellow animate-pulse" />
+              <span className="text-white/80 text-xs font-semibold tracking-wide uppercase">Trusted by 10,000+ Investors</span>
             </div>
+            <h1 className="text-[clamp(30px,5vw,58px)] font-serif font-bold text-white mb-4 sm:mb-5 drop-shadow-[0_2px_20px_rgba(0,0,0,0.6)] leading-[1.1] tracking-tight">
+              Intelligent Property.<br />
+              <span className="text-accent-yellow">Intelligent Choice.</span>
+            </h1>
+            <p className="text-[clamp(14px,1.8vw,17px)] text-white/80 max-w-xl drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)] leading-relaxed">
+              We&apos;re your digital sales engine — connecting qualified buyers with premium properties across Dubai, India and beyond.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Search Bar — floats out of hero, perfectly aligned to hero container */}
+      <section className="relative z-5">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Negative margin pulls card up into hero */}
+          <div className="-mt-1 sm:-mt-1">
+            <HeroSearch />
           </div>
         </div>
       </section>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -14,6 +14,7 @@ const blogSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   excerpt: z.string().min(50, 'Excerpt must be at least 50 characters'),
   content: z.string().min(1, 'Content is required'),
+  contentJson: z.any().optional(),
   featuredImageUrl: z.string().optional(),
   featuredImageAlt: z.string().optional(),
   targetKeyword: z.string().min(1, 'Target keyword is required'),
@@ -28,13 +29,26 @@ const blogSchema = z.object({
 
 type BlogFormData = z.infer<typeof blogSchema>
 
+interface TagItem {
+  id: string
+  name: string
+  slug: string
+  _count?: { blogs: number }
+}
+
 export default function CreateBlogPage() {
   const router = useRouter()
   const [categories, setCategories] = useState<any[]>([])
-  const [tags, setTags] = useState<any[]>([])
+  const [availableTags, setAvailableTags] = useState<TagItem[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [seoScore, setSeoScore] = useState(0)
   const [readTime, setReadTime] = useState(0)
+  const [tagInput, setTagInput] = useState('')
+  const [tagSuggestions, setTagSuggestions] = useState<TagItem[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const autoSaveTimerRef = useRef<NodeJS.Timeout>()
+  const tagInputRef = useRef<HTMLInputElement>(null)
 
   const {
     register,
@@ -48,11 +62,14 @@ export default function CreateBlogPage() {
       status: 'DRAFT',
       tags: [],
       canonicalUrl: '',
+      content: '',
+      contentJson: null,
     },
   })
 
   const watchedValues = watch()
 
+  // Fetch categories and tags
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -62,7 +79,7 @@ export default function CreateBlogPage() {
         ])
 
         setCategories(categoriesRes?.success ? categoriesRes.data || [] : [])
-        setTags(tagsRes?.success ? tagsRes.data || [] : [])
+        setAvailableTags(tagsRes?.success ? tagsRes.data || [] : [])
       } catch (error) {
         console.error('Failed to fetch data:', error)
       }
@@ -71,12 +88,14 @@ export default function CreateBlogPage() {
     fetchData()
   }, [])
 
+  // SEO score calculation
   useEffect(() => {
     if (watchedValues.content) {
+      const plainText = watchedValues.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
       const score = calculateSEOScore(
         watchedValues.title || '',
         watchedValues.metaDescription || '',
-        watchedValues.content,
+        plainText,
         watchedValues.targetKeyword || '',
         !!watchedValues.featuredImageUrl,
         watchedValues.featuredImageAlt,
@@ -85,18 +104,116 @@ export default function CreateBlogPage() {
       )
       setSeoScore(score)
 
-      const wordCount = watchedValues.content.trim().split(/\s+/).filter(Boolean).length
+      const wordCount = plainText.split(/\s+/).filter(Boolean).length
       setReadTime(Math.ceil(wordCount / 200))
     }
-  }, [watchedValues])
+  }, [
+    watchedValues.title,
+    watchedValues.content,
+    watchedValues.metaDescription,
+    watchedValues.targetKeyword,
+    watchedValues.featuredImageUrl,
+    watchedValues.featuredImageAlt,
+    watchedValues.excerpt,
+  ])
+
+  // Auto-save draft every 30 seconds
+  useEffect(() => {
+    if (watchedValues.title && watchedValues.content) {
+      autoSaveTimerRef.current = setInterval(() => {
+        setSaveStatus('saving')
+        try {
+          localStorage.setItem(
+            'blog_draft',
+            JSON.stringify({
+              ...watchedValues,
+              savedAt: new Date().toISOString(),
+            })
+          )
+          setSaveStatus('saved')
+          setTimeout(() => setSaveStatus('idle'), 2000)
+        } catch {
+          setSaveStatus('idle')
+        }
+      }, 30000)
+    }
+
+    return () => {
+      if (autoSaveTimerRef.current) clearInterval(autoSaveTimerRef.current)
+    }
+  }, [watchedValues.title, watchedValues.content])
+
+  // Tag autocomplete
+  const handleTagInputChange = useCallback(
+    (value: string) => {
+      setTagInput(value)
+      if (value.trim().length > 0) {
+        const filtered = availableTags.filter(
+          (t) =>
+            t.name.toLowerCase().includes(value.toLowerCase()) &&
+            !(watchedValues.tags || []).includes(t.name)
+        )
+        setTagSuggestions(filtered.slice(0, 8))
+        setShowSuggestions(filtered.length > 0)
+      } else {
+        setShowSuggestions(false)
+        setTagSuggestions([])
+      }
+    },
+    [availableTags, watchedValues.tags]
+  )
+
+  const addTag = useCallback(
+    (tagName: string) => {
+      const name = tagName.trim()
+      if (!name) return
+      const currentTags = watchedValues.tags || []
+      if (!currentTags.includes(name)) {
+        setValue('tags', [...currentTags, name])
+      }
+      // Add to available tags if it's new
+      if (!availableTags.some((t) => t.name.toLowerCase() === name.toLowerCase())) {
+        setAvailableTags((prev) => [
+          ...prev,
+          { id: `new-${Date.now()}`, name, slug: name.toLowerCase().replace(/\s+/g, '-') },
+        ])
+      }
+      setTagInput('')
+      setShowSuggestions(false)
+    },
+    [watchedValues.tags, availableTags, setValue]
+  )
+
+  const removeTag = useCallback(
+    (tagName: string) => {
+      const currentTags = watchedValues.tags || []
+      setValue('tags', currentTags.filter((t) => t !== tagName))
+    },
+    [watchedValues.tags, setValue]
+  )
+
+  // Content change handler — receives both HTML and JSON from editor
+  const handleContentChange = useCallback(
+    (html: string, json: any) => {
+      setValue('content', html)
+      setValue('contentJson', json)
+    },
+    [setValue]
+  )
 
   const onSubmit = async (data: BlogFormData) => {
     setIsSubmitting(true)
     try {
+      const payload = {
+        ...data,
+        contentHtml: data.content,
+        contentJson: data.contentJson || null,
+      }
+
       const response = await fetch('/api/admin/blogs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
 
       const result = await response.json()
@@ -104,6 +221,9 @@ export default function CreateBlogPage() {
       if (!response.ok || !result.success) {
         throw new Error(result.message || 'Failed to create blog')
       }
+
+      // Clear draft
+      localStorage.removeItem('blog_draft')
 
       router.push('/admin/blogs/all')
     } catch (error) {
@@ -117,28 +237,26 @@ export default function CreateBlogPage() {
   const calculateSEOScore = (
     title: string,
     metaDescription: string,
-    content: string,
+    plainContent: string,
     targetKeyword: string,
     hasFeaturedImage: boolean,
     featuredImageAlt: string | undefined,
     internalLinks: number,
     excerpt: string
   ): number => {
+    if (!targetKeyword) return 0
     let score = 0
+    const kw = targetKeyword.toLowerCase()
 
-    if (title.toLowerCase().includes(targetKeyword.toLowerCase())) score += 15
-    if (metaDescription.toLowerCase().includes(targetKeyword.toLowerCase())) score += 15
+    if (title.toLowerCase().includes(kw)) score += 15
+    if (metaDescription.toLowerCase().includes(kw)) score += 15
 
-    const firstParagraph = content.split('\n')[0] || content
-    if (firstParagraph.toLowerCase().includes(targetKeyword.toLowerCase())) score += 10
+    const firstChunk = plainContent.substring(0, 200).toLowerCase()
+    if (firstChunk.includes(kw)) score += 10
 
     if (title.length >= 30 && title.length <= 70) score += 10
     if (metaDescription.length >= 120 && metaDescription.length <= 200) score += 10
-
-    if (
-      content.trim().split(/\s+/).filter(Boolean).length >= 800
-    ) score += 10
-
+    if (plainContent.split(/\s+/).filter(Boolean).length >= 800) score += 10
     if (hasFeaturedImage) score += 10
     if (featuredImageAlt && featuredImageAlt.trim().length > 0) score += 5
     if (internalLinks >= 2) score += 10
@@ -148,12 +266,12 @@ export default function CreateBlogPage() {
   }
 
   const extractInternalLinks = (content: string): number => {
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
+    const hrefRegex = /href=["'](\/?[^"']*?)["']/gi
     let count = 0
     let match
-    while ((match = linkRegex.exec(content)) !== null) {
-      const url = match[2]
-      if (url.startsWith('/') && !url.includes('http')) count++
+    while ((match = hrefRegex.exec(content)) !== null) {
+      const url = match[1]
+      if (url.startsWith('/') && !url.startsWith('//') && !url.includes('http')) count++
     }
     return count
   }
@@ -167,6 +285,16 @@ export default function CreateBlogPage() {
             <span className="inline-flex h-6 items-center rounded-md bg-amber-400/10 px-2 text-[11px] font-bold uppercase tracking-wider text-amber-400">
               Blog
             </span>
+            {saveStatus === 'saving' && (
+              <span className="inline-flex h-6 items-center rounded-md bg-blue-400/10 px-2 text-[11px] font-medium text-blue-400 animate-pulse">
+                Saving...
+              </span>
+            )}
+            {saveStatus === 'saved' && (
+              <span className="inline-flex h-6 items-center rounded-md bg-emerald-400/10 px-2 text-[11px] font-medium text-emerald-400">
+                ✓ Draft saved
+              </span>
+            )}
           </div>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">Create New Blog</h1>
           <p className="mt-1 text-sm text-white/50">Write and publish content to engage your audience</p>
@@ -201,7 +329,7 @@ export default function CreateBlogPage() {
             <label className="block text-sm font-semibold text-white/80 mb-2">Content</label>
             <TiptapEditor
               content={watchedValues.content || ''}
-              onChange={(value) => setValue('content', value)}
+              onChange={handleContentChange}
             />
             {errors.content && <p className="text-red-400 text-sm mt-2">{errors.content.message}</p>}
           </div>
@@ -247,91 +375,138 @@ export default function CreateBlogPage() {
               onChange={(v) => setValue('categoryId', v, { shouldValidate: true })}
               options={[
                 { value: '', label: 'Select a category...' },
-                ...categories.map((cat) => ({ value: cat.id, label: cat.name }))
+                ...categories.map((cat) => ({ value: cat.id, label: cat.name })),
               ]}
             />
-            {errors.categoryId && <p className="text-red-400 text-sm mt-2">{errors.categoryId.message}</p>}
+            {errors.categoryId && (
+              <p className="text-red-400 text-sm mt-2">{errors.categoryId.message}</p>
+            )}
           </div>
 
-          {/* Tags */}
+          {/* Tags — with autocomplete and proper add/remove */}
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
             <label className="block text-sm font-semibold text-white/80 mb-3">Tags</label>
-            
-            {/* Add new tag input */}
-            <div className="flex gap-2 mb-3">
-              <input
-                type="text"
-                placeholder="Add new tag..."
-                className="flex-1 px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.04] text-white text-sm placeholder-white/30 focus:outline-none focus:border-amber-400/40 transition-all duration-200"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    const input = e.target as HTMLInputElement
-                    const tagName = input.value.trim()
-                    if (tagName && !tags.some(t => t.name.toLowerCase() === tagName.toLowerCase())) {
-                      // Add to local tags list
-                      setTags(prev => [...prev, { id: `new-${Date.now()}`, name: tagName, slug: tagName.toLowerCase().replace(/\s+/g, '-') }])
-                      // Select the tag
-                      setValue('tags', [...(watchedValues.tags || []), tagName])
-                    } else if (tagName) {
-                      // Just select existing tag
-                      const currentTags = watchedValues.tags || []
-                      if (!currentTags.includes(tagName)) {
-                        setValue('tags', [...currentTags, tagName])
+
+            {/* Selected tags */}
+            {(watchedValues.tags || []).length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {(watchedValues.tags || []).map((tagName) => (
+                  <span
+                    key={tagName}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-400/15 text-amber-300 text-xs font-semibold border border-amber-400/25"
+                  >
+                    {tagName}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tagName)}
+                      className="h-4 w-4 rounded-full flex items-center justify-center hover:bg-amber-400/30 transition-colors"
+                      aria-label={`Remove tag ${tagName}`}
+                    >
+                      <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Tag input with autocomplete */}
+            <div className="relative">
+              <div className="flex gap-2">
+                <input
+                  ref={tagInputRef}
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => handleTagInputChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      if (tagInput.trim()) {
+                        addTag(tagInput)
                       }
                     }
-                    input.value = ''
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={(e) => {
-                  const input = e.currentTarget.previousElementSibling as HTMLInputElement
-                  const tagName = input.value.trim()
-                  if (tagName && !tags.some(t => t.name.toLowerCase() === tagName.toLowerCase())) {
-                    setTags(prev => [...prev, { id: `new-${Date.now()}`, name: tagName, slug: tagName.toLowerCase().replace(/\s+/g, '-') }])
-                    setValue('tags', [...(watchedValues.tags || []), tagName])
-                  } else if (tagName) {
-                    const currentTags = watchedValues.tags || []
-                    if (!currentTags.includes(tagName)) {
-                      setValue('tags', [...currentTags, tagName])
-                    }
-                  }
-                  input.value = ''
-                }}
-                className="px-3 py-2 rounded-lg border border-amber-400/30 bg-amber-400/10 text-amber-300 text-xs font-semibold hover:bg-amber-400/20 transition-all duration-200"
-              >
-                Add
-              </button>
-            </div>
-            
-            <div className="flex flex-wrap gap-2">
-              {tags.map((tag) => (
-                <button
-                  key={tag.id}
-                  type="button"
-                  onClick={() => {
-                    const currentTags = watchedValues.tags || []
-                    if (currentTags.includes(tag.name)) {
-                      setValue('tags', currentTags.filter((t) => t !== tag.name))
-                    } else {
-                      setValue('tags', [...currentTags, tag.name])
+                    if (e.key === 'Escape') {
+                      setShowSuggestions(false)
                     }
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 border ${
-                    watchedValues.tags?.includes(tag.name)
-                      ? 'bg-amber-400/20 text-amber-300 border-amber-400/30'
-                      : 'bg-white/[0.04] text-white/50 border-white/[0.08] hover:bg-white/[0.08] hover:text-white/70'
-                  }`}
+                  onFocus={() => {
+                    if (tagInput.trim()) handleTagInputChange(tagInput)
+                  }}
+                  onBlur={() => {
+                    // Delay to allow click on suggestion
+                    setTimeout(() => setShowSuggestions(false), 200)
+                  }}
+                  placeholder="Type to add tag..."
+                  className="flex-1 px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.04] text-white text-sm placeholder-white/30 focus:outline-none focus:border-amber-400/40 transition-all duration-200"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (tagInput.trim()) addTag(tagInput)
+                  }}
+                  className="px-3 py-2 rounded-lg border border-amber-400/30 bg-amber-400/10 text-amber-300 text-xs font-semibold hover:bg-amber-400/20 transition-all duration-200"
                 >
-                  {tag.name}
+                  Add
                 </button>
-              ))}
-              {tags.length === 0 && (
-                <p className="text-white/30 text-xs">Type a tag name above and press Enter to create</p>
+              </div>
+
+              {/* Autocomplete dropdown */}
+              {showSuggestions && tagSuggestions.length > 0 && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl border border-white/[0.08] bg-[#0f1825] shadow-xl overflow-hidden">
+                  {tagSuggestions.map((tag) => (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        addTag(tag.name)
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-white/70 hover:bg-white/[0.06] hover:text-white transition-colors flex items-center justify-between"
+                    >
+                      <span>{tag.name}</span>
+                      {tag._count?.blogs !== undefined && (
+                        <span className="text-xs text-white/30">{tag._count.blogs} blogs</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
+
+            {/* Toggle available tags */}
+            {availableTags.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-white/[0.06]">
+                <p className="text-xs text-white/30 mb-2">Click to toggle:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {availableTags.slice(0, 20).map((tag) => (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => {
+                        const currentTags = watchedValues.tags || []
+                        if (currentTags.includes(tag.name)) {
+                          removeTag(tag.name)
+                        } else {
+                          addTag(tag.name)
+                        }
+                      }}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all duration-200 border ${
+                        (watchedValues.tags || []).includes(tag.name)
+                          ? 'bg-amber-400/20 text-amber-300 border-amber-400/30'
+                          : 'bg-white/[0.03] text-white/40 border-white/[0.06] hover:bg-white/[0.06] hover:text-white/60'
+                      }`}
+                    >
+                      {tag.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {availableTags.length === 0 && !(watchedValues.tags || []).length && (
+              <p className="text-white/30 text-xs mt-2">Type a tag name above and press Enter to create</p>
+            )}
           </div>
 
           {/* SEO Fields */}
@@ -359,6 +534,7 @@ export default function CreateBlogPage() {
                 className="w-full px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white placeholder-white/30 focus:outline-none focus:border-amber-400/40 focus:ring-1 focus:ring-amber-400/20 transition-all duration-200"
                 placeholder="SEO title..."
               />
+              <p className="text-xs text-white/30 mt-1">{(watchedValues.metaTitle || '').length}/70 characters</p>
             </div>
 
             <div>
@@ -369,6 +545,7 @@ export default function CreateBlogPage() {
                 className="w-full px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white placeholder-white/30 focus:outline-none focus:border-amber-400/40 focus:ring-1 focus:ring-amber-400/20 transition-all duration-200 resize-none"
                 placeholder="SEO description..."
               />
+              <p className="text-xs text-white/30 mt-1">{(watchedValues.metaDescription || '').length}/200 characters</p>
             </div>
 
             <div>
@@ -400,7 +577,7 @@ export default function CreateBlogPage() {
                 options={[
                   { value: 'DRAFT', label: 'Draft' },
                   { value: 'PUBLISHED', label: 'Publish Now' },
-                  { value: 'SCHEDULED', label: 'Schedule' }
+                  { value: 'SCHEDULED', label: 'Schedule' },
                 ]}
               />
             </div>

@@ -118,7 +118,9 @@ model Blog {
   title       String
   slug        String   @unique
   excerpt     String
-  content     String
+  content     String   @db.Text
+  contentJson Json?
+  contentHtml String?  @db.Text @map("content_html")
   featuredImageUrl String?
   featuredImageAlt String?
   targetKeyword String
@@ -583,15 +585,28 @@ model Agency {
   @@map("agencies")
 }
 
+enum DeveloperStatus {
+  ACTIVE
+  INACTIVE
+}
+
 model Developer {
   id String @id @default(dbgenerated("gen_random_uuid()::text")) @db.Text
   name String @unique
   slug String? @unique
   logo String?
+  banner String?              @db.Text
   countryCode CountryCode @default(UAE) @map("country")
   countryIso2 String? @db.Char(2) @map("country_iso2")
   country     Country? @relation(fields: [countryIso2], references: [iso2])
+  city        String?
+  description String?          @db.Text
+  shortDescription String?     @map("short_description")
+  website     String?
+  foundedYear Int?             @map("founded_year")
   isFeatured Boolean @default(false) @map("is_featured")
+  featuredRank Int?            @map("featured_rank")
+  status      DeveloperStatus @default(ACTIVE)
 
   properties ManualProperty[]
   projects   Project[]
@@ -601,6 +616,8 @@ model Developer {
 
   @@index([countryCode, isFeatured])
   @@index([countryIso2, isFeatured])
+  @@index([status])
+  @@index([slug])
   @@map("developers")
 }
 

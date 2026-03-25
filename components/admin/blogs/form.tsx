@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { SEOScore } from '@/components/admin/blogs/seo-score'
 import { TiptapEditor } from '@/components/admin/blogs/tiptap-editor'
@@ -13,6 +13,7 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
     title: '',
     excerpt: '',
     content: '',
+    contentJson: null as any,
     featuredImageUrl: '',
     featuredImageAlt: '',
     targetKeyword: '',
@@ -29,17 +30,13 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
   const [seoScore, setSEOScore] = useState(0)
   const [readTime, setReadTime] = useState(0)
   const [categories, setCategories] = useState<any[]>([])
-  const [tags, setTags] = useState<any[]>([])
   const [availableTags, setAvailableTags] = useState<any[]>([])
   const router = useRouter()
-
-  // Auto-save timer
   const autoSaveRef = useRef<NodeJS.Timeout>()
 
   useEffect(() => {
     if (!user) return
 
-    // Fetch categories and tags
     fetch('/api/admin/categories')
       .then((r) => r.json())
       .then((res) => setCategories(res?.data || []))
@@ -50,7 +47,6 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
       .then((res) => setAvailableTags(res?.data || []))
       .catch(() => setAvailableTags([]))
 
-    // Auto-save every 60 seconds
     autoSaveRef.current = setInterval(() => {
       handleAutoSave()
     }, 60000)
@@ -65,17 +61,13 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
   ) => {
     const { name, value } = e.target
     setBlog(prev => ({ ...prev, [name]: value }))
-
-    // Update SEO score for relevant fields
-    if (name === 'title' || name === 'metaDescription' || name === 'content' || name === 'excerpt') {
-      updateSEOScore()
-    }
-  }
-
-  const handleContentChange = (content: string) => {
-    setBlog(prev => ({ ...prev, content }))
     updateSEOScore()
   }
+
+  const handleContentChange = useCallback((html: string, json: any) => {
+    setBlog(prev => ({ ...prev, content: html, contentJson: json }))
+    updateSEOScore()
+  }, [])
 
   const handleSEOChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -84,31 +76,29 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
   }
 
   const updateSEOScore = () => {
+    const plainText = blog.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
     const score = calculateSEOScore(
       blog.title,
       blog.metaDescription,
-      blog.content,
+      plainText,
       blog.targetKeyword,
       !!blog.featuredImageUrl,
       blog.featuredImageAlt,
       countInternalLinks(blog.content),
       blog.excerpt
     )
-
     setSEOScore(score)
-    setReadTime(Math.ceil(blog.content.trim().split(/\s+/).filter(Boolean).length / 200))
+    setReadTime(Math.ceil(plainText.split(/\s+/).filter(Boolean).length / 200))
   }
 
   const handleAutoSave = () => {
     if (blog.title && blog.content) {
       console.log('Auto-saving blog draft...')
-      // Implement auto-save logic here
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (isSaving) return
     setIsSaving(true)
 
@@ -116,7 +106,10 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
       const response = await fetch('/api/admin/blogs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(blog),
+        body: JSON.stringify({
+          ...blog,
+          contentHtml: blog.content,
+        }),
       })
 
       const json = await response.json().catch(() => null)
@@ -146,57 +139,41 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
     internalLinks: number,
     excerpt: string
   ): number => {
+    if (!targetKeyword) return 0
     let score = 0
+    const kw = targetKeyword.toLowerCase()
 
-    // 1. Keyword in title (15 points)
-    if (title.toLowerCase().includes(targetKeyword.toLowerCase())) score += 15
-
-    // 2. Keyword in meta description (15 points)
-    if (metaDescription.toLowerCase().includes(targetKeyword.toLowerCase())) score += 15
-
-    // 3. Keyword in first paragraph (10 points)
-    const firstParagraph = content.split('\n')[0] || content
-    if (firstParagraph.toLowerCase().includes(targetKeyword.toLowerCase())) score += 10
-
-    // 4. Meta title length (10 points)
-    const metaTitleLength = title.length
-    if (metaTitleLength >= 30 && metaTitleLength <= 70) score += 10
-
-    // 5. Meta description length (10 points)
-    const metaDescLength = metaDescription.length
-    if (metaDescLength >= 120 && metaDescLength <= 200) score += 10
-
-    // 6. Word count >= 800 (10 points)
-    if (content.trim().split(/\s+/).filter(Boolean).length >= 800) score += 10
-
-    // 7. Featured image (10 points)
+    if (title.toLowerCase().includes(kw)) score += 15
+    if (metaDescription.toLowerCase().includes(kw)) score += 15
+    const firstParagraph = content.substring(0, 200).toLowerCase()
+    if (firstParagraph.includes(kw)) score += 10
+    if (title.length >= 30 && title.length <= 70) score += 10
+    if (metaDescription.length >= 120 && metaDescription.length <= 200) score += 10
+    if (content.split(/\s+/).filter(Boolean).length >= 800) score += 10
     if (hasFeaturedImage) score += 10
-
-    // 8. Image alt text (5 points)
     if (featuredImageAlt && featuredImageAlt.trim().length > 0) score += 5
-
-    // 9. Internal links >= 2 (10 points)
     if (internalLinks >= 2) score += 10
-
-    // 10. Excerpt filled (5 points)
     if (excerpt && excerpt.trim().length >= 50) score += 5
 
     return score
   }
 
   const countInternalLinks = (content: string): number => {
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
+    const hrefRegex = /href=["'](\/?[^"']*?)["']/gi
     let count = 0
     let match
-
-    while ((match = linkRegex.exec(content)) !== null) {
-      const url = match[2]
-      if (url.startsWith('/') && !url.includes('http')) {
-        count++
-      }
+    while ((match = hrefRegex.exec(content)) !== null) {
+      const url = match[1]
+      if (url.startsWith('/') && !url.startsWith('//')) count++
     }
-
     return count
+  }
+
+  const removeTag = (tagName: string) => {
+    setBlog(prev => ({
+      ...prev,
+      tags: prev.tags.filter(t => t !== tagName),
+    }))
   }
 
   return (
@@ -205,7 +182,7 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
         <div className="space-y-4">
           {/* Title */}
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="title" className="block text-sm font-medium text-white/70 mb-2">
               Blog Title *
             </label>
             <input
@@ -214,7 +191,7 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
               name="title"
               value={blog.title}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white placeholder-white/30 focus:outline-none focus:border-amber-400/40 transition-all duration-200"
               placeholder="Enter your blog title..."
               maxLength={100}
             />
@@ -222,7 +199,7 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
 
           {/* Content */}
           <div className="space-y-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-white/70 mb-2">
               Content *
             </label>
             <TiptapEditor
@@ -233,7 +210,7 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
 
           {/* Excerpt */}
           <div>
-            <label htmlFor="excerpt" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="excerpt" className="block text-sm font-medium text-white/70 mb-2">
               Excerpt *
             </label>
             <textarea
@@ -241,7 +218,7 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
               name="excerpt"
               value={blog.excerpt}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white placeholder-white/30 focus:outline-none focus:border-amber-400/40 transition-all duration-200 resize-none"
               placeholder="Enter a brief excerpt (50+ characters)..."
               rows={3}
               maxLength={300}
@@ -250,13 +227,13 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
 
           {/* Featured Image */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-white/70 mb-2">
               Featured Image
             </label>
             <CloudinaryUpload
               onUpload={(url, alt) => {
-                setBlog(prev => ({ ...prev, featuredImageUrl: url, featuredImageAlt: alt }));
-                updateSEOScore();
+                setBlog(prev => ({ ...prev, featuredImageUrl: url, featuredImageAlt: alt }))
+                updateSEOScore()
               }}
             />
           </div>
@@ -265,13 +242,13 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
         {/* Right Sidebar */}
         <div className="space-y-4">
           {/* SEO Score */}
-          <div className="bg-gray-50 rounded-lg p-4">
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
             <SEOScore score={seoScore} />
           </div>
 
           {/* Category */}
           <div>
-            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="category" className="block text-sm font-medium text-white/70 mb-2">
               Category *
             </label>
             <select
@@ -279,7 +256,7 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
               name="categoryId"
               value={blog.categoryId}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white focus:outline-none focus:border-amber-400/40 transition-all duration-200"
             >
               <option value="">Select a category...</option>
               {categories.map(cat => (
@@ -292,24 +269,48 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
 
           {/* Tags */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-white/70 mb-2">
               Tags
             </label>
+
+            {/* Selected tags with remove buttons */}
+            {blog.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {blog.tags.map(tagName => (
+                  <span
+                    key={tagName}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-400/15 text-amber-300 text-xs font-semibold border border-amber-400/25"
+                  >
+                    {tagName}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tagName)}
+                      className="h-4 w-4 rounded-full flex items-center justify-center hover:bg-amber-400/30 transition-colors"
+                      aria-label={`Remove tag ${tagName}`}
+                    >
+                      <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Available tags */}
             <div className="flex flex-wrap gap-1">
               {availableTags.map(tag => (
-                <span
+                <button
                   key={tag.id}
-                  className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  type="button"
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all duration-200 border ${
                     blog.tags.includes(tag.name)
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 text-gray-700'
+                      ? 'bg-amber-400/20 text-amber-300 border-amber-400/30'
+                      : 'bg-white/[0.03] text-white/40 border-white/[0.06] hover:bg-white/[0.06] hover:text-white/60'
                   }`}
                   onClick={() => {
                     if (blog.tags.includes(tag.name)) {
-                      setBlog(prev => ({
-                        ...prev,
-                        tags: prev.tags.filter(t => t !== tag.name),
-                      }))
+                      removeTag(tag.name)
                     } else {
                       setBlog(prev => ({ ...prev, tags: [...prev.tags, tag.name] }))
                     }
@@ -317,7 +318,7 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
                   }}
                 >
                   {tag.name}
-                </span>
+                </button>
               ))}
             </div>
           </div>
@@ -325,7 +326,7 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
           {/* SEO Fields */}
           <div className="space-y-4">
             <div>
-              <label htmlFor="targetKeyword" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="targetKeyword" className="block text-sm font-medium text-white/70 mb-2">
                 Target Keyword *
               </label>
               <input
@@ -334,13 +335,13 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
                 name="targetKeyword"
                 value={blog.targetKeyword}
                 onChange={handleSEOChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white placeholder-white/30 focus:outline-none focus:border-amber-400/40 transition-all duration-200"
                 placeholder="Enter your target keyword..."
               />
             </div>
 
             <div>
-              <label htmlFor="metaTitle" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="metaTitle" className="block text-sm font-medium text-white/70 mb-2">
                 Meta Title *
               </label>
               <input
@@ -349,13 +350,13 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
                 name="metaTitle"
                 value={blog.metaTitle}
                 onChange={handleSEOChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white placeholder-white/30 focus:outline-none focus:border-amber-400/40 transition-all duration-200"
                 placeholder="Enter meta title..."
               />
             </div>
 
             <div>
-              <label htmlFor="metaDescription" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="metaDescription" className="block text-sm font-medium text-white/70 mb-2">
                 Meta Description *
               </label>
               <textarea
@@ -363,14 +364,14 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
                 name="metaDescription"
                 value={blog.metaDescription}
                 onChange={handleSEOChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white placeholder-white/30 focus:outline-none focus:border-amber-400/40 transition-all duration-200 resize-none"
                 placeholder="Enter meta description..."
                 rows={3}
               />
             </div>
 
             <div>
-              <label htmlFor="canonicalUrl" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="canonicalUrl" className="block text-sm font-medium text-white/70 mb-2">
                 Canonical URL
               </label>
               <input
@@ -379,7 +380,7 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
                 name="canonicalUrl"
                 value={blog.canonicalUrl}
                 onChange={handleSEOChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white placeholder-white/30 focus:outline-none focus:border-amber-400/40 transition-all duration-200"
                 placeholder="Enter canonical URL..."
               />
             </div>
@@ -388,14 +389,12 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
           {/* Publish Settings */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
-              </label>
+              <label className="block text-sm font-medium text-white/70 mb-2">Status</label>
               <select
                 value={blog.status}
                 onChange={handleInputChange}
                 name="status"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white focus:outline-none focus:border-amber-400/40 transition-all duration-200"
               >
                 <option value="DRAFT">Draft</option>
                 <option value="PUBLISHED">Publish Now</option>
@@ -405,7 +404,7 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
 
             {blog.status === 'SCHEDULED' && (
               <div>
-                <label htmlFor="publishAt" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="publishAt" className="block text-sm font-medium text-white/70 mb-2">
                   Publish Date
                 </label>
                 <input
@@ -414,31 +413,29 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
                   name="publishAt"
                   value={blog.publishAt}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white focus:outline-none focus:border-amber-400/40 transition-all duration-200"
                 />
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Author
-              </label>
-              <div className="bg-gray-50 rounded-lg p-3">
+              <label className="block text-sm font-medium text-white/70 mb-2">Author</label>
+              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center text-[#0b1220] font-bold">
                     {user?.name?.charAt(0) || '?'}
                   </div>
                   <div>
-                    <p className="font-medium">{user?.name}</p>
-                    <p className="text-sm text-gray-500">{user?.email}</p>
+                    <p className="font-medium text-white/90">{user?.name}</p>
+                    <p className="text-sm text-white/40">{user?.email}</p>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="pt-4">
-              <div className="text-sm text-gray-500">
-                Estimated Read Time: {readTime} minutes
+              <div className="text-sm text-white/40">
+                Estimated Read Time: <span className="text-white/70 font-semibold">{readTime} minutes</span>
               </div>
             </div>
           </div>
@@ -448,20 +445,13 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
             <button
               type="submit"
               disabled={isSaving || !blog.title || !blog.content}
-              className="w-full bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[14px] font-bold transition-all duration-300 bg-gradient-to-r from-amber-400 to-amber-500 text-[#0b1220] shadow-lg shadow-amber-500/20 hover:shadow-xl hover:shadow-amber-500/30 hover:from-amber-300 hover:to-amber-400 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSaving ? 'Creating...' : 'Create Blog'}
             </button>
           </div>
         </div>
       </div>
-
-      {/* Auto-save indicator */}
-      {blog.title && blog.content && (
-        <div className="mt-4 text-sm text-gray-500">
-          <span className="text-green-500">Auto-saved</span>
-        </div>
-      )}
     </form>
   )
 }

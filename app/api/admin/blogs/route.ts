@@ -62,14 +62,31 @@ export async function GET(req: Request) {
             slug: true,
           },
         },
+        tags: {
+          include: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        },
       },
     })
+
+    // Flatten tags from BlogTag join table
+    const normalizedBlogs = (blogs as any[]).map((blog: any) => ({
+      ...blog,
+      tags: blog.tags?.map((bt: any) => bt.tag) || [],
+    }))
 
     const totalCount = await (prisma as any).blog.count({ where })
 
     return NextResponse.json({
       success: true,
-      data: blogs,
+      data: normalizedBlogs,
       pagination: {
         page,
         limit,
@@ -78,6 +95,7 @@ export async function GET(req: Request) {
       },
     })
   } catch (error) {
+    console.error('Blog fetch error:', error)
     return NextResponse.json(
       { success: false, message: 'Failed to fetch blogs' },
       { status: 500 }
@@ -93,12 +111,46 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json()
-    const { title, excerpt, content, featuredImageUrl, featuredImageAlt, targetKeyword, metaTitle, metaDescription, canonicalUrl, status, publishAt, categoryId, tags } = body
+    const {
+      title,
+      excerpt,
+      content,       // HTML string (backward compat)
+      contentJson,   // JSON object from editor.getJSON()
+      contentHtml,   // HTML string from editor.getHTML()
+      featuredImageUrl,
+      featuredImageAlt,
+      targetKeyword,
+      metaTitle,
+      metaDescription,
+      canonicalUrl,
+      status,
+      publishAt,
+      categoryId,
+      tags,
+    } = body
+
+    // Determine content sources
+    const htmlContent = contentHtml || content || ''
+    const jsonContent = contentJson || null
 
     // Validate required fields
-    if (!title || !content || !metaTitle || !metaDescription || !categoryId) {
+    if (!title) {
       return NextResponse.json(
-        { success: false, message: 'Title, content, meta title, meta description, and category are required' },
+        { success: false, message: 'Title is required' },
+        { status: 400 }
+      )
+    }
+
+    if (!htmlContent && !jsonContent) {
+      return NextResponse.json(
+        { success: false, message: 'Content is required' },
+        { status: 400 }
+      )
+    }
+
+    if (!categoryId) {
+      return NextResponse.json(
+        { success: false, message: 'Category is required' },
         { status: 400 }
       )
     }
@@ -106,7 +158,7 @@ export async function POST(req: Request) {
     // Validate author
     const authorId = auth.userId
 
-    // Validate category
+    // Validate category exists
     const category = await (prisma as any).category.findUnique({
       where: { id: categoryId },
       select: { id: true },
@@ -119,18 +171,20 @@ export async function POST(req: Request) {
       )
     }
 
-    // Calculate SEO score
-    const wordCount = content.trim().split(/\s+/).filter(Boolean).length
+    // Strip HTML tags for word count
+    const plainText = htmlContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+    const wordCount = plainText.split(/\s+/).filter(Boolean).length
     const readTime = Math.ceil(wordCount / 200)
 
+    // Calculate SEO score
     const seoScore = calculateSEOScore(
       title,
-      metaDescription,
-      content,
+      metaDescription || '',
+      plainText,
       targetKeyword || '',
       !!featuredImageUrl,
       featuredImageAlt,
-      extractInternalLinks(content, '').length,
+      extractInternalLinksFromHtml(htmlContent),
       excerpt || ''
     )
 
@@ -139,35 +193,33 @@ export async function POST(req: Request) {
     let slug = baseSlug
     let counter = 1
 
-    const existingBlog = await (prisma as any).blog.findUnique({
-      where: { slug },
-      select: { id: true },
-    })
-
-    while (existingBlog) {
-      slug = `${baseSlug}-${counter}`
-      counter++
-      const checkSlug = await (prisma as any).blog.findUnique({
+    while (true) {
+      const existingBlog = await (prisma as any).blog.findUnique({
         where: { slug },
         select: { id: true },
       })
-      if (!checkSlug) break
+      if (!existingBlog) break
+      slug = `${baseSlug}-${counter}`
+      counter++
     }
 
+    // Create blog
     const blog = await (prisma as any).blog.create({
       data: {
         title,
         slug,
         excerpt: excerpt || '',
-        content,
-        featuredImageUrl,
-        featuredImageAlt,
+        content: htmlContent,
+        contentJson: jsonContent,
+        contentHtml: htmlContent,
+        featuredImageUrl: featuredImageUrl || null,
+        featuredImageAlt: featuredImageAlt || null,
         targetKeyword: targetKeyword || '',
-        metaTitle,
-        metaDescription,
-        canonicalUrl,
+        metaTitle: metaTitle || title,
+        metaDescription: metaDescription || excerpt || '',
+        canonicalUrl: canonicalUrl || null,
         status: (status || 'DRAFT').toUpperCase(),
-        publishAt: status?.toUpperCase() === 'SCHEDULED' ? new Date(publishAt) : null,
+        publishAt: status?.toUpperCase() === 'SCHEDULED' && publishAt ? new Date(publishAt) : null,
         authorId,
         categoryId,
         seoScore,
@@ -179,7 +231,7 @@ export async function POST(req: Request) {
     if (tags && Array.isArray(tags) && tags.length > 0) {
       for (const tagName of tags) {
         if (!tagName || typeof tagName !== 'string') continue
-        
+
         const tagSlug = generateSlug(tagName)
         let tag = await (prisma as any).tag.findUnique({
           where: { slug: tagSlug },
@@ -201,11 +253,17 @@ export async function POST(req: Request) {
             blogId: blog.id,
             tagId: tag.id,
           },
+        }).catch(() => {
+          // Ignore duplicate tag assignments
         })
       }
     }
 
-    return NextResponse.json({ success: true, data: blog })
+    return NextResponse.json({
+      success: true,
+      data: blog,
+      message: 'Blog created successfully',
+    })
   } catch (error) {
     console.error('Blog creation error:', error)
     const message = error instanceof Error ? error.message : 'Failed to create blog'
@@ -216,7 +274,8 @@ export async function POST(req: Request) {
   }
 }
 
-// Helper functions
+// ─── Helper Functions ──────────────────────────────────
+
 function generateSlug(title: string): string {
   return title
     .toLowerCase()
@@ -229,35 +288,36 @@ function generateSlug(title: string): string {
 function calculateSEOScore(
   title: string,
   metaDescription: string,
-  content: string,
+  plainContent: string,
   targetKeyword: string,
   hasFeaturedImage: boolean,
   featuredImageAlt: string | null | undefined,
   internalLinks: number,
   excerpt: string
 ): number {
+  if (!targetKeyword) return 0
   let score = 0
 
+  const kw = targetKeyword.toLowerCase()
+
   // 1. Keyword in title (15 points)
-  if (title.toLowerCase().includes(targetKeyword.toLowerCase())) score += 15
+  if (title.toLowerCase().includes(kw)) score += 15
 
   // 2. Keyword in meta description (15 points)
-  if (metaDescription.toLowerCase().includes(targetKeyword.toLowerCase())) score += 15
+  if (metaDescription.toLowerCase().includes(kw)) score += 15
 
-  // 3. Keyword in first paragraph (10 points)
-  const firstParagraph = content.split('\n')[0] || content
-  if (firstParagraph.toLowerCase().includes(targetKeyword.toLowerCase())) score += 10
+  // 3. Keyword in first 200 chars of content (10 points)
+  const firstChunk = plainContent.substring(0, 200).toLowerCase()
+  if (firstChunk.includes(kw)) score += 10
 
-  // 4. Meta title length (10 points)
-  const metaTitleLength = title.length
-  if (metaTitleLength >= 30 && metaTitleLength <= 70) score += 10
+  // 4. Title length 30–70 chars (10 points)
+  if (title.length >= 30 && title.length <= 70) score += 10
 
-  // 5. Meta description length (10 points)
-  const metaDescLength = metaDescription.length
-  if (metaDescLength >= 120 && metaDescLength <= 200) score += 10
+  // 5. Meta description 120–200 chars (10 points)
+  if (metaDescription.length >= 120 && metaDescription.length <= 200) score += 10
 
   // 6. Word count >= 800 (10 points)
-  const words = content.trim().split(/\s+/).filter(Boolean)
+  const words = plainContent.split(/\s+/).filter(Boolean)
   if (words.length >= 800) score += 10
 
   // 7. Featured image (10 points)
@@ -269,23 +329,21 @@ function calculateSEOScore(
   // 9. Internal links >= 2 (10 points)
   if (internalLinks >= 2) score += 10
 
-  // 10. Excerpt filled (5 points)
+  // 10. Excerpt filled with 50+ chars (5 points)
   if (excerpt && excerpt.trim().length >= 50) score += 5
 
   return score
 }
 
-function extractInternalLinks(content: string, currentSlug: string): string[] {
-  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
-  const links: string[] = []
+function extractInternalLinksFromHtml(html: string): number {
+  const hrefRegex = /href=["'](\/?[^"']*?)["']/gi
+  let count = 0
   let match
-
-  while ((match = linkRegex.exec(content)) !== null) {
-    const url = match[2]
-    if (url.startsWith('/') && !url.includes('http')) {
-      links.push(url)
+  while ((match = hrefRegex.exec(html)) !== null) {
+    const url = match[1]
+    if (url.startsWith('/') && !url.startsWith('//') && !url.includes('http')) {
+      count++
     }
   }
-
-  return links
+  return count
 }

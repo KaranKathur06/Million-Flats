@@ -134,6 +134,12 @@ export default function Footer() {
                   Smart Home &amp; Automation
                 </Link>
               </li>
+              <li>
+                <Link href="/ecosystem-partners/technology-partners" className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap">
+                  Technology Partners
+                </Link>
+              </li>
+
             </ul>
           </div>
 
