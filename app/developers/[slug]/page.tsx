@@ -45,8 +45,8 @@ async function getDeveloperProfile(slug: string): Promise<DeveloperProfileData |
 
   if (!developer) return null
 
-  // Only show active developers on public profile
-  if (developer.status === 'INACTIVE') return null
+  // Hide inactive or soft-deleted developers from public view
+  if (developer.status === 'INACTIVE' || developer.isDeleted) return null
 
   const projects = Array.isArray(developer.projects) ? developer.projects : []
   const projectPrices = projects.map((item: any) => Number(item.startingPrice || 0)).filter((value: number) => value > 0)

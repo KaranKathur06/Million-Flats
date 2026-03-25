@@ -66,34 +66,36 @@ export async function GET(req: Request) {
     const status = searchParams.get('status')?.toUpperCase() || undefined
     const country = searchParams.get('country')?.toUpperCase() || undefined
 
-    const where: any = {}
-    if (status === 'ACTIVE' || status === 'INACTIVE') where.status = status
-    if (country === 'UAE' || country === 'INDIA') where.countryCode = country
+    const baseSelect = {
+      id: true, name: true, slug: true, logo: true, banner: true,
+      countryCode: true, countryIso2: true, city: true,
+      shortDescription: true, website: true, foundedYear: true,
+      isFeatured: true, featuredRank: true, status: true,
+      createdAt: true, updatedAt: true,
+      _count: { select: { projects: true, properties: true } },
+    }
 
-    const items = await (prisma as any).developer.findMany({
-      where,
-      orderBy: [{ isFeatured: 'desc' }, { name: 'asc' }],
-      take: 500,
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        logo: true,
-        banner: true,
-        countryCode: true,
-        countryIso2: true,
-        city: true,
-        shortDescription: true,
-        website: true,
-        foundedYear: true,
-        isFeatured: true,
-        featuredRank: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        _count: { select: { projects: true, properties: true } },
-      },
-    })
+    const runQuery = async (withIsDeletedFilter: boolean) => {
+      const where: any = {}
+      if (withIsDeletedFilter) where.isDeleted = { not: true }
+      if (status === 'ACTIVE' || status === 'INACTIVE') where.status = status
+      if (country === 'UAE' || country === 'INDIA') where.countryCode = country
+      return (prisma as any).developer.findMany({
+        where,
+        orderBy: [{ isFeatured: 'desc' }, { name: 'asc' }],
+        take: 500,
+        select: baseSelect,
+      })
+    }
+
+    let items: any[]
+    try {
+      // Try with isDeleted filter (requires migration to have run)
+      items = await runQuery(true)
+    } catch {
+      // Column doesn't exist yet — fall back to no filter
+      items = await runQuery(false)
+    }
 
     return NextResponse.json({ success: true, items })
   } catch (err: any) {

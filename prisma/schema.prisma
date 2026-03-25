@@ -607,6 +607,8 @@ model Developer {
   isFeatured Boolean @default(false) @map("is_featured")
   featuredRank Int?            @map("featured_rank")
   status      DeveloperStatus @default(ACTIVE)
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  deletedAt   DateTime?        @map("deleted_at")
 
   properties ManualProperty[]
   projects   Project[]
@@ -618,6 +620,7 @@ model Developer {
   @@index([countryIso2, isFeatured])
   @@index([status])
   @@index([slug])
+  @@index([isDeleted])
   @@map("developers")
 }
 
