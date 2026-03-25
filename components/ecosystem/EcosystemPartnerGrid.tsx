@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { trackEvent } from '@/lib/analytics'
+import { trackEvent } from '@/lib/tracking'
 
 export type EcosystemPartnerCard = {
   id: string

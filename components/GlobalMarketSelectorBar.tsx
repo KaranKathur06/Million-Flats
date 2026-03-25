@@ -3,7 +3,7 @@
 import { useMemo, useTransition } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { isCountryCode, type CountryCode } from '@/lib/country'
-import { trackEvent } from '@/lib/analytics'
+import { trackEvent } from '@/lib/tracking'
 import { useMarket } from '@/components/MarketProvider'
 
 const MARKETS: Array<{

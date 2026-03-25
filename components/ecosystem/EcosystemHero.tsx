@@ -1,7 +1,7 @@
  'use client'
 
 import InternalPageBanner from '@/components/InternalPageBanner'
-import { trackEvent } from '@/lib/analytics'
+import { trackEvent } from '@/lib/tracking'
 
 export default function EcosystemHero({
   title,

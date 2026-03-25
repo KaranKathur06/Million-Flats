@@ -6,6 +6,7 @@ import './globals.css'
 import AppProviders from '@/components/AppProviders'
 import AppShell from '@/components/AppShell'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
+import AnalyticsTracker from '@/components/AnalyticsTracker'
 import { authOptions } from '@/lib/auth'
 
 const publicSans = Public_Sans({
@@ -37,6 +38,9 @@ export default async function RootLayout({
           <GoogleAnalytics />
         </Suspense>
         <AppProviders session={session}>
+          <Suspense fallback={null}>
+            <AnalyticsTracker />
+          </Suspense>
           <Suspense fallback={null}>
             <AppShell>{children}</AppShell>
           </Suspense>

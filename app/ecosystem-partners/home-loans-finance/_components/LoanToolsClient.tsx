@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { trackEvent } from '@/lib/analytics'
+import { trackEvent } from '@/lib/tracking'
 
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n))

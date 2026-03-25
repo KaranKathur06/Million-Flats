@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { trackEvent } from '@/lib/analytics'
+import { trackEvent } from '@/lib/tracking'
 
 export default function FinalCTA({
   headline,
