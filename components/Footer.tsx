@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import GatedActionLink from '@/components/GatedActionLink'
+import FooterTrust from '@/components/analytics/FooterTrust'
 
 export default function Footer() {
   return (
@@ -217,8 +218,13 @@ export default function Footer() {
           </div>
         </div>
 
+        {/* Trust metrics */}
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <FooterTrust />
+        </div>
+
         {/* Bottom Bar */}
-        <div className="mt-10 pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="mt-6 pt-6 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-gray-600 text-sm text-center md:text-left">
             © 2026 MillionFlats Pvt Ltd. All rights reserved.
           </p>

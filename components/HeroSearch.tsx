@@ -314,135 +314,132 @@ export default function HeroSearch() {
   }
 
   return (
-    <form onSubmit={handleSearch}>
-      {/* ── Premium glassmorphism card ── */}
+    <form onSubmit={handleSearch} className="w-full relative z-30">
+      {/* ── Full Width Premium Bar ── */}
       <div
-        className="relative overflow-visible rounded-2xl border border-white/[0.12]"
         style={{
-          background: 'linear-gradient(135deg, rgba(14,30,54,0.92) 0%, rgba(20,42,72,0.96) 50%, rgba(16,34,60,0.93) 100%)',
-          boxShadow: '0 32px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04) inset, 0 1px 0 rgba(255,255,255,0.08) inset',
-          backdropFilter: 'blur(24px)',
+          background: 'linear-gradient(90deg, rgba(13,31,56,0.96) 0%, rgba(20,42,72,0.98) 50%, rgba(13,31,56,0.96) 100%)',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03)',
         }}
       >
         {/* Shimmer accent line at top */}
-        <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-amber-400/60 to-transparent rounded-full" />
+        <div className="absolute top-0 left-0 right-0 w-full h-[1px] bg-gradient-to-r from-transparent via-amber-400/40 to-transparent" />
 
-        {/* Card header */}
-        <div className="px-5 sm:px-7 pt-5 pb-1 flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-6 rounded-full bg-amber-400" />
-            <span className="text-white/90 text-sm font-semibold">Find Your Property</span>
-          </div>
-          {loading && (
-            <span className="ml-auto flex items-center gap-1.5 text-white/40 text-xs">
-              <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M21 12a9 9 0 11-6.219-8.56" strokeLinecap="round" />
-              </svg>
-              Loading filters…
-            </span>
-          )}
-        </div>
-
-        {/* Divider */}
-        <div className="mx-5 sm:mx-7 h-px bg-white/[0.06] my-3" />
-
-        {/* Filter grid */}
-        <div className="px-5 sm:px-7 pb-5 sm:pb-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4 items-start">
-          {/* Region */}
-          <div className="lg:col-span-1" style={{ position: 'relative', zIndex: 40 }}>
-            <HeroSelect
-              label="Region"
-              icon={<IconMap />}
-              value={region}
-              onChange={(v) => { setRegion(v); setCommunity(''); setArea('') }}
-              options={[
-                { value: '', label: 'All Regions' },
-                ...regionOptions.map((r) => ({ value: r })),
-              ]}
-              disabled={loading && projects.length === 0}
-              zIndex={40}
-            />
-          </div>
-
-          {/* Community */}
-          <div className="lg:col-span-1" style={{ position: 'relative', zIndex: 35 }}>
-            <HeroSelect
-              label="Community"
-              icon={<IconBuilding />}
-              value={community}
-              onChange={(v) => { setCommunity(v); setArea('') }}
-              options={[
-                { value: '', label: communityOptions.length === 0 ? 'Select Region First' : 'All Communities' },
-                ...communityOptions.map((d) => ({ value: d })),
-              ]}
-              disabled={(loading && projects.length === 0) || communityOptions.length === 0}
-              zIndex={35}
-            />
-          </div>
-
-          {/* Area */}
-          <div className="lg:col-span-1" style={{ position: 'relative', zIndex: 30 }}>
-            <HeroSelect
-              label="Area"
-              icon={<IconLocation />}
-              value={area}
-              onChange={setArea}
-              options={[
-                { value: '', label: areaOptions.length === 0 ? 'Select Community First' : 'All Areas' },
-                ...areaOptions.map((s) => ({ value: s })),
-              ]}
-              disabled={(loading && projects.length === 0) || areaOptions.length === 0}
-              zIndex={30}
-            />
-          </div>
-
-          {/* Min Price */}
-          <div className="lg:col-span-1">
-            <PriceInput
-              label="Min Price"
-              icon={<IconCurrencyDown />}
-              currency={currencySymbol}
-              value={minPrice}
-              onChange={setMinPrice}
-            />
-          </div>
-
-          {/* Max Price */}
-          <div className="lg:col-span-1">
-            <PriceInput
-              label="Max Price"
-              icon={<IconCurrencyDown />}
-              currency={currencySymbol}
-              value={maxPrice}
-              onChange={setMaxPrice}
-            />
-          </div>
-
-          {/* CTA */}
-          <div className="lg:col-span-1 flex flex-col gap-1">
-            {/* Invisible spacer to align with labelled fields */}
-            <div className="text-[11px] font-semibold text-transparent uppercase tracking-widest select-none px-1">
-              Search
+        <div className="container mx-auto px-4 sm:px-6 lg:px-1 py-12">
+          {/* Header Row */}
+          <div className="flex items-center justify-between mb-0">
+            <div className="flex items-center gap-3.5">
+              <span className="w-1.5 h-5 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.4)]" />
+              <span className="text-white/95 text-sm font-bold uppercase tracking-widest">Find Your Property</span>
             </div>
-            <button
-              type="submit"
-              className={[
-                'group relative w-full py-3 px-6 rounded-xl font-bold text-sm overflow-hidden',
-                'bg-gradient-to-r from-amber-400 to-amber-500',
-                'text-[#0d1f38]',
-                'shadow-[0_4px_20px_rgba(251,191,36,0.35)]',
-                'hover:shadow-[0_6px_28px_rgba(251,191,36,0.5)] hover:scale-[1.02]',
-                'active:scale-[0.98]',
-                'transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-400/50',
-              ].join(' ')}
-            >
-              {/* Shimmer sweep on hover */}
-              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-out pointer-events-none" />
-              <span className="relative flex items-center justify-center gap-2">
-                <IconSearch />
-                Browse Properties
+            {loading && (
+              <span className="flex items-center gap-2 text-white/50 text-xs font-semibold uppercase tracking-wider">
+                <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M21 12a9 9 0 11-6.219-8.56" strokeLinecap="round" />
+                </svg>
+                Loading…
               </span>
-            </button>
+            )}
+          </div>
+
+          {/* Filter grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 sm:gap-5 items-end">
+            {/* Region */}
+            <div className="lg:col-span-1" style={{ position: 'relative', zIndex: 40 }}>
+              <HeroSelect
+                label="Region"
+                icon={<IconMap />}
+                value={region}
+                onChange={(v) => { setRegion(v); setCommunity(''); setArea('') }}
+                options={[
+                  { value: '', label: 'All Regions' },
+                  ...regionOptions.map((r) => ({ value: r })),
+                ]}
+                disabled={loading && projects.length === 0}
+                zIndex={40}
+              />
+            </div>
+
+            {/* Community */}
+            <div className="lg:col-span-1" style={{ position: 'relative', zIndex: 35 }}>
+              <HeroSelect
+                label="Community"
+                icon={<IconBuilding />}
+                value={community}
+                onChange={(v) => { setCommunity(v); setArea('') }}
+                options={[
+                  { value: '', label: communityOptions.length === 0 ? 'Select Region First' : 'All Communities' },
+                  ...communityOptions.map((d) => ({ value: d })),
+                ]}
+                disabled={(loading && projects.length === 0) || communityOptions.length === 0}
+                zIndex={35}
+              />
+            </div>
+
+            {/* Area */}
+            <div className="lg:col-span-1" style={{ position: 'relative', zIndex: 30 }}>
+              <HeroSelect
+                label="Area"
+                icon={<IconLocation />}
+                value={area}
+                onChange={setArea}
+                options={[
+                  { value: '', label: areaOptions.length === 0 ? 'Select Community First' : 'All Areas' },
+                  ...areaOptions.map((s) => ({ value: s })),
+                ]}
+                disabled={(loading && projects.length === 0) || areaOptions.length === 0}
+                zIndex={30}
+              />
+            </div>
+
+            {/* Min Price */}
+            <div className="lg:col-span-1">
+              <PriceInput
+                label="Min Price"
+                icon={<IconCurrencyDown />}
+                currency={currencySymbol}
+                value={minPrice}
+                onChange={setMinPrice}
+              />
+            </div>
+
+            {/* Max Price */}
+            <div className="lg:col-span-1">
+              <PriceInput
+                label="Max Price"
+                icon={<IconCurrencyDown />}
+                currency={currencySymbol}
+                value={maxPrice}
+                onChange={setMaxPrice}
+              />
+            </div>
+
+            {/* CTA */}
+            <div className="lg:col-span-1 flex flex-col gap-1">
+              {/* Invisible spacer to align with labelled fields */}
+              <div className="text-[11px] font-semibold text-transparent uppercase tracking-widest select-none px-1">
+                Search
+              </div>
+              <button
+                type="submit"
+                className={[
+                  'group relative w-full py-3 px-6 rounded-xl font-bold text-sm overflow-hidden',
+                  'bg-gradient-to-r from-amber-400 to-amber-500',
+                  'text-[#0d1f38]',
+                  'shadow-[0_4px_20px_rgba(251,191,36,0.35)]',
+                  'hover:shadow-[0_6px_28px_rgba(251,191,36,0.5)] hover:scale-[1.02]',
+                  'active:scale-[0.98]',
+                  'transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-400/50',
+                ].join(' ')}
+              >
+                {/* Shimmer sweep on hover */}
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-out pointer-events-none" />
+                <span className="relative flex items-center justify-center gap-2">
+                  <IconSearch />
+                  Browse Properties
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

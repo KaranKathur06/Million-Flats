@@ -5,7 +5,8 @@ import { getServerSession } from 'next-auth'
 import HeroSearch from '@/components/HeroSearch'
 import FeaturedProperties from '@/components/FeaturedProperties'
 import FeaturedProjects from '@/components/FeaturedProjects'
-import WhyMillionflats from '@/components/WhyMillionflats'
+import TrustStats from '@/components/analytics/TrustStats'
+import RealtimeBadge from '@/components/analytics/RealtimeBadge'
 import FeaturedAgencies from '@/components/FeaturedAgencies'
 import FeaturedDevelopers from '@/components/FeaturedDevelopers'
 import FeaturedAgents from '@/components/FeaturedAgents'
@@ -54,54 +55,68 @@ export default async function Home({
   return (
     <div className="min-h-screen">
       {/* Hero Section — full bleed image, content + search perfectly contained */}
-      <section className="relative w-full flex flex-col">
+      <section className="relative w-full flex flex-col justify-end min-h-[400px] sm:min-h-[480px] lg:min-h-[430px] overflow-hidden">
+
         {/* Background image layer */}
         <div className="absolute inset-0">
           <Image
-            src="/HOMEPAGE.jpg"
+            src="/HOMEPAGE.jpeg"
             alt="Luxury Dubai Property"
             fill
-            className="object-cover object-center"
+            className="object-cover object-[center_70%]"
             priority
-            quality={75}
-            sizes="100vw"
+            quality={100}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1920px"
           />
-          {/* Layered overlays for cinematic depth */}
+
+          {/* Cinematic overlays */}
           <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/40 to-[#1e3a5f]/60" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0d1f38]/80 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0d1f38]/85 via-transparent to-transparent" />
         </div>
 
-        {/* Hero text content */}
-        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 lg:pt-24 pb-28 sm:pb-32">
+        {/* Hero text */}
+        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-20 lg:pb-24">
+
           <div className="max-w-3xl">
-            {/* Eyebrow badge */}
+
+            {/* Badge */}
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-3 py-1 mb-5">
               <span className="w-2 h-2 rounded-full bg-accent-yellow animate-pulse" />
-              <span className="text-white/80 text-xs font-semibold tracking-wide uppercase">Trusted by 10,000+ Investors</span>
+              <span className="text-white/80 text-xs font-semibold tracking-wide uppercase">
+                Trusted by many Investors
+              </span>
             </div>
-            <h1 className="text-[clamp(30px,5vw,58px)] font-serif font-bold text-white mb-4 sm:mb-5 drop-shadow-[0_2px_20px_rgba(0,0,0,0.6)] leading-[1.1] tracking-tight">
+
+            {/* Heading */}
+            <h1 className="text-[clamp(30px,5vw,58px)] font-serif font-bold text-white mb-4 leading-[1.1] tracking-tight">
               Intelligent Property.<br />
               <span className="text-accent-yellow">Intelligent Choice.</span>
             </h1>
-            <p className="text-[clamp(14px,1.8vw,17px)] text-white/80 max-w-xl drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)] leading-relaxed">
+
+            {/* Subtext */}
+            <p className="text-[clamp(14px,1.8vw,17px)] text-white/80 max-w-xl leading-relaxed mb-5">
               We&apos;re your digital sales engine — connecting qualified buyers with premium properties across Dubai, India and beyond.
             </p>
+
+            {/* Realtime social proof */}
+            <RealtimeBadge />
+
           </div>
         </div>
-      </section>
 
-      {/* Search Bar — floats out of hero, perfectly aligned to hero container */}
-      <section className="relative z-5">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Negative margin pulls card up into hero */}
-          <div className="-mt-1 sm:-mt-1">
-            <HeroSearch />
-          </div>
+        {/* Divider */}
+        <div className="relative z-20 w-full">
+          <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-white/80 to-transparent" />
         </div>
+
+      </section>
+      {/* Search Bar — full bleed across the screen */}
+      <section className="relative z-30 w-full -mt-[2px] bg-[#0d1f38]">
+        <HeroSearch />
       </section>
 
-      {/* Why Millionflats Section */}
-      <WhyMillionflats />
+      {/* Trust Stats — data-driven social proof replacing static WhyMillionflats */}
+      <TrustStats />
 
       <div className="bg-white pt-10">
         <GlobalMarketSelectorBar market={market} />
