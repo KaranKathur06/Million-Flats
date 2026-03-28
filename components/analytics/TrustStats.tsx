@@ -93,6 +93,7 @@ const IconMapPin = () => (
 /* ── Main Component ─────────────────────────────────────── */
 export default function TrustStats() {
   const { data, loading } = useAnalyticsSummary()
+  const safeCities = data.cities > 0 ? data.cities : 40
 
   return (
     <section
@@ -141,7 +142,7 @@ export default function TrustStats() {
           />
           <StatCard
             icon={<IconMapPin />}
-            value={data.cities}
+            value={safeCities}
             suffix="+"
             label="Cities Covered"
             accentColor="blue"

@@ -1,25 +1,36 @@
-/**
- * Analytics Trust Engine — Google Analytics 4 Data API Service
- *
- * Authenticates via a GCP Service Account (env variable).
- * Falls back to realistic mock data when credentials are not configured,
- * ensuring the UI always has meaningful numbers during development.
- *
- * Required ENV vars (for production):
- *   GA4_PROPERTY_ID          – numeric GA4 property ID
- *   GA4_SERVICE_ACCOUNT_JSON – base64-encoded service account key JSON
- *     OR
- *   GOOGLE_APPLICATION_CREDENTIALS – path to JSON key file
- */
-
 import { BetaAnalyticsDataClient } from '@google-analytics/data'
 import type { GAMetrics } from './types'
 
-/* ── Singleton client ───────────────────────────────────── */
 let _client: BetaAnalyticsDataClient | null = null
+let _configLogged = false
+
+const propertyId = String(process.env.GA4_PROPERTY_ID || process.env.GA_PROPERTY_ID || '').trim()
+const gaClientEmail = String(process.env.GA_CLIENT_EMAIL || '').trim()
+const gaPrivateKey = String(process.env.GA_PRIVATE_KEY || '').trim()
+
+function maskValue(value: string): string {
+  if (!value) return '(missing)'
+  if (value.length <= 6) return '***'
+  return `${value.slice(0, 3)}***${value.slice(-3)}`
+}
+
+function logGAConfig(): void {
+  if (_configLogged) return
+  _configLogged = true
+
+  console.info('[GAService] GA config check:', {
+    propertyId: maskValue(propertyId),
+    hasGA4PropertyId: Boolean(process.env.GA4_PROPERTY_ID),
+    hasGAPropertyId: Boolean(process.env.GA_PROPERTY_ID),
+    hasServiceAccountB64: Boolean(process.env.GA4_SERVICE_ACCOUNT_JSON),
+    hasClientEmail: Boolean(gaClientEmail),
+    hasPrivateKey: Boolean(gaPrivateKey),
+  })
+}
 
 function getClient(): BetaAnalyticsDataClient | null {
   if (_client) return _client
+  logGAConfig()
 
   const jsonB64 = process.env.GA4_SERVICE_ACCOUNT_JSON
   if (jsonB64) {
@@ -33,7 +44,20 @@ function getClient(): BetaAnalyticsDataClient | null {
     }
   }
 
-  // Fallback: GOOGLE_APPLICATION_CREDENTIALS (file path)
+  if (gaClientEmail && gaPrivateKey) {
+    try {
+      _client = new BetaAnalyticsDataClient({
+        credentials: {
+          client_email: gaClientEmail,
+          private_key: gaPrivateKey.replace(/\\n/g, '\n'),
+        },
+      })
+      return _client
+    } catch (e) {
+      console.error('[GAService] Failed to initialize GA client from GA_CLIENT_EMAIL/GA_PRIVATE_KEY:', e)
+    }
+  }
+
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     _client = new BetaAnalyticsDataClient()
     return _client
@@ -42,28 +66,24 @@ function getClient(): BetaAnalyticsDataClient | null {
   return null
 }
 
-const propertyId = process.env.GA4_PROPERTY_ID ?? ''
-
-/* ── Graceful mock mode ─────────────────────────────────── */
 function isMockMode(): boolean {
   return !getClient() || !propertyId
 }
 
-/**
- * Realistic mock data so UI always has trust signals during dev.
- * Numbers are business-friendly (not 0, not unrealistically high).
- */
 const MOCK: GAMetrics = {
   monthlyVisitors: 14_200,
   realtimeUsers: 47,
   countries: 28,
+  cities: 40,
 }
 
-/* ── Public API ─────────────────────────────────────────── */
+const lastValid = {
+  monthlyVisitors: MOCK.monthlyVisitors,
+  realtimeUsers: MOCK.realtimeUsers,
+  countries: MOCK.countries,
+  cities: MOCK.cities,
+}
 
-/**
- * Monthly active users (last 30 days).
- */
 export async function getMonthlyUsers(): Promise<number> {
   if (isMockMode()) return MOCK.monthlyVisitors
 
@@ -76,16 +96,18 @@ export async function getMonthlyUsers(): Promise<number> {
     })
 
     const value = response.rows?.[0]?.metricValues?.[0]?.value
-    return value ? parseInt(value, 10) : MOCK.monthlyVisitors
+    const parsed = value ? parseInt(value, 10) : 0
+    if (parsed > 0) {
+      lastValid.monthlyVisitors = parsed
+      return parsed
+    }
+    return lastValid.monthlyVisitors || MOCK.monthlyVisitors
   } catch (err) {
     console.error('[GAService] getMonthlyUsers failed:', err)
-    return MOCK.monthlyVisitors
+    return lastValid.monthlyVisitors || MOCK.monthlyVisitors
   }
 }
 
-/**
- * Realtime active users (currently on the site).
- */
 export async function getRealtimeUsers(): Promise<number> {
   if (isMockMode()) return MOCK.realtimeUsers
 
@@ -97,42 +119,67 @@ export async function getRealtimeUsers(): Promise<number> {
     })
 
     const value = response.rows?.[0]?.metricValues?.[0]?.value
-    return value ? parseInt(value, 10) : MOCK.realtimeUsers
+    const parsed = value ? parseInt(value, 10) : 0
+    if (parsed > 0) {
+      lastValid.realtimeUsers = parsed
+      return parsed
+    }
+    return lastValid.realtimeUsers || MOCK.realtimeUsers
   } catch (err) {
     console.error('[GAService] getRealtimeUsers failed:', err)
-    return MOCK.realtimeUsers
+    return lastValid.realtimeUsers || MOCK.realtimeUsers
   }
 }
 
-/**
- * Unique countries users visited from (last 30 days).
- */
-export async function getUsersByCountry(): Promise<number> {
-  if (isMockMode()) return MOCK.countries
+async function getUniqueDimensionCount(
+  dimension: 'country' | 'city',
+  fallback: number,
+): Promise<number> {
+  if (isMockMode()) return fallback
 
   try {
     const client = getClient()!
     const [response] = await client.runReport({
       property: `properties/${propertyId}`,
       dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-      dimensions: [{ name: 'country' }],
+      dimensions: [{ name: dimension }],
       metrics: [{ name: 'activeUsers' }],
-      limit: 250,
+      limit: 1000,
     })
 
-    const countryCount = response.rows?.length ?? 0
-    return countryCount > 0 ? countryCount : MOCK.countries
+    console.log(`[GAService] GA RESPONSE (${dimension}):`, JSON.stringify(response, null, 2))
+
+    const values = (response.rows ?? [])
+      .map((row) => String(row.dimensionValues?.[0]?.value || '').trim())
+      .filter((value) => value && value !== '(not set)')
+
+    const uniqueCount = new Set(values).size
+    if (uniqueCount > 0) {
+      if (dimension === 'country') lastValid.countries = uniqueCount
+      else lastValid.cities = uniqueCount
+      return uniqueCount
+    }
+
+    const last = dimension === 'country' ? lastValid.countries : lastValid.cities
+    console.warn(`[GAService] Empty ${dimension} response, using fallback path.`)
+    return last || fallback
   } catch (err) {
-    console.error('[GAService] getUsersByCountry failed:', err)
-    return MOCK.countries
+    console.error(`[GAService] getUniqueDimensionCount(${dimension}) failed:`, err)
+    const last = dimension === 'country' ? lastValid.countries : lastValid.cities
+    return last || fallback
   }
 }
 
-/**
- * Page views for a specific path (last 30 days).
- */
+export async function getUsersByCountry(): Promise<number> {
+  return getUniqueDimensionCount('country', MOCK.countries)
+}
+
+export async function getUsersByCity(): Promise<number> {
+  return getUniqueDimensionCount('city', MOCK.cities)
+}
+
 export async function getPageViews(pagePath: string): Promise<number> {
-  if (isMockMode()) return 820 // realistic mock
+  if (isMockMode()) return 820
 
   try {
     const client = getClient()!
@@ -157,15 +204,13 @@ export async function getPageViews(pagePath: string): Promise<number> {
   }
 }
 
-/**
- * Fetch all GA metrics in one go (parallelized).
- */
 export async function getAllGAMetrics(): Promise<GAMetrics> {
-  const [monthlyVisitors, realtimeUsers, countries] = await Promise.all([
+  const [monthlyVisitors, realtimeUsers, countries, cities] = await Promise.all([
     getMonthlyUsers(),
     getRealtimeUsers(),
     getUsersByCountry(),
+    getUsersByCity(),
   ])
 
-  return { monthlyVisitors, realtimeUsers, countries }
+  return { monthlyVisitors, realtimeUsers, countries, cities }
 }

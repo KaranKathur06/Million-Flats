@@ -99,11 +99,13 @@ export async function POST(req: Request) {
       excerpt
     )
 
+    const slug = await createUniqueSlug(title)
+
     // Create the blog
     const blog = await (prisma as any).blog.create({
       data: {
         title,
-        slug: generateSlug(title),
+        slug,
         excerpt,
         content,
         featuredImageUrl,
@@ -163,9 +165,23 @@ function generateSlug(title: string): string {
   return title
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
+    .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
+}
+
+async function createUniqueSlug(title: string): Promise<string> {
+  const baseSlug = generateSlug(title) || 'blog'
+  let slug = baseSlug
+  let counter = 1
+
+  while (true) {
+    const existing = await (prisma as any).blog.findUnique({
+      where: { slug },
+      select: { id: true },
+    })
+    if (!existing) return slug
+    slug = `${baseSlug}-${counter++}`
+  }
 }
 
 function calculateSEOScore(
@@ -224,7 +240,7 @@ function extractInternalLinks(content: string, currentSlug: string): string[] {
   while ((match = linkRegex.exec(content)) !== null) {
     const url = match[2]
     if (url.startsWith('/') && !url.includes('http')) {
-      if (url.startsWith(`/${currentSlug}`) || url === '/' || url.startsWith('/blog/')) {
+      if (url.startsWith(`/${currentSlug}`) || url === '/' || url.startsWith('/blogs/')) {
         links.push(url)
       }
     }
@@ -232,3 +248,4 @@ function extractInternalLinks(content: string, currentSlug: string): string[] {
 
   return links
 }
+

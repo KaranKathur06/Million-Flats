@@ -8,6 +8,7 @@ export interface GAMetrics {
   monthlyVisitors: number
   realtimeUsers: number
   countries: number
+  cities: number
 }
 
 /* ── Internal DB Metrics ────────────────────────────────── */

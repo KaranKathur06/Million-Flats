@@ -6,6 +6,7 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   try {
+    const now = new Date()
     const blog = await (prisma as any).blog.findUnique({
       where: { slug: params.slug },
       include: {
@@ -23,20 +24,12 @@ export async function GET(
       },
     })
 
-    if (!blog || blog.status !== 'PUBLISHED') {
+    if (!blog || blog.status !== 'PUBLISHED' || (blog.publishAt && new Date(blog.publishAt) > now)) {
       return NextResponse.json(
         { success: false, message: 'Blog not found' },
         { status: 404 }
       )
     }
-
-    // Increment view count (fire and forget)
-    ;(prisma as any).blog
-      .update({
-        where: { id: blog.id },
-        data: { views: { increment: 1 } },
-      })
-      .catch(() => {})
 
     const normalizedBlog = {
       ...blog,

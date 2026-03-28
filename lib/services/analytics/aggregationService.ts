@@ -6,7 +6,7 @@
  */
 
 import type { AnalyticsSummary } from './types'
-import { cachedFetch, TTL } from './cacheService'
+import { cacheGet, cachedFetch, TTL } from './cacheService'
 import { getAllGAMetrics, getRealtimeUsers } from './gaService'
 import { getDBMetrics } from './dbMetricsService'
 
@@ -39,18 +39,27 @@ const FALLBACK_SUMMARY: AnalyticsSummary = {
 export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
   try {
     return await cachedFetch<AnalyticsSummary>(KEY_SUMMARY, TTL.SUMMARY, async () => {
+      const previous = cacheGet<AnalyticsSummary>(KEY_SUMMARY)
+
       // Fetch GA and DB in parallel
       const [ga, db] = await Promise.all([
         cachedFetch(KEY_GA, TTL.MONTHLY, getAllGAMetrics),
         cachedFetch(KEY_DB, TTL.DB, getDBMetrics),
       ])
 
+      const safeCities =
+        ga.cities > 0
+          ? ga.cities
+          : previous?.cities && previous.cities > 0
+            ? previous.cities
+            : FALLBACK_SUMMARY.cities
+
       return {
         monthlyVisitors: ga.monthlyVisitors,
         realtimeUsers: ga.realtimeUsers,
         countries: ga.countries,
         blogs: db.totalBlogs,
-        cities: db.totalCities,
+        cities: safeCities,
         developers: db.totalDevelopers,
         tours: db.total3DTours,
         agents: db.totalAgents,

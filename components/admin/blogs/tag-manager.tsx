@@ -13,8 +13,7 @@ function generateSlug(title: string): string {
   return title
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
+    .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
 }
 
@@ -116,3 +115,5 @@ export function TagManager({ initialTags }: { initialTags: Tag[] }) {
     </div>
   )
 }
+
+

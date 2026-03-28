@@ -11,8 +11,10 @@ export async function GET(req: Request) {
   const search = searchParams.get('search') || ''
 
   try {
+    const now = new Date()
     const where: any = {
       status: 'PUBLISHED',
+      OR: [{ publishAt: null }, { publishAt: { lte: now } }],
     }
 
     if (category) {
@@ -37,7 +39,7 @@ export async function GET(req: Request) {
     const [blogs, total] = await Promise.all([
       (prisma as any).blog.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ publishAt: 'desc' }, { createdAt: 'desc' }],
         skip: offset,
         take: limit,
         select: {

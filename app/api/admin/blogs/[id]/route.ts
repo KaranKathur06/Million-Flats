@@ -134,11 +134,13 @@ export async function PATCH(
     const wordCount = body.content.trim().split(/\s+/).filter(Boolean).length
     const readTime = Math.ceil(wordCount / 200)
 
+    const slug = await createUniqueSlug(body.title, params.id)
+
     const updatedBlog = await (prisma as any).blog.update({
       where: { id: params.id },
       data: {
         title: body.title,
-        slug: generateSlug(body.title),
+        slug,
         excerpt: body.excerpt,
         content: body.content,
         featuredImageUrl: body.featuredImageUrl,
@@ -236,9 +238,24 @@ function generateSlug(title: string): string {
   return title
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
+    .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
+}
+
+async function createUniqueSlug(title: string, currentBlogId: string): Promise<string> {
+  const baseSlug = generateSlug(title) || 'blog'
+  let slug = baseSlug
+  let counter = 1
+
+  while (true) {
+    const existing = await (prisma as any).blog.findUnique({
+      where: { slug },
+      select: { id: true },
+    })
+
+    if (!existing || existing.id === currentBlogId) return slug
+    slug = `${baseSlug}-${counter++}`
+  }
 }
 
 function calculateSEOScore(

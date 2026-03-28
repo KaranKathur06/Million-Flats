@@ -18,13 +18,14 @@ export async function getDBMetrics(): Promise<DBMetrics> {
   ] = await Promise.all([
     // Published blogs / investment guides
     prisma.blog.count({
-      where: { status: 'PUBLISHED' },
+      where: {
+        status: 'PUBLISHED',
+        OR: [{ publishAt: null }, { publishAt: { lte: new Date() } }],
+      },
     }),
 
-    // Active developers (not soft-deleted)
-    prisma.developer.count({
-      where: { status: 'ACTIVE', isDeleted: false },
-    }),
+    // Developers
+    prisma.developer.count(),
 
     // Approved agents
     prisma.agent.count({
