@@ -1,15 +1,21 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useId } from 'react'
 
 export interface UploadBoxProps {
   label: string
   hint?: string
-  currentUrl?: string
+  currentUrl?: string | File | null
   onUploaded: (url: string) => void
   aspectRatio?: 'square' | 'banner' | 'video' // for future-proofing
   endpoint?: string // default override logic inside
   uploadData?: Record<string, string> // key-values appended to formData
+}
+
+function resolvePreview(value: string | File | null | undefined) {
+  if (!value) return ''
+  if (value instanceof File) return URL.createObjectURL(value)
+  return value
 }
 
 export default function UploadBox({
@@ -21,26 +27,34 @@ export default function UploadBox({
   endpoint = '/api/admin/developers/upload',
   uploadData = {},
 }: UploadBoxProps) {
+  const inputId = useId()
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
-  const [previewUrl, setPreviewUrl] = useState(currentUrl)
+  const [previewUrl, setPreviewUrl] = useState<string>('')
   const fileRef = useRef<HTMLInputElement>(null)
+  const blobUrlRef = useRef<string | null>(null)
 
-  useEffect(() => {
-    // If external URL updates and we don't hold a local blob preview
-    if (currentUrl && !previewUrl.startsWith('blob:')) {
-      setPreviewUrl(currentUrl)
+  const cleanupBlobPreview = useCallback(() => {
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current)
+      blobUrlRef.current = null
     }
-  }, [currentUrl])
+  }, [])
 
   useEffect(() => {
-    // Prevent memory leaks for blob URLs
+    cleanupBlobPreview()
+    const nextPreview = resolvePreview(currentUrl)
+    if (currentUrl instanceof File && nextPreview.startsWith('blob:')) {
+      blobUrlRef.current = nextPreview
+    }
+    setPreviewUrl(nextPreview)
+  }, [currentUrl, cleanupBlobPreview])
+
+  useEffect(() => {
     return () => {
-      if (previewUrl && previewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(previewUrl)
-      }
+      cleanupBlobPreview()
     }
-  }, [previewUrl])
+  }, [cleanupBlobPreview])
 
   const handleFile = useCallback(
     async (file: File) => {
@@ -60,7 +74,9 @@ export default function UploadBox({
       setUploadError('')
 
       // Optimistic preview using URL.createObjectURL (fastest)
+      cleanupBlobPreview()
       const objectUrl = URL.createObjectURL(file)
+      blobUrlRef.current = objectUrl
       setPreviewUrl(objectUrl)
 
       try {
@@ -81,13 +97,13 @@ export default function UploadBox({
         onUploaded(json.url)
       } catch (err: any) {
         setUploadError(err.message || 'Upload failed')
-        // Revert to old valid url (if preview was blob, it'll correctly flip back to currentUrl)
-        setPreviewUrl(currentUrl)
+        cleanupBlobPreview()
+        setPreviewUrl(typeof currentUrl === 'string' ? currentUrl : '')
       } finally {
         setUploading(false)
       }
     },
-    [endpoint, uploadData, currentUrl, onUploaded]
+    [endpoint, uploadData, currentUrl, onUploaded, cleanupBlobPreview]
   )
 
   const handleDrop = useCallback(
@@ -100,13 +116,16 @@ export default function UploadBox({
   )
 
   const handleRemove = () => {
-    if (previewUrl && previewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(previewUrl)
-    }
+    cleanupBlobPreview()
     setPreviewUrl('')
     onUploaded('')
     if (fileRef.current) fileRef.current.value = ''
   }
+
+  const openFilePicker = useCallback(() => {
+    console.log('UploadBox click triggered')
+    if (!uploading) fileRef.current?.click()
+  }, [uploading])
 
   const isSquare = aspectRatio === 'square'
 
@@ -117,7 +136,18 @@ export default function UploadBox({
       </label>
 
       {previewUrl ? (
-        <div className="relative group">
+        <div
+          className="relative group cursor-pointer"
+          onClick={openFilePicker}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              openFilePicker()
+            }
+          }}
+        >
           {isSquare ? (
             <div className="h-28 w-28 rounded-xl border border-white/[0.08] bg-white overflow-hidden p-1.5 flex-shrink-0">
               <img
@@ -139,11 +169,14 @@ export default function UploadBox({
           )}
 
           {/* Hover overlay */}
-          <div className="absolute inset-0 rounded-xl bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm">
+          <div className="pointer-events-none absolute inset-0 rounded-xl bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm">
             <button
               type="button"
-              onClick={() => fileRef.current?.click()}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-400/20 border border-amber-400/30 px-3 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-400/30 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation()
+                openFilePicker()
+              }}
+              className="pointer-events-auto inline-flex items-center gap-1.5 rounded-lg bg-amber-400/20 border border-amber-400/30 px-3 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-400/30 transition-colors"
             >
               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -152,8 +185,11 @@ export default function UploadBox({
             </button>
             <button
               type="button"
-              onClick={handleRemove}
-              className="inline-flex items-center gap-1 rounded-lg bg-red-500/20 border border-red-500/30 px-3 py-1.5 text-xs font-semibold text-red-300 hover:bg-red-500/30 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleRemove()
+              }}
+              className="pointer-events-auto inline-flex items-center gap-1 rounded-lg bg-red-500/20 border border-red-500/30 px-3 py-1.5 text-xs font-semibold text-red-300 hover:bg-red-500/30 transition-colors"
             >
               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -173,6 +209,11 @@ export default function UploadBox({
         </div>
       ) : (
         <label
+          htmlFor={inputId}
+          onClick={(e) => {
+            e.preventDefault()
+            openFilePicker()
+          }}
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
           className={`group relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 ${
@@ -209,10 +250,11 @@ export default function UploadBox({
       )}
 
       <input
+        id={inputId}
         ref={fileRef}
         type="file"
         accept="image/png,image/jpg,image/jpeg,image/webp"
-        className="sr-only"
+        className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
       />
 

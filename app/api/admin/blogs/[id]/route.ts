@@ -53,10 +53,10 @@ export async function GET(
       return NextResponse.json({ success: false, message: 'Blog not found' }, { status: 404 })
     }
 
-    // Permission check
-    const userRole = (session.user as any)?.role
+    // Permission check — ADMIN/SUPERADMIN can view any blog, others only their own
+    const userRole = String((session.user as any)?.role || '').toUpperCase()
     const userId = (session.user as any)?.id
-    if (!['ADMIN', 'EDITOR'].includes(userRole) && blog.authorId !== userId) {
+    if (!['ADMIN', 'SUPERADMIN'].includes(userRole) && blog.authorId !== userId) {
       return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
     }
 
@@ -82,7 +82,7 @@ export async function PATCH(
 
     const body = await req.json()
     const userId = (session.user as any)?.id as string
-    const userRole = (session.user as any)?.role
+    const userRole = String((session.user as any)?.role || '').toUpperCase()
 
     // Get existing blog
     const existingBlog = await (prisma as any).blog.findUnique({
@@ -93,17 +93,9 @@ export async function PATCH(
       return NextResponse.json({ success: false, message: 'Blog not found' }, { status: 404 })
     }
 
-    // Permission check
-    const allowedRoles = ['ADMIN', 'EDITOR']
-    if (!allowedRoles.includes(userRole)) {
+    // Permission check — Only ADMIN/SUPERADMIN can edit any blog
+    if (!['ADMIN', 'SUPERADMIN'].includes(userRole)) {
       return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
-    }
-
-    if (userRole === 'EDITOR' && existingBlog.authorId !== userId) {
-      return NextResponse.json(
-        { success: false, message: 'Forbidden - Can only edit own blogs' },
-        { status: 403 }
-      )
     }
 
     // Validate category exists
@@ -189,36 +181,20 @@ export async function DELETE(
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
     }
 
-    const userId = (session.user as any)?.id as string
-    const userRole = (session.user as any)?.role
+    const userRole = String((session.user as any)?.role || '').toUpperCase()
 
-    const allowedRoles = ['ADMIN', 'EDITOR']
-    if (!allowedRoles.includes(userRole)) {
+    // Only ADMIN and SUPERADMIN can delete blogs
+    if (!['ADMIN', 'SUPERADMIN'].includes(userRole)) {
       return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
     }
 
     const blog = await (prisma as any).blog.findUnique({
       where: { id: params.id },
+      select: { id: true },
     })
 
     if (!blog) {
       return NextResponse.json({ success: false, message: 'Blog not found' }, { status: 404 })
-    }
-
-    // If not admin, can only delete own draft blogs
-    if (userRole === 'EDITOR') {
-      if (blog.authorId !== userId) {
-        return NextResponse.json(
-          { success: false, message: 'Forbidden - Can only delete own blogs' },
-          { status: 403 }
-        )
-      }
-      if (blog.status !== 'DRAFT') {
-        return NextResponse.json(
-          { success: false, message: 'Forbidden - Can only delete draft blogs' },
-          { status: 403 }
-        )
-      }
     }
 
     await (prisma as any).blog.delete({ where: { id: params.id } })

@@ -232,9 +232,10 @@ export default function AdminBlogsTableClient({ items, currentRole }: AdminBlogs
       const response = await fetch(`/api/admin/blogs/${deleteTarget.id}`, { method: 'DELETE' })
       const data = await response.json().catch(() => null)
       if (!response.ok || !data?.success) throw new Error(data?.message || 'Failed to delete blog')
-      showToast(`"${deleteTarget.title}" deleted successfully`, 'success')
       setBlogItems((prev) => prev.filter((it) => it.id !== deleteTarget.id))
       setSelectedBlogs((prev) => prev.filter((id) => id !== deleteTarget.id))
+      showToast(`"${deleteTarget.title}" deleted successfully`, 'success')
+      router.refresh()
     } catch (error) {
       console.error('Error deleting blog:', error)
       showToast(error instanceof Error ? error.message : 'Failed to delete blog', 'error')
@@ -287,25 +288,29 @@ export default function AdminBlogsTableClient({ items, currentRole }: AdminBlogs
     }
     setActionLoading('bulk-delete')
     try {
-      console.log('Deleting IDs:', selectedBlogs)
       const response = await fetch('/api/admin/blogs/delete', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: selectedBlogs }),
       })
       const data = await response.json().catch(() => null)
-      console.log('API Response:', data)
       if (!response.ok || !data?.success) {
         throw new Error(data?.message || 'Failed to delete selected blogs')
       }
       const deletedIds: string[] = Array.isArray(data?.deletedIds) ? data.deletedIds : []
       setBlogItems((prev) => prev.filter((it) => !deletedIds.includes(it.id)))
-      showToast(`${data.deletedCount || deletedIds.length} blog(s) deleted`, 'success')
+      const skipped = data.skippedCount || 0
+      const msg = skipped > 0
+        ? `${data.deletedCount || deletedIds.length} blog(s) deleted, ${skipped} skipped`
+        : `${data.deletedCount || deletedIds.length} blog(s) deleted`
+      showToast(msg, 'success')
       setSelectedBlogs([])
       setBulkDeleteOpen(false)
+      router.refresh()
     } catch (error) {
       console.error('Error deleting blogs:', error)
       showToast(error instanceof Error ? error.message : 'Failed to delete blogs', 'error')
+      setBulkDeleteOpen(false)
     } finally {
       setActionLoading(null)
     }

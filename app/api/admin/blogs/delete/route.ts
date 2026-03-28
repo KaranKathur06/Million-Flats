@@ -14,15 +14,21 @@ function parseIds(input: unknown): string[] {
   return Array.from(new Set(normalized))
 }
 
+/** Roles permitted to bulk-delete blogs */
+const BULK_DELETE_ROLES = ['ADMIN', 'SUPERADMIN']
+
 export async function DELETE(req: Request) {
   const auth = await requireAdminSession()
   if (!auth.ok) {
     return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
   }
 
-  if (!['ADMIN', 'SUPERADMIN'].includes(auth.role)) {
+  // Cast to string for safe comparison — avoids TS overlap lint with AppRole
+  const role = String(auth.role)
+
+  if (!BULK_DELETE_ROLES.includes(role)) {
     return NextResponse.json(
-      { success: false, message: 'Forbidden - Insufficient role for bulk delete' },
+      { success: false, message: 'Forbidden - Only admins can bulk-delete blogs' },
       { status: 403 }
     )
   }

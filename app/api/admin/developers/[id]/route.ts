@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { z } from 'zod'
+import { revalidatePath } from 'next/cache'
 
 function slugify(text: string) {
   return text
@@ -181,14 +182,20 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     try {
       await (prisma as any).developer.update({
         where: { id: params.id },
-        data: { status: 'INACTIVE', isDeleted: true, deletedAt: new Date() },
+        data: { status: 'INACTIVE', isFeatured: false, isDeleted: true, deletedAt: new Date() },
       })
     } catch {
       // Fallback if isDeleted/deletedAt columns not yet migrated
       await (prisma as any).developer.update({
         where: { id: params.id },
-        data: { status: 'INACTIVE' },
+        data: { status: 'INACTIVE', isFeatured: false },
       })
+    }
+
+    revalidatePath('/')
+    revalidatePath('/developers')
+    if (existing.slug) {
+      revalidatePath(`/developers/${existing.slug}`)
     }
 
     return NextResponse.json({ success: true, message: 'Developer deleted (soft)' })

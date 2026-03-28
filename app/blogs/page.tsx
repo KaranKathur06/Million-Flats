@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next'
+import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
@@ -196,6 +196,7 @@ export default async function BlogsPage({ searchParams }: BlogPageProps) {
               <Link
                 key={post.id}
                 href={`/blogs/${post.slug}`}
+                prefetch={true}
                 className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
               >
                 <div className="relative aspect-[16/9] overflow-hidden bg-gray-100">
@@ -230,6 +231,7 @@ export default async function BlogsPage({ searchParams }: BlogPageProps) {
               <Link
                 key={blog.id}
                 href={`/blogs/${blog.slug}`}
+                prefetch={true}
                 className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
               >
                 <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
@@ -262,6 +264,7 @@ export default async function BlogsPage({ searchParams }: BlogPageProps) {
         <section className="mt-8 flex items-center justify-center gap-2">
           <Link
             href={withParams({ search: data.search, category: data.category, page: Math.max(1, data.page - 1) })}
+            prefetch={true}
             className={`h-10 rounded-xl border border-gray-200 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 ${data.page <= 1 ? 'pointer-events-none opacity-40' : ''}`}
           >
             Previous
@@ -269,6 +272,7 @@ export default async function BlogsPage({ searchParams }: BlogPageProps) {
           <span className="px-3 text-sm text-gray-500">Page {data.page} of {data.totalPages}</span>
           <Link
             href={withParams({ search: data.search, category: data.category, page: Math.min(data.totalPages, data.page + 1) })}
+            prefetch={true}
             className={`h-10 rounded-xl border border-gray-200 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 ${data.page >= data.totalPages ? 'pointer-events-none opacity-40' : ''}`}
           >
             Next

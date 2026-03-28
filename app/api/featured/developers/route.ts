@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 export const runtime = 'nodejs'
 
@@ -35,23 +36,44 @@ export async function GET(req: Request) {
   const take = 4
 
   try {
-    const featured = await prisma.$queryRaw<Array<{ id: string; name: string; country: string | null }>>`
-      SELECT id, name, country
-      FROM developers
-      WHERE is_featured = true AND country = ${country}::"CountryCode"
-      ORDER BY updated_at DESC
-      LIMIT 24
-    `
-
-    let pool: any[] = Array.isArray(featured) ? featured : []
-    if (pool.length < take) {
-      const fallback = await prisma.$queryRaw<Array<{ id: string; name: string; country: string | null }>>`
+    const getFeatured = async (withDeletedFilter: boolean) =>
+      prisma.$queryRaw<Array<{ id: string; name: string; country: string | null }>>`
         SELECT id, name, country
         FROM developers
-        WHERE country = ${country}::"CountryCode"
+        WHERE is_featured = true
+          AND country = ${country}::"CountryCode"
+          AND status = 'ACTIVE'
+          ${withDeletedFilter ? Prisma.sql`AND COALESCE(is_deleted, false) = false` : Prisma.empty}
         ORDER BY updated_at DESC
         LIMIT 24
       `
+
+    let featured: Array<{ id: string; name: string; country: string | null }>
+    try {
+      featured = await getFeatured(true)
+    } catch {
+      featured = await getFeatured(false)
+    }
+
+    let pool: any[] = Array.isArray(featured) ? featured : []
+    if (pool.length < take) {
+      const getFallback = async (withDeletedFilter: boolean) =>
+        prisma.$queryRaw<Array<{ id: string; name: string; country: string | null }>>`
+          SELECT id, name, country
+          FROM developers
+          WHERE country = ${country}::"CountryCode"
+            AND status = 'ACTIVE'
+            ${withDeletedFilter ? Prisma.sql`AND COALESCE(is_deleted, false) = false` : Prisma.empty}
+          ORDER BY updated_at DESC
+          LIMIT 24
+        `
+
+      let fallback: Array<{ id: string; name: string; country: string | null }>
+      try {
+        fallback = await getFallback(true)
+      } catch {
+        fallback = await getFallback(false)
+      }
 
       const seen = new Set(pool.map((r) => String(r?.id || '')))
       for (const r of Array.isArray(fallback) ? fallback : []) {
@@ -70,7 +92,10 @@ export async function GET(req: Request) {
         countryCode: String(d?.country || '').toUpperCase() === 'INDIA' ? 'INDIA' : 'UAE',
       }))
 
-    return NextResponse.json({ success: true, country, items })
+    return NextResponse.json(
+      { success: true, country, items },
+      { headers: { 'Cache-Control': 'no-store, max-age=0' } }
+    )
   } catch (e) {
     console.error('Featured developers: failed', e)
     return NextResponse.json({ success: false, message: 'Unable to load featured developers' }, { status: 500 })

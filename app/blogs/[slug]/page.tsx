@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next'
+import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -11,13 +11,42 @@ type BlogPageProps = {
   params: { slug: string }
 }
 
-async function getPublishedBlogBySlug(slug: string) {
+/**
+ * Sanitize slug: trim whitespace, lowercase, strip trailing slashes.
+ * Prevents slug mismatch from URL encoding quirks or trailing spaces.
+ */
+function sanitizeSlug(raw: string): string {
+  return decodeURIComponent(raw).trim().toLowerCase().replace(/\/+$/, '')
+}
+
+async function getPublishedBlogBySlug(rawSlug: string) {
+  const slug = sanitizeSlug(rawSlug)
+  if (!slug) return null
+
   const now = new Date()
+
   const blog = await (prisma as any).blog.findUnique({
     where: { slug },
-    include: {
-      category: true,
-      author: true,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      excerpt: true,
+      content: true,
+      contentHtml: true,
+      featuredImageUrl: true,
+      featuredImageAlt: true,
+      metaTitle: true,
+      metaDescription: true,
+      canonicalUrl: true,
+      targetKeyword: true,
+      readTimeMinutes: true,
+      status: true,
+      publishAt: true,
+      createdAt: true,
+      views: true,
+      category: { select: { id: true, name: true, slug: true } },
+      author: { select: { id: true, name: true } },
     },
   })
 
@@ -56,15 +85,15 @@ export default async function BlogSlugPage({ params }: BlogPageProps) {
 
   return (
     <main className="min-h-screen bg-white py-8 sm:py-10">
-      <BlogViewTracker slug={params.slug} />
+      <BlogViewTracker slug={blog.slug} />
 
       <article className="mx-auto w-full max-w-[900px] px-4 sm:px-6 lg:px-8">
         <nav className="mb-6 flex items-center gap-2 text-sm text-gray-500">
-          <Link href="/" className="hover:text-dark-blue">
+          <Link href="/" className="hover:text-dark-blue" prefetch={true}>
             Home
           </Link>
           <span>/</span>
-          <Link href="/blogs" className="hover:text-dark-blue">
+          <Link href="/blogs" className="hover:text-dark-blue" prefetch={true}>
             Blogs
           </Link>
           <span>/</span>
