@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { FAQ_POPUP_LAST_SEEN_KEY } from '@/lib/leadMagnets/constants'
@@ -37,8 +37,6 @@ export default function DownloadGatePopup() {
   const [error, setError] = useState('')
   const [leadMagnet, setLeadMagnet] = useState<PopupLeadMagnet | null>(null)
   const [loadingConfig, setLoadingConfig] = useState(true)
-
-  const touchStart = useRef<number | null>(null)
 
   const isAuthRoute = useMemo(() => {
     const p = pathname || ''
@@ -149,10 +147,9 @@ export default function DownloadGatePopup() {
   return (
     <div className="fixed inset-0 z-[80]">
       <div className="absolute inset-0 bg-slate-950/45" onClick={() => closePopup('outside_click')} />
-
-      <div className="hidden md:flex absolute inset-0 items-end justify-end p-6">
+      <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-6">
         <section className="w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
-          <div className="relative overflow-hidden border-b border-gray-100 p-6">
+          <div className="relative overflow-hidden border-b border-gray-100 p-5 sm:p-6">
             <button
               type="button"
               onClick={() => closePopup('close_button')}
@@ -174,7 +171,7 @@ export default function DownloadGatePopup() {
             </div>
           </div>
 
-          <div className="p-6 pt-5">
+          <div className="p-5 sm:p-6 sm:pt-5">
             <button
               type="button"
               disabled={loading}
@@ -189,53 +186,6 @@ export default function DownloadGatePopup() {
                 {error}
               </div>
             ) : null}
-          </div>
-        </section>
-      </div>
-
-      <div className="md:hidden absolute inset-x-0 bottom-0">
-        <section
-          className="overflow-hidden rounded-t-2xl border border-gray-200 bg-white shadow-2xl"
-          onTouchStart={(event) => {
-            touchStart.current = event.touches[0]?.clientY || null
-          }}
-          onTouchEnd={(event) => {
-            const start = touchStart.current
-            const end = event.changedTouches[0]?.clientY || null
-            touchStart.current = null
-            if (start !== null && end !== null && end - start > 80) {
-              closePopup('swipe_down')
-            }
-          }}
-        >
-          <div className="mx-auto my-2 h-1.5 w-12 rounded-full bg-gray-300" />
-          <div className="relative px-4 pb-5 pt-2">
-            <button
-              type="button"
-              onClick={() => closePopup('close_button')}
-              className="absolute right-3 top-1 inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
-              aria-label="Close popup"
-            >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
-            </button>
-
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-primary-700">{magnet.badgeText || 'Exclusive Guide'}</p>
-            <h3 className="mt-1 text-lg font-bold tracking-tight text-dark-blue">{magnet.title}</h3>
-            <p className="mt-1 text-sm leading-6 text-gray-600">
-              {magnet.subtitle || 'Avoid costly mistakes in Dubai real estate. Get insider insights used by top investors.'}
-            </p>
-
-            <button
-              type="button"
-              disabled={loading}
-              onClick={handleDownload}
-              className="mt-4 inline-flex h-12 w-full items-center justify-center rounded-xl bg-dark-blue px-5 text-sm font-semibold text-white transition hover:bg-dark-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? 'Redirecting...' : magnet.ctaLabel || 'Download Free Guide'}
-            </button>
-            <p className="mt-2 text-center text-xs text-gray-500">{magnet.loginHint || 'Login required'}</p>
           </div>
         </section>
       </div>

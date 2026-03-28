@@ -71,25 +71,56 @@ function ConfirmModal({
   onCancel: () => void
   isLoading: boolean
 }) {
+  useEffect(() => {
+    if (!isOpen) return
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isLoading) {
+        onCancel()
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isOpen, isLoading, onCancel])
+
   if (!isOpen) return null
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative z-10 w-full max-w-md mx-4 rounded-2xl border border-white/[0.08] bg-[#0f1825] p-6 shadow-2xl">
-        <h3 className="text-lg font-bold text-white">{title}</h3>
-        <p className="mt-2 text-sm text-white/60">{message}</p>
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-[#050a12]/75 backdrop-blur-[3px]"
+        onClick={() => !isLoading && onCancel()}
+      />
+      <div
+        className="relative z-10 w-full max-w-md rounded-2xl border border-red-400/20 bg-[#0b1220]/95 p-6 shadow-2xl shadow-black/50"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-1.5 rounded-t-2xl bg-gradient-to-r from-red-500/80 via-red-400/60 to-red-500/80" />
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-red-400/35 bg-red-500/15 text-red-300">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v4m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-white">{title}</h3>
+            <p className="mt-1.5 text-sm leading-6 text-white/70">{message}</p>
+          </div>
+        </div>
         <div className="mt-6 flex gap-3 justify-end">
           <button
             onClick={onCancel}
             disabled={isLoading}
-            className="px-4 py-2 rounded-xl text-sm font-semibold text-white/60 border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] transition-all duration-200 disabled:opacity-50"
+            className="px-4 py-2 rounded-xl text-sm font-semibold text-white/70 border border-white/[0.12] bg-white/[0.04] hover:bg-white/[0.1] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-red-500/20 border border-red-400/30 hover:bg-red-500/30 transition-all duration-200 disabled:opacity-50"
+            className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-red-500/25 border border-red-400/40 hover:bg-red-500/35 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <span className="flex items-center gap-2">
@@ -109,11 +140,17 @@ function ConfirmModal({
 
 export default function AdminBlogsTableClient({ items, currentRole }: AdminBlogsTableClientProps) {
   const router = useRouter()
+  const [blogItems, setBlogItems] = useState<BlogItem[]>(items)
   const [selectedBlogs, setSelectedBlogs] = useState<string[]>([])
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<BlogItem | null>(null)
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+  useEffect(() => {
+    setBlogItems(items)
+  }, [items])
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type })
@@ -174,7 +211,7 @@ export default function AdminBlogsTableClient({ items, currentRole }: AdminBlogs
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      setSelectedBlogs(items.map((item) => item.id))
+      setSelectedBlogs(blogItems.map((item) => item.id))
     } else {
       setSelectedBlogs([])
     }
@@ -193,12 +230,14 @@ export default function AdminBlogsTableClient({ items, currentRole }: AdminBlogs
     setIsDeleting(true)
     try {
       const response = await fetch(`/api/admin/blogs/${deleteTarget.id}`, { method: 'DELETE' })
-      if (!response.ok) throw new Error('Failed to delete blog')
+      const data = await response.json().catch(() => null)
+      if (!response.ok || !data?.success) throw new Error(data?.message || 'Failed to delete blog')
       showToast(`"${deleteTarget.title}" deleted successfully`, 'success')
-      router.refresh()
+      setBlogItems((prev) => prev.filter((it) => it.id !== deleteTarget.id))
+      setSelectedBlogs((prev) => prev.filter((id) => id !== deleteTarget.id))
     } catch (error) {
       console.error('Error deleting blog:', error)
-      showToast('Failed to delete blog', 'error')
+      showToast(error instanceof Error ? error.message : 'Failed to delete blog', 'error')
     } finally {
       setIsDeleting(false)
       setDeleteTarget(null)
@@ -241,26 +280,43 @@ export default function AdminBlogsTableClient({ items, currentRole }: AdminBlogs
     }
   }
 
-  const handleBulkDelete = async () => {
-    if (selectedBlogs.length === 0) return
-    if (!confirm(`Delete ${selectedBlogs.length} selected blog(s)? This cannot be undone.`)) return
-
+  const executeBulkDelete = async () => {
+    if (selectedBlogs.length === 0) {
+      showToast('No blogs selected', 'error')
+      return
+    }
     setActionLoading('bulk-delete')
     try {
-      await Promise.all(
-        selectedBlogs.map((id) =>
-          fetch(`/api/admin/blogs/${id}`, { method: 'DELETE' })
-        )
-      )
-      showToast(`${selectedBlogs.length} blog(s) deleted`, 'success')
+      console.log('Deleting IDs:', selectedBlogs)
+      const response = await fetch('/api/admin/blogs/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedBlogs }),
+      })
+      const data = await response.json().catch(() => null)
+      console.log('API Response:', data)
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.message || 'Failed to delete selected blogs')
+      }
+      const deletedIds: string[] = Array.isArray(data?.deletedIds) ? data.deletedIds : []
+      setBlogItems((prev) => prev.filter((it) => !deletedIds.includes(it.id)))
+      showToast(`${data.deletedCount || deletedIds.length} blog(s) deleted`, 'success')
       setSelectedBlogs([])
-      router.refresh()
+      setBulkDeleteOpen(false)
     } catch (error) {
       console.error('Error deleting blogs:', error)
-      showToast('Failed to delete blogs', 'error')
+      showToast(error instanceof Error ? error.message : 'Failed to delete blogs', 'error')
     } finally {
       setActionLoading(null)
     }
+  }
+
+  const handleBulkDeleteClick = () => {
+    if (selectedBlogs.length === 0) {
+      showToast('No blogs selected', 'error')
+      return
+    }
+    setBulkDeleteOpen(true)
   }
 
   return (
@@ -313,7 +369,7 @@ export default function AdminBlogsTableClient({ items, currentRole }: AdminBlogs
                 Publish
               </button>
               <button
-                onClick={handleBulkDelete}
+                onClick={handleBulkDeleteClick}
                 disabled={actionLoading === 'bulk-delete'}
                 className="inline-flex items-center gap-1.5 text-xs px-4 py-2 bg-red-500/15 text-red-300 rounded-lg border border-red-400/20 hover:bg-red-500/25 transition-all duration-200 font-semibold disabled:opacity-50"
               >
@@ -332,7 +388,7 @@ export default function AdminBlogsTableClient({ items, currentRole }: AdminBlogs
           </div>
         )}
 
-        {items.length === 0 ? (
+        {blogItems.length === 0 ? (
           /* ─── Empty State ─── */
           <div className="text-center py-20">
             <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-white/[0.06] to-white/[0.02] border border-white/[0.08] flex items-center justify-center mx-auto mb-5">
@@ -364,7 +420,7 @@ export default function AdminBlogsTableClient({ items, currentRole }: AdminBlogs
                   <th className="px-4 py-3.5 text-left w-10">
                     <input
                       type="checkbox"
-                      checked={selectedBlogs.length === items.length && items.length > 0}
+                      checked={selectedBlogs.length === blogItems.length && blogItems.length > 0}
                       onChange={handleSelectAll}
                       className="accent-amber-400 w-4 h-4 rounded-md cursor-pointer"
                     />
@@ -396,7 +452,7 @@ export default function AdminBlogsTableClient({ items, currentRole }: AdminBlogs
                 </tr>
               </thead>
               <tbody>
-                {items.map((item, idx) => {
+                {blogItems.map((item, idx) => {
                   const statusCfg = getStatusConfig(item.status)
                   const seoCfg = getSEOScoreColor(item.seoScore)
 
@@ -557,6 +613,16 @@ export default function AdminBlogsTableClient({ items, currentRole }: AdminBlogs
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
         isLoading={isDeleting}
+      />
+
+      <ConfirmModal
+        isOpen={bulkDeleteOpen}
+        title="Delete Selected Blogs"
+        message={`Are you sure you want to delete ${selectedBlogs.length} selected blog(s)? This action cannot be undone.`}
+        confirmLabel={`Delete ${selectedBlogs.length} Blog(s)`}
+        onConfirm={executeBulkDelete}
+        onCancel={() => setBulkDeleteOpen(false)}
+        isLoading={actionLoading === 'bulk-delete'}
       />
 
       {/* Toast */}
