@@ -143,8 +143,11 @@ model Blog {
 
   @@index([status])
   @@index([publishAt])
+  @@index([createdAt])
+  @@index([status, publishAt, createdAt])
   @@index([authorId])
   @@index([categoryId])
+  @@index([slug])
   @@index([views])
   @@index([seoScore])
   @@map("blogs")

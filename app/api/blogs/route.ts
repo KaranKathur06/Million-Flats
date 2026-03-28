@@ -1,42 +1,61 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+
+function toPositiveInt(input: string | null, fallback: number, max: number) {
+  const parsed = Number.parseInt(String(input || ''), 10)
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback
+  return Math.min(parsed, max)
+}
+
+export const revalidate = 60
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const page = parseInt(searchParams.get('page') || '1') || 1
-  const limit = parseInt(searchParams.get('limit') || '12') || 12
+
+  const page = toPositiveInt(searchParams.get('page'), 1, 10_000)
+  const limit = toPositiveInt(searchParams.get('limit'), 10, 50)
   const offset = (page - 1) * limit
-  const category = searchParams.get('category') || ''
-  const tag = searchParams.get('tag') || ''
-  const search = searchParams.get('search') || ''
+  const category = String(searchParams.get('category') || '').trim()
+  const tag = String(searchParams.get('tag') || '').trim()
+  const search = String(searchParams.get('search') || '').trim()
 
   try {
     const now = new Date()
-    const where: any = {
+
+    const publicBlogWhere: any = {
       status: 'PUBLISHED',
       OR: [{ publishAt: null }, { publishAt: { lte: now } }],
     }
 
+    const andFilters: any[] = [publicBlogWhere]
+
     if (category) {
-      where.category = { slug: category }
+      andFilters.push({ category: { slug: category } })
     }
 
     if (tag) {
-      where.tags = {
-        some: {
-          tag: { slug: tag },
+      andFilters.push({
+        tags: {
+          some: {
+            tag: { slug: tag },
+          },
         },
-      }
+      })
     }
 
     if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { excerpt: { contains: search, mode: 'insensitive' } },
-      ]
+      andFilters.push({
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          { excerpt: { contains: search, mode: 'insensitive' } },
+          { content: { contains: search, mode: 'insensitive' } },
+        ],
+      })
     }
 
-    const [blogs, total] = await Promise.all([
+    const where = { AND: andFilters }
+
+    const [blogs, total, categoryRows, featured] = await Promise.all([
       (prisma as any).blog.findMany({
         where,
         orderBy: [{ publishAt: 'desc' }, { createdAt: 'desc' }],
@@ -50,38 +69,74 @@ export async function GET(req: Request) {
           featuredImageUrl: true,
           featuredImageAlt: true,
           readTimeMinutes: true,
-          views: true,
           createdAt: true,
-          publishAt: true,
           category: {
             select: { id: true, name: true, slug: true },
-          },
-          author: {
-            select: { name: true, image: true },
-          },
-          tags: {
-            include: {
-              tag: { select: { id: true, name: true, slug: true } },
-            },
           },
         },
       }),
       (prisma as any).blog.count({ where }),
+      (prisma as any).category.findMany({
+        orderBy: { name: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          _count: {
+            select: {
+              blogs: {
+                where: publicBlogWhere,
+              },
+            },
+          },
+        },
+      }),
+      (prisma as any).blog.findMany({
+        where: publicBlogWhere,
+        orderBy: [{ publishAt: 'desc' }, { createdAt: 'desc' }],
+        take: 2,
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          excerpt: true,
+          featuredImageUrl: true,
+          featuredImageAlt: true,
+          readTimeMinutes: true,
+          createdAt: true,
+          category: {
+            select: { id: true, name: true, slug: true },
+          },
+        },
+      }),
     ])
 
-    const normalizedBlogs = (blogs as any[]).map((blog: any) => ({
-      ...blog,
-      tags: blog.tags?.map((bt: any) => bt.tag) || [],
-    }))
+    const categories = (categoryRows as any[])
+      .filter((entry) => Number(entry?._count?.blogs || 0) > 0)
+      .map((entry) => ({
+        slug: String(entry.slug || ''),
+        name: String(entry.name || ''),
+        count: Number(entry?._count?.blogs || 0),
+      }))
 
-    return NextResponse.json({
+    const response = {
       success: true,
-      data: normalizedBlogs,
+      data: blogs,
+      featured,
+      filters: {
+        categories,
+      },
       pagination: {
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    }
+
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
       },
     })
   } catch (error) {

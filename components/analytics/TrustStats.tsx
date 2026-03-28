@@ -150,7 +150,7 @@ export default function TrustStats() {
           <StatCard
             icon={<IconBook />}
             value={data.blogs}
-            label="Investment Guides"
+            label="Investment Insights"
             accentColor="emerald"
           />
           <StatCard

@@ -1,4 +1,5 @@
 ﻿import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
@@ -54,7 +55,7 @@ export default async function BlogSlugPage({ params }: BlogPageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-white py-10 sm:py-12">
+    <main className="min-h-screen bg-white py-8 sm:py-10">
       <BlogViewTracker slug={params.slug} />
 
       <article className="mx-auto w-full max-w-[900px] px-4 sm:px-6 lg:px-8">
@@ -92,12 +93,14 @@ export default async function BlogSlugPage({ params }: BlogPageProps) {
         </header>
 
         {blog.featuredImageUrl ? (
-          <div className="mb-8 overflow-hidden rounded-2xl border border-gray-200">
-            <img
+          <div className="relative mb-8 aspect-[16/9] overflow-hidden rounded-2xl border border-gray-200">
+            <Image
               src={blog.featuredImageUrl}
               alt={blog.featuredImageAlt || blog.title}
-              className="max-h-[460px] w-full object-cover"
-              loading="eager"
+              fill
+              className="object-cover"
+              priority
+              sizes="(max-width: 1024px) 100vw, 900px"
             />
           </div>
         ) : null}
@@ -109,4 +112,3 @@ export default async function BlogSlugPage({ params }: BlogPageProps) {
     </main>
   )
 }
-
