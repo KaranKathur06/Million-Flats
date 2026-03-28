@@ -4,11 +4,14 @@ import React from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import dynamic from 'next/dynamic'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { isAdminPanelRole } from '@/lib/roleHomeRoute'
 
 const AUTH_PREFIXES = ['/auth', '/user/login', '/user/register', '/agent/login', '/agent/register']
+const DownloadGatePopup = dynamic(() => import('@/components/lead-magnets/DownloadGatePopup'), { ssr: false })
+const PostLoginActionHandler = dynamic(() => import('@/components/lead-magnets/PostLoginActionHandler'), { ssr: false })
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -34,7 +37,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Header />
+      <PostLoginActionHandler />
       <main className="min-h-screen">{children}</main>
+      <DownloadGatePopup />
       <Footer />
     </>
   )

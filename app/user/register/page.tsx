@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import AuthLayout from '@/components/AuthLayout'
+import { trackEvent } from '@/lib/tracking'
+import { POST_LOGIN_ACTION_KEY } from '@/lib/leadMagnets/constants'
 
 export default function UserRegisterPage() {
   const router = useRouter()
@@ -62,6 +64,19 @@ export default function UserRegisterPage() {
       const data = await res.json()
 
       if (res.ok) {
+        if (typeof window !== 'undefined' && window.localStorage.getItem(POST_LOGIN_ACTION_KEY)) {
+          trackEvent('signup_complete', { source: 'lead_magnet_gate' })
+          fetch('/api/analytics/event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: 'signup_complete',
+              payload: { source: 'lead_magnet_gate' },
+              path: window.location.pathname,
+            }),
+            keepalive: true,
+          }).catch(() => null)
+        }
         const to = data?.redirectTo && typeof data.redirectTo === 'string' ? data.redirectTo : '/auth/user/login'
         router.push(to)
       } else {
