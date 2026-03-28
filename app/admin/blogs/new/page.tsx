@@ -46,9 +46,10 @@ export default function CreateBlogPage() {
   const [tagInput, setTagInput] = useState('')
   const [tagSuggestions, setTagSuggestions] = useState<TagItem[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const autoSaveTimerRef = useRef<NodeJS.Timeout>()
   const tagInputRef = useRef<HTMLInputElement>(null)
+  const draftBlogIdRef = useRef<string | null>(null)
 
   const {
     register,
@@ -117,31 +118,65 @@ export default function CreateBlogPage() {
     watchedValues.excerpt,
   ])
 
-  // Auto-save draft every 30 seconds
+  // ─── Debounced Auto-save draft to API every 60 seconds ───
+  const saveDraft = useCallback(async () => {
+    const vals = watch()
+    if (!vals.title) return
+
+    setSaveStatus('saving')
+    try {
+      const res = await fetch('/api/admin/blogs/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          blogId: draftBlogIdRef.current || undefined,
+          title: vals.title,
+          content: vals.content,
+          contentJson: vals.contentJson || null,
+          contentHtml: vals.content,
+          excerpt: vals.excerpt || '',
+          targetKeyword: vals.targetKeyword || '',
+          metaTitle: vals.metaTitle || '',
+          metaDescription: vals.metaDescription || '',
+          canonicalUrl: vals.canonicalUrl || '',
+          featuredImageUrl: vals.featuredImageUrl || '',
+          featuredImageAlt: vals.featuredImageAlt || '',
+          categoryId: vals.categoryId || '',
+          status: 'DRAFT',
+        }),
+      })
+
+      const data = await res.json()
+
+      if (res.ok && data.success) {
+        if (data.data?.blogId) {
+          draftBlogIdRef.current = data.data.blogId
+        }
+        setSaveStatus('saved')
+        setTimeout(() => setSaveStatus('idle'), 2500)
+      } else {
+        console.error('Draft save failed:', data.message)
+        setSaveStatus('error')
+        setTimeout(() => setSaveStatus('idle'), 3000)
+      }
+    } catch (err) {
+      console.error('Draft save error:', err)
+      setSaveStatus('error')
+      setTimeout(() => setSaveStatus('idle'), 3000)
+    }
+  }, [watch])
+
   useEffect(() => {
     if (watchedValues.title && watchedValues.content) {
       autoSaveTimerRef.current = setInterval(() => {
-        setSaveStatus('saving')
-        try {
-          localStorage.setItem(
-            'blog_draft',
-            JSON.stringify({
-              ...watchedValues,
-              savedAt: new Date().toISOString(),
-            })
-          )
-          setSaveStatus('saved')
-          setTimeout(() => setSaveStatus('idle'), 2000)
-        } catch {
-          setSaveStatus('idle')
-        }
-      }, 30000)
+        saveDraft()
+      }, 60000)
     }
 
     return () => {
       if (autoSaveTimerRef.current) clearInterval(autoSaveTimerRef.current)
     }
-  }, [watchedValues.title, watchedValues.content])
+  }, [watchedValues.title, watchedValues.content, saveDraft])
 
   // Tag autocomplete
   const handleTagInputChange = useCallback(
@@ -222,8 +257,8 @@ export default function CreateBlogPage() {
         throw new Error(result.message || 'Failed to create blog')
       }
 
-      // Clear draft
-      localStorage.removeItem('blog_draft')
+      // Clear draft ref
+      draftBlogIdRef.current = null
 
       router.push('/admin/blogs/all')
     } catch (error) {
@@ -287,12 +322,17 @@ export default function CreateBlogPage() {
             </span>
             {saveStatus === 'saving' && (
               <span className="inline-flex h-6 items-center rounded-md bg-blue-400/10 px-2 text-[11px] font-medium text-blue-400 animate-pulse">
-                Saving...
+                Saving to server...
               </span>
             )}
             {saveStatus === 'saved' && (
               <span className="inline-flex h-6 items-center rounded-md bg-emerald-400/10 px-2 text-[11px] font-medium text-emerald-400">
-                ✓ Draft saved
+                ✓ Draft saved to DB
+              </span>
+            )}
+            {saveStatus === 'error' && (
+              <span className="inline-flex h-6 items-center rounded-md bg-red-400/10 px-2 text-[11px] font-medium text-red-400">
+                ✗ Save failed
               </span>
             )}
           </div>
@@ -603,7 +643,7 @@ export default function CreateBlogPage() {
             </div>
           </div>
 
-          {/* Submit */}
+          {/* Submit + Save Draft */}
           <div className="space-y-3">
             <button
               type="submit"
@@ -626,6 +666,18 @@ export default function CreateBlogPage() {
                   Create Blog
                 </>
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={saveDraft}
+              disabled={saveStatus === 'saving'}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold transition-all duration-200 border border-white/[0.08] bg-white/[0.04] text-white/70 hover:bg-white/[0.08] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+              {saveStatus === 'saving' ? 'Saving...' : 'Save Draft'}
             </button>
           </div>
         </div>
