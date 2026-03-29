@@ -16,7 +16,7 @@ const publicSans = Public_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'millionflats - Premium Luxury Real Estate in UAE',
+  title: 'MillionFlats | AI Property Valuation & 3D Virtual Tours for Developers',
   description: 'Premium luxury real estate in UAE for discerning investors and buyers. Explore properties in Dubai, Abu Dhabi, Sharjah, and across the Emirates.',
   keywords: 'luxury real estate UAE, premium properties Dubai, Abu Dhabi properties, luxury villas UAE, penthouses Dubai, real estate UAE',
   icons: {
