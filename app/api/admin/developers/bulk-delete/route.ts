@@ -5,6 +5,7 @@ import { requireAdminSession } from '@/lib/adminAuth'
 
 type BulkDeleteBody = {
   ids?: unknown
+  mode?: unknown
 }
 
 function parseIds(input: unknown): string[] {
@@ -36,6 +37,7 @@ export async function POST(req: Request) {
   }
 
   const ids = parseIds(body?.ids)
+  const mode = String(body?.mode || 'soft').toLowerCase() === 'hard' ? 'hard' : 'soft'
   if (ids.length === 0) {
     return NextResponse.json({ success: false, message: 'No developer IDs provided' }, { status: 400 })
   }
@@ -51,26 +53,34 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: 'No matching developers found' }, { status: 404 })
     }
 
-    try {
-      await (prisma as any).developer.updateMany({
+    if (mode === 'hard') {
+      await (prisma as any).developer.deleteMany({
         where: { id: { in: existingIds } },
-        data: { status: 'INACTIVE', isFeatured: false, isDeleted: true, deletedAt: new Date() },
       })
-    } catch {
-      await (prisma as any).developer.updateMany({
-        where: { id: { in: existingIds } },
-        data: { status: 'INACTIVE', isFeatured: false },
-      })
+    } else {
+      try {
+        await (prisma as any).developer.updateMany({
+          where: { id: { in: existingIds } },
+          data: { status: 'INACTIVE', isFeatured: false, isDeleted: true, deletedAt: new Date() },
+        })
+      } catch {
+        await (prisma as any).developer.updateMany({
+          where: { id: { in: existingIds } },
+          data: { status: 'INACTIVE', isFeatured: false },
+        })
+      }
     }
 
     revalidatePath('/')
     revalidatePath('/developers')
+    revalidatePath('/admin/developers')
     for (const dev of existing) {
       if (dev.slug) revalidatePath(`/developers/${dev.slug}`)
     }
 
     return NextResponse.json({
       success: true,
+      mode,
       deletedCount: existingIds.length,
       deletedIds: existingIds,
       skippedCount: ids.length - existingIds.length,

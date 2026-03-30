@@ -144,6 +144,69 @@ function ConfirmModal({
   )
 }
 
+function BulkDeleteLifecycleModal({
+  isOpen,
+  selectedCount,
+  alreadySoftDeleted,
+  onSoftDelete,
+  onHardDelete,
+  onCancel,
+  loading,
+}: {
+  isOpen: boolean
+  selectedCount: number
+  alreadySoftDeleted: boolean
+  onSoftDelete: () => void
+  onHardDelete: () => void
+  onCancel: () => void
+  loading: 'soft' | 'hard' | null
+}) {
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-[#050a12]/75 backdrop-blur-[3px]" onClick={onCancel} />
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-red-400/20 bg-[#0b1220]/95 p-6 shadow-2xl shadow-black/50">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-1.5 rounded-t-2xl bg-gradient-to-r from-red-500/80 via-red-400/60 to-red-500/80" />
+
+        <h3 className="text-lg font-bold text-white">Delete Selected Developers</h3>
+        <p className="mt-2 text-sm leading-6 text-white/70">
+          Choose delete mode for <span className="font-semibold text-white">{selectedCount}</span> selected developer(s).
+        </p>
+        <p className="mt-2 text-xs text-white/45">
+          Soft delete hides from platform. Permanent delete removes from database and cannot be restored.
+        </p>
+
+        <div className="mt-6 grid grid-cols-1 gap-2">
+          <button
+            onClick={onSoftDelete}
+            disabled={alreadySoftDeleted || loading !== null}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-400/35 bg-amber-500/15 px-4 py-2.5 text-sm font-semibold text-amber-200 hover:bg-amber-500/25 disabled:opacity-50"
+          >
+            {loading === 'soft' ? 'Soft Deleting...' : alreadySoftDeleted ? 'Already Soft Deleted' : 'Soft Delete Selected'}
+          </button>
+
+          <button
+            onClick={onHardDelete}
+            disabled={loading !== null}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/35 bg-red-500/20 px-4 py-2.5 text-sm font-semibold text-red-200 hover:bg-red-500/30 disabled:opacity-50"
+          >
+            {loading === 'hard' ? 'Deleting Permanently...' : 'Delete Permanently'}
+          </button>
+
+          <button
+            onClick={onCancel}
+            disabled={loading !== null}
+            className="rounded-xl border border-white/[0.10] bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-white/70 hover:bg-white/[0.08]"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AdminDevelopersPage() {
   const [developers, setDevelopers] = useState<Developer[]>([])
   const [counts, setCounts] = useState<DeveloperCounts>({ total: 0, active: 0, inactive: 0, deleted: 0 })
@@ -158,7 +221,7 @@ export default function AdminDevelopersPage() {
 
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [bulkRestoreOpen, setBulkRestoreOpen] = useState(false)
-  const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [bulkDeleteModeLoading, setBulkDeleteModeLoading] = useState<'soft' | 'hard' | null>(null)
   const [bulkRestoring, setBulkRestoring] = useState(false)
 
   const [toastMsg, setToastMsg] = useState('')
@@ -212,6 +275,10 @@ export default function AdminDevelopersPage() {
   const selectedRows = useMemo(
     () => developers.filter((dev) => selectedDevelopers.includes(dev.id)),
     [developers, selectedDevelopers]
+  )
+  const selectedRowsAllDeleted = useMemo(
+    () => selectedRows.length > 0 && selectedRows.every((dev) => !!dev.isDeleted),
+    [selectedRows]
   )
 
   const handleSelectAll = (checked: boolean) => {
@@ -281,30 +348,34 @@ export default function AdminDevelopersPage() {
     }
   }
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = async (mode: 'soft' | 'hard') => {
     if (selectedDevelopers.length === 0) {
       showToast('No developers selected')
       return
     }
 
-    setBulkDeleting(true)
+    setBulkDeleteModeLoading(mode)
     try {
       const res = await fetch('/api/admin/developers/bulk-delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: selectedDevelopers }),
+        body: JSON.stringify({ ids: selectedDevelopers, mode }),
       })
       const json = await res.json().catch(() => null)
       if (!res.ok || !json?.success) throw new Error(json?.message || 'Bulk delete failed')
 
-      showToast(`${json.deletedCount || 0} developer(s) soft deleted`)
+      showToast(
+        mode === 'hard'
+          ? `${json.deletedCount || 0} developer(s) deleted permanently`
+          : `${json.deletedCount || 0} developer(s) soft deleted`
+      )
       setSelectedDevelopers([])
       setBulkDeleteOpen(false)
       await load()
     } catch (err: any) {
       showToast(err?.message || 'Bulk delete failed')
     } finally {
-      setBulkDeleting(false)
+      setBulkDeleteModeLoading(null)
     }
   }
 
@@ -354,14 +425,14 @@ export default function AdminDevelopersPage() {
         loading={deleteModeLoading}
       />
 
-      <ConfirmModal
+      <BulkDeleteLifecycleModal
         isOpen={bulkDeleteOpen}
-        title="Delete Selected Developers"
-        message={`Soft delete ${selectedDevelopers.length} selected developer(s)?`}
-        confirmLabel="Delete Selected"
-        onConfirm={handleBulkDelete}
+        selectedCount={selectedDevelopers.length}
+        alreadySoftDeleted={selectedRowsAllDeleted}
+        onSoftDelete={() => handleBulkDelete('soft')}
+        onHardDelete={() => handleBulkDelete('hard')}
         onCancel={() => setBulkDeleteOpen(false)}
-        loading={bulkDeleting}
+        loading={bulkDeleteModeLoading}
       />
 
       <ConfirmModal
@@ -444,14 +515,14 @@ export default function AdminDevelopersPage() {
           <div className="flex gap-2">
             <button
               onClick={() => setBulkDeleteOpen(true)}
-              disabled={bulkDeleting || bulkRestoring}
+              disabled={bulkDeleteModeLoading !== null || bulkRestoring}
               className="inline-flex items-center gap-1.5 text-xs px-4 py-2 bg-red-500/15 text-red-300 rounded-lg border border-red-400/20 hover:bg-red-500/25 disabled:opacity-50"
             >
               Delete Selected
             </button>
             <button
               onClick={() => setBulkRestoreOpen(true)}
-              disabled={bulkDeleting || bulkRestoring || selectedRows.every((dev) => !dev.isDeleted)}
+              disabled={bulkDeleteModeLoading !== null || bulkRestoring || selectedRows.every((dev) => !dev.isDeleted)}
               className="inline-flex items-center gap-1.5 text-xs px-4 py-2 bg-emerald-500/15 text-emerald-300 rounded-lg border border-emerald-400/20 hover:bg-emerald-500/25 disabled:opacity-50"
             >
               Restore Selected
