@@ -173,9 +173,29 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   }
 
   try {
+    const mode = new URL(_req.url).searchParams.get('mode')?.toLowerCase() || 'soft'
     const existing = await (prisma as any).developer.findUnique({ where: { id: params.id } })
     if (!existing) {
       return NextResponse.json({ success: false, message: 'Developer not found' }, { status: 404 })
+    }
+
+    if (mode === 'hard') {
+      if (!['ADMIN', 'SUPERADMIN'].includes(auth.role)) {
+        return NextResponse.json(
+          { success: false, message: 'Forbidden - only admin can permanently delete' },
+          { status: 403 }
+        )
+      }
+
+      await (prisma as any).developer.delete({ where: { id: params.id } })
+      revalidatePath('/')
+      revalidatePath('/developers')
+      revalidatePath('/admin/developers')
+      if (existing.slug) {
+        revalidatePath(`/developers/${existing.slug}`)
+      }
+
+      return NextResponse.json({ success: true, message: 'Developer permanently deleted', mode: 'hard' })
     }
 
     // Soft delete: mark deleted, preserve all data
@@ -194,11 +214,12 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
 
     revalidatePath('/')
     revalidatePath('/developers')
+    revalidatePath('/admin/developers')
     if (existing.slug) {
       revalidatePath(`/developers/${existing.slug}`)
     }
 
-    return NextResponse.json({ success: true, message: 'Developer deleted (soft)' })
+    return NextResponse.json({ success: true, message: 'Developer deleted (soft)', mode: 'soft' })
   } catch (err: any) {
     console.error('[DELETE /api/admin/developers/:id]', err)
     return NextResponse.json({ success: false, message: err.message || 'Internal error' }, { status: 500 })

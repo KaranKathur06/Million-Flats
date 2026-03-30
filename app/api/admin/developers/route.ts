@@ -65,6 +65,8 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status')?.toUpperCase() || undefined
     const country = searchParams.get('country')?.toUpperCase() || undefined
+    const deletedParam = searchParams.get('deleted')?.toLowerCase() || undefined
+    const includeDeleted = searchParams.get('include_deleted') === 'true'
 
     const baseSelect = {
       id: true, name: true, slug: true, logo: true, banner: true,
@@ -75,29 +77,61 @@ export async function GET(req: Request) {
       _count: { select: { projects: true, properties: true } },
     }
 
-    const runQuery = async (withIsDeletedFilter: boolean) => {
+    const runQuery = async (withIsDeletedFilter: boolean, includeDeleteColumns: boolean) => {
       const where: any = {}
-      if (withIsDeletedFilter) where.isDeleted = { not: true }
+      const deletedMode =
+        deletedParam === 'true' || status === 'DELETED'
+          ? 'deleted'
+          : deletedParam === 'false'
+            ? 'not_deleted'
+            : includeDeleted || deletedParam === 'all' || status === 'ALL'
+              ? 'all'
+              : 'not_deleted'
+
+      if (withIsDeletedFilter) {
+        if (deletedMode === 'deleted') where.isDeleted = true
+        if (deletedMode === 'not_deleted') where.isDeleted = { not: true }
+      }
+
       if (status === 'ACTIVE' || status === 'INACTIVE') where.status = status
       if (country === 'UAE' || country === 'INDIA') where.countryCode = country
+
+      const select = includeDeleteColumns
+        ? { ...baseSelect, isDeleted: true, deletedAt: true }
+        : baseSelect
+
       return (prisma as any).developer.findMany({
         where,
         orderBy: [{ isFeatured: 'desc' }, { name: 'asc' }],
         take: 500,
-        select: baseSelect,
+        select,
       })
     }
 
     let items: any[]
+    let counts: { total: number; active: number; inactive: number; deleted: number }
     try {
       // Try with isDeleted filter (requires migration to have run)
-      items = await runQuery(true)
+      items = await runQuery(true, true)
+      const [total, active, inactive, deleted] = await Promise.all([
+        (prisma as any).developer.count(),
+        (prisma as any).developer.count({ where: { isDeleted: { not: true }, status: 'ACTIVE' } }),
+        (prisma as any).developer.count({ where: { isDeleted: { not: true }, status: 'INACTIVE' } }),
+        (prisma as any).developer.count({ where: { isDeleted: true } }),
+      ])
+      counts = { total, active, inactive, deleted }
     } catch {
       // Column doesn't exist yet — fall back to no filter
-      items = await runQuery(false)
+      items = await runQuery(false, false)
+      const [total, active, inactive] = await Promise.all([
+        (prisma as any).developer.count(),
+        (prisma as any).developer.count({ where: { status: 'ACTIVE' } }),
+        (prisma as any).developer.count({ where: { status: 'INACTIVE' } }),
+      ])
+      counts = { total, active, inactive, deleted: 0 }
     }
 
-    return NextResponse.json({ success: true, items })
+    return NextResponse.json({ success: true, items, counts })
   } catch (err: any) {
     console.error('[GET /api/admin/developers]', err)
     return NextResponse.json({ success: false, message: 'Internal error' }, { status: 500 })

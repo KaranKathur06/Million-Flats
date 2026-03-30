@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
+import { revalidatePath, revalidateTag } from 'next/cache'
+import { BLOGS_CACHE_TAG } from '@/lib/blogs/public'
 
 type DeleteBody = {
   ids?: unknown
@@ -48,10 +50,13 @@ export async function DELETE(req: Request) {
   try {
     const existing = await (prisma as any).blog.findMany({
       where: { id: { in: ids } },
-      select: { id: true },
+      select: { id: true, slug: true },
     })
 
     const existingIds = existing.map((blog: { id: string }) => blog.id)
+    const existingSlugs = existing
+      .map((blog: { slug?: string | null }) => String(blog?.slug || '').trim())
+      .filter(Boolean)
     if (existingIds.length === 0) {
       return NextResponse.json({ success: false, message: 'No matching blogs found' }, { status: 404 })
     }
@@ -59,6 +64,14 @@ export async function DELETE(req: Request) {
     const result = await (prisma as any).blog.deleteMany({
       where: { id: { in: existingIds } },
     })
+
+    if (result.count > 0) {
+      revalidateTag(BLOGS_CACHE_TAG)
+      revalidatePath('/blogs')
+      for (const slug of existingSlugs) {
+        revalidatePath(`/blogs/${slug}`)
+      }
+    }
 
     return NextResponse.json({
       success: true,

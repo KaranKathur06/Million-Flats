@@ -1,50 +1,35 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+﻿import { NextResponse } from 'next/server'
+import { getPublishedBlogBySlug, sanitizeBlogSlug } from '@/lib/blogs/public'
+
+export const revalidate = 60
 
 export async function GET(
-  req: Request,
+  _req: Request,
   { params }: { params: { slug: string } }
 ) {
   try {
-    const now = new Date()
-    const blog = await (prisma as any).blog.findUnique({
-      where: { slug: params.slug },
-      include: {
-        author: {
-          select: { name: true, image: true },
-        },
-        category: {
-          select: { id: true, name: true, slug: true },
-        },
-        tags: {
-          include: {
-            tag: { select: { id: true, name: true, slug: true } },
-          },
-        },
-      },
-    })
-
-    if (!blog || blog.status !== 'PUBLISHED' || (blog.publishAt && new Date(blog.publishAt) > now)) {
-      return NextResponse.json(
-        { success: false, message: 'Blog not found' },
-        { status: 404 }
-      )
+    const slug = sanitizeBlogSlug(params.slug)
+    if (!slug) {
+      return NextResponse.json({ success: false, message: 'Blog not found' }, { status: 404 })
     }
 
-    const normalizedBlog = {
-      ...blog,
-      tags: blog.tags?.map((bt: any) => bt.tag) || [],
+    const blog = await getPublishedBlogBySlug(slug)
+
+    if (!blog) {
+      return NextResponse.json({ success: false, message: 'Blog not found' }, { status: 404 })
     }
 
-    return NextResponse.json({
-      success: true,
-      data: normalizedBlog,
-    })
+    return NextResponse.json(
+      { success: true, data: blog },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      }
+    )
   } catch (error) {
     console.error('Blog detail fetch error:', error)
-    return NextResponse.json(
-      { success: false, message: 'Failed to fetch blog' },
-      { status: 500 }
-    )
+    return NextResponse.json({ success: false, message: 'Failed to fetch blog' }, { status: 500 })
   }
 }
+

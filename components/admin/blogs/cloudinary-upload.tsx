@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useMemo, useState } from 'react'
 
 interface CloudinaryUploadProps {
   onUpload: (url: string, altText: string) => void
@@ -6,32 +6,55 @@ interface CloudinaryUploadProps {
 
 export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({ onUpload }) => {
   const [preview, setPreview] = useState<string | null>(null)
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null)
   const [altText, setAltText] = useState('')
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+
+  const effectivePreview = useMemo(() => preview || uploadedUrl, [preview, uploadedUrl])
 
   const uploadImage = async (file: File) => {
     try {
       setIsUploading(true)
       setUploadError(null)
 
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          const result = e.target?.result
-          if (typeof result === 'string') resolve(result)
-          else reject(new Error('Failed to read image'))
-        }
-        reader.onerror = () => reject(new Error('Failed to read image'))
-        reader.readAsDataURL(file)
+      const prepRes = await fetch('/api/admin/blogs/upload/presign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type,
+          sizeBytes: file.size,
+        }),
       })
 
-      onUpload(dataUrl, altText)
-      setPreview(dataUrl)
-      setAltText('')
+      const prepJson = await prepRes.json().catch(() => null)
+      if (!prepRes.ok || !prepJson?.success) {
+        throw new Error(prepJson?.message || 'Failed to prepare upload')
+      }
+
+      const uploadRes = await fetch(String(prepJson.uploadUrl), {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        body: file,
+      })
+
+      if (!uploadRes.ok) {
+        throw new Error('Failed to upload file to storage')
+      }
+
+      const url = String(prepJson.publicUrl || prepJson.objectUrl || '').trim()
+      if (!url) {
+        throw new Error('Upload did not return a valid file URL')
+      }
+
+      const objectPreview = URL.createObjectURL(file)
+      setPreview(objectPreview)
+      setUploadedUrl(url)
+      onUpload(url, altText)
     } catch (error) {
       console.error('Upload failed:', error)
-      setUploadError('Upload failed. Please try again.')
+      setUploadError(error instanceof Error ? error.message : 'Upload failed. Please try again.')
     } finally {
       setIsUploading(false)
     }
@@ -39,7 +62,6 @@ export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({ onUpload }) 
 
   return (
     <div className="space-y-4">
-      {/* Upload Area */}
       <label
         htmlFor="blog-image-upload"
         className={`group relative flex flex-col items-center justify-center w-full h-36 rounded-xl border-2 border-dashed transition-all duration-300 cursor-pointer ${
@@ -51,7 +73,7 @@ export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({ onUpload }) 
         <input
           type="file"
           id="blog-image-upload"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp,image/avif"
           onChange={(e) => {
             const file = e.target.files?.[0]
             if (file) {
@@ -80,21 +102,16 @@ export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({ onUpload }) 
               <p className="text-sm font-medium text-white/60 group-hover:text-white/80 transition-colors">
                 Click to upload or drag & drop
               </p>
-              <p className="text-xs text-white/30 mt-0.5">PNG, JPG, WebP (2MB max)</p>
+              <p className="text-xs text-white/30 mt-0.5">PNG, JPG, WebP, AVIF (5MB max)</p>
             </div>
           </div>
         )}
       </label>
 
-      {/* Preview */}
-      {preview && (
+      {effectivePreview && (
         <div className="space-y-3">
           <div className="rounded-xl overflow-hidden border border-white/[0.08] bg-white/[0.02]">
-            <img
-              src={preview}
-              alt="Preview"
-              className="w-full max-h-48 object-cover"
-            />
+            <img src={effectivePreview} alt="Preview" className="w-full max-h-48 object-cover" />
           </div>
           <div>
             <label htmlFor="blog-alt-text" className="block text-xs font-medium text-white/50 mb-1.5">
@@ -105,7 +122,13 @@ export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({ onUpload }) 
               id="blog-alt-text"
               name="altText"
               value={altText}
-              onChange={(e) => setAltText(e.target.value)}
+              onChange={(e) => {
+                const next = e.target.value
+                setAltText(next)
+                if (uploadedUrl) {
+                  onUpload(uploadedUrl, next)
+                }
+              }}
               className="w-full px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white placeholder-white/30 focus:outline-none focus:border-amber-400/40 focus:ring-1 focus:ring-amber-400/20 transition-all duration-200"
               placeholder="Describe the image..."
             />
@@ -113,7 +136,6 @@ export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({ onUpload }) 
         </div>
       )}
 
-      {/* Error */}
       {uploadError && (
         <div className="flex items-center gap-2 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3">
           <svg className="h-4 w-4 text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -125,3 +147,4 @@ export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({ onUpload }) 
     </div>
   )
 }
+

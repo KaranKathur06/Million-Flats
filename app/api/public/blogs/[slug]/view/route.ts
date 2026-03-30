@@ -1,12 +1,13 @@
 ﻿import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sanitizeBlogSlug } from '@/lib/blogs/public'
 
 export async function POST(
   _req: Request,
   { params }: { params: { slug: string } }
 ) {
   try {
-    const slug = String(params.slug || '').trim()
+    const slug = sanitizeBlogSlug(String(params.slug || ''))
     if (!slug) {
       return NextResponse.json({ success: false, message: 'Invalid slug' }, { status: 400 })
     }

@@ -6,10 +6,11 @@ import Link from 'next/link'
 import DeveloperForm from '@/components/admin/DeveloperForm'
 
 type Mode = 'manual' | 'json'
+type UploadMode = 'skip' | 'update'
 
 interface BulkResultItem {
   name: string
-  status: 'created' | 'skipped' | 'error'
+  status: 'created' | 'updated' | 'restored' | 'skipped' | 'error'
   slug?: string
   reason?: string
 }
@@ -23,6 +24,8 @@ export default function AdminAddDeveloperPage() {
   const [jsonPreview, setJsonPreview] = useState<any[] | null>(null)
   const [jsonErrors, setJsonErrors] = useState<string[]>([])
   const [bulkResults, setBulkResults] = useState<BulkResultItem[] | null>(null)
+  const [uploadMode, setUploadMode] = useState<UploadMode>('skip')
+  const [restoreDeleted, setRestoreDeleted] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -92,7 +95,7 @@ export default function AdminAddDeveloperPage() {
     setBulkResults(null)
 
     try {
-      const payload = { developers: jsonPreview }
+      const payload = { developers: jsonPreview, mode: uploadMode, restoreDeleted }
       const res = await fetch('/api/admin/developers/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -228,6 +231,40 @@ export default function AdminAddDeveloperPage() {
             </button>
           </div>
 
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-white/50">Upload Mode</h3>
+
+            <div className="flex flex-wrap gap-2">
+              {([
+                { key: 'skip', label: 'Skip Duplicates' },
+                { key: 'update', label: 'Update Existing' },
+              ] as const).map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setUploadMode(item.key)}
+                  className={`px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all ${
+                    uploadMode === item.key
+                      ? 'bg-amber-400/15 text-amber-300 border-amber-400/30'
+                      : 'bg-white/[0.02] text-white/45 border-white/[0.08] hover:text-white/70'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            <label className="inline-flex items-center gap-2 text-xs text-white/65">
+              <input
+                type="checkbox"
+                checked={restoreDeleted}
+                onChange={(e) => setRestoreDeleted(e.target.checked)}
+                className="accent-amber-400"
+              />
+              Restore soft-deleted developers when detected
+            </label>
+          </div>
+
           {/* JSON Input */}
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
             <div className="flex items-center justify-between mb-3">
@@ -341,6 +378,8 @@ export default function AdminAddDeveloperPage() {
                         <td className="px-4 py-2.5">
                           <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold ${
                             r.status === 'created' ? 'bg-emerald-400/15 text-emerald-300' :
+                            r.status === 'updated' ? 'bg-blue-400/15 text-blue-300' :
+                            r.status === 'restored' ? 'bg-cyan-400/15 text-cyan-300' :
                             r.status === 'skipped' ? 'bg-amber-400/15 text-amber-300' :
                             'bg-red-400/15 text-red-300'
                           }`}>

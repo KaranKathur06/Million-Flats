@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { revalidatePath, revalidateTag } from 'next/cache'
+import { BLOGS_CACHE_TAG } from '@/lib/blogs/public'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
@@ -190,7 +192,7 @@ export async function DELETE(
 
     const blog = await (prisma as any).blog.findUnique({
       where: { id: params.id },
-      select: { id: true },
+      select: { id: true, slug: true },
     })
 
     if (!blog) {
@@ -198,6 +200,13 @@ export async function DELETE(
     }
 
     await (prisma as any).blog.delete({ where: { id: params.id } })
+
+    revalidateTag(BLOGS_CACHE_TAG)
+    revalidatePath('/blogs')
+    if (blog.slug) {
+      revalidatePath(`/blogs/${blog.slug}`)
+    }
+    revalidatePath('/admin/blogs/all')
 
     return NextResponse.json({ success: true })
   } catch (error) {

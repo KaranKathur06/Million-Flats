@@ -1,7 +1,7 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { prisma } from '@/lib/prisma'
+import { getPublicBlogsData } from '@/lib/blogs/public'
 
 export const revalidate = 60
 
@@ -9,18 +9,6 @@ export const metadata: Metadata = {
   title: 'Blogs | MillionFlats',
   description:
     'Read MillionFlats real estate insights, market updates, investment guides, and practical property intelligence.',
-}
-
-type BlogItem = {
-  id: string
-  title: string
-  slug: string
-  excerpt: string
-  featuredImageUrl: string | null
-  featuredImageAlt: string | null
-  readTimeMinutes: number
-  createdAt: Date
-  category: { id: string; name: string; slug: string } | null
 }
 
 type BlogPageProps = {
@@ -33,11 +21,6 @@ type BlogPageProps = {
 
 const LIMIT = 10
 
-function toPositiveInt(value: string | undefined, fallback: number) {
-  const parsed = Number.parseInt(String(value || ''), 10)
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
-}
-
 function withParams(params: { search?: string; category?: string; page?: number }) {
   const q = new URLSearchParams()
   if (params.search) q.set('search', params.search)
@@ -47,102 +30,18 @@ function withParams(params: { search?: string; category?: string; page?: number 
   return text ? `/blogs?${text}` : '/blogs'
 }
 
-async function getBlogsData(searchParams?: BlogPageProps['searchParams']) {
-  const now = new Date()
-  const page = toPositiveInt(searchParams?.page, 1)
-  const search = String(searchParams?.search || '').trim()
-  const category = String(searchParams?.category || '').trim()
-
-  const publicWhere: any = {
-    status: 'PUBLISHED',
-    OR: [{ publishAt: null }, { publishAt: { lte: now } }],
-  }
-
-  const andFilters: any[] = [publicWhere]
-  if (search) {
-    andFilters.push({
-      OR: [
-        { title: { contains: search, mode: 'insensitive' } },
-        { excerpt: { contains: search, mode: 'insensitive' } },
-      ],
-    })
-  }
-  if (category) andFilters.push({ category: { slug: category } })
-
-  const where = { AND: andFilters }
-
-  const [blogs, total, featured, categoryRows] = await Promise.all([
-    (prisma as any).blog.findMany({
-      where,
-      orderBy: [{ publishAt: 'desc' }, { createdAt: 'desc' }],
-      skip: (page - 1) * LIMIT,
-      take: LIMIT,
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        excerpt: true,
-        featuredImageUrl: true,
-        featuredImageAlt: true,
-        readTimeMinutes: true,
-        createdAt: true,
-        category: { select: { id: true, name: true, slug: true } },
-      },
-    }),
-    (prisma as any).blog.count({ where }),
-    !search && !category && page === 1
-      ? (prisma as any).blog.findMany({
-          where: publicWhere,
-          orderBy: [{ publishAt: 'desc' }, { createdAt: 'desc' }],
-          take: 2,
-          select: {
-            id: true,
-            title: true,
-            slug: true,
-            excerpt: true,
-            featuredImageUrl: true,
-            featuredImageAlt: true,
-            readTimeMinutes: true,
-            createdAt: true,
-            category: { select: { id: true, name: true, slug: true } },
-          },
-        })
-      : Promise.resolve([]),
-    (prisma as any).category.findMany({
-      orderBy: { name: 'asc' },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        _count: {
-          select: {
-            blogs: {
-              where: publicWhere,
-            },
-          },
-        },
-      },
-    }),
-  ])
-
-  const categories = (categoryRows as any[])
-    .filter((item) => Number(item?._count?.blogs || 0) > 0)
-    .map((item) => ({ slug: item.slug as string, name: item.name as string, count: Number(item._count.blogs || 0) }))
-
-  return {
-    blogs: blogs as BlogItem[],
-    featured: featured as BlogItem[],
-    categories,
-    total,
-    page,
-    search,
-    category,
-    totalPages: Math.max(1, Math.ceil(total / LIMIT)),
-  }
-}
-
 export default async function BlogsPage({ searchParams }: BlogPageProps) {
-  const data = await getBlogsData(searchParams)
+  const data = await getPublicBlogsData(searchParams, LIMIT).catch(() => ({
+    blogs: [],
+    featured: [],
+    categories: [],
+    total: 0,
+    page: 1,
+    limit: LIMIT,
+    search: '',
+    category: '',
+    totalPages: 1,
+  }))
 
   return (
     <main className="min-h-screen bg-white py-8 sm:py-10 lg:py-12">
@@ -282,3 +181,5 @@ export default async function BlogsPage({ searchParams }: BlogPageProps) {
     </main>
   )
 }
+
+

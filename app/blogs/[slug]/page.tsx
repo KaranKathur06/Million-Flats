@@ -1,8 +1,8 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getPublishedBlogBySlug } from '@/lib/blogs/public'
 import BlogViewTracker from './BlogViewTracker'
 
 export const revalidate = 60
@@ -11,53 +11,8 @@ type BlogPageProps = {
   params: { slug: string }
 }
 
-/**
- * Sanitize slug: trim whitespace, lowercase, strip trailing slashes.
- * Prevents slug mismatch from URL encoding quirks or trailing spaces.
- */
-function sanitizeSlug(raw: string): string {
-  return decodeURIComponent(raw).trim().toLowerCase().replace(/\/+$/, '')
-}
-
-async function getPublishedBlogBySlug(rawSlug: string) {
-  const slug = sanitizeSlug(rawSlug)
-  if (!slug) return null
-
-  const now = new Date()
-
-  const blog = await (prisma as any).blog.findUnique({
-    where: { slug },
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      excerpt: true,
-      content: true,
-      contentHtml: true,
-      featuredImageUrl: true,
-      featuredImageAlt: true,
-      metaTitle: true,
-      metaDescription: true,
-      canonicalUrl: true,
-      targetKeyword: true,
-      readTimeMinutes: true,
-      status: true,
-      publishAt: true,
-      createdAt: true,
-      views: true,
-      category: { select: { id: true, name: true, slug: true } },
-      author: { select: { id: true, name: true } },
-    },
-  })
-
-  if (!blog) return null
-  if (blog.status !== 'PUBLISHED') return null
-  if (blog.publishAt && new Date(blog.publishAt) > now) return null
-  return blog
-}
-
 export async function generateMetadata({ params }: BlogPageProps): Promise<Metadata> {
-  const blog = await getPublishedBlogBySlug(params.slug)
+  const blog = await getPublishedBlogBySlug(params.slug).catch(() => null)
 
   if (!blog) {
     return { title: 'Blog Not Found | MillionFlats' }
@@ -77,7 +32,7 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
 }
 
 export default async function BlogSlugPage({ params }: BlogPageProps) {
-  const blog = await getPublishedBlogBySlug(params.slug)
+  const blog = await getPublishedBlogBySlug(params.slug).catch(() => null)
 
   if (!blog) {
     notFound()
@@ -141,3 +96,4 @@ export default async function BlogSlugPage({ params }: BlogPageProps) {
     </main>
   )
 }
+
