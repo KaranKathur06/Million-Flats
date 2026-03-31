@@ -50,13 +50,7 @@ async function readImageSource(url) {
 async function main() {
   const bucket = requireEnv('AWS_S3_BUCKET', 'millionflats-prod-assets')
   const region = requireEnv('AWS_REGION', 'eu-north-1')
-  const accessKeyId = requireEnv('AWS_ACCESS_KEY_ID')
-  const secretAccessKey = requireEnv('AWS_SECRET_ACCESS_KEY')
-
-  const s3 = new S3Client({
-    region,
-    credentials: { accessKeyId, secretAccessKey },
-  })
+  const s3 = new S3Client({ region })
 
   const blogs = await prisma.blog.findMany({
     where: { featuredImageUrl: { not: null } },

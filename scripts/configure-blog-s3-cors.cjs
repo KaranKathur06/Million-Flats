@@ -9,13 +9,7 @@ function requireEnv(name, fallback = '') {
 async function main() {
   const bucket = requireEnv('AWS_S3_BUCKET', 'millionflats-prod-assets')
   const region = requireEnv('AWS_REGION', 'eu-north-1')
-  const accessKeyId = requireEnv('AWS_ACCESS_KEY_ID')
-  const secretAccessKey = requireEnv('AWS_SECRET_ACCESS_KEY')
-
-  const client = new S3Client({
-    region,
-    credentials: { accessKeyId, secretAccessKey },
-  })
+  const client = new S3Client({ region })
 
   const corsRules = [
     {
