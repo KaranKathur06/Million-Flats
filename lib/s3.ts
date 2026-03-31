@@ -358,8 +358,18 @@ export async function createSignedPutUrlForKey(params: {
 
 export function extractS3KeyFromUrl(objectUrl: string) {
   const { region, bucket } = requireS3Env()
-  const prefix = `https://${bucket}.s3.${region}.amazonaws.com/`
-  if (!objectUrl.startsWith(prefix)) return null
-  const keyPart = objectUrl.slice(prefix.length)
-  return decodeURIComponent(keyPart)
+  const normalized = String(objectUrl || '').trim()
+  const directPrefix = `https://${bucket}.s3.${region}.amazonaws.com/`
+  if (normalized.startsWith(directPrefix)) {
+    const keyPart = normalized.slice(directPrefix.length)
+    return decodeURIComponent(keyPart)
+  }
+
+  const publicBase = String(process.env.NEXT_PUBLIC_S3_PUBLIC_BASE_URL || '').trim().replace(/\/$/, '')
+  if (publicBase && normalized.startsWith(`${publicBase}/`)) {
+    const keyPart = normalized.slice(publicBase.length + 1)
+    return decodeURIComponent(keyPart.replace(/^\/+/, ''))
+  }
+
+  return null
 }

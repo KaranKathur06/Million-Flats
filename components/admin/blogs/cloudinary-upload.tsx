@@ -5,13 +5,15 @@ interface CloudinaryUploadProps {
   titleOrSlug?: string
   initialUrl?: string
   initialAlt?: string
+  blogId?: string
 }
 
-export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({ onUpload, titleOrSlug, initialUrl, initialAlt }) => {
+export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({ onUpload, titleOrSlug, initialUrl, initialAlt, blogId }) => {
   const [preview, setPreview] = useState<string | null>(null)
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(initialUrl || null)
   const [altText, setAltText] = useState(initialAlt || '')
   const [isUploading, setIsUploading] = useState(false)
+  const [isRemoving, setIsRemoving] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
 
   const effectivePreview = useMemo(() => preview || uploadedUrl, [preview, uploadedUrl])
@@ -20,6 +22,12 @@ export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({ onUpload, ti
     if (initialUrl) setUploadedUrl(initialUrl)
     if (typeof initialAlt === 'string') setAltText(initialAlt)
   }, [initialUrl, initialAlt])
+
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview)
+    }
+  }, [preview])
 
   const uploadImage = async (file: File) => {
     try {
@@ -59,6 +67,7 @@ export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({ onUpload, ti
       }
 
       const objectPreview = URL.createObjectURL(file)
+      if (preview) URL.revokeObjectURL(preview)
       setPreview(objectPreview)
       setUploadedUrl(url)
       onUpload(url, altText)
@@ -67,6 +76,49 @@ export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({ onUpload, ti
       setUploadError(error instanceof Error ? error.message : 'Upload failed. Please try again.')
     } finally {
       setIsUploading(false)
+    }
+  }
+
+  const handleRemoveImage = async () => {
+    try {
+      setUploadError(null)
+      if (!uploadedUrl) {
+        if (preview) URL.revokeObjectURL(preview)
+        setPreview(null)
+        setAltText('')
+        onUpload('', '')
+        return
+      }
+
+      setIsRemoving(true)
+
+      if (blogId) {
+        const res = await fetch(`/api/admin/blogs/${blogId}/featured-image`, { method: 'DELETE' })
+        const json = await res.json().catch(() => null)
+        if (!res.ok || !json?.success) {
+          throw new Error(json?.message || 'Failed to remove image')
+        }
+      } else {
+        const res = await fetch('/api/admin/blogs/upload/delete', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: uploadedUrl }),
+        })
+        const json = await res.json().catch(() => null)
+        if (!res.ok || !json?.success) {
+          throw new Error(json?.message || 'Failed to remove image')
+        }
+      }
+
+      if (preview) URL.revokeObjectURL(preview)
+      setPreview(null)
+      setUploadedUrl(null)
+      setAltText('')
+      onUpload('', '')
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'Failed to remove image')
+    } finally {
+      setIsRemoving(false)
     }
   }
 
@@ -127,21 +179,31 @@ export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({ onUpload, ti
             <label htmlFor="blog-alt-text" className="block text-xs font-medium text-white/50 mb-1.5">
               Alt Text (for accessibility & SEO)
             </label>
-            <input
-              type="text"
-              id="blog-alt-text"
-              name="altText"
-              value={altText}
-              onChange={(e) => {
-                const next = e.target.value
-                setAltText(next)
-                if (uploadedUrl) {
-                  onUpload(uploadedUrl, next)
-                }
-              }}
-              className="w-full px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white placeholder-white/30 focus:outline-none focus:border-amber-400/40 focus:ring-1 focus:ring-amber-400/20 transition-all duration-200"
-              placeholder="Describe the image..."
-            />
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                id="blog-alt-text"
+                name="altText"
+                value={altText}
+                onChange={(e) => {
+                  const next = e.target.value
+                  setAltText(next)
+                  if (uploadedUrl) {
+                    onUpload(uploadedUrl, next)
+                  }
+                }}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white placeholder-white/30 focus:outline-none focus:border-amber-400/40 focus:ring-1 focus:ring-amber-400/20 transition-all duration-200"
+                placeholder="Describe the image..."
+              />
+              <button
+                type="button"
+                onClick={handleRemoveImage}
+                disabled={isRemoving || isUploading}
+                className="px-3 py-2.5 rounded-xl border border-red-400/30 bg-red-500/10 text-red-300 text-xs font-semibold hover:bg-red-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRemoving ? 'Removing...' : 'Remove'}
+              </button>
+            </div>
           </div>
         </div>
       )}

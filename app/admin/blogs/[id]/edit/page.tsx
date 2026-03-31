@@ -263,6 +263,7 @@ export default function EditBlogPage({ params }: PageProps) {
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
             <label className="block text-sm font-semibold text-white/80 mb-3">Featured Image</label>
             <CloudinaryUpload
+              blogId={params.id}
               titleOrSlug={values.title || ''}
               initialUrl={values.featuredImageUrl || ''}
               initialAlt={values.featuredImageAlt || ''}
