@@ -360,16 +360,21 @@ export default function AdminEditProjectPage() {
                     <div className="flex items-center justify-between">
                         <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider">Media Gallery ({media.length})</h2>
                         <div className="flex items-center gap-2">
-                            <select
+                            <SelectDropdown
+                                label="Media Category"
                                 value={uploadCategory}
-                                onChange={(e) => setUploadCategory(e.target.value as any)}
-                                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/70 outline-none"
-                            >
-                                <option value="interior">Interior</option>
-                                <option value="exterior">Exterior</option>
-                                <option value="amenities">Amenities</option>
-                                <option value="lifestyle">Lifestyle</option>
-                            </select>
+                                onChange={(value) => setUploadCategory(value as 'interior' | 'exterior' | 'amenities' | 'lifestyle')}
+                                options={[
+                                    { value: 'interior', label: 'Interior' },
+                                    { value: 'exterior', label: 'Exterior' },
+                                    { value: 'amenities', label: 'Amenities' },
+                                    { value: 'lifestyle', label: 'Lifestyle' },
+                                ]}
+                                variant="dark"
+                                dense
+                                showLabel={false}
+                                className="w-36"
+                            />
                             <label className={`inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/60 hover:bg-white/[0.08] transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
                                 {uploading ? 'Uploading…' : (
                                     <>

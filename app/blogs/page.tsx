@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next'
+import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { getPublicBlogsData } from '@/lib/blogs/public'
@@ -107,7 +107,15 @@ export default async function BlogsPage({ searchParams }: BlogPageProps) {
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
                       sizes="(max-width: 768px) 100vw, 50vw"
                     />
-                  ) : null}
+                  ) : (
+                    <Image
+                      src="/image-placeholder.svg"
+                      alt="Blog image placeholder"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                    />
+                  )}
                 </div>
                 <div className="p-5">
                   <p className="text-xs font-semibold uppercase tracking-wide text-primary-700">Featured</p>
@@ -142,7 +150,15 @@ export default async function BlogsPage({ searchParams }: BlogPageProps) {
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
                       sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
                     />
-                  ) : null}
+                  ) : (
+                    <Image
+                      src="/image-placeholder.svg"
+                      alt="Blog image placeholder"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                    />
+                  )}
                 </div>
 
                 <div className="p-5">
@@ -181,5 +197,6 @@ export default async function BlogsPage({ searchParams }: BlogPageProps) {
     </main>
   )
 }
+
 
 

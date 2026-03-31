@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import SelectDropdown from '@/components/SelectDropdown'
 
 interface BlogFilterProps {
   currentFilters: {
@@ -16,11 +17,9 @@ export const BlogFilter: React.FC<BlogFilterProps> = ({ currentFilters }) => {
     search: '',
   })
 
-  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFilters(prev => ({ ...prev, [name]: value }))
+  const handleFilterChange = (name: string, value: string) => {
+    setFilters((prev) => ({ ...prev, [name]: value }))
 
-    // Apply filter
     const query = new URLSearchParams(window.location.search)
     query.set(name, value)
     window.location.search = query.toString()
@@ -53,52 +52,36 @@ export const BlogFilter: React.FC<BlogFilterProps> = ({ currentFilters }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Category
-          </label>
-          <select
+          <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+          <SelectDropdown
             name="category"
+            label="Category"
             value={filters.category}
-            onChange={handleFilterChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">All Categories</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => handleFilterChange('category', value)}
+            options={[{ value: '', label: 'All Categories' }, ...categories.map((cat) => ({ value: cat.id, label: cat.name }))]}
+            showLabel={false}
+          />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Status
-          </label>
-          <select
+          <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          <SelectDropdown
             name="status"
+            label="Status"
             value={filters.status}
-            onChange={handleFilterChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">All Status</option>
-            {statuses.map(status => (
-              <option key={status} value={status.toUpperCase()}>
-                {status}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => handleFilterChange('status', value)}
+            options={[{ value: '', label: 'All Status' }, ...statuses.map((status) => ({ value: status.toUpperCase(), label: status }))]}
+            showLabel={false}
+          />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Search
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
           <input
             type="text"
             name="search"
             value={filters.search}
-            onChange={handleFilterChange}
+            onChange={(e) => handleFilterChange(e.target.name, e.target.value)}
             placeholder="Search by title, content, or author..."
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />

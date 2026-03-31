@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next'
+import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -67,7 +67,7 @@ export default async function BlogSlugPage({ params }: BlogPageProps) {
           {blog.excerpt ? <p className="mt-4 text-base text-gray-600">{blog.excerpt}</p> : null}
 
           <div className="mt-4 text-sm text-gray-500">
-            By {blog.author?.name || 'MillionFlats'} ·{' '}
+            By {blog.author?.name || 'MillionFlats'} �{' '}
             {new Date(blog.publishAt || blog.createdAt).toLocaleDateString('en-US', {
               month: 'long',
               day: 'numeric',
@@ -76,18 +76,16 @@ export default async function BlogSlugPage({ params }: BlogPageProps) {
           </div>
         </header>
 
-        {blog.featuredImageUrl ? (
-          <div className="relative mb-8 aspect-[16/9] overflow-hidden rounded-2xl border border-gray-200">
-            <Image
-              src={blog.featuredImageUrl}
-              alt={blog.featuredImageAlt || blog.title}
-              fill
-              className="object-cover"
-              priority
-              sizes="(max-width: 1024px) 100vw, 900px"
-            />
-          </div>
-        ) : null}
+        <div className="relative mb-8 overflow-hidden rounded-2xl border border-gray-200">
+          <Image
+            src={blog.featuredImageUrl || '/image-placeholder.svg'}
+            alt={blog.featuredImageAlt || blog.title || 'Blog image placeholder'}
+            width={800}
+            height={500}
+            className="h-auto w-full object-cover"
+            priority
+          />
+        </div>
 
         <section className="prose prose-gray max-w-none">
           <div dangerouslySetInnerHTML={{ __html: blog.contentHtml || blog.content || '' }} />
@@ -96,4 +94,5 @@ export default async function BlogSlugPage({ params }: BlogPageProps) {
     </main>
   )
 }
+
 

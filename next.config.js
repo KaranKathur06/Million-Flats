@@ -6,6 +6,8 @@ const defaultRemotePatterns = [
 ]
 
 const defaultDomains = ['images.unsplash.com', 'via.placeholder.com']
+defaultRemotePatterns.push({ protocol: 'https', hostname: 'millionflats-prod-assets.s3.eu-north-1.amazonaws.com', pathname: '/**' })
+defaultDomains.push('millionflats-prod-assets.s3.eu-north-1.amazonaws.com')
 
 const publicBase = String(process.env.NEXT_PUBLIC_S3_PUBLIC_BASE_URL || '').trim()
 if (publicBase) {

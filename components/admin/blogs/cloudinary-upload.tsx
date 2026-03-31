@@ -1,17 +1,25 @@
-﻿import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 
 interface CloudinaryUploadProps {
   onUpload: (url: string, altText: string) => void
+  titleOrSlug?: string
+  initialUrl?: string
+  initialAlt?: string
 }
 
-export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({ onUpload }) => {
+export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({ onUpload, titleOrSlug, initialUrl, initialAlt }) => {
   const [preview, setPreview] = useState<string | null>(null)
-  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null)
-  const [altText, setAltText] = useState('')
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(initialUrl || null)
+  const [altText, setAltText] = useState(initialAlt || '')
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
 
   const effectivePreview = useMemo(() => preview || uploadedUrl, [preview, uploadedUrl])
+
+  useEffect(() => {
+    if (initialUrl) setUploadedUrl(initialUrl)
+    if (typeof initialAlt === 'string') setAltText(initialAlt)
+  }, [initialUrl, initialAlt])
 
   const uploadImage = async (file: File) => {
     try {
@@ -25,6 +33,8 @@ export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({ onUpload }) 
           filename: file.name,
           contentType: file.type,
           sizeBytes: file.size,
+          title: titleOrSlug || undefined,
+          slug: titleOrSlug || undefined,
         }),
       })
 
@@ -147,4 +157,5 @@ export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({ onUpload }) 
     </div>
   )
 }
+
 

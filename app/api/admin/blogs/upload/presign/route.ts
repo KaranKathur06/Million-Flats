@@ -1,7 +1,7 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAdminSession } from '@/lib/adminAuth'
-import { buildPublicAssetUrl, createSignedPutUrl } from '@/lib/s3'
+import { buildBlogFeaturedImageKey, buildPublicAssetUrl, createSignedPutUrlForKey } from '@/lib/s3'
 
 export const runtime = 'nodejs'
 
@@ -9,14 +9,16 @@ const BodySchema = z.object({
   filename: z.string().trim().min(1).max(160),
   contentType: z.string().trim().min(1).max(100),
   sizeBytes: z.number().int().min(1).max(10 * 1024 * 1024),
+  title: z.string().trim().max(200).optional(),
+  slug: z.string().trim().max(120).optional(),
 })
 
-function safeFilename(name: string) {
-  return name
+function toBlogSlug(input: string) {
+  return input
     .trim()
-    .replace(/[^a-zA-Z0-9._-]+/g, '-')
-    .replace(/(^-|-$)/g, '')
-    .slice(0, 120)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '') || 'blog'
 }
 
 function isAllowedImageType(mime: string) {
@@ -37,7 +39,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: 'Invalid upload request' }, { status: 400 })
     }
 
-    const { filename, contentType, sizeBytes } = parsed.data
+    const { filename, contentType, sizeBytes, title, slug } = parsed.data
 
     if (!isAllowedImageType(contentType)) {
       return NextResponse.json({ success: false, message: 'Only JPG, PNG, WebP, and AVIF images are allowed.' }, { status: 400 })
@@ -47,13 +49,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: 'Image too large (max 5MB).' }, { status: 400 })
     }
 
-    const signed = await createSignedPutUrl({
-      folder: 'public/blogs/images',
-      filename: safeFilename(filename) || 'upload',
-      contentType,
-      expiresInSeconds: 600,
+    const resolvedSlug = toBlogSlug(slug || title || filename)
+    const key = buildBlogFeaturedImageKey({
+      slug: resolvedSlug,
     })
-
+    const signed = await createSignedPutUrlForKey({ key, contentType, expiresInSeconds: 300 })
     const publicUrl = buildPublicAssetUrl({ key: signed.key })
 
     return NextResponse.json({
@@ -70,4 +70,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, message: 'Failed to prepare upload' }, { status: 500 })
   }
 }
-

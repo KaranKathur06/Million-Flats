@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation'
 import { SEOScore } from '@/components/admin/blogs/seo-score'
 import { TiptapEditor } from '@/components/admin/blogs/tiptap-editor'
 import { CloudinaryUpload } from '@/components/admin/blogs/cloudinary-upload'
+import SelectDropdown from '@/components/SelectDropdown'
 
 interface BlogFormProps {
   user?: any
@@ -57,7 +58,7 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
   }, [user])
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target
     setBlog(prev => ({ ...prev, [name]: value }))
@@ -251,20 +252,18 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
             <label htmlFor="category" className="block text-sm font-medium text-white/70 mb-2">
               Category *
             </label>
-            <select
-              id="category"
+            <SelectDropdown
               name="categoryId"
+              label="Category"
               value={blog.categoryId}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white focus:outline-none focus:border-amber-400/40 transition-all duration-200"
-            >
-              <option value="">Select a category...</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setBlog((prev) => ({ ...prev, categoryId: value }))}
+              options={[
+                { value: '', label: 'Select a category...' },
+                ...categories.map((cat) => ({ value: cat.id, label: cat.name })),
+              ]}
+              variant="dark"
+              showLabel={false}
+            />
           </div>
 
           {/* Tags */}
@@ -390,16 +389,19 @@ export const BlogForm: React.FC<BlogFormProps> = ({ user }) => {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-white/70 mb-2">Status</label>
-              <select
-                value={blog.status}
-                onChange={handleInputChange}
+              <SelectDropdown
                 name="status"
-                className="w-full px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white focus:outline-none focus:border-amber-400/40 transition-all duration-200"
-              >
-                <option value="DRAFT">Draft</option>
-                <option value="PUBLISHED">Publish Now</option>
-                <option value="SCHEDULED">Schedule</option>
-              </select>
+                label="Status"
+                value={blog.status}
+                onChange={(value) => setBlog((prev) => ({ ...prev, status: value as 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' }))}
+                options={[
+                  { value: 'DRAFT', label: 'Draft' },
+                  { value: 'PUBLISHED', label: 'Publish Now' },
+                  { value: 'SCHEDULED', label: 'Schedule' },
+                ]}
+                variant="dark"
+                showLabel={false}
+              />
             </div>
 
             {blog.status === 'SCHEDULED' && (

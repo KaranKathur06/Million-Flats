@@ -212,11 +212,10 @@ export function buildDeveloperLogoKey(params: { developerSlug: string; ext?: str
   return `public/developers/${devSlug}/logo/${uuid}.${ext}`
 }
 
-export function buildBlogFeaturedImageKey(params: { slug: string; timestamp?: number; ext?: string; contentType?: string }) {
-  const ext = sanitizeFilename(params.ext || guessExtensionFromContentType(params.contentType || '') || 'jpg').replace('.', '')
+export function buildBlogFeaturedImageKey(params: { slug: string; timestamp?: number }) {
   const slug = normalizeSlugSegment(params.slug || 'blog')
   const ts = params.timestamp ?? Date.now()
-  return `public/blogs/${slug}/featured-${ts}.${ext}`
+  return `public/blogs/${slug}/featured-${ts}.jpg`
 }
 
 export async function uploadToS3(params: {

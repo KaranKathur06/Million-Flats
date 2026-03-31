@@ -6,6 +6,30 @@ function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
 }
 
+function isAllowedBlogImageUrl(value: string) {
+  const urlText = safeString(value)
+  if (!urlText) return true
+
+  try {
+    const parsed = new URL(urlText)
+    if (!parsed.pathname.includes('/public/blogs/')) return false
+
+    const configured = safeString(process.env.NEXT_PUBLIC_S3_PUBLIC_BASE_URL)
+    if (configured) {
+      const base = new URL(configured)
+      return parsed.hostname === base.hostname
+    }
+
+    const bucket = safeString(process.env.AWS_S3_BUCKET)
+    const region = safeString(process.env.AWS_REGION)
+    if (!bucket || !region) return true
+
+    return parsed.hostname === `${bucket}.s3.${region}.amazonaws.com`
+  } catch {
+    return false
+  }
+}
+
 export async function GET(req: Request) {
   const auth = await requireAdminSession()
   if (!auth.ok) {
@@ -128,6 +152,13 @@ export async function POST(req: Request) {
       categoryId,
       tags,
     } = body
+
+    if (featuredImageUrl && !isAllowedBlogImageUrl(featuredImageUrl)) {
+      return NextResponse.json(
+        { success: false, message: 'Featured image must be a valid S3 blog URL under public/blogs/' },
+        { status: 400 }
+      )
+    }
 
     // Determine content sources
     const htmlContent = contentHtml || content || ''

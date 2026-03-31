@@ -9,6 +9,30 @@ function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
 }
 
+function isAllowedBlogImageUrl(value: string) {
+  const urlText = safeString(value)
+  if (!urlText) return true
+
+  try {
+    const parsed = new URL(urlText)
+    if (!parsed.pathname.includes('/public/blogs/')) return false
+
+    const configured = safeString(process.env.NEXT_PUBLIC_S3_PUBLIC_BASE_URL)
+    if (configured) {
+      const base = new URL(configured)
+      return parsed.hostname === base.hostname
+    }
+
+    const bucket = safeString(process.env.AWS_S3_BUCKET)
+    const region = safeString(process.env.AWS_REGION)
+    if (!bucket || !region) return true
+
+    return parsed.hostname === `${bucket}.s3.${region}.amazonaws.com`
+  } catch {
+    return false
+  }
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -86,6 +110,13 @@ export async function PATCH(
     const userId = (session.user as any)?.id as string
     const userRole = String((session.user as any)?.role || '').toUpperCase()
 
+    if (body.featuredImageUrl && !isAllowedBlogImageUrl(String(body.featuredImageUrl))) {
+      return NextResponse.json(
+        { success: false, message: 'Featured image must be a valid S3 blog URL under public/blogs/' },
+        { status: 400 }
+      )
+    }
+
     // Get existing blog
     const existingBlog = await (prisma as any).blog.findUnique({
       where: { id: params.id },
@@ -159,6 +190,12 @@ export async function PATCH(
         },
       },
     })
+
+    revalidateTag(BLOGS_CACHE_TAG)
+    revalidatePath('/blogs')
+    if (existingBlog.slug) revalidatePath(`/blogs/${existingBlog.slug}`)
+    if (updatedBlog.slug) revalidatePath(`/blogs/${updatedBlog.slug}`)
+    revalidatePath('/admin/blogs/all')
 
     return NextResponse.json({
       success: true,

@@ -390,6 +390,7 @@ export default function CreateBlogPage() {
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
             <label className="block text-sm font-semibold text-white/80 mb-3">Featured Image</label>
             <CloudinaryUpload
+              titleOrSlug={watchedValues.title || ''}
               onUpload={(url, alt) => {
                 setValue('featuredImageUrl', url)
                 setValue('featuredImageAlt', alt)

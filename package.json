@@ -11,7 +11,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:migrate:dev": "prisma migrate dev",
-    "prisma:seed": "prisma db seed"
+    "prisma:seed": "prisma db seed",
+    "blogs:migrate-images": "node scripts/migrate-blog-images-to-s3.cjs",
+    "s3:configure-blog-cors": "node scripts/configure-blog-s3-cors.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.984.0",
