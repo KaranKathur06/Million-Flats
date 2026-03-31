@@ -1,7 +1,39 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
-import { uploadToS3Key, buildProjectMediaKey } from '@/lib/s3'
+import { buildProjectGalleryKey, normalizeProjectImageFilename, uploadToS3Key, buildS3ObjectUrl } from '@/lib/s3'
+
+const CATEGORY_VALUES = ['interior', 'exterior', 'amenities', 'lifestyle'] as const
+
+const saveMediaSchema = z.object({
+    url: z.string().url(),
+    label: z.string().max(300).optional().nullable(),
+    category: z.enum(CATEGORY_VALUES),
+    sortOrder: z.number().int().min(0).optional().nullable(),
+    s3Key: z.string().min(1).optional().nullable(),
+})
+
+function labelFromFilename(filename: string) {
+    const dot = filename.lastIndexOf('.')
+    const base = dot > 0 ? filename.slice(0, dot) : filename
+    return base
+        .replace(/_/g, ' ')
+        .trim()
+        .toLowerCase()
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function toEnumCategory(category: (typeof CATEGORY_VALUES)[number]) {
+    return category.toUpperCase()
+}
+
+async function getProject(id: string) {
+    return (prisma as any).project.findUnique({
+        where: { id },
+        select: { id: true, slug: true, developer: { select: { slug: true, name: true } } },
+    })
+}
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
     const auth = await requireAdminSession()
@@ -10,47 +42,74 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     }
 
     try {
-        // Fetch project + developer to build the S3 key path
-        const project = await (prisma as any).project.findUnique({
-            where: { id: params.id },
-            select: { id: true, slug: true, developer: { select: { slug: true, name: true } } },
-        })
-
+        const project = await getProject(params.id)
         if (!project) {
             return NextResponse.json({ success: false, message: 'Project not found' }, { status: 404 })
         }
 
+        const contentType = String(req.headers.get('content-type') || '').toLowerCase()
+
+        // New contract: save already-uploaded S3 URL in DB
+        if (contentType.includes('application/json')) {
+            const parsed = saveMediaSchema.safeParse(await req.json().catch(() => ({})))
+            if (!parsed.success) {
+                return NextResponse.json({ success: false, message: 'Validation failed', errors: parsed.error.flatten().fieldErrors }, { status: 400 })
+            }
+
+            const data = parsed.data
+            const media = await (prisma as any).projectMedia.create({
+                data: {
+                    projectId: params.id,
+                    mediaUrl: data.url,
+                    mediaType: data.category,
+                    category: toEnumCategory(data.category),
+                    label: data.label?.trim() || null,
+                    s3Key: data.s3Key || null,
+                    sortOrder: data.sortOrder ?? 0,
+                },
+            })
+
+            return NextResponse.json({ success: true, media }, { status: 201 })
+        }
+
+        // Backward-compatible multipart upload path
         const formData = await req.formData()
         const file = formData.get('file') as File | null
-        const mediaType = (formData.get('mediaType') as string) || 'image'
-        const sortOrderStr = formData.get('sortOrder') as string
-        const sortOrder = sortOrderStr ? parseInt(sortOrderStr, 10) || 0 : 0
+        const rawCategory = String(formData.get('category') || formData.get('mediaType') || 'interior').toLowerCase()
+        const category = rawCategory === 'cover' || rawCategory === 'gallery' ? 'interior' : rawCategory
+        const sortOrder = parseInt(String(formData.get('sortOrder') || '0'), 10) || 0
 
         if (!file) {
             return NextResponse.json({ success: false, message: 'No file provided' }, { status: 400 })
         }
-
-        // Validate file size (max 50MB)
+        if (!CATEGORY_VALUES.includes(category as any)) {
+            return NextResponse.json({ success: false, message: 'Invalid category' }, { status: 400 })
+        }
         if (file.size > 50 * 1024 * 1024) {
             return NextResponse.json({ success: false, message: 'File too large (max 50MB)' }, { status: 400 })
         }
 
-        const buffer = Buffer.from(await file.arrayBuffer())
         const devSlug = project.developer?.slug || project.developer?.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'unknown'
-        const key = buildProjectMediaKey({
+        const normalizedFilename = normalizeProjectImageFilename({ originalName: file.name, contentType: file.type })
+        const key = buildProjectGalleryKey({
             developerSlug: devSlug,
             projectSlug: project.slug,
+            originalName: normalizedFilename,
             contentType: file.type,
         })
 
-        const { objectUrl } = await uploadToS3Key({ buffer, key, contentType: file.type })
+        const buffer = Buffer.from(await file.arrayBuffer())
+        const { key: uploadedKey } = await uploadToS3Key({ buffer, key, contentType: file.type || 'image/jpeg' })
+        const url = buildS3ObjectUrl({ key: uploadedKey })
 
         const media = await (prisma as any).projectMedia.create({
             data: {
                 projectId: params.id,
-                mediaUrl: objectUrl,
-                mediaType,
-                s3Key: key,
+                mediaUrl: url,
+                mediaType: category,
+                category: toEnumCategory(category as any),
+                label: labelFromFilename(normalizedFilename),
+                s3Key: uploadedKey,
                 sortOrder,
             },
         })

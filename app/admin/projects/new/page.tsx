@@ -95,7 +95,7 @@ export default function AdminAddProjectPage() {
                 community: community.trim() || undefined,
                 description: description.trim() || undefined,
                 completionYear: completionYear ? parseInt(completionYear, 10) : undefined,
-                startingPrice: startingPrice ? parseFloat(startingPrice) : undefined,
+                startingPrice: startingPrice ? startingPrice.trim() : undefined,
                 goldenVisa,
                 unitTypes: unitTypes
                     .filter((ut) => ut.unitType.trim())
@@ -103,7 +103,7 @@ export default function AdminAddProjectPage() {
                         unitType: ut.unitType.trim(),
                         sizeFrom: ut.sizeFrom ? parseInt(ut.sizeFrom, 10) : undefined,
                         sizeTo: ut.sizeTo ? parseInt(ut.sizeTo, 10) : undefined,
-                        priceFrom: ut.priceFrom ? parseFloat(ut.priceFrom) : undefined,
+                        priceFrom: ut.priceFrom ? ut.priceFrom.trim() : undefined,
                     })),
             }
 
@@ -233,7 +233,7 @@ export default function AdminAddProjectPage() {
 
                         <div>
                             <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Starting Price (AED)</label>
-                            <input type="number" value={startingPrice} onChange={(e) => setStartingPrice(e.target.value)} placeholder="e.g. 1600000"
+                            <input type="text" value={startingPrice} onChange={(e) => setStartingPrice(e.target.value)} placeholder="e.g. 2.16M or 750K"
                                 className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 placeholder-white/20 outline-none focus:border-amber-400/30 transition-all" />
                         </div>
 
@@ -342,7 +342,7 @@ export default function AdminAddProjectPage() {
                                                     className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 placeholder-white/20 outline-none focus:border-amber-400/30 transition-all" />
                                             </td>
                                             <td className="pr-2 pb-2">
-                                                <input type="number" value={ut.priceFrom} onChange={(e) => updateUnitType(idx, 'priceFrom', e.target.value)} placeholder="1600000"
+                                                <input type="text" value={ut.priceFrom} onChange={(e) => updateUnitType(idx, 'priceFrom', e.target.value)} placeholder="e.g. 750K"
                                                     className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 placeholder-white/20 outline-none focus:border-amber-400/30 transition-all" />
                                             </td>
                                             <td className="pb-2">

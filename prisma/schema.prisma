@@ -1422,6 +1422,13 @@ enum ProjectStatus {
   ARCHIVED
 }
 
+enum ProjectImageCategory {
+  INTERIOR @map("interior")
+  EXTERIOR @map("exterior")
+  AMENITIES @map("amenities")
+  LIFESTYLE @map("lifestyle")
+}
+
 model Project {
   id              String   @id @default(uuid())
   name            String
@@ -1476,6 +1483,8 @@ model ProjectMedia {
 
   mediaUrl  String   @map("media_url")
   mediaType String   @map("media_type")
+  label     String?
+  category  ProjectImageCategory?
   s3Key     String?  @map("s3_key")
   sortOrder Int?     @map("sort_order")
 

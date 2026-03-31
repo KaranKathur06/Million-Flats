@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { z } from 'zod'
+import { parseAEDInput } from '@/lib/pricing'
 
 function safeString(v: unknown) {
     return typeof v === 'string' ? v.trim() : ''
@@ -24,7 +25,7 @@ const createProjectSchema = z.object({
     community: z.string().max(200).optional(),
     description: z.string().max(10000).optional(),
     completionYear: z.number().int().min(2000).max(2100).optional().nullable(),
-    startingPrice: z.number().min(0).optional().nullable(),
+    startingPrice: z.union([z.number(), z.string()]).optional().nullable(),
     goldenVisa: z.boolean().optional(),
     coverImage: z.string().max(2000).optional(),
     unitTypes: z
@@ -33,7 +34,7 @@ const createProjectSchema = z.object({
                 unitType: z.string().min(1).max(100),
                 sizeFrom: z.number().int().min(0).optional().nullable(),
                 sizeTo: z.number().int().min(0).optional().nullable(),
-                priceFrom: z.number().min(0).optional().nullable(),
+                priceFrom: z.union([z.number(), z.string()]).optional().nullable(),
             })
         )
         .optional(),
@@ -101,6 +102,10 @@ export async function POST(req: Request) {
 
         const data = parsed.data
         const slug = data.slug || slugify(data.name)
+        const normalizedStartingPrice = parseAEDInput(data.startingPrice)
+        if (data.startingPrice !== undefined && data.startingPrice !== null && normalizedStartingPrice === null) {
+            return NextResponse.json({ success: false, message: 'Invalid startingPrice. Use values like 2160000, 2.16M, 750K.' }, { status: 400 })
+        }
 
         // Check slug uniqueness
         const existing = await (prisma as any).project.findUnique({ where: { slug } })
@@ -124,7 +129,7 @@ export async function POST(req: Request) {
                 community: data.community || null,
                 description: data.description || null,
                 completionYear: data.completionYear ?? null,
-                startingPrice: data.startingPrice ?? null,
+                startingPrice: normalizedStartingPrice ?? null,
                 goldenVisa: data.goldenVisa || false,
                 coverImage: data.coverImage || null,
                 status: 'DRAFT',
@@ -134,7 +139,7 @@ export async function POST(req: Request) {
                             unitType: ut.unitType,
                             sizeFrom: ut.sizeFrom ?? null,
                             sizeTo: ut.sizeTo ?? null,
-                            priceFrom: ut.priceFrom ?? null,
+                            priceFrom: parseAEDInput(ut.priceFrom) ?? null,
                         })),
                     }
                     : undefined,

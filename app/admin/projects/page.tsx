@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import SelectDropdown from '@/components/SelectDropdown'
+import { formatAEDCompact } from '@/lib/pricing'
 
 interface ProjectItem {
     id: string
@@ -74,9 +75,7 @@ export default function AdminProjectsPage() {
 
     const formatPrice = (price: number | null) => {
         if (!price) return '—'
-        if (price >= 1_000_000) return `AED ${(price / 1_000_000).toFixed(1)}M`
-        if (price >= 1_000) return `AED ${(price / 1_000).toFixed(0)}K`
-        return `AED ${price.toLocaleString()}`
+        return formatAEDCompact(price)
     }
 
     return (

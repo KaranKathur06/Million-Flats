@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { formatAEDCompact } from '@/lib/pricing'
 
 /* ─── Types ─── */
 interface ProjectItem {
@@ -30,9 +31,7 @@ interface Pagination {
 /* ─── Helpers ─── */
 function formatPrice(price: number | null | undefined) {
     if (!price) return null
-    if (price >= 1_000_000) return `AED ${(price / 1_000_000).toFixed(1)}M`
-    if (price >= 1_000) return `AED ${(price / 1_000).toFixed(0)}K`
-    return `AED ${price.toLocaleString()}`
+    return formatAEDCompact(price)
 }
 
 /* ─── Search Icon ─── */
@@ -93,6 +92,8 @@ export default function ProjectsGridClient() {
     const [pagination, setPagination] = useState<Pagination | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
+    const [cityOptions, setCityOptions] = useState<string[]>([])
+    const [developerOptions, setDeveloperOptions] = useState<string[]>([])
 
     /* filters */
     const [search, setSearch] = useState('')
@@ -107,6 +108,22 @@ export default function ProjectsGridClient() {
         const t = setTimeout(() => setDebouncedSearch(search), 350)
         return () => clearTimeout(t)
     }, [search])
+
+    const fetchFilterOptions = useCallback(async () => {
+        try {
+            const res = await fetch('/api/projects/filters', { cache: 'no-store' })
+            const json = await res.json()
+            if (!json.success) return
+            setCityOptions(Array.isArray(json.cities) ? json.cities : [])
+            setDeveloperOptions(Array.isArray(json.developers) ? json.developers : [])
+        } catch {
+            // Fallback remains derived from loaded projects below
+        }
+    }, [])
+
+    useEffect(() => {
+        fetchFilterOptions()
+    }, [fetchFilterOptions])
 
     /* fetch */
     const fetchProjects = useCallback(async () => {
@@ -128,7 +145,7 @@ export default function ProjectsGridClient() {
                 url = `/api/projects?${params.toString()}`
             }
 
-            const res = await fetch(url)
+            const res = await fetch(url, { cache: 'no-store' })
             const json = await res.json()
             if (!json.success) throw new Error(json.message || 'Failed to load')
 
@@ -155,18 +172,21 @@ export default function ProjectsGridClient() {
         setPage(1)
     }, [city, developer, goldenVisa, debouncedSearch])
 
-    /* Extract unique filter values from loaded projects */
-    const uniqueCities = useMemo(() => {
+    /* Fallback filter values from loaded projects */
+    const fallbackCities = useMemo(() => {
         const s = new Set<string>()
         projects.forEach((p) => { if (p.city) s.add(p.city) })
         return Array.from(s).sort()
     }, [projects])
 
-    const uniqueDevelopers = useMemo(() => {
+    const fallbackDevelopers = useMemo(() => {
         const s = new Set<string>()
         projects.forEach((p) => { if (p.developer?.name) s.add(p.developer.name) })
         return Array.from(s).sort()
     }, [projects])
+
+    const uniqueCities = cityOptions.length > 0 ? cityOptions : fallbackCities
+    const uniqueDevelopers = developerOptions.length > 0 ? developerOptions : fallbackDevelopers
 
     const totalPages = pagination?.totalPages || 1
     const totalProjects = pagination?.total ?? projects.length

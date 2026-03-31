@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { z } from 'zod'
+import { parseAEDInput } from '@/lib/pricing'
 
 const updateProjectSchema = z.object({
     name: z.string().min(1).max(300).optional(),
@@ -12,7 +13,7 @@ const updateProjectSchema = z.object({
     community: z.string().max(200).optional().nullable(),
     description: z.string().max(10000).optional().nullable(),
     completionYear: z.number().int().min(2000).max(2100).optional().nullable(),
-    startingPrice: z.number().min(0).optional().nullable(),
+    startingPrice: z.union([z.number(), z.string()]).optional().nullable(),
     goldenVisa: z.boolean().optional(),
     coverImage: z.string().max(2000).optional().nullable(),
     unitTypes: z
@@ -22,7 +23,7 @@ const updateProjectSchema = z.object({
                 unitType: z.string().min(1).max(100),
                 sizeFrom: z.number().int().min(0).optional().nullable(),
                 sizeTo: z.number().int().min(0).optional().nullable(),
-                priceFrom: z.number().min(0).optional().nullable(),
+                priceFrom: z.union([z.number(), z.string()]).optional().nullable(),
             })
         )
         .optional(),
@@ -78,6 +79,10 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         }
 
         const data = parsed.data
+        const normalizedStartingPrice = parseAEDInput(data.startingPrice)
+        if (data.startingPrice !== undefined && data.startingPrice !== null && normalizedStartingPrice === null) {
+            return NextResponse.json({ success: false, message: 'Invalid startingPrice. Use values like 2160000, 2.16M, 750K.' }, { status: 400 })
+        }
 
         // Check slug uniqueness if changing
         if (data.slug && data.slug !== existing.slug) {
@@ -97,7 +102,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         if (data.community !== undefined) updateData.community = data.community
         if (data.description !== undefined) updateData.description = data.description
         if (data.completionYear !== undefined) updateData.completionYear = data.completionYear
-        if (data.startingPrice !== undefined) updateData.startingPrice = data.startingPrice
+        if (data.startingPrice !== undefined) updateData.startingPrice = normalizedStartingPrice
         if (data.goldenVisa !== undefined) updateData.goldenVisa = data.goldenVisa
         if (data.coverImage !== undefined) updateData.coverImage = data.coverImage
 
@@ -111,7 +116,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
                         unitType: ut.unitType,
                         sizeFrom: ut.sizeFrom ?? null,
                         sizeTo: ut.sizeTo ?? null,
-                        priceFrom: ut.priceFrom ?? null,
+                        priceFrom: parseAEDInput(ut.priceFrom) ?? null,
                     })),
                 })
             }

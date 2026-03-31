@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { formatAEDCompact } from '@/lib/pricing'
 
 /* ═══════════════════════════════════════════════
    TYPE DEFINITIONS
@@ -22,13 +23,14 @@ interface ProjectData {
     status: string
     createdAt: string
     developer: { id: string; name: string; slug: string | null; logo: string | null } | null
-    media: { id: string; mediaUrl: string; mediaType: string; sortOrder: number | null }[]
+    media: { id: string; mediaUrl: string; mediaType: string; category?: string | null; label?: string | null; sortOrder: number | null }[]
     mediaStructured?: {
         hero?: string
         featured?: string[]
         tabs?: {
             exterior?: string[]
             amenities?: string[]
+            interior?: string[]
             interiors?: string[]
             lifestyle?: string[]
         }
@@ -105,10 +107,7 @@ function extractImageName(input: string): string {
    ═══════════════════════════════════════════════ */
 function formatPrice(price: number | null | undefined) {
     if (!price) return 'TBD'
-    if (price >= 1_000_000_000) return `AED ${(price / 1_000_000_000).toFixed(1)}B`
-    if (price >= 1_000_000) return `AED ${(price / 1_000_000).toFixed(1)}M`
-    if (price >= 1_000) return `AED ${(price / 1_000).toFixed(0)}K`
-    return `AED ${price.toLocaleString()}`
+    return formatAEDCompact(price)
 }
 
 /* Amenity Icon Component */
@@ -149,17 +148,23 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
     const [showAllAmenities, setShowAllAmenities] = useState(false)
     const [activeTab, setActiveTab] = useState<'overview' | 'amenities' | 'plans' | 'gallery' | 'location'>('overview')
 
-    const [galleryCategory, setGalleryCategory] = useState<'all' | 'exterior' | 'amenities' | 'interiors' | 'lifestyle'>('all')
-    const [galleryVisibleCount, setGalleryVisibleCount] = useState(100)
+    const [galleryCategory, setGalleryCategory] = useState<'all' | 'exterior' | 'amenities' | 'interior' | 'lifestyle'>('all')
+    const [galleryVisibleCount, setGalleryVisibleCount] = useState(8)
     const [galleryModalOpen, setGalleryModalOpen] = useState(false)
     const [modalImgIndex, setModalImgIndex] = useState(0)
     const [modalSource, setModalSource] = useState<'featured' | 'tab'>('tab')
 
     // Recognised gallery media types (tab-specific + legacy ones)
-    const GALLERY_MEDIA_TYPES = useMemo(() => new Set(['gallery', 'cover', 'image', 'IMAGE', 'featured', 'exterior', 'amenities', 'interiors', 'lifestyle']), [])
+    const GALLERY_MEDIA_TYPES = useMemo(() => new Set(['gallery', 'cover', 'image', 'IMAGE', 'featured', 'exterior', 'amenities', 'interior', 'interiors', 'lifestyle']), [])
 
     const allGalleryMedia = useMemo(() => {
-        const images = project.media.filter((m) => GALLERY_MEDIA_TYPES.has(m.mediaType))
+        const images = project.media.filter((m) => {
+            const mt = String(m.mediaType || '').toLowerCase()
+            const cat = String(m.category || '').toLowerCase()
+            const url = String(m.mediaUrl || '').trim()
+            const looksLikeImagePath = url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/') || url.startsWith('public/')
+            return looksLikeImagePath && (GALLERY_MEDIA_TYPES.has(m.mediaType) || GALLERY_MEDIA_TYPES.has(mt) || GALLERY_MEDIA_TYPES.has(cat))
+        })
         if (images.length === 0 && project.coverImage) {
             return [{ id: 'cover', mediaUrl: project.coverImage, mediaType: 'cover', sortOrder: 0 }]
         }
@@ -192,51 +197,65 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
     const tabImages = useMemo(() => {
         // Approach 1: structuredMedia has explicit tabs
         const tabs = structuredMedia?.tabs
-        if (tabs && (tabs.exterior?.length || tabs.amenities?.length || tabs.interiors?.length || tabs.lifestyle?.length)) {
+        if (tabs && (tabs.exterior?.length || tabs.amenities?.length || tabs.interior?.length || tabs.interiors?.length || tabs.lifestyle?.length)) {
             const hero = structuredMedia?.hero
             const filterHero = (list: string[]) => list.filter((img) => img !== hero)
             return {
                 exterior: uniqueStrings(filterHero(tabs.exterior || [])),
                 amenities: uniqueStrings(filterHero(tabs.amenities || [])),
-                interiors: uniqueStrings(filterHero(tabs.interiors || [])),
+                interior: uniqueStrings(filterHero((tabs.interior || tabs.interiors || []))),
                 lifestyle: uniqueStrings(filterHero(tabs.lifestyle || [])),
             }
         }
 
         // Approach 2: DB records have tab-specific mediaTypes
-        const byType = (type: string) => allGalleryMedia.filter(m => m.mediaType === type).map(m => m.mediaUrl)
+        const byType = (type: string) => allGalleryMedia
+            .filter((m) => {
+                const mt = String(m.mediaType || '').toLowerCase()
+                const cat = String(m.category || '').toLowerCase()
+                if (type === 'interior') return mt === 'interior' || mt === 'interiors' || cat === 'interior'
+                return mt === type || cat === type
+            })
+            .map(m => m.mediaUrl)
         const ext = byType('exterior')
         const amen = byType('amenities')
-        const inter = byType('interiors')
+        const inter = byType('interior')
         const life = byType('lifestyle')
         if (ext.length > 0 || amen.length > 0 || inter.length > 0 || life.length > 0) {
             return {
                 exterior: uniqueStrings(ext),
                 amenities: uniqueStrings(amen),
-                interiors: uniqueStrings(inter),
+                interior: uniqueStrings(inter),
                 lifestyle: uniqueStrings(life),
             }
         }
 
         // Fallback: show all in every tab
         const all = allGalleryMedia.map((m) => m.mediaUrl).filter((url) => url !== structuredMedia?.hero)
-        return { exterior: all, amenities: all, interiors: all, lifestyle: all }
+        return { exterior: all, amenities: all, interior: all, lifestyle: all }
     }, [structuredMedia, allGalleryMedia])
 
     const tabImagesResolved = useMemo(() => {
         return {
             exterior: tabImages.exterior.map(resolvePublicMediaUrl).filter(Boolean),
             amenities: tabImages.amenities.map(resolvePublicMediaUrl).filter(Boolean),
-            interiors: tabImages.interiors.map(resolvePublicMediaUrl).filter(Boolean),
+            interior: tabImages.interior.map(resolvePublicMediaUrl).filter(Boolean),
             lifestyle: tabImages.lifestyle.map(resolvePublicMediaUrl).filter(Boolean),
         }
     }, [tabImages])
 
     // "All" tab: combine all unique images across all tabs
     const allTabImages = useMemo(() => uniqueStrings([
-        ...tabImages.exterior, ...tabImages.amenities, ...tabImages.interiors, ...tabImages.lifestyle,
+        ...tabImages.exterior, ...tabImages.amenities, ...tabImages.interior, ...tabImages.lifestyle,
     ]), [tabImages])
     const allTabImagesResolved = useMemo(() => allTabImages.map(resolvePublicMediaUrl).filter(Boolean), [allTabImages])
+    const mediaLabelByRawUrl = useMemo(() => {
+        const map: Record<string, string> = {}
+        for (const m of allGalleryMedia) {
+            if (m.mediaUrl && m.label) map[m.mediaUrl] = m.label
+        }
+        return map
+    }, [allGalleryMedia])
 
     const activeGalleryImages = galleryCategory === 'all' ? allTabImagesResolved : (tabImagesResolved[galleryCategory] || [])
 
@@ -661,7 +680,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                 {/* Gallery Tabs */}
                                 <div className="mt-6">
                                     <div className="flex flex-wrap gap-2">
-                                        {(['all', 'exterior', 'amenities', 'interiors', 'lifestyle'] as const).map((t) => {
+                                        {(['all', 'exterior', 'amenities', 'interior', 'lifestyle'] as const).map((t) => {
                                             const count = t === 'all' ? allTabImagesResolved.length : (tabImagesResolved[t]?.length || 0)
                                             return (
                                                 <button
@@ -669,7 +688,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                                     type="button"
                                                     onClick={() => {
                                                         setGalleryCategory(t)
-                                                        setGalleryVisibleCount(100)
+                                                        setGalleryVisibleCount(8)
                                                     }}
                                                     className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all capitalize cursor-pointer flex items-center gap-1.5 ${galleryCategory === t
                                                         ? 'bg-amber-500 text-white border-amber-500 shadow-sm shadow-amber-500/20'
@@ -688,7 +707,8 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                     {/* Tab Grid */}
                                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                                         {visibleGalleryImages.map((src, idx) => {
-                                            const imgName = extractImageName(activeGalleryRawImages[idx] || src)
+                                            const raw = activeGalleryRawImages[idx] || src
+                                            const imgName = mediaLabelByRawUrl[raw] || extractImageName(raw)
                                             return (
                                                 <button
                                                     key={`${src}-${idx}`}
@@ -724,7 +744,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                                 onClick={() => setGalleryVisibleCount(activeGalleryImages.length)}
                                                 className="h-12 px-8 rounded-xl bg-gray-900 text-white font-bold text-sm hover:bg-black transition-colors cursor-pointer"
                                             >
-                                                Load All {activeGalleryImages.length} Images
+                                                View All Images ({activeGalleryImages.length})
                                             </button>
                                         </div>
                                     )}
@@ -834,7 +854,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                             {/* Image */}
                                             <img
                                                 src={modalImages[modalImgIndex]}
-                                                alt={extractImageName(modalRawImages[modalImgIndex] || modalImages[modalImgIndex])}
+                                                alt={mediaLabelByRawUrl[modalRawImages[modalImgIndex] || ''] || extractImageName(modalRawImages[modalImgIndex] || modalImages[modalImgIndex])}
                                                 className="max-h-[calc(100vh-200px)] max-w-full object-contain transition-transform duration-300 select-none"
                                                 style={{ transform: `scale(${zoomLevel})` }}
                                                 loading="eager"
@@ -868,7 +888,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                             {/* Image Caption */}
                                             <div className="text-center py-2">
                                                 <p className="text-white/90 text-sm font-semibold">
-                                                    {extractImageName(modalRawImages[modalImgIndex] || modalImages[modalImgIndex])}
+                                                    {mediaLabelByRawUrl[modalRawImages[modalImgIndex] || ''] || extractImageName(modalRawImages[modalImgIndex] || modalImages[modalImgIndex])}
                                                 </p>
                                             </div>
 
@@ -1064,7 +1084,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                             ...featuredImagesResolved,
                                             ...tabImagesResolved.exterior,
                                             ...tabImagesResolved.amenities,
-                                            ...tabImagesResolved.interiors,
+                                            ...tabImagesResolved.interior,
                                             ...tabImagesResolved.lifestyle,
                                         ]).length}</span></div>
                                     )}

@@ -116,6 +116,36 @@ function guessExtensionFromContentType(contentType: string) {
   return ''
 }
 
+function normalizeSlugSegment(input: string) {
+  return String(input || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/(^-|-$)/g, '')
+}
+
+export function normalizeProjectImageFilename(params: { originalName: string; contentType?: string }) {
+  const original = String(params.originalName || '').trim()
+  const lastDot = original.lastIndexOf('.')
+  const rawBase = lastDot > 0 ? original.slice(0, lastDot) : original
+  const rawExt = lastDot > 0 ? original.slice(lastDot + 1) : ''
+  const ext = (sanitizeFilename(rawExt || guessExtensionFromContentType(params.contentType || '') || 'jpg').replace('.', '') || 'jpg').toUpperCase()
+
+  const base = String(rawBase || 'IMAGE')
+    .normalize('NFKD')
+    .replace(/[^\x20-\x7E]/g, '')
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/[^A-Za-z0-9._-]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toUpperCase()
+    .slice(0, 120) || 'IMAGE'
+
+  return `${base}.${ext}`
+}
+
 export function buildAgentProfileImageKey(params: { agentId: string; ext: string; timestamp?: number }) {
   const ts = params.timestamp ?? Date.now()
   const safeExt = sanitizeFilename(params.ext || '').replace('.', '')
@@ -168,11 +198,25 @@ export function buildProjectMediaKey(params: { developerSlug: string; projectSlu
   return `public/developers/${devSlug}/${projSlug}/media/${uuid}.${ext}`
 }
 
+export function buildProjectGalleryKey(params: { developerSlug: string; projectSlug: string; originalName: string; contentType?: string }) {
+  const devSlug = normalizeSlugSegment(params.developerSlug || 'unknown')
+  const projSlug = normalizeSlugSegment(params.projectSlug || 'unknown')
+  const filename = normalizeProjectImageFilename({ originalName: params.originalName, contentType: params.contentType })
+  return `public/projects/${devSlug}/${projSlug}/gallery/${filename}`
+}
+
 export function buildDeveloperLogoKey(params: { developerSlug: string; ext?: string; contentType?: string }) {
   const ext = sanitizeFilename(params.ext || guessExtensionFromContentType(params.contentType || '') || 'bin').replace('.', '')
   const devSlug = sanitizeFilename(params.developerSlug || 'unknown')
   const uuid = crypto.randomUUID()
   return `public/developers/${devSlug}/logo/${uuid}.${ext}`
+}
+
+export function buildBlogFeaturedImageKey(params: { slug: string; timestamp?: number; ext?: string; contentType?: string }) {
+  const ext = sanitizeFilename(params.ext || guessExtensionFromContentType(params.contentType || '') || 'jpg').replace('.', '')
+  const slug = normalizeSlugSegment(params.slug || 'blog')
+  const ts = params.timestamp ?? Date.now()
+  return `public/blogs/${slug}/featured-${ts}.${ext}`
 }
 
 export async function uploadToS3(params: {
@@ -276,6 +320,7 @@ export async function createSignedPutUrl(params: {
       Bucket: bucket,
       Key: key,
       ContentType: params.contentType || 'application/octet-stream',
+      CacheControl: 'public, max-age=31536000, immutable',
     }),
     { expiresIn }
   )
@@ -302,6 +347,7 @@ export async function createSignedPutUrlForKey(params: {
       Bucket: bucket,
       Key: key,
       ContentType: params.contentType || 'application/octet-stream',
+      CacheControl: 'public, max-age=31536000, immutable',
     }),
     { expiresIn }
   )

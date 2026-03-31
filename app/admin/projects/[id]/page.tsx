@@ -5,7 +5,15 @@ import { useRouter, useParams } from 'next/navigation'
 import SelectDropdown from '@/components/SelectDropdown'
 
 interface DevOption { id: string; name: string; slug: string | null }
-interface MediaItem { id: string; mediaUrl: string; mediaType: string; sortOrder: number | null; s3Key: string | null }
+interface MediaItem {
+    id: string
+    mediaUrl: string
+    mediaType: string
+    category?: 'interior' | 'exterior' | 'amenities' | 'lifestyle' | null
+    label?: string | null
+    sortOrder: number | null
+    s3Key: string | null
+}
 interface UnitTypeRow { unitType: string; sizeFrom: string; sizeTo: string; priceFrom: string }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -43,6 +51,9 @@ export default function AdminEditProjectPage() {
     // Media
     const [media, setMedia] = useState<MediaItem[]>([])
     const [uploading, setUploading] = useState(false)
+    const [uploadCategory, setUploadCategory] = useState<'interior' | 'exterior' | 'amenities' | 'lifestyle'>('interior')
+    const [projectSlugForUpload, setProjectSlugForUpload] = useState('')
+    const [developerSlugForUpload, setDeveloperSlugForUpload] = useState('')
 
     // Unit types
     const [unitTypes, setUnitTypes] = useState<UnitTypeRow[]>([])
@@ -64,6 +75,8 @@ export default function AdminEditProjectPage() {
 
             setName(p.name || '')
             setSlug(p.slug || '')
+            setProjectSlugForUpload(p.slug || '')
+            setDeveloperSlugForUpload(p.developer?.slug || '')
             setDeveloperId(p.developerId || '')
             setCity(p.city || '')
             setCommunity(p.community || '')
@@ -107,14 +120,14 @@ export default function AdminEditProjectPage() {
                 community: community.trim() || null,
                 description: description.trim() || null,
                 completionYear: completionYear ? parseInt(completionYear, 10) : null,
-                startingPrice: startingPrice ? parseFloat(startingPrice) : null,
+                startingPrice: startingPrice ? startingPrice.trim() : null,
                 goldenVisa,
                 coverImage: coverImage || null,
                 unitTypes: unitTypes.filter((ut) => ut.unitType.trim()).map((ut) => ({
                     unitType: ut.unitType.trim(),
                     sizeFrom: ut.sizeFrom ? parseInt(ut.sizeFrom, 10) : null,
                     sizeTo: ut.sizeTo ? parseInt(ut.sizeTo, 10) : null,
-                    priceFrom: ut.priceFrom ? parseFloat(ut.priceFrom) : null,
+                    priceFrom: ut.priceFrom ? ut.priceFrom.trim() : null,
                 })),
             }
 
@@ -157,16 +170,38 @@ export default function AdminEditProjectPage() {
         setUploading(true)
         try {
             for (let i = 0; i < files.length; i++) {
-                const fd = new FormData()
-                fd.append('file', files[i])
-                fd.append('mediaType', 'gallery')
-                fd.append('sortOrder', String(media.length + i + 1))
-                const res = await fetch(`/api/admin/projects/${projectId}/media`, { method: 'POST', body: fd })
-                const json = await res.json()
-                if (json.success && json.media) {
-                    setMedia((prev) => [...prev, json.media])
+                const file = files[i]
+                const uploadPayload = new FormData()
+                uploadPayload.append('file', file)
+                uploadPayload.append('developerSlug', developerSlugForUpload || 'unknown')
+                uploadPayload.append('projectSlug', projectSlugForUpload || slug || 'unknown')
+
+                const uploadRes = await fetch('/api/upload/project-image', { method: 'POST', body: uploadPayload })
+                const uploadJson = await uploadRes.json()
+                if (!uploadRes.ok || !uploadJson.success || !uploadJson.url) {
+                    throw new Error(uploadJson.message || `Upload failed for ${file.name}`)
                 }
+
+                const saveRes = await fetch(`/api/admin/projects/${projectId}/media`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: uploadJson.url,
+                        s3Key: uploadJson.key || null,
+                        label: uploadJson.label || null,
+                        category: uploadCategory,
+                        sortOrder: media.length + i + 1,
+                    }),
+                })
+                const saveJson = await saveRes.json()
+                if (!saveRes.ok || !saveJson.success || !saveJson.media) {
+                    throw new Error(saveJson.message || `Save failed for ${file.name}`)
+                }
+
+                setMedia((prev) => [...prev, saveJson.media])
             }
+            setSuccess('Media uploaded successfully')
+            setTimeout(() => setSuccess(''), 2500)
         } catch (err: any) {
             setError(err.message || 'Upload failed')
         } finally {
@@ -302,7 +337,7 @@ export default function AdminEditProjectPage() {
                         </div>
                         <div>
                             <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Starting Price (AED)</label>
-                            <input type="number" value={startingPrice} onChange={(e) => setStartingPrice(e.target.value)}
+                            <input type="text" value={startingPrice} onChange={(e) => setStartingPrice(e.target.value)} placeholder="e.g. 2.16M or 750K"
                                 className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
                         </div>
                         <div className="sm:col-span-2">
@@ -324,17 +359,29 @@ export default function AdminEditProjectPage() {
                 <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-4">
                     <div className="flex items-center justify-between">
                         <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider">Media Gallery ({media.length})</h2>
-                        <label className={`inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/60 hover:bg-white/[0.08] transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                            {uploading ? 'Uploading…' : (
-                                <>
-                                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                    </svg>
-                                    Upload
-                                </>
-                            )}
-                            <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleMediaUpload} disabled={uploading} />
-                        </label>
+                        <div className="flex items-center gap-2">
+                            <select
+                                value={uploadCategory}
+                                onChange={(e) => setUploadCategory(e.target.value as any)}
+                                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/70 outline-none"
+                            >
+                                <option value="interior">Interior</option>
+                                <option value="exterior">Exterior</option>
+                                <option value="amenities">Amenities</option>
+                                <option value="lifestyle">Lifestyle</option>
+                            </select>
+                            <label className={`inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/60 hover:bg-white/[0.08] transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                                {uploading ? 'Uploading…' : (
+                                    <>
+                                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        Upload
+                                    </>
+                                )}
+                                <input type="file" accept="image/*" multiple className="hidden" onChange={handleMediaUpload} disabled={uploading} />
+                            </label>
+                        </div>
                     </div>
 
                     {media.length > 0 ? (
@@ -351,7 +398,7 @@ export default function AdminEditProjectPage() {
                                         </button>
                                     </div>
                                     <div className="px-2 py-1.5">
-                                        <p className="text-[10px] text-white/30 truncate">{m.mediaType}</p>
+                                        <p className="text-[10px] text-white/30 truncate">{m.label || m.category || m.mediaType}</p>
                                     </div>
                                 </div>
                             ))}
@@ -401,7 +448,7 @@ export default function AdminEditProjectPage() {
                                                     className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
                                             </td>
                                             <td className="pr-2 pb-2">
-                                                <input type="number" value={ut.priceFrom} onChange={(e) => updateUnitType(idx, 'priceFrom', e.target.value)}
+                                                <input type="text" value={ut.priceFrom} onChange={(e) => updateUnitType(idx, 'priceFrom', e.target.value)} placeholder="e.g. 750K"
                                                     className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
                                             </td>
                                             <td className="pb-2">
