@@ -9,7 +9,7 @@ interface MediaItem {
     id: string
     mediaUrl: string
     mediaType: string
-    category?: 'interior' | 'exterior' | 'amenities' | 'lifestyle' | null
+    category?: 'hero' | 'interior' | 'exterior' | 'amenities' | 'lifestyle' | null
     label?: string | null
     sortOrder: number | null
     s3Key: string | null
@@ -51,7 +51,7 @@ export default function AdminEditProjectPage() {
     // Media
     const [media, setMedia] = useState<MediaItem[]>([])
     const [uploading, setUploading] = useState(false)
-    const [uploadCategory, setUploadCategory] = useState<'interior' | 'exterior' | 'amenities' | 'lifestyle'>('interior')
+    const [uploadCategory, setUploadCategory] = useState<'hero' | 'interior' | 'exterior' | 'amenities' | 'lifestyle'>('interior')
     const [projectSlugForUpload, setProjectSlugForUpload] = useState('')
     const [developerSlugForUpload, setDeveloperSlugForUpload] = useState('')
 
@@ -363,8 +363,9 @@ export default function AdminEditProjectPage() {
                             <SelectDropdown
                                 label="Media Category"
                                 value={uploadCategory}
-                                onChange={(value) => setUploadCategory(value as 'interior' | 'exterior' | 'amenities' | 'lifestyle')}
+                                onChange={(value) => setUploadCategory(value as 'hero' | 'interior' | 'exterior' | 'amenities' | 'lifestyle')}
                                 options={[
+                                    { value: 'hero', label: 'Hero' },
                                     { value: 'interior', label: 'Interior' },
                                     { value: 'exterior', label: 'Exterior' },
                                     { value: 'amenities', label: 'Amenities' },

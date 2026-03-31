@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { buildProjectGalleryKey, normalizeProjectImageFilename, uploadToS3Key, buildS3ObjectUrl } from '@/lib/s3'
 
-const CATEGORY_VALUES = ['interior', 'exterior', 'amenities', 'lifestyle'] as const
+const CATEGORY_VALUES = ['hero', 'interior', 'exterior', 'amenities', 'lifestyle'] as const
 
 const saveMediaSchema = z.object({
     url: z.string().url(),
@@ -76,7 +76,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         const formData = await req.formData()
         const file = formData.get('file') as File | null
         const rawCategory = String(formData.get('category') || formData.get('mediaType') || 'interior').toLowerCase()
-        const category = rawCategory === 'cover' || rawCategory === 'gallery' ? 'interior' : rawCategory
+        const category = rawCategory === 'cover' || rawCategory === 'hero'
+            ? 'hero'
+            : rawCategory === 'gallery'
+                ? 'interior'
+                : rawCategory
         const sortOrder = parseInt(String(formData.get('sortOrder') || '0'), 10) || 0
 
         if (!file) {

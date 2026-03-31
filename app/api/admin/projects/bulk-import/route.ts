@@ -27,6 +27,16 @@ function parsePriceToNumber(input: unknown): number | null {
     return numeric
 }
 
+function mediaTypeToCategory(mediaType: string): 'HERO' | 'INTERIOR' | 'EXTERIOR' | 'AMENITIES' | 'LIFESTYLE' | null {
+    const mt = String(mediaType || '').toLowerCase()
+    if (mt === 'hero') return 'HERO'
+    if (mt === 'exterior') return 'EXTERIOR'
+    if (mt === 'amenities') return 'AMENITIES'
+    if (mt === 'lifestyle') return 'LIFESTYLE'
+    if (mt === 'interior' || mt === 'interiors' || mt === 'featured' || mt === 'gallery') return 'INTERIOR'
+    return null
+}
+
 const unitTypeSchema = z.object({
     unitType: z.string().min(1),
     sizeFrom: z.number().int().min(0).optional().nullable(),
@@ -247,20 +257,21 @@ export async function POST(req: Request) {
                     })
                 }
 
-                const mediaRows: Array<{ mediaUrl: string; mediaType: string; sortOrder: number }> = []
+                const mediaRows: Array<{ mediaUrl: string; mediaType: string; category: 'HERO' | 'INTERIOR' | 'EXTERIOR' | 'AMENITIES' | 'LIFESTYLE' | null; sortOrder: number }> = []
                 if (item.media) {
                     let order = 0
-                    if (item.media.hero) mediaRows.push({ mediaUrl: item.media.hero, mediaType: 'hero', sortOrder: order++ })
-                    for (const url of item.media.featured || []) mediaRows.push({ mediaUrl: url, mediaType: 'featured', sortOrder: order++ })
-                    for (const url of item.media.tabs?.exterior || []) mediaRows.push({ mediaUrl: url, mediaType: 'exterior', sortOrder: order++ })
-                    for (const url of item.media.tabs?.amenities || []) mediaRows.push({ mediaUrl: url, mediaType: 'amenities', sortOrder: order++ })
-                    for (const url of item.media.tabs?.interiors || []) mediaRows.push({ mediaUrl: url, mediaType: 'interiors', sortOrder: order++ })
-                    for (const url of item.media.tabs?.lifestyle || []) mediaRows.push({ mediaUrl: url, mediaType: 'lifestyle', sortOrder: order++ })
+                    if (item.media.hero) mediaRows.push({ mediaUrl: item.media.hero, mediaType: 'hero', category: mediaTypeToCategory('hero'), sortOrder: order++ })
+                    for (const url of item.media.featured || []) mediaRows.push({ mediaUrl: url, mediaType: 'featured', category: mediaTypeToCategory('featured'), sortOrder: order++ })
+                    for (const url of item.media.tabs?.exterior || []) mediaRows.push({ mediaUrl: url, mediaType: 'exterior', category: mediaTypeToCategory('exterior'), sortOrder: order++ })
+                    for (const url of item.media.tabs?.amenities || []) mediaRows.push({ mediaUrl: url, mediaType: 'amenities', category: mediaTypeToCategory('amenities'), sortOrder: order++ })
+                    for (const url of item.media.tabs?.interiors || []) mediaRows.push({ mediaUrl: url, mediaType: 'interiors', category: mediaTypeToCategory('interiors'), sortOrder: order++ })
+                    for (const url of item.media.tabs?.lifestyle || []) mediaRows.push({ mediaUrl: url, mediaType: 'lifestyle', category: mediaTypeToCategory('lifestyle'), sortOrder: order++ })
                 }
                 if (item.brochure?.file) {
                     mediaRows.push({
                         mediaUrl: item.brochure.file,
                         mediaType: 'brochure',
+                        category: null,
                         sortOrder: mediaRows.length,
                     })
                 }
@@ -303,6 +314,7 @@ export async function POST(req: Request) {
                                 projectId: project.id,
                                 mediaUrl: m.mediaUrl,
                                 mediaType: m.mediaType,
+                                category: m.category,
                                 sortOrder: m.sortOrder,
                             })),
                         })

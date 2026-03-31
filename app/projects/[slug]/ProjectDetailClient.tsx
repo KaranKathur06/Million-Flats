@@ -179,7 +179,16 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
 
     const structuredMedia = project.mediaStructured || null
 
-    const heroImage = structuredMedia?.hero || project.coverImage || allGalleryMedia[0]?.mediaUrl || null
+    const heroImageFromMedia = useMemo(() => {
+        const heroRecord = project.media.find((m) => {
+            const mt = String(m.mediaType || '').toLowerCase()
+            const cat = String(m.category || '').toLowerCase()
+            return mt === 'hero' || cat === 'hero'
+        })
+        return heroRecord?.mediaUrl || null
+    }, [project.media])
+
+    const heroImage = structuredMedia?.hero || heroImageFromMedia || project.coverImage || allGalleryMedia[0]?.mediaUrl || null
     const heroImageResolved = heroImage ? resolvePublicMediaUrl(heroImage) : null
 
     // Featured images: from structuredMedia, from 'featured' mediaType records, or first 5 gallery images

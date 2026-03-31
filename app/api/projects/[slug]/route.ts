@@ -28,7 +28,7 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
                 developer: { select: { id: true, name: true, slug: true, logo: true } },
                 media: {
                     orderBy: { sortOrder: 'asc' },
-                    select: { id: true, mediaUrl: true, mediaType: true, sortOrder: true },
+                    select: { id: true, mediaUrl: true, mediaType: true, category: true, label: true, sortOrder: true },
                 },
                 unitTypes: {
                     select: { id: true, unitType: true, sizeFrom: true, sizeTo: true, priceFrom: true },
