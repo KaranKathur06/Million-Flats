@@ -67,7 +67,7 @@ export default async function BlogSlugPage({ params }: BlogPageProps) {
           {blog.excerpt ? <p className="mt-4 text-base text-gray-600">{blog.excerpt}</p> : null}
 
           <div className="mt-4 text-sm text-gray-500">
-            By {blog.author?.name || 'MillionFlats'} ·{' '}
+            By {blog.author?.name || 'MillionFlats'} ï¿½{' '}
             {new Date(blog.publishAt || blog.createdAt).toLocaleDateString('en-US', {
               month: 'long',
               day: 'numeric',
