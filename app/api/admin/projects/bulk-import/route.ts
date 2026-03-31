@@ -11,6 +11,37 @@ function slugify(text: string) {
         .slice(0, 120)
 }
 
+function parsePriceToNumber(input: unknown): number | null {
+    if (typeof input === 'number' && Number.isFinite(input)) return input
+    if (typeof input !== 'string') return null
+
+    const raw = input.trim().toUpperCase()
+    if (!raw) return null
+
+    const numeric = parseFloat(raw.replace(/[^0-9.]/g, ''))
+    if (!Number.isFinite(numeric)) return null
+
+    if (raw.includes('B')) return numeric * 1_000_000_000
+    if (raw.includes('M')) return numeric * 1_000_000
+    if (raw.includes('K')) return numeric * 1_000
+    return numeric
+}
+
+const unitTypeSchema = z.object({
+    unitType: z.string().min(1),
+    sizeFrom: z.number().int().min(0).optional().nullable(),
+    sizeTo: z.number().int().min(0).optional().nullable(),
+    priceFrom: z.number().min(0).optional().nullable(),
+})
+
+const legacyUnitTypeSchema = z.object({
+    unitType: z.string().min(1),
+    bedrooms: z.number().int().optional().nullable(),
+    size: z.string().optional().nullable(),
+    price: z.string().optional().nullable(),
+    imageUrl: z.string().optional().nullable(),
+})
+
 const amenitySchema = z.object({
     name: z.string().min(1),
     icon: z.string().optional().nullable(),
@@ -37,6 +68,27 @@ const nearbyPlaceSchema = z.object({
     distance: z.string().optional().nullable(),
 })
 
+const legacyConnectivitySchema = z.object({
+    place: z.string().min(1),
+    time: z.string().optional().nullable(),
+})
+
+const mediaStructuredSchema = z.object({
+    hero: z.string().max(2000).optional().nullable(),
+    featured: z.array(z.string().max(2000)).optional().nullable(),
+    tabs: z.object({
+        exterior: z.array(z.string().max(2000)).optional(),
+        amenities: z.array(z.string().max(2000)).optional(),
+        interiors: z.array(z.string().max(2000)).optional(),
+        lifestyle: z.array(z.string().max(2000)).optional(),
+    }).optional().nullable(),
+}).optional().nullable()
+
+const brochureSchema = z.object({
+    title: z.string().max(300).optional().nullable(),
+    file: z.string().max(2000).optional().nullable(),
+}).optional().nullable()
+
 const projectItemSchema = z.object({
     name: z.string().min(1).max(300),
     slug: z.string().min(1).max(200).optional(),
@@ -51,11 +103,18 @@ const projectItemSchema = z.object({
     highlights: z.array(z.string()).optional().nullable(),
     coverImage: z.string().max(2000).optional().nullable(),
     sourceUrl: z.string().max(2000).optional().nullable(),
-    amenities: z.array(amenitySchema).optional().nullable(),
+    amenities: z.array(z.union([amenitySchema, z.string().min(1)])).optional().nullable(),
     paymentPlans: z.array(paymentPlanSchema).optional().nullable(),
+    paymentPlan: z.record(z.string(), z.string()).optional().nullable(),
+    unitTypes: z.array(z.union([unitTypeSchema, z.string().min(1)])).optional().nullable(),
+    startingPrices: z.record(z.string(), z.string()).optional().nullable(),
     floorPlans: z.array(floorPlanSchema).optional().nullable(),
+    legacyFloorPlans: z.array(legacyUnitTypeSchema).optional().nullable(),
     nearbyPlaces: z.array(nearbyPlaceSchema).optional().nullable(),
+    connectivity: z.array(legacyConnectivitySchema).optional().nullable(),
     locationAddress: z.string().max(5000).optional().nullable(),
+    media: mediaStructuredSchema,
+    brochure: brochureSchema,
 })
 
 const bulkImportSchema = z.object({
@@ -105,6 +164,107 @@ export async function POST(req: Request) {
                     continue
                 }
 
+                const unitTypeRows: Array<{ unitType: string; sizeFrom: number | null; sizeTo: number | null; priceFrom: number | null }> = []
+                for (const ut of item.unitTypes || []) {
+                    if (typeof ut === 'string') {
+                        const key = ut.trim()
+                        if (!key) continue
+                        const matchedPrice = item.startingPrices
+                            ? Object.entries(item.startingPrices).find(([priceKey]) => {
+                                const normalizedKey = priceKey.toLowerCase().replace(/\s+/g, '')
+                                const normalizedType = key.toLowerCase().replace(/\s+/g, '')
+                                return normalizedType.includes(normalizedKey) || normalizedKey.includes(normalizedType)
+                            })?.[1]
+                            : undefined
+                        unitTypeRows.push({
+                            unitType: key,
+                            sizeFrom: null,
+                            sizeTo: null,
+                            priceFrom: parsePriceToNumber(matchedPrice),
+                        })
+                    } else {
+                        unitTypeRows.push({
+                            unitType: ut.unitType,
+                            sizeFrom: ut.sizeFrom ?? null,
+                            sizeTo: ut.sizeTo ?? null,
+                            priceFrom: ut.priceFrom ?? null,
+                        })
+                    }
+                }
+
+                const amenityRows: Array<{ name: string; icon: string | null; category: string | null }> = []
+                for (const a of item.amenities || []) {
+                    if (typeof a === 'string') {
+                        const name = a.trim()
+                        if (!name) continue
+                        amenityRows.push({ name, icon: null, category: null })
+                    } else {
+                        amenityRows.push({ name: a.name, icon: a.icon || null, category: a.category || null })
+                    }
+                }
+
+                const paymentRows: Array<{ stage: string; percentage: number; milestone: string | null; sortOrder: number }> = []
+                if (item.paymentPlans && item.paymentPlans.length > 0) {
+                    item.paymentPlans.forEach((pp, idx) => {
+                        paymentRows.push({
+                            stage: pp.stage,
+                            percentage: pp.percentage,
+                            milestone: pp.milestone || null,
+                            sortOrder: idx,
+                        })
+                    })
+                } else if (item.paymentPlan) {
+                    Object.entries(item.paymentPlan).forEach(([stageRaw, percentageRaw], idx) => {
+                        const pct = parsePriceToNumber(percentageRaw)
+                        if (pct === null) return
+                        paymentRows.push({
+                            stage: stageRaw.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()).trim(),
+                            percentage: pct,
+                            milestone: null,
+                            sortOrder: idx,
+                        })
+                    })
+                }
+
+                const nearbyRows: Array<{ name: string; category: string | null; distance: string | null; sortOrder: number }> = []
+                if (item.nearbyPlaces && item.nearbyPlaces.length > 0) {
+                    item.nearbyPlaces.forEach((np, idx) => {
+                        nearbyRows.push({
+                            name: np.name,
+                            category: np.category || null,
+                            distance: np.distance || null,
+                            sortOrder: idx,
+                        })
+                    })
+                } else if (item.connectivity && item.connectivity.length > 0) {
+                    item.connectivity.forEach((np, idx) => {
+                        nearbyRows.push({
+                            name: np.place,
+                            category: null,
+                            distance: np.time || null,
+                            sortOrder: idx,
+                        })
+                    })
+                }
+
+                const mediaRows: Array<{ mediaUrl: string; mediaType: string; sortOrder: number }> = []
+                if (item.media) {
+                    let order = 0
+                    if (item.media.hero) mediaRows.push({ mediaUrl: item.media.hero, mediaType: 'hero', sortOrder: order++ })
+                    for (const url of item.media.featured || []) mediaRows.push({ mediaUrl: url, mediaType: 'featured', sortOrder: order++ })
+                    for (const url of item.media.tabs?.exterior || []) mediaRows.push({ mediaUrl: url, mediaType: 'exterior', sortOrder: order++ })
+                    for (const url of item.media.tabs?.amenities || []) mediaRows.push({ mediaUrl: url, mediaType: 'amenities', sortOrder: order++ })
+                    for (const url of item.media.tabs?.interiors || []) mediaRows.push({ mediaUrl: url, mediaType: 'interiors', sortOrder: order++ })
+                    for (const url of item.media.tabs?.lifestyle || []) mediaRows.push({ mediaUrl: url, mediaType: 'lifestyle', sortOrder: order++ })
+                }
+                if (item.brochure?.file) {
+                    mediaRows.push({
+                        mediaUrl: item.brochure.file,
+                        mediaType: 'brochure',
+                        sortOrder: mediaRows.length,
+                    })
+                }
+
                 // Use Prisma transaction to insert everything atomically
                 await (prisma as any).$transaction(async (tx: any) => {
                     const project = await tx.project.create({
@@ -120,15 +280,38 @@ export async function POST(req: Request) {
                             completionYear: item.completionYear ?? null,
                             startingPrice: item.startingPrice ?? null,
                             goldenVisa: item.goldenVisa || false,
-                            coverImage: item.coverImage || null,
+                            coverImage: item.coverImage || item.media?.hero || null,
                             status: item.status || 'PUBLISHED',
                         },
                     })
 
+                    if (unitTypeRows.length > 0) {
+                        await tx.projectUnitType.createMany({
+                            data: unitTypeRows.map((ut) => ({
+                                projectId: project.id,
+                                unitType: ut.unitType,
+                                sizeFrom: ut.sizeFrom,
+                                sizeTo: ut.sizeTo,
+                                priceFrom: ut.priceFrom,
+                            })),
+                        })
+                    }
+
+                    if (mediaRows.length > 0) {
+                        await tx.projectMedia.createMany({
+                            data: mediaRows.map((m) => ({
+                                projectId: project.id,
+                                mediaUrl: m.mediaUrl,
+                                mediaType: m.mediaType,
+                                sortOrder: m.sortOrder,
+                            })),
+                        })
+                    }
+
                     // Amenities
-                    if (item.amenities && item.amenities.length > 0) {
+                    if (amenityRows.length > 0) {
                         await tx.projectAmenity.createMany({
-                            data: item.amenities.map((a: any) => ({
+                            data: amenityRows.map((a) => ({
                                 projectId: project.id,
                                 name: a.name,
                                 icon: a.icon || null,
@@ -138,14 +321,14 @@ export async function POST(req: Request) {
                     }
 
                     // Payment plans
-                    if (item.paymentPlans && item.paymentPlans.length > 0) {
+                    if (paymentRows.length > 0) {
                         await tx.projectPaymentPlan.createMany({
-                            data: item.paymentPlans.map((pp: any, idx: number) => ({
+                            data: paymentRows.map((pp) => ({
                                 projectId: project.id,
                                 stage: pp.stage,
                                 percentage: pp.percentage,
                                 milestone: pp.milestone || null,
-                                sortOrder: idx,
+                                sortOrder: pp.sortOrder,
                             })),
                         })
                     }
@@ -165,14 +348,14 @@ export async function POST(req: Request) {
                     }
 
                     // Nearby places
-                    if (item.nearbyPlaces && item.nearbyPlaces.length > 0) {
+                    if (nearbyRows.length > 0) {
                         await tx.projectNearbyPlace.createMany({
-                            data: item.nearbyPlaces.map((np: any, idx: number) => ({
+                            data: nearbyRows.map((np) => ({
                                 projectId: project.id,
                                 name: np.name,
                                 category: np.category || null,
                                 distance: np.distance || null,
-                                sortOrder: idx,
+                                sortOrder: np.sortOrder,
                             })),
                         })
                     }

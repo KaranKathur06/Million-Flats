@@ -166,6 +166,12 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
         return images
     }, [project.media, project.coverImage, GALLERY_MEDIA_TYPES])
 
+    const brochureLink = useMemo(() => {
+        if (project.brochure?.file) return project.brochure.file
+        const mediaBrochure = project.media.find((m) => String(m.mediaType || '').toLowerCase() === 'brochure')
+        return mediaBrochure?.mediaUrl || null
+    }, [project.brochure?.file, project.media])
+
     const structuredMedia = project.mediaStructured || null
 
     const heroImage = structuredMedia?.hero || project.coverImage || allGalleryMedia[0]?.mediaUrl || null
@@ -415,10 +421,10 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                     ))}
                                 </div>
 
-                                {project.brochure?.file && (
+                                {brochureLink && (
                                     <div className="mt-6">
                                         <a
-                                            href={project.brochure.file}
+                                            href={brochureLink}
                                             download
                                             rel="noopener"
                                             className="inline-flex items-center justify-center gap-3 h-12 px-6 rounded-xl bg-red-600 text-white font-bold text-sm shadow-lg shadow-red-600/20 hover:bg-red-700 transition-colors w-full sm:w-auto"
