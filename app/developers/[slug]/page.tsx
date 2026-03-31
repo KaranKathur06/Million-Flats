@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import DeveloperHero from '@/components/developer-profile/DeveloperHero'
@@ -7,6 +7,9 @@ import DeveloperAbout from '@/components/developer-profile/DeveloperAbout'
 import DeveloperProjects from '@/components/developer-profile/DeveloperProjects'
 import DeveloperCTA from '@/components/developer-profile/DeveloperCTA'
 import type { DeveloperProfileData } from '@/components/developer-profile/types'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 type DeveloperPageProps = {
   params: { slug: string }
@@ -23,25 +26,38 @@ function mapCountry(code?: string | null) {
 }
 
 async function getDeveloperProfile(slug: string): Promise<DeveloperProfileData | null> {
-  const developer = await (prisma as any).developer.findUnique({
-    where: { slug },
-    include: {
-      projects: {
-        where: { status: 'PUBLISHED' },
-        orderBy: { updatedAt: 'desc' },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          city: true,
-          startingPrice: true,
-          completionYear: true,
-          coverImage: true,
-          goldenVisa: true,
+  const normalizedSlug = decodeURIComponent(String(slug || '')).trim().toLowerCase()
+  if (!normalizedSlug) return null
+
+  const runQuery = async (withDeletedFilter: boolean) =>
+    (prisma as any).developer.findFirst({
+      where: withDeletedFilter
+        ? { slug: normalizedSlug, status: 'ACTIVE', isDeleted: { not: true } }
+        : { slug: normalizedSlug, status: 'ACTIVE' },
+      include: {
+        projects: {
+          where: { status: 'PUBLISHED' },
+          orderBy: { updatedAt: 'desc' },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            city: true,
+            startingPrice: true,
+            completionYear: true,
+            coverImage: true,
+            goldenVisa: true,
+          },
         },
       },
-    },
-  })
+    })
+
+  let developer: any = null
+  try {
+    developer = await runQuery(true)
+  } catch {
+    developer = await runQuery(false)
+  }
 
   if (!developer) return null
 
@@ -221,3 +237,5 @@ export default async function DeveloperProfilePage({ params }: DeveloperPageProp
     </main>
   )
 }
+
+
