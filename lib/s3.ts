@@ -1,6 +1,7 @@
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import crypto from 'crypto'
+import { buildS3Key as buildStructuredS3Key, buildS3KeyFromFolder } from '@/utils/s3PathBuilder'
 
 type S3Env = {
   region: string
@@ -68,11 +69,15 @@ export function buildCanonicalKey(params: {
   includeTimestamp?: boolean
 }) {
   const folder = normalizePrefix(params.folder)
-  const safeFilename = sanitizeFilename(params.filename || 'upload')
-  const uniq = crypto.randomUUID()
-  const ts = params.includeTimestamp === false ? '' : `${Date.now()}-`
-  const key = `${params.visibility}/${folder}/${ts}${uniq}-${safeFilename}`
-  return normalizePrefix(key)
+  const [module = '', ...rest] = folder.split('/').filter(Boolean)
+  if (!module) throw new Error('Invalid S3 folder: module segment is required')
+  return buildStructuredS3Key({
+    visibility: params.visibility,
+    module,
+    subModule: rest.join('/') || undefined,
+    fileName: sanitizeFilename(params.filename || 'upload'),
+    includeTimestamp: params.includeTimestamp,
+  })
 }
 
 export function buildS3ObjectUrl(params: { key: string }) {
@@ -91,10 +96,11 @@ export function buildPublicAssetUrl(params: { key: string }) {
 }
 
 export function buildS3Key(folder: string, filename: string) {
-  const safeFolder = folder.replace(/^\/+/, '').replace(/\/+$/, '')
-  const parsed = sanitizeFilename(filename || 'upload')
-  const uniq = crypto.randomUUID()
-  return `${safeFolder}/${Date.now()}-${uniq}-${parsed}`
+  return buildS3KeyFromFolder({
+    folder,
+    fileName: sanitizeFilename(filename || 'upload'),
+    includeTimestamp: true,
+  })
 }
 
 function requireCanonicalPrefix(key: string) {
@@ -150,52 +156,76 @@ export function buildAgentProfileImageKey(params: { agentId: string; ext: string
   const ts = params.timestamp ?? Date.now()
   const safeExt = sanitizeFilename(params.ext || '').replace('.', '')
   const agentId = sanitizeFilename(params.agentId || '')
-  return `public/agents/${agentId}/profile-${ts}.${safeExt}`
+  return `public/agents/${agentId}/profile-${ts}.${safeExt}`.replace(/\/+/g, '/')
 }
 
 export function buildAgentDocumentKey(params: { agentId: string; documentType: string; ext?: string; contentType?: string }) {
   const ext = sanitizeFilename(params.ext || guessExtensionFromContentType(params.contentType || '') || 'bin').replace('.', '')
   const agentId = sanitizeFilename(params.agentId || '')
   const docType = sanitizeFilename(params.documentType || 'document')
-  const uuid = crypto.randomUUID()
-  return `private/agents/${agentId}/documents/${docType}/${uuid}.${ext}`
+  return buildStructuredS3Key({
+    visibility: 'private',
+    module: 'agents',
+    subModule: `${agentId}/documents/${docType}`,
+    fileName: `file.${ext}`,
+  })
 }
 
 export function buildPropertyImageKey(params: { propertyId: string; ext?: string; contentType?: string }) {
   const ext = sanitizeFilename(params.ext || guessExtensionFromContentType(params.contentType || '') || 'bin').replace('.', '')
   const pid = sanitizeFilename(params.propertyId || '')
-  const uuid = crypto.randomUUID()
-  return `public/properties/${pid}/images/${uuid}.${ext}`
+  return buildStructuredS3Key({
+    visibility: 'public',
+    module: 'properties',
+    subModule: `${pid}/images`,
+    fileName: `image.${ext}`,
+  })
 }
 
 export function buildPropertyVideoKey(params: { propertyId: string; ext?: string; contentType?: string }) {
   const ext = sanitizeFilename(params.ext || guessExtensionFromContentType(params.contentType || '') || 'bin').replace('.', '')
   const pid = sanitizeFilename(params.propertyId || '')
-  const uuid = crypto.randomUUID()
-  return `public/properties/${pid}/videos/${uuid}.${ext}`
+  return buildStructuredS3Key({
+    visibility: 'public',
+    module: 'properties',
+    subModule: `${pid}/videos`,
+    fileName: `video.${ext}`,
+  })
 }
 
 export function buildEcosystemPartnerLogoKey(params: { partnerId: string; ext?: string; contentType?: string }) {
   const ext = sanitizeFilename(params.ext || guessExtensionFromContentType(params.contentType || '') || 'bin').replace('.', '')
   const partnerId = sanitizeFilename(params.partnerId || '')
-  const uuid = crypto.randomUUID()
-  return `public/ecosystem/partners/${partnerId}/logo/${uuid}.${ext}`
+  return buildStructuredS3Key({
+    visibility: 'public',
+    module: 'ecosystem',
+    subModule: `partners/${partnerId}/logo`,
+    fileName: `logo.${ext}`,
+  })
 }
 
 export function buildEcosystemRegistrationDocKey(params: { registrationId: string; ext?: string; contentType?: string }) {
   const extRaw = params.ext || guessExtensionFromContentType(params.contentType || '') || 'pdf'
   const ext = sanitizeFilename(extRaw).replace('.', '')
   const id = sanitizeFilename(params.registrationId || '')
-  const uuid = crypto.randomUUID()
-  return `private/ecosystem/registrations/${id}/documents/${uuid}.${ext}`
+  return buildStructuredS3Key({
+    visibility: 'private',
+    module: 'ecosystem',
+    subModule: `registrations/${id}/documents`,
+    fileName: `document.${ext}`,
+  })
 }
 
 export function buildProjectMediaKey(params: { developerSlug: string; projectSlug: string; ext?: string; contentType?: string }) {
   const ext = sanitizeFilename(params.ext || guessExtensionFromContentType(params.contentType || '') || 'bin').replace('.', '')
   const devSlug = sanitizeFilename(params.developerSlug || 'unknown')
   const projSlug = sanitizeFilename(params.projectSlug || 'unknown')
-  const uuid = crypto.randomUUID()
-  return `public/developers/${devSlug}/${projSlug}/media/${uuid}.${ext}`
+  return buildStructuredS3Key({
+    visibility: 'public',
+    module: 'developers',
+    subModule: `${devSlug}/${projSlug}/media`,
+    fileName: `media.${ext}`,
+  })
 }
 
 export function buildProjectGalleryKey(params: { developerSlug: string; projectSlug: string; originalName: string; contentType?: string }) {
@@ -208,8 +238,12 @@ export function buildProjectGalleryKey(params: { developerSlug: string; projectS
 export function buildDeveloperLogoKey(params: { developerSlug: string; ext?: string; contentType?: string }) {
   const ext = sanitizeFilename(params.ext || guessExtensionFromContentType(params.contentType || '') || 'bin').replace('.', '')
   const devSlug = sanitizeFilename(params.developerSlug || 'unknown')
-  const uuid = crypto.randomUUID()
-  return `public/developers/${devSlug}/logo/${uuid}.${ext}`
+  return buildStructuredS3Key({
+    visibility: 'public',
+    module: 'developers',
+    subModule: `${devSlug}/logo`,
+    fileName: `logo.${ext}`,
+  })
 }
 
 export function buildBlogFeaturedImageKey(params: { slug: string; timestamp?: number }) {

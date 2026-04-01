@@ -1,8 +1,9 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { hasMinRole, normalizeRole } from '@/lib/rbac'
 import { prisma } from '@/lib/prisma'
+import { uploadFile, UploadServiceError } from '@/services/uploadService'
 
 export const dynamic = 'force-dynamic'
 
@@ -84,39 +85,106 @@ export async function POST(req: Request) {
     )
   }
 
-  const body = await req.json().catch(() => null)
-  const slug = String(body?.slug || '').trim().toLowerCase()
-  const title = String(body?.title || '').trim()
-  const fileS3Key = String(body?.fileS3Key || '').trim()
-
-  if (!slug) return NextResponse.json({ success: false, message: 'Slug is required' }, { status: 400 })
-  if (!title) return NextResponse.json({ success: false, message: 'Title is required' }, { status: 400 })
-  if (!fileS3Key || !fileS3Key.startsWith('private/')) {
-    return NextResponse.json({ success: false, message: 'A private S3 PDF key is required' }, { status: 400 })
-  }
+  const contentType = String(req.headers.get('content-type') || '').toLowerCase()
+  const isMultipart = contentType.includes('multipart/form-data')
 
   try {
+    let slug = ''
+    let title = ''
+    let subtitle = ''
+    let ctaLabel = 'Download Free Guide'
+    let loginHint = 'Login required'
+    let badgeText = ''
+    let isActive = true
+    let popupEnabled = true
+    let popupDelaySeconds = 4
+    let popupScrollPercent = 25
+    let cooldownHours = 24
+    let sortOrder = 0
+    let fileS3Key = ''
+    let fileUrl: string | null = null
+
+    if (isMultipart) {
+      const formData = await req.formData()
+      const file = formData.get('file')
+
+      slug = String(formData.get('slug') || '').trim().toLowerCase()
+      title = String(formData.get('title') || '').trim()
+      subtitle = String(formData.get('subtitle') || '').trim()
+      ctaLabel = String(formData.get('ctaLabel') || ctaLabel).trim()
+      loginHint = String(formData.get('loginHint') || loginHint).trim()
+      badgeText = String(formData.get('badgeText') || '').trim()
+      isActive = String(formData.get('isActive') || 'true').toLowerCase() !== 'false'
+      popupEnabled = String(formData.get('popupEnabled') || 'true').toLowerCase() !== 'false'
+      popupDelaySeconds = toInt(formData.get('popupDelaySeconds'), 4, 1, 30)
+      popupScrollPercent = toInt(formData.get('popupScrollPercent'), 25, 5, 80)
+      cooldownHours = toInt(formData.get('cooldownHours'), 24, 1, 168)
+      sortOrder = toInt(formData.get('sortOrder'), 0, -9999, 9999)
+
+      if (!(file instanceof File)) {
+        return NextResponse.json({ success: false, message: 'PDF file is required' }, { status: 400 })
+      }
+
+      const uploaded = await uploadFile({
+        file,
+        visibility: 'private',
+        module: 'lead-magnets',
+        subModule: 'faq',
+        entityId: slug || undefined,
+        allowedMimeTypes: ['application/pdf'],
+        maxSizeBytes: 10 * 1024 * 1024,
+      })
+      fileS3Key = uploaded.key
+      fileUrl = uploaded.url
+    } else {
+      const body = await req.json().catch(() => null)
+
+      slug = String(body?.slug || '').trim().toLowerCase()
+      title = String(body?.title || '').trim()
+      subtitle = String(body?.subtitle || '').trim()
+      ctaLabel = String(body?.ctaLabel || ctaLabel).trim()
+      loginHint = String(body?.loginHint || loginHint).trim()
+      badgeText = String(body?.badgeText || '').trim()
+      isActive = Boolean(body?.isActive ?? true)
+      popupEnabled = Boolean(body?.popupEnabled ?? true)
+      popupDelaySeconds = toInt(body?.popupDelaySeconds, 4, 1, 30)
+      popupScrollPercent = toInt(body?.popupScrollPercent, 25, 5, 80)
+      cooldownHours = toInt(body?.cooldownHours, 24, 1, 168)
+      sortOrder = toInt(body?.sortOrder, 0, -9999, 9999)
+      fileS3Key = String(body?.fileS3Key || '').trim()
+    }
+
+    if (!slug) return NextResponse.json({ success: false, message: 'Slug is required' }, { status: 400 })
+    if (!title) return NextResponse.json({ success: false, message: 'Title is required' }, { status: 400 })
+    if (!fileS3Key || !fileS3Key.startsWith('private/')) {
+      return NextResponse.json({ success: false, message: 'A private S3 PDF key is required' }, { status: 400 })
+    }
+
     const created = await (prisma as any).leadMagnet.create({
       data: {
         slug,
         title,
-        subtitle: String(body?.subtitle || '').trim() || null,
-        ctaLabel: String(body?.ctaLabel || 'Download Free Guide').trim(),
-        loginHint: String(body?.loginHint || 'Login required').trim(),
-        badgeText: String(body?.badgeText || '').trim() || null,
+        subtitle: subtitle || null,
+        ctaLabel,
+        loginHint,
+        badgeText: badgeText || null,
         fileS3Key,
-        isActive: Boolean(body?.isActive ?? true),
-        popupEnabled: Boolean(body?.popupEnabled ?? true),
-        popupDelaySeconds: toInt(body?.popupDelaySeconds, 4, 1, 30),
-        popupScrollPercent: toInt(body?.popupScrollPercent, 25, 5, 80),
-        cooldownHours: toInt(body?.cooldownHours, 24, 1, 168),
-        sortOrder: toInt(body?.sortOrder, 0, -9999, 9999),
+        isActive,
+        popupEnabled,
+        popupDelaySeconds,
+        popupScrollPercent,
+        cooldownHours,
+        sortOrder,
       },
     })
 
-    return NextResponse.json({ success: true, data: created }, { status: 201 })
+    return NextResponse.json({ success: true, data: created, file_url: fileUrl, file_s3_key: fileS3Key }, { status: 201 })
   } catch (error) {
+    if (error instanceof UploadServiceError) {
+      return NextResponse.json({ success: false, message: error.message }, { status: error.status })
+    }
     console.error('[POST /api/admin/lead-magnets] failed:', error)
     return NextResponse.json({ success: false, message: 'Failed to create lead magnet' }, { status: 500 })
   }
 }
+

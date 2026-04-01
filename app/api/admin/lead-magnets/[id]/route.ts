@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { hasMinRole, normalizeRole } from '@/lib/rbac'
@@ -43,6 +43,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const id = String(params.id || '').trim()
   if (!id) return NextResponse.json({ success: false, message: 'Invalid id' }, { status: 400 })
 
+  const nextFileS3Key = body?.fileS3Key !== undefined ? String(body.fileS3Key).trim() : undefined
+  if (nextFileS3Key !== undefined && nextFileS3Key !== '' && !nextFileS3Key.startsWith('private/')) {
+    return NextResponse.json({ success: false, message: 'fileS3Key must be a private S3 key' }, { status: 400 })
+  }
+
   try {
     const updated = await (prisma as any).leadMagnet.update({
       where: { id },
@@ -53,7 +58,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         ctaLabel: body?.ctaLabel !== undefined ? String(body.ctaLabel).trim() : undefined,
         loginHint: body?.loginHint !== undefined ? String(body.loginHint).trim() : undefined,
         badgeText: body?.badgeText !== undefined ? (String(body.badgeText).trim() || null) : undefined,
-        fileS3Key: body?.fileS3Key !== undefined ? String(body.fileS3Key).trim() : undefined,
+        fileS3Key: nextFileS3Key,
         isActive: body?.isActive !== undefined ? Boolean(body.isActive) : undefined,
         popupEnabled: body?.popupEnabled !== undefined ? Boolean(body.popupEnabled) : undefined,
         popupDelaySeconds: body?.popupDelaySeconds !== undefined ? toInt(body.popupDelaySeconds, 4, 1, 30) : undefined,
@@ -69,3 +74,4 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ success: false, message: 'Failed to update lead magnet' }, { status: 500 })
   }
 }
+

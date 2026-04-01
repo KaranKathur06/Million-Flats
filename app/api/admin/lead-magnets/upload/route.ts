@@ -1,8 +1,8 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { hasMinRole, normalizeRole } from '@/lib/rbac'
-import { buildCanonicalKey, sanitizeFilename, uploadToS3Key } from '@/lib/s3'
+import { uploadFile, UploadServiceError } from '@/services/uploadService'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -27,33 +27,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: 'File is required' }, { status: 400 })
     }
 
-    if (!String(file.type || '').toLowerCase().includes('pdf')) {
-      return NextResponse.json({ success: false, message: 'Only PDF files are allowed' }, { status: 400 })
-    }
-
-    if (file.size > 25 * 1024 * 1024) {
-      return NextResponse.json({ success: false, message: 'PDF is too large (max 25MB)' }, { status: 400 })
-    }
-
-    const extName = String(file.name || 'guide.pdf').toLowerCase().endsWith('.pdf')
-      ? file.name
-      : `${file.name || 'guide'}.pdf`
-
-    const key = buildCanonicalKey({
+    const uploaded = await uploadFile({
+      file,
       visibility: 'private',
-      folder: `lead-magnets/${sanitizeFilename(slug)}`,
-      filename: sanitizeFilename(extName),
-      includeTimestamp: true,
+      module: 'lead-magnets',
+      subModule: 'faq',
+      entityId: slug,
+      allowedMimeTypes: ['application/pdf'],
+      maxSizeBytes: 10 * 1024 * 1024,
     })
 
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-
-    await uploadToS3Key({ buffer, key, contentType: 'application/pdf' })
-
-    return NextResponse.json({ success: true, key })
+    return NextResponse.json({ success: true, key: uploaded.key, file_url: uploaded.url })
   } catch (error) {
+    if (error instanceof UploadServiceError) {
+      return NextResponse.json({ success: false, message: error.message }, { status: error.status })
+    }
     console.error('[POST /api/admin/lead-magnets/upload] failed:', error)
     return NextResponse.json({ success: false, message: 'Upload failed' }, { status: 500 })
   }
 }
+

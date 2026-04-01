@@ -1,6 +1,7 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import FileUploadBox from '@/components/admin/FileUploadBox'
 
 type LeadMagnetItem = {
   id: string
@@ -27,6 +28,8 @@ export default function LeadMagnetSettingsClient() {
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [toast, setToast] = useState<ToastState>(null)
+  const [creating, setCreating] = useState(false)
+  const [pdfFile, setPdfFile] = useState<File | null>(null)
 
   const [newForm, setNewForm] = useState({
     slug: 'dubai-real-estate-investor-guide',
@@ -35,10 +38,13 @@ export default function LeadMagnetSettingsClient() {
     ctaLabel: 'Download Free Guide',
     loginHint: 'Login required',
     badgeText: 'Exclusive for Registered Users',
-    fileS3Key: '',
+    isActive: true,
+    popupEnabled: true,
+    popupDelaySeconds: 4,
+    popupScrollPercent: 25,
+    cooldownHours: 24,
+    sortOrder: 0,
   })
-  const [uploading, setUploading] = useState(false)
-  const [creating, setCreating] = useState(false)
 
   async function loadData() {
     setLoading(true)
@@ -63,52 +69,47 @@ export default function LeadMagnetSettingsClient() {
 
   useEffect(() => {
     if (!toast) return
-    const t = window.setTimeout(() => setToast(null), 3000)
+    const t = window.setTimeout(() => setToast(null), 3500)
     return () => window.clearTimeout(t)
   }, [toast])
 
-  const totalDownloads = useMemo(
-    () => items.reduce((acc, item) => acc + Number(item.downloadsCount || 0), 0),
-    [items]
-  )
-
-  async function uploadPdf(file: File) {
-    setUploading(true)
-    try {
-      const fd = new FormData()
-      fd.set('file', file)
-      fd.set('slug', newForm.slug || 'lead-magnet')
-
-      const res = await fetch('/api/admin/lead-magnets/upload', { method: 'POST', body: fd })
-      const json = await res.json().catch(() => null)
-      if (!res.ok || !json?.success || !json?.key) {
-        throw new Error(json?.message || 'Upload failed')
-      }
-
-      setNewForm((prev) => ({ ...prev, fileS3Key: String(json.key) }))
-      setToast({ type: 'success', message: 'PDF uploaded successfully' })
-    } catch (error) {
-      setToast({ type: 'error', message: error instanceof Error ? error.message : 'Upload failed' })
-    } finally {
-      setUploading(false)
-    }
-  }
+  const totalDownloads = useMemo(() => items.reduce((acc, item) => acc + Number(item.downloadsCount || 0), 0), [items])
 
   async function createLeadMagnet() {
+    if (!pdfFile) {
+      setToast({ type: 'error', message: 'Please select a PDF before saving.' })
+      return
+    }
+
     setCreating(true)
     try {
+      const fd = new FormData()
+      fd.set('file', pdfFile)
+      fd.set('slug', newForm.slug)
+      fd.set('title', newForm.title)
+      fd.set('subtitle', newForm.subtitle)
+      fd.set('ctaLabel', newForm.ctaLabel)
+      fd.set('loginHint', newForm.loginHint)
+      fd.set('badgeText', newForm.badgeText)
+      fd.set('isActive', String(newForm.isActive))
+      fd.set('popupEnabled', String(newForm.popupEnabled))
+      fd.set('popupDelaySeconds', String(newForm.popupDelaySeconds))
+      fd.set('popupScrollPercent', String(newForm.popupScrollPercent))
+      fd.set('cooldownHours', String(newForm.cooldownHours))
+      fd.set('sortOrder', String(newForm.sortOrder))
+
       const res = await fetch('/api/admin/lead-magnets', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newForm),
+        body: fd,
       })
+
       const json = await res.json().catch(() => null)
       if (!res.ok || !json?.success) {
         throw new Error(json?.message || 'Failed to create lead magnet')
       }
 
-      setToast({ type: 'success', message: 'Lead magnet created' })
-      setNewForm((prev) => ({ ...prev, fileS3Key: '' }))
+      setPdfFile(null)
+      setToast({ type: 'success', message: 'Lead magnet uploaded and created successfully.' })
       await loadData()
     } catch (error) {
       setToast({ type: 'error', message: error instanceof Error ? error.message : 'Create failed' })
@@ -141,55 +142,88 @@ export default function LeadMagnetSettingsClient() {
   return (
     <div className="space-y-6">
       {toast ? (
-        <div className={`rounded-xl border px-4 py-3 text-sm ${toast.type === 'success' ? 'border-emerald-300/40 bg-emerald-500/10 text-emerald-200' : 'border-red-300/40 bg-red-500/10 text-red-200'}`}>
+        <div
+          className={`rounded-xl border px-4 py-3 text-sm ${toast.type === 'success' ? 'border-emerald-300/40 bg-emerald-500/10 text-emerald-200' : 'border-red-300/40 bg-red-500/10 text-red-200'}`}
+        >
           {toast.message}
         </div>
       ) : null}
 
       <section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
-        <h2 className="text-lg font-semibold text-white">FAQ Lead Magnet Funnel</h2>
-        <p className="mt-1 text-sm text-white/55">Total downloads tracked: <span className="font-semibold text-white">{totalDownloads}</span></p>
+        <h2 className="text-lg font-semibold text-white">Lead Magnets</h2>
+        <p className="mt-1 text-sm text-white/55">
+          Manage all downloadable assets (FAQ guides, investor reports, brochures). Total downloads tracked:{' '}
+          <span className="font-semibold text-white">{totalDownloads}</span>
+        </p>
       </section>
 
       <section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-white/50">Create / Upload</h3>
+        <h3 className="text-sm font-bold uppercase tracking-wider text-white/50">Create New Lead Magnet</h3>
+
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-          <input value={newForm.slug} onChange={(e) => setNewForm((p) => ({ ...p, slug: e.target.value }))} className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white" placeholder="slug" />
-          <input value={newForm.title} onChange={(e) => setNewForm((p) => ({ ...p, title: e.target.value }))} className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white" placeholder="title" />
-          <input value={newForm.ctaLabel} onChange={(e) => setNewForm((p) => ({ ...p, ctaLabel: e.target.value }))} className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white" placeholder="cta label" />
-          <input value={newForm.loginHint} onChange={(e) => setNewForm((p) => ({ ...p, loginHint: e.target.value }))} className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white" placeholder="login hint" />
-          <input value={newForm.badgeText} onChange={(e) => setNewForm((p) => ({ ...p, badgeText: e.target.value }))} className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white" placeholder="badge text" />
-          <input value={newForm.fileS3Key} onChange={(e) => setNewForm((p) => ({ ...p, fileS3Key: e.target.value }))} className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white" placeholder="private/...pdf" />
-          <textarea value={newForm.subtitle} onChange={(e) => setNewForm((p) => ({ ...p, subtitle: e.target.value }))} className="md:col-span-2 min-h-[88px] rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white" placeholder="subtitle" />
+          <input
+            value={newForm.slug}
+            onChange={(e) => setNewForm((p) => ({ ...p, slug: e.target.value.trim().toLowerCase().replace(/\s+/g, '-') }))}
+            className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white"
+            placeholder="slug"
+          />
+          <input
+            value={newForm.title}
+            onChange={(e) => setNewForm((p) => ({ ...p, title: e.target.value }))}
+            className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white"
+            placeholder="title"
+          />
+          <input
+            value={newForm.ctaLabel}
+            onChange={(e) => setNewForm((p) => ({ ...p, ctaLabel: e.target.value }))}
+            className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white"
+            placeholder="CTA label"
+          />
+          <input
+            value={newForm.loginHint}
+            onChange={(e) => setNewForm((p) => ({ ...p, loginHint: e.target.value }))}
+            className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white"
+            placeholder="login hint"
+          />
+          <input
+            value={newForm.badgeText}
+            onChange={(e) => setNewForm((p) => ({ ...p, badgeText: e.target.value }))}
+            className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white"
+            placeholder="badge text"
+          />
+          <input
+            value={newForm.sortOrder}
+            onChange={(e) => setNewForm((p) => ({ ...p, sortOrder: Number(e.target.value || 0) }))}
+            type="number"
+            className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white"
+            placeholder="sort order"
+          />
+          <textarea
+            value={newForm.subtitle}
+            onChange={(e) => setNewForm((p) => ({ ...p, subtitle: e.target.value }))}
+            className="md:col-span-2 min-h-[88px] rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+            placeholder="subtitle"
+          />
+        </div>
+
+        <div className="mt-4">
+          <FileUploadBox type="pdf" maxSizeMB={10} file={pdfFile} onFileChange={setPdfFile} disabled={creating} />
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <label className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-white/15 px-4 py-2 text-sm font-medium text-white/80 hover:bg-white/5">
-            {uploading ? 'Uploading PDF...' : 'Upload PDF'}
-            <input
-              type="file"
-              accept="application/pdf"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0]
-                if (file) void uploadPdf(file)
-                event.currentTarget.value = ''
-              }}
-            />
-          </label>
           <button
             type="button"
-            disabled={creating || !newForm.slug || !newForm.title || !newForm.fileS3Key}
+            disabled={creating || !newForm.slug || !newForm.title || !pdfFile}
             onClick={createLeadMagnet}
-            className="inline-flex items-center justify-center rounded-xl bg-dark-blue px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center justify-center rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-[#111827] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {creating ? 'Creating...' : 'Create Lead Magnet'}
+            {creating ? 'Saving...' : 'Save Lead Magnet'}
           </button>
         </div>
       </section>
 
       <section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-white/50">Existing Magnets</h3>
+        <h3 className="text-sm font-bold uppercase tracking-wider text-white/50">Existing Lead Magnets</h3>
         {loading ? (
           <p className="mt-4 text-sm text-white/60">Loading...</p>
         ) : items.length === 0 ? (
@@ -202,6 +236,7 @@ export default function LeadMagnetSettingsClient() {
                   <div>
                     <p className="text-sm font-semibold text-white">{item.title}</p>
                     <p className="text-xs text-white/45">/{item.slug} · downloads: {item.downloadsCount}</p>
+                    <p className="mt-1 truncate text-[11px] text-white/35">{item.fileS3Key}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -230,3 +265,4 @@ export default function LeadMagnetSettingsClient() {
     </div>
   )
 }
+
