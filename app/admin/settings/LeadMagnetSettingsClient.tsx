@@ -80,6 +80,10 @@ export default function LeadMagnetSettingsClient() {
       setToast({ type: 'error', message: 'Please select a PDF before saving.' })
       return
     }
+    if (items.some((item) => item.slug === newForm.slug.trim().toLowerCase())) {
+      setToast({ type: 'error', message: 'Slug already exists. Update the existing lead magnet or choose a different slug.' })
+      return
+    }
 
     setCreating(true)
     try {

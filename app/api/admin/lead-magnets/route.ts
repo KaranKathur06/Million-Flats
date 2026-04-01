@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { hasMinRole, normalizeRole } from '@/lib/rbac'
 import { prisma } from '@/lib/prisma'
 import { uploadFile, UploadServiceError } from '@/services/uploadService'
+import { deleteFromS3 } from '@/lib/s3'
+import { Prisma } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
 
@@ -87,6 +89,7 @@ export async function POST(req: Request) {
 
   const contentType = String(req.headers.get('content-type') || '').toLowerCase()
   const isMultipart = contentType.includes('multipart/form-data')
+  let uploadedFileKey: string | null = null
 
   try {
     let slug = ''
@@ -125,6 +128,17 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, message: 'PDF file is required' }, { status: 400 })
       }
 
+      if (!slug) return NextResponse.json({ success: false, message: 'Slug is required' }, { status: 400 })
+      if (!title) return NextResponse.json({ success: false, message: 'Title is required' }, { status: 400 })
+
+      const existingBySlug = await (prisma as any).leadMagnet.findUnique({ where: { slug }, select: { id: true } })
+      if (existingBySlug) {
+        return NextResponse.json(
+          { success: false, message: 'Slug already exists. Use a new slug or update the existing lead magnet.' },
+          { status: 409 }
+        )
+      }
+
       const uploaded = await uploadFile({
         file,
         visibility: 'private',
@@ -135,6 +149,7 @@ export async function POST(req: Request) {
         maxSizeBytes: 10 * 1024 * 1024,
       })
       fileS3Key = uploaded.key
+      uploadedFileKey = uploaded.key
       fileUrl = uploaded.url
     } else {
       const body = await req.json().catch(() => null)
@@ -160,6 +175,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: 'A private S3 PDF key is required' }, { status: 400 })
     }
 
+    if (!isMultipart) {
+      const existingBySlug = await (prisma as any).leadMagnet.findUnique({ where: { slug }, select: { id: true } })
+      if (existingBySlug) {
+        return NextResponse.json(
+          { success: false, message: 'Slug already exists. Use a new slug or update the existing lead magnet.' },
+          { status: 409 }
+        )
+      }
+    }
+
     const created = await (prisma as any).leadMagnet.create({
       data: {
         slug,
@@ -180,11 +205,24 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, data: created, file_url: fileUrl, file_s3_key: fileS3Key }, { status: 201 })
   } catch (error) {
+    if (uploadedFileKey) {
+      await deleteFromS3(uploadedFileKey).catch((cleanupError) => {
+        console.error('[POST /api/admin/lead-magnets] cleanup failed:', cleanupError)
+      })
+    }
+
     if (error instanceof UploadServiceError) {
       return NextResponse.json({ success: false, message: error.message }, { status: error.status })
     }
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return NextResponse.json(
+        { success: false, message: 'Slug already exists. Use a new slug or update the existing lead magnet.' },
+        { status: 409 }
+      )
+    }
+
     console.error('[POST /api/admin/lead-magnets] failed:', error)
     return NextResponse.json({ success: false, message: 'Failed to create lead magnet' }, { status: 500 })
   }
 }
-
