@@ -97,11 +97,30 @@ export async function GET(req: Request) {
                 createdAt: true,
                 updatedAt: true,
                 developer: { select: { id: true, name: true, slug: true } },
+                media: {
+                    orderBy: { sortOrder: 'asc' },
+                    select: { mediaUrl: true, mediaType: true, category: true },
+                },
                 _count: { select: { media: true, unitTypes: true, leads: true } },
             },
         })
+        const normalizedItems = (items || []).map((item: any) => {
+            const hero = (item.media || []).find((m: any) => {
+                const mt = String(m.mediaType || '').toLowerCase()
+                const cat = String(m.category || '').toLowerCase()
+                return mt === 'hero' || cat === 'hero'
+            })?.mediaUrl
+            const firstMedia = (item.media || []).find((m: any) => String(m.mediaUrl || '').trim())?.mediaUrl
+            const heroImage = hero || item.coverImage || firstMedia || '/images/default-property.jpg'
+            return {
+                ...item,
+                hero_image: heroImage,
+                coverImage: heroImage,
+                media: undefined,
+            }
+        })
 
-        return NextResponse.json({ success: true, items })
+        return NextResponse.json({ success: true, items: normalizedItems })
     } catch (err: any) {
         console.error('[GET /api/admin/projects]', err)
         return NextResponse.json({ success: false, message: 'Internal error' }, { status: 500 })

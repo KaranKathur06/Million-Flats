@@ -351,6 +351,73 @@ export default function AdminEditProjectPage() {
             setError(err.message || 'Failed to delete')
         }
     }
+    const findVariantIdForFloorPlan = (floorPlanTitle: string) => {
+        const key = floorPlanTitle.trim().toLowerCase()
+        for (const ut of unitTypes) {
+            for (const v of ut.variants || []) {
+                const vKey = v.title.trim().toLowerCase()
+                const utKey = ut.unitType.trim().toLowerCase()
+                if ((key && (key === vKey || key === utKey)) && v.id) return v.id
+            }
+        }
+        return ''
+    }
+    const uploadFloorPlanFile = async (idx: number, file: File) => {
+        if (!file.type.startsWith('image/')) {
+            setError('Only image files are allowed for floor plans')
+            return
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            setError('Floor plan image must be 5MB or smaller')
+            return
+        }
+        setUploading(true)
+        setError('')
+        try {
+            const floorPlan = floorPlans[idx]
+            const unitVariantId = findVariantIdForFloorPlan(floorPlan?.unitType || '')
+            const uploadPayload = new FormData()
+            uploadPayload.append('file', file)
+            uploadPayload.append('developerSlug', developerSlugForUpload || 'unknown')
+            uploadPayload.append('projectSlug', projectSlugForUpload || slug || 'unknown')
+            uploadPayload.append('mediaType', 'floor_plan')
+            if (unitVariantId) uploadPayload.append('unitVariantId', unitVariantId)
+
+            const uploadRes = await fetch('/api/upload/project-image', { method: 'POST', body: uploadPayload })
+            const uploadJson = await uploadRes.json()
+            if (!uploadRes.ok || !uploadJson.success || !uploadJson.url) {
+                throw new Error(uploadJson.message || 'Floor plan upload failed')
+            }
+
+            const saveRes = await fetch(`/api/admin/projects/${projectId}/media`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    url: uploadJson.url,
+                    s3Key: uploadJson.key || null,
+                    label: floorPlan?.unitType || uploadJson.label || 'Floor Plan',
+                    category: 'floor_plan',
+                    unitVariantId: unitVariantId || null,
+                    sortOrder: media.length + 1,
+                }),
+            })
+            const saveJson = await saveRes.json()
+            if (!saveRes.ok || !saveJson.success) {
+                throw new Error(saveJson.message || 'Could not save floor plan media')
+            }
+
+            setFloorPlans((prev) => prev.map((row, i) => (i === idx ? { ...row, imageUrl: uploadJson.url } : row)))
+            if (saveJson.media) {
+                setMedia((prev) => [...prev, saveJson.media])
+            }
+            setSuccess('Floor plan uploaded')
+            setTimeout(() => setSuccess(''), 2000)
+        } catch (err: any) {
+            setError(err.message || 'Floor plan upload failed')
+        } finally {
+            setUploading(false)
+        }
+    }
 
     const addUnitType = () => setUnitTypes((prev) => [...prev, {
         unitType: '',
@@ -515,13 +582,13 @@ export default function AdminEditProjectPage() {
                         </div>
                         <div className="sm:col-span-2">
                             <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Overview</label>
-                            <textarea value={overview} onChange={(e) => setOverview(e.target.value)} rows={3}
-                                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all resize-none" />
+                            <textarea value={overview} onChange={(e) => setOverview(e.target.value)} rows={8}
+                                className="w-full min-h-[200px] max-h-[420px] overflow-y-auto rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/80 outline-none focus:border-amber-400/30 transition-all resize-y scrollbar-thin scrollbar-thumb-white/20" />
                         </div>
                         <div className="sm:col-span-2">
                             <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Description</label>
-                            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4}
-                                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all resize-none" />
+                            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={10}
+                                className="w-full min-h-[220px] max-h-[460px] overflow-y-auto rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/80 outline-none focus:border-amber-400/30 transition-all resize-y scrollbar-thin scrollbar-thumb-white/20" />
                         </div>
                         <div className="sm:col-span-2 flex items-center gap-3">
                             <button type="button" onClick={() => setGoldenVisa(!goldenVisa)}
@@ -636,17 +703,19 @@ export default function AdminEditProjectPage() {
                         <div className="space-y-4">
                             {unitTypes.map((ut, idx) => (
                                 <div key={ut.id || idx} className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-3">
-                                    <div className="grid grid-cols-1 sm:grid-cols-6 gap-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                                         <input type="text" value={ut.unitType} onChange={(e) => updateUnitType(idx, 'unitType', e.target.value)} placeholder="Unit Type (e.g. 1 Bedroom)"
-                                            className="sm:col-span-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/80 outline-none focus:border-amber-400/30 transition-all" />
+                                            className="sm:col-span-3 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/80 outline-none focus:border-amber-400/30 transition-all" />
                                         <input type="number" value={ut.bedrooms} onChange={(e) => updateUnitType(idx, 'bedrooms', e.target.value)} placeholder="Beds"
-                                            className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                            className="sm:col-span-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
                                         <input type="number" value={ut.bathrooms} onChange={(e) => updateUnitType(idx, 'bathrooms', e.target.value)} placeholder="Baths"
-                                            className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                            className="sm:col-span-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
                                         <input type="number" value={ut.sizeFrom} onChange={(e) => updateUnitType(idx, 'sizeFrom', e.target.value)} placeholder="Size Min"
-                                            className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                            className="sm:col-span-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
                                         <input type="number" value={ut.sizeTo} onChange={(e) => updateUnitType(idx, 'sizeTo', e.target.value)} placeholder="Size Max"
-                                            className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                            className="sm:col-span-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                        <input type="text" value={ut.priceFrom} onChange={(e) => updateUnitType(idx, 'priceFrom', e.target.value)} placeholder="Price From (e.g. 750K)"
+                                            className="sm:col-span-3 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <p className="text-xs font-semibold uppercase tracking-wider text-white/35">Variants ({ut.variants?.length || 0})</p>
@@ -662,19 +731,19 @@ export default function AdminEditProjectPage() {
                                         </div>
                                     </div>
                                     {(ut.variants || []).map((v, vIdx) => (
-                                        <div key={v.id || `${idx}-${vIdx}`} className="grid grid-cols-1 sm:grid-cols-8 gap-2">
+                                        <div key={v.id || `${idx}-${vIdx}`} className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                                             <input type="text" value={v.title} onChange={(e) => updateVariant(idx, vIdx, 'title', e.target.value)} placeholder="Type A"
-                                                className="sm:col-span-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/80 outline-none focus:border-amber-400/30 transition-all" />
+                                                className="sm:col-span-3 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/80 outline-none focus:border-amber-400/30 transition-all" />
                                             <input type="number" value={v.size} onChange={(e) => updateVariant(idx, vIdx, 'size', e.target.value)} placeholder="Size"
-                                                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                                className="sm:col-span-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
                                             <input type="text" value={v.price} onChange={(e) => updateVariant(idx, vIdx, 'price', e.target.value)} placeholder="2.16M"
-                                                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                                className="sm:col-span-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
                                             <input type="text" value={v.facing} onChange={(e) => updateVariant(idx, vIdx, 'facing', e.target.value)} placeholder="Facing"
-                                                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                                className="sm:col-span-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
                                             <input type="text" value={v.view} onChange={(e) => updateVariant(idx, vIdx, 'view', e.target.value)} placeholder="View"
-                                                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                                className="sm:col-span-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
                                             <input type="number" value={v.availableUnitsCount} onChange={(e) => updateVariant(idx, vIdx, 'availableUnitsCount', e.target.value)} placeholder="Avail."
-                                                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                                className="sm:col-span-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
                                             <SelectDropdown
                                                 label="Status"
                                                 value={v.availabilityStatus}
@@ -686,9 +755,10 @@ export default function AdminEditProjectPage() {
                                                 variant="dark"
                                                 dense
                                                 showLabel={false}
+                                                className="sm:col-span-1"
                                             />
                                             <button type="button" onClick={() => removeVariant(idx, vIdx)}
-                                                className="rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-2 text-[11px] font-medium text-red-300 hover:bg-red-500/20 transition-all">
+                                                className="sm:col-span-1 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-2 text-[11px] font-medium text-red-300 hover:bg-red-500/20 transition-all">
                                                 Remove
                                             </button>
                                         </div>
@@ -723,7 +793,7 @@ export default function AdminEditProjectPage() {
                                         <th className="text-[11px] font-bold uppercase tracking-wider text-white/30 pb-2">Baths</th>
                                         <th className="text-[11px] font-bold uppercase tracking-wider text-white/30 pb-2">Size</th>
                                         <th className="text-[11px] font-bold uppercase tracking-wider text-white/30 pb-2">Price</th>
-                                        <th className="text-[11px] font-bold uppercase tracking-wider text-white/30 pb-2">Image URL</th>
+                                        <th className="text-[11px] font-bold uppercase tracking-wider text-white/30 pb-2">Floor Plan Image</th>
                                         <th className="pb-2 w-10"></th>
                                     </tr>
                                 </thead>
@@ -751,8 +821,58 @@ export default function AdminEditProjectPage() {
                                                     className="w-28 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
                                             </td>
                                             <td className="pr-2 pb-2">
-                                                <input type="text" value={fp.imageUrl} onChange={(e) => updateFloorPlan(idx, 'imageUrl', e.target.value)}
-                                                    className="w-full min-w-[220px] rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                                <div
+                                                    onDragOver={(e) => e.preventDefault()}
+                                                    onDrop={(e) => {
+                                                        e.preventDefault()
+                                                        const file = e.dataTransfer.files?.[0]
+                                                        if (file) uploadFloorPlanFile(idx, file)
+                                                    }}
+                                                    className="min-w-[260px] rounded-lg border-2 border-dashed border-white/[0.12] bg-white/[0.03] p-2.5"
+                                                >
+                                                    {fp.imageUrl ? (
+                                                        <div className="space-y-2">
+                                                            <img src={fp.imageUrl} alt={fp.unitType || 'Floor plan'} className="h-24 w-full rounded-md object-cover border border-white/10" />
+                                                            <div className="flex items-center gap-2">
+                                                                <label className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[11px] text-white/70 cursor-pointer hover:bg-white/[0.08]">
+                                                                    Replace
+                                                                    <input
+                                                                        type="file"
+                                                                        accept="image/*"
+                                                                        className="hidden"
+                                                                        onChange={(e) => {
+                                                                            const file = e.target.files?.[0]
+                                                                            if (file) uploadFloorPlanFile(idx, file)
+                                                                            e.currentTarget.value = ''
+                                                                        }}
+                                                                    />
+                                                                </label>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => updateFloorPlan(idx, 'imageUrl', '')}
+                                                                    className="rounded-md border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[11px] text-red-300 hover:bg-red-500/20"
+                                                                >
+                                                                    Remove
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <label className="block text-center cursor-pointer">
+                                                            <p className="text-[11px] text-white/50 mb-1">Drag & drop or click to upload</p>
+                                                            <p className="text-[10px] text-white/35">Image only • Max 5MB</p>
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                className="hidden"
+                                                                onChange={(e) => {
+                                                                    const file = e.target.files?.[0]
+                                                                    if (file) uploadFloorPlanFile(idx, file)
+                                                                    e.currentTarget.value = ''
+                                                                }}
+                                                            />
+                                                        </label>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="pb-2">
                                                 <button type="button" onClick={() => removeFloorPlan(idx)}

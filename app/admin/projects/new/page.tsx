@@ -33,6 +33,7 @@ export default function AdminAddProjectPage() {
     const [city, setCity] = useState('')
     const [community, setCommunity] = useState('')
     const [countryIso2, setCountryIso2] = useState('AE')
+    const [overview, setOverview] = useState('')
     const [description, setDescription] = useState('')
     const [completionYear, setCompletionYear] = useState('')
     const [startingPrice, setStartingPrice] = useState('')
@@ -95,6 +96,7 @@ export default function AdminAddProjectPage() {
                 countryIso2: countryIso2 || undefined,
                 city: city.trim() || undefined,
                 community: community.trim() || undefined,
+                overview: overview.trim() || undefined,
                 description: description.trim() || undefined,
                 completionYear: completionYear ? parseInt(completionYear, 10) : undefined,
                 startingPrice: startingPrice ? startingPrice.trim() : undefined,
@@ -254,9 +256,15 @@ export default function AdminAddProjectPage() {
                         </div>
 
                         <div className="sm:col-span-2">
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Overview</label>
+                            <textarea value={overview} onChange={(e) => setOverview(e.target.value)} rows={8} placeholder="High-level project overview…"
+                                className="w-full min-h-[200px] max-h-[420px] overflow-y-auto rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/80 placeholder-white/20 outline-none focus:border-amber-400/30 transition-all resize-y scrollbar-thin scrollbar-thumb-white/20" />
+                        </div>
+
+                        <div className="sm:col-span-2">
                             <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Description</label>
-                            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="Project description…"
-                                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 placeholder-white/20 outline-none focus:border-amber-400/30 transition-all resize-none" />
+                            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={10} placeholder="Project description…"
+                                className="w-full min-h-[220px] max-h-[460px] overflow-y-auto rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/80 placeholder-white/20 outline-none focus:border-amber-400/30 transition-all resize-y scrollbar-thin scrollbar-thumb-white/20" />
                         </div>
 
                         <div className="sm:col-span-2 flex items-center gap-3">

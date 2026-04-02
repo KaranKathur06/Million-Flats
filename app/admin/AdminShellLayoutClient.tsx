@@ -325,14 +325,15 @@ export default function AdminShellLayoutClient({ children }: { children: React.R
 
   return (
     <>
-      <div className="mx-auto flex max-w-[1700px]">
+      <div className="flex w-full">
         <aside className="hidden md:flex md:flex-col w-[260px] shrink-0 border-r border-white/[0.06]">
           <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
             <NavLinks />
           </div>
         </aside>
 
-        <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-8">
+        <main className="flex-1 min-w-0 overflow-x-hidden">
+          <div className="w-full max-w-[1600px] mx-auto px-6 lg:px-10 py-8">
           <div className="md:hidden mb-6">
             <button
               type="button"
@@ -348,6 +349,7 @@ export default function AdminShellLayoutClient({ children }: { children: React.R
             </button>
           </div>
           {children}
+          </div>
         </main>
       </div>
 

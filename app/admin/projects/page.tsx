@@ -170,15 +170,11 @@ export default function AdminProjectsPage() {
                                     <tr key={p.id} className="border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors">
                                         <td className="px-5 py-3">
                                             <div className="flex items-center gap-3">
-                                                {p.coverImage ? (
-                                                    <img src={p.coverImage} alt="" className="h-9 w-12 rounded-lg object-cover border border-white/10 flex-shrink-0" />
-                                                ) : (
-                                                    <div className="h-9 w-12 rounded-lg bg-white/[0.06] flex items-center justify-center flex-shrink-0">
-                                                        <svg className="h-4 w-4 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
-                                                        </svg>
-                                                    </div>
-                                                )}
+                                                <img
+                                                    src={p.coverImage || '/images/default-property.jpg'}
+                                                    alt=""
+                                                    className="h-9 w-12 rounded-lg object-cover border border-white/10 flex-shrink-0"
+                                                />
                                                 <div>
                                                     <p className="font-medium text-white/90 leading-tight">{p.name}</p>
                                                     <p className="text-[11px] text-white/30 font-mono mt-0.5">{p.slug}</p>

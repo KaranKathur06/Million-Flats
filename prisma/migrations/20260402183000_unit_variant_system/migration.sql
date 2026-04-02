@@ -1,4 +1,4 @@
-﻿-- Unit availability enum
+-- Unit availability enum
 DO $$ BEGIN
   CREATE TYPE "unit_availability_status" AS ENUM ('available', 'sold_out');
 EXCEPTION
