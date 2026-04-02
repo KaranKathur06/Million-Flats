@@ -24,9 +24,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="min-h-screen bg-[#080e1a] text-white">
       <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#0a1019]/80 backdrop-blur-xl">
-        <div className="mx-auto max-w-[1700px]">
-          <AdminShellHeaderClient />
-        </div>
+        <AdminShellHeaderClient />
       </header>
 
       <AdminShellLayoutClient>{children}</AdminShellLayoutClient>

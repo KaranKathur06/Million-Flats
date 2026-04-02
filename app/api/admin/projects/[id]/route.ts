@@ -60,6 +60,40 @@ const updateProjectSchema = z.object({
         price: z.string().max(120).optional().nullable(),
         imageUrl: z.string().max(2000).optional().nullable(),
     })).optional(),
+    highlights: z.array(z.string().max(200)).optional(),
+    amenities: z.array(z.object({
+        id: z.string().optional(),
+        name: z.string().min(1).max(200),
+        icon: z.string().max(100).optional().nullable(),
+        category: z.string().max(100).optional().nullable(),
+    })).optional(),
+    nearbyPlaces: z.array(z.object({
+        id: z.string().optional(),
+        name: z.string().min(1).max(200),
+        category: z.string().max(100).optional().nullable(),
+        distance: z.string().max(100).optional().nullable(),
+        sortOrder: z.number().int().min(0).optional().nullable(),
+    })).optional(),
+    paymentPlans: z.array(z.object({
+        id: z.string().optional(),
+        stage: z.string().min(1).max(200),
+        percentage: z.number().min(0).max(100),
+        milestone: z.string().max(200).optional().nullable(),
+        sortOrder: z.number().int().min(0).optional().nullable(),
+    })).optional(),
+    location: z.object({
+        latitude: z.number().optional().nullable(),
+        longitude: z.number().optional().nullable(),
+        address: z.string().max(500).optional().nullable(),
+        mapUrl: z.string().max(2000).optional().nullable(),
+    }).optional().nullable(),
+    videos: z.array(z.object({
+        id: z.string().optional(),
+        videoUrl: z.string().min(1).max(2000),
+        title: z.string().max(200).optional().nullable(),
+        thumbnail: z.string().max(2000).optional().nullable(),
+        sortOrder: z.number().int().min(0).optional().nullable(),
+    })).optional(),
 })
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
@@ -88,6 +122,11 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
                 },
                 _count: { select: { leads: true } },
                 floorPlans: { orderBy: { createdAt: 'asc' } },
+                amenities: { orderBy: { createdAt: 'asc' } },
+                paymentPlans: { orderBy: { sortOrder: 'asc' } },
+                videos: { orderBy: { sortOrder: 'asc' } },
+                location: true,
+                nearbyPlaces: { orderBy: { sortOrder: 'asc' } },
             },
         })
 
@@ -262,6 +301,98 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
         if (data.startingPrice === undefined && derivedMinVariantPrice !== null) {
             updateData.startingPrice = derivedMinVariantPrice
+        }
+
+        // Handle highlights (stored as JSON text on Project model)
+        if (data.highlights !== undefined) {
+            updateData.highlights = JSON.stringify(data.highlights)
+        }
+
+        // Handle amenities: delete all then recreate
+        if (data.amenities !== undefined) {
+            await (prisma as any).projectAmenity.deleteMany({ where: { projectId: params.id } })
+            if (data.amenities.length > 0) {
+                await (prisma as any).projectAmenity.createMany({
+                    data: data.amenities.map((a) => ({
+                        projectId: params.id,
+                        name: a.name.trim(),
+                        icon: a.icon?.trim() || null,
+                        category: a.category?.trim() || null,
+                    })),
+                })
+            }
+        }
+
+        // Handle nearby places: delete all then recreate
+        if (data.nearbyPlaces !== undefined) {
+            await (prisma as any).projectNearbyPlace.deleteMany({ where: { projectId: params.id } })
+            if (data.nearbyPlaces.length > 0) {
+                await (prisma as any).projectNearbyPlace.createMany({
+                    data: data.nearbyPlaces.map((np, idx) => ({
+                        projectId: params.id,
+                        name: np.name.trim(),
+                        category: np.category?.trim() || null,
+                        distance: np.distance?.trim() || null,
+                        sortOrder: np.sortOrder ?? idx,
+                    })),
+                })
+            }
+        }
+
+        // Handle payment plans: delete all then recreate
+        if (data.paymentPlans !== undefined) {
+            await (prisma as any).projectPaymentPlan.deleteMany({ where: { projectId: params.id } })
+            if (data.paymentPlans.length > 0) {
+                await (prisma as any).projectPaymentPlan.createMany({
+                    data: data.paymentPlans.map((pp, idx) => ({
+                        projectId: params.id,
+                        stage: pp.stage.trim(),
+                        percentage: pp.percentage,
+                        milestone: pp.milestone?.trim() || null,
+                        sortOrder: pp.sortOrder ?? idx,
+                    })),
+                })
+            }
+        }
+
+        // Handle location: upsert
+        if (data.location !== undefined) {
+            if (data.location === null) {
+                await (prisma as any).projectLocation.deleteMany({ where: { projectId: params.id } })
+            } else {
+                await (prisma as any).projectLocation.upsert({
+                    where: { projectId: params.id },
+                    create: {
+                        projectId: params.id,
+                        latitude: data.location.latitude ?? null,
+                        longitude: data.location.longitude ?? null,
+                        address: data.location.address?.trim() || null,
+                        mapUrl: data.location.mapUrl?.trim() || null,
+                    },
+                    update: {
+                        latitude: data.location.latitude ?? null,
+                        longitude: data.location.longitude ?? null,
+                        address: data.location.address?.trim() || null,
+                        mapUrl: data.location.mapUrl?.trim() || null,
+                    },
+                })
+            }
+        }
+
+        // Handle videos: delete all then recreate
+        if (data.videos !== undefined) {
+            await (prisma as any).projectVideo.deleteMany({ where: { projectId: params.id } })
+            if (data.videos.length > 0) {
+                await (prisma as any).projectVideo.createMany({
+                    data: data.videos.map((v, idx) => ({
+                        projectId: params.id,
+                        videoUrl: v.videoUrl.trim(),
+                        title: v.title?.trim() || null,
+                        thumbnail: v.thumbnail?.trim() || null,
+                        sortOrder: v.sortOrder ?? idx,
+                    })),
+                })
+            }
         }
 
         const updated = await (prisma as any).project.update({

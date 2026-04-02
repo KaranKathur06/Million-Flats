@@ -43,6 +43,11 @@ interface FloorPlanRow {
     price: string
     imageUrl: string
 }
+interface AmenityRow { id?: string; name: string; icon: string; category: string }
+interface NearbyPlaceRow { id?: string; name: string; category: string; distance: string }
+interface PaymentPlanRow { id?: string; stage: string; percentage: string; milestone: string }
+interface LocationData { latitude: string; longitude: string; address: string; mapUrl: string }
+interface VideoRow { id?: string; videoUrl: string; title: string; thumbnail: string }
 
 const STATUS_COLORS: Record<string, string> = {
     DRAFT: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/20',
@@ -90,6 +95,12 @@ export default function AdminEditProjectPage() {
     // Unit types
     const [unitTypes, setUnitTypes] = useState<UnitTypeRow[]>([])
     const [floorPlans, setFloorPlans] = useState<FloorPlanRow[]>([])
+    const [highlights, setHighlights] = useState<string[]>([])
+    const [amenities, setAmenities] = useState<AmenityRow[]>([])
+    const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlaceRow[]>([])
+    const [paymentPlans, setPaymentPlans] = useState<PaymentPlanRow[]>([])
+    const [location, setLocation] = useState<LocationData>({ latitude: '', longitude: '', address: '', mapUrl: '' })
+    const [videos, setVideos] = useState<VideoRow[]>([])
     const variantOptions = useMemo(() => {
         const opts: Array<{ value: string; label: string }> = [{ value: '', label: 'Select Variant' }]
         for (const ut of unitTypes) {
@@ -179,6 +190,28 @@ export default function AdminEditProjectPage() {
                     imageUrl: fp.imageUrl || '',
                 }))
             )
+            // Load highlights from JSON
+            try {
+                const h = p.highlights ? JSON.parse(p.highlights) : []
+                setHighlights(Array.isArray(h) ? h : [])
+            } catch { setHighlights([]) }
+            // Load amenities
+            setAmenities((p.amenities || []).map((a: any) => ({ id: a.id, name: a.name || '', icon: a.icon || '', category: a.category || '' })))
+            // Load nearby places
+            setNearbyPlaces((p.nearbyPlaces || []).map((np: any) => ({ id: np.id, name: np.name || '', category: np.category || '', distance: np.distance || '' })))
+            // Load payment plans
+            setPaymentPlans((p.paymentPlans || []).map((pp: any) => ({ id: pp.id, stage: pp.stage || '', percentage: pp.percentage !== null && pp.percentage !== undefined ? String(pp.percentage) : '', milestone: pp.milestone || '' })))
+            // Load location
+            if (p.location) {
+                setLocation({
+                    latitude: p.location.latitude != null ? String(p.location.latitude) : '',
+                    longitude: p.location.longitude != null ? String(p.location.longitude) : '',
+                    address: p.location.address || '',
+                    mapUrl: p.location.mapUrl || '',
+                })
+            }
+            // Load videos
+            setVideos((p.videos || []).map((v: any) => ({ id: v.id, videoUrl: v.videoUrl || '', title: v.title || '', thumbnail: v.thumbnail || '' })))
         } catch (err: any) {
             setError(err.message || 'Failed to load project')
         } finally {
@@ -257,6 +290,17 @@ export default function AdminEditProjectPage() {
                         price: fp.price.trim() || null,
                         imageUrl: fp.imageUrl.trim() || null,
                     })),
+                highlights: highlights.filter((h) => h.trim()),
+                amenities: amenities.filter((a) => a.name.trim()).map((a) => ({ name: a.name.trim(), icon: a.icon.trim() || null, category: a.category.trim() || null })),
+                nearbyPlaces: nearbyPlaces.filter((np) => np.name.trim()).map((np, idx) => ({ name: np.name.trim(), category: np.category.trim() || null, distance: np.distance.trim() || null, sortOrder: idx })),
+                paymentPlans: paymentPlans.filter((pp) => pp.stage.trim()).map((pp, idx) => ({ stage: pp.stage.trim(), percentage: pp.percentage ? parseFloat(pp.percentage) : 0, milestone: pp.milestone.trim() || null, sortOrder: idx })),
+                location: location.address.trim() || location.latitude || location.longitude ? {
+                    latitude: location.latitude ? parseFloat(location.latitude) : null,
+                    longitude: location.longitude ? parseFloat(location.longitude) : null,
+                    address: location.address.trim() || null,
+                    mapUrl: location.mapUrl.trim() || null,
+                } : null,
+                videos: videos.filter((v) => v.videoUrl.trim()).map((v, idx) => ({ videoUrl: v.videoUrl.trim(), title: v.title.trim() || null, thumbnail: v.thumbnail.trim() || null, sortOrder: idx })),
             }
 
             const res = await fetch(`/api/admin/projects/${projectId}`, {
@@ -480,7 +524,7 @@ export default function AdminEditProjectPage() {
     }
 
     return (
-        <div className="max-w-3xl">
+        <div className="w-full">
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>
@@ -889,6 +933,189 @@ export default function AdminEditProjectPage() {
                         </div>
                     ) : (
                         <p className="text-xs text-white/25 py-2">No floor plans. Upload as `Floor Plan` or add rows manually.</p>
+                    )}
+                </div>
+
+                {/* Key Highlights */}
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider">Key Highlights ({highlights.length})</h2>
+                        <button type="button" onClick={() => setHighlights((prev) => [...prev, ''])}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/60 hover:bg-white/[0.08] transition-all">
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                            Add
+                        </button>
+                    </div>
+                    {highlights.length > 0 ? (
+                        <div className="space-y-2">
+                            {highlights.map((h, idx) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                    <input type="text" value={h} onChange={(e) => setHighlights((prev) => prev.map((v, i) => i === idx ? e.target.value : v))} placeholder="e.g. Waterfront apartments"
+                                        className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/80 outline-none focus:border-amber-400/30 transition-all" />
+                                    <button type="button" onClick={() => setHighlights((prev) => prev.filter((_, i) => i !== idx))}
+                                        className="rounded-lg border border-red-500/20 bg-red-500/10 p-2 text-red-300 hover:bg-red-500/20 transition-all">
+                                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-xs text-white/25 py-2">No highlights. Click &quot;Add&quot; to add one.</p>
+                    )}
+                </div>
+
+                {/* Amenities */}
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider">Amenities ({amenities.length})</h2>
+                        <button type="button" onClick={() => setAmenities((prev) => [...prev, { name: '', icon: '', category: '' }])}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/60 hover:bg-white/[0.08] transition-all">
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                            Add
+                        </button>
+                    </div>
+                    {amenities.length > 0 ? (
+                        <div className="space-y-2">
+                            {amenities.map((a, idx) => (
+                                <div key={a.id || idx} className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                                    <input type="text" value={a.name} onChange={(e) => setAmenities((prev) => prev.map((v, i) => i === idx ? { ...v, name: e.target.value } : v))} placeholder="Amenity name"
+                                        className="sm:col-span-5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/80 outline-none focus:border-amber-400/30 transition-all" />
+                                    <input type="text" value={a.icon} onChange={(e) => setAmenities((prev) => prev.map((v, i) => i === idx ? { ...v, icon: e.target.value } : v))} placeholder="Icon (emoji or name)"
+                                        className="sm:col-span-3 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                    <input type="text" value={a.category} onChange={(e) => setAmenities((prev) => prev.map((v, i) => i === idx ? { ...v, category: e.target.value } : v))} placeholder="Category"
+                                        className="sm:col-span-3 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                    <button type="button" onClick={() => setAmenities((prev) => prev.filter((_, i) => i !== idx))}
+                                        className="sm:col-span-1 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-2 text-[11px] font-medium text-red-300 hover:bg-red-500/20 transition-all">
+                                        Remove
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-xs text-white/25 py-2">No amenities. Click &quot;Add&quot; to add one.</p>
+                    )}
+                </div>
+
+                {/* Payment Plans */}
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider">Payment Plans ({paymentPlans.length})</h2>
+                        <button type="button" onClick={() => setPaymentPlans((prev) => [...prev, { stage: '', percentage: '', milestone: '' }])}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/60 hover:bg-white/[0.08] transition-all">
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                            Add Stage
+                        </button>
+                    </div>
+                    {paymentPlans.length > 0 ? (
+                        <div className="space-y-2">
+                            {paymentPlans.map((pp, idx) => (
+                                <div key={pp.id || idx} className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                                    <input type="text" value={pp.stage} onChange={(e) => setPaymentPlans((prev) => prev.map((v, i) => i === idx ? { ...v, stage: e.target.value } : v))} placeholder="Stage (e.g. Down Payment)"
+                                        className="sm:col-span-4 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/80 outline-none focus:border-amber-400/30 transition-all" />
+                                    <input type="number" value={pp.percentage} onChange={(e) => setPaymentPlans((prev) => prev.map((v, i) => i === idx ? { ...v, percentage: e.target.value } : v))} placeholder="%"
+                                        className="sm:col-span-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                    <input type="text" value={pp.milestone} onChange={(e) => setPaymentPlans((prev) => prev.map((v, i) => i === idx ? { ...v, milestone: e.target.value } : v))} placeholder="Milestone (optional)"
+                                        className="sm:col-span-5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                    <button type="button" onClick={() => setPaymentPlans((prev) => prev.filter((_, i) => i !== idx))}
+                                        className="sm:col-span-1 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-2 text-[11px] font-medium text-red-300 hover:bg-red-500/20 transition-all">
+                                        Remove
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-xs text-white/25 py-2">No payment plans.</p>
+                    )}
+                </div>
+
+                {/* Nearby Places / Landmarks */}
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider">Nearby Places ({nearbyPlaces.length})</h2>
+                        <button type="button" onClick={() => setNearbyPlaces((prev) => [...prev, { name: '', category: '', distance: '' }])}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/60 hover:bg-white/[0.08] transition-all">
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                            Add Place
+                        </button>
+                    </div>
+                    {nearbyPlaces.length > 0 ? (
+                        <div className="space-y-2">
+                            {nearbyPlaces.map((np, idx) => (
+                                <div key={np.id || idx} className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                                    <input type="text" value={np.name} onChange={(e) => setNearbyPlaces((prev) => prev.map((v, i) => i === idx ? { ...v, name: e.target.value } : v))} placeholder="Place name (e.g. Metro Station)"
+                                        className="sm:col-span-5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/80 outline-none focus:border-amber-400/30 transition-all" />
+                                    <input type="text" value={np.category} onChange={(e) => setNearbyPlaces((prev) => prev.map((v, i) => i === idx ? { ...v, category: e.target.value } : v))} placeholder="Category"
+                                        className="sm:col-span-3 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                    <input type="text" value={np.distance} onChange={(e) => setNearbyPlaces((prev) => prev.map((v, i) => i === idx ? { ...v, distance: e.target.value } : v))} placeholder="Distance (e.g. 14 Min)"
+                                        className="sm:col-span-3 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                    <button type="button" onClick={() => setNearbyPlaces((prev) => prev.filter((_, i) => i !== idx))}
+                                        className="sm:col-span-1 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-2 text-[11px] font-medium text-red-300 hover:bg-red-500/20 transition-all">
+                                        Remove
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-xs text-white/25 py-2">No nearby places.</p>
+                    )}
+                </div>
+
+                {/* Location */}
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-4">
+                    <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider">Location</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Address</label>
+                            <input type="text" value={location.address} onChange={(e) => setLocation((prev) => ({ ...prev, address: e.target.value }))}
+                                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/80 outline-none focus:border-amber-400/30 transition-all" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Map URL</label>
+                            <input type="text" value={location.mapUrl} onChange={(e) => setLocation((prev) => ({ ...prev, mapUrl: e.target.value }))} placeholder="Google Maps embed URL"
+                                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Latitude</label>
+                            <input type="text" value={location.latitude} onChange={(e) => setLocation((prev) => ({ ...prev, latitude: e.target.value }))}
+                                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all font-mono" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Longitude</label>
+                            <input type="text" value={location.longitude} onChange={(e) => setLocation((prev) => ({ ...prev, longitude: e.target.value }))}
+                                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all font-mono" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Videos */}
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider">Videos ({videos.length})</h2>
+                        <button type="button" onClick={() => setVideos((prev) => [...prev, { videoUrl: '', title: '', thumbnail: '' }])}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/60 hover:bg-white/[0.08] transition-all">
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                            Add Video
+                        </button>
+                    </div>
+                    {videos.length > 0 ? (
+                        <div className="space-y-2">
+                            {videos.map((v, idx) => (
+                                <div key={v.id || idx} className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                                    <input type="text" value={v.videoUrl} onChange={(e) => setVideos((prev) => prev.map((item, i) => i === idx ? { ...item, videoUrl: e.target.value } : item))} placeholder="Video URL (YouTube, Vimeo, etc.)"
+                                        className="sm:col-span-5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/80 outline-none focus:border-amber-400/30 transition-all" />
+                                    <input type="text" value={v.title} onChange={(e) => setVideos((prev) => prev.map((item, i) => i === idx ? { ...item, title: e.target.value } : item))} placeholder="Title"
+                                        className="sm:col-span-3 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                    <input type="text" value={v.thumbnail} onChange={(e) => setVideos((prev) => prev.map((item, i) => i === idx ? { ...item, thumbnail: e.target.value } : item))} placeholder="Thumbnail URL"
+                                        className="sm:col-span-3 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                    <button type="button" onClick={() => setVideos((prev) => prev.filter((_, i) => i !== idx))}
+                                        className="sm:col-span-1 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-2 text-[11px] font-medium text-red-300 hover:bg-red-500/20 transition-all">
+                                        Remove
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-xs text-white/25 py-2">No videos.</p>
                     )}
                 </div>
 
