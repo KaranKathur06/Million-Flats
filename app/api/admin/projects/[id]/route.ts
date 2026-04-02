@@ -141,23 +141,92 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     }
 }
 
+// --- Payload pre-normalization helpers ---
+function safeInt(v: unknown): number | null {
+    if (v === null || v === undefined || v === '') return null
+    const n = typeof v === 'string' ? parseInt(v, 10) : Number(v)
+    return Number.isFinite(n) ? n : null
+}
+function safeFloat(v: unknown): number | null {
+    if (v === null || v === undefined || v === '') return null
+    const n = typeof v === 'string' ? parseFloat(v) : Number(v)
+    return Number.isFinite(n) ? n : null
+}
+function normalizeBody(body: any): any {
+    if (!body || typeof body !== 'object') return body
+    const b = { ...body }
+    // Normalize top-level numeric fields
+    if ('completionYear' in b) b.completionYear = safeInt(b.completionYear)
+    if ('featuredOrder' in b) b.featuredOrder = safeInt(b.featuredOrder)
+    // Normalize unit types
+    if (Array.isArray(b.unitTypes)) {
+        b.unitTypes = b.unitTypes.map((ut: any) => ({
+            ...ut,
+            bedrooms: safeInt(ut.bedrooms),
+            bathrooms: safeInt(ut.bathrooms),
+            sizeFrom: safeInt(ut.sizeFrom ?? ut.sizeMin),
+            sizeTo: safeInt(ut.sizeTo ?? ut.sizeMax),
+            sizeMin: undefined,
+            sizeMax: undefined,
+            variants: Array.isArray(ut.variants) ? ut.variants.map((v: any) => ({
+                ...v,
+                size: safeInt(v.size),
+                availableUnitsCount: safeInt(v.availableUnitsCount),
+                floorPlans: Array.isArray(v.floorPlans) ? v.floorPlans.map((fp: any) => ({
+                    ...fp,
+                    bedrooms: safeInt(fp.bedrooms),
+                    bathrooms: safeInt(fp.bathrooms),
+                })) : v.floorPlans,
+            })) : ut.variants,
+        }))
+    }
+    // Normalize floor plans
+    if (Array.isArray(b.floorPlans)) {
+        b.floorPlans = b.floorPlans.map((fp: any) => ({
+            ...fp,
+            bedrooms: safeInt(fp.bedrooms),
+            bathrooms: safeInt(fp.bathrooms),
+        }))
+    }
+    // Normalize payment plans
+    if (Array.isArray(b.paymentPlans)) {
+        b.paymentPlans = b.paymentPlans.map((pp: any) => ({
+            ...pp,
+            percentage: safeFloat(pp.percentage) ?? 0,
+        }))
+    }
+    // Normalize location
+    if (b.location && typeof b.location === 'object') {
+        b.location = {
+            ...b.location,
+            latitude: safeFloat(b.location.latitude),
+            longitude: safeFloat(b.location.longitude),
+        }
+    }
+    return b
+}
+
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
     const auth = await requireAdminSession()
     if (!auth.ok) {
         return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
     }
 
+    let rawBody: any = {}
     try {
         const existing = await (prisma as any).project.findUnique({ where: { id: params.id } })
         if (!existing) {
             return NextResponse.json({ success: false, message: 'Project not found' }, { status: 404 })
         }
 
-        const body = await req.json().catch(() => ({}))
+        rawBody = await req.json().catch(() => ({}))
+        const body = normalizeBody(rawBody)
         const parsed = updateProjectSchema.safeParse(body)
         if (!parsed.success) {
+            console.error('[PUT /api/admin/projects/[id]] VALIDATION ERROR:', JSON.stringify(parsed.error.flatten().fieldErrors, null, 2))
+            console.error('[PUT /api/admin/projects/[id]] RAW BODY KEYS:', Object.keys(rawBody))
             return NextResponse.json(
-                { success: false, message: 'Validation failed', errors: parsed.error.flatten().fieldErrors },
+                { success: false, message: 'Validation failed', code: 'VALIDATION_ERROR', errors: parsed.error.flatten().fieldErrors },
                 { status: 400 }
             )
         }
@@ -403,7 +472,15 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
         return NextResponse.json({ success: true, project: updated })
     } catch (err: any) {
-        console.error('[PUT /api/admin/projects/[id]]', err)
-        return NextResponse.json({ success: false, message: 'Internal error' }, { status: 500 })
+        console.error('[PUT /api/admin/projects/[id]] CRITICAL ERROR:', err?.message || err)
+        console.error('[PUT /api/admin/projects/[id]] STACK:', err?.stack)
+        console.error('[PUT /api/admin/projects/[id]] PAYLOAD KEYS:', Object.keys(rawBody || {}))
+        const message = process.env.NODE_ENV === 'development'
+            ? `Project update failed: ${err?.message || 'Unknown error'}`
+            : 'Failed to update project. Please check your data and try again.'
+        return NextResponse.json(
+            { success: false, message, code: 'PROJECT_UPDATE_FAILED' },
+            { status: 500 }
+        )
     }
 }

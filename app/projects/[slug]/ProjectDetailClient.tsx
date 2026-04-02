@@ -683,9 +683,21 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                 )}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {allFloorPlans.map((fp) => (
-                                        <div key={fp.id} className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
-                                            <div className="relative aspect-square bg-gray-100">
-                                                <img src={fp.imageUrl || fallbackImage} alt={`${fp.unitType} floor plan`} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                                        <div key={fp.id} className="rounded-2xl border border-gray-200 bg-white overflow-hidden group">
+                                            <div className="relative aspect-square bg-white flex items-center justify-center p-4 cursor-pointer" onClick={() => {
+                                                // Open floor plan in modal for full view
+                                                const modal = document.createElement('div')
+                                                modal.className = 'fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-6 cursor-pointer'
+                                                modal.onclick = () => modal.remove()
+                                                modal.innerHTML = `<img src="${fp.imageUrl || fallbackImage}" alt="${fp.unitType} floor plan" class="max-w-full max-h-full object-contain bg-white rounded-xl p-4" />`
+                                                document.body.appendChild(modal)
+                                            }}>
+                                                <img src={fp.imageUrl || fallbackImage} alt={`${fp.unitType} floor plan`} className="w-full h-full object-contain" loading="lazy" />
+                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center">
+                                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold text-gray-600 bg-white/90 px-3 py-1.5 rounded-full shadow-sm">
+                                                        🔍 Click to enlarge
+                                                    </span>
+                                                </div>
                                             </div>
                                             <div className="p-4">
                                                 <h3 className="text-sm font-bold text-gray-900">{fp.unitType}</h3>

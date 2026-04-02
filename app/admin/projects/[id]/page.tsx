@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import SelectDropdown from '@/components/SelectDropdown'
+import toast, { Toaster } from 'react-hot-toast'
 
 interface DevOption { id: string; name: string; slug: string | null }
 interface MediaItem {
@@ -63,8 +64,6 @@ export default function AdminEditProjectPage() {
     const [developers, setDevelopers] = useState<DevOption[]>([])
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
-    const [error, setError] = useState('')
-    const [success, setSuccess] = useState('')
 
     // Project data
     const [name, setName] = useState('')
@@ -213,7 +212,7 @@ export default function AdminEditProjectPage() {
             // Load videos
             setVideos((p.videos || []).map((v: any) => ({ id: v.id, videoUrl: v.videoUrl || '', title: v.title || '', thumbnail: v.thumbnail || '' })))
         } catch (err: any) {
-            setError(err.message || 'Failed to load project')
+            toast.error(err.message || 'Failed to load project')
         } finally {
             setLoading(false)
         }
@@ -223,9 +222,22 @@ export default function AdminEditProjectPage() {
 
     const handleSave = async () => {
         setSaving(true)
-        setError('')
-        setSuccess('')
         try {
+            if (!name.trim()) {
+                toast.error('Project name is required')
+                setSaving(false)
+                return
+            }
+            if (!slug.trim()) {
+                toast.error('Project slug is required')
+                setSaving(false)
+                return
+            }
+            if (!developerId) {
+                toast.error('Please select a developer')
+                setSaving(false)
+                return
+            }
             const payload: any = {
                 name: name.trim(),
                 slug: slug.trim(),
@@ -309,11 +321,19 @@ export default function AdminEditProjectPage() {
                 body: JSON.stringify(payload),
             })
             const json = await res.json()
-            if (!json.success) throw new Error(json.message || 'Failed to save')
-            setSuccess('Project updated successfully!')
-            setTimeout(() => setSuccess(''), 3000)
+            if (!json.success) {
+                // Show detailed validation errors if available
+                if (json.errors) {
+                    const errorFields = Object.keys(json.errors)
+                    toast.error(`Validation failed: ${errorFields.join(', ')}`)
+                } else {
+                    toast.error(json.message || 'Failed to save')
+                }
+                return
+            }
+            toast.success('Project updated successfully!')
         } catch (err: any) {
-            setError(err.message || 'Failed to save')
+            toast.error(err.message || 'Something went wrong. Please try again.')
         } finally {
             setSaving(false)
         }
@@ -329,10 +349,9 @@ export default function AdminEditProjectPage() {
             const json = await res.json()
             if (!json.success) throw new Error(json.message)
             setStatus(newStatus)
-            setSuccess(`Status changed to ${newStatus}`)
-            setTimeout(() => setSuccess(''), 3000)
+            toast.success(`Status changed to ${newStatus}`)
         } catch (err: any) {
-            setError(err.message || 'Failed to change status')
+            toast.error(err.message || 'Failed to change status')
         }
     }
 
@@ -374,10 +393,9 @@ export default function AdminEditProjectPage() {
 
                 setMedia((prev) => [...prev, saveJson.media])
             }
-            setSuccess('Media uploaded successfully')
-            setTimeout(() => setSuccess(''), 2500)
+            toast.success('Media uploaded successfully')
         } catch (err: any) {
-            setError(err.message || 'Upload failed')
+            toast.error(err.message || 'Upload failed')
         } finally {
             setUploading(false)
             e.target.value = ''
@@ -392,7 +410,7 @@ export default function AdminEditProjectPage() {
             if (!json.success) throw new Error(json.message)
             setMedia((prev) => prev.filter((m) => m.id !== mediaId))
         } catch (err: any) {
-            setError(err.message || 'Failed to delete')
+            toast.error(err.message || 'Failed to delete')
         }
     }
     const findVariantIdForFloorPlan = (floorPlanTitle: string) => {
@@ -408,15 +426,14 @@ export default function AdminEditProjectPage() {
     }
     const uploadFloorPlanFile = async (idx: number, file: File) => {
         if (!file.type.startsWith('image/')) {
-            setError('Only image files are allowed for floor plans')
+            toast.error('Only image files are allowed for floor plans')
             return
         }
         if (file.size > 5 * 1024 * 1024) {
-            setError('Floor plan image must be 5MB or smaller')
+            toast.error('Floor plan image must be 5MB or smaller')
             return
         }
         setUploading(true)
-        setError('')
         try {
             const floorPlan = floorPlans[idx]
             const unitVariantId = findVariantIdForFloorPlan(floorPlan?.unitType || '')
@@ -454,10 +471,9 @@ export default function AdminEditProjectPage() {
             if (saveJson.media) {
                 setMedia((prev) => [...prev, saveJson.media])
             }
-            setSuccess('Floor plan uploaded')
-            setTimeout(() => setSuccess(''), 2000)
+            toast.success('Floor plan uploaded')
         } catch (err: any) {
-            setError(err.message || 'Floor plan upload failed')
+            toast.error(err.message || 'Floor plan upload failed')
         } finally {
             setUploading(false)
         }
@@ -525,6 +541,31 @@ export default function AdminEditProjectPage() {
 
     return (
         <div className="w-full">
+            {/* Toast Notification System */}
+            <Toaster
+                position="top-center"
+                toastOptions={{
+                    duration: 4000,
+                    style: {
+                        background: '#1a2035',
+                        color: '#fff',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '12px',
+                        fontSize: '14px',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                    },
+                    success: {
+                        iconTheme: { primary: '#34d399', secondary: '#fff' },
+                        style: { borderColor: 'rgba(52, 211, 153, 0.2)' },
+                    },
+                    error: {
+                        iconTheme: { primary: '#f87171', secondary: '#fff' },
+                        style: { borderColor: 'rgba(248, 113, 113, 0.2)' },
+                        duration: 6000,
+                    },
+                }}
+            />
+
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>
@@ -559,9 +600,7 @@ export default function AdminEditProjectPage() {
                 </div>
             </div>
 
-            {/* Messages */}
-            {error && <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">{error}</div>}
-            {success && <div className="mb-6 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-300">{success}</div>}
+
 
             <div className="space-y-6">
                 {/* Basic Info */}
@@ -876,7 +915,7 @@ export default function AdminEditProjectPage() {
                                                 >
                                                     {fp.imageUrl ? (
                                                         <div className="space-y-2">
-                                                            <img src={fp.imageUrl} alt={fp.unitType || 'Floor plan'} className="h-24 w-full rounded-md object-cover border border-white/10" />
+                                                            <img src={fp.imageUrl} alt={fp.unitType || 'Floor plan'} className="h-24 w-full rounded-md object-contain bg-white border border-white/10" />
                                                             <div className="flex items-center gap-2">
                                                                 <label className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[11px] text-white/70 cursor-pointer hover:bg-white/[0.08]">
                                                                     Replace
