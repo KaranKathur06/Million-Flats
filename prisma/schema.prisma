@@ -1432,6 +1432,17 @@ enum ProjectImageCategory {
   FLOOR_PLAN @map("floor_plan")
 }
 
+enum UnitAvailabilityStatus {
+  AVAILABLE @map("available")
+  SOLD_OUT @map("sold_out")
+}
+
+enum UnitMediaType {
+  INTERIOR @map("interior")
+  VIDEO @map("video")
+  THREE_D @map("3d")
+}
+
 model Project {
   id              String   @id @default(uuid())
   name            String
@@ -1469,6 +1480,7 @@ model Project {
 
   media           ProjectMedia[]
   unitTypes       ProjectUnitType[]
+  unitVariants    ProjectUnitVariant[]
   leads           ProjectLead[]
   amenities       ProjectAmenity[]
   paymentPlans    ProjectPaymentPlan[]
@@ -1513,13 +1525,48 @@ model ProjectUnitType {
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   unitType  String   @map("unit_type")
+  bedrooms  Int?     @map("bedrooms")
+  bathrooms Int?     @map("bathrooms")
   sizeFrom  Int?     @map("size_from")
   sizeTo    Int?     @map("size_to")
+  sortOrder Int?     @map("sort_order")
 
   priceFrom Float?   @map("price_from")
+  variants  ProjectUnitVariant[]
 
   @@index([projectId])
   @@map("project_unit_types")
+}
+
+model ProjectUnitVariant {
+  id                  String                 @id @default(uuid())
+
+  projectId           String                 @map("project_id")
+  project             Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  unitTypeId          String                 @map("unit_type_id")
+  unitType            ProjectUnitType        @relation(fields: [unitTypeId], references: [id], onDelete: Cascade)
+
+  title               String
+  size                Int?
+  price               Float?
+  pricePerSqft        Float?                 @map("price_per_sqft")
+  facing              String?
+  view                String?
+  availabilityStatus  UnitAvailabilityStatus @default(AVAILABLE) @map("availability_status")
+  availableUnitsCount Int?                   @map("available_units_count")
+  priceOnRequest      Boolean                @default(false) @map("price_on_request")
+  sortOrder           Int?                   @map("sort_order")
+
+  floorPlans          ProjectFloorPlan[]
+  media               UnitMedia[]
+
+  createdAt           DateTime               @default(now()) @map("created_at")
+
+  @@index([projectId])
+  @@index([unitTypeId])
+  @@index([availabilityStatus])
+  @@map("project_unit_variants")
 }
 
 model ProjectLead {
@@ -1579,6 +1626,9 @@ model ProjectFloorPlan {
   projectId String   @map("project_id")
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
+  unitVariantId String?             @map("unit_variant_id")
+  unitVariant   ProjectUnitVariant? @relation(fields: [unitVariantId], references: [id], onDelete: Cascade)
+
   unitType  String   @map("unit_type")
   bedrooms  Int?
   bathrooms Int?
@@ -1590,7 +1640,22 @@ model ProjectFloorPlan {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([projectId])
+  @@index([unitVariantId])
   @@map("project_floor_plans")
+}
+
+model UnitMedia {
+  id            String             @id @default(uuid())
+  unitVariantId String             @map("unit_variant_id")
+  unitVariant   ProjectUnitVariant @relation(fields: [unitVariantId], references: [id], onDelete: Cascade)
+  type          UnitMediaType
+  url           String
+  title         String?
+  sortOrder     Int?               @map("sort_order")
+  createdAt     DateTime           @default(now()) @map("created_at")
+
+  @@index([unitVariantId])
+  @@map("unit_media")
 }
 
 model ProjectVideo {

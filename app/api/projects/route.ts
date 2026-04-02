@@ -57,7 +57,25 @@ export async function GET(req: Request) {
                     createdAt: true,
                     developer: { select: { id: true, name: true, slug: true, logo: true } },
                     media: { orderBy: { sortOrder: 'asc' }, select: { mediaUrl: true, mediaType: true, category: true } },
-                    unitTypes: { select: { unitType: true, sizeFrom: true, sizeTo: true, priceFrom: true } },
+                    unitTypes: {
+                        select: {
+                            id: true,
+                            unitType: true,
+                            bedrooms: true,
+                            bathrooms: true,
+                            sizeFrom: true,
+                            sizeTo: true,
+                            priceFrom: true,
+                            variants: {
+                                select: {
+                                    id: true,
+                                    price: true,
+                                    availabilityStatus: true,
+                                    availableUnitsCount: true,
+                                },
+                            },
+                        },
+                    },
                 },
             }),
             (prisma as any).project.count({ where }),
@@ -72,10 +90,18 @@ export async function GET(req: Request) {
             const firstMedia = (item.media || []).find((m: any) => String(m?.mediaUrl || '').trim())
             const heroImage = heroMedia?.mediaUrl || item.coverImage || firstMedia?.mediaUrl || FALLBACK_IMAGE
 
+            const variantPrices = (item.unitTypes || [])
+                .flatMap((ut: any) => (ut.variants || []).map((v: any) => v.price))
+                .filter((v: any) => typeof v === 'number') as number[]
+            const priceRange = variantPrices.length > 0
+                ? { min: Math.min(...variantPrices), max: Math.max(...variantPrices) }
+                : null
+
             return {
                 ...item,
                 heroImage,
                 coverImage: heroImage,
+                priceRange,
                 media: undefined,
             }
         })

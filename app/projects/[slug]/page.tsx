@@ -19,7 +19,18 @@ async function getProject(slug: string) {
             include: {
                 developer: { select: { id: true, name: true, slug: true, logo: true } },
                 media: { orderBy: { sortOrder: 'asc' } },
-                unitTypes: true,
+                unitTypes: {
+                    orderBy: { sortOrder: 'asc' },
+                    include: {
+                        variants: {
+                            orderBy: { sortOrder: 'asc' },
+                            include: {
+                                floorPlans: { orderBy: { createdAt: 'asc' } },
+                                media: { orderBy: { sortOrder: 'asc' } },
+                            },
+                        },
+                    },
+                },
                 amenities: true,
                 paymentPlans: { orderBy: { sortOrder: 'asc' } },
                 floorPlans: true,

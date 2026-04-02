@@ -51,7 +51,7 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
             return NextResponse.json({ success: false, message: 'Missing slug' }, { status: 400 })
         }
 
-        const project = await (prisma as any).project.findUnique({
+        const project = await (prisma as any).project.findFirst({
             where: { slug, status: 'PUBLISHED' },
             select: {
                 id: true,
@@ -74,7 +74,47 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
                     select: { id: true, mediaUrl: true, mediaType: true, category: true, label: true, sortOrder: true },
                 },
                 unitTypes: {
-                    select: { id: true, unitType: true, sizeFrom: true, sizeTo: true, priceFrom: true },
+                    orderBy: { sortOrder: 'asc' },
+                    select: {
+                        id: true,
+                        unitType: true,
+                        bedrooms: true,
+                        bathrooms: true,
+                        sizeFrom: true,
+                        sizeTo: true,
+                        priceFrom: true,
+                        variants: {
+                            orderBy: { sortOrder: 'asc' },
+                            select: {
+                                id: true,
+                                title: true,
+                                size: true,
+                                price: true,
+                                pricePerSqft: true,
+                                facing: true,
+                                view: true,
+                                availabilityStatus: true,
+                                availableUnitsCount: true,
+                                priceOnRequest: true,
+                                floorPlans: {
+                                    orderBy: { createdAt: 'asc' },
+                                    select: {
+                                        id: true,
+                                        unitType: true,
+                                        bedrooms: true,
+                                        bathrooms: true,
+                                        size: true,
+                                        price: true,
+                                        imageUrl: true,
+                                    },
+                                },
+                                media: {
+                                    orderBy: { sortOrder: 'asc' },
+                                    select: { id: true, type: true, url: true, title: true, sortOrder: true },
+                                },
+                            },
+                        },
+                    },
                 },
                 amenities: {
                     select: { id: true, name: true, icon: true, category: true },
@@ -145,6 +185,62 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
 
         const media = groupProjectMedia(project.media || [])
         const heroFallback = media.hero[0]?.url || project.coverImage || FALLBACK_IMAGE
+        const normalizedUnitTypes = (project.unitTypes || []).map((ut: any) => {
+            const variants = (ut.variants && ut.variants.length > 0) ? ut.variants : [{
+                id: `${ut.id}-default`,
+                title: ut.unitType || 'Variant A',
+                size: ut.sizeFrom ?? ut.sizeTo ?? null,
+                price: ut.priceFrom ?? null,
+                pricePerSqft: null,
+                facing: null,
+                view: null,
+                availabilityStatus: 'AVAILABLE',
+                availableUnitsCount: null,
+                priceOnRequest: ut.priceFrom == null,
+                floorPlans: [],
+                media: [],
+            }]
+            return {
+                id: ut.id,
+                name: ut.unitType,
+                bedrooms: ut.bedrooms ?? null,
+                bathrooms: ut.bathrooms ?? null,
+                size_min: ut.sizeFrom ?? null,
+                size_max: ut.sizeTo ?? null,
+                variants: variants.map((variant: any) => {
+                const floorPlans = (variant.floorPlans || []).map((fp: any) => ({
+                    id: fp.id,
+                    title: fp.unitType || variant.title,
+                    image_url: fp.imageUrl || FALLBACK_IMAGE,
+                    size: fp.size || null,
+                    bedrooms: fp.bedrooms ?? ut.bedrooms ?? null,
+                    bathrooms: fp.bathrooms ?? ut.bathrooms ?? null,
+                    price: fp.price || null,
+                }))
+                return {
+                    id: variant.id,
+                    title: variant.title,
+                    size: variant.size ?? null,
+                    price: variant.price ?? null,
+                    price_per_sqft: variant.pricePerSqft ?? null,
+                    facing: variant.facing ?? null,
+                    view: variant.view ?? null,
+                    availability: variant.availabilityStatus || ((variant.availableUnitsCount ?? 1) === 0 ? 'SOLD_OUT' : 'AVAILABLE'),
+                    available_units_count: variant.availableUnitsCount ?? null,
+                    price_on_request: Boolean(variant.priceOnRequest || variant.price === null),
+                    floor_plans: floorPlans.length > 0 ? floorPlans : [{ id: `${variant.id}-fallback`, title: variant.title, image_url: FALLBACK_IMAGE, size: null, bedrooms: ut.bedrooms ?? null, bathrooms: ut.bathrooms ?? null, price: null }],
+                    media: (variant.media || []).map((m: any) => ({
+                        id: m.id,
+                        type: String(m.type || '').toLowerCase(),
+                        url: m.url,
+                        title: m.title || null,
+                        order: m.sortOrder ?? 0,
+                    })),
+                }
+            }),
+            }
+        })
+        const flattenedFloorPlans = normalizedUnitTypes.flatMap((ut: any) => ut.variants.flatMap((v: any) => v.floor_plans))
 
         return NextResponse.json({
             success: true,
@@ -155,7 +251,8 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
                 similarProjects,
             },
             media,
-            floor_plans: (project.floorPlans || []).map((fp: any) => ({
+            unit_types: normalizedUnitTypes,
+            floor_plans: flattenedFloorPlans.length > 0 ? flattenedFloorPlans : (project.floorPlans || []).map((fp: any) => ({
                 id: fp.id,
                 title: fp.unitType,
                 image_url: fp.imageUrl || FALLBACK_IMAGE,

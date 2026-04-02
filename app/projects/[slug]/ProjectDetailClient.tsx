@@ -36,7 +36,28 @@ interface ProjectData {
         }
     } | null
     brochure?: { title: string; file: string } | null
-    unitTypes: { id: string; unitType: string; sizeFrom: number | null; sizeTo: number | null; priceFrom: number | null }[]
+    unitTypes: {
+        id: string
+        unitType: string
+        bedrooms?: number | null
+        bathrooms?: number | null
+        sizeFrom: number | null
+        sizeTo: number | null
+        priceFrom: number | null
+        variants?: {
+            id: string
+            title: string
+            size: number | null
+            price: number | null
+            pricePerSqft?: number | null
+            facing?: string | null
+            view?: string | null
+            availabilityStatus?: 'AVAILABLE' | 'SOLD_OUT' | null
+            availableUnitsCount?: number | null
+            priceOnRequest?: boolean | null
+            floorPlans?: { id: string; unitType: string; bedrooms: number | null; bathrooms: number | null; size: string | null; price: string | null; imageUrl: string | null }[]
+        }[]
+    }[]
     amenities: { id: string; name: string; icon: string | null; category: string | null }[]
     paymentPlans: { id: string; stage: string; percentage: number; milestone: string | null; sortOrder: number | null }[]
     floorPlans: { id: string; unitType: string; bedrooms: number | null; bathrooms: number | null; size: string | null; price: string | null; imageUrl: string | null }[]
@@ -303,6 +324,51 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
     }, [project.amenities])
 
     const displayedAmenities = showAllAmenities ? project.amenities : project.amenities.slice(0, 12)
+    const normalizedUnitTypes = useMemo(() => {
+        return (project.unitTypes || []).map((ut) => {
+            const variants = (ut.variants && ut.variants.length > 0)
+                ? ut.variants
+                : [{
+                    id: `${ut.id}-default`,
+                    title: ut.unitType || 'Unit Variant',
+                    size: ut.sizeFrom ?? ut.sizeTo ?? null,
+                    price: ut.priceFrom ?? null,
+                    availabilityStatus: 'AVAILABLE' as const,
+                    availableUnitsCount: null,
+                    floorPlans: [],
+                }]
+            return {
+                id: ut.id,
+                name: ut.unitType,
+                bedrooms: ut.bedrooms ?? null,
+                bathrooms: ut.bathrooms ?? null,
+                sizeFrom: ut.sizeFrom ?? null,
+                sizeTo: ut.sizeTo ?? null,
+                variants,
+            }
+        })
+    }, [project.unitTypes])
+    const [selectedUnitTypeId, setSelectedUnitTypeId] = useState('')
+    const activeUnitType = useMemo(() => {
+        if (normalizedUnitTypes.length === 0) return null
+        if (selectedUnitTypeId) {
+            return normalizedUnitTypes.find((u) => u.id === selectedUnitTypeId) || normalizedUnitTypes[0]
+        }
+        return normalizedUnitTypes[0]
+    }, [normalizedUnitTypes, selectedUnitTypeId])
+    const activeVariants = activeUnitType?.variants || []
+    const allFloorPlans = useMemo(() => {
+        const variantPlans = normalizedUnitTypes.flatMap((ut) =>
+            (ut.variants || []).flatMap((variant) =>
+                (variant.floorPlans || []).map((fp) => ({
+                    ...fp,
+                    imageUrl: fp.imageUrl || fallbackImage,
+                    unitType: fp.unitType || variant.title || ut.name,
+                }))
+            )
+        )
+        return variantPlans.length > 0 ? variantPlans : (project.floorPlans || [])
+    }, [normalizedUnitTypes, project.floorPlans])
 
     const handleSubmitLead = useCallback(async (e: React.FormEvent) => {
         e.preventDefault()
@@ -500,10 +566,10 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                         <p className="text-sm font-semibold text-amber-800">Eligible ✓</p>
                                     </div>
                                 )}
-                                {project.unitTypes.length > 0 && (
+                                {normalizedUnitTypes.length > 0 && (
                                     <div className="rounded-xl border border-gray-200 bg-white p-4 hover:shadow-md transition-shadow">
                                         <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Unit Types</p>
-                                        <p className="text-sm font-semibold text-gray-900">{project.unitTypes.length} Available</p>
+                                        <p className="text-sm font-semibold text-gray-900">{normalizedUnitTypes.length} Available</p>
                                     </div>
                                 )}
                             </div>
@@ -564,11 +630,59 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                         )}
 
                                                 {/* FLOOR PLANS */}
-                        {project.floorPlans.length > 0 && (
+                        {allFloorPlans.length > 0 && (
                             <section id="section-plans">
                                 <SectionHeader title="Floor Plans" subtitle="Available unit configurations" />
+                                {normalizedUnitTypes.length > 0 && (
+                                    <div className="mb-5 flex flex-wrap gap-2">
+                                        {normalizedUnitTypes.map((ut) => (
+                                            <button
+                                                key={ut.id}
+                                                type="button"
+                                                onClick={() => setSelectedUnitTypeId(ut.id)}
+                                                className={`rounded-xl border px-3.5 py-2 text-xs font-semibold transition-all ${activeUnitType?.id === ut.id
+                                                    ? 'border-amber-500 bg-amber-500 text-white'
+                                                    : 'border-gray-200 bg-white text-gray-600 hover:border-amber-300'
+                                                    }`}
+                                            >
+                                                {ut.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                {activeVariants.length > 0 && (
+                                    <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {activeVariants.map((variant) => {
+                                            const soldOut = String(variant.availabilityStatus || '').toUpperCase() === 'SOLD_OUT' || (variant.availableUnitsCount ?? 1) === 0
+                                            return (
+                                                <div key={variant.id} className="rounded-2xl border border-gray-200 bg-white p-4">
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <h4 className="text-sm font-bold text-gray-900">{variant.title}</h4>
+                                                        <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${soldOut ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                                            {soldOut ? 'Sold Out' : 'Available'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                                                        <div className="rounded-lg bg-gray-50 px-2.5 py-2"><span className="text-gray-500">Size</span><div className="font-semibold text-gray-900">{variant.size ? `${variant.size.toLocaleString()} sqft` : '—'}</div></div>
+                                                        <div className="rounded-lg bg-amber-50 px-2.5 py-2"><span className="text-amber-700">Price</span><div className="font-semibold text-amber-700">{variant.price ? formatPrice(variant.price) : 'Price on Request'}</div></div>
+                                                        <div className="rounded-lg bg-gray-50 px-2.5 py-2"><span className="text-gray-500">View</span><div className="font-semibold text-gray-900">{variant.view || '—'}</div></div>
+                                                        <div className="rounded-lg bg-gray-50 px-2.5 py-2"><span className="text-gray-500">Facing</span><div className="font-semibold text-gray-900">{variant.facing || '—'}</div></div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        disabled={soldOut}
+                                                        onClick={() => document.getElementById('section-enquiry')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                                                        className={`mt-4 w-full rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${soldOut ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-dark-blue text-white hover:bg-dark-blue/90'}`}
+                                                    >
+                                                        {soldOut ? 'Unavailable' : 'Enquire Now'}
+                                                    </button>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {project.floorPlans.map((fp) => (
+                                    {allFloorPlans.map((fp) => (
                                         <div key={fp.id} className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
                                             <div className="relative aspect-square bg-gray-100">
                                                 <img src={fp.imageUrl || fallbackImage} alt={`${fp.unitType} floor plan`} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
@@ -589,7 +703,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                         )}
 
                         {/* UNIT TYPES TABLE */}
-                        {project.unitTypes.length > 0 && project.floorPlans.length === 0 && (
+                        {normalizedUnitTypes.length > 0 && allFloorPlans.length === 0 && (
                             <section>
                                 <SectionHeader title="Available Unit Types" />
                                 <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white">
@@ -602,9 +716,9 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {project.unitTypes.map((ut) => (
+                                            {normalizedUnitTypes.map((ut) => (
                                                 <tr key={ut.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors">
-                                                    <td className="px-5 py-3.5 font-semibold text-gray-900">{ut.unitType}</td>
+                                                    <td className="px-5 py-3.5 font-semibold text-gray-900">{ut.name}</td>
                                                     <td className="px-5 py-3.5 text-gray-600">
                                                         {ut.sizeFrom && ut.sizeTo
                                                             ? `${ut.sizeFrom.toLocaleString()} – ${ut.sizeTo.toLocaleString()}`
@@ -612,7 +726,11 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                                                 ? `From ${ut.sizeFrom.toLocaleString()}`
                                                                 : '—'}
                                                     </td>
-                                                    <td className="px-5 py-3.5 font-semibold text-amber-600">{ut.priceFrom ? formatPrice(ut.priceFrom) : '—'}</td>
+                                                    <td className="px-5 py-3.5 font-semibold text-amber-600">
+                                                        {ut.variants?.some((v) => v.price)
+                                                            ? formatPrice(Math.min(...ut.variants.filter((v) => v.price).map((v) => v.price as number)))
+                                                            : 'Price on Request'}
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -1082,8 +1200,8 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                     {project.amenities.length > 0 && (
                                         <div className="flex justify-between"><span className="text-gray-500">Amenities</span><span className="font-semibold text-gray-900">{project.amenities.length}</span></div>
                                     )}
-                                    {project.floorPlans.length > 0 && (
-                                        <div className="flex justify-between"><span className="text-gray-500">Floor Plans</span><span className="font-semibold text-gray-900">{project.floorPlans.length}</span></div>
+                                    {allFloorPlans.length > 0 && (
+                                        <div className="flex justify-between"><span className="text-gray-500">Floor Plans</span><span className="font-semibold text-gray-900">{allFloorPlans.length}</span></div>
                                     )}
                                     {(featuredImages.length > 0 || activeGalleryImages.length > 0) && (
                                         <div className="flex justify-between"><span className="text-gray-500">Gallery Images</span><span className="font-semibold text-gray-900">{uniqueStrings([

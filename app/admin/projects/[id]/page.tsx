@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import SelectDropdown from '@/components/SelectDropdown'
 
@@ -14,7 +14,26 @@ interface MediaItem {
     sortOrder: number | null
     s3Key: string | null
 }
-interface UnitTypeRow { unitType: string; sizeFrom: string; sizeTo: string; priceFrom: string }
+interface VariantRow {
+    id?: string
+    title: string
+    size: string
+    price: string
+    facing: string
+    view: string
+    availabilityStatus: 'AVAILABLE' | 'SOLD_OUT'
+    availableUnitsCount: string
+}
+interface UnitTypeRow {
+    id?: string
+    unitType: string
+    bedrooms: string
+    bathrooms: string
+    sizeFrom: string
+    sizeTo: string
+    priceFrom: string
+    variants: VariantRow[]
+}
 interface FloorPlanRow {
     id?: string
     unitType: string
@@ -64,12 +83,24 @@ export default function AdminEditProjectPage() {
     const [media, setMedia] = useState<MediaItem[]>([])
     const [uploading, setUploading] = useState(false)
     const [uploadCategory, setUploadCategory] = useState<'hero' | 'gallery' | 'interior' | 'exterior' | 'amenities' | 'lifestyle' | 'floor_plan'>('interior')
+    const [uploadVariantId, setUploadVariantId] = useState('')
     const [projectSlugForUpload, setProjectSlugForUpload] = useState('')
     const [developerSlugForUpload, setDeveloperSlugForUpload] = useState('')
 
     // Unit types
     const [unitTypes, setUnitTypes] = useState<UnitTypeRow[]>([])
     const [floorPlans, setFloorPlans] = useState<FloorPlanRow[]>([])
+    const variantOptions = useMemo(() => {
+        const opts: Array<{ value: string; label: string }> = [{ value: '', label: 'Select Variant' }]
+        for (const ut of unitTypes) {
+            for (const v of ut.variants || []) {
+                const id = String(v.id || '').trim()
+                if (!id) continue
+                opts.push({ value: id, label: `${ut.unitType || 'Unit'} • ${v.title || 'Variant'}` })
+            }
+        }
+        return opts
+    }, [unitTypes])
 
     const loadProject = useCallback(async () => {
         setLoading(true)
@@ -107,12 +138,36 @@ export default function AdminEditProjectPage() {
             setMedia(p.media || [])
             setUnitTypes(
                 (p.unitTypes || []).map((ut: any) => ({
+                    id: ut.id,
                     unitType: ut.unitType || '',
+                    bedrooms: ut.bedrooms !== null && ut.bedrooms !== undefined ? String(ut.bedrooms) : '',
+                    bathrooms: ut.bathrooms !== null && ut.bathrooms !== undefined ? String(ut.bathrooms) : '',
                     sizeFrom: ut.sizeFrom ? String(ut.sizeFrom) : '',
                     sizeTo: ut.sizeTo ? String(ut.sizeTo) : '',
                     priceFrom: ut.priceFrom ? String(ut.priceFrom) : '',
+                    variants: ((ut.variants && ut.variants.length > 0) ? ut.variants : [{
+                        id: `${ut.id}-default`,
+                        title: ut.unitType || 'Type A',
+                        size: ut.sizeFrom || null,
+                        price: ut.priceFrom || null,
+                        facing: null,
+                        view: null,
+                        availabilityStatus: 'AVAILABLE',
+                        availableUnitsCount: null,
+                    }]).map((v: any) => ({
+                        id: v.id,
+                        title: v.title || '',
+                        size: v.size !== null && v.size !== undefined ? String(v.size) : '',
+                        price: v.price !== null && v.price !== undefined ? String(v.price) : '',
+                        facing: v.facing || '',
+                        view: v.view || '',
+                        availabilityStatus: v.availabilityStatus || ((v.availableUnitsCount ?? 1) === 0 ? 'SOLD_OUT' : 'AVAILABLE'),
+                        availableUnitsCount: v.availableUnitsCount !== null && v.availableUnitsCount !== undefined ? String(v.availableUnitsCount) : '',
+                    })),
                 }))
             )
+            const firstVariantId = (p.unitTypes || []).flatMap((ut: any) => (ut.variants || [])).map((v: any) => v.id).find(Boolean) || ''
+            setUploadVariantId(firstVariantId)
             setFloorPlans(
                 (p.floorPlans || []).map((fp: any) => ({
                     id: fp.id,
@@ -154,10 +209,42 @@ export default function AdminEditProjectPage() {
                 featuredOrder: featuredOrder ? parseInt(featuredOrder, 10) : null,
                 coverImage: coverImage || null,
                 unitTypes: unitTypes.filter((ut) => ut.unitType.trim()).map((ut) => ({
+                    id: ut.id,
                     unitType: ut.unitType.trim(),
+                    bedrooms: ut.bedrooms ? parseInt(ut.bedrooms, 10) : null,
+                    bathrooms: ut.bathrooms ? parseInt(ut.bathrooms, 10) : null,
                     sizeFrom: ut.sizeFrom ? parseInt(ut.sizeFrom, 10) : null,
                     sizeTo: ut.sizeTo ? parseInt(ut.sizeTo, 10) : null,
                     priceFrom: ut.priceFrom ? ut.priceFrom.trim() : null,
+                    variants: ut.variants
+                        .filter((v) => v.title.trim())
+                        .map((v) => ({
+                            id: v.id,
+                            title: v.title.trim(),
+                            size: v.size ? parseInt(v.size, 10) : null,
+                            price: v.price ? v.price.trim() : null,
+                            facing: v.facing.trim() || null,
+                            view: v.view.trim() || null,
+                            availabilityStatus: v.availabilityStatus,
+                            availableUnitsCount: v.availableUnitsCount ? parseInt(v.availableUnitsCount, 10) : null,
+                            priceOnRequest: !v.price.trim(),
+                            floorPlans: floorPlans
+                                .filter((fp) => {
+                                    const key = fp.unitType.trim().toLowerCase()
+                                    const unitTypeKey = ut.unitType.trim().toLowerCase()
+                                    const variantKey = v.title.trim().toLowerCase()
+                                    return key === unitTypeKey || key === variantKey
+                                })
+                                .map((fp) => ({
+                                    id: fp.id,
+                                    title: fp.unitType.trim() || v.title.trim(),
+                                    bedrooms: fp.bedrooms ? parseInt(fp.bedrooms, 10) : null,
+                                    bathrooms: fp.bathrooms ? parseInt(fp.bathrooms, 10) : null,
+                                    size: fp.size.trim() || null,
+                                    price: fp.price.trim() || null,
+                                    imageUrl: fp.imageUrl.trim() || null,
+                                })),
+                        })),
                 })),
                 floorPlans: floorPlans
                     .filter((fp) => fp.unitType.trim() || fp.imageUrl.trim())
@@ -232,6 +319,7 @@ export default function AdminEditProjectPage() {
                         s3Key: uploadJson.key || null,
                         label: uploadJson.label || null,
                         category: uploadCategory,
+                        unitVariantId: uploadCategory === 'floor_plan' ? (uploadVariantId || null) : null,
                         sortOrder: media.length + i + 1,
                     }),
                 })
@@ -264,10 +352,49 @@ export default function AdminEditProjectPage() {
         }
     }
 
-    const addUnitType = () => setUnitTypes((prev) => [...prev, { unitType: '', sizeFrom: '', sizeTo: '', priceFrom: '' }])
+    const addUnitType = () => setUnitTypes((prev) => [...prev, {
+        unitType: '',
+        bedrooms: '',
+        bathrooms: '',
+        sizeFrom: '',
+        sizeTo: '',
+        priceFrom: '',
+        variants: [{
+            title: 'Type A',
+            size: '',
+            price: '',
+            facing: '',
+            view: '',
+            availabilityStatus: 'AVAILABLE',
+            availableUnitsCount: '',
+        }],
+    }])
     const updateUnitType = (idx: number, field: keyof UnitTypeRow, value: string) =>
         setUnitTypes((prev) => prev.map((row, i) => (i === idx ? { ...row, [field]: value } : row)))
     const removeUnitType = (idx: number) => setUnitTypes((prev) => prev.filter((_, i) => i !== idx))
+    const addVariant = (unitIdx: number) =>
+        setUnitTypes((prev) => prev.map((ut, i) => i === unitIdx ? {
+            ...ut,
+            variants: [...(ut.variants || []), {
+                title: `Type ${String.fromCharCode(65 + (ut.variants || []).length)}`,
+                size: '',
+                price: '',
+                facing: '',
+                view: '',
+                availabilityStatus: 'AVAILABLE',
+                availableUnitsCount: '',
+            }],
+        } : ut))
+    const updateVariant = (unitIdx: number, variantIdx: number, field: keyof VariantRow, value: string) =>
+        setUnitTypes((prev) => prev.map((ut, i) => i === unitIdx ? {
+            ...ut,
+            variants: (ut.variants || []).map((v, j) => (j === variantIdx ? { ...v, [field]: value } : v)),
+        } : ut))
+    const removeVariant = (unitIdx: number, variantIdx: number) =>
+        setUnitTypes((prev) => prev.map((ut, i) => i === unitIdx ? {
+            ...ut,
+            variants: (ut.variants || []).filter((_, j) => j !== variantIdx),
+        } : ut))
     const addFloorPlan = () => setFloorPlans((prev) => [...prev, { unitType: '', bedrooms: '', bathrooms: '', size: '', price: '', imageUrl: '' }])
     const updateFloorPlan = (idx: number, field: keyof FloorPlanRow, value: string) =>
         setFloorPlans((prev) => prev.map((row, i) => (i === idx ? { ...row, [field]: value } : row)))
@@ -443,6 +570,18 @@ export default function AdminEditProjectPage() {
                                 showLabel={false}
                                 className="w-36"
                             />
+                            {uploadCategory === 'floor_plan' && (
+                                <SelectDropdown
+                                    label="Floor Plan Variant"
+                                    value={uploadVariantId}
+                                    onChange={setUploadVariantId}
+                                    options={variantOptions}
+                                    variant="dark"
+                                    dense
+                                    showLabel={false}
+                                    className="w-56"
+                                />
+                            )}
                             <label className={`inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/60 hover:bg-white/[0.08] transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
                                 {uploading ? 'Uploading…' : (
                                     <>
@@ -494,48 +633,68 @@ export default function AdminEditProjectPage() {
                         </button>
                     </div>
                     {unitTypes.length > 0 ? (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="text-left">
-                                        <th className="text-[11px] font-bold uppercase tracking-wider text-white/30 pb-2">Type</th>
-                                        <th className="text-[11px] font-bold uppercase tracking-wider text-white/30 pb-2">Size From</th>
-                                        <th className="text-[11px] font-bold uppercase tracking-wider text-white/30 pb-2">Size To</th>
-                                        <th className="text-[11px] font-bold uppercase tracking-wider text-white/30 pb-2">Price From</th>
-                                        <th className="pb-2 w-10"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {unitTypes.map((ut, idx) => (
-                                        <tr key={idx} className="group">
-                                            <td className="pr-2 pb-2">
-                                                <input type="text" value={ut.unitType} onChange={(e) => updateUnitType(idx, 'unitType', e.target.value)}
-                                                    className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/80 outline-none focus:border-amber-400/30 transition-all" />
-                                            </td>
-                                            <td className="pr-2 pb-2">
-                                                <input type="number" value={ut.sizeFrom} onChange={(e) => updateUnitType(idx, 'sizeFrom', e.target.value)}
-                                                    className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
-                                            </td>
-                                            <td className="pr-2 pb-2">
-                                                <input type="number" value={ut.sizeTo} onChange={(e) => updateUnitType(idx, 'sizeTo', e.target.value)}
-                                                    className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
-                                            </td>
-                                            <td className="pr-2 pb-2">
-                                                <input type="text" value={ut.priceFrom} onChange={(e) => updateUnitType(idx, 'priceFrom', e.target.value)} placeholder="e.g. 750K"
-                                                    className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
-                                            </td>
-                                            <td className="pb-2">
-                                                <button type="button" onClick={() => removeUnitType(idx)}
-                                                    className="opacity-0 group-hover:opacity-100 rounded-lg p-1.5 text-red-400 hover:bg-red-500/10 transition-all">
-                                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-                                                </button>
-                                            </td>
-                                        </tr>
+                        <div className="space-y-4">
+                            {unitTypes.map((ut, idx) => (
+                                <div key={ut.id || idx} className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-6 gap-2">
+                                        <input type="text" value={ut.unitType} onChange={(e) => updateUnitType(idx, 'unitType', e.target.value)} placeholder="Unit Type (e.g. 1 Bedroom)"
+                                            className="sm:col-span-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/80 outline-none focus:border-amber-400/30 transition-all" />
+                                        <input type="number" value={ut.bedrooms} onChange={(e) => updateUnitType(idx, 'bedrooms', e.target.value)} placeholder="Beds"
+                                            className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                        <input type="number" value={ut.bathrooms} onChange={(e) => updateUnitType(idx, 'bathrooms', e.target.value)} placeholder="Baths"
+                                            className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                        <input type="number" value={ut.sizeFrom} onChange={(e) => updateUnitType(idx, 'sizeFrom', e.target.value)} placeholder="Size Min"
+                                            className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                        <input type="number" value={ut.sizeTo} onChange={(e) => updateUnitType(idx, 'sizeTo', e.target.value)} placeholder="Size Max"
+                                            className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-xs font-semibold uppercase tracking-wider text-white/35">Variants ({ut.variants?.length || 0})</p>
+                                        <div className="flex items-center gap-2">
+                                            <button type="button" onClick={() => addVariant(idx)}
+                                                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium text-white/60 hover:bg-white/[0.08] transition-all">
+                                                + Variant
+                                            </button>
+                                            <button type="button" onClick={() => removeUnitType(idx)}
+                                                className="rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1.5 text-[11px] font-medium text-red-300 hover:bg-red-500/20 transition-all">
+                                                Remove Type
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {(ut.variants || []).map((v, vIdx) => (
+                                        <div key={v.id || `${idx}-${vIdx}`} className="grid grid-cols-1 sm:grid-cols-8 gap-2">
+                                            <input type="text" value={v.title} onChange={(e) => updateVariant(idx, vIdx, 'title', e.target.value)} placeholder="Type A"
+                                                className="sm:col-span-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/80 outline-none focus:border-amber-400/30 transition-all" />
+                                            <input type="number" value={v.size} onChange={(e) => updateVariant(idx, vIdx, 'size', e.target.value)} placeholder="Size"
+                                                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                            <input type="text" value={v.price} onChange={(e) => updateVariant(idx, vIdx, 'price', e.target.value)} placeholder="2.16M"
+                                                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                            <input type="text" value={v.facing} onChange={(e) => updateVariant(idx, vIdx, 'facing', e.target.value)} placeholder="Facing"
+                                                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                            <input type="text" value={v.view} onChange={(e) => updateVariant(idx, vIdx, 'view', e.target.value)} placeholder="View"
+                                                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                            <input type="number" value={v.availableUnitsCount} onChange={(e) => updateVariant(idx, vIdx, 'availableUnitsCount', e.target.value)} placeholder="Avail."
+                                                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                            <SelectDropdown
+                                                label="Status"
+                                                value={v.availabilityStatus}
+                                                onChange={(value) => updateVariant(idx, vIdx, 'availabilityStatus', value)}
+                                                options={[
+                                                    { value: 'AVAILABLE', label: 'Available' },
+                                                    { value: 'SOLD_OUT', label: 'Sold Out' },
+                                                ]}
+                                                variant="dark"
+                                                dense
+                                                showLabel={false}
+                                            />
+                                            <button type="button" onClick={() => removeVariant(idx, vIdx)}
+                                                className="rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-2 text-[11px] font-medium text-red-300 hover:bg-red-500/20 transition-all">
+                                                Remove
+                                            </button>
+                                        </div>
                                     ))}
-                                </tbody>
-                            </table>
+                                </div>
+                            ))}
                         </div>
                     ) : (
                         <p className="text-xs text-white/25 py-2">No unit types. Click &quot;Add Row&quot; to add one.</p>

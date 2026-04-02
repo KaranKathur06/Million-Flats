@@ -105,9 +105,21 @@ export default function AdminAddProjectPage() {
                     .filter((ut) => ut.unitType.trim())
                     .map((ut) => ({
                         unitType: ut.unitType.trim(),
+                        bedrooms: (() => {
+                            const m = ut.unitType.match(/(\d+)/)
+                            return m ? parseInt(m[1], 10) : null
+                        })(),
                         sizeFrom: ut.sizeFrom ? parseInt(ut.sizeFrom, 10) : undefined,
                         sizeTo: ut.sizeTo ? parseInt(ut.sizeTo, 10) : undefined,
                         priceFrom: ut.priceFrom ? ut.priceFrom.trim() : undefined,
+                        variants: [
+                            {
+                                title: 'Type A',
+                                size: ut.sizeFrom ? parseInt(ut.sizeFrom, 10) : undefined,
+                                price: ut.priceFrom ? ut.priceFrom.trim() : undefined,
+                                availabilityStatus: 'AVAILABLE',
+                            },
+                        ],
                     })),
             }
 

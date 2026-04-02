@@ -12,6 +12,7 @@ const saveMediaSchema = z.object({
     category: z.enum(CATEGORY_VALUES),
     sortOrder: z.number().int().min(0).optional().nullable(),
     s3Key: z.string().min(1).optional().nullable(),
+    unitVariantId: z.string().optional().nullable(),
 })
 
 function labelFromFilename(filename: string) {
@@ -76,10 +77,20 @@ export async function POST(req: Request, { params }: { params: { id: string } })
                 })
             }
             if (data.category === 'floor_plan') {
+                const linkedVariant = data.unitVariantId
+                    ? await (prisma as any).projectUnitVariant.findFirst({
+                        where: { id: data.unitVariantId, projectId: params.id },
+                        select: { id: true, title: true, unitType: { select: { bedrooms: true, bathrooms: true } } },
+                    })
+                    : null
+
                 await (prisma as any).projectFloorPlan.create({
                     data: {
                         projectId: params.id,
-                        unitType: data.label?.trim() || 'Floor Plan',
+                        unitVariantId: linkedVariant?.id || null,
+                        unitType: data.label?.trim() || linkedVariant?.title || 'Floor Plan',
+                        bedrooms: linkedVariant?.unitType?.bedrooms ?? null,
+                        bathrooms: linkedVariant?.unitType?.bathrooms ?? null,
                         imageUrl: data.url,
                         s3Key: data.s3Key || null,
                     },
@@ -99,6 +110,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
                 ? 'floor_plan'
                 : rawCategory
         const sortOrder = parseInt(String(formData.get('sortOrder') || '0'), 10) || 0
+        const unitVariantId = String(formData.get('unitVariantId') || '').trim() || null
 
         if (!file) {
             return NextResponse.json({ success: false, message: 'No file provided' }, { status: 400 })
@@ -143,10 +155,20 @@ export async function POST(req: Request, { params }: { params: { id: string } })
             })
         }
         if (category === 'floor_plan') {
+            const linkedVariant = unitVariantId
+                ? await (prisma as any).projectUnitVariant.findFirst({
+                    where: { id: unitVariantId, projectId: params.id },
+                    select: { id: true, title: true, unitType: { select: { bedrooms: true, bathrooms: true } } },
+                })
+                : null
+
             await (prisma as any).projectFloorPlan.create({
                 data: {
                     projectId: params.id,
-                    unitType: labelFromFilename(normalizedFilename) || 'Floor Plan',
+                    unitVariantId: linkedVariant?.id || null,
+                    unitType: labelFromFilename(normalizedFilename) || linkedVariant?.title || 'Floor Plan',
+                    bedrooms: linkedVariant?.unitType?.bedrooms ?? null,
+                    bathrooms: linkedVariant?.unitType?.bathrooms ?? null,
                     imageUrl: url,
                     s3Key: uploadedKey,
                 },

@@ -19,30 +19,47 @@ const updateProjectSchema = z.object({
     isFeatured: z.boolean().optional(),
     featuredOrder: z.number().int().min(0).optional().nullable(),
     coverImage: z.string().max(2000).optional().nullable(),
-    unitTypes: z
-        .array(
-            z.object({
+    unitTypes: z.array(z.object({
+        id: z.string().optional(),
+        name: z.string().min(1).max(120).optional(),
+        unitType: z.string().min(1).max(120).optional(),
+        bedrooms: z.number().int().min(0).max(20).optional().nullable(),
+        bathrooms: z.number().int().min(0).max(20).optional().nullable(),
+        sizeMin: z.number().int().min(0).optional().nullable(),
+        sizeMax: z.number().int().min(0).optional().nullable(),
+        sizeFrom: z.number().int().min(0).optional().nullable(),
+        sizeTo: z.number().int().min(0).optional().nullable(),
+        priceFrom: z.union([z.number(), z.string()]).optional().nullable(),
+        variants: z.array(z.object({
+            id: z.string().optional(),
+            title: z.string().min(1).max(120),
+            size: z.number().int().min(0).optional().nullable(),
+            price: z.union([z.number(), z.string()]).optional().nullable(),
+            priceOnRequest: z.boolean().optional(),
+            facing: z.string().max(80).optional().nullable(),
+            view: z.string().max(120).optional().nullable(),
+            availabilityStatus: z.enum(['AVAILABLE', 'SOLD_OUT']).optional(),
+            availableUnitsCount: z.number().int().min(0).optional().nullable(),
+            floorPlans: z.array(z.object({
                 id: z.string().optional(),
-                unitType: z.string().min(1).max(100),
-                sizeFrom: z.number().int().min(0).optional().nullable(),
-                sizeTo: z.number().int().min(0).optional().nullable(),
-                priceFrom: z.union([z.number(), z.string()]).optional().nullable(),
-            })
-        )
-        .optional(),
-    floorPlans: z
-        .array(
-            z.object({
-                id: z.string().optional(),
-                unitType: z.string().min(1).max(100),
+                title: z.string().max(120).optional().nullable(),
+                imageUrl: z.string().max(2000).optional().nullable(),
+                size: z.string().max(120).optional().nullable(),
                 bedrooms: z.number().int().min(0).max(20).optional().nullable(),
                 bathrooms: z.number().int().min(0).max(20).optional().nullable(),
-                size: z.string().max(100).optional().nullable(),
-                price: z.string().max(100).optional().nullable(),
-                imageUrl: z.string().max(2000).optional().nullable(),
-            })
-        )
-        .optional(),
+                price: z.string().max(120).optional().nullable(),
+            })).optional(),
+        })).optional(),
+    })).optional(),
+    floorPlans: z.array(z.object({
+        id: z.string().optional(),
+        unitType: z.string().min(1).max(120),
+        bedrooms: z.number().int().min(0).max(20).optional().nullable(),
+        bathrooms: z.number().int().min(0).max(20).optional().nullable(),
+        size: z.string().max(120).optional().nullable(),
+        price: z.string().max(120).optional().nullable(),
+        imageUrl: z.string().max(2000).optional().nullable(),
+    })).optional(),
 })
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
@@ -57,7 +74,18 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
             include: {
                 developer: { select: { id: true, name: true, slug: true, logo: true } },
                 media: { orderBy: { sortOrder: 'asc' } },
-                unitTypes: true,
+                unitTypes: {
+                    orderBy: { sortOrder: 'asc' },
+                    include: {
+                        variants: {
+                            orderBy: { sortOrder: 'asc' },
+                            include: {
+                                floorPlans: { orderBy: { createdAt: 'asc' } },
+                                media: { orderBy: { sortOrder: 'asc' } },
+                            },
+                        },
+                    },
+                },
                 _count: { select: { leads: true } },
                 floorPlans: { orderBy: { createdAt: 'asc' } },
             },
@@ -126,36 +154,114 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         if (data.featuredOrder !== undefined) updateData.featuredOrder = data.featuredOrder
         if (data.coverImage !== undefined) updateData.coverImage = data.coverImage
 
-        // Handle unit types: replace all if provided
+        let derivedMinVariantPrice: number | null = null
+        // Handle unit types + variants: replace all if provided
+        let createdVariantByUnitTypeKey: Record<string, string> = {}
         if (data.unitTypes !== undefined) {
+            await (prisma as any).unitMedia.deleteMany({
+                where: { unitVariant: { projectId: params.id } },
+            })
+            await (prisma as any).projectFloorPlan.deleteMany({
+                where: { OR: [{ unitVariant: { projectId: params.id } }, { projectId: params.id }] },
+            })
+            await (prisma as any).projectUnitVariant.deleteMany({ where: { projectId: params.id } })
             await (prisma as any).projectUnitType.deleteMany({ where: { projectId: params.id } })
-            if (data.unitTypes.length > 0) {
-                await (prisma as any).projectUnitType.createMany({
-                    data: data.unitTypes.map((ut) => ({
+            for (let idx = 0; idx < data.unitTypes.length; idx++) {
+                const ut = data.unitTypes[idx]
+                const createdType = await (prisma as any).projectUnitType.create({
+                    data: {
                         projectId: params.id,
-                        unitType: ut.unitType,
-                        sizeFrom: ut.sizeFrom ?? null,
-                        sizeTo: ut.sizeTo ?? null,
+                        unitType: (ut.name || ut.unitType || `Unit Type ${idx + 1}`).trim(),
+                        bedrooms: ut.bedrooms ?? null,
+                        bathrooms: ut.bathrooms ?? null,
+                        sizeFrom: ut.sizeMin ?? ut.sizeFrom ?? null,
+                        sizeTo: ut.sizeMax ?? ut.sizeTo ?? null,
                         priceFrom: parseAEDInput(ut.priceFrom) ?? null,
-                    })),
+                        sortOrder: idx,
+                    },
+                    select: { id: true, unitType: true, bedrooms: true, bathrooms: true },
+                })
+
+                for (let vIdx = 0; vIdx < (ut.variants || []).length; vIdx++) {
+                    const variant = ut.variants![vIdx]
+                    const variantPrice = parseAEDInput(variant.price)
+                    if (variantPrice !== null) {
+                        derivedMinVariantPrice = derivedMinVariantPrice === null ? variantPrice : Math.min(derivedMinVariantPrice, variantPrice)
+                    }
+                    const createdVariant = await (prisma as any).projectUnitVariant.create({
+                        data: {
+                            projectId: params.id,
+                            unitTypeId: createdType.id,
+                            title: variant.title.trim(),
+                            size: variant.size ?? null,
+                            price: variantPrice ?? null,
+                            pricePerSqft: variantPrice !== null && (variant.size ?? 0) > 0
+                                ? variantPrice / (variant.size as number)
+                                : null,
+                            facing: variant.facing?.trim() || null,
+                            view: variant.view?.trim() || null,
+                            availabilityStatus: variant.availabilityStatus || ((variant.availableUnitsCount ?? 1) === 0 ? 'SOLD_OUT' : 'AVAILABLE'),
+                            availableUnitsCount: variant.availableUnitsCount ?? null,
+                            priceOnRequest: variant.priceOnRequest ?? (variantPrice === null),
+                            sortOrder: vIdx,
+                        },
+                        select: { id: true },
+                    })
+                    createdVariantByUnitTypeKey[variant.title.trim().toLowerCase()] = createdVariant.id
+                    createdVariantByUnitTypeKey[createdType.unitType.trim().toLowerCase()] = createdVariant.id
+
+                    const floorPlans = (variant.floorPlans || []).filter((fp) => String(fp.imageUrl || '').trim())
+                    if (floorPlans.length > 0) {
+                        await (prisma as any).projectFloorPlan.createMany({
+                            data: floorPlans.map((fp) => ({
+                                projectId: params.id,
+                                unitVariantId: createdVariant.id,
+                                unitType: fp.title?.trim() || variant.title.trim() || createdType.unitType,
+                                bedrooms: fp.bedrooms ?? createdType.bedrooms ?? null,
+                                bathrooms: fp.bathrooms ?? createdType.bathrooms ?? null,
+                                size: fp.size?.trim() || null,
+                                price: fp.price?.trim() || null,
+                                imageUrl: fp.imageUrl?.trim() || null,
+                            })),
+                        })
+                    }
+                }
+            }
+        }
+
+        if (data.floorPlans !== undefined && data.floorPlans.length > 0) {
+            const normalized = data.floorPlans.filter((fp) => String(fp.imageUrl || '').trim())
+            if (data.unitTypes === undefined) {
+                const variants = await (prisma as any).projectUnitVariant.findMany({
+                    where: { projectId: params.id },
+                    include: { unitType: { select: { unitType: true, bedrooms: true, bathrooms: true } } },
+                })
+                for (const v of variants) {
+                    createdVariantByUnitTypeKey[String(v.title || '').trim().toLowerCase()] = v.id
+                    createdVariantByUnitTypeKey[String(v.unitType?.unitType || '').trim().toLowerCase()] = v.id
+                }
+                await (prisma as any).projectFloorPlan.deleteMany({ where: { projectId: params.id } })
+            }
+            for (const fp of normalized) {
+                const key = String(fp.unitType || '').trim().toLowerCase()
+                const variantId = createdVariantByUnitTypeKey[key] || null
+                await (prisma as any).projectFloorPlan.create({
+                    data: {
+                        projectId: params.id,
+                        unitVariantId: variantId,
+                        unitType: fp.unitType.trim(),
+                        bedrooms: fp.bedrooms ?? null,
+                        bathrooms: fp.bathrooms ?? null,
+                        size: fp.size?.trim() || null,
+                        price: fp.price?.trim() || null,
+                        imageUrl: fp.imageUrl?.trim() || null,
+                    },
                 })
             }
         }
-        if (data.floorPlans !== undefined) {
-            await (prisma as any).projectFloorPlan.deleteMany({ where: { projectId: params.id } })
-            if (data.floorPlans.length > 0) {
-                await (prisma as any).projectFloorPlan.createMany({
-                    data: data.floorPlans.map((fp) => ({
-                        projectId: params.id,
-                        unitType: fp.unitType,
-                        bedrooms: fp.bedrooms ?? null,
-                        bathrooms: fp.bathrooms ?? null,
-                        size: fp.size ?? null,
-                        price: fp.price ?? null,
-                        imageUrl: fp.imageUrl ?? null,
-                    })),
-                })
-            }
+
+        if (data.startingPrice === undefined && derivedMinVariantPrice !== null) {
+            updateData.startingPrice = derivedMinVariantPrice
         }
 
         const updated = await (prisma as any).project.update({
