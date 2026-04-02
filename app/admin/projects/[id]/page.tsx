@@ -9,7 +9,7 @@ interface MediaItem {
     id: string
     mediaUrl: string
     mediaType: string
-    category?: 'hero' | 'interior' | 'exterior' | 'amenities' | 'lifestyle' | null
+    category?: 'hero' | 'gallery' | 'interior' | 'exterior' | 'amenities' | 'lifestyle' | 'floor_plan' | null
     label?: string | null
     sortOrder: number | null
     s3Key: string | null
@@ -41,9 +41,12 @@ export default function AdminEditProjectPage() {
     const [community, setCommunity] = useState('')
     const [countryIso2, setCountryIso2] = useState('AE')
     const [description, setDescription] = useState('')
+    const [overview, setOverview] = useState('')
     const [completionYear, setCompletionYear] = useState('')
     const [startingPrice, setStartingPrice] = useState('')
     const [goldenVisa, setGoldenVisa] = useState(false)
+    const [isFeatured, setIsFeatured] = useState(false)
+    const [featuredOrder, setFeaturedOrder] = useState('')
     const [coverImage, setCoverImage] = useState('')
     const [status, setStatus] = useState('DRAFT')
     const [leadCount, setLeadCount] = useState(0)
@@ -51,7 +54,7 @@ export default function AdminEditProjectPage() {
     // Media
     const [media, setMedia] = useState<MediaItem[]>([])
     const [uploading, setUploading] = useState(false)
-    const [uploadCategory, setUploadCategory] = useState<'hero' | 'interior' | 'exterior' | 'amenities' | 'lifestyle'>('interior')
+    const [uploadCategory, setUploadCategory] = useState<'hero' | 'gallery' | 'interior' | 'exterior' | 'amenities' | 'lifestyle' | 'floor_plan'>('interior')
     const [projectSlugForUpload, setProjectSlugForUpload] = useState('')
     const [developerSlugForUpload, setDeveloperSlugForUpload] = useState('')
 
@@ -82,9 +85,12 @@ export default function AdminEditProjectPage() {
             setCommunity(p.community || '')
             setCountryIso2(p.countryIso2 || 'AE')
             setDescription(p.description || '')
+            setOverview(p.overview || '')
             setCompletionYear(p.completionYear ? String(p.completionYear) : '')
             setStartingPrice(p.startingPrice ? String(p.startingPrice) : '')
             setGoldenVisa(p.goldenVisa || false)
+            setIsFeatured(Boolean(p.isFeatured))
+            setFeaturedOrder(p.featuredOrder !== null && p.featuredOrder !== undefined ? String(p.featuredOrder) : '')
             setCoverImage(p.coverImage || '')
             setStatus(p.status || 'DRAFT')
             setLeadCount(p._count?.leads || 0)
@@ -119,9 +125,12 @@ export default function AdminEditProjectPage() {
                 city: city.trim() || null,
                 community: community.trim() || null,
                 description: description.trim() || null,
+                overview: overview.trim() || null,
                 completionYear: completionYear ? parseInt(completionYear, 10) : null,
                 startingPrice: startingPrice ? startingPrice.trim() : null,
                 goldenVisa,
+                isFeatured,
+                featuredOrder: featuredOrder ? parseInt(featuredOrder, 10) : null,
                 coverImage: coverImage || null,
                 unitTypes: unitTypes.filter((ut) => ut.unitType.trim()).map((ut) => ({
                     unitType: ut.unitType.trim(),
@@ -341,6 +350,11 @@ export default function AdminEditProjectPage() {
                                 className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
                         </div>
                         <div className="sm:col-span-2">
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Overview</label>
+                            <textarea value={overview} onChange={(e) => setOverview(e.target.value)} rows={3}
+                                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all resize-none" />
+                        </div>
+                        <div className="sm:col-span-2">
                             <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Description</label>
                             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4}
                                 className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all resize-none" />
@@ -352,6 +366,20 @@ export default function AdminEditProjectPage() {
                             </button>
                             <span className="text-sm text-white/60">Golden Visa Eligible</span>
                         </div>
+                        <div className="sm:col-span-2 flex items-center gap-3">
+                            <button type="button" onClick={() => setIsFeatured(!isFeatured)}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isFeatured ? 'bg-amber-400' : 'bg-white/[0.1]'}`}>
+                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${isFeatured ? 'translate-x-6' : 'translate-x-1'}`} />
+                            </button>
+                            <span className="text-sm text-white/60">Featured Project</span>
+                        </div>
+                        {isFeatured && (
+                            <div>
+                                <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Featured Order</label>
+                                <input type="number" min={0} value={featuredOrder} onChange={(e) => setFeaturedOrder(e.target.value)}
+                                    className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -363,13 +391,15 @@ export default function AdminEditProjectPage() {
                             <SelectDropdown
                                 label="Media Category"
                                 value={uploadCategory}
-                                onChange={(value) => setUploadCategory(value as 'hero' | 'interior' | 'exterior' | 'amenities' | 'lifestyle')}
+                                onChange={(value) => setUploadCategory(value as 'hero' | 'gallery' | 'interior' | 'exterior' | 'amenities' | 'lifestyle' | 'floor_plan')}
                                 options={[
                                     { value: 'hero', label: 'Hero' },
+                                    { value: 'gallery', label: 'Gallery' },
                                     { value: 'interior', label: 'Interior' },
                                     { value: 'exterior', label: 'Exterior' },
                                     { value: 'amenities', label: 'Amenities' },
                                     { value: 'lifestyle', label: 'Lifestyle' },
+                                    { value: 'floor_plan', label: 'Floor Plan' },
                                 ]}
                                 variant="dark"
                                 dense

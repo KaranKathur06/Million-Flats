@@ -37,6 +37,8 @@ export default function AdminAddProjectPage() {
     const [completionYear, setCompletionYear] = useState('')
     const [startingPrice, setStartingPrice] = useState('')
     const [goldenVisa, setGoldenVisa] = useState(false)
+    const [isFeatured, setIsFeatured] = useState(false)
+    const [featuredOrder, setFeaturedOrder] = useState('')
 
     // Unit types
     const [unitTypes, setUnitTypes] = useState<UnitTypeRow[]>([])
@@ -97,6 +99,8 @@ export default function AdminAddProjectPage() {
                 completionYear: completionYear ? parseInt(completionYear, 10) : undefined,
                 startingPrice: startingPrice ? startingPrice.trim() : undefined,
                 goldenVisa,
+                isFeatured,
+                featuredOrder: isFeatured && featuredOrder ? parseInt(featuredOrder, 10) : null,
                 unitTypes: unitTypes
                     .filter((ut) => ut.unitType.trim())
                     .map((ut) => ({
@@ -121,7 +125,7 @@ export default function AdminAddProjectPage() {
             if (coverFile) {
                 const fd = new FormData()
                 fd.append('file', coverFile)
-                fd.append('mediaType', 'cover')
+                fd.append('mediaType', 'hero')
                 fd.append('sortOrder', '0')
                 const upRes = await fetch(`/api/admin/projects/${projectId}/media`, { method: 'POST', body: fd })
                 const upJson = await upRes.json()
@@ -250,6 +254,20 @@ export default function AdminAddProjectPage() {
                             </button>
                             <span className="text-sm text-white/60">Golden Visa Eligible</span>
                         </div>
+                        <div className="sm:col-span-2 flex items-center gap-3">
+                            <button type="button" onClick={() => setIsFeatured(!isFeatured)}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isFeatured ? 'bg-amber-400' : 'bg-white/[0.1]'}`}>
+                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${isFeatured ? 'translate-x-6' : 'translate-x-1'}`} />
+                            </button>
+                            <span className="text-sm text-white/60">Featured Project</span>
+                        </div>
+                        {isFeatured && (
+                            <div>
+                                <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Featured Order</label>
+                                <input type="number" min={0} value={featuredOrder} onChange={(e) => setFeaturedOrder(e.target.value)} placeholder="0"
+                                    className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 placeholder-white/20 outline-none focus:border-amber-400/30 transition-all" />
+                            </div>
+                        )}
                     </div>
                 </div>
 

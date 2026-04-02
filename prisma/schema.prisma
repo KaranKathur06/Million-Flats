@@ -1424,10 +1424,12 @@ enum ProjectStatus {
 
 enum ProjectImageCategory {
   HERO      @map("hero")
+  GALLERY   @map("gallery")
   INTERIOR @map("interior")
   EXTERIOR @map("exterior")
   AMENITIES @map("amenities")
   LIFESTYLE @map("lifestyle")
+  FLOOR_PLAN @map("floor_plan")
 }
 
 model Project {
@@ -1443,6 +1445,7 @@ model Project {
   community       String?
 
   description     String?  @db.Text
+  overview        String?  @db.Text
   highlights      String?  @db.Text @map("highlights_json")
 
   completionYear  Int?     @map("completion_year")
@@ -1451,6 +1454,13 @@ model Project {
   goldenVisa      Boolean  @default(false) @map("golden_visa")
 
   coverImage      String?  @map("cover_image")
+  brochureUrl     String?  @map("brochure_url")
+  videoUrl        String?  @map("video_url")
+  virtualTourUrl  String?  @map("virtual_tour_url")
+  possessionDate  DateTime? @map("possession_date")
+  paymentPlan     Json?    @map("payment_plan")
+  isFeatured      Boolean  @default(false) @map("is_featured")
+  featuredOrder   Int?     @map("featured_order")
 
   status          ProjectStatus @default(DRAFT)
 
@@ -1471,6 +1481,7 @@ model Project {
   @@index([status])
   @@index([city])
   @@index([goldenVisa])
+  @@index([isFeatured, featuredOrder])
   @@index([name])
   @@index([countryIso2, city])
   @@map("projects")

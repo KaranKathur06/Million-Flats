@@ -1,5 +1,48 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+const FALLBACK_IMAGE = '/images/default-property.jpg'
+
+function normalizeMediaType(v: unknown) {
+    return String(v || '').trim().toLowerCase()
+}
+
+function groupProjectMedia(rows: Array<{ mediaUrl?: string | null; mediaType?: string | null; category?: string | null; label?: string | null; sortOrder?: number | null }>) {
+    const out = {
+        hero: [] as any[],
+        gallery: [] as any[],
+        interior: [] as any[],
+        exterior: [] as any[],
+        amenities: [] as any[],
+        lifestyle: [] as any[],
+        floor_plans: [] as any[],
+    }
+
+    const clean = (rows || [])
+        .filter((m) => String(m?.mediaUrl || '').trim())
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+
+    for (const m of clean) {
+        const mt = normalizeMediaType(m.mediaType)
+        const cat = normalizeMediaType(m.category)
+        const key = cat || mt
+        const payload = { url: m.mediaUrl, title: m.label || null, orderIndex: m.sortOrder ?? 0 }
+        if (key === 'hero') out.hero.push(payload)
+        else if (key === 'gallery' || mt === 'featured') out.gallery.push(payload)
+        else if (key === 'interior' || key === 'interiors') out.interior.push(payload)
+        else if (key === 'exterior') out.exterior.push(payload)
+        else if (key === 'amenities') out.amenities.push(payload)
+        else if (key === 'lifestyle') out.lifestyle.push(payload)
+        else if (key === 'floor_plan' || key === 'floor-plan' || key === 'floorplan') out.floor_plans.push(payload)
+        else out.gallery.push(payload)
+    }
+
+    if (out.hero.length === 0) {
+        const fallback = out.gallery[0] || out.exterior[0] || out.interior[0] || out.amenities[0] || out.lifestyle[0]
+        out.hero.push(fallback || { url: FALLBACK_IMAGE, title: 'Default Property Image', orderIndex: 0 })
+    }
+
+    return out
+}
 
 export async function GET(_req: Request, { params }: { params: { slug: string } }) {
     try {
@@ -107,6 +150,16 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
                 highlights,
                 similarProjects,
             },
+            media: groupProjectMedia(project.media || []),
+            floor_plans: (project.floorPlans || []).map((fp: any) => ({
+                id: fp.id,
+                title: fp.unitType,
+                image_url: fp.imageUrl || FALLBACK_IMAGE,
+                size: fp.size || null,
+                bedrooms: fp.bedrooms ?? null,
+                bathrooms: null,
+                price: fp.price || null,
+            })),
         })
     } catch (err: any) {
         console.error('[GET /api/projects/[slug]]', err)

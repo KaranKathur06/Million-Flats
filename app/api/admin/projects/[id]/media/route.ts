@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { buildProjectGalleryKey, normalizeProjectImageFilename, uploadToS3Key, buildS3ObjectUrl } from '@/lib/s3'
 
-const CATEGORY_VALUES = ['hero', 'interior', 'exterior', 'amenities', 'lifestyle'] as const
+const CATEGORY_VALUES = ['hero', 'gallery', 'interior', 'exterior', 'amenities', 'lifestyle', 'floor_plan'] as const
 
 const saveMediaSchema = z.object({
     url: z.string().url(),
@@ -25,7 +25,7 @@ function labelFromFilename(filename: string) {
 }
 
 function toEnumCategory(category: (typeof CATEGORY_VALUES)[number]) {
-    return category.toUpperCase()
+    return category === 'floor_plan' ? 'FLOOR_PLAN' : category.toUpperCase()
 }
 
 async function getProject(id: string) {
@@ -69,6 +69,23 @@ export async function POST(req: Request, { params }: { params: { id: string } })
                 },
             })
 
+            if (data.category === 'hero') {
+                await (prisma as any).project.update({
+                    where: { id: params.id },
+                    data: { coverImage: data.url },
+                })
+            }
+            if (data.category === 'floor_plan') {
+                await (prisma as any).projectFloorPlan.create({
+                    data: {
+                        projectId: params.id,
+                        unitType: data.label?.trim() || 'Floor Plan',
+                        imageUrl: data.url,
+                        s3Key: data.s3Key || null,
+                    },
+                })
+            }
+
             return NextResponse.json({ success: true, media }, { status: 201 })
         }
 
@@ -78,8 +95,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         const rawCategory = String(formData.get('category') || formData.get('mediaType') || 'interior').toLowerCase()
         const category = rawCategory === 'cover' || rawCategory === 'hero'
             ? 'hero'
-            : rawCategory === 'gallery'
-                ? 'interior'
+            : rawCategory === 'floor-plans' || rawCategory === 'floorplan'
+                ? 'floor_plan'
                 : rawCategory
         const sortOrder = parseInt(String(formData.get('sortOrder') || '0'), 10) || 0
 
@@ -117,6 +134,23 @@ export async function POST(req: Request, { params }: { params: { id: string } })
                 sortOrder,
             },
         })
+
+        if (category === 'hero') {
+            await (prisma as any).project.update({
+                where: { id: params.id },
+                data: { coverImage: url },
+            })
+        }
+        if (category === 'floor_plan') {
+            await (prisma as any).projectFloorPlan.create({
+                data: {
+                    projectId: params.id,
+                    unitType: labelFromFilename(normalizedFilename) || 'Floor Plan',
+                    imageUrl: url,
+                    s3Key: uploadedKey,
+                },
+            })
+        }
 
         return NextResponse.json({ success: true, media }, { status: 201 })
     } catch (err: any) {

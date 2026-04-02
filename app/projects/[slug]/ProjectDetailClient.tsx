@@ -140,6 +140,7 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
    MAIN COMPONENT
    ═══════════════════════════════════════════════ */
 export default function ProjectDetailClient({ project }: { project: ProjectData }) {
+    const fallbackImage = '/images/default-property.jpg'
     const [selectedImg, setSelectedImg] = useState(0)
     const [formData, setFormData] = useState({ name: '', email: '', phone: '', message: '' })
     const [submitting, setSubmitting] = useState(false)
@@ -188,8 +189,8 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
         return heroRecord?.mediaUrl || null
     }, [project.media])
 
-    const heroImage = structuredMedia?.hero || heroImageFromMedia || project.coverImage || allGalleryMedia[0]?.mediaUrl || null
-    const heroImageResolved = heroImage ? resolvePublicMediaUrl(heroImage) : null
+    const heroImage = structuredMedia?.hero || heroImageFromMedia || project.coverImage || allGalleryMedia[0]?.mediaUrl || fallbackImage
+    const heroImageResolved = resolvePublicMediaUrl(heroImage)
 
     // Featured images: from structuredMedia, from 'featured' mediaType records, or first 5 gallery images
     const featuredImages = useMemo(() => {

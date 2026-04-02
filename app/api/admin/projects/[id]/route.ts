@@ -12,9 +12,12 @@ const updateProjectSchema = z.object({
     city: z.string().max(200).optional().nullable(),
     community: z.string().max(200).optional().nullable(),
     description: z.string().max(10000).optional().nullable(),
+    overview: z.string().max(20000).optional().nullable(),
     completionYear: z.number().int().min(2000).max(2100).optional().nullable(),
     startingPrice: z.union([z.number(), z.string()]).optional().nullable(),
     goldenVisa: z.boolean().optional(),
+    isFeatured: z.boolean().optional(),
+    featuredOrder: z.number().int().min(0).optional().nullable(),
     coverImage: z.string().max(2000).optional().nullable(),
     unitTypes: z
         .array(
@@ -43,6 +46,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
                 media: { orderBy: { sortOrder: 'asc' } },
                 unitTypes: true,
                 _count: { select: { leads: true } },
+                floorPlans: { orderBy: { createdAt: 'asc' } },
             },
         })
 
@@ -101,9 +105,12 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         if (data.city !== undefined) updateData.city = data.city
         if (data.community !== undefined) updateData.community = data.community
         if (data.description !== undefined) updateData.description = data.description
+        if (data.overview !== undefined) updateData.overview = data.overview
         if (data.completionYear !== undefined) updateData.completionYear = data.completionYear
         if (data.startingPrice !== undefined) updateData.startingPrice = normalizedStartingPrice
         if (data.goldenVisa !== undefined) updateData.goldenVisa = data.goldenVisa
+        if (data.isFeatured !== undefined) updateData.isFeatured = data.isFeatured
+        if (data.featuredOrder !== undefined) updateData.featuredOrder = data.featuredOrder
         if (data.coverImage !== undefined) updateData.coverImage = data.coverImage
 
         // Handle unit types: replace all if provided

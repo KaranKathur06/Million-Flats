@@ -402,8 +402,9 @@ export default function ProjectsGridClient() {
    PROJECT CARD
    ═══════════════════════════════════════════════ */
 function ProjectCard({ project }: { project: ProjectItem }) {
+    const fallbackImage = '/images/default-property.jpg'
     const [imgError, setImgError] = useState(false)
-    const imgSrc = (!imgError && project.coverImage) || null
+    const [imgSrc, setImgSrc] = useState(project.coverImage || fallbackImage)
 
     const price = formatPrice(project.startingPrice)
     const location = [project.community, project.city].filter(Boolean).join(' • ')
@@ -425,7 +426,13 @@ function ProjectCard({ project }: { project: ProjectItem }) {
                         alt={project.name}
                         className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         loading="lazy"
-                        onError={() => setImgError(true)}
+                        onError={() => {
+                            if (imgSrc !== fallbackImage) {
+                                setImgSrc(fallbackImage)
+                                return
+                            }
+                            setImgError(true)
+                        }}
                     />
                 ) : (
                     <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
+const FALLBACK_IMAGE = '/images/default-property.jpg'
 
 export async function GET(req: Request) {
     try {
@@ -14,6 +15,7 @@ export async function GET(req: Request) {
         const minPrice = parseFloat(searchParams.get('minPrice') || '') || undefined
         const maxPrice = parseFloat(searchParams.get('maxPrice') || '') || undefined
         const completionYear = parseInt(searchParams.get('completionYear') || '', 10) || undefined
+        const featured = searchParams.get('featured') === 'true'
 
         const where: any = { status: 'PUBLISHED' }
 
@@ -28,11 +30,14 @@ export async function GET(req: Request) {
             if (maxPrice !== undefined) where.startingPrice.lte = maxPrice
         }
         if (completionYear) where.completionYear = completionYear
+        if (featured) where.isFeatured = true
 
         const [items, total] = await Promise.all([
             (prisma as any).project.findMany({
                 where,
-                orderBy: [{ createdAt: 'desc' }],
+                orderBy: featured
+                    ? [{ featuredOrder: 'asc' }, { createdAt: 'desc' }]
+                    : [{ createdAt: 'desc' }],
                 skip: (page - 1) * limit,
                 take: limit,
                 select: {
@@ -46,18 +51,38 @@ export async function GET(req: Request) {
                     startingPrice: true,
                     goldenVisa: true,
                     coverImage: true,
+                    isFeatured: true,
+                    featuredOrder: true,
                     status: true,
                     createdAt: true,
                     developer: { select: { id: true, name: true, slug: true, logo: true } },
+                    media: { orderBy: { sortOrder: 'asc' }, select: { mediaUrl: true, mediaType: true, category: true } },
                     unitTypes: { select: { unitType: true, sizeFrom: true, sizeTo: true, priceFrom: true } },
                 },
             }),
             (prisma as any).project.count({ where }),
         ])
 
+        const normalizedItems = items.map((item: any) => {
+            const heroMedia = (item.media || []).find((m: any) => {
+                const mt = String(m?.mediaType || '').toLowerCase()
+                const cat = String(m?.category || '').toLowerCase()
+                return mt === 'hero' || cat === 'hero'
+            })
+            const firstMedia = (item.media || []).find((m: any) => String(m?.mediaUrl || '').trim())
+            const heroImage = heroMedia?.mediaUrl || item.coverImage || firstMedia?.mediaUrl || FALLBACK_IMAGE
+
+            return {
+                ...item,
+                heroImage,
+                coverImage: heroImage,
+                media: undefined,
+            }
+        })
+
         return NextResponse.json({
             success: true,
-            items,
+            items: normalizedItems,
             pagination: {
                 page,
                 limit,

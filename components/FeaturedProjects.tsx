@@ -43,15 +43,12 @@ export default function FeaturedProjects({ market }: { market: CountryCode }) {
 
         async function fetchRandomProjects() {
             try {
-                // Fetch up to 20 recent projects
-                const res = await fetch('/api/projects?limit=20')
+                const res = await fetch('/api/projects?featured=true&limit=8', { cache: 'no-store' })
                 if (!res.ok) throw new Error('Failed to fetch projects')
                 const data = await res.json()
 
                 if (data.success && data.items && isMounted) {
-                    // Shuffle the array and pick the top 4 to simulate randomness
-                    const shuffled = [...data.items].sort(() => 0.5 - Math.random())
-                    setProjects(shuffled.slice(0, 4))
+                    setProjects((data.items || []).slice(0, 4))
                 }
             } catch (error) {
                 console.error('Error fetching random projects:', error)
@@ -102,7 +99,7 @@ export default function FeaturedProjects({ market }: { market: CountryCode }) {
                         ))
                     ) : (
                         projects.map((project) => {
-                            const img = project.coverImage || '/image-placeholder.svg'
+                            const img = project.coverImage || '/images/default-property.jpg'
                             const unoptimized = img.startsWith('http') && !canOptimizeUrl(img)
 
                             const location = [project.community, project.city].filter(Boolean).join(' • ')
