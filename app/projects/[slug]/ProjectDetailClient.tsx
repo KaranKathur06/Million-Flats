@@ -39,7 +39,7 @@ interface ProjectData {
     unitTypes: { id: string; unitType: string; sizeFrom: number | null; sizeTo: number | null; priceFrom: number | null }[]
     amenities: { id: string; name: string; icon: string | null; category: string | null }[]
     paymentPlans: { id: string; stage: string; percentage: number; milestone: string | null; sortOrder: number | null }[]
-    floorPlans: { id: string; unitType: string; bedrooms: number | null; size: string | null; price: string | null; imageUrl: string | null }[]
+    floorPlans: { id: string; unitType: string; bedrooms: number | null; bathrooms: number | null; size: string | null; price: string | null; imageUrl: string | null }[]
     videos: { id: string; videoUrl: string; title: string | null; thumbnail: string | null; sortOrder: number | null }[]
     location: { id: string; latitude: number | null; longitude: number | null; address: string | null; mapUrl: string | null } | null
     nearbyPlaces: { id: string; name: string; category: string | null; distance: string | null; sortOrder: number | null }[]
@@ -563,31 +563,27 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                             </section>
                         )}
 
-                        {/* FLOOR PLANS */}
+                                                {/* FLOOR PLANS */}
                         {project.floorPlans.length > 0 && (
                             <section id="section-plans">
                                 <SectionHeader title="Floor Plans" subtitle="Available unit configurations" />
-                                <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white">
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="bg-gray-50 border-b border-gray-200">
-                                                <th className="text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-gray-500">Unit Type</th>
-                                                <th className="text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-gray-500">Bedrooms</th>
-                                                <th className="text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-gray-500">Size</th>
-                                                <th className="text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-gray-500">Price</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {project.floorPlans.map((fp) => (
-                                                <tr key={fp.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors">
-                                                    <td className="px-5 py-3.5 font-semibold text-gray-900">{fp.unitType}</td>
-                                                    <td className="px-5 py-3.5 text-gray-600">{fp.bedrooms ? `${fp.bedrooms} BR` : '—'}</td>
-                                                    <td className="px-5 py-3.5 text-gray-600">{fp.size || '—'}</td>
-                                                    <td className="px-5 py-3.5 font-semibold text-amber-600">{fp.price || 'On Request'}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {project.floorPlans.map((fp) => (
+                                        <div key={fp.id} className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+                                            <div className="relative aspect-square bg-gray-100">
+                                                <img src={fp.imageUrl || fallbackImage} alt={`${fp.unitType} floor plan`} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                                            </div>
+                                            <div className="p-4">
+                                                <h3 className="text-sm font-bold text-gray-900">{fp.unitType}</h3>
+                                                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                                                    <div className="rounded-lg bg-gray-50 px-2.5 py-2"><span className="text-gray-500">Beds</span><div className="font-semibold text-gray-900">{fp.bedrooms ?? '�'}</div></div>
+                                                    <div className="rounded-lg bg-gray-50 px-2.5 py-2"><span className="text-gray-500">Baths</span><div className="font-semibold text-gray-900">{fp.bathrooms ?? '�'}</div></div>
+                                                    <div className="rounded-lg bg-gray-50 px-2.5 py-2 col-span-2"><span className="text-gray-500">Size</span><div className="font-semibold text-gray-900">{fp.size || '�'}</div></div>
+                                                    <div className="rounded-lg bg-amber-50 px-2.5 py-2 col-span-2"><span className="text-amber-700">Price</span><div className="font-semibold text-amber-700">{fp.price || 'On Request'}</div></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </section>
                         )}
@@ -1110,3 +1106,5 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
         </div>
     )
 }
+
+

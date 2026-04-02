@@ -30,6 +30,19 @@ const updateProjectSchema = z.object({
             })
         )
         .optional(),
+    floorPlans: z
+        .array(
+            z.object({
+                id: z.string().optional(),
+                unitType: z.string().min(1).max(100),
+                bedrooms: z.number().int().min(0).max(20).optional().nullable(),
+                bathrooms: z.number().int().min(0).max(20).optional().nullable(),
+                size: z.string().max(100).optional().nullable(),
+                price: z.string().max(100).optional().nullable(),
+                imageUrl: z.string().max(2000).optional().nullable(),
+            })
+        )
+        .optional(),
 })
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
@@ -124,6 +137,22 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
                         sizeFrom: ut.sizeFrom ?? null,
                         sizeTo: ut.sizeTo ?? null,
                         priceFrom: parseAEDInput(ut.priceFrom) ?? null,
+                    })),
+                })
+            }
+        }
+        if (data.floorPlans !== undefined) {
+            await (prisma as any).projectFloorPlan.deleteMany({ where: { projectId: params.id } })
+            if (data.floorPlans.length > 0) {
+                await (prisma as any).projectFloorPlan.createMany({
+                    data: data.floorPlans.map((fp) => ({
+                        projectId: params.id,
+                        unitType: fp.unitType,
+                        bedrooms: fp.bedrooms ?? null,
+                        bathrooms: fp.bathrooms ?? null,
+                        size: fp.size ?? null,
+                        price: fp.price ?? null,
+                        imageUrl: fp.imageUrl ?? null,
                     })),
                 })
             }

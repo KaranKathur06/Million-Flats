@@ -27,13 +27,15 @@ function parsePriceToNumber(input: unknown): number | null {
     return numeric
 }
 
-function mediaTypeToCategory(mediaType: string): 'HERO' | 'INTERIOR' | 'EXTERIOR' | 'AMENITIES' | 'LIFESTYLE' | null {
+function mediaTypeToCategory(mediaType: string): 'HERO' | 'GALLERY' | 'INTERIOR' | 'EXTERIOR' | 'AMENITIES' | 'LIFESTYLE' | 'FLOOR_PLAN' | null {
     const mt = String(mediaType || '').toLowerCase()
     if (mt === 'hero') return 'HERO'
+    if (mt === 'gallery') return 'GALLERY'
     if (mt === 'exterior') return 'EXTERIOR'
     if (mt === 'amenities') return 'AMENITIES'
     if (mt === 'lifestyle') return 'LIFESTYLE'
-    if (mt === 'interior' || mt === 'interiors' || mt === 'featured' || mt === 'gallery') return 'INTERIOR'
+    if (mt === 'floor_plan' || mt === 'floor-plan' || mt === 'floorplan') return 'FLOOR_PLAN'
+    if (mt === 'interior' || mt === 'interiors' || mt === 'featured') return 'INTERIOR'
     return null
 }
 
@@ -257,7 +259,7 @@ export async function POST(req: Request) {
                     })
                 }
 
-                const mediaRows: Array<{ mediaUrl: string; mediaType: string; category: 'HERO' | 'INTERIOR' | 'EXTERIOR' | 'AMENITIES' | 'LIFESTYLE' | null; sortOrder: number }> = []
+                const mediaRows: Array<{ mediaUrl: string; mediaType: string; category: 'HERO' | 'GALLERY' | 'INTERIOR' | 'EXTERIOR' | 'AMENITIES' | 'LIFESTYLE' | 'FLOOR_PLAN' | null; sortOrder: number }> = []
                 if (item.media) {
                     let order = 0
                     if (item.media.hero) mediaRows.push({ mediaUrl: item.media.hero, mediaType: 'hero', category: mediaTypeToCategory('hero'), sortOrder: order++ })
@@ -266,6 +268,16 @@ export async function POST(req: Request) {
                     for (const url of item.media.tabs?.amenities || []) mediaRows.push({ mediaUrl: url, mediaType: 'amenities', category: mediaTypeToCategory('amenities'), sortOrder: order++ })
                     for (const url of item.media.tabs?.interiors || []) mediaRows.push({ mediaUrl: url, mediaType: 'interiors', category: mediaTypeToCategory('interiors'), sortOrder: order++ })
                     for (const url of item.media.tabs?.lifestyle || []) mediaRows.push({ mediaUrl: url, mediaType: 'lifestyle', category: mediaTypeToCategory('lifestyle'), sortOrder: order++ })
+                }
+                for (const fp of item.floorPlans || []) {
+                    if (fp.imageUrl) {
+                        mediaRows.push({
+                            mediaUrl: fp.imageUrl,
+                            mediaType: 'floor_plan',
+                            category: mediaTypeToCategory('floor_plan'),
+                            sortOrder: mediaRows.length,
+                        })
+                    }
                 }
                 if (item.brochure?.file) {
                     mediaRows.push({

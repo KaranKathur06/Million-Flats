@@ -15,7 +15,7 @@ export async function DELETE(
     try {
         const media = await (prisma as any).projectMedia.findUnique({
             where: { id: params.mediaId },
-            select: { id: true, projectId: true, s3Key: true },
+            select: { id: true, projectId: true, s3Key: true, mediaUrl: true, category: true, mediaType: true },
         })
 
         if (!media || media.projectId !== params.id) {
@@ -32,6 +32,19 @@ export async function DELETE(
         }
 
         await (prisma as any).projectMedia.delete({ where: { id: params.mediaId } })
+
+        const category = String(media.category || media.mediaType || '').toLowerCase()
+        if (category === 'floor_plan' || category === 'floor-plan' || category === 'floorplan') {
+            const floorPlanOr: any[] = []
+            if (media.s3Key) floorPlanOr.push({ s3Key: media.s3Key })
+            if (media.mediaUrl) floorPlanOr.push({ imageUrl: media.mediaUrl })
+            await (prisma as any).projectFloorPlan.deleteMany({
+                where: {
+                    projectId: params.id,
+                    ...(floorPlanOr.length > 0 ? { OR: floorPlanOr } : {}),
+                },
+            })
+        }
 
         return NextResponse.json({ success: true })
     } catch (err: any) {

@@ -229,10 +229,23 @@ export function buildProjectMediaKey(params: { developerSlug: string; projectSlu
 }
 
 export function buildProjectGalleryKey(params: { developerSlug: string; projectSlug: string; originalName: string; contentType?: string }) {
+  return buildProjectMediaTypeKey({ ...params, mediaType: 'gallery' })
+}
+
+export function buildProjectMediaTypeKey(params: { developerSlug: string; projectSlug: string; originalName: string; contentType?: string; mediaType?: string }) {
   const devSlug = normalizeSlugSegment(params.developerSlug || 'unknown')
   const projSlug = normalizeSlugSegment(params.projectSlug || 'unknown')
   const filename = normalizeProjectImageFilename({ originalName: params.originalName, contentType: params.contentType })
-  return `public/projects/${devSlug}/${projSlug}/gallery/${filename}`
+  const mt = String(params.mediaType || 'gallery').toLowerCase()
+  const folder =
+    mt === 'hero' ? 'hero'
+      : mt === 'interior' ? 'interior'
+        : mt === 'exterior' ? 'exterior'
+          : mt === 'amenities' ? 'amenities'
+            : mt === 'lifestyle' ? 'lifestyle'
+              : mt === 'floor_plan' || mt === 'floor-plan' || mt === 'floorplan' ? 'floor-plans'
+                : 'gallery'
+  return `public/projects/${devSlug}/${projSlug}/${folder}/${filename}`
 }
 
 export function buildDeveloperLogoKey(params: { developerSlug: string; ext?: string; contentType?: string }) {

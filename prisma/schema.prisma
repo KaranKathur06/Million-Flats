@@ -1581,6 +1581,7 @@ model ProjectFloorPlan {
 
   unitType  String   @map("unit_type")
   bedrooms  Int?
+  bathrooms Int?
   size      String?
   price     String?
   imageUrl  String?  @map("image_url")

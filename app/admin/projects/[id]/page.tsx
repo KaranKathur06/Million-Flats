@@ -15,6 +15,15 @@ interface MediaItem {
     s3Key: string | null
 }
 interface UnitTypeRow { unitType: string; sizeFrom: string; sizeTo: string; priceFrom: string }
+interface FloorPlanRow {
+    id?: string
+    unitType: string
+    bedrooms: string
+    bathrooms: string
+    size: string
+    price: string
+    imageUrl: string
+}
 
 const STATUS_COLORS: Record<string, string> = {
     DRAFT: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/20',
@@ -60,6 +69,7 @@ export default function AdminEditProjectPage() {
 
     // Unit types
     const [unitTypes, setUnitTypes] = useState<UnitTypeRow[]>([])
+    const [floorPlans, setFloorPlans] = useState<FloorPlanRow[]>([])
 
     const loadProject = useCallback(async () => {
         setLoading(true)
@@ -103,6 +113,17 @@ export default function AdminEditProjectPage() {
                     priceFrom: ut.priceFrom ? String(ut.priceFrom) : '',
                 }))
             )
+            setFloorPlans(
+                (p.floorPlans || []).map((fp: any) => ({
+                    id: fp.id,
+                    unitType: fp.unitType || '',
+                    bedrooms: fp.bedrooms !== null && fp.bedrooms !== undefined ? String(fp.bedrooms) : '',
+                    bathrooms: fp.bathrooms !== null && fp.bathrooms !== undefined ? String(fp.bathrooms) : '',
+                    size: fp.size || '',
+                    price: fp.price || '',
+                    imageUrl: fp.imageUrl || '',
+                }))
+            )
         } catch (err: any) {
             setError(err.message || 'Failed to load project')
         } finally {
@@ -138,6 +159,17 @@ export default function AdminEditProjectPage() {
                     sizeTo: ut.sizeTo ? parseInt(ut.sizeTo, 10) : null,
                     priceFrom: ut.priceFrom ? ut.priceFrom.trim() : null,
                 })),
+                floorPlans: floorPlans
+                    .filter((fp) => fp.unitType.trim() || fp.imageUrl.trim())
+                    .map((fp) => ({
+                        id: fp.id,
+                        unitType: fp.unitType.trim() || 'Floor Plan',
+                        bedrooms: fp.bedrooms ? parseInt(fp.bedrooms, 10) : null,
+                        bathrooms: fp.bathrooms ? parseInt(fp.bathrooms, 10) : null,
+                        size: fp.size.trim() || null,
+                        price: fp.price.trim() || null,
+                        imageUrl: fp.imageUrl.trim() || null,
+                    })),
             }
 
             const res = await fetch(`/api/admin/projects/${projectId}`, {
@@ -184,6 +216,7 @@ export default function AdminEditProjectPage() {
                 uploadPayload.append('file', file)
                 uploadPayload.append('developerSlug', developerSlugForUpload || 'unknown')
                 uploadPayload.append('projectSlug', projectSlugForUpload || slug || 'unknown')
+                uploadPayload.append('mediaType', uploadCategory)
 
                 const uploadRes = await fetch('/api/upload/project-image', { method: 'POST', body: uploadPayload })
                 const uploadJson = await uploadRes.json()
@@ -235,6 +268,10 @@ export default function AdminEditProjectPage() {
     const updateUnitType = (idx: number, field: keyof UnitTypeRow, value: string) =>
         setUnitTypes((prev) => prev.map((row, i) => (i === idx ? { ...row, [field]: value } : row)))
     const removeUnitType = (idx: number) => setUnitTypes((prev) => prev.filter((_, i) => i !== idx))
+    const addFloorPlan = () => setFloorPlans((prev) => [...prev, { unitType: '', bedrooms: '', bathrooms: '', size: '', price: '', imageUrl: '' }])
+    const updateFloorPlan = (idx: number, field: keyof FloorPlanRow, value: string) =>
+        setFloorPlans((prev) => prev.map((row, i) => (i === idx ? { ...row, [field]: value } : row)))
+    const removeFloorPlan = (idx: number) => setFloorPlans((prev) => prev.filter((_, i) => i !== idx))
 
     if (loading) {
         return (
@@ -502,6 +539,77 @@ export default function AdminEditProjectPage() {
                         </div>
                     ) : (
                         <p className="text-xs text-white/25 py-2">No unit types. Click &quot;Add Row&quot; to add one.</p>
+                    )}
+                </div>
+
+                {/* Floor Plans */}
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider">Floor Plans</h2>
+                        <button type="button" onClick={addFloorPlan}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/60 hover:bg-white/[0.08] transition-all">
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Plan
+                        </button>
+                    </div>
+                    {floorPlans.length > 0 ? (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="text-left">
+                                        <th className="text-[11px] font-bold uppercase tracking-wider text-white/30 pb-2">Title</th>
+                                        <th className="text-[11px] font-bold uppercase tracking-wider text-white/30 pb-2">Beds</th>
+                                        <th className="text-[11px] font-bold uppercase tracking-wider text-white/30 pb-2">Baths</th>
+                                        <th className="text-[11px] font-bold uppercase tracking-wider text-white/30 pb-2">Size</th>
+                                        <th className="text-[11px] font-bold uppercase tracking-wider text-white/30 pb-2">Price</th>
+                                        <th className="text-[11px] font-bold uppercase tracking-wider text-white/30 pb-2">Image URL</th>
+                                        <th className="pb-2 w-10"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {floorPlans.map((fp, idx) => (
+                                        <tr key={fp.id || idx} className="group">
+                                            <td className="pr-2 pb-2">
+                                                <input type="text" value={fp.unitType} onChange={(e) => updateFloorPlan(idx, 'unitType', e.target.value)}
+                                                    className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/80 outline-none focus:border-amber-400/30 transition-all" />
+                                            </td>
+                                            <td className="pr-2 pb-2">
+                                                <input type="number" value={fp.bedrooms} onChange={(e) => updateFloorPlan(idx, 'bedrooms', e.target.value)}
+                                                    className="w-20 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                            </td>
+                                            <td className="pr-2 pb-2">
+                                                <input type="number" value={fp.bathrooms} onChange={(e) => updateFloorPlan(idx, 'bathrooms', e.target.value)}
+                                                    className="w-20 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                            </td>
+                                            <td className="pr-2 pb-2">
+                                                <input type="text" value={fp.size} onChange={(e) => updateFloorPlan(idx, 'size', e.target.value)}
+                                                    className="w-28 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                            </td>
+                                            <td className="pr-2 pb-2">
+                                                <input type="text" value={fp.price} onChange={(e) => updateFloorPlan(idx, 'price', e.target.value)}
+                                                    className="w-28 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                            </td>
+                                            <td className="pr-2 pb-2">
+                                                <input type="text" value={fp.imageUrl} onChange={(e) => updateFloorPlan(idx, 'imageUrl', e.target.value)}
+                                                    className="w-full min-w-[220px] rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                            </td>
+                                            <td className="pb-2">
+                                                <button type="button" onClick={() => removeFloorPlan(idx)}
+                                                    className="opacity-0 group-hover:opacity-100 rounded-lg p-1.5 text-red-400 hover:bg-red-500/10 transition-all">
+                                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <p className="text-xs text-white/25 py-2">No floor plans. Upload as `Floor Plan` or add rows manually.</p>
                     )}
                 </div>
 

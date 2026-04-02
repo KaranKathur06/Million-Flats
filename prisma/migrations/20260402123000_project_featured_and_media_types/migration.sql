@@ -13,6 +13,9 @@ ALTER TABLE "projects"
 
 CREATE INDEX IF NOT EXISTS "projects_is_featured_featured_order_idx" ON "projects" ("is_featured", "featured_order");
 
+ALTER TABLE "project_floor_plans"
+  ADD COLUMN IF NOT EXISTS "bathrooms" INTEGER;
+
 UPDATE "project_media"
 SET "category" = 'gallery'::"ProjectImageCategory"
 WHERE LOWER(COALESCE("media_type", '')) IN ('gallery', 'featured')

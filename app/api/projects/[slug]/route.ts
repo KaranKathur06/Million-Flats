@@ -84,7 +84,7 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
                     select: { id: true, stage: true, percentage: true, milestone: true, sortOrder: true },
                 },
                 floorPlans: {
-                    select: { id: true, unitType: true, bedrooms: true, size: true, price: true, imageUrl: true },
+                    select: { id: true, unitType: true, bedrooms: true, bathrooms: true, size: true, price: true, imageUrl: true },
                 },
                 videos: {
                     orderBy: { sortOrder: 'asc' },
@@ -143,21 +143,25 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
             },
         })
 
+        const media = groupProjectMedia(project.media || [])
+        const heroFallback = media.hero[0]?.url || project.coverImage || FALLBACK_IMAGE
+
         return NextResponse.json({
             success: true,
             project: {
                 ...project,
+                coverImage: heroFallback,
                 highlights,
                 similarProjects,
             },
-            media: groupProjectMedia(project.media || []),
+            media,
             floor_plans: (project.floorPlans || []).map((fp: any) => ({
                 id: fp.id,
                 title: fp.unitType,
                 image_url: fp.imageUrl || FALLBACK_IMAGE,
                 size: fp.size || null,
                 bedrooms: fp.bedrooms ?? null,
-                bathrooms: null,
+                bathrooms: fp.bathrooms ?? null,
                 price: fp.price || null,
             })),
         })

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
-import { buildProjectGalleryKey, normalizeProjectImageFilename, uploadToS3Key, buildS3ObjectUrl } from '@/lib/s3'
+import { buildProjectMediaTypeKey, normalizeProjectImageFilename, uploadToS3Key, buildS3ObjectUrl } from '@/lib/s3'
 
 const CATEGORY_VALUES = ['hero', 'gallery', 'interior', 'exterior', 'amenities', 'lifestyle', 'floor_plan'] as const
 
@@ -112,11 +112,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
         const devSlug = project.developer?.slug || project.developer?.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'unknown'
         const normalizedFilename = normalizeProjectImageFilename({ originalName: file.name, contentType: file.type })
-        const key = buildProjectGalleryKey({
+        const key = buildProjectMediaTypeKey({
             developerSlug: devSlug,
             projectSlug: project.slug,
             originalName: normalizedFilename,
             contentType: file.type,
+            mediaType: category,
         })
 
         const buffer = Buffer.from(await file.arrayBuffer())

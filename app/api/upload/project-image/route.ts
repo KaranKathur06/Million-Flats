@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAdminSession } from '@/lib/adminAuth'
-import { buildProjectGalleryKey, normalizeProjectImageFilename, uploadToS3Key, buildS3ObjectUrl } from '@/lib/s3'
+import { buildProjectMediaTypeKey, normalizeProjectImageFilename, uploadToS3Key, buildS3ObjectUrl } from '@/lib/s3'
 
 const ALLOWED_IMAGE_PREFIX = 'image/'
 
@@ -25,6 +25,7 @@ export async function POST(req: Request) {
     const file = formData.get('file') as File | null
     const developerSlug = String(formData.get('developerSlug') || '').trim()
     const projectSlug = String(formData.get('projectSlug') || '').trim()
+    const mediaType = String(formData.get('mediaType') || formData.get('category') || 'gallery').trim().toLowerCase()
 
     if (!file) {
       return NextResponse.json({ success: false, message: 'File is required' }, { status: 400 })
@@ -40,11 +41,12 @@ export async function POST(req: Request) {
     }
 
     const normalizedFilename = normalizeProjectImageFilename({ originalName: file.name, contentType: file.type })
-    const key = buildProjectGalleryKey({
+    const key = buildProjectMediaTypeKey({
       developerSlug,
       projectSlug,
       originalName: normalizedFilename,
       contentType: file.type,
+      mediaType,
     })
 
     const buffer = Buffer.from(await file.arrayBuffer())
@@ -68,4 +70,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, message: 'Upload failed' }, { status: 500 })
   }
 }
+
 
