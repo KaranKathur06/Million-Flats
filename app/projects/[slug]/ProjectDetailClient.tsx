@@ -1,6 +1,8 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { formatAEDCompact } from '@/lib/pricing'
 
@@ -35,7 +37,7 @@ interface ProjectData {
             lifestyle?: string[]
         }
     } | null
-    brochure?: { title: string; file: string } | null
+    brochure?: { file: string; fileName?: string; fileSize?: number | null } | null
     unitTypes: {
         id: string
         unitType: string
@@ -161,6 +163,9 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
    MAIN COMPONENT
    ═══════════════════════════════════════════════ */
 export default function ProjectDetailClient({ project }: { project: ProjectData }) {
+    const router = useRouter()
+    const searchParams = useSearchParams()
+    const { data: session } = useSession()
     const fallbackImage = '/images/default-property.jpg'
     const [selectedImg, setSelectedImg] = useState(0)
     const [formData, setFormData] = useState({ name: '', email: '', phone: '', message: '' })
@@ -168,6 +173,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
     const [submitted, setSubmitted] = useState(false)
     const [formError, setFormError] = useState('')
     const [showAllAmenities, setShowAllAmenities] = useState(false)
+    const [brochureDownloading, setBrochureDownloading] = useState(false)
     const [activeTab, setActiveTab] = useState<'overview' | 'amenities' | 'plans' | 'gallery' | 'location'>('overview')
 
     const [galleryCategory, setGalleryCategory] = useState<'all' | 'exterior' | 'amenities' | 'interior' | 'lifestyle'>('all')
@@ -198,6 +204,60 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
         const mediaBrochure = project.media.find((m) => String(m.mediaType || '').toLowerCase() === 'brochure')
         return mediaBrochure?.mediaUrl || null
     }, [project.brochure?.file, project.media])
+
+    // Auth-gated brochure download handler
+    const handleBrochureDownload = useCallback(async () => {
+        if (!session?.user) {
+            // Redirect to login with return url
+            const currentPath = `/projects/${project.slug}`
+            router.push(`/auth/login?redirect=${encodeURIComponent(currentPath)}&download=brochure`)
+            return
+        }
+        setBrochureDownloading(true)
+        try {
+            const res = await fetch(`/api/projects/${project.slug}/brochure/download`, {
+                method: 'POST',
+            })
+            const json = await res.json()
+            if (!res.ok || !json.success) {
+                if (json.loginRequired) {
+                    const currentPath = `/projects/${project.slug}`
+                    router.push(`/auth/login?redirect=${encodeURIComponent(currentPath)}&download=brochure`)
+                    return
+                }
+                throw new Error(json.message || 'Download failed')
+            }
+            // Trigger download
+            const link = document.createElement('a')
+            link.href = json.downloadUrl
+            link.download = json.fileName || 'brochure.pdf'
+            link.target = '_blank'
+            link.rel = 'noopener'
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+        } catch (err) {
+            console.error('Brochure download failed:', err)
+        } finally {
+            setBrochureDownloading(false)
+        }
+    }, [session, project.slug, router])
+
+    // Auto-download brochure after login redirect
+    useEffect(() => {
+        if (searchParams?.get('download') === 'brochure' && session?.user && brochureLink) {
+            // Small delay to let page settle
+            const timer = setTimeout(() => {
+                handleBrochureDownload()
+                // Clean up URL params
+                const url = new URL(window.location.href)
+                url.searchParams.delete('download')
+                url.searchParams.delete('redirect')
+                window.history.replaceState({}, '', url.pathname)
+            }, 800)
+            return () => clearTimeout(timer)
+        }
+    }, [searchParams, session, brochureLink, handleBrochureDownload])
 
     const structuredMedia = project.mediaStructured || null
 
@@ -517,16 +577,53 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                 </div>
 
                                 {brochureLink && (
-                                    <div className="mt-6">
-                                        <a
-                                            href={brochureLink}
-                                            download
-                                            rel="noopener"
-                                            className="inline-flex items-center justify-center gap-3 h-12 px-6 rounded-xl bg-red-600 text-white font-bold text-sm shadow-lg shadow-red-600/20 hover:bg-red-700 transition-colors w-full sm:w-auto"
-                                        >
-                                            <span className="text-lg">📄</span>
-                                            Download Brochure
-                                        </a>
+                                    <div className="mt-8">
+                                        <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white via-white to-red-50">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full -translate-y-8 translate-x-8" />
+                                            <div className="relative p-6">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                                                        <svg className="h-7 w-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m.75 12l3 3m0 0l3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                                        </svg>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className="text-base font-bold text-gray-900">Project Brochure</h4>
+                                                        <p className="text-sm text-gray-500 mt-0.5">Get detailed floor plans, pricing &amp; specifications</p>
+                                                        {project.brochure?.fileSize != null && (
+                                                            <span className="inline-flex items-center gap-1 mt-1 text-xs text-gray-400">
+                                                                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                                                PDF • {(project.brochure.fileSize / 1024 / 1024).toFixed(1)} MB
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleBrochureDownload}
+                                                    disabled={brochureDownloading}
+                                                    className="mt-5 w-full inline-flex items-center justify-center gap-2.5 h-12 rounded-xl bg-red-600 text-white font-bold text-sm shadow-lg shadow-red-600/20 hover:bg-red-700 hover:shadow-red-600/30 active:scale-[0.98] transition-all disabled:opacity-60 cursor-pointer"
+                                                >
+                                                    {brochureDownloading ? (
+                                                        <>
+                                                            <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                                                            Preparing Download…
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                                            Download Brochure
+                                                        </>
+                                                    )}
+                                                </button>
+                                                {!session?.user && (
+                                                    <p className="text-[11px] text-gray-400 text-center mt-2 flex items-center justify-center gap-1">
+                                                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                                        Login required for download
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                             </section>
@@ -1085,7 +1182,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                         )}
 
                         {/* LOCATION */}
-                        {(project.location?.address || project.nearbyPlaces.length > 0) && (
+                        {(project.location?.address || project.location?.latitude || project.nearbyPlaces.length > 0) && (
                             <section id="section-location">
                                 <SectionHeader title="Location" subtitle={project.community ? `${project.community}, ${project.city}` : project.city || undefined} />
                                 {project.location?.address && (
@@ -1093,6 +1190,34 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                         <p className="text-gray-600 leading-relaxed text-sm">{project.location.address}</p>
                                     </div>
                                 )}
+
+                                {/* Google Maps Embed */}
+                                {project.location?.latitude && project.location?.longitude && (
+                                    <div className="mb-6 space-y-3">
+                                        <div className="w-full h-[350px] rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+                                            <iframe
+                                                src={`https://www.google.com/maps?q=${project.location.latitude},${project.location.longitude}&z=15&output=embed`}
+                                                width="100%"
+                                                height="100%"
+                                                style={{ border: 0 }}
+                                                allowFullScreen
+                                                loading="lazy"
+                                                referrerPolicy="no-referrer-when-downgrade"
+                                                title={`${project.name} location on Google Maps`}
+                                            />
+                                        </div>
+                                        <a
+                                            href={project.location.mapUrl || `https://www.google.com/maps?q=${project.location.latitude},${project.location.longitude}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-2 text-sm font-semibold text-amber-600 hover:text-amber-700 transition-colors"
+                                        >
+                                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                            Open in Google Maps
+                                        </a>
+                                    </div>
+                                )}
+
                                 {/* Nearby Places */}
                                 {project.nearbyPlaces.length > 0 && (
                                     <div>

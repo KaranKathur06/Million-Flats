@@ -234,6 +234,7 @@ model User {
   reportsSubmitted Report[] @relation("ReportSubmittedBy")
   inquiries Inquiry[]
   leadMagnetDownloads LeadMagnetDownload[]
+  brochureDownloads BrochureDownload[]
 
   blogs Blog[]
 
@@ -1488,6 +1489,8 @@ model Project {
   videos          ProjectVideo[]
   location        ProjectLocation?
   nearbyPlaces    ProjectNearbyPlace[]
+  brochure        ProjectBrochure?
+  brochureDownloads BrochureDownload[]
 
   @@index([developerId])
   @@index([status])
@@ -1707,6 +1710,45 @@ model ProjectNearbyPlace {
 
   @@index([projectId])
   @@map("project_nearby_places")
+}
+
+// ─── Brochure System ─────────────────────────────────────────────────────
+
+model ProjectBrochure {
+  id        String   @id @default(uuid())
+
+  projectId String   @unique @map("project_id")
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  fileUrl   String   @map("file_url")
+  s3Key     String?  @map("s3_key")
+  fileName  String   @map("file_name")
+  fileSize  Int?     @map("file_size")
+  mimeType  String   @default("application/pdf") @map("mime_type")
+
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  @@map("project_brochures")
+}
+
+model BrochureDownload {
+  id        String   @id @default(uuid())
+
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  projectId String   @map("project_id")
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+
+  downloadedAt DateTime @default(now()) @map("downloaded_at")
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([downloadedAt])
+  @@map("brochure_downloads")
 }
 
 // ─── Buyer System ────────────────────────────────────────────────────────

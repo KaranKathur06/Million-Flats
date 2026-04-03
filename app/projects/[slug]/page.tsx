@@ -37,6 +37,9 @@ async function getProject(slug: string) {
                 videos: { orderBy: { sortOrder: 'asc' } },
                 location: true,
                 nearbyPlaces: { orderBy: { sortOrder: 'asc' } },
+                brochure: {
+                    select: { id: true, fileUrl: true, fileName: true, fileSize: true },
+                },
             },
         })
         if (!project) return null
@@ -64,17 +67,16 @@ async function getProject(slug: string) {
             mediaStructured = rawMediaStructured
         }
 
-        // Parse brochure JSON (if stored as JSON string)
+        // Build brochure data from ProjectBrochure relation or legacy brochureUrl
         let brochure: any = null
-        const rawBrochure = (project as any).brochure
-        if (typeof rawBrochure === 'string' && rawBrochure.trim()) {
-            try {
-                brochure = JSON.parse(rawBrochure)
-            } catch {
-                brochure = null
+        if (project.brochure && project.brochure.fileUrl) {
+            brochure = {
+                file: project.brochure.fileUrl,
+                fileName: project.brochure.fileName,
+                fileSize: project.brochure.fileSize,
             }
-        } else if (rawBrochure && typeof rawBrochure === 'object') {
-            brochure = rawBrochure
+        } else if ((project as any).brochureUrl) {
+            brochure = { file: (project as any).brochureUrl }
         }
 
         // Fetch similar projects

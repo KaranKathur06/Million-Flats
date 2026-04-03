@@ -127,6 +127,9 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
                 videos: { orderBy: { sortOrder: 'asc' } },
                 location: true,
                 nearbyPlaces: { orderBy: { sortOrder: 'asc' } },
+                brochure: {
+                    select: { id: true, fileUrl: true, fileName: true, fileSize: true },
+                },
             },
         })
 

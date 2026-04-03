@@ -100,6 +100,9 @@ export default function AdminEditProjectPage() {
     const [paymentPlans, setPaymentPlans] = useState<PaymentPlanRow[]>([])
     const [location, setLocation] = useState<LocationData>({ latitude: '', longitude: '', address: '', mapUrl: '' })
     const [videos, setVideos] = useState<VideoRow[]>([])
+    // Brochure
+    const [brochureData, setBrochureData] = useState<{ id: string; fileUrl: string; fileName: string; fileSize: number | null } | null>(null)
+    const [brochureUploading, setBrochureUploading] = useState(false)
     const variantOptions = useMemo(() => {
         const opts: Array<{ value: string; label: string }> = [{ value: '', label: 'Select Variant' }]
         for (const ut of unitTypes) {
@@ -211,6 +214,17 @@ export default function AdminEditProjectPage() {
             }
             // Load videos
             setVideos((p.videos || []).map((v: any) => ({ id: v.id, videoUrl: v.videoUrl || '', title: v.title || '', thumbnail: v.thumbnail || '' })))
+            // Load brochure
+            if (p.brochure) {
+                setBrochureData({
+                    id: p.brochure.id,
+                    fileUrl: p.brochure.fileUrl,
+                    fileName: p.brochure.fileName,
+                    fileSize: p.brochure.fileSize ?? null,
+                })
+            } else {
+                setBrochureData(null)
+            }
         } catch (err: any) {
             toast.error(err.message || 'Failed to load project')
         } finally {
@@ -526,6 +540,53 @@ export default function AdminEditProjectPage() {
     const updateFloorPlan = (idx: number, field: keyof FloorPlanRow, value: string) =>
         setFloorPlans((prev) => prev.map((row, i) => (i === idx ? { ...row, [field]: value } : row)))
     const removeFloorPlan = (idx: number) => setFloorPlans((prev) => prev.filter((_, i) => i !== idx))
+
+    // Brochure handlers
+    const handleBrochureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        if (file.type !== 'application/pdf') {
+            toast.error('Only PDF files are allowed for brochures')
+            e.target.value = ''
+            return
+        }
+        if (file.size > 20 * 1024 * 1024) {
+            toast.error('Brochure file must be 20MB or smaller')
+            e.target.value = ''
+            return
+        }
+        setBrochureUploading(true)
+        try {
+            const formData = new FormData()
+            formData.append('file', file)
+            const res = await fetch(`/api/admin/projects/${projectId}/brochure`, {
+                method: 'POST',
+                body: formData,
+            })
+            const json = await res.json()
+            if (!res.ok || !json.success) throw new Error(json.message || 'Upload failed')
+            setBrochureData(json.brochure)
+            toast.success('Brochure uploaded successfully')
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to upload brochure')
+        } finally {
+            setBrochureUploading(false)
+            e.target.value = ''
+        }
+    }
+
+    const handleBrochureDelete = async () => {
+        if (!confirm('Delete the brochure? This cannot be undone.')) return
+        try {
+            const res = await fetch(`/api/admin/projects/${projectId}/brochure`, { method: 'DELETE' })
+            const json = await res.json()
+            if (!res.ok || !json.success) throw new Error(json.message || 'Delete failed')
+            setBrochureData(null)
+            toast.success('Brochure deleted')
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to delete brochure')
+        }
+    }
 
     if (loading) {
         return (
@@ -1155,6 +1216,52 @@ export default function AdminEditProjectPage() {
                         </div>
                     ) : (
                         <p className="text-xs text-white/25 py-2">No videos.</p>
+                    )}
+                </div>
+
+                {/* Brochure */}
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-4">
+                    <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider">Brochure (PDF)</h2>
+                    {brochureData ? (
+                        <div className="flex items-center gap-4 rounded-xl border border-white/[0.08] bg-white/[0.04] p-4">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20 flex-shrink-0">
+                                <svg className="h-6 w-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                </svg>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-white/80 truncate">{brochureData.fileName}</p>
+                                {brochureData.fileSize != null && (
+                                    <p className="text-xs text-white/40 mt-0.5">{(brochureData.fileSize / 1024 / 1024).toFixed(2)} MB</p>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <a href={brochureData.fileUrl} target="_blank" rel="noopener noreferrer"
+                                    className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/60 hover:bg-white/[0.08] transition-all">
+                                    Preview
+                                </a>
+                                <button type="button" onClick={handleBrochureDelete}
+                                    className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-300 hover:bg-red-500/20 transition-all">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="rounded-xl border-2 border-dashed border-white/[0.08] bg-white/[0.02] p-8 text-center">
+                            <svg className="mx-auto h-10 w-10 text-white/15 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                            </svg>
+                            <p className="text-xs text-white/30 mb-3">Upload a PDF brochure (max 20MB)</p>
+                            <label className={`inline-flex items-center gap-1.5 rounded-lg border border-amber-400/20 bg-amber-400/10 px-4 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-400/20 transition-all cursor-pointer ${brochureUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                                {brochureUploading ? 'Uploading…' : (
+                                    <>
+                                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                        Upload PDF
+                                    </>
+                                )}
+                                <input type="file" accept="application/pdf" className="hidden" onChange={handleBrochureUpload} disabled={brochureUploading} />
+                            </label>
+                        </div>
                     )}
                 </div>
 

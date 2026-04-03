@@ -259,6 +259,23 @@ export function buildDeveloperLogoKey(params: { developerSlug: string; ext?: str
   })
 }
 
+export function buildProjectBrochureKey(params: { developerSlug?: string | null; projectSlug: string; originalName: string; contentType?: string }) {
+  const devSlug = normalizeSlugSegment(params.developerSlug || '')
+  const projSlug = normalizeSlugSegment(params.projectSlug || 'unknown')
+  const ext = sanitizeFilename(
+    guessExtensionFromContentType(params.contentType || '') || 'pdf'
+  ).replace('.', '')
+  const rawBase = params.originalName?.replace(/\.[^.]+$/, '') || 'brochure'
+  const base = sanitizeFilename(rawBase) || 'brochure'
+  const ts = Date.now()
+  const filename = `${base}-${ts}.${ext}`
+
+  if (devSlug) {
+    return `public/projects/${devSlug}/${projSlug}/brochure/${filename}`
+  }
+  return `public/projects/${projSlug}/brochure/${filename}`
+}
+
 export function buildBlogFeaturedImageKey(params: { slug: string; timestamp?: number }) {
   const slug = normalizeSlugSegment(params.slug || 'blog')
   const ts = params.timestamp ?? Date.now()
