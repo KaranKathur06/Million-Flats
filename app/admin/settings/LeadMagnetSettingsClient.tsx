@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import FileUploadBox from '@/components/admin/FileUploadBox'
+import PdfDropzone, { type FileMeta } from '@/components/upload/PdfDropzone'
 
 type LeadMagnetItem = {
   id: string
@@ -74,6 +74,19 @@ export default function LeadMagnetSettingsClient() {
   }, [toast])
 
   const totalDownloads = useMemo(() => items.reduce((acc, item) => acc + Number(item.downloadsCount || 0), 0), [items])
+  const pdfMeta = useMemo<FileMeta | null>(() => {
+    if (!pdfFile) return null
+    return {
+      name: pdfFile.name,
+      size: pdfFile.size,
+      url: URL.createObjectURL(pdfFile),
+    }
+  }, [pdfFile])
+  useEffect(() => {
+    return () => {
+      if (pdfMeta?.url) URL.revokeObjectURL(pdfMeta.url)
+    }
+  }, [pdfMeta?.url])
 
   async function createLeadMagnet() {
     if (!pdfFile) {
@@ -211,7 +224,16 @@ export default function LeadMagnetSettingsClient() {
         </div>
 
         <div className="mt-4">
-          <FileUploadBox type="pdf" maxSizeMB={10} file={pdfFile} onFileChange={setPdfFile} disabled={creating} />
+          <PdfDropzone
+            value={pdfMeta}
+            loading={creating}
+            onUpload={async (file) => {
+              setPdfFile(file)
+            }}
+            onDelete={async () => {
+              setPdfFile(null)
+            }}
+          />
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
