@@ -17,7 +17,7 @@ export async function GET(req: Request) {
         const completionYear = parseInt(searchParams.get('completionYear') || '', 10) || undefined
         const featured = searchParams.get('featured') === 'true'
 
-        const where: any = { status: 'PUBLISHED' }
+        const where: any = { status: 'PUBLISHED', isDeleted: false }
 
         if (city) where.city = { contains: city, mode: 'insensitive' }
         if (developer) {

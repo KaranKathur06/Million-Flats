@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// POST — Track brochure download (auth required)
+// POST â€” Track brochure download (auth required)
 export async function POST(req: Request, { params }: { params: { slug: string } }) {
   try {
     const session = await getServerSession(authOptions)
@@ -26,7 +26,7 @@ export async function POST(req: Request, { params }: { params: { slug: string } 
 
     // Find the project + brochure
     const project = await (prisma as any).project.findFirst({
-      where: { slug, status: 'PUBLISHED' },
+      where: { slug, status: 'PUBLISHED', isDeleted: false },
       select: {
         id: true,
         slug: true,
@@ -74,3 +74,4 @@ export async function POST(req: Request, { params }: { params: { slug: string } 
     return NextResponse.json({ success: false, message: 'Failed to process download' }, { status: 500 })
   }
 }
+

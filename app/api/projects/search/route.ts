@@ -17,6 +17,7 @@ export async function GET(req: Request) {
         const projects = await (prisma as any).project.findMany({
             where: {
                 status: 'PUBLISHED',
+                isDeleted: false,
                 OR: [
                     { name: { contains: q, mode: 'insensitive' } },
                     { city: { contains: q, mode: 'insensitive' } },

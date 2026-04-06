@@ -9,6 +9,7 @@ export async function GET() {
             (prisma as any).project.findMany({
                 where: {
                     status: 'PUBLISHED',
+                    isDeleted: false,
                     city: { not: null },
                 },
                 select: { city: true },
@@ -18,6 +19,7 @@ export async function GET() {
             (prisma as any).project.findMany({
                 where: {
                     status: 'PUBLISHED',
+                    isDeleted: false,
                     developer: {
                         status: 'ACTIVE',
                         isDeleted: { not: true },
@@ -50,5 +52,6 @@ export async function GET() {
         return NextResponse.json({ success: false, message: 'Unable to load project filters' }, { status: 500 })
     }
 }
+
 
 

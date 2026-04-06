@@ -71,11 +71,24 @@ export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url)
         const status = safeString(searchParams.get('status'))
+        const lifecycle = safeString(searchParams.get('lifecycle')).toLowerCase()
         const developerId = safeString(searchParams.get('developerId'))
 
         const where: any = {}
         if (status) where.status = status
         if (developerId) where.developerId = developerId
+        if (lifecycle === 'deleted') {
+            where.isDeleted = true
+        } else if (lifecycle === 'archived') {
+            where.isDeleted = false
+            where.status = 'ARCHIVED'
+        } else if (lifecycle === 'all') {
+            // include all records
+        } else {
+            // default: active = non-deleted
+            where.isDeleted = false
+            if (!status) where.status = { in: ['DRAFT', 'PUBLISHED'] }
+        }
 
         const items = await (prisma as any).project.findMany({
             where,
@@ -93,6 +106,9 @@ export async function GET(req: Request) {
                     isFeatured: true,
                     featuredOrder: true,
                     status: true,
+                isDeleted: true,
+                deletedAt: true,
+                archivedAt: true,
                 completionYear: true,
                 createdAt: true,
                 updatedAt: true,
@@ -120,7 +136,18 @@ export async function GET(req: Request) {
             }
         })
 
-        return NextResponse.json({ success: true, items: normalizedItems })
+        const [total, active, archived, deleted] = await Promise.all([
+            (prisma as any).project.count(),
+            (prisma as any).project.count({ where: { isDeleted: false, status: { in: ['DRAFT', 'PUBLISHED'] } } }),
+            (prisma as any).project.count({ where: { isDeleted: false, status: 'ARCHIVED' } }),
+            (prisma as any).project.count({ where: { isDeleted: true } }),
+        ])
+
+        return NextResponse.json({
+            success: true,
+            items: normalizedItems,
+            lifecycleStats: { total, active, archived, deleted },
+        })
     } catch (err: any) {
         console.error('[GET /api/admin/projects]', err)
         return NextResponse.json({ success: false, message: 'Internal error' }, { status: 500 })

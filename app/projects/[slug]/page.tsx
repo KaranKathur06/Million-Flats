@@ -14,8 +14,8 @@ type ProjectPageProps = {
 
 async function getProject(slug: string) {
     try {
-        const project = await (prisma as any).project.findUnique({
-            where: { slug },
+        const project = await (prisma as any).project.findFirst({
+            where: { slug, status: 'PUBLISHED', isDeleted: false },
             include: {
                 developer: { select: { id: true, name: true, slug: true, logo: true } },
                 media: { orderBy: { sortOrder: 'asc' } },
@@ -83,6 +83,7 @@ async function getProject(slug: string) {
         const similarProjects = await (prisma as any).project.findMany({
             where: {
                 status: 'PUBLISHED',
+                isDeleted: false,
                 id: { not: project.id },
                 OR: [
                     { developerId: project.developer?.id },
@@ -121,7 +122,7 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
     const title = `${project.name} by ${project.developer?.name || 'Developer'} | MillionFlats`
     const description = project.description
         ? project.description.slice(0, 160)
-        : `${project.name} — ${project.city || 'UAE'} by ${project.developer?.name || 'Developer'}. Starting from AED ${project.startingPrice?.toLocaleString() || 'TBD'}.`
+        : `${project.name} â€” ${project.city || 'UAE'} by ${project.developer?.name || 'Developer'}. Starting from AED ${project.startingPrice?.toLocaleString() || 'TBD'}.`
 
     return {
         title,
@@ -151,3 +152,4 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
     return <ProjectDetailClient project={project} />
 }
+

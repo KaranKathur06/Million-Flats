@@ -28,10 +28,10 @@ export async function POST(req: Request, { params }: { params: { slug: string } 
         // Verify project exists and is published
         const project = await (prisma as any).project.findUnique({
             where: { slug: projectSlug },
-            select: { id: true, status: true },
+            select: { id: true, status: true, isDeleted: true },
         })
 
-        if (!project || project.status !== 'PUBLISHED') {
+        if (!project || project.status !== 'PUBLISHED' || project.isDeleted) {
             return NextResponse.json({ success: false, message: 'Project not found' }, { status: 404 })
         }
 
@@ -51,3 +51,4 @@ export async function POST(req: Request, { params }: { params: { slug: string } 
         return NextResponse.json({ success: false, message: 'Internal error' }, { status: 500 })
     }
 }
+

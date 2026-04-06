@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { z } from 'zod'
 import { parseAEDInput } from '@/lib/pricing'
+import { writeAuditLog } from '@/lib/audit'
+import { revalidatePath } from 'next/cache'
 
 const updateProjectSchema = z.object({
     name: z.string().min(1).max(300).optional(),
@@ -220,6 +222,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         const existing = await (prisma as any).project.findUnique({ where: { id: params.id } })
         if (!existing) {
             return NextResponse.json({ success: false, message: 'Project not found' }, { status: 404 })
+        }
+        if ((existing as any).isDeleted) {
+            return NextResponse.json({ success: false, message: 'Deleted project cannot be edited. Restore it first.' }, { status: 400 })
         }
 
         rawBody = await req.json().catch(() => ({}))
@@ -485,5 +490,67 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
             { success: false, message, code: 'PROJECT_UPDATE_FAILED' },
             { status: 500 }
         )
+    }
+}
+
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+    const auth = await requireAdminSession()
+    if (!auth.ok) {
+        return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
+    }
+    if (!['ADMIN', 'SUPERADMIN'].includes(auth.role)) {
+        return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
+    }
+
+    try {
+        const existing = await (prisma as any).project.findUnique({
+            where: { id: params.id },
+            select: {
+                id: true,
+                slug: true,
+                status: true,
+                isDeleted: true,
+                isFeatured: true,
+                featuredOrder: true,
+            },
+        })
+        if (!existing) {
+            return NextResponse.json({ success: false, message: 'Project not found' }, { status: 404 })
+        }
+        if (existing.isDeleted) {
+            return NextResponse.json({ success: false, message: 'Project already deleted' }, { status: 409 })
+        }
+
+        const updated = await (prisma as any).project.update({
+            where: { id: params.id },
+            data: {
+                isDeleted: true,
+                deletedAt: new Date(),
+                deletedBy: auth.userId,
+                isFeatured: false,
+                featuredOrder: null,
+            },
+            select: { id: true, slug: true, isDeleted: true, deletedAt: true },
+        })
+
+        await writeAuditLog({
+            entityType: 'PROJECT',
+            entityId: params.id,
+            action: 'PROJECT_SOFT_DELETED',
+            performedByUserId: auth.userId,
+            beforeState: { status: existing.status, isDeleted: existing.isDeleted, isFeatured: existing.isFeatured },
+            afterState: { isDeleted: true, isFeatured: false },
+            meta: { mode: 'soft' },
+        })
+
+        revalidatePath('/')
+        revalidatePath('/projects')
+        revalidatePath('/admin/projects')
+        if (existing.slug) revalidatePath(`/projects/${existing.slug}`)
+
+        return NextResponse.json({ success: true, mode: 'soft', project: updated })
+    } catch (err: any) {
+        console.error('[DELETE /api/admin/projects/[id]]', err)
+        return NextResponse.json({ success: false, message: 'Failed to delete project' }, { status: 500 })
     }
 }

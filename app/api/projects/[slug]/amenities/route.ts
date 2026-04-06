@@ -8,8 +8,8 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
             return NextResponse.json({ success: false, message: 'Missing slug' }, { status: 400 })
         }
 
-        const project = await (prisma as any).project.findUnique({
-            where: { slug, status: 'PUBLISHED' },
+        const project = await (prisma as any).project.findFirst({
+            where: { slug, status: 'PUBLISHED', isDeleted: false },
             select: {
                 id: true,
                 name: true,
@@ -29,3 +29,5 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
         return NextResponse.json({ success: false, message: 'Internal error' }, { status: 500 })
     }
 }
+
+

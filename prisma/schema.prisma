@@ -848,6 +848,7 @@ enum AuditEntityType {
   USER
   ECOSYSTEM_PARTNER
   ECOSYSTEM_PARTNER_APPLICATION
+  PROJECT
 }
 
 enum AuditAction {
@@ -886,6 +887,10 @@ enum AuditAction {
   AGENT_PROFILE_SUBMITTED
   ECOSYSTEM_PARTNER_APPLIED
   ADMIN_ECOSYSTEM_PARTNER_STAGE_CHANGED
+  PROJECT_SOFT_DELETED
+  PROJECT_RESTORED
+  PROJECT_HARD_DELETED
+  PROJECT_ARCHIVED
 }
 
 model AuditLog {
@@ -1415,7 +1420,7 @@ model AgentVerificationProgress {
   @@map("agent_verification_progress")
 }
 
-// ─── Developer Projects System ───────────────────────────────────────
+// â”€â”€â”€ Developer Projects System â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 enum ProjectStatus {
   DRAFT
@@ -1475,6 +1480,10 @@ model Project {
   featuredOrder   Int?     @map("featured_order")
 
   status          ProjectStatus @default(DRAFT)
+  isDeleted       Boolean  @default(false) @map("is_deleted")
+  deletedAt       DateTime? @map("deleted_at")
+  deletedBy       String? @map("deleted_by")
+  archivedAt      DateTime? @map("archived_at")
 
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
@@ -1494,6 +1503,8 @@ model Project {
 
   @@index([developerId])
   @@index([status])
+  @@index([isDeleted])
+  @@index([archivedAt])
   @@index([city])
   @@index([goldenVisa])
   @@index([isFeatured, featuredOrder])
@@ -1712,7 +1723,7 @@ model ProjectNearbyPlace {
   @@map("project_nearby_places")
 }
 
-// ─── Brochure System ─────────────────────────────────────────────────────
+// â”€â”€â”€ Brochure System â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model ProjectBrochure {
   id        String   @id @default(uuid())
@@ -1751,7 +1762,7 @@ model BrochureDownload {
   @@map("brochure_downloads")
 }
 
-// ─── Buyer System ────────────────────────────────────────────────────────
+// â”€â”€â”€ Buyer System â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model Buyer {
   id String @id @default(uuid())
@@ -1768,7 +1779,7 @@ model Buyer {
   @@map("buyers")
 }
 
-// ─── Payment System (Razorpay) ───────────────────────────────────────────
+// â”€â”€â”€ Payment System (Razorpay) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 enum PaymentProvider {
   RAZORPAY

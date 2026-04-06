@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import crypto from 'crypto'
 import { buildS3Key as buildStructuredS3Key, buildS3KeyFromFolder } from '@/utils/s3PathBuilder'
@@ -345,6 +345,48 @@ export async function deleteFromS3(key: string) {
   )
 
   return { success: true as const }
+}
+
+export async function deleteFolderFromS3(prefix: string) {
+  const { bucket } = requireS3Env()
+  const client = getS3Client()
+  const normalizedPrefix = prefix.replace(/^\/+/, '').replace(/\/+$/, '') + '/'
+
+  let continuationToken: string | undefined
+  let deletedCount = 0
+
+  while (true) {
+    const listed = await client.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: normalizedPrefix,
+        ContinuationToken: continuationToken,
+        MaxKeys: 1000,
+      })
+    )
+
+    const keys = (listed.Contents || [])
+      .map((item) => item.Key)
+      .filter((k): k is string => Boolean(k))
+
+    if (keys.length > 0) {
+      await client.send(
+        new DeleteObjectsCommand({
+          Bucket: bucket,
+          Delete: {
+            Objects: keys.map((Key) => ({ Key })),
+            Quiet: true,
+          },
+        })
+      )
+      deletedCount += keys.length
+    }
+
+    if (!listed.IsTruncated || !listed.NextContinuationToken) break
+    continuationToken = listed.NextContinuationToken
+  }
+
+  return { success: true as const, deletedCount, prefix: normalizedPrefix }
 }
 
 export async function createSignedGetUrl(params: { key: string; expiresInSeconds?: number }) {
