@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -32,6 +32,24 @@ const STATUS_COLORS: Record<string, string> = {
   PUBLISHED: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/20',
   ARCHIVED: 'bg-white/[0.10] text-white/60 border-white/[0.20]',
   DELETED: 'bg-red-500/15 text-red-300 border-red-500/20',
+}
+
+function TableSkeletonRows() {
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+      <div className="divide-y divide-white/[0.04]">
+        {Array.from({ length: 7 }).map((_, i) => (
+          <div key={i} className="grid grid-cols-12 gap-3 px-4 py-3">
+            <div className="col-span-1 h-5 rounded bg-white/[0.06] animate-pulse" />
+            <div className="col-span-4 h-5 rounded bg-white/[0.06] animate-pulse" />
+            <div className="col-span-2 h-5 rounded bg-white/[0.06] animate-pulse" />
+            <div className="col-span-2 h-5 rounded bg-white/[0.06] animate-pulse" />
+            <div className="col-span-3 h-5 rounded bg-white/[0.06] animate-pulse" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export default function AdminProjectsPage() {
@@ -94,7 +112,7 @@ export default function AdminProjectsPage() {
   const showUndoToast = (project: ProjectItem) => {
     toast.custom((t) => (
       <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-[#071629] px-4 py-3 text-sm text-white shadow-xl">
-        <span>{project.name} deleted</span>
+        <span className="truncate max-w-[240px]">{project.name} deleted</span>
         <button
           className="rounded-lg border border-emerald-400/40 px-2.5 py-1 text-xs text-emerald-200 hover:bg-emerald-500/15"
           onClick={async () => {
@@ -173,7 +191,7 @@ export default function AdminProjectsPage() {
       const json = await res.json()
       if (!json.success) throw new Error(json.message || 'Bulk delete failed')
       const result = json.result || { success: [], failed: [] }
-      toast.success(`Deleted ${result.success.length} project(s)`) 
+      toast.success(`Deleted ${result.success.length} project(s)`)
       if ((result.failed || []).length) {
         toast.error(`Failed: ${result.failed.length} project(s)`)
       }
@@ -199,7 +217,7 @@ export default function AdminProjectsPage() {
       const json = await res.json()
       if (!json.success) throw new Error(json.message || 'Bulk archive failed')
       const result = json.result || { success: [], failed: [] }
-      toast.success(`Archived ${result.success.length} project(s)`) 
+      toast.success(`Archived ${result.success.length} project(s)`)
       if ((result.failed || []).length) {
         toast.error(`Failed: ${result.failed.length} project(s)`)
       }
@@ -212,11 +230,96 @@ export default function AdminProjectsPage() {
     }
   }
 
+  const renderRowActions = (p: ProjectItem) => {
+    const canPublishToggle = !p.isDeleted && p.status !== 'ARCHIVED'
+
+    if (p.isDeleted) {
+      return (
+        <>
+          <Link
+            href={`/admin/projects/${p.id}`}
+            className="hidden md:inline-flex rounded-lg border border-white/[0.08] bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium text-white/70 hover:bg-white/[0.08]"
+          >
+            Edit
+          </Link>
+          <button
+            onClick={() => restoreProject(p.id)}
+            disabled={restoring === p.id}
+            className="hidden md:inline-flex rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-50"
+          >
+            {restoring === p.id ? '...' : 'Restore'}
+          </button>
+          <details className="md:hidden relative">
+            <summary className="list-none inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-white/70">
+              ...
+            </summary>
+            <div className="absolute right-0 mt-1 w-32 rounded-lg border border-white/10 bg-[#0b1a2b] p-1 shadow-xl">
+              <Link href={`/admin/projects/${p.id}`} className="block rounded px-2 py-1.5 text-xs text-white/80 hover:bg-white/10">Edit</Link>
+              <button onClick={() => restoreProject(p.id)} className="w-full rounded px-2 py-1.5 text-left text-xs text-emerald-300 hover:bg-white/10">Restore</button>
+            </div>
+          </details>
+        </>
+      )
+    }
+
+    return (
+      <>
+        <Link
+          href={`/admin/projects/${p.id}`}
+          className="hidden md:inline-flex rounded-lg border border-white/[0.08] bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium text-white/70 hover:bg-white/[0.08]"
+        >
+          Edit
+        </Link>
+        <button
+          onClick={() => toggleStatus(p)}
+          disabled={publishing === p.id || !canPublishToggle}
+          className={`hidden lg:inline-flex rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-all disabled:opacity-50 ${
+            p.status === 'PUBLISHED'
+              ? 'border-yellow-500/20 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20'
+              : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
+          }`}
+        >
+          {publishing === p.id ? '...' : p.status === 'PUBLISHED' ? 'Unpublish' : 'Publish'}
+        </button>
+        <button
+          onClick={() => setSingleDeleteTarget(p)}
+          disabled={deleting === p.id}
+          className="hidden lg:inline-flex rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-red-300 hover:bg-red-500/20 disabled:opacity-50"
+        >
+          Delete
+        </button>
+
+        <details className="lg:hidden relative">
+          <summary className="list-none inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-white/70">
+            ...
+          </summary>
+          <div className="absolute right-0 mt-1 w-36 rounded-lg border border-white/10 bg-[#0b1a2b] p-1 shadow-xl">
+            <Link href={`/admin/projects/${p.id}`} className="block rounded px-2 py-1.5 text-xs text-white/80 hover:bg-white/10">Edit</Link>
+            <button
+              onClick={() => toggleStatus(p)}
+              disabled={!canPublishToggle || publishing === p.id}
+              className="w-full rounded px-2 py-1.5 text-left text-xs text-yellow-200 hover:bg-white/10 disabled:opacity-50"
+            >
+              {p.status === 'PUBLISHED' ? 'Unpublish' : 'Publish'}
+            </button>
+            <button
+              onClick={() => setSingleDeleteTarget(p)}
+              disabled={deleting === p.id}
+              className="w-full rounded px-2 py-1.5 text-left text-xs text-red-300 hover:bg-white/10 disabled:opacity-50"
+            >
+              Delete
+            </button>
+          </div>
+        </details>
+      </>
+    )
+  }
+
   return (
     <div>
       <Toaster position="top-right" toastOptions={{ duration: 3200 }} />
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white/95">Projects</h1>
           <p className="mt-1 text-sm text-white/40">
@@ -224,7 +327,7 @@ export default function AdminProjectsPage() {
             {!loading && <span className="ml-2 text-white/25">({stats.total} total)</span>}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="w-[170px]">
             <SelectDropdown
               label="Status"
@@ -242,17 +345,11 @@ export default function AdminProjectsPage() {
             />
           </div>
 
-          <Link
-            href="/admin/projects/bulk-import"
-            className="inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-5 py-2.5 text-sm font-semibold text-white/70 hover:bg-white/[0.08] hover:text-white/90 transition-all"
-          >
+          <Link href="/admin/projects/bulk-import" className="inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white/70 hover:bg-white/[0.08] hover:text-white/90 transition-all">
             Bulk Import
           </Link>
 
-          <Link
-            href="/admin/projects/new"
-            className="inline-flex items-center gap-2 rounded-xl bg-amber-400/90 px-5 py-2.5 text-sm font-semibold text-black hover:bg-amber-300 transition-colors shadow-lg shadow-amber-400/20"
-          >
+          <Link href="/admin/projects/new" className="inline-flex items-center gap-2 rounded-xl bg-amber-400/90 px-4 py-2 text-sm font-semibold text-black hover:bg-amber-300 transition-colors shadow-lg shadow-amber-400/20">
             Add Project
           </Link>
         </div>
@@ -283,146 +380,87 @@ export default function AdminProjectsPage() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
           <p className="text-sm text-amber-100">{selectedCount} selected</p>
           <div className="flex items-center gap-2">
-            <button
-              onClick={runBulkArchive}
-              disabled={bulkActionLoading !== null}
-              className="rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/20 disabled:opacity-50"
-            >
+            <button onClick={runBulkArchive} disabled={bulkActionLoading !== null} className="rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/20 disabled:opacity-50">
               {bulkActionLoading === 'archive' ? 'Archiving...' : 'Archive'}
             </button>
-            <button
-              onClick={() => setBulkDeleteModalOpen(true)}
-              disabled={bulkActionLoading !== null}
-              className="rounded-lg border border-red-500/30 bg-red-500/15 px-3 py-1.5 text-xs font-semibold text-red-200 hover:bg-red-500/25 disabled:opacity-50"
-            >
+            <button onClick={() => setBulkDeleteModalOpen(true)} disabled={bulkActionLoading !== null} className="rounded-lg border border-red-500/30 bg-red-500/15 px-3 py-1.5 text-xs font-semibold text-red-200 hover:bg-red-500/25 disabled:opacity-50">
               Delete
             </button>
           </div>
         </div>
       )}
 
-      {loading && (
-        <div className="flex items-center gap-3 py-12 justify-center text-white/40">
-          <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          Loading...
-        </div>
-      )}
+      {loading && <TableSkeletonRows />}
 
       {!loading && projects.length > 0 && (
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/[0.06] bg-white/[0.02]">
-                  <th className="px-4 py-3.5">
-                    <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="h-4 w-4 accent-amber-400" />
-                  </th>
-                  <th className="text-left px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-white/30">Project</th>
-                  <th className="text-left px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-white/30">Developer</th>
-                  <th className="text-left px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-white/30">City</th>
-                  <th className="text-center px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-white/30">Golden Visa</th>
-                  <th className="text-left px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-white/30">Price</th>
-                  <th className="text-center px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-white/30">Lifecycle</th>
-                  <th className="text-center px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-white/30">Media</th>
-                  <th className="text-center px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-white/30">Leads</th>
-                  <th className="text-left px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-white/30">Created</th>
-                  <th className="text-right px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-white/30">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {projects.map((p) => {
-                  const lifecycleLabel = p.isDeleted ? 'DELETED' : p.status
-                  const canPublishToggle = !p.isDeleted && p.status !== 'ARCHIVED'
-                  return (
-                    <tr key={p.id} className="border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors">
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.includes(p.id)}
-                          onChange={() => toggleSelect(p.id)}
-                          className="h-4 w-4 accent-amber-400"
-                        />
-                      </td>
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={p.coverImage || '/images/default-property.jpg'}
-                            alt=""
-                            className="h-9 w-12 rounded-lg object-cover border border-white/10 flex-shrink-0"
-                          />
-                          <div>
-                            <p className="font-medium text-white/90 leading-tight">{p.name}</p>
-                            <p className="text-[11px] text-white/30 font-mono mt-0.5">{p.slug}</p>
-                          </div>
+        <div className="table-container w-full max-w-full overflow-x-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+          <table className="table w-full table-fixed text-sm">
+            <thead className="sticky top-0 z-20 bg-[#0b1a2b]">
+              <tr className="border-b border-white/[0.08]">
+                <th className="w-10 px-2 py-3.5 text-left">
+                  <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="h-4 w-4 accent-amber-400" />
+                </th>
+                <th className="w-[220px] px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-white/30">Project</th>
+                <th className="px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-white/30">Developer</th>
+                <th className="px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-white/30">City</th>
+                <th className="hidden md:table-cell px-3 py-3.5 text-center text-[11px] font-bold uppercase tracking-wider text-white/30">Golden Visa</th>
+                <th className="hidden md:table-cell px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-white/30">Price</th>
+                <th className="px-3 py-3.5 text-center text-[11px] font-bold uppercase tracking-wider text-white/30">Status</th>
+                <th className="hidden lg:table-cell px-3 py-3.5 text-center text-[11px] font-bold uppercase tracking-wider text-white/30">Media</th>
+                <th className="hidden lg:table-cell px-3 py-3.5 text-center text-[11px] font-bold uppercase tracking-wider text-white/30">Leads</th>
+                <th className="hidden xl:table-cell px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-white/30">Created</th>
+                <th className="actions-column sticky right-0 z-10 w-[220px] min-w-[220px] bg-[#0b1a2b] px-3 py-3.5 text-right text-[11px] font-bold uppercase tracking-wider text-white/30">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {projects.map((p) => {
+                const lifecycleLabel = p.isDeleted ? 'DELETED' : p.status
+                return (
+                  <tr key={p.id} className="border-b border-white/[0.04] hover:bg-white/[0.04] transition-colors">
+                    <td className="w-10 px-2 py-3 align-middle">
+                      <input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => toggleSelect(p.id)} className="h-4 w-4 accent-amber-400" />
+                    </td>
+                    <td className="px-3 py-3 align-middle">
+                      <div className="project-cell flex max-w-[220px] items-center gap-2.5 overflow-hidden">
+                        <img src={p.coverImage || '/images/default-property.jpg'} alt="" className="h-9 w-12 rounded-lg border border-white/10 object-cover flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="project-name truncate text-sm font-medium leading-[1.2] text-white/90">{p.name}</p>
+                          <p className="project-slug truncate text-[11px] font-mono opacity-60">{p.slug}</p>
                         </div>
-                      </td>
-                      <td className="px-5 py-3 text-white/60 text-xs">{p.developer.name}</td>
-                      <td className="px-5 py-3 text-white/50 text-xs">{p.city || '-'}</td>
-                      <td className="px-5 py-3 text-center">
-                        {p.goldenVisa ? <span className="text-amber-300 text-xs font-semibold">Yes</span> : <span className="text-white/20 text-xs">-</span>}
-                      </td>
-                      <td className="px-5 py-3 text-white/60 text-xs font-medium">{formatPrice(p.startingPrice)}</td>
-                      <td className="px-5 py-3 text-center">
-                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${STATUS_COLORS[lifecycleLabel] || STATUS_COLORS.DRAFT}`}>
-                          {lifecycleLabel}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 text-center text-white/40 text-xs">{p._count.media}</td>
-                      <td className="px-5 py-3 text-center text-white/40 text-xs">{p._count.leads}</td>
-                      <td className="px-5 py-3 text-white/40 text-xs whitespace-nowrap">
-                        {new Date(p.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </td>
-                      <td className="px-5 py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link
-                            href={`/admin/projects/${p.id}`}
-                            className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-white/60 hover:bg-white/[0.08] hover:text-white/90 transition-all"
-                          >
-                            Edit
-                          </Link>
-
-                          {p.isDeleted ? (
-                            <button
-                              onClick={() => restoreProject(p.id)}
-                              disabled={restoring === p.id}
-                              className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-50"
-                            >
-                              {restoring === p.id ? 'Restoring...' : 'Restore'}
-                            </button>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => toggleStatus(p)}
-                                disabled={publishing === p.id || !canPublishToggle}
-                                className={`rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-all disabled:opacity-50 ${
-                                  p.status === 'PUBLISHED'
-                                    ? 'border-yellow-500/20 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20'
-                                    : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
-                                }`}
-                              >
-                                {publishing === p.id ? '...' : p.status === 'PUBLISHED' ? 'Unpublish' : 'Publish'}
-                              </button>
-
-                              <button
-                                onClick={() => setSingleDeleteTarget(p)}
-                                disabled={deleting === p.id}
-                                className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-[11px] font-semibold text-red-300 hover:bg-red-500/20 disabled:opacity-50"
-                              >
-                                Delete
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 align-middle">
+                      <span className="block truncate text-xs text-white/65">{p.developer.name}</span>
+                    </td>
+                    <td className="px-3 py-3 align-middle">
+                      <span className="block truncate text-xs text-white/55">{p.city || '-'}</span>
+                    </td>
+                    <td className="hidden md:table-cell px-3 py-3 text-center align-middle">
+                      {p.goldenVisa ? <span className="text-amber-300 text-xs font-semibold">Yes</span> : <span className="text-white/25 text-xs">-</span>}
+                    </td>
+                    <td className="hidden md:table-cell px-3 py-3 align-middle">
+                      <span className="truncate text-xs font-medium text-white/65">{formatPrice(p.startingPrice)}</span>
+                    </td>
+                    <td className="px-3 py-3 text-center align-middle">
+                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${STATUS_COLORS[lifecycleLabel] || STATUS_COLORS.DRAFT}`}>
+                        {lifecycleLabel}
+                      </span>
+                    </td>
+                    <td className="hidden lg:table-cell px-3 py-3 text-center align-middle text-xs text-white/45">{p._count.media}</td>
+                    <td className="hidden lg:table-cell px-3 py-3 text-center align-middle text-xs text-white/45">{p._count.leads}</td>
+                    <td className="hidden xl:table-cell px-3 py-3 align-middle text-xs text-white/45 truncate">
+                      {new Date(p.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td className="actions-column sticky right-0 z-10 min-w-[220px] bg-[#0b1a2b] px-3 py-3 text-right align-middle">
+                      <div className="flex items-center justify-end gap-2 flex-shrink-0">
+                        {renderRowActions(p)}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -446,17 +484,10 @@ export default function AdminProjectsPage() {
               This will remove project from public listings, hide associated data, and can be restored later.
             </p>
             <div className="mt-6 flex items-center justify-end gap-2">
-              <button
-                onClick={() => setSingleDeleteTarget(null)}
-                className="rounded-lg border border-white/20 bg-white/5 px-3.5 py-2 text-sm text-white/80 hover:bg-white/10"
-              >
+              <button onClick={() => setSingleDeleteTarget(null)} className="rounded-lg border border-white/20 bg-white/5 px-3.5 py-2 text-sm text-white/80 hover:bg-white/10">
                 Cancel
               </button>
-              <button
-                onClick={() => softDeleteProject(singleDeleteTarget)}
-                disabled={deleting === singleDeleteTarget.id}
-                className="rounded-lg border border-red-500/35 bg-red-500/15 px-3.5 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/25 disabled:opacity-50"
-              >
+              <button onClick={() => softDeleteProject(singleDeleteTarget)} disabled={deleting === singleDeleteTarget.id} className="rounded-lg border border-red-500/35 bg-red-500/15 px-3.5 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/25 disabled:opacity-50">
                 {deleting === singleDeleteTarget.id ? 'Deleting...' : 'Delete Project'}
               </button>
             </div>
@@ -472,17 +503,10 @@ export default function AdminProjectsPage() {
               This will soft-delete {selectedCount} selected project(s), remove them from public listings, and keep S3 assets intact for restore.
             </p>
             <div className="mt-6 flex items-center justify-end gap-2">
-              <button
-                onClick={() => setBulkDeleteModalOpen(false)}
-                className="rounded-lg border border-white/20 bg-white/5 px-3.5 py-2 text-sm text-white/80 hover:bg-white/10"
-              >
+              <button onClick={() => setBulkDeleteModalOpen(false)} className="rounded-lg border border-white/20 bg-white/5 px-3.5 py-2 text-sm text-white/80 hover:bg-white/10">
                 Cancel
               </button>
-              <button
-                onClick={runBulkDelete}
-                disabled={bulkActionLoading !== null}
-                className="rounded-lg border border-red-500/35 bg-red-500/15 px-3.5 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/25 disabled:opacity-50"
-              >
+              <button onClick={runBulkDelete} disabled={bulkActionLoading !== null} className="rounded-lg border border-red-500/35 bg-red-500/15 px-3.5 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/25 disabled:opacity-50">
                 {bulkActionLoading === 'delete' ? 'Deleting...' : 'Delete Selected'}
               </button>
             </div>
