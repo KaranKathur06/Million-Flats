@@ -44,12 +44,12 @@ export async function POST(req: Request) {
       select: { id: true, slug: true, isDeleted: true, status: true, isFeatured: true },
     })
 
-    const byId = new Map(existing.map((p: any) => [p.id, p]))
+    const byId = new Map<string, any>(existing.map((p: any) => [p.id, p]))
     const success: string[] = []
     const failed: string[] = []
 
     for (const id of projectIds) {
-      const project = byId.get(id)
+      const project: any = byId.get(id)
       if (!project || project.isDeleted) {
         failed.push(id)
         continue

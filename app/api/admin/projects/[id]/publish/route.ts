@@ -36,7 +36,7 @@ export async function PUT(_req: Request, { params }: { params: { id: string } })
             const toggled = project.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'
             const updated = await (prisma as any).project.update({
                 where: { id: params.id },
-                data: { status: toggled, archivedAt: toggled === 'ARCHIVED' ? new Date() : null },
+                data: { status: toggled, archivedAt: null },
                 select: { id: true, slug: true, status: true },
             })
             return NextResponse.json({ success: true, project: updated })

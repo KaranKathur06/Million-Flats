@@ -38,12 +38,12 @@ export async function POST(req: Request) {
       where: { id: { in: projectIds } },
       select: { id: true, slug: true, isDeleted: true, status: true },
     })
-    const byId = new Map(existing.map((p: any) => [p.id, p]))
+    const byId = new Map<string, any>(existing.map((p: any) => [p.id, p]))
     const success: string[] = []
     const failed: string[] = []
 
     for (const id of projectIds) {
-      const p = byId.get(id)
+      const p: any = byId.get(id)
       if (!p || p.isDeleted) {
         failed.push(id)
         continue

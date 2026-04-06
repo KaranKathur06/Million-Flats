@@ -184,7 +184,7 @@ function generateSitemapIndexXml(sitemapTypes: string[], generatedAt: string): s
 async function fetchProjectUrls(): Promise<SitemapUrl[]> {
   try {
     const projects = await (prisma as any).project.findMany({
-      where: { status: 'PUBLISHED' },
+      where: { status: 'PUBLISHED', isDeleted: false },
       select: { slug: true, updatedAt: true },
       orderBy: { updatedAt: 'desc' },
     })
