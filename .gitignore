@@ -28,6 +28,9 @@ yarn-error.log*
 .env*.local
 .env
 
+# sitemap cache (generated at runtime)
+.sitemap-cache/
+
 # vercel
 .vercel
 

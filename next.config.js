@@ -1,4 +1,4 @@
-﻿/** @type {import('next').NextConfig} */
+/** @type {import('next').NextConfig} */
 
 const defaultRemotePatterns = [
   { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
@@ -35,6 +35,10 @@ const nextConfig = {
     remotePatterns: defaultRemotePatterns,
   },
   reactStrictMode: true,
+  eslint: {
+    // Pre-existing warnings in legacy code — lint runs separately in CI
+    ignoreDuringBuilds: true,
+  },
 }
 
 module.exports = nextConfig
