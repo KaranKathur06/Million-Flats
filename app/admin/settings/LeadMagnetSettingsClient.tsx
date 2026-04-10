@@ -68,6 +68,16 @@ const STATUS_CLASS: Record<LeadMagnetStatus, string> = {
   active: 'bg-emerald-500/15 text-emerald-300 border-emerald-400/20',
 }
 
+type LeadMagnetFilter = 'all' | LeadMagnetStatus
+
+const FILTER_OPTIONS: Array<{ value: LeadMagnetFilter; label: string }> = [
+  { value: 'all', label: 'All' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'uploaded', label: 'Uploaded' },
+  { value: 'published', label: 'Published' },
+  { value: 'active', label: 'Active' },
+]
+
 export default function LeadMagnetSettingsClient() {
   const [items, setItems] = useState<LeadMagnetItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -76,6 +86,7 @@ export default function LeadMagnetSettingsClient() {
   const [removingFile, setRemovingFile] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [toast, setToast] = useState<ToastState>(null)
+  const [activeFilter, setActiveFilter] = useState<LeadMagnetFilter>('all')
   const [form, setForm] = useState<EditorState>(INITIAL_FORM)
   const [pdfFile, setPdfFile] = useState<File | null>(null)
 
@@ -121,6 +132,7 @@ export default function LeadMagnetSettingsClient() {
   }, [toast])
 
   const totalDownloads = useMemo(() => items.reduce((acc, item) => acc + Number(item.downloadsCount || 0), 0), [items])
+  const filteredItems = useMemo(() => (activeFilter === 'all' ? items : items.filter((item) => item.status === activeFilter)), [activeFilter, items])
   const editingItem = useMemo(() => items.find((item) => item.id === form.id) || null, [items, form.id])
   const fileMeta = useMemo<FileMeta | null>(() => {
     if (pdfFile) {
@@ -350,8 +362,8 @@ export default function LeadMagnetSettingsClient() {
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
+      <section className="grid grid-cols-1 gap-6 2xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,420px)]">
+        <div className="min-w-0 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-sm font-bold uppercase tracking-wider text-white/50">Create / Edit Panel</h3>
             <button
@@ -432,15 +444,29 @@ export default function LeadMagnetSettingsClient() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-white/50">Existing Lead Magnets</h3>
+        <div className="min-w-0 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 2xl:sticky 2xl:top-8 2xl:self-start">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-white/50">Existing Lead Magnets</h3>
+            <div className="flex flex-wrap gap-2">
+              {FILTER_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setActiveFilter(option.value)}
+                  className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${activeFilter === option.value ? 'border-amber-400/30 bg-amber-400/15 text-amber-200' : 'border-white/10 bg-white/[0.03] text-white/55 hover:bg-white/[0.06] hover:text-white/80'}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
           {loading ? (
             <p className="mt-4 text-sm text-white/60">Loading...</p>
-          ) : items.length === 0 ? (
-            <p className="mt-4 text-sm text-white/60">No lead magnets configured yet.</p>
+          ) : filteredItems.length === 0 ? (
+            <p className="mt-4 text-sm text-white/60">No lead magnets found for this status.</p>
           ) : (
-            <div className="mt-4 space-y-3">
-              {items.map((item) => {
+            <div className="mt-4 space-y-3 2xl:max-h-[calc(100vh-220px)] 2xl:overflow-y-auto 2xl:pr-1">
+              {filteredItems.map((item) => {
                 const isSelected = item.id === form.id
                 return (
                   <div key={item.id} className={`rounded-xl border p-4 transition ${isSelected ? 'border-amber-400/35 bg-amber-400/5' : 'border-white/10 bg-white/[0.03]'}`}>
