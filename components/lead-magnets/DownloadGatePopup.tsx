@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { FAQ_POPUP_LAST_SEEN_KEY } from '@/lib/leadMagnets/constants'
+import { FAQ_POPUP_LAST_CLOSED_KEY, FAQ_POPUP_LAST_SEEN_KEY } from '@/lib/leadMagnets/constants'
 import { savePostLoginAction, trackLeadMagnetEvent } from '@/lib/leadMagnets/client'
 
 type PopupLeadMagnet = {
@@ -21,7 +21,7 @@ type PopupLeadMagnet = {
 
 function hasCooldown(hours: number) {
   if (typeof window === 'undefined') return true
-  const raw = window.localStorage.getItem(FAQ_POPUP_LAST_SEEN_KEY)
+  const raw = window.localStorage.getItem(FAQ_POPUP_LAST_CLOSED_KEY) ?? window.localStorage.getItem(FAQ_POPUP_LAST_SEEN_KEY)
   if (!raw) return false
   const seenAt = Number(raw)
   if (!Number.isFinite(seenAt)) return false
@@ -183,6 +183,9 @@ export default function DownloadGatePopup() {
   }
 
   async function closePopup(reason: string) {
+    const closedAt = Date.now()
+    window.localStorage.setItem(FAQ_POPUP_LAST_CLOSED_KEY, String(closedAt))
+    window.localStorage.setItem(FAQ_POPUP_LAST_SEEN_KEY, String(closedAt))
     setIsOpen(false)
     await trackLeadMagnetEvent('popup_close', { slug: magnet.slug, reason })
   }

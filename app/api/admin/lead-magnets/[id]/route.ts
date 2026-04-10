@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { Prisma } from '@prisma/client'
 import { authOptions } from '@/lib/auth'
 import { hasMinRole, normalizeRole } from '@/lib/rbac'
 import { prisma } from '@/lib/prisma'
 import { deleteFromS3 } from '@/lib/s3'
-import { Prisma } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
+
+type LeadMagnetStatusValue = 'DRAFT' | 'UPLOADED' | 'PUBLISHED' | 'ACTIVE'
+type LeadMagnetStatusResponse = 'draft' | 'uploaded' | 'published' | 'active'
 
 function forbidden(message = 'Forbidden', status = 403) {
   return NextResponse.json({ success: false, message }, { status })
@@ -22,11 +25,17 @@ function toInt(value: unknown, fallback: number, min: number, max: number) {
   return Math.max(min, Math.min(max, parsed))
 }
 
-function deriveLeadMagnetStatus(item: { fileS3Key?: string | null; isActive?: boolean; popupEnabled?: boolean }) {
-  if (!String(item.fileS3Key || '').trim()) return 'draft' as const
-  if (Boolean(item.isActive)) return 'active' as const
-  if (Boolean(item.popupEnabled)) return 'published' as const
-  return 'uploaded' as const
+function determineLeadMagnetStatus(item: { fileS3Key?: string | null; isActive?: boolean; popupEnabled?: boolean }): LeadMagnetStatusValue {
+  if (!String(item.fileS3Key || '').trim()) return 'DRAFT'
+  if (Boolean(item.isActive)) return 'ACTIVE'
+  if (Boolean(item.popupEnabled)) return 'PUBLISHED'
+  return 'UPLOADED'
+}
+
+function toClientStatus(status: unknown, fallback: { fileS3Key?: string | null; isActive?: boolean; popupEnabled?: boolean }): LeadMagnetStatusResponse {
+  const normalized = String(status || '').trim().toUpperCase()
+  const finalStatus = (normalized || determineLeadMagnetStatus(fallback)) as LeadMagnetStatusValue
+  return finalStatus.toLowerCase() as LeadMagnetStatusResponse
 }
 
 async function assertAdmin() {
@@ -62,7 +71,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   try {
     const existing = await (prisma as any).leadMagnet.findUnique({
       where: { id },
-      select: { id: true, slug: true, fileS3Key: true, isActive: true, popupEnabled: true },
+      select: { id: true, slug: true, fileS3Key: true, isActive: true, popupEnabled: true, status: true },
     })
 
     if (!existing) {
@@ -82,6 +91,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const finalFileKey = nextFileS3Key !== undefined ? nextFileS3Key : existing.fileS3Key
     const nextIsActive = body?.isActive !== undefined ? Boolean(body.isActive) : Boolean(existing.isActive)
     const nextPopupEnabled = body?.popupEnabled !== undefined ? Boolean(body.popupEnabled) : Boolean(existing.popupEnabled)
+    const nextStatus = determineLeadMagnetStatus({ fileS3Key: finalFileKey, isActive: nextIsActive, popupEnabled: nextPopupEnabled })
 
     if (nextIsActive && !finalFileKey) {
       return NextResponse.json({ success: false, message: 'Cannot activate a lead magnet without an uploaded PDF' }, { status: 400 })
@@ -100,6 +110,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         loginHint: body?.loginHint !== undefined ? String(body.loginHint).trim() : undefined,
         badgeText: body?.badgeText !== undefined ? (String(body.badgeText).trim() || null) : undefined,
         fileS3Key: nextFileS3Key,
+        status: nextStatus,
         isActive: body?.isActive !== undefined ? nextIsActive : undefined,
         popupEnabled: body?.popupEnabled !== undefined ? nextPopupEnabled : undefined,
         popupDelaySeconds: body?.popupDelaySeconds !== undefined ? toInt(body.popupDelaySeconds, 4, 1, 30) : undefined,
@@ -113,7 +124,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       success: true,
       data: {
         ...updated,
-        status: deriveLeadMagnetStatus(updated),
+        status: toClientStatus(updated.status, updated),
       },
     })
   } catch (error) {

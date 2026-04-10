@@ -60,7 +60,7 @@ export async function getPopupLeadMagnet(): Promise<PublicLeadMagnet | null> {
 
   try {
     dbMagnet = await (prisma as any).leadMagnet.findFirst({
-      where: { isActive: true, popupEnabled: true },
+      where: { status: 'ACTIVE', popupEnabled: true },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
       select: {
         id: true,
@@ -149,7 +149,7 @@ export async function resolveDownloadableLeadMagnet(slug: string): Promise<Resol
 
   try {
     dbMagnet = await (prisma as any).leadMagnet.findFirst({
-      where: { slug: cleanSlug, isActive: true },
+      where: { slug: cleanSlug, status: 'ACTIVE' },
       select: { id: true, slug: true, fileS3Key: true, title: true },
     })
   } catch {

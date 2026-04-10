@@ -73,6 +73,7 @@ export default function LeadMagnetSettingsClient() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [removingFile, setRemovingFile] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [toast, setToast] = useState<ToastState>(null)
   const [form, setForm] = useState<EditorState>(INITIAL_FORM)
@@ -222,6 +223,32 @@ export default function LeadMagnetSettingsClient() {
     }
   }
 
+  async function removeStoredFile() {
+    if (!form.id) {
+      setPdfFile(null)
+      return
+    }
+
+    setRemovingFile(true)
+    try {
+      const res = await fetch(`/api/admin/lead-magnets/${form.id}/upload`, {
+        method: 'DELETE',
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.message || 'Failed to remove file')
+      }
+
+      setPdfFile(null)
+      setToast({ type: 'success', message: 'Stored PDF removed. Lead magnet is back in draft state.' })
+      await loadData(form.id)
+    } catch (error) {
+      setToast({ type: 'error', message: error instanceof Error ? error.message : 'Failed to remove file' })
+    } finally {
+      setRemovingFile(false)
+    }
+  }
+
   async function uploadSelectedFile() {
     if (!form.id) {
       setToast({ type: 'error', message: 'Create the draft before uploading a PDF.' })
@@ -361,12 +388,19 @@ export default function LeadMagnetSettingsClient() {
 
             <PdfDropzone
               value={fileMeta}
-              loading={saving || uploading}
+              loading={saving || uploading || removingFile}
               onUpload={async (file) => {
                 setPdfFile(file)
               }}
               onDelete={async () => {
-                setPdfFile(null)
+                if (pdfFile) {
+                  setPdfFile(null)
+                  return
+                }
+
+                if (editingItem?.fileS3Key) {
+                  await removeStoredFile()
+                }
               }}
             />
 
@@ -377,8 +411,11 @@ export default function LeadMagnetSettingsClient() {
             <button type="button" disabled={saving} onClick={saveDraft} className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#111827] disabled:opacity-50">
               {saving ? 'Saving...' : form.id ? 'Update Draft' : 'Save Draft'}
             </button>
-            <button type="button" disabled={!form.id || !pdfFile || uploading} onClick={uploadSelectedFile} className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-[#111827] disabled:opacity-50">
+            <button type="button" disabled={!form.id || !pdfFile || uploading || removingFile} onClick={uploadSelectedFile} className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-[#111827] disabled:opacity-50">
               {uploading ? 'Uploading...' : editingItem?.hasFile ? 'Replace File' : 'Upload File'}
+            </button>
+            <button type="button" disabled={!form.id || (!editingItem?.hasFile && !pdfFile) || removingFile || uploading} onClick={() => { if (pdfFile) { setPdfFile(null); return } void removeStoredFile() }} className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 disabled:opacity-50">
+              {removingFile ? 'Removing File...' : pdfFile ? 'Clear Selected File' : 'Remove File'}
             </button>
             <button type="button" disabled={!form.id} onClick={() => void setLifecycle({ popupEnabled: true, isActive: false }, 'Lead magnet published.')} className="rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-200 disabled:opacity-50">
               Publish

@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { Prisma } from '@prisma/client'
 import { authOptions } from '@/lib/auth'
 import { hasMinRole, normalizeRole } from '@/lib/rbac'
 import { prisma } from '@/lib/prisma'
 import { uploadFile, UploadServiceError } from '@/services/uploadService'
 import { deleteFromS3 } from '@/lib/s3'
-import { Prisma } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
+
+type LeadMagnetStatusValue = 'DRAFT' | 'UPLOADED' | 'PUBLISHED' | 'ACTIVE'
+type LeadMagnetStatusResponse = 'draft' | 'uploaded' | 'published' | 'active'
 
 function forbidden(message = 'Forbidden', status = 403) {
   return NextResponse.json({ success: false, message }, { status })
@@ -23,11 +26,41 @@ function toInt(value: unknown, fallback: number, min: number, max: number) {
   return Math.max(min, Math.min(max, parsed))
 }
 
-function deriveLeadMagnetStatus(item: { fileS3Key?: string | null; isActive?: boolean; popupEnabled?: boolean }) {
-  if (!String(item.fileS3Key || '').trim()) return 'draft' as const
-  if (Boolean(item.isActive)) return 'active' as const
-  if (Boolean(item.popupEnabled)) return 'published' as const
-  return 'uploaded' as const
+function determineLeadMagnetStatus(item: { fileS3Key?: string | null; isActive?: boolean; popupEnabled?: boolean }): LeadMagnetStatusValue {
+  if (!String(item.fileS3Key || '').trim()) return 'DRAFT'
+  if (Boolean(item.isActive)) return 'ACTIVE'
+  if (Boolean(item.popupEnabled)) return 'PUBLISHED'
+  return 'UPLOADED'
+}
+
+function toClientStatus(status: unknown, fallback: { fileS3Key?: string | null; isActive?: boolean; popupEnabled?: boolean }): LeadMagnetStatusResponse {
+  const normalized = String(status || '').trim().toUpperCase()
+  const finalStatus = (normalized || determineLeadMagnetStatus(fallback)) as LeadMagnetStatusValue
+  return finalStatus.toLowerCase() as LeadMagnetStatusResponse
+}
+
+function serializeLeadMagnet(item: any) {
+  return {
+    id: String(item.id),
+    slug: String(item.slug),
+    title: String(item.title),
+    subtitle: item.subtitle ? String(item.subtitle) : '',
+    ctaLabel: String(item.ctaLabel || 'Download Free Guide'),
+    loginHint: String(item.loginHint || 'Login required'),
+    badgeText: item.badgeText ? String(item.badgeText) : '',
+    fileS3Key: String(item.fileS3Key || ''),
+    status: toClientStatus(item.status, item),
+    hasFile: Boolean(item.fileS3Key),
+    isActive: Boolean(item.isActive),
+    popupEnabled: Boolean(item.popupEnabled),
+    popupDelaySeconds: toInt(item.popupDelaySeconds, 4, 1, 30),
+    popupScrollPercent: toInt(item.popupScrollPercent, 25, 5, 80),
+    cooldownHours: toInt(item.cooldownHours, 24, 1, 168),
+    sortOrder: toInt(item.sortOrder, 0, -9999, 9999),
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+    downloadsCount: Number(item?._count?.downloads || 0),
+  }
 }
 
 async function assertAdmin() {
@@ -56,27 +89,7 @@ export async function GET() {
     },
   })
 
-  const data = rows.map((item: any) => ({
-    id: String(item.id),
-    slug: String(item.slug),
-    title: String(item.title),
-    subtitle: item.subtitle ? String(item.subtitle) : '',
-    ctaLabel: String(item.ctaLabel || 'Download Free Guide'),
-    loginHint: String(item.loginHint || 'Login required'),
-    badgeText: item.badgeText ? String(item.badgeText) : '',
-    fileS3Key: String(item.fileS3Key || ''),
-    status: deriveLeadMagnetStatus(item),
-    hasFile: Boolean(item.fileS3Key),
-    isActive: Boolean(item.isActive),
-    popupEnabled: Boolean(item.popupEnabled),
-    popupDelaySeconds: toInt(item.popupDelaySeconds, 4, 1, 30),
-    popupScrollPercent: toInt(item.popupScrollPercent, 25, 5, 80),
-    cooldownHours: toInt(item.cooldownHours, 24, 1, 168),
-    sortOrder: toInt(item.sortOrder, 0, -9999, 9999),
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt,
-    downloadsCount: Number(item?._count?.downloads || 0),
-  }))
+  const data = rows.map((item: any) => serializeLeadMagnet(item))
 
   const totals = await (prisma as any).leadMagnetDownload.aggregate({
     _count: { id: true },
@@ -198,6 +211,8 @@ export async function POST(req: Request) {
       }
     }
 
+    const status = determineLeadMagnetStatus({ fileS3Key, isActive, popupEnabled })
+
     const created = await (prisma as any).leadMagnet.create({
       data: {
         slug,
@@ -207,6 +222,7 @@ export async function POST(req: Request) {
         loginHint,
         badgeText: badgeText || null,
         fileS3Key: fileS3Key || null,
+        status,
         isActive,
         popupEnabled,
         popupDelaySeconds,
@@ -214,9 +230,12 @@ export async function POST(req: Request) {
         cooldownHours,
         sortOrder,
       },
+      include: {
+        _count: { select: { downloads: true } },
+      },
     })
 
-    return NextResponse.json({ success: true, data: created, file_url: fileUrl, file_s3_key: fileS3Key || null }, { status: 201 })
+    return NextResponse.json({ success: true, data: serializeLeadMagnet(created), file_url: fileUrl, file_s3_key: fileS3Key || null }, { status: 201 })
   } catch (error) {
     if (uploadedFileKey) {
       await deleteFromS3(uploadedFileKey).catch((cleanupError) => {

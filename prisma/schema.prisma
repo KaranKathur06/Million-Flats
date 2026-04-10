@@ -1335,26 +1335,36 @@ model AnalyticsEvent {
   @@index([createdAt])
 }
 
+
+enum LeadMagnetStatus {
+  DRAFT
+  UPLOADED
+  PUBLISHED
+  ACTIVE
+}
+
 model LeadMagnet {
-  id                String   @id @default(uuid())
-  slug              String   @unique
-  title             String
-  subtitle          String?  @db.Text
-  ctaLabel          String   @default("Download Free Guide") @map("cta_label")
-  loginHint         String   @default("Exclusive for registered users") @map("login_hint")
-  badgeText         String?  @map("badge_text")
-  fileS3Key         String?  @map("file_s3_key")
-  isActive          Boolean  @default(true) @map("is_active")
-  popupEnabled      Boolean  @default(true) @map("popup_enabled")
-  popupDelaySeconds Int      @default(4) @map("popup_delay_seconds")
-  popupScrollPercent Int     @default(25) @map("popup_scroll_percent")
-  cooldownHours     Int      @default(24) @map("cooldown_hours")
-  sortOrder         Int      @default(0) @map("sort_order")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  id                 String           @id @default(uuid())
+  slug               String           @unique
+  title              String
+  subtitle           String?          @db.Text
+  ctaLabel           String           @default("Download Free Guide") @map("cta_label")
+  loginHint          String           @default("Exclusive for registered users") @map("login_hint")
+  badgeText          String?          @map("badge_text")
+  fileS3Key          String?          @map("file_s3_key")
+  status             LeadMagnetStatus @default(DRAFT)
+  isActive           Boolean          @default(true) @map("is_active")
+  popupEnabled       Boolean          @default(true) @map("popup_enabled")
+  popupDelaySeconds  Int              @default(4) @map("popup_delay_seconds")
+  popupScrollPercent Int              @default(25) @map("popup_scroll_percent")
+  cooldownHours      Int              @default(24) @map("cooldown_hours")
+  sortOrder          Int              @default(0) @map("sort_order")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
 
   downloads LeadMagnetDownload[]
 
+  @@index([status])
   @@index([isActive, popupEnabled, sortOrder])
   @@index([createdAt])
   @@map("lead_magnets")
