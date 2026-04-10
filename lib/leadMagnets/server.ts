@@ -1,5 +1,5 @@
-﻿import { prisma } from '@/lib/prisma'
-import { createSignedGetUrl } from '@/lib/s3'
+import { prisma } from '@/lib/prisma'
+import { createSignedGetUrl, s3ObjectExists } from '@/lib/s3'
 import { DEFAULT_FAQ_LEAD_MAGNET_SLUG } from './constants'
 
 export type PublicLeadMagnet = {
@@ -19,6 +19,15 @@ function toInt(value: unknown, fallback: number, min: number, max: number) {
   const num = Number.parseInt(String(value ?? ''), 10)
   if (!Number.isFinite(num)) return fallback
   return Math.max(min, Math.min(max, num))
+}
+
+function sanitizeSlugSegment(input: string) {
+  return String(input || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/(^-|-$)/g, '')
 }
 
 export function getFaqLeadMagnetSlug() {
@@ -99,6 +108,39 @@ type ResolveLeadMagnet = {
   title: string
 }
 
+function buildLegacyRecoveryCandidates(params: { slug: string; key: string }) {
+  const safeSlug = sanitizeSlugSegment(params.slug)
+  if (!safeSlug) return [] as string[]
+
+  const cleanKey = String(params.key || '').trim().replace(/^\/+/, '')
+  const fileName = cleanKey.split('/').pop() || 'guide.pdf'
+
+  const candidates = [
+    `private/lead-magnets/${safeSlug}/guide.pdf`,
+    `private/lead-magnets/${safeSlug}/${fileName}`,
+    `private/lead-magnets/faq/${safeSlug}/guide.pdf`,
+    `private/lead-magnets/faq/${safeSlug}/${fileName}`,
+  ]
+
+  return Array.from(new Set(candidates.filter(Boolean)))
+}
+
+async function resolveExistingDownloadKey(params: { slug: string; fileS3Key: string }) {
+  const cleanKey = String(params.fileS3Key || '').trim().replace(/^\/+/, '')
+  if (!cleanKey.startsWith('private/')) return null
+
+  const primaryExists = await s3ObjectExists({ key: cleanKey }).catch(() => false)
+  if (primaryExists) return cleanKey
+
+  const recoveryCandidates = buildLegacyRecoveryCandidates({ slug: params.slug, key: cleanKey })
+  for (const candidate of recoveryCandidates) {
+    const exists = await s3ObjectExists({ key: candidate }).catch(() => false)
+    if (exists) return candidate
+  }
+
+  return null
+}
+
 export async function resolveDownloadableLeadMagnet(slug: string): Promise<ResolveLeadMagnet | null> {
   const cleanSlug = String(slug || '').trim()
   if (!cleanSlug) return null
@@ -147,7 +189,25 @@ export async function createLeadMagnetDownload(params: {
   const leadMagnet = await resolveDownloadableLeadMagnet(params.slug)
   if (!leadMagnet) return { ok: false as const, status: 404, message: 'Lead magnet not found' }
 
-  const signed = await createSignedGetUrl({ key: leadMagnet.fileS3Key, expiresInSeconds: 60 })
+  const reachableKey = await resolveExistingDownloadKey({ slug: leadMagnet.slug, fileS3Key: leadMagnet.fileS3Key })
+  if (!reachableKey) {
+    console.error('[createLeadMagnetDownload] file key not found in S3', {
+      slug: leadMagnet.slug,
+      keyTried: leadMagnet.fileS3Key,
+    })
+    return { ok: false as const, status: 404, message: 'Lead magnet file not found' }
+  }
+
+  if (!leadMagnet.id.startsWith('fallback-') && reachableKey !== leadMagnet.fileS3Key) {
+    await (prisma as any).leadMagnet
+      .update({
+        where: { id: leadMagnet.id },
+        data: { fileS3Key: reachableKey },
+      })
+      .catch(() => null)
+  }
+
+  const signed = await createSignedGetUrl({ key: reachableKey, expiresInSeconds: 60 })
 
   if (!leadMagnet.id.startsWith('fallback-')) {
     await (prisma as any).leadMagnetDownload.create({

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
@@ -19,6 +19,7 @@ function safeParseAction(raw: string | null): PostLoginAction | null {
     const parsed = JSON.parse(raw) as PostLoginAction
     if (parsed?.type !== 'lead_magnet_download') return null
     if (!parsed.slug || typeof parsed.slug !== 'string') return null
+    if (parsed.createdAt && Date.now() - Number(parsed.createdAt) > 7 * 24 * 60 * 60 * 1000) return null
     return parsed
   } catch {
     return null
@@ -62,10 +63,14 @@ export default function PostLoginActionHandler() {
         const res = await fetch(`/api/lead-magnets/${encodeURIComponent(action.slug)}/download?source=${encodeURIComponent(action.source || 'post_login')}`, {
           method: 'GET',
           cache: 'no-store',
+          credentials: 'include',
         })
 
         const data = await res.json().catch(() => null)
         if (!res.ok || !data?.download_url) {
+          if (res.status === 404 || res.status === 400) {
+            clearPostLoginAction()
+          }
           return
         }
 
@@ -99,6 +104,7 @@ export default function PostLoginActionHandler() {
         void fetch(`/api/lead-magnets/${encodeURIComponent(current.slug)}/download?source=post_login_sync`, {
           method: 'GET',
           cache: 'no-store',
+          credentials: 'include',
         })
           .then((r) => r.json())
           .then((d) => {

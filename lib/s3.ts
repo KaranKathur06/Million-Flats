@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import crypto from 'crypto'
 import { buildS3Key as buildStructuredS3Key, buildS3KeyFromFolder } from '@/utils/s3PathBuilder'
@@ -405,6 +405,28 @@ export async function createSignedGetUrl(params: { key: string; expiresInSeconds
   )
 
   return { region, bucket, url, expiresIn }
+}
+
+export async function s3ObjectExists(params: { key: string }) {
+  const { bucket } = requireS3Env()
+  const client = getS3Client()
+
+  try {
+    await client.send(
+      new HeadObjectCommand({
+        Bucket: bucket,
+        Key: requireCanonicalPrefix(params.key),
+      })
+    )
+    return true
+  } catch (error: any) {
+    const statusCode = Number(error?.$metadata?.httpStatusCode || 0)
+    const code = String(error?.Code || error?.code || error?.name || '').toLowerCase()
+    if (statusCode === 404 || code.includes('notfound') || code.includes('nosuchkey')) {
+      return false
+    }
+    throw error
+  }
 }
 
 export async function createSignedPutUrl(params: {

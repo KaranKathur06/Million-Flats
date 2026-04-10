@@ -23,6 +23,13 @@ function toInt(value: unknown, fallback: number, min: number, max: number) {
   return Math.max(min, Math.min(max, parsed))
 }
 
+function deriveLeadMagnetStatus(item: { fileS3Key?: string | null; isActive?: boolean; popupEnabled?: boolean }) {
+  if (!String(item.fileS3Key || '').trim()) return 'draft' as const
+  if (Boolean(item.isActive)) return 'active' as const
+  if (Boolean(item.popupEnabled)) return 'published' as const
+  return 'uploaded' as const
+}
+
 async function assertAdmin() {
   const session = await getServerSession(authOptions)
   const role = normalizeRole((session?.user as any)?.role)
@@ -58,6 +65,8 @@ export async function GET() {
     loginHint: String(item.loginHint || 'Login required'),
     badgeText: item.badgeText ? String(item.badgeText) : '',
     fileS3Key: String(item.fileS3Key || ''),
+    status: deriveLeadMagnetStatus(item),
+    hasFile: Boolean(item.fileS3Key),
     isActive: Boolean(item.isActive),
     popupEnabled: Boolean(item.popupEnabled),
     popupDelaySeconds: toInt(item.popupDelaySeconds, 4, 1, 30),
@@ -98,8 +107,8 @@ export async function POST(req: Request) {
     let ctaLabel = 'Download Free Guide'
     let loginHint = 'Login required'
     let badgeText = ''
-    let isActive = true
-    let popupEnabled = true
+    let isActive = false
+    let popupEnabled = false
     let popupDelaySeconds = 4
     let popupScrollPercent = 25
     let cooldownHours = 24
@@ -117,16 +126,12 @@ export async function POST(req: Request) {
       ctaLabel = String(formData.get('ctaLabel') || ctaLabel).trim()
       loginHint = String(formData.get('loginHint') || loginHint).trim()
       badgeText = String(formData.get('badgeText') || '').trim()
-      isActive = String(formData.get('isActive') || 'true').toLowerCase() !== 'false'
-      popupEnabled = String(formData.get('popupEnabled') || 'true').toLowerCase() !== 'false'
+      isActive = String(formData.get('isActive') || 'false').toLowerCase() === 'true'
+      popupEnabled = String(formData.get('popupEnabled') || 'false').toLowerCase() === 'true'
       popupDelaySeconds = toInt(formData.get('popupDelaySeconds'), 4, 1, 30)
       popupScrollPercent = toInt(formData.get('popupScrollPercent'), 25, 5, 80)
       cooldownHours = toInt(formData.get('cooldownHours'), 24, 1, 168)
       sortOrder = toInt(formData.get('sortOrder'), 0, -9999, 9999)
-
-      if (!(file instanceof File)) {
-        return NextResponse.json({ success: false, message: 'PDF file is required' }, { status: 400 })
-      }
 
       if (!slug) return NextResponse.json({ success: false, message: 'Slug is required' }, { status: 400 })
       if (!title) return NextResponse.json({ success: false, message: 'Title is required' }, { status: 400 })
@@ -139,18 +144,20 @@ export async function POST(req: Request) {
         )
       }
 
-      const uploaded = await uploadFile({
-        file,
-        visibility: 'private',
-        module: 'lead-magnets',
-        subModule: 'faq',
-        entityId: slug || undefined,
-        allowedMimeTypes: ['application/pdf'],
-        maxSizeBytes: 10 * 1024 * 1024,
-      })
-      fileS3Key = uploaded.key
-      uploadedFileKey = uploaded.key
-      fileUrl = uploaded.url
+      if (file instanceof File) {
+        const uploaded = await uploadFile({
+          file,
+          visibility: 'private',
+          module: 'lead-magnets',
+          subModule: 'faq',
+          entityId: slug || undefined,
+          allowedMimeTypes: ['application/pdf'],
+          maxSizeBytes: 10 * 1024 * 1024,
+        })
+        fileS3Key = uploaded.key
+        uploadedFileKey = uploaded.key
+        fileUrl = uploaded.url
+      }
     } else {
       const body = await req.json().catch(() => null)
 
@@ -160,8 +167,8 @@ export async function POST(req: Request) {
       ctaLabel = String(body?.ctaLabel || ctaLabel).trim()
       loginHint = String(body?.loginHint || loginHint).trim()
       badgeText = String(body?.badgeText || '').trim()
-      isActive = Boolean(body?.isActive ?? true)
-      popupEnabled = Boolean(body?.popupEnabled ?? true)
+      isActive = Boolean(body?.isActive ?? false)
+      popupEnabled = Boolean(body?.popupEnabled ?? false)
       popupDelaySeconds = toInt(body?.popupDelaySeconds, 4, 1, 30)
       popupScrollPercent = toInt(body?.popupScrollPercent, 25, 5, 80)
       cooldownHours = toInt(body?.cooldownHours, 24, 1, 168)
@@ -171,8 +178,14 @@ export async function POST(req: Request) {
 
     if (!slug) return NextResponse.json({ success: false, message: 'Slug is required' }, { status: 400 })
     if (!title) return NextResponse.json({ success: false, message: 'Title is required' }, { status: 400 })
-    if (!fileS3Key || !fileS3Key.startsWith('private/')) {
-      return NextResponse.json({ success: false, message: 'A private S3 PDF key is required' }, { status: 400 })
+    if (fileS3Key && !fileS3Key.startsWith('private/')) {
+      return NextResponse.json({ success: false, message: 'fileS3Key must be a private S3 key' }, { status: 400 })
+    }
+    if (isActive && !fileS3Key) {
+      return NextResponse.json({ success: false, message: 'Cannot activate a lead magnet without an uploaded PDF' }, { status: 400 })
+    }
+    if (popupEnabled && !fileS3Key) {
+      return NextResponse.json({ success: false, message: 'Cannot publish a lead magnet without an uploaded PDF' }, { status: 400 })
     }
 
     if (!isMultipart) {
@@ -193,7 +206,7 @@ export async function POST(req: Request) {
         ctaLabel,
         loginHint,
         badgeText: badgeText || null,
-        fileS3Key,
+        fileS3Key: fileS3Key || null,
         isActive,
         popupEnabled,
         popupDelaySeconds,
@@ -203,7 +216,7 @@ export async function POST(req: Request) {
       },
     })
 
-    return NextResponse.json({ success: true, data: created, file_url: fileUrl, file_s3_key: fileS3Key }, { status: 201 })
+    return NextResponse.json({ success: true, data: created, file_url: fileUrl, file_s3_key: fileS3Key || null }, { status: 201 })
   } catch (error) {
     if (uploadedFileKey) {
       await deleteFromS3(uploadedFileKey).catch((cleanupError) => {

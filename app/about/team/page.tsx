@@ -45,12 +45,6 @@ const sections: TeamSection[] = [
     title: 'Strategy & Advisory',
     members: [
       {
-        name: 'Rahul Virani',
-        role: 'GTM & Strategic Advisor',
-        bio: 'Brings deep cross-market expertise, driving early partnerships and revenue pipelines across India and the UAE.',
-        image: '/team/rahul.jpeg',
-      },
-      {
         name: 'Carel de Wet',
         role: 'Advisor – UAE',
         bio: 'Provides strong regional market expertise to accelerate launch strategy and secure anchor clients in the UAE.',
@@ -61,12 +55,7 @@ const sections: TeamSection[] = [
   {
     title: 'Technology & Innovation',
     members: [
-      {
-        name: 'Kushal Bhatt',
-        role: '3D Specialist',
-        bio: 'Expert in Unreal Engine development, real-time 3D environments, simulations, and gamified user experiences.',
-        image: '/team/kushal.jpeg',
-      },
+
       {
         name: 'Dharami Shanmugam',
         role: 'Full Stack Developer',
@@ -78,6 +67,25 @@ const sections: TeamSection[] = [
         role: 'AI Lead',
         bio: 'Strong foundation in Python, PostgreSQL, and task orchestration, contributing to real-time analytics and intelligent dashboards.',
         image: '/team/karan%20.jpeg',
+      },
+
+      {
+        name: 'Kushal Bhatt',
+        role: '3D Specialist',
+        bio: 'Expert in Unreal Engine development, real-time 3D environments, simulations, and gamified user experiences.',
+        image: '/team/kushal.jpeg',
+      },
+    ],
+  },
+
+  {
+    title: 'Marketing Team',
+    members: [
+      {
+        name: 'Pratik Bachchhe',
+        role: 'Sales Development Representative',
+        bio: 'Dedicated to growing the MillionFlats verified ecosystem by onboarding India’s top RERA-registered agents and developers.',
+        image: '/team/pratik.jpeg',
       },
     ],
   },
