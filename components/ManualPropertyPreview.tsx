@@ -3,6 +3,9 @@ import Image from 'next/image'
 import PropertyGallery from '@/components/PropertyGallery'
 import ClientLazyMap from '@/components/ClientLazyMap'
 import AmenitiesListModal from '@/components/AmenitiesListModal'
+import dynamic from 'next/dynamic'
+
+const VerixShieldPanel = dynamic(() => import('@/components/verixshield/VerixShieldPanel').then(m => m.VerixShieldPanel), { ssr: false })
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v : ''
@@ -129,6 +132,14 @@ export default function ManualPropertyPreview({ manual }: { manual: any }) {
             <div className="mt-5 overflow-hidden rounded-2xl">
               <PropertyGallery images={images.length ? images : [cover]} title={title} heightClassName="relative h-[320px] sm:h-[420px] md:h-[520px]" />
             </div>
+          </section>
+
+          {/* VerixShield Price Intelligence */}
+          <section>
+            <VerixShieldPanel
+              propertyId={manual?.id || ''}
+              entityType="MANUAL_PROPERTY"
+            />
           </section>
 
           {safeString(manual?.shortDescription) ? (

@@ -1911,3 +1911,251 @@ model PaymentWebhook {
   @@index([createdAt])
   @@map("payment_webhooks")
 }
+
+// ━━━ VerixShield Price Intelligence Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+enum VerixShieldStatus {
+  FAIR
+  OVERPRICED
+  UNDERPRICED
+  SUSPICIOUS
+  INSUFFICIENT_DATA
+}
+
+enum MarketListingSource {
+  INTERNAL
+  SCRAPED
+  GOVERNMENT
+  PARTNER
+}
+
+enum VerixShieldPropertyType {
+  MANUAL_PROPERTY
+  PROJECT
+}
+
+model VerixShieldResult {
+  id                String   @id @default(uuid())
+
+  // Polymorphic: can reference ManualProperty or Project
+  entityType        VerixShieldPropertyType @map("entity_type")
+  entityId          String   @map("entity_id")
+
+  // Valuation
+  estimatedMin      Float    @map("estimated_min")
+  estimatedMax      Float    @map("estimated_max")
+  estimatedMedian   Float    @map("estimated_median")
+  confidence        Float    @default(0)    // 0-100
+  confidenceReasons Json?    @map("confidence_reasons")
+
+  // Price Analysis
+  askingPrice       Float?   @map("asking_price")
+  deviation         Float    @default(0)    // percentage
+  status            VerixShieldStatus @default(FAIR)
+  pricePosition     Float?   @map("price_position")  // 0-100 percentile
+
+  // Comparables Summary
+  comparablesCount  Int      @default(0) @map("comparables_count")
+  avgPricePerSqft   Float?   @map("avg_price_per_sqft")
+  medianPrice       Float?   @map("median_price")
+
+  // Market Signals
+  demandScore       Float?   @map("demand_score")
+  listingVelocity   Float?   @map("listing_velocity")
+  avgDaysOnMarket   Float?   @map("avg_days_on_market")
+
+  // Rental Intelligence
+  estimatedRentalMin Float?  @map("estimated_rental_min")
+  estimatedRentalMax Float?  @map("estimated_rental_max")
+  rentalYield        Float?  @map("rental_yield")
+
+  // Negotiation
+  suggestedMinPrice  Float?  @map("suggested_min_price")
+  suggestedMaxPrice  Float?  @map("suggested_max_price")
+
+  // Metadata
+  modelVersion      String   @default("1.0.0") @map("model_version")
+  computedAt        DateTime @default(now()) @map("computed_at")
+  expiresAt         DateTime @map("expires_at")
+
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@unique([entityType, entityId])
+  @@index([entityType, entityId])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([computedAt])
+  @@map("verixshield_results")
+}
+
+model MarketListing {
+  id              String   @id @default(uuid())
+
+  // Location
+  city            String
+  community       String?
+  latitude        Float?
+  longitude       Float?
+  pincode         String?
+
+  // Property Details
+  propertyType    String?  @map("property_type")
+  bhk             Int      @default(0)
+  sqft            Float    @default(0)
+  price           Float
+  pricePerSqft    Float?   @map("price_per_sqft")
+  currency        String   @default("AED")
+
+  // Listing Info
+  source          MarketListingSource @default(INTERNAL)
+  sourceUrl       String?  @map("source_url")
+  sourceListingId String?  @map("source_listing_id")
+  title           String?
+  isActive        Boolean  @default(true) @map("is_active")
+  listedAt        DateTime @default(now()) @map("listed_at")
+
+  // Amenities & Features
+  amenities       Json?
+  propertyAge     Int?     @map("property_age")
+  floor           Int?
+  totalFloors     Int?     @map("total_floors")
+  furnished       String?
+
+  // Deduplication
+  fingerprint     String?  @unique
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([city, community])
+  @@index([city, bhk])
+  @@index([city, propertyType])
+  @@index([latitude, longitude])
+  @@index([source])
+  @@index([isActive])
+  @@index([price])
+  @@index([pricePerSqft])
+  @@index([listedAt])
+  @@map("market_listings")
+}
+
+model PropertyTransaction {
+  id              String   @id @default(uuid())
+
+  // Location
+  city            String
+  community       String?
+  latitude        Float?
+  longitude       Float?
+
+  // Property Details
+  propertyType    String?  @map("property_type")
+  bhk             Int      @default(0)
+  sqft            Float    @default(0)
+  soldPrice       Float    @map("sold_price")
+  pricePerSqft    Float?   @map("price_per_sqft")
+  currency        String   @default("AED")
+
+  // Transaction
+  soldDate        DateTime @map("sold_date")
+  source          MarketListingSource @default(INTERNAL)
+  sourceRef       String?  @map("source_ref")
+
+  // Optional linked property
+  manualPropertyId String? @map("manual_property_id")
+  projectId        String? @map("project_id")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([city, community])
+  @@index([city, bhk])
+  @@index([soldDate])
+  @@index([city, soldDate])
+  @@index([manualPropertyId])
+  @@index([projectId])
+  @@map("property_transactions")
+}
+
+model PriceTrend {
+  id              String   @id @default(uuid())
+
+  // Location scope
+  city            String
+  community       String?
+  propertyType    String?  @map("property_type")
+
+  // Time period
+  month           Int      // 1-12
+  year            Int
+  periodKey       String   @map("period_key")  // "2026-04"
+
+  // Metrics
+  avgPricePerSqft Float    @map("avg_price_per_sqft")
+  medianPrice     Float    @map("median_price")
+  totalListings   Int      @default(0) @map("total_listings")
+  totalTransactions Int    @default(0) @map("total_transactions")
+  priceChangePercent Float? @map("price_change_percent")  // vs previous month
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([city, community, propertyType, periodKey])
+  @@index([city, community])
+  @@index([periodKey])
+  @@index([year, month])
+  @@map("price_trends")
+}
+
+model MarketSignal {
+  id              String   @id @default(uuid())
+
+  // Location scope
+  city            String
+  community       String?
+
+  // Signals
+  demandScore     Float    @default(50) @map("demand_score")     // 0-100
+  supplyScore     Float    @default(50) @map("supply_score")     // 0-100
+  listingVelocity Float    @default(0)  @map("listing_velocity") // new listings/week
+  avgDaysOnMarket Float    @default(0)  @map("avg_days_on_market")
+  inventoryMonths Float?   @map("inventory_months")
+  priceToRentRatio Float?  @map("price_to_rent_ratio")
+
+  // Metadata
+  calculatedAt    DateTime @default(now()) @map("calculated_at")
+  dataPointCount  Int      @default(0) @map("data_point_count")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([city, community])
+  @@index([city])
+  @@index([calculatedAt])
+  @@map("market_signals")
+}
+
+model VerixShieldAuditLog {
+  id              String   @id @default(uuid())
+
+  entityType      VerixShieldPropertyType @map("entity_type")
+  entityId        String   @map("entity_id")
+
+  // Computation details
+  trigger         String   @default("api_request")  // api_request, scheduled, manual
+  durationMs      Int      @map("duration_ms")       // computation time
+  servicesUsed    Json?    @map("services_used")     // which engines ran
+  inputSnapshot   Json?    @map("input_snapshot")    // property data used
+  resultSnapshot  Json?    @map("result_snapshot")   // final output
+
+  // Error tracking
+  hadErrors       Boolean  @default(false) @map("had_errors")
+  errors          Json?
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@index([hadErrors])
+  @@map("verixshield_audit_logs")
+}

@@ -75,44 +75,48 @@ export default function FeaturedDevelopers({ market }: { market: CountryCode }) 
               <Link
                 key={d.id}
                 href={d.slug ? `/developers/${d.slug}` : '#'}
-                className={`group relative bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col h-full ${d.slug ? 'cursor-pointer' : 'pointer-events-none opacity-70'}`}
+                className={`group relative bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:border-slate-200 transition-all duration-300 hover:-translate-y-1 flex flex-col h-full ${
+                  d.slug ? 'cursor-pointer' : 'pointer-events-none opacity-70'
+                }`}
               >
-                <span className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-accent-orange via-accent-yellow to-accent-orange opacity-80" />
+                <span className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-accent-orange via-accent-yellow to-accent-orange opacity-80 group-hover:opacity-100 transition-opacity z-10" />
 
-                <div className="relative aspect-[16/9] overflow-hidden bg-gray-100">
+                <div className="relative aspect-[16/9] overflow-hidden bg-slate-50">
                   <Image
                     src={d.banner || d.logo || FALLBACK_IMAGE}
                     alt={d.name}
                     fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                     loading="lazy"
                   />
 
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-                  <div className="absolute bottom-3 left-3 inline-flex items-center gap-2 rounded-xl bg-black/50 backdrop-blur-md px-2.5 py-1.5">
-                    <div className="relative h-7 w-7 overflow-hidden rounded-md bg-white/90">
+                  <div className="absolute bottom-4 left-4 inline-flex items-center gap-2.5 rounded-xl bg-black/40 backdrop-blur-md px-3 py-2 border border-white/10 shadow-lg">
+                    <div className="relative h-8 w-8 overflow-hidden rounded-lg bg-white">
                       {d.logo ? (
-                        <Image src={d.logo} alt="" fill className="object-contain" sizes="28px" />
+                        <Image src={d.logo} alt="" fill className="object-contain p-1" sizes="32px" />
                       ) : (
-                        <div className="h-full w-full flex items-center justify-center text-[11px] font-bold text-dark-blue">
+                        <div className="h-full w-full flex items-center justify-center text-[12px] font-bold text-dark-blue">
                           {d.name.charAt(0).toUpperCase()}
                         </div>
                       )}
                     </div>
-                    <span className="text-xs font-semibold text-white">Featured Developer</span>
+                    <span className="text-[11px] font-semibold text-white tracking-wide uppercase pr-1">Featured</span>
                   </div>
                 </div>
 
-                <div className="p-6 flex flex-col flex-1">
-                  <h3 className="text-[1.05rem] leading-snug font-bold text-dark-blue line-clamp-2">{d.name}</h3>
-                  <p className="mt-2 text-sm text-gray-600 line-clamp-2">
+                <div className="p-6 flex flex-col flex-1 bg-white">
+                  <h3 className="text-[1.1rem] leading-snug font-bold text-dark-blue line-clamp-2 min-h-[2.75rem]">{d.name}</h3>
+                  <p className="mt-2.5 text-[0.875rem] leading-relaxed text-gray-500 line-clamp-2 min-h-[2.75rem]">
                     {d.shortDescription || 'Verified inventory source with premium project pipeline.'}
                   </p>
 
-                  <div className="mt-auto pt-5 inline-flex items-center justify-center h-11 rounded-xl bg-dark-blue text-white text-sm font-semibold">
-                    {d.slug ? 'View Developer' : 'Profile Unavailable'}
+                  <div className="mt-auto pt-6 w-full">
+                    <div className="w-full flex items-center justify-center h-12 rounded-xl bg-dark-blue group-hover:bg-[#0B1838] shadow-[0_2px_10px_rgba(11,32,70,0.15)] group-hover:shadow-[0_6px_20px_rgba(11,32,70,0.25)] transition-all duration-300 text-white text-[14px] font-semibold tracking-wide">
+                      {d.slug ? 'View Developer' : 'Profile Unavailable'}
+                    </div>
                   </div>
                 </div>
               </Link>

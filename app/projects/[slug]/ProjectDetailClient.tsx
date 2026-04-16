@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { formatAEDCompact } from '@/lib/pricing'
+import dynamic from 'next/dynamic'
+
+const VerixShieldPanel = dynamic(() => import('@/components/verixshield/VerixShieldPanel').then(m => m.VerixShieldPanel), { ssr: false })
 
 /* ═══════════════════════════════════════════════
    TYPE DEFINITIONS
@@ -1329,6 +1332,12 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                     </div>
                                 </div>
                             )}
+
+                            {/* VerixShield Price Intelligence */}
+                            <VerixShieldPanel
+                                propertyId={project.id}
+                                entityType="PROJECT"
+                            />
 
                             {/* Quick Stats */}
                             <div className="rounded-2xl border border-gray-200 bg-white p-5">
