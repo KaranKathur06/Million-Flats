@@ -29,10 +29,15 @@ if (s3Bucket && awsRegion) {
 }
 
 const nextConfig = {
+  compress: true,
+  poweredByHeader: false,
   images: {
     domains: Array.from(new Set(defaultDomains)),
     formats: ['image/avif', 'image/webp'],
     remotePatterns: defaultRemotePatterns,
+    deviceSizes: [640, 828, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256],
+    minimumCacheTTL: 3600,
   },
   reactStrictMode: true,
   eslint: {

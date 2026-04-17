@@ -38,8 +38,7 @@ const updateProjectSchema = z.object({
             size: z.number().int().min(0).optional().nullable(),
             price: z.union([z.number(), z.string()]).optional().nullable(),
             priceOnRequest: z.boolean().optional(),
-            facing: z.string().max(80).optional().nullable(),
-            view: z.string().max(120).optional().nullable(),
+
             availabilityStatus: z.enum(['AVAILABLE', 'SOLD_OUT']).optional(),
             availableUnitsCount: z.number().int().min(0).optional().nullable(),
             floorPlans: z.array(z.object({
@@ -314,8 +313,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
                             pricePerSqft: variantPrice !== null && (variant.size ?? 0) > 0
                                 ? variantPrice / (variant.size as number)
                                 : null,
-                            facing: variant.facing?.trim() || null,
-                            view: variant.view?.trim() || null,
+
                             availabilityStatus: variant.availabilityStatus || ((variant.availableUnitsCount ?? 1) === 0 ? 'SOLD_OUT' : 'AVAILABLE'),
                             availableUnitsCount: variant.availableUnitsCount ?? null,
                             priceOnRequest: variant.priceOnRequest ?? (variantPrice === null),

@@ -1,13 +1,43 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { formatAEDCompact } from '@/lib/pricing'
 import dynamic from 'next/dynamic'
+import { VerixShieldSkeleton, LocationSkeleton, SimilarProjectsSkeleton, VideosSkeleton } from '@/components/skeletons/ProjectPageSkeletons'
 
-const VerixShieldPanel = dynamic(() => import('@/components/verixshield/VerixShieldPanel').then(m => m.VerixShieldPanel), { ssr: false })
+const VerixShieldPanel = dynamic(
+    () => import('@/components/verixshield/VerixShieldPanel').then(m => m.VerixShieldPanel),
+    { ssr: false, loading: () => <VerixShieldSkeleton /> }
+)
+
+/* ═══════════════════════════════════════════════
+   LAZY SECTION — Deferred rendering via IntersectionObserver
+   Renders children only when scrolled near viewport (300px margin)
+   Drastically reduces initial JS parsing + paint cost
+   ═══════════════════════════════════════════════ */
+function LazySection({ children, fallback, className }: { children: React.ReactNode; fallback?: React.ReactNode; className?: string }) {
+    const ref = useRef<HTMLDivElement>(null)
+    const [visible, setVisible] = useState(false)
+    useEffect(() => {
+        const el = ref.current
+        if (!el) return
+        const observer = new IntersectionObserver(
+            ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect() } },
+            { rootMargin: '300px' }
+        )
+        observer.observe(el)
+        return () => observer.disconnect()
+    }, [])
+    return (
+        <div ref={ref} className={className}>
+            {visible ? children : (fallback || <div className="h-32" />)}
+        </div>
+    )
+}
 
 /* ═══════════════════════════════════════════════
    TYPE DEFINITIONS
@@ -55,8 +85,7 @@ interface ProjectData {
             size: number | null
             price: number | null
             pricePerSqft?: number | null
-            facing?: string | null
-            view?: string | null
+
             availabilityStatus?: 'AVAILABLE' | 'SOLD_OUT' | null
             availableUnitsCount?: number | null
             priceOnRequest?: boolean | null
@@ -462,7 +491,15 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
             {/* ═══ HERO SECTION ═══ */}
             <div className="relative h-[50vh] sm:h-[60vh] lg:h-[70vh] overflow-hidden bg-gray-900">
                 {heroImageResolved ? (
-                    <img src={heroImageResolved} alt={project.name} className="absolute inset-0 w-full h-full object-cover" loading="eager" />
+                    <Image
+                        src={heroImageResolved}
+                        alt={project.name}
+                        fill
+                        priority
+                        sizes="100vw"
+                        className="object-cover"
+                        quality={80}
+                    />
                 ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900" />
                 )}
@@ -755,7 +792,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                         {activeVariants.map((variant) => {
                                             const soldOut = String(variant.availabilityStatus || '').toUpperCase() === 'SOLD_OUT' || (variant.availableUnitsCount ?? 1) === 0
                                             return (
-                                                <div key={variant.id} className="rounded-2xl border border-gray-200 bg-white p-4">
+                                                <div key={variant.id} className="rounded-2xl border border-gray-200 bg-white p-4 hover:shadow-md transition-shadow">
                                                     <div className="flex items-center justify-between gap-3">
                                                         <h4 className="text-sm font-bold text-gray-900">{variant.title}</h4>
                                                         <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${soldOut ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
@@ -765,8 +802,6 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                                                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                                                         <div className="rounded-lg bg-gray-50 px-2.5 py-2"><span className="text-gray-500">Size</span><div className="font-semibold text-gray-900">{variant.size ? `${variant.size.toLocaleString()} sqft` : '—'}</div></div>
                                                         <div className="rounded-lg bg-amber-50 px-2.5 py-2"><span className="text-amber-700">Price</span><div className="font-semibold text-amber-700">{variant.price ? formatPrice(variant.price) : 'Price on Request'}</div></div>
-                                                        <div className="rounded-lg bg-gray-50 px-2.5 py-2"><span className="text-gray-500">View</span><div className="font-semibold text-gray-900">{variant.view || '—'}</div></div>
-                                                        <div className="rounded-lg bg-gray-50 px-2.5 py-2"><span className="text-gray-500">Facing</span><div className="font-semibold text-gray-900">{variant.facing || '—'}</div></div>
                                                     </div>
                                                     <button
                                                         type="button"
@@ -1159,118 +1194,124 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                             </section>
                         )}
 
-                        {/* VIDEOS */}
+                        {/* VIDEOS — Lazy loaded */}
                         {project.videos.length > 0 && (
-                            <section>
-                                <SectionHeader title="Videos" subtitle={`${project.videos.length} project ${project.videos.length === 1 ? 'video' : 'videos'}`} />
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {project.videos.map((v) => (
-                                        <div key={v.id} className="rounded-2xl overflow-hidden bg-gray-100 aspect-video">
-                                            {v.videoUrl.includes('youtube') ? (
+                            <LazySection fallback={<VideosSkeleton />}>
+                                <section>
+                                    <SectionHeader title="Videos" subtitle={`${project.videos.length} project ${project.videos.length === 1 ? 'video' : 'videos'}`} />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {project.videos.map((v) => (
+                                            <div key={v.id} className="rounded-2xl overflow-hidden bg-gray-100 aspect-video">
+                                                {v.videoUrl.includes('youtube') ? (
+                                                    <iframe
+                                                        src={v.videoUrl.replace('watch?v=', 'embed/')}
+                                                        title={v.title || 'Project Video'}
+                                                        className="w-full h-full"
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+                                                        allowFullScreen
+                                                        loading="lazy"
+                                                    />
+                                                ) : (
+                                                    <video src={v.videoUrl} controls preload="none" className="w-full h-full object-cover" />
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+                            </LazySection>
+                        )}
+
+                        {/* LOCATION — Lazy loaded (iframe is expensive) */}
+                        {(project.location?.address || project.location?.latitude || project.nearbyPlaces.length > 0) && (
+                            <LazySection fallback={<LocationSkeleton />}>
+                                <section id="section-location">
+                                    <SectionHeader title="Location" subtitle={project.community ? `${project.community}, ${project.city}` : project.city || undefined} />
+                                    {project.location?.address && (
+                                        <div className="prose prose-gray max-w-none mb-6">
+                                            <p className="text-gray-600 leading-relaxed text-sm">{project.location.address}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Google Maps Embed */}
+                                    {project.location?.latitude && project.location?.longitude && (
+                                        <div className="mb-6 space-y-3">
+                                            <div className="w-full h-[350px] rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
                                                 <iframe
-                                                    src={v.videoUrl.replace('watch?v=', 'embed/')}
-                                                    title={v.title || 'Project Video'}
-                                                    className="w-full h-full"
-                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+                                                    src={`https://www.google.com/maps?q=${project.location.latitude},${project.location.longitude}&z=15&output=embed`}
+                                                    width="100%"
+                                                    height="100%"
+                                                    style={{ border: 0 }}
                                                     allowFullScreen
                                                     loading="lazy"
+                                                    referrerPolicy="no-referrer-when-downgrade"
+                                                    title={`${project.name} location on Google Maps`}
                                                 />
-                                            ) : (
-                                                <video src={v.videoUrl} controls className="w-full h-full object-cover" />
-                                            )}
+                                            </div>
+                                            <a
+                                                href={project.location.mapUrl || `https://www.google.com/maps?q=${project.location.latitude},${project.location.longitude}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-2 text-sm font-semibold text-amber-600 hover:text-amber-700 transition-colors"
+                                            >
+                                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                                Open in Google Maps
+                                            </a>
                                         </div>
-                                    ))}
-                                </div>
-                            </section>
+                                    )}
+
+                                    {/* Nearby Places */}
+                                    {project.nearbyPlaces.length > 0 && (
+                                        <div>
+                                            <h3 className="text-sm font-bold text-gray-900 mb-3">Nearby Landmarks</h3>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                {project.nearbyPlaces.map((np) => (
+                                                    <div key={np.id} className="flex items-center justify-between p-3 rounded-xl bg-white border border-gray-100 hover:border-amber-200 transition-colors">
+                                                        <span className="text-sm text-gray-700 font-medium flex items-center gap-2">
+                                                            <svg className="h-4 w-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
+                                                            {np.name}
+                                                        </span>
+                                                        {np.distance && (
+                                                            <span className="text-xs text-gray-400 font-medium">{np.distance}</span>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </section>
+                            </LazySection>
                         )}
 
-                        {/* LOCATION */}
-                        {(project.location?.address || project.location?.latitude || project.nearbyPlaces.length > 0) && (
-                            <section id="section-location">
-                                <SectionHeader title="Location" subtitle={project.community ? `${project.community}, ${project.city}` : project.city || undefined} />
-                                {project.location?.address && (
-                                    <div className="prose prose-gray max-w-none mb-6">
-                                        <p className="text-gray-600 leading-relaxed text-sm">{project.location.address}</p>
-                                    </div>
-                                )}
-
-                                {/* Google Maps Embed */}
-                                {project.location?.latitude && project.location?.longitude && (
-                                    <div className="mb-6 space-y-3">
-                                        <div className="w-full h-[350px] rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
-                                            <iframe
-                                                src={`https://www.google.com/maps?q=${project.location.latitude},${project.location.longitude}&z=15&output=embed`}
-                                                width="100%"
-                                                height="100%"
-                                                style={{ border: 0 }}
-                                                allowFullScreen
-                                                loading="lazy"
-                                                referrerPolicy="no-referrer-when-downgrade"
-                                                title={`${project.name} location on Google Maps`}
-                                            />
-                                        </div>
-                                        <a
-                                            href={project.location.mapUrl || `https://www.google.com/maps?q=${project.location.latitude},${project.location.longitude}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-2 text-sm font-semibold text-amber-600 hover:text-amber-700 transition-colors"
-                                        >
-                                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                                            Open in Google Maps
-                                        </a>
-                                    </div>
-                                )}
-
-                                {/* Nearby Places */}
-                                {project.nearbyPlaces.length > 0 && (
-                                    <div>
-                                        <h3 className="text-sm font-bold text-gray-900 mb-3">Nearby Landmarks</h3>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                            {project.nearbyPlaces.map((np) => (
-                                                <div key={np.id} className="flex items-center justify-between p-3 rounded-xl bg-white border border-gray-100 hover:border-amber-200 transition-colors">
-                                                    <span className="text-sm text-gray-700 font-medium flex items-center gap-2">
-                                                        <svg className="h-4 w-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
-                                                        {np.name}
-                                                    </span>
-                                                    {np.distance && (
-                                                        <span className="text-xs text-gray-400 font-medium">{np.distance}</span>
+                        {/* SIMILAR PROJECTS — Lazy loaded */}
+                        {project.similarProjects && project.similarProjects.length > 0 && (
+                            <LazySection fallback={<SimilarProjectsSkeleton />}>
+                                <section>
+                                    <SectionHeader title="Similar Projects" />
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        {project.similarProjects.slice(0, 3).map((sp) => (
+                                            <Link key={sp.id} href={`/projects/${sp.slug}`} className="group rounded-2xl overflow-hidden border border-gray-200 bg-white hover:shadow-lg transition-all">
+                                                <div className="relative h-40 overflow-hidden bg-gray-100">
+                                                    {sp.coverImage ? (
+                                                        <Image src={sp.coverImage} alt={sp.name} fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300" />
+                                                    )}
+                                                    {sp.goldenVisa && (
+                                                        <span className="absolute top-2 right-2 bg-amber-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full z-10">Golden Visa</span>
                                                     )}
                                                 </div>
-                                            ))}
-                                        </div>
+                                                <div className="p-4">
+                                                    <h4 className="font-semibold text-gray-900 group-hover:text-amber-600 transition-colors">{sp.name}</h4>
+                                                    <p className="text-xs text-gray-500 mt-1">{sp.developer?.name} • {sp.city}{sp.community ? `, ${sp.community}` : ''}</p>
+                                                    {sp.startingPrice && (
+                                                        <p className="text-sm font-bold text-amber-600 mt-2">From {formatPrice(sp.startingPrice)}</p>
+                                                    )}
+                                                </div>
+                                            </Link>
+                                        ))}
                                     </div>
-                                )}
-                            </section>
-                        )}
-
-                        {/* SIMILAR PROJECTS */}
-                        {project.similarProjects && project.similarProjects.length > 0 && (
-                            <section>
-                                <SectionHeader title="Similar Projects" />
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    {project.similarProjects.slice(0, 3).map((sp) => (
-                                        <Link key={sp.id} href={`/projects/${sp.slug}`} className="group rounded-2xl overflow-hidden border border-gray-200 bg-white hover:shadow-lg transition-all">
-                                            <div className="relative h-40 overflow-hidden bg-gray-100">
-                                                {sp.coverImage ? (
-                                                    <img src={sp.coverImage} alt={sp.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
-                                                ) : (
-                                                    <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300" />
-                                                )}
-                                                {sp.goldenVisa && (
-                                                    <span className="absolute top-2 right-2 bg-amber-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full">Golden Visa</span>
-                                                )}
-                                            </div>
-                                            <div className="p-4">
-                                                <h4 className="font-semibold text-gray-900 group-hover:text-amber-600 transition-colors">{sp.name}</h4>
-                                                <p className="text-xs text-gray-500 mt-1">{sp.developer?.name} • {sp.city}{sp.community ? `, ${sp.community}` : ''}</p>
-                                                {sp.startingPrice && (
-                                                    <p className="text-sm font-bold text-amber-600 mt-2">From {formatPrice(sp.startingPrice)}</p>
-                                                )}
-                                            </div>
-                                        </Link>
-                                    ))}
-                                </div>
-                            </section>
+                                </section>
+                            </LazySection>
                         )}
                     </div>
 

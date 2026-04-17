@@ -1575,8 +1575,7 @@ model ProjectUnitVariant {
   size                Int?
   price               Float?
   pricePerSqft        Float?                 @map("price_per_sqft")
-  facing              String?
-  view                String?
+  // facing and view fields removed — deprecated in favor of cleaner variant model
   availabilityStatus  UnitAvailabilityStatus @default(AVAILABLE) @map("availability_status")
   availableUnitsCount Int?                   @map("available_units_count")
   priceOnRequest      Boolean                @default(false) @map("price_on_request")

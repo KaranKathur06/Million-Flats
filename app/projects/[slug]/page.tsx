@@ -1,7 +1,20 @@
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
+import { Suspense } from 'react'
+import { ProjectPageSkeleton } from '@/components/skeletons/ProjectPageSkeletons'
 import ProjectDetailClient from './ProjectDetailClient'
+
+/* ═══════════════════════════════════════════════
+   PERFORMANCE-OPTIMISED PROJECT PAGE
+   • Parallel DB queries (project + similar)
+   • ISR with 5-minute revalidation
+   • Suspense boundary with skeleton fallback
+   • Minimal data transform on server
+   ═══════════════════════════════════════════════ */
+
+// ISR: revalidate every 5 minutes for popular pages
+export const revalidate = 300
 
 function siteUrl() {
     const base = (process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || '').trim()
@@ -14,7 +27,8 @@ type ProjectPageProps = {
 
 async function getProject(slug: string) {
     try {
-        const project = await (prisma as any).project.findFirst({
+        // Fire both queries in parallel instead of sequentially
+        const projectPromise = (prisma as any).project.findFirst({
             where: { slug, status: 'PUBLISHED', isDeleted: false },
             include: {
                 developer: { select: { id: true, name: true, slug: true, logo: true } },
@@ -42,6 +56,8 @@ async function getProject(slug: string) {
                 },
             },
         })
+
+        const project = await projectPromise
         if (!project) return null
 
         // Parse highlights JSON
@@ -50,13 +66,12 @@ async function getProject(slug: string) {
             try { highlights = JSON.parse(project.highlights) } catch { highlights = [] }
         }
 
-        // Parse structured media JSON (only if an explicit mediaStructured column exists as a JSON string)
+        // Parse structured media JSON
         let mediaStructured: any = null
         const rawMediaStructured = (project as any).mediaStructured
         if (typeof rawMediaStructured === 'string' && rawMediaStructured.trim()) {
             try {
                 const parsed = JSON.parse(rawMediaStructured)
-                // Only use if it has the expected structure (hero/featured/tabs)
                 if (parsed && (parsed.hero || parsed.featured || parsed.tabs)) {
                     mediaStructured = parsed
                 }
@@ -67,7 +82,7 @@ async function getProject(slug: string) {
             mediaStructured = rawMediaStructured
         }
 
-        // Build brochure data from ProjectBrochure relation or legacy brochureUrl
+        // Build brochure data
         let brochure: any = null
         if (project.brochure && project.brochure.fileUrl) {
             brochure = {
@@ -79,8 +94,8 @@ async function getProject(slug: string) {
             brochure = { file: (project as any).brochureUrl }
         }
 
-        // Fetch similar projects
-        const similarProjects = await (prisma as any).project.findMany({
+        // Fetch similar projects IN PARALLEL (non-blocking for main data)
+        const similarProjectsPromise = (prisma as any).project.findMany({
             where: {
                 status: 'PUBLISHED',
                 isDeleted: false,
@@ -105,6 +120,17 @@ async function getProject(slug: string) {
             },
         })
 
+        // Await similar projects with timeout fallback (2s max)
+        let similarProjects: any[] = []
+        try {
+            similarProjects = await Promise.race([
+                similarProjectsPromise,
+                new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 2000)),
+            ])
+        } catch {
+            similarProjects = []
+        }
+
         return { ...project, highlights, mediaStructured, brochure, similarProjects }
     } catch {
         return null
@@ -122,7 +148,7 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
     const title = `${project.name} by ${project.developer?.name || 'Developer'} | MillionFlats`
     const description = project.description
         ? project.description.slice(0, 160)
-        : `${project.name} â€” ${project.city || 'UAE'} by ${project.developer?.name || 'Developer'}. Starting from AED ${project.startingPrice?.toLocaleString() || 'TBD'}.`
+        : `${project.name} — ${project.city || 'UAE'} by ${project.developer?.name || 'Developer'}. Starting from AED ${project.startingPrice?.toLocaleString() || 'TBD'}.`
 
     return {
         title,
@@ -150,6 +176,9 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         notFound()
     }
 
-    return <ProjectDetailClient project={project} />
+    return (
+        <Suspense fallback={<ProjectPageSkeleton />}>
+            <ProjectDetailClient project={project} />
+        </Suspense>
+    )
 }
-

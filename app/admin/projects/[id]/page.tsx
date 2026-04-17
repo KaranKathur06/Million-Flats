@@ -21,8 +21,7 @@ interface VariantRow {
     title: string
     size: string
     price: string
-    facing: string
-    view: string
+
     availabilityStatus: 'AVAILABLE' | 'SOLD_OUT'
     availableUnitsCount: string
 }
@@ -164,8 +163,7 @@ export default function AdminEditProjectPage() {
                         title: ut.unitType || 'Type A',
                         size: ut.sizeFrom || null,
                         price: ut.priceFrom || null,
-                        facing: null,
-                        view: null,
+
                         availabilityStatus: 'AVAILABLE',
                         availableUnitsCount: null,
                     }]).map((v: any) => ({
@@ -173,8 +171,7 @@ export default function AdminEditProjectPage() {
                         title: v.title || '',
                         size: v.size !== null && v.size !== undefined ? String(v.size) : '',
                         price: v.price !== null && v.price !== undefined ? String(v.price) : '',
-                        facing: v.facing || '',
-                        view: v.view || '',
+
                         availabilityStatus: v.availabilityStatus || ((v.availableUnitsCount ?? 1) === 0 ? 'SOLD_OUT' : 'AVAILABLE'),
                         availableUnitsCount: v.availableUnitsCount !== null && v.availableUnitsCount !== undefined ? String(v.availableUnitsCount) : '',
                     })),
@@ -283,8 +280,7 @@ export default function AdminEditProjectPage() {
                             title: v.title.trim(),
                             size: v.size ? parseInt(v.size, 10) : null,
                             price: v.price ? v.price.trim() : null,
-                            facing: v.facing.trim() || null,
-                            view: v.view.trim() || null,
+
                             availabilityStatus: v.availabilityStatus,
                             availableUnitsCount: v.availableUnitsCount ? parseInt(v.availableUnitsCount, 10) : null,
                             priceOnRequest: !v.price.trim(),
@@ -505,9 +501,8 @@ export default function AdminEditProjectPage() {
             title: 'Type A',
             size: '',
             price: '',
-            facing: '',
-            view: '',
-            availabilityStatus: 'AVAILABLE',
+
+            availabilityStatus: 'AVAILABLE' as const,
             availableUnitsCount: '',
         }],
     }])
@@ -521,9 +516,8 @@ export default function AdminEditProjectPage() {
                 title: `Type ${String.fromCharCode(65 + (ut.variants || []).length)}`,
                 size: '',
                 price: '',
-                facing: '',
-                view: '',
-                availabilityStatus: 'AVAILABLE',
+
+                availabilityStatus: 'AVAILABLE' as const,
                 availableUnitsCount: '',
             }],
         } : ut))
@@ -888,11 +882,7 @@ export default function AdminEditProjectPage() {
                                                 className="sm:col-span-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
                                             <input type="text" value={v.price} onChange={(e) => updateVariant(idx, vIdx, 'price', e.target.value)} placeholder="2.16M"
                                                 className="sm:col-span-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
-                                            <input type="text" value={v.facing} onChange={(e) => updateVariant(idx, vIdx, 'facing', e.target.value)} placeholder="Facing"
-                                                className="sm:col-span-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
-                                            <input type="text" value={v.view} onChange={(e) => updateVariant(idx, vIdx, 'view', e.target.value)} placeholder="View"
-                                                className="sm:col-span-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
-                                            <input type="number" value={v.availableUnitsCount} onChange={(e) => updateVariant(idx, vIdx, 'availableUnitsCount', e.target.value)} placeholder="Avail."
+                                            <input type="number" value={v.availableUnitsCount} onChange={(e) => updateVariant(idx, vIdx, 'availableUnitsCount', e.target.value)} placeholder="Avail. Units"
                                                 className="sm:col-span-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
                                             <SelectDropdown
                                                 label="Status"

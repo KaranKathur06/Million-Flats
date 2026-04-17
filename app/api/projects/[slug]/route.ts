@@ -91,8 +91,7 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
                                 size: true,
                                 price: true,
                                 pricePerSqft: true,
-                                facing: true,
-                                view: true,
+
                                 availabilityStatus: true,
                                 availableUnitsCount: true,
                                 priceOnRequest: true,
@@ -193,8 +192,7 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
                 size: ut.sizeFrom ?? ut.sizeTo ?? null,
                 price: ut.priceFrom ?? null,
                 pricePerSqft: null,
-                facing: null,
-                view: null,
+
                 availabilityStatus: 'AVAILABLE',
                 availableUnitsCount: null,
                 priceOnRequest: ut.priceFrom == null,
@@ -224,8 +222,7 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
                     size: variant.size ?? null,
                     price: variant.price ?? null,
                     price_per_sqft: variant.pricePerSqft ?? null,
-                    facing: variant.facing ?? null,
-                    view: variant.view ?? null,
+
                     availability: variant.availabilityStatus || ((variant.availableUnitsCount ?? 1) === 0 ? 'SOLD_OUT' : 'AVAILABLE'),
                     available_units_count: variant.availableUnitsCount ?? null,
                     price_on_request: Boolean(variant.priceOnRequest || variant.price === null),
