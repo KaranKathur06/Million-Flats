@@ -23,6 +23,9 @@ export const metadata: Metadata = {
     icon: '/FAVICON.jpeg',
     apple: '/LOGO.jpeg',
   },
+  other: {
+    'p:domain_verify': 'e6933b23e105c64206750c2e27779d48',
+  },
 }
 
 export default async function RootLayout({
