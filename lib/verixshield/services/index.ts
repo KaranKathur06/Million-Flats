@@ -1,0 +1,17 @@
+// ━━━ VerixShield v2.1 — Services Barrel Export ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export { orchestrateV2 } from './orchestrator-v2'
+export { runDataQualityEngine } from './data-quality-engine'
+export { normalizePrice, denormalizePrice, countAmenities } from './normalized-price-engine'
+export { computeMarketVolatilityIndex } from './market-volatility-index'
+export { computeDemandIntelligence } from './demand-intelligence-engine'
+export { computeHistoricalAccuracy } from './historical-accuracy-engine'
+export { recordFeedback, computeAccuracyMetrics } from './feedback-loop-engine'
+export { runFusionEngine } from './fusion-engine'
+export { computeDistribution } from './distribution-engine'
+export { computeConfidenceV2 } from './confidence-engine'
+export { detectAnomalies } from './anomaly-engine'
+export { computeRelativePosition } from './relative-position-engine'
+export { generateExplanation } from './explanation-engine'
+export { callMLService } from './ml-engine-client'
+export { DATA_SOURCE_REGISTRY, validateSourceAllowed, getSourceTrustScore } from './data-source-governance'

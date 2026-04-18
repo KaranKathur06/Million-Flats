@@ -2158,3 +2158,109 @@ model VerixShieldAuditLog {
   @@index([hadErrors])
   @@map("verixshield_audit_logs")
 }
+
+// ━━━ VerixShield v2.1 — Intelligence Engine Extensions ━━━━━━━━━━━━━━━━━━━
+
+// Feedback loop: captures actual sold prices to calibrate model accuracy
+model ValuationFeedback {
+  id              String   @id @default(uuid())
+
+  entityType      VerixShieldPropertyType @map("entity_type")
+  entityId        String   @map("entity_id")
+
+  // What the model predicted
+  predictedLow    Float?   @map("predicted_low")
+  predictedFair   Float?   @map("predicted_fair")
+  predictedHigh   Float?   @map("predicted_high")
+  confidence      Float?
+
+  // What actually happened
+  actualPrice     Float    @map("actual_price")
+  actualPriceDate DateTime @map("actual_price_date")
+  errorPercentage Float?   @map("error_percentage")
+  source          String   @default("ADMIN_INPUT")
+
+  // Context
+  city            String?
+  community       String?
+  modelVersion    String?  @map("model_version")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@index([city, community])
+  @@index([errorPercentage])
+  @@index([createdAt])
+  @@index([modelVersion])
+  @@map("valuation_feedback")
+}
+
+// Per-locality data quality scoring
+model DataQualityMetric {
+  id              String   @id @default(uuid())
+
+  city            String
+  community       String?
+
+  score           Float    @default(50)
+  status          String   @default("MEDIUM")
+  txDensityScore  Float    @default(0) @map("tx_density_score")
+  listingDensityScore Float @default(0) @map("listing_density_score")
+  recencyScore    Float    @default(0) @map("recency_score")
+  sourceDiversityScore Float @default(0) @map("source_diversity_score")
+
+  calculatedAt    DateTime @default(now()) @map("calculated_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([city, community])
+  @@index([score])
+  @@index([calculatedAt])
+  @@map("data_quality_metrics")
+}
+
+// Track model accuracy per location over time
+model ModelPerformanceLog {
+  id              String   @id @default(uuid())
+
+  locationKey     String   @map("location_key")
+  city            String?
+  community       String?
+  modelVersion    String   @map("model_version")
+  segment         String?
+
+  mape            Float    @default(0)
+  mae             Float?
+  r2Score         Float?   @map("r2_score")
+  sampleSize      Int      @default(0) @map("sample_size")
+
+  calculatedAt    DateTime @default(now()) @map("calculated_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@unique([locationKey, modelVersion])
+  @@index([modelVersion])
+  @@index([mape])
+  @@index([calculatedAt])
+  @@map("model_performance_logs")
+}
+
+// Snapshot of market volatility per area
+model MarketVolatilitySnapshot {
+  id              String   @id @default(uuid())
+
+  city            String
+  community       String?
+
+  mviIndex        Float    @default(1.0) @map("mvi_index")
+  classification  String   @default("NORMAL")
+  priceVarianceTrend Float @map("price_variance_trend")
+  demandFluctuation Float  @map("demand_fluctuation")
+  txVelocityChange Float   @map("tx_velocity_change")
+  effectiveThreshold Float @map("effective_threshold")
+
+  calculatedAt    DateTime @default(now()) @map("calculated_at")
+
+  @@index([city, community])
+  @@index([calculatedAt])
+  @@map("market_volatility_snapshots")
+}
