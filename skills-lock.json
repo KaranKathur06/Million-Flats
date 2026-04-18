@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "ML Model Training": {
+      "source": "aj-geddes/useful-ai-prompts",
+      "sourceType": "github",
+      "computedHash": "04fc0a37e9432f1a9ec6b3dd960980ef2102bb7d2a43b83561c2790bec9ed2ca"
+    },
     "api-design-principles": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -20,6 +25,11 @@
       "source": "medusajs/medusa-agent-skills",
       "sourceType": "github",
       "computedHash": "fdf61048a7c3872c70a16861c8bb3e5cf9973a04d55b97139cd49e352fa3f82c"
+    },
+    "creating-financial-models": {
+      "source": "smithery.ai",
+      "sourceType": "well-known",
+      "computedHash": "10793f1c4d6d397d0aa61e70f13838461bcaaa6410d432fac024499d82a97d4a"
     },
     "frontend-design": {
       "source": "anthropics/skills",
@@ -55,6 +65,11 @@
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "computedHash": "3ff06f0712886f7c2660d6746856c22d3127bd6568ddde29ddad8b72dbaaa226"
+    },
+    "web-app-architectures": {
+      "source": "farming-labs/fm-skills",
+      "sourceType": "github",
+      "computedHash": "717b4513dacbdf24b5825142dc6d8aaa27c7e34d6af15e6912c2a55378ad9e22"
     }
   }
 }
