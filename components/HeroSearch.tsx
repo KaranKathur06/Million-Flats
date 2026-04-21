@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import PremiumDropdown from '@/components/PremiumDropdown'
+import PremiumDropdown, { type DropdownOption } from '@/components/PremiumDropdown'
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES
@@ -279,7 +279,7 @@ export default function HeroSearch() {
     }, [])
 
     // ── BHK options ────────────────────────────────────────────────────────
-    const bhkSelectOptions: SelectOption[] = useMemo(() => [
+    const bhkSelectOptions: DropdownOption[] = useMemo(() => [
         { value: '', label: 'Any BHK' },
         { value: '1', label: '1 BHK' },
         { value: '2', label: '2 BHK' },
