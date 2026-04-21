@@ -2,13 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { formatAEDCompact } from '@/lib/pricing'
+import PremiumDropdown from '@/components/PremiumDropdown'
 
 /* ─── Types ─── */
 interface ProjectItem {
     id: string
     name: string
     slug: string
+    countryIso2: string | null
     city: string | null
     community: string | null
     description: string | null
@@ -16,16 +19,12 @@ interface ProjectItem {
     startingPrice: number | null
     goldenVisa: boolean
     coverImage: string | null
+    isFeatured: boolean
     status: string
     createdAt: string
     developer: { id: string; name: string; slug: string | null; logo: string | null } | null
-}
-
-interface Pagination {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
+    bhkOptions?: number[]
+    _score?: number
 }
 
 /* ─── Helpers ─── */
@@ -34,7 +33,7 @@ function formatPrice(price: number | null | undefined) {
     return formatAEDCompact(price)
 }
 
-/* ─── Search Icon ─── */
+/* ─── Icons ─── */
 function SearchIcon({ className }: { className?: string }) {
     return (
         <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -43,7 +42,6 @@ function SearchIcon({ className }: { className?: string }) {
     )
 }
 
-/* ─── Location Icon ─── */
 function LocationIcon({ className }: { className?: string }) {
     return (
         <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -53,7 +51,6 @@ function LocationIcon({ className }: { className?: string }) {
     )
 }
 
-/* ─── Star Icon ─── */
 function StarIcon({ className }: { className?: string }) {
     return (
         <svg className={className} fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
@@ -62,7 +59,6 @@ function StarIcon({ className }: { className?: string }) {
     )
 }
 
-/* ─── Chevron Icon ─── */
 function ChevronIcon({ className, direction }: { className?: string; direction: 'left' | 'right' }) {
     return (
         <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -75,7 +71,6 @@ function ChevronIcon({ className, direction }: { className?: string; direction: 
     )
 }
 
-/* ─── Arrow Icon ─── */
 function ArrowRight({ className }: { className?: string }) {
     return (
         <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -84,31 +79,51 @@ function ArrowRight({ className }: { className?: string }) {
     )
 }
 
+function CloseIcon({ className }: { className?: string }) {
+    return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+    )
+}
+
 /* ═══════════════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════════════ */
 export default function ProjectsGridClient() {
+    const searchParams = useSearchParams()
+    const router = useRouter()
+
     const [projects, setProjects] = useState<ProjectItem[]>([])
-    const [pagination, setPagination] = useState<Pagination | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
+    const [totalProjects, setTotalProjects] = useState(0)
+    const [totalPages, setTotalPages] = useState(1)
+    const [suggestions, setSuggestions] = useState<string[]>([])
+
+    // Filter options from API
     const [cityOptions, setCityOptions] = useState<string[]>([])
     const [developerOptions, setDeveloperOptions] = useState<string[]>([])
 
-    /* filters */
-    const [search, setSearch] = useState('')
-    const [city, setCity] = useState('')
-    const [developer, setDeveloper] = useState('')
-    const [goldenVisa, setGoldenVisa] = useState('')
-    const [page, setPage] = useState(1)
+    // ── Read initial filter state from URL params ──────────────────────────
+    const [search, setSearch] = useState(searchParams?.get('q') || '')
+    const [city, setCity] = useState(searchParams?.get('city') || '')
+    const [developer, setDeveloper] = useState(searchParams?.get('developer') || '')
+    const [bhk, setBhk] = useState(searchParams?.get('bhk') || '')
+    const [goldenVisa, setGoldenVisa] = useState(searchParams?.get('goldenVisa') || '')
+    const [country, setCountry] = useState(searchParams?.get('country') || '')
+    const [budgetMin, setBudgetMin] = useState(searchParams?.get('budget_min') || '')
+    const [budgetMax, setBudgetMax] = useState(searchParams?.get('budget_max') || '')
+    const [page, setPage] = useState(parseInt(searchParams?.get('page') || '1', 10) || 1)
 
     /* debounce search */
-    const [debouncedSearch, setDebouncedSearch] = useState('')
+    const [debouncedSearch, setDebouncedSearch] = useState(search)
     useEffect(() => {
         const t = setTimeout(() => setDebouncedSearch(search), 350)
         return () => clearTimeout(t)
     }, [search])
 
+    // ── Fetch filter options ───────────────────────────────────────────────
     const fetchFilterOptions = useCallback(async () => {
         try {
             const res = await fetch('/api/projects/filters', { cache: 'no-store' })
@@ -125,43 +140,77 @@ export default function ProjectsGridClient() {
         fetchFilterOptions()
     }, [fetchFilterOptions])
 
-    /* fetch */
+    // ── Update URL when filters change ─────────────────────────────────────
+    const updateUrl = useCallback(() => {
+        const params = new URLSearchParams()
+        if (debouncedSearch) params.set('q', debouncedSearch)
+        if (city) params.set('city', city)
+        if (developer) params.set('developer', developer)
+        if (bhk) params.set('bhk', bhk)
+        if (goldenVisa === 'true') params.set('goldenVisa', 'true')
+        if (country) params.set('country', country)
+        if (budgetMin) params.set('budget_min', budgetMin)
+        if (budgetMax) params.set('budget_max', budgetMax)
+        if (page > 1) params.set('page', String(page))
+
+        const qs = params.toString()
+        const newUrl = qs ? `/projects?${qs}` : '/projects'
+        router.replace(newUrl, { scroll: false })
+    }, [debouncedSearch, city, developer, bhk, goldenVisa, country, budgetMin, budgetMax, page, router])
+
+    useEffect(() => {
+        updateUrl()
+    }, [updateUrl])
+
+    // ── Fetch projects from unified search API ─────────────────────────────
     const fetchProjects = useCallback(async () => {
         setLoading(true)
         setError('')
+        setSuggestions([])
         try {
             const params = new URLSearchParams()
             params.set('page', String(page))
             params.set('limit', '24')
+            if (debouncedSearch) params.set('q', debouncedSearch)
             if (city) params.set('city', city)
             if (developer) params.set('developer', developer)
+            if (bhk) params.set('bhk', bhk)
             if (goldenVisa === 'true') params.set('goldenVisa', 'true')
+            if (country) params.set('country', country)
+            if (budgetMin) params.set('budget_min', budgetMin)
+            if (budgetMax) params.set('budget_max', budgetMax)
 
-            let url: string
-            if (debouncedSearch.length >= 2) {
-                /* use search endpoint */
-                url = `/api/projects/search?q=${encodeURIComponent(debouncedSearch)}&limit=50`
-            } else {
-                url = `/api/projects?${params.toString()}`
-            }
-
-            const res = await fetch(url, { cache: 'no-store' })
+            const res = await fetch(`/api/search/projects?${params.toString()}`, { cache: 'no-store' })
             const json = await res.json()
             if (!json.success) throw new Error(json.message || 'Failed to load')
 
-            if (debouncedSearch.length >= 2) {
-                setProjects(json.projects || [])
-                setPagination(null)
-            } else {
-                setProjects(json.items || [])
-                setPagination(json.pagination || null)
+            setProjects(json.results || [])
+            setTotalProjects(json.total || 0)
+            setTotalPages(json.totalPages || 1)
+            if (json.suggestions?.length > 0) {
+                setSuggestions(json.suggestions)
+            }
+
+            // Track no-results
+            if (json.total === 0 && debouncedSearch) {
+                try {
+                    fetch('/api/search/track', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            event: 'no_results_found',
+                            payload: { query: debouncedSearch, filters: { city, developer, bhk, country } },
+                            path: '/projects',
+                        }),
+                    }).catch(() => {})
+                } catch {}
             }
         } catch (err: any) {
             setError(err.message || 'Something went wrong')
         } finally {
             setLoading(false)
         }
-    }, [page, city, developer, goldenVisa, debouncedSearch])
+    }, [page, city, developer, goldenVisa, debouncedSearch, bhk, country, budgetMin, budgetMax])
 
     useEffect(() => {
         fetchProjects()
@@ -170,7 +219,7 @@ export default function ProjectsGridClient() {
     /* Reset page when filters change */
     useEffect(() => {
         setPage(1)
-    }, [city, developer, goldenVisa, debouncedSearch])
+    }, [city, developer, goldenVisa, debouncedSearch, bhk, country, budgetMin, budgetMax])
 
     /* Fallback filter values from loaded projects */
     const fallbackCities = useMemo(() => {
@@ -188,8 +237,34 @@ export default function ProjectsGridClient() {
     const uniqueCities = cityOptions.length > 0 ? cityOptions : fallbackCities
     const uniqueDevelopers = developerOptions.length > 0 ? developerOptions : fallbackDevelopers
 
-    const totalPages = pagination?.totalPages || 1
-    const totalProjects = pagination?.total ?? projects.length
+    // ── Check if any filters active ────────────────────────────────────────
+    const hasActiveFilters = !!(debouncedSearch || city || developer || bhk || goldenVisa || country || budgetMin || budgetMax)
+
+    const clearAllFilters = useCallback(() => {
+        setSearch('')
+        setCity('')
+        setDeveloper('')
+        setBhk('')
+        setGoldenVisa('')
+        setCountry('')
+        setBudgetMin('')
+        setBudgetMax('')
+        setPage(1)
+    }, [])
+
+    // ── Active filter tags ─────────────────────────────────────────────────
+    const filterTags = useMemo(() => {
+        const tags: { label: string; key: string; clear: () => void }[] = []
+        if (debouncedSearch) tags.push({ label: `"${debouncedSearch}"`, key: 'q', clear: () => setSearch('') })
+        if (city) tags.push({ label: city, key: 'city', clear: () => setCity('') })
+        if (developer) tags.push({ label: developer, key: 'developer', clear: () => setDeveloper('') })
+        if (bhk) tags.push({ label: `${bhk} BHK`, key: 'bhk', clear: () => setBhk('') })
+        if (goldenVisa === 'true') tags.push({ label: 'Golden Visa', key: 'goldenVisa', clear: () => setGoldenVisa('') })
+        if (country) tags.push({ label: country.toUpperCase(), key: 'country', clear: () => setCountry('') })
+        if (budgetMin) tags.push({ label: `Min ${budgetMin}`, key: 'budget_min', clear: () => setBudgetMin('') })
+        if (budgetMax) tags.push({ label: `Max ${budgetMax}`, key: 'budget_max', clear: () => setBudgetMax('') })
+        return tags
+    }, [debouncedSearch, city, developer, bhk, goldenVisa, country, budgetMin, budgetMax])
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -237,53 +312,106 @@ export default function ProjectsGridClient() {
             {/* ─── Filters + Grid ─── */}
             <section className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
                 {/* Filters Bar */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-8">
-                    <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
+                    <div className="flex items-center gap-3 flex-wrap">
                         {/* City Filter */}
-                        <select
+                        <PremiumDropdown
                             id="filter-city"
                             value={city}
-                            onChange={(e) => setCity(e.target.value)}
-                            className="appearance-none bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-full px-5 py-2.5 pr-10 shadow-sm hover:shadow-md hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 transition-all duration-200 ease-in-out cursor-pointer bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px_20px] bg-[position:right_12px_center] bg-no-repeat"
-                        >
-                            <option value="">All Cities</option>
-                            {uniqueCities.map((c) => (
-                                <option key={c} value={c}>{c}</option>
-                            ))}
-                        </select>
+                            onChange={setCity}
+                            options={[
+                                { value: '', label: 'All Cities' },
+                                ...uniqueCities.map((c) => ({ value: c, label: c })),
+                            ]}
+                            variant="light"
+                            className="min-w-[140px]"
+                        />
 
                         {/* Developer Filter */}
-                        <select
+                        <PremiumDropdown
                             id="filter-developer"
                             value={developer}
-                            onChange={(e) => setDeveloper(e.target.value)}
-                            className="appearance-none bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-full px-5 py-2.5 pr-10 shadow-sm hover:shadow-md hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 transition-all duration-200 ease-in-out cursor-pointer bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px_20px] bg-[position:right_12px_center] bg-no-repeat"
-                        >
-                            <option value="">All Developers</option>
-                            {uniqueDevelopers.map((d) => (
-                                <option key={d} value={d}>{d}</option>
-                            ))}
-                        </select>
+                            onChange={setDeveloper}
+                            options={[
+                                { value: '', label: 'All Developers' },
+                                ...uniqueDevelopers.map((d) => ({ value: d, label: d })),
+                            ]}
+                            variant="light"
+                            className="min-w-[160px]"
+                        />
+
+                        {/* BHK Filter */}
+                        <PremiumDropdown
+                            id="filter-bhk"
+                            value={bhk}
+                            onChange={setBhk}
+                            options={[
+                                { value: '', label: 'Any BHK' },
+                                { value: '1', label: '1 BHK' },
+                                { value: '2', label: '2 BHK' },
+                                { value: '3', label: '3 BHK' },
+                                { value: '4', label: '4 BHK' },
+                                { value: '5', label: '5 BHK' },
+                                { value: '6', label: '6+ BHK' },
+                            ]}
+                            variant="light"
+                            className="min-w-[120px]"
+                        />
 
                         {/* Golden Visa Filter */}
-                        <select
+                        <PremiumDropdown
                             id="filter-golden-visa"
                             value={goldenVisa}
-                            onChange={(e) => setGoldenVisa(e.target.value)}
-                            className="appearance-none bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-full px-5 py-2.5 pr-10 shadow-sm hover:shadow-md hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 transition-all duration-200 ease-in-out cursor-pointer bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px_20px] bg-[position:right_12px_center] bg-no-repeat"
-                        >
-                            <option value="">Golden Visa</option>
-                            <option value="true">Eligible Only</option>
-                        </select>
+                            onChange={setGoldenVisa}
+                            options={[
+                                { value: '', label: 'Golden Visa' },
+                                { value: 'true', label: 'Eligible Only' },
+                            ]}
+                            variant="light"
+                            className="min-w-[140px]"
+                        />
                     </div>
 
-                    {/* Project count */}
-                    <div className="sm:ml-auto text-sm text-gray-400">
-                        {!loading && (
-                            <span>{totalProjects} project{totalProjects !== 1 ? 's' : ''} found</span>
+                    {/* Project count + clear */}
+                    <div className="sm:ml-auto flex items-center gap-3">
+                        {hasActiveFilters && (
+                            <button
+                                type="button"
+                                onClick={clearAllFilters}
+                                className="text-xs font-semibold text-amber-600 hover:text-amber-700 transition-colors cursor-pointer flex items-center gap-1"
+                            >
+                                <CloseIcon className="h-3 w-3" />
+                                Clear all
+                            </button>
                         )}
+                        <span className="text-sm text-gray-400">
+                            {!loading && (
+                                <span>{totalProjects} project{totalProjects !== 1 ? 's' : ''} found</span>
+                            )}
+                        </span>
                     </div>
                 </div>
+
+                {/* Active Filter Tags */}
+                {filterTags.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 mb-6">
+                        {filterTags.map((tag) => (
+                            <span
+                                key={tag.key}
+                                className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-800"
+                            >
+                                {tag.label}
+                                <button
+                                    type="button"
+                                    onClick={tag.clear}
+                                    className="hover:text-amber-900 transition-colors cursor-pointer"
+                                >
+                                    <CloseIcon className="h-3 w-3" />
+                                </button>
+                            </span>
+                        ))}
+                    </div>
+                )}
 
                 {/* Error */}
                 {error && (
@@ -327,12 +455,46 @@ export default function ProjectsGridClient() {
                             </svg>
                         </div>
                         <h3 className="text-lg font-semibold text-gray-700">No projects found</h3>
-                        <p className="mt-1 text-sm text-gray-400">Try adjusting your filters or search query</p>
+                        <p className="mt-1 text-sm text-gray-400 max-w-md">
+                            {debouncedSearch
+                                ? `No projects match "${debouncedSearch}". Try adjusting your filters.`
+                                : 'Try adjusting your filters or search query'
+                            }
+                        </p>
+
+                        {/* Suggestions */}
+                        {suggestions.length > 0 && (
+                            <div className="mt-6">
+                                <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-2">Try these instead:</p>
+                                <div className="flex flex-wrap justify-center gap-2">
+                                    {suggestions.map((s) => (
+                                        <button
+                                            key={s}
+                                            type="button"
+                                            onClick={() => setSearch(s)}
+                                            className="text-sm text-amber-600 bg-amber-50 rounded-full px-4 py-1.5 font-medium hover:bg-amber-100 transition-colors cursor-pointer"
+                                        >
+                                            {s}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {hasActiveFilters && (
+                            <button
+                                type="button"
+                                onClick={clearAllFilters}
+                                className="mt-4 text-sm text-amber-600 font-semibold hover:text-amber-700 transition-colors cursor-pointer"
+                            >
+                                Clear all filters
+                            </button>
+                        )}
                     </div>
                 )}
 
                 {/* Pagination */}
-                {!loading && pagination && totalPages > 1 && (
+                {!loading && totalPages > 1 && (
                     <div className="mt-10 flex items-center justify-center gap-2">
                         <button
                             type="button"
@@ -403,20 +565,45 @@ export default function ProjectsGridClient() {
    ═══════════════════════════════════════════════ */
 function ProjectCard({ project }: { project: ProjectItem }) {
     const fallbackImage = '/images/default-property.jpg'
-    const [imgError, setImgError] = useState(false)
     const [imgSrc, setImgSrc] = useState(project.coverImage || fallbackImage)
 
     const price = formatPrice(project.startingPrice)
     const location = [project.community, project.city].filter(Boolean).join(' • ')
 
+    // Track click
+    const handleClick = () => {
+        try {
+            fetch('/api/search/track', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event: 'search_result_clicked',
+                    payload: { projectId: project.id, slug: project.slug, name: project.name },
+                    path: '/projects',
+                }),
+            }).catch(() => {})
+        } catch {}
+    }
+
     return (
         <Link
             href={`/projects/${project.slug}`}
             id={`project-card-${project.slug}`}
+            onClick={handleClick}
             className="group relative bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full cursor-pointer"
         >
             {/* Gold accent line */}
             <span className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-400 via-amber-500 to-amber-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
+
+            {/* Featured badge */}
+            {project.isFeatured && (
+                <div className="absolute top-3 right-3 z-10">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm uppercase tracking-wider">
+                        <StarIcon className="h-2.5 w-2.5" />
+                        Featured
+                    </span>
+                </div>
+            )}
 
             {/* Image */}
             <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
@@ -429,9 +616,7 @@ function ProjectCard({ project }: { project: ProjectItem }) {
                         onError={() => {
                             if (imgSrc !== fallbackImage) {
                                 setImgSrc(fallbackImage)
-                                return
                             }
-                            setImgError(true)
                         }}
                     />
                 ) : (
@@ -472,10 +657,21 @@ function ProjectCard({ project }: { project: ProjectItem }) {
                 </h3>
 
                 {location && (
-                    <p className="flex items-center gap-1 text-sm text-gray-500 mb-3">
+                    <p className="flex items-center gap-1 text-sm text-gray-500 mb-2">
                         <LocationIcon className="h-3.5 w-3.5 flex-shrink-0" />
                         <span className="truncate">{location}</span>
                     </p>
+                )}
+
+                {/* BHK options */}
+                {project.bhkOptions && project.bhkOptions.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2">
+                        {project.bhkOptions.map((b) => (
+                            <span key={b} className="text-[10px] font-semibold text-gray-500 bg-gray-100 rounded-md px-1.5 py-0.5">
+                                {b} BHK
+                            </span>
+                        ))}
+                    </div>
                 )}
 
                 {/* Completion year */}
