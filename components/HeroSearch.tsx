@@ -35,6 +35,10 @@ interface SuggestionsResponse {
     developers: SuggestionDeveloper[]
     locations: SuggestionLocation[]
 }
+interface SelectOption {
+    value: string
+    label: string
+}
 
 type ActiveTab = 'projects' | 'buy' | 'rent'
 type CountryToggle = 'UAE' | 'INDIA'
