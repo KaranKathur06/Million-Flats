@@ -158,7 +158,7 @@ export async function GET(req: Request) {
                 (item.unitTypes || [])
                     .map((ut: any) => ut.bedrooms)
                     .filter((b: any) => typeof b === 'number' && b > 0)
-            )].sort((a: number, b: number) => a - b)
+            )].sort((a: any, b: any) => a - b)
 
             // ── Weighted relevance score ──────────────────────────────────
             let score = 0
