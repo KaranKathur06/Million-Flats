@@ -6,6 +6,7 @@ import HeroSearch from '@/components/HeroSearch'
 import FeaturedProperties from '@/components/FeaturedProperties'
 import FeaturedProjects from '@/components/FeaturedProjects'
 import TrustStats from '@/components/analytics/TrustStats'
+import ThreeDTourIntelligence from '@/components/ThreeDTourIntelligence'
 import RealtimeBadge from '@/components/analytics/RealtimeBadge'
 import FeaturedAgencies from '@/components/FeaturedAgencies'
 import FeaturedDevelopers from '@/components/FeaturedDevelopers'
@@ -117,6 +118,9 @@ export default async function Home({
 
       {/* Trust Stats — data-driven social proof replacing static WhyMillionflats */}
       <TrustStats />
+
+      {/* 3D Tour Intelligence Platform — conversion funnel + product showcase */}
+      <ThreeDTourIntelligence />
 
       <div className="bg-white pt-10">
         <GlobalMarketSelectorBar market={market} />
