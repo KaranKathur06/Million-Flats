@@ -163,13 +163,19 @@ export default function FeaturedProjects({ market }: { market: CountryCode }) {
                     )}
                 </div>
 
-                {/* "View All Projects" CTA */}
-                <div className="text-center mt-12">
+                {/* Discovery CTAs: preserves internal linking after removing property/agent discovery blocks */}
+                <div className="mt-12 flex flex-col items-center justify-center gap-3 sm:flex-row">
                     <Link
                         href="/projects"
-                        className="inline-block bg-dark-blue text-white px-8 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors cursor-pointer"
+                        className="inline-flex h-11 items-center justify-center rounded-lg bg-dark-blue px-8 text-sm font-semibold text-white transition-colors hover:bg-opacity-90 cursor-pointer"
                     >
                         View All Projects
+                    </Link>
+                    <Link
+                        href="/developers"
+                        className="inline-flex h-11 items-center justify-center rounded-lg border border-dark-blue/15 bg-white px-8 text-sm font-semibold text-dark-blue transition-colors hover:bg-gray-50 cursor-pointer"
+                    >
+                        Explore Developers
                     </Link>
                 </div>
             </div>

@@ -38,7 +38,6 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
             approvedBy: true,
             approvedAt: true,
             rejectionReason: true,
-            isFeatured: true,
             createdAt: true,
             updatedAt: true,
             user: {

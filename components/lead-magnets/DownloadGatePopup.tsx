@@ -193,24 +193,29 @@ export default function DownloadGatePopup() {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[9998]">
-      <div className="absolute inset-0 bg-slate-950/45" onClick={() => void closePopup('outside_click')} />
-      <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-6">
-        <section
-          className="relative z-[9999] w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl"
-          onClick={(event) => event.stopPropagation()}
-        >
+    <div
+      className="fixed inset-0 z-[9998] flex items-center justify-center bg-slate-950/45 p-4 sm:p-6"
+      onClick={() => void closePopup('outside_click')}
+    >
+      <section
+        className="relative z-[9999] w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl pointer-events-auto"
+        onClick={(event) => event.stopPropagation()}
+      >
           <div className="relative overflow-hidden border-b border-gray-100 p-5 sm:p-6">
-            <button
-              type="button"
-              onClick={() => void closePopup('close_button')}
-              className="absolute right-3 top-3 inline-flex h-11 w-11 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 active:scale-95"
-              aria-label="Close popup"
-            >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
-            </button>
+            <div className="absolute right-2 top-2 z-[10001] p-2">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  void closePopup('close_button')
+                }}
+                onPointerDown={(event) => event.stopPropagation()}
+                className="flex h-12 w-12 items-center justify-center rounded-full bg-transparent text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 active:scale-95 cursor-pointer touch-manipulation"
+                aria-label="Close"
+              >
+                <span className="pointer-events-none text-2xl leading-none">&times;</span>
+              </button>
+            </div>
 
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-dark-blue/10 via-transparent to-transparent" />
             <div className="relative pr-12">
@@ -242,13 +247,12 @@ export default function DownloadGatePopup() {
             <button
               type="button"
               onClick={() => void closePopup('maybe_later')}
-              className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl border border-gray-200 px-5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 hover:text-gray-800 active:scale-[0.98]"
+              className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl border border-gray-200 px-5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 hover:text-gray-800 active:scale-[0.98] cursor-pointer touch-manipulation"
             >
               Maybe Later
             </button>
           </div>
-        </section>
-      </div>
+      </section>
     </div>
   )
 }

@@ -93,7 +93,6 @@ type AgentDetail = {
     approvedBy: string | null
     approvedAt: string | null
     rejectionReason: string | null
-    isFeatured: boolean
     createdAt: string
     updatedAt: string
     user: {
