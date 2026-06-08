@@ -1,6 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
+import { singleDropdownValue } from '@/components/ui/dropdownUtils'
 import { trackEvent } from '@/lib/tracking'
 
 type Field =
@@ -244,25 +246,21 @@ export default function PartnerRegistrationFormClient({
 
                   if (f.type === 'select') {
                     return (
-                      <label key={key} className="text-sm">
-                        <div className="font-semibold text-gray-900">
-                          {f.label}
-                          {f.required ? <span className="text-red-600"> *</span> : null}
-                        </div>
-                        <select
-                          {...common}
+                      <div key={key} className="text-sm">
+                        <GlobalDropdown
+                          name={f.name}
+                          label={f.label}
                           value={values[key] ?? ''}
-                          onChange={(e) => setField(key, e.target.value)}
-                          className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none focus:border-dark-blue/40 focus:ring-4 focus:ring-dark-blue/10"
-                        >
-                          <option value="">Select</option>
-                          {f.options.map((o) => (
-                            <option key={o} value={o}>
-                              {o}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                          onChange={(v) => setField(key, singleDropdownValue(v))}
+                          placeholder="Select"
+                          options={[
+                            { value: '', label: 'Select' },
+                            ...f.options.map((o) => ({ value: o, label: o })),
+                          ]}
+                          appearance="admin-light"
+                          className="mt-2"
+                        />
+                      </div>
                     )
                   }
 

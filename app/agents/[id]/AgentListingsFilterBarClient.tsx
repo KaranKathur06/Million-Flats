@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import FormSelect from '@/components/FormSelect'
 
 function debounce<T extends (...args: any[]) => void>(fn: T, ms: number) {
   let t: any
@@ -146,36 +147,40 @@ export default function AgentListingsFilterBarClient({
 
         <div>
           <label className="block text-xs font-semibold text-gray-700 mb-1">Beds</label>
-          <select
+          <FormSelect
             name="beds"
             defaultValue={beds ? String(beds) : ''}
-            onChange={submitFromForm}
-            className="w-full h-11 px-3 rounded-xl border border-gray-300 bg-white"
-          >
-            <option value="">Any</option>
-            <option value="1">1+</option>
-            <option value="2">2+</option>
-            <option value="3">3+</option>
-            <option value="4">4+</option>
-            <option value="5">5+</option>
-            <option value="6">6+</option>
-          </select>
+            onValueChange={submitFromForm}
+            options={[
+              { value: '', label: 'Any' },
+              { value: '1', label: '1+' },
+              { value: '2', label: '2+' },
+              { value: '3', label: '3+' },
+              { value: '4', label: '4+' },
+              { value: '5', label: '5+' },
+              { value: '6', label: '6+' },
+            ]}
+            variant="light"
+            dense
+          />
         </div>
 
         <div>
           <label className="block text-xs font-semibold text-gray-700 mb-1">Property type</label>
-          <select
+          <FormSelect
             name="type"
             defaultValue={typeFilter}
-            onChange={submitFromForm}
-            className="w-full h-11 px-3 rounded-xl border border-gray-300 bg-white"
-          >
-            <option value="">All</option>
-            <option value="Apartment">Apartment</option>
-            <option value="Villa">Villa</option>
-            <option value="Plot">Plot</option>
-            <option value="Commercial">Commercial</option>
-          </select>
+            onValueChange={submitFromForm}
+            options={[
+              { value: '', label: 'All' },
+              { value: 'Apartment', label: 'Apartment' },
+              { value: 'Villa', label: 'Villa' },
+              { value: 'Plot', label: 'Plot' },
+              { value: 'Commercial', label: 'Commercial' },
+            ]}
+            variant="light"
+            dense
+          />
         </div>
 
         <div>
@@ -204,16 +209,18 @@ export default function AgentListingsFilterBarClient({
 
         <div className="md:col-span-2">
           <label className="block text-xs font-semibold text-gray-700 mb-1">Sort</label>
-          <select
+          <FormSelect
             name="sort"
             defaultValue={sort}
-            onChange={submitFromForm}
-            className="w-full h-11 px-3 rounded-xl border border-gray-300 bg-white"
-          >
-            <option value="newest">Newest</option>
-            <option value="price_asc">Price: Low to High</option>
-            <option value="price_desc">Price: High to Low</option>
-          </select>
+            onValueChange={submitFromForm}
+            options={[
+              { value: 'newest', label: 'Newest' },
+              { value: 'price_asc', label: 'Price: Low to High' },
+              { value: 'price_desc', label: 'Price: High to Low' },
+            ]}
+            variant="light"
+            dense
+          />
         </div>
 
         <div className="md:col-span-2 flex items-end gap-3">

@@ -8,6 +8,8 @@ import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import { useSession } from 'next-auth/react'
 import { nanoid } from 'nanoid'
 import { buildPropertySlugPath } from '@/lib/seo'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
+import { singleDropdownValue } from '@/components/ui/dropdownUtils'
 
 type DuplicateResult = {
   score: number
@@ -870,40 +872,39 @@ export default function ManualPropertyWizardClient() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Property type</label>
-                <select
-                  value={property?.propertyType || ''}
-                  onChange={(e) => {
-                    setProperty((p) => ({ ...(p as any), propertyType: e.target.value }))
-                    patch({ propertyType: e.target.value || null })
-                  }}
-                  className="w-full h-12 px-4 rounded-xl border border-gray-300 bg-white"
-                >
-                  <option value="">Select</option>
-                  <option value="Apartment">Apartment</option>
-                  <option value="Villa">Villa</option>
-                  <option value="Plot">Plot</option>
-                  <option value="Commercial">Commercial</option>
-                </select>
-              </div>
+              <GlobalDropdown
+                label="Property type"
+                value={property?.propertyType || ''}
+                onChange={(v) => {
+                  const next = singleDropdownValue(v)
+                  setProperty((p) => ({ ...(p as any), propertyType: next }))
+                  patch({ propertyType: next || null })
+                }}
+                options={[
+                  { value: '', label: 'Select' },
+                  { value: 'Apartment', label: 'Apartment' },
+                  { value: 'Villa', label: 'Villa' },
+                  { value: 'Plot', label: 'Plot' },
+                  { value: 'Commercial', label: 'Commercial' },
+                ]}
+                appearance="admin-light"
+              />
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Sale / Rent</label>
-                <select
-                  value={property?.intent || ''}
-                  onChange={(e) => {
-                    const v = e.target.value as any
-                    setProperty((p) => ({ ...(p as any), intent: v || null }))
-                    patch({ intent: v || null })
-                  }}
-                  className="w-full h-12 px-4 rounded-xl border border-gray-300 bg-white"
-                >
-                  <option value="">Select</option>
-                  <option value="SALE">Sale</option>
-                  <option value="RENT">Rent</option>
-                </select>
-              </div>
+              <GlobalDropdown
+                label="Sale / Rent"
+                value={property?.intent || ''}
+                onChange={(v) => {
+                  const next = singleDropdownValue(v) as any
+                  setProperty((p) => ({ ...(p as any), intent: next || null }))
+                  patch({ intent: next || null })
+                }}
+                options={[
+                  { value: '', label: 'Select' },
+                  { value: 'SALE', label: 'Sale' },
+                  { value: 'RENT', label: 'Rent' },
+                ]}
+                appearance="admin-light"
+              />
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Price</label>
@@ -917,38 +918,37 @@ export default function ManualPropertyWizardClient() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Currency</label>
-                <select
-                  value={property?.currency || 'AED'}
-                  onChange={(e) => {
-                    setProperty((p) => ({ ...(p as any), currency: e.target.value }))
-                    patch({ currency: e.target.value })
-                  }}
-                  className="w-full h-12 px-4 rounded-xl border border-gray-300 bg-white"
-                >
-                  <option value="AED">AED</option>
-                  <option value="INR">INR</option>
-                  <option value="USD">USD</option>
-                </select>
-              </div>
+              <GlobalDropdown
+                label="Currency"
+                value={property?.currency || 'AED'}
+                onChange={(v) => {
+                  const next = singleDropdownValue(v)
+                  setProperty((p) => ({ ...(p as any), currency: next }))
+                  patch({ currency: next })
+                }}
+                options={[
+                  { value: 'AED', label: 'AED' },
+                  { value: 'INR', label: 'INR' },
+                  { value: 'USD', label: 'USD' },
+                ]}
+                appearance="admin-light"
+              />
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Property status</label>
-                <select
-                  value={property?.constructionStatus || ''}
-                  onChange={(e) => {
-                    const v = e.target.value as any
-                    setProperty((p) => ({ ...(p as any), constructionStatus: v || null }))
-                    patch({ constructionStatus: v || null })
-                  }}
-                  className="w-full h-12 px-4 rounded-xl border border-gray-300 bg-white"
-                >
-                  <option value="">Select</option>
-                  <option value="READY">Ready</option>
-                  <option value="OFF_PLAN">Off-plan</option>
-                </select>
-              </div>
+              <GlobalDropdown
+                label="Property status"
+                value={property?.constructionStatus || ''}
+                onChange={(v) => {
+                  const next = singleDropdownValue(v) as any
+                  setProperty((p) => ({ ...(p as any), constructionStatus: next || null }))
+                  patch({ constructionStatus: next || null })
+                }}
+                options={[
+                  { value: '', label: 'Select' },
+                  { value: 'READY', label: 'Ready' },
+                  { value: 'OFF_PLAN', label: 'Off-plan' },
+                ]}
+                appearance="admin-light"
+              />
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Bedrooms</label>
@@ -1022,21 +1022,20 @@ export default function ManualPropertyWizardClient() {
 
           {step === 'location' ? (
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Country</label>
-                <select
-                  value={property?.countryCode || 'UAE'}
-                  onChange={(e) => {
-                    const v = e.target.value as any
-                    setProperty((p) => ({ ...(p as any), countryCode: v }))
-                    patch({ countryCode: v })
-                  }}
-                  className="w-full h-12 px-4 rounded-xl border border-gray-300 bg-white"
-                >
-                  <option value="UAE">UAE</option>
-                  <option value="India">India</option>
-                </select>
-              </div>
+              <GlobalDropdown
+                label="Country"
+                value={property?.countryCode || 'UAE'}
+                onChange={(v) => {
+                  const next = singleDropdownValue(v) as any
+                  setProperty((p) => ({ ...(p as any), countryCode: next }))
+                  patch({ countryCode: next })
+                }}
+                options={[
+                  { value: 'UAE', label: 'UAE' },
+                  { value: 'India', label: 'India' },
+                ]}
+                appearance="admin-light"
+              />
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">City</label>
                 <input

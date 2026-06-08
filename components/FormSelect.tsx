@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import SelectDropdown from './SelectDropdown'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
 
 interface FormSelectProps {
   name: string
@@ -14,6 +14,8 @@ interface FormSelectProps {
   showLabel?: boolean
   className?: string
   disabled?: boolean
+  searchable?: boolean
+  onValueChange?: (value: string) => void
 }
 
 export default function FormSelect({
@@ -26,7 +28,9 @@ export default function FormSelect({
   dense = false,
   showLabel = false,
   className,
-  disabled
+  disabled,
+  searchable,
+  onValueChange,
 }: FormSelectProps) {
   const [val, setVal] = useState(defaultValue)
 
@@ -35,18 +39,24 @@ export default function FormSelect({
   }, [defaultValue])
 
   return (
-    <SelectDropdown
+    <GlobalDropdown
       name={name}
       label={label}
       value={val}
-      onChange={setVal}
+      onChange={(v) => {
+        const next = typeof v === 'string' ? v : v[0] || ''
+        setVal(next)
+        onValueChange?.(next)
+      }}
       options={options}
       placeholder={placeholder}
-      variant={variant}
+      appearance={variant === 'dark' ? 'admin-dark' : 'admin-light'}
       dense={dense}
       showLabel={showLabel}
       className={className}
       disabled={disabled}
+      searchable={searchable}
+      mode="single"
     />
   )
 }

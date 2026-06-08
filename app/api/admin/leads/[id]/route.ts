@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { checkAdminRateLimit } from '@/lib/adminRateLimit'
 import { statusesForLeadType } from '@/lib/leads/constants'
+import { mapLeadForDisplay } from '@/lib/leads/mapLeadForDisplay'
 import { onboardEcosystemLeadToPartner } from '@/lib/leads/ecosystemOnboard'
 
 export const runtime = 'nodejs'
@@ -39,12 +40,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
   return NextResponse.json({
     success: true,
-    lead: {
-      ...lead,
-      allowedStatuses: statusesForLeadType(lead.leadType),
-      createdAt: lead.createdAt.toISOString(),
-      updatedAt: lead.updatedAt.toISOString(),
-    },
+    lead: mapLeadForDisplay(lead),
   })
 }
 

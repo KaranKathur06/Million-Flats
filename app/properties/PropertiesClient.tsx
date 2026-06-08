@@ -7,6 +7,17 @@ import PropertyListCard from '@/components/PropertyListCard'
 import { useCountry } from '@/components/CountryProvider'
 import { CITIES_BY_COUNTRY, COUNTRY_META, DEFAULT_COUNTRY, isCountryCode, uiPriceToAed, type CountryCode } from '@/lib/country'
 import InternalPageBanner from '@/components/InternalPageBanner'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
+import { singleDropdownValue } from '@/components/ui/dropdownUtils'
+import {
+  BATHROOM_PLUS_FILTER_OPTIONS,
+  BEDROOM_PLUS_FILTER_OPTIONS,
+  COUNTRY_FILTER_OPTIONS,
+  LISTING_SORT_COMPACT_OPTIONS,
+  PROPERTY_TYPE_COMPACT_OPTIONS,
+  PROPERTY_TYPE_FILTER_OPTIONS,
+  priceFilterOptions,
+} from '@/lib/filters/dropdownOptions'
 
 interface Property {
   id: string
@@ -659,6 +670,22 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
   }, [filters, properties, purpose])
 
   const priceOptions = useMemo(() => buildPriceOptions(draftFilters.country), [draftFilters.country])
+  const minPriceDropdownOptions = useMemo(
+    () => priceFilterOptions(priceOptions, COUNTRY_META[draftFilters.country].currencyLabel, 'Min Price'),
+    [priceOptions, draftFilters.country]
+  )
+  const maxPriceDropdownOptions = useMemo(
+    () => priceFilterOptions(priceOptions, COUNTRY_META[draftFilters.country].currencyLabel, 'Max Price'),
+    [priceOptions, draftFilters.country]
+  )
+  const minPriceDrawerOptions = useMemo(
+    () => priceFilterOptions(priceOptions, COUNTRY_META[draftFilters.country].currencyLabel, 'Min'),
+    [priceOptions, draftFilters.country]
+  )
+  const maxPriceDrawerOptions = useMemo(
+    () => priceFilterOptions(priceOptions, COUNTRY_META[draftFilters.country].currencyLabel, 'Max'),
+    [priceOptions, draftFilters.country]
+  )
 
   const heroTitle = forcedPurpose === 'rent' ? 'Properties for Rent' : 'Properties for Sale'
   const heroSubtitle =
@@ -687,37 +714,29 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
           <div className="space-y-3">
             <div className="relative z-20 bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl shadow-sm p-3">
               <div className="flex flex-col md:flex-row md:items-center gap-3">
-                <div className="relative group w-full md:w-[150px]">
-                  <select
-                    value={draftFilters.country}
-                    onChange={(e) => {
-                      const next = e.target.value
-                      if (!isCountryCode(next)) return
-                      setDraftFilters((prev) => ({
-                        ...prev,
-                        country: next,
-                        location: '',
-                        community: '',
-                      }))
-                      setCityQuery('')
-                      setCommunityQuery('')
-                      setCityOpen(false)
-                      setCommunityOpen(false)
-                    }}
-                    className="mf-select w-full h-12 md:h-11 px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
-                  >
-                    <option value="UAE">UAE</option>
-                    <option value="INDIA">India</option>
-                  </select>
-                  <svg
-                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+                <GlobalDropdown
+                  label="Country"
+                  showLabel={false}
+                  value={draftFilters.country}
+                  onChange={(v) => {
+                    const next = singleDropdownValue(v)
+                    if (!isCountryCode(next)) return
+                    setDraftFilters((prev) => ({
+                      ...prev,
+                      country: next,
+                      location: '',
+                      community: '',
+                    }))
+                    setCityQuery('')
+                    setCommunityQuery('')
+                    setCityOpen(false)
+                    setCommunityOpen(false)
+                  }}
+                  options={COUNTRY_FILTER_OPTIONS}
+                  appearance="admin-light"
+                  dense
+                  className="w-full md:w-[150px]"
+                />
 
                 <div className="relative w-full md:w-[240px]" ref={cityRefDesktop}>
                   <input
@@ -839,120 +858,60 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
                   </div>
                 ) : null}
 
-                <div className="relative group">
-                  <select
-                    value={draftFilters.type}
-                    onChange={(e) => setDraftFilters((prev) => ({ ...prev, type: e.target.value }))}
-                    className="mf-select h-11 min-w-[170px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
-                  >
-                    <option value="">Property Type</option>
-                    <option value="Apartment">Apartment</option>
-                    <option value="Villa">Villa</option>
-                    <option value="Penthouse">Penthouse</option>
-                    <option value="Townhouse">Townhouse</option>
-                    <option value="Plot">Plot</option>
-                  </select>
-                  <svg
-                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+                <GlobalDropdown
+                  label="Property Type"
+                  showLabel={false}
+                  value={draftFilters.type}
+                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, type: singleDropdownValue(v) }))}
+                  options={PROPERTY_TYPE_COMPACT_OPTIONS}
+                  appearance="admin-light"
+                  dense
+                  className="min-w-[170px]"
+                />
 
-                <div className="relative group">
-                  <select
-                    value={draftFilters.minPrice}
-                    onChange={(e) => setDraftFilters((prev) => ({ ...prev, minPrice: e.target.value }))}
-                    className="mf-select h-11 min-w-[150px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
-                  >
-                    <option value="">Min Price</option>
-                    {priceOptions.map((p) => (
-                      <option key={p} value={p.toString()}>
-                        {COUNTRY_META[draftFilters.country].currencyLabel} {p.toLocaleString()}
-                      </option>
-                    ))}
-                  </select>
-                  <svg
-                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+                <GlobalDropdown
+                  label="Min Price"
+                  showLabel={false}
+                  value={draftFilters.minPrice}
+                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, minPrice: singleDropdownValue(v) }))}
+                  options={minPriceDropdownOptions}
+                  appearance="admin-light"
+                  dense
+                  className="min-w-[150px]"
+                />
 
-                <div className="relative group">
-                  <select
-                    value={draftFilters.maxPrice}
-                    onChange={(e) => setDraftFilters((prev) => ({ ...prev, maxPrice: e.target.value }))}
-                    className="mf-select h-11 min-w-[150px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
-                  >
-                    <option value="">Max Price</option>
-                    {priceOptions.map((p) => (
-                      <option key={p} value={p.toString()}>
-                        {COUNTRY_META[draftFilters.country].currencyLabel} {p.toLocaleString()}
-                      </option>
-                    ))}
-                  </select>
-                  <svg
-                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+                <GlobalDropdown
+                  label="Max Price"
+                  showLabel={false}
+                  value={draftFilters.maxPrice}
+                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, maxPrice: singleDropdownValue(v) }))}
+                  options={maxPriceDropdownOptions}
+                  appearance="admin-light"
+                  dense
+                  className="min-w-[150px]"
+                />
 
-                <div className="relative group">
-                  <select
-                    value={draftFilters.bedrooms}
-                    onChange={(e) => setDraftFilters((prev) => ({ ...prev, bedrooms: e.target.value }))}
-                    className="mf-select h-11 min-w-[120px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
-                  >
-                    <option value="">Beds</option>
-                    <option value="0">Studio</option>
-                    <option value="1">1+</option>
-                    <option value="2">2+</option>
-                    <option value="3">3+</option>
-                    <option value="4">4+</option>
-                    <option value="5">5+</option>
-                  </select>
-                  <svg
-                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+                <GlobalDropdown
+                  label="Beds"
+                  showLabel={false}
+                  value={draftFilters.bedrooms}
+                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, bedrooms: singleDropdownValue(v) }))}
+                  options={BEDROOM_PLUS_FILTER_OPTIONS}
+                  appearance="admin-light"
+                  dense
+                  className="min-w-[120px]"
+                />
 
-                <div className="relative group">
-                  <select
-                    value={draftFilters.bathrooms}
-                    onChange={(e) => setDraftFilters((prev) => ({ ...prev, bathrooms: e.target.value }))}
-                    className="mf-select h-11 min-w-[120px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
-                  >
-                    <option value="">Baths</option>
-                    <option value="1">1+</option>
-                    <option value="2">2+</option>
-                    <option value="3">3+</option>
-                    <option value="4">4+</option>
-                  </select>
-                  <svg
-                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+                <GlobalDropdown
+                  label="Baths"
+                  showLabel={false}
+                  value={draftFilters.bathrooms}
+                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, bathrooms: singleDropdownValue(v) }))}
+                  options={BATHROOM_PLUS_FILTER_OPTIONS}
+                  appearance="admin-light"
+                  dense
+                  className="min-w-[120px]"
+                />
 
                 <button
                   type="button"
@@ -970,26 +929,16 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
                   Reset
                 </button>
 
-                <div className="relative group">
-                  <select
-                    value={draftFilters.sortBy}
-                    onChange={(e) => setDraftFilters((prev) => ({ ...prev, sortBy: e.target.value }))}
-                    className="mf-select h-11 min-w-[160px] px-4 pr-11 rounded-xl border border-gray-200 bg-white cursor-pointer hover:bg-gray-50 hover:border-[#2b4d72] focus:outline-none"
-                  >
-                    <option value="featured">Featured</option>
-                    <option value="price-low">Price (Low)</option>
-                    <option value="price-high">Price (High)</option>
-                    <option value="newest">Newest</option>
-                  </select>
-                  <svg
-                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+                <GlobalDropdown
+                  label="Sort"
+                  showLabel={false}
+                  value={draftFilters.sortBy}
+                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, sortBy: singleDropdownValue(v) }))}
+                  options={LISTING_SORT_COMPACT_OPTIONS}
+                  appearance="admin-light"
+                  dense
+                  className="min-w-[160px]"
+                />
 
                 <div className="flex-1" />
 
@@ -1178,162 +1127,65 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
                 </div>
               ) : null}
 
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-2">Property Type</label>
-                <div className="relative group">
-                  <select
-                    value={draftFilters.type}
-                    onChange={(e) => setDraftFilters((prev) => ({ ...prev, type: e.target.value }))}
-                    className="mf-select w-full h-12 px-4 pr-11 rounded-xl border border-gray-200 bg-white"
-                  >
-                    <option value="">All Types</option>
-                    <option value="Apartment">Apartment</option>
-                    <option value="Villa">Villa</option>
-                    <option value="Penthouse">Penthouse</option>
-                    <option value="Townhouse">Townhouse</option>
-                    <option value="Plot">Plot</option>
-                  </select>
-                  <svg
-                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+              <GlobalDropdown
+                label="Property Type"
+                value={draftFilters.type}
+                onChange={(v) => setDraftFilters((prev) => ({ ...prev, type: singleDropdownValue(v) }))}
+                options={PROPERTY_TYPE_FILTER_OPTIONS}
+                appearance="admin-light"
+              />
+
+              <div className="grid grid-cols-2 gap-3">
+                <GlobalDropdown
+                  label="Min Price"
+                  value={draftFilters.minPrice}
+                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, minPrice: singleDropdownValue(v) }))}
+                  options={minPriceDrawerOptions}
+                  appearance="admin-light"
+                  dense
+                />
+                <GlobalDropdown
+                  label="Max Price"
+                  value={draftFilters.maxPrice}
+                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, maxPrice: singleDropdownValue(v) }))}
+                  options={maxPriceDrawerOptions}
+                  appearance="admin-light"
+                  dense
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-2">Min Price</label>
-                  <div className="relative group">
-                    <select
-                      value={draftFilters.minPrice}
-                      onChange={(e) => setDraftFilters((prev) => ({ ...prev, minPrice: e.target.value }))}
-                      className="mf-select w-full h-12 px-4 pr-11 rounded-xl border border-gray-200 bg-white"
-                    >
-                      <option value="">Min</option>
-                      {priceOptions.map((p) => (
-                        <option key={p} value={p.toString()}>
-                          {COUNTRY_META[draftFilters.country].currencyLabel} {p.toLocaleString()}
-                        </option>
-                      ))}
-                    </select>
-                    <svg
-                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-2">Max Price</label>
-                  <div className="relative group">
-                    <select
-                      value={draftFilters.maxPrice}
-                      onChange={(e) => setDraftFilters((prev) => ({ ...prev, maxPrice: e.target.value }))}
-                      className="mf-select w-full h-12 px-4 pr-11 rounded-xl border border-gray-200 bg-white"
-                    >
-                      <option value="">Max</option>
-                      {priceOptions.map((p) => (
-                        <option key={p} value={p.toString()}>
-                          {COUNTRY_META[draftFilters.country].currencyLabel} {p.toLocaleString()}
-                        </option>
-                      ))}
-                    </select>
-                    <svg
-                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
+                <GlobalDropdown
+                  label="Beds"
+                  value={draftFilters.bedrooms}
+                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, bedrooms: singleDropdownValue(v) }))}
+                  options={[
+                    { value: '', label: 'Any' },
+                    ...BEDROOM_PLUS_FILTER_OPTIONS.filter((o) => o.value !== ''),
+                  ]}
+                  appearance="admin-light"
+                  dense
+                />
+                <GlobalDropdown
+                  label="Baths"
+                  value={draftFilters.bathrooms}
+                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, bathrooms: singleDropdownValue(v) }))}
+                  options={[
+                    { value: '', label: 'Any' },
+                    ...BATHROOM_PLUS_FILTER_OPTIONS.filter((o) => o.value !== ''),
+                  ]}
+                  appearance="admin-light"
+                  dense
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-2">Beds</label>
-                  <div className="relative group">
-                    <select
-                      value={draftFilters.bedrooms}
-                      onChange={(e) => setDraftFilters((prev) => ({ ...prev, bedrooms: e.target.value }))}
-                      className="mf-select w-full h-12 px-4 pr-11 rounded-xl border border-gray-200 bg-white"
-                    >
-                      <option value="">Any</option>
-                      <option value="0">Studio</option>
-                      <option value="1">1+</option>
-                      <option value="2">2+</option>
-                      <option value="3">3+</option>
-                      <option value="4">4+</option>
-                      <option value="5">5+</option>
-                    </select>
-                    <svg
-                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-2">Baths</label>
-                  <div className="relative group">
-                    <select
-                      value={draftFilters.bathrooms}
-                      onChange={(e) => setDraftFilters((prev) => ({ ...prev, bathrooms: e.target.value }))}
-                      className="mf-select w-full h-12 px-4 pr-11 rounded-xl border border-gray-200 bg-white"
-                    >
-                      <option value="">Any</option>
-                      <option value="1">1+</option>
-                      <option value="2">2+</option>
-                      <option value="3">3+</option>
-                      <option value="4">4+</option>
-                    </select>
-                    <svg
-                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-2">Sort By</label>
-                <div className="relative group">
-                  <select
-                    value={draftFilters.sortBy}
-                    onChange={(e) => setDraftFilters((prev) => ({ ...prev, sortBy: e.target.value }))}
-                    className="mf-select w-full h-12 px-4 pr-11 rounded-xl border border-gray-200 bg-white"
-                  >
-                    <option value="featured">Featured</option>
-                    <option value="price-low">Price (Low)</option>
-                    <option value="price-high">Price (High)</option>
-                    <option value="newest">Newest</option>
-                  </select>
-                  <svg
-                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 transition-transform duration-200 group-focus-within:rotate-180"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
+              <GlobalDropdown
+                label="Sort By"
+                value={draftFilters.sortBy}
+                onChange={(v) => setDraftFilters((prev) => ({ ...prev, sortBy: singleDropdownValue(v) }))}
+                options={LISTING_SORT_COMPACT_OPTIONS}
+                appearance="admin-light"
+              />
 
               <button
                 type="button"

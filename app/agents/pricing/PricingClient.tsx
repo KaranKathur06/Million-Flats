@@ -1,6 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
+import { singleDropdownValue } from '@/components/ui/dropdownUtils'
 
 function safeNumber(v: unknown) {
   const n = typeof v === 'number' ? v : Number(v)
@@ -297,23 +299,17 @@ export default function PricingClient() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-slate-800 uppercase tracking-wider mb-2">Subscription Tier</label>
-                  <div className="relative">
-                    <select
-                      value={roiPlan}
-                      onChange={(e) => setRoiPlan(e.target.value as any)}
-                      className="w-full h-14 rounded-xl border border-slate-200 bg-slate-50 px-5 text-lg font-bold text-dark-blue focus:outline-none focus:ring-2 focus:ring-blue-500 hover:bg-white transition-all appearance-none shadow-[inset_0_2px_4px_rgb(0,0,0,0.02)]"
-                    >
-                      <option value="BASIC">Basic ({money(9999)}/year)</option>
-                      <option value="PROFESSIONAL">Professional ({money(24999)}/year)</option>
-                      <option value="PREMIUM">Premium ({money(49999)}/year)</option>
-                    </select>
-                    <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-slate-400">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                    </div>
-                  </div>
-                </div>
+                <GlobalDropdown
+                  label="Subscription Tier"
+                  value={roiPlan}
+                  onChange={(v) => setRoiPlan(singleDropdownValue(v) as typeof roiPlan)}
+                  options={[
+                    { value: 'BASIC', label: `Basic (${money(9999)}/year)` },
+                    { value: 'PROFESSIONAL', label: `Professional (${money(24999)}/year)` },
+                    { value: 'PREMIUM', label: `Premium (${money(49999)}/year)` },
+                  ]}
+                  appearance="admin-light"
+                />
               </div>
             </div>
 

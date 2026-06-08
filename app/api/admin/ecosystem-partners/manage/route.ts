@@ -1,16 +1,10 @@
 import { NextResponse } from 'next/server'
-import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
-
-function slugify(text: string) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
-    .slice(0, 120)
-}
+import { slugifyPartnerName } from '@/lib/ecosystem/slugify'
+import { applyApprovalDefaults } from '@/lib/ecosystem/partnerVisibility'
+import { revalidatePartnerSurfaces } from '@/lib/ecosystem/revalidatePartner'
 
 const partnerSchema = z.object({
   categoryId: z.string().min(1),
@@ -86,41 +80,39 @@ export async function POST(req: Request) {
   try {
     const body = await req.json()
     const data = partnerSchema.parse(body)
-    const slug = (data.slug?.trim() || slugify(data.name)) || slugify(data.name)
+    const slug = (data.slug?.trim() || slugifyPartnerName(data.name)) || slugifyPartnerName(data.name)
+    const createData = applyApprovalDefaults({
+      categoryId: data.categoryId,
+      name: data.name.trim(),
+      slug,
+      tagline: data.tagline?.trim() || null,
+      shortDescription: data.shortDescription?.trim() || null,
+      description: data.description?.trim() || null,
+      logo: data.logo || null,
+      coverImage: data.coverImage || null,
+      rating: data.rating ?? null,
+      yearsExperience: data.yearsExperience ?? null,
+      projectsCompleted: data.projectsCompleted ?? null,
+      teamSize: data.teamSize ?? null,
+      partnerSince: data.partnerSince ?? null,
+      locationCoverage: data.locationCoverage?.trim() || null,
+      pricingRange: data.pricingRange?.trim() || null,
+      contactEmail: data.contactEmail?.trim() || `${slug}@partners.millionflats.local`,
+      status: data.status || 'PENDING',
+      isFeatured: data.isFeatured ?? false,
+      isVerified: data.isVerified ?? false,
+      isActive: data.isActive ?? true,
+      priorityOrder: data.priorityOrder ?? 0,
+      metaTitle: data.metaTitle?.trim() || null,
+      metaDescription: data.metaDescription?.trim() || null,
+    })
 
     const partner = await (prisma as any).ecosystemPartner.create({
-      data: {
-        categoryId: data.categoryId,
-        name: data.name.trim(),
-        slug,
-        tagline: data.tagline?.trim() || null,
-        shortDescription: data.shortDescription?.trim() || null,
-        description: data.description?.trim() || null,
-        logo: data.logo || null,
-        coverImage: data.coverImage || null,
-        rating: data.rating ?? null,
-        yearsExperience: data.yearsExperience ?? null,
-        projectsCompleted: data.projectsCompleted ?? null,
-        teamSize: data.teamSize ?? null,
-        partnerSince: data.partnerSince ?? null,
-        locationCoverage: data.locationCoverage?.trim() || null,
-        pricingRange: data.pricingRange?.trim() || null,
-        contactEmail: data.contactEmail?.trim() || `${slug}@partners.millionflats.local`,
-        status: data.status || 'PENDING',
-        isFeatured: data.isFeatured ?? false,
-        isVerified: data.isVerified ?? false,
-        isActive: data.isActive ?? true,
-        priorityOrder: data.priorityOrder ?? 0,
-        metaTitle: data.metaTitle?.trim() || null,
-        metaDescription: data.metaDescription?.trim() || null,
-      },
+      data: createData,
       include: { category: { select: { slug: true } } },
     })
 
-    revalidatePath(`/ecosystem-partners/${partner.category.slug}`)
-    if (partner.slug) {
-      revalidatePath(`/partners/${partner.category.slug}/${partner.slug}`)
-    }
+    revalidatePartnerSurfaces(partner.category.slug, partner.slug)
     return NextResponse.json({ success: true, data: partner })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Failed to create partner'

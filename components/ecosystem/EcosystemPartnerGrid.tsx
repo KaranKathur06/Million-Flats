@@ -4,6 +4,9 @@ import { useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
+import { singleDropdownValue } from '@/components/ui/dropdownUtils'
+import { RATING_FILTER_OPTIONS } from '@/lib/filters/dropdownOptions'
 import { trackEvent } from '@/lib/tracking'
 
 export type EcosystemPartnerCard = {
@@ -129,21 +132,21 @@ export default function EcosystemPartnerGrid({
               Featured only
             </button>
 
-            <select
+            <GlobalDropdown
+              label="Rating"
+              showLabel={false}
               value={String(minRating)}
-              onChange={(e) => {
-                const next = Number(e.target.value) || 0
+              onChange={(v) => {
+                const next = Number(singleDropdownValue(v)) || 0
                 setMinRating(next)
                 trackEvent('ecosystem_partner_filter_change', { slug, filter: 'minRating', value: next })
                 fetchPage(1, 'replace')
               }}
-              className="h-10 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue"
-            >
-              <option value="0">Any rating</option>
-              <option value="3">3+ stars</option>
-              <option value="4">4+ stars</option>
-              <option value="4.5">4.5+ stars</option>
-            </select>
+              options={RATING_FILTER_OPTIONS}
+              appearance="admin-light"
+              dense
+              className="min-w-[140px]"
+            />
           </div>
         </div>
 

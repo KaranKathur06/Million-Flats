@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { LeadCountry, LeadType } from '@prisma/client'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { getLeadStats, getLeadSyncHealth, listLeads, sanitizeLeadFilters } from '@/lib/leads/queries'
+import { isLeadCountInSync } from '@/lib/leads/syncHealth'
 import { normalizeLeadType } from '@/lib/leads/types'
 
 export const runtime = 'nodejs'
@@ -79,14 +80,21 @@ export async function GET(req: Request) {
   }
 
   const { items, total } = await listLeads(filters)
+  const dashboardCount = stats.total
+  const tableCount = total
+  const filteredInSync = isLeadCountInSync(dashboardCount, tableCount)
 
   return NextResponse.json(
     {
       success: true,
       stats,
       sync: {
-        inSync: sync.inSync && sync.dashboardTotal === total && (sync.filteredDifference ?? 0) === 0,
-        difference: sync.difference,
+        inSync: filteredInSync,
+        dashboardCount,
+        tableCount,
+        difference: dashboardCount - tableCount,
+        globalInSync: sync.inSync,
+        globalDifference: sync.difference,
         filteredDifference: sync.filteredDifference ?? 0,
       },
       leads: items.map((l) => ({

@@ -2,9 +2,12 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
+import { singleDropdownValue } from '@/components/ui/dropdownUtils'
 
 export default function HomeLoansPartnerRegistration() {
     const [submitted, setSubmitted] = useState(false)
+    const [institutionType, setInstitutionType] = useState('Bank (Public Sector)')
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
@@ -121,13 +124,19 @@ export default function HomeLoansPartnerRegistration() {
 
                                     <div className="grid grid-cols-1 gap-4">
                                         <div>
-                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Institution Type</label>
-                                            <select className="w-full bg-[#0f172a] border border-slate-700/50 rounded-xl px-4 py-3.5 text-slate-300 focus:outline-none focus:border-emerald-500 transition-all font-medium text-sm outline-none">
-                                                <option>Bank (Public Sector)</option>
-                                                <option>Bank (Private Sector)</option>
-                                                <option>NBFC</option>
-                                                <option>Housing Finance Co (HFC)</option>
-                                            </select>
+                                            <GlobalDropdown
+                                                name="institutionType"
+                                                label="Institution Type"
+                                                value={institutionType}
+                                                onChange={(v) => setInstitutionType(singleDropdownValue(v))}
+                                                options={[
+                                                    { value: 'Bank (Public Sector)', label: 'Bank (Public Sector)' },
+                                                    { value: 'Bank (Private Sector)', label: 'Bank (Private Sector)' },
+                                                    { value: 'NBFC', label: 'NBFC' },
+                                                    { value: 'Housing Finance Co (HFC)', label: 'Housing Finance Co (HFC)' },
+                                                ]}
+                                                appearance="premium-dark"
+                                            />
                                         </div>
                                     </div>
 

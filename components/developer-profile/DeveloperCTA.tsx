@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
+import { singleDropdownValue } from '@/components/ui/dropdownUtils'
 import type { DeveloperProfileData } from './types'
 
 type DeveloperCTAProps = {
@@ -20,8 +22,13 @@ export default function DeveloperCTA({ developer }: DeveloperCTAProps) {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+    setError('')
+  }
+
+  const setField = (name: keyof typeof form, value: string) => {
+    setForm((prev) => ({ ...prev, [name]: value }))
     setError('')
   }
 
@@ -142,27 +149,35 @@ export default function DeveloperCTA({ developer }: DeveloperCTAProps) {
                   className="mt-3 h-11 w-full rounded-xl border border-gray-200 px-3.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
                 />
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <select
+                  <GlobalDropdown
                     name="country"
+                    label="Country"
+                    showLabel={false}
                     value={form.country}
-                    onChange={handleChange}
-                    className="h-11 rounded-xl border border-gray-200 px-3 text-sm text-gray-600 outline-none transition focus:border-primary-500 bg-white"
-                  >
-                    <option value="UAE">🇦🇪 UAE</option>
-                    <option value="INDIA">🇮🇳 India</option>
-                  </select>
+                    onChange={(v) => setField('country', singleDropdownValue(v))}
+                    options={[
+                      { value: 'UAE', label: '🇦🇪 UAE' },
+                      { value: 'INDIA', label: '🇮🇳 India' },
+                    ]}
+                    appearance="admin-light"
+                    dense
+                  />
                   {developer.projects.length > 0 && (
-                    <select
+                    <GlobalDropdown
                       name="interestedProject"
+                      label="Project"
+                      showLabel={false}
                       value={form.interestedProject}
-                      onChange={handleChange}
-                      className="h-11 rounded-xl border border-gray-200 px-3 text-sm text-gray-600 outline-none transition focus:border-primary-500 bg-white"
-                    >
-                      <option value="">Interested Project (Optional)</option>
-                      {developer.projects.map((p) => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </select>
+                      onChange={(v) => setField('interestedProject', singleDropdownValue(v))}
+                      placeholder="Interested Project (Optional)"
+                      options={[
+                        { value: '', label: 'Interested Project (Optional)' },
+                        ...developer.projects.map((p) => ({ value: p.id, label: p.name })),
+                      ]}
+                      appearance="admin-light"
+                      dense
+                      searchable
+                    />
                   )}
                 </div>
                 <textarea

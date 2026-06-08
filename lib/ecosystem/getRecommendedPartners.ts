@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { getEcosystemCategoryConfig } from '@/lib/ecosystem/categoryConfig'
+import { buildPublicPartnerWhere } from '@/lib/ecosystem/partnerVisibility'
 import type { EcosystemCategorySlug } from '@/lib/ecosystemPartners'
 
 export type RecommendedPartner = {
@@ -98,12 +99,10 @@ export async function getRecommendedPartners(
   })
   if (!category) return []
 
-  const where: Record<string, unknown> = {
+  const where: Record<string, unknown> = buildPublicPartnerWhere({
     categoryId: category.id,
-    isActive: true,
-    status: 'APPROVED',
     slug: { not: null },
-  }
+  })
 
   if (city) {
     where.locationCoverage = { contains: city, mode: 'insensitive' }

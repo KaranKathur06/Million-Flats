@@ -10,6 +10,7 @@ import EcosystemFAQ, { buildFaqSchema } from '@/components/ecosystem/EcosystemFA
 import StickyLeadCaptureClient from '@/components/ecosystem/StickyLeadCaptureClient'
 import { getEcosystemCategoryConfig } from '@/lib/ecosystem/categoryConfig'
 import { prisma } from '@/lib/prisma'
+import { fetchPublicPartners } from '@/lib/ecosystem/fetchPublicPartners'
 import FinalCTA from '@/app/ecosystem-partners/_components/FinalCTA'
 
 function safeNumber(v: unknown) {
@@ -30,36 +31,13 @@ export default async function EcosystemCategoryLanding({ slug, page }: { slug: s
   const category = await (prisma as any).ecosystemCategory.findUnique({ where: { slug: cfg.slug }, select: { id: true } })
   if (!category) return notFound()
 
-  const skip = (pageSafe - 1) * take
+  const { items: partnersRaw, total: totalPartners, hasMore: hasMorePartners } = await fetchPublicPartners({
+    categorySlug: cfg.slug,
+    page: pageSafe,
+    take,
+  })
 
-  const [partnersRaw, totalPartners] = await Promise.all([
-    (prisma as any).ecosystemPartner
-      .findMany({
-        where: { categoryId: category.id, isActive: true, status: 'APPROVED' },
-        orderBy: [{ isFeatured: 'desc' }, { priorityOrder: 'asc' }, { createdAt: 'desc' }],
-        take,
-        skip,
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          logo: true,
-          coverImage: true,
-          shortDescription: true,
-          rating: true,
-          yearsExperience: true,
-          projectsCompleted: true,
-          locationCoverage: true,
-          pricingRange: true,
-          isFeatured: true,
-          isVerified: true,
-        },
-      })
-      .catch(() => []),
-    (prisma as any).ecosystemPartner.count({ where: { categoryId: category.id, isActive: true, status: 'APPROVED' } }).catch(() => 0),
-  ])
-
-  const partners: EcosystemPartnerCard[] = (partnersRaw as any[]).map((p) => ({
+  const partners: EcosystemPartnerCard[] = partnersRaw.map((p) => ({
     id: String(p.id),
     name: String(p.name),
     slug: p.slug ?? null,
@@ -74,8 +52,6 @@ export default async function EcosystemCategoryLanding({ slug, page }: { slug: s
     isFeatured: Boolean(p.isFeatured),
     isVerified: Boolean(p.isVerified),
   }))
-
-  const hasMorePartners = skip + partners.length < totalPartners
 
   const faqSchema = buildFaqSchema({ url, faqs: cfg.faqs })
 

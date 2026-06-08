@@ -1,16 +1,10 @@
 import { NextResponse } from 'next/server'
-import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
-
-function slugify(text: string) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
-    .slice(0, 120)
-}
+import { slugifyPartnerName } from '@/lib/ecosystem/slugify'
+import { applyApprovalDefaults } from '@/lib/ecosystem/partnerVisibility'
+import { revalidatePartnerSurfaces } from '@/lib/ecosystem/revalidatePartner'
 
 const updateSchema = z.object({
   categoryId: z.string().min(1).optional(),
@@ -81,9 +75,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const body = await req.json()
     const data = updateSchema.parse(body)
 
-    const updateData: Record<string, unknown> = { ...data }
+    const updateData: Record<string, unknown> = applyApprovalDefaults({ ...data })
     if (data.name && !data.slug) {
-      updateData.slug = slugify(data.name)
+      updateData.slug = slugifyPartnerName(data.name)
     }
     if (data.slug) updateData.slug = data.slug.trim()
 
@@ -93,9 +87,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       include: { category: { select: { slug: true } } },
     })
 
-    revalidatePath(`/ecosystem-partners/${existing.category.slug}`)
-    if (partner.slug) {
-      revalidatePath(`/partners/${partner.category.slug}/${partner.slug}`)
+    revalidatePartnerSurfaces(partner.category.slug, partner.slug)
+    if (existing.category.slug !== partner.category.slug) {
+      revalidatePartnerSurfaces(existing.category.slug, existing.slug)
     }
 
     return NextResponse.json({ success: true, data: partner })
@@ -117,6 +111,6 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     include: { category: { select: { slug: true } } },
   })
 
-  revalidatePath(`/ecosystem-partners/${partner.category.slug}`)
+  revalidatePartnerSurfaces(partner.category.slug, partner.slug)
   return NextResponse.json({ success: true })
 }

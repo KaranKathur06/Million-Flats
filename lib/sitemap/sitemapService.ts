@@ -18,6 +18,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { PUBLIC_PARTNER_VISIBILITY } from '@/lib/ecosystem/partnerVisibility'
 import fs from 'fs'
 import path from 'path'
 
@@ -230,8 +231,7 @@ async function fetchEcosystemPartnerUrls(): Promise<SitemapUrl[]> {
   try {
     const partners = await (prisma as any).ecosystemPartner.findMany({
       where: {
-        isActive: true,
-        status: 'APPROVED',
+        ...PUBLIC_PARTNER_VISIBILITY,
         slug: { not: null },
       },
       select: {

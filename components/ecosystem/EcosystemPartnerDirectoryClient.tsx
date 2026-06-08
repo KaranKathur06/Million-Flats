@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
 import { trackEvent } from '@/lib/tracking'
 import { partnerProfileUrl } from '@/lib/ecosystem/partnerProfile'
 
@@ -73,7 +74,7 @@ export default function EcosystemPartnerDirectoryClient({
     if (busy) return
     setBusy(true)
     try {
-      const u = new URL('/api/ecosystem-partners/partners', window.location.origin)
+      const u = new URL('/api/ecosystem/partners', window.location.origin)
       u.searchParams.set('slug', slug)
       u.searchParams.set('page', String(nextPage))
       u.searchParams.set('take', String(take))
@@ -155,38 +156,46 @@ export default function EcosystemPartnerDirectoryClient({
               placeholder="Search partners..."
               className="h-11 rounded-xl border border-gray-200 px-4 text-sm outline-none focus:border-dark-blue lg:col-span-2"
             />
-            <select
+            <GlobalDropdown
+              label="Location"
+              showLabel={false}
               value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-              className="h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-dark-blue"
-            >
-              <option value="">All Locations</option>
-              {locationOptions.map((loc) => (
-                <option key={loc} value={loc}>
-                  {loc}
-                </option>
-              ))}
-            </select>
-            <select
+              onChange={(v) => setLocationFilter(typeof v === 'string' ? v : v[0] || '')}
+              placeholder="All Locations"
+              options={[{ value: '', label: 'All Locations' }, ...locationOptions.map((loc) => ({ value: loc, label: loc }))]}
+              appearance="admin-light"
+              dense
+            />
+            <GlobalDropdown
+              label="Budget"
+              showLabel={false}
               value={budgetFilter}
-              onChange={(e) => setBudgetFilter(e.target.value)}
-              className="h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-dark-blue"
-            >
-              <option value="">Budget Range</option>
-              <option value="₹5L">₹5L - ₹15L</option>
-              <option value="₹15L">₹15L - ₹50L</option>
-              <option value="₹50L">₹50L+</option>
-            </select>
-            <select
+              onChange={(v) => setBudgetFilter(typeof v === 'string' ? v : v[0] || '')}
+              placeholder="Budget Range"
+              options={[
+                { value: '', label: 'Budget Range' },
+                { value: '₹5L', label: '₹5L - ₹15L' },
+                { value: '₹15L', label: '₹15L - ₹50L' },
+                { value: '₹50L', label: '₹50L+' },
+              ]}
+              appearance="admin-light"
+              dense
+            />
+            <GlobalDropdown
+              label="Rating"
+              showLabel={false}
               value={String(minRating)}
-              onChange={(e) => setMinRating(Number(e.target.value) || 0)}
-              className="h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-dark-blue"
-            >
-              <option value="0">Any Rating</option>
-              <option value="3">3+ stars</option>
-              <option value="4">4+ stars</option>
-              <option value="4.5">4.5+ stars</option>
-            </select>
+              onChange={(v) => setMinRating(Number(typeof v === 'string' ? v : v[0]) || 0)}
+              placeholder="Any Rating"
+              options={[
+                { value: '0', label: 'Any Rating' },
+                { value: '3', label: '3+ stars' },
+                { value: '4', label: '4+ stars' },
+                { value: '4.5', label: '4.5+ stars' },
+              ]}
+              appearance="admin-light"
+              dense
+            />
             <button
               type="button"
               onClick={() => {

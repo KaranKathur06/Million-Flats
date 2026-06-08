@@ -1,6 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
+import { singleDropdownValue } from '@/components/ui/dropdownUtils'
+import { CONTACT_SUBJECT_OPTIONS } from '@/lib/filters/dropdownOptions'
 
 export default function ContactForm() {
   const [formData, setFormData] = useState({
@@ -111,34 +114,15 @@ export default function ContactForm() {
           />
         </div>
 
-        <div>
-          <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
-            Subject
-          </label>
-          <div className="relative">
-            <select
-              id="subject"
-              required
-              value={formData.subject}
-              onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-              className="mf-select w-full px-4 py-3 pr-11 border border-gray-300 rounded-lg bg-white cursor-pointer hover:border-[#2b4d72] hover:bg-gray-50 focus:outline-none"
-            >
-              <option value="">Select a subject</option>
-              <option value="general">General Inquiry</option>
-              <option value="property">Property Inquiry</option>
-              <option value="agent">Agent Registration</option>
-              <option value="support">Support</option>
-            </select>
-            <svg
-              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
+        <GlobalDropdown
+          id="subject"
+          label="Subject"
+          value={formData.subject}
+          onChange={(v) => setFormData({ ...formData, subject: singleDropdownValue(v) })}
+          options={CONTACT_SUBJECT_OPTIONS}
+          placeholder="Select a subject"
+          appearance="admin-light"
+        />
 
         <div>
           <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">

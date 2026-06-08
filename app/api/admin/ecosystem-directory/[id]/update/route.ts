@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { checkAdminRateLimit } from '@/lib/adminRateLimit'
 import { writeAuditLog } from '@/lib/audit'
+import { applyApprovalDefaults } from '@/lib/ecosystem/partnerVisibility'
+import { revalidatePartnerSurfaces } from '@/lib/ecosystem/revalidatePartner'
 
 export const runtime = 'nodejs'
 
@@ -50,7 +52,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   const current = await (prisma as any).ecosystemPartner.findFirst({
     where: { id },
-    select: { id: true, status: true, isVerified: true, isFeatured: true, subscriptionTier: true, priorityOrder: true },
+    select: {
+      id: true,
+      slug: true,
+      status: true,
+      isVerified: true,
+      isFeatured: true,
+      subscriptionTier: true,
+      priorityOrder: true,
+      category: { select: { slug: true } },
+    },
   })
   if (!current) return bad('Not found', 404)
 
@@ -62,18 +73,33 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     priorityOrder: typeof current.priorityOrder === 'number' ? current.priorityOrder : 0,
   }
 
-  const data: any = {}
+  const data: Record<string, unknown> = {}
   if (parsed.data.status) data.status = parsed.data.status
   if (typeof parsed.data.isVerified === 'boolean') data.isVerified = parsed.data.isVerified
   if (typeof parsed.data.isFeatured === 'boolean') data.isFeatured = parsed.data.isFeatured
   if (parsed.data.subscriptionTier) data.subscriptionTier = parsed.data.subscriptionTier
   if (typeof parsed.data.priorityOrder === 'number') data.priorityOrder = parsed.data.priorityOrder
+  applyApprovalDefaults(data)
 
   const updated = await (prisma as any).ecosystemPartner.update({
     where: { id },
     data,
-    select: { id: true, status: true, isVerified: true, isFeatured: true, subscriptionTier: true, priorityOrder: true, updatedAt: true },
+    select: {
+      id: true,
+      slug: true,
+      status: true,
+      isVerified: true,
+      isFeatured: true,
+      subscriptionTier: true,
+      priorityOrder: true,
+      updatedAt: true,
+      category: { select: { slug: true } },
+    },
   })
+
+  if (current?.category?.slug) {
+    revalidatePartnerSurfaces(current.category.slug, current.slug)
+  }
 
   await writeAuditLog({
     entityType: 'ECOSYSTEM_PARTNER_APPLICATION',

@@ -1,6 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
+import { singleDropdownValue } from '@/components/ui/dropdownUtils'
 import { trackEvent } from '@/lib/tracking'
 
 function formatINR(n: number) {
@@ -39,40 +41,40 @@ export default function MoversQuoteToolClient() {
         </p>
 
         <div className="mt-5 grid grid-cols-1 gap-4">
-          <label className="text-sm">
-            <div className="font-semibold text-gray-900">Move Type</div>
-            <select
-              value={moveType}
-              onChange={(e) => {
-                const v = e.target.value as any
-                setMoveType(v)
-                trackEvent('ecosystem_tool_use', { tool: 'movers_quote_calculator', field: 'move_type', value: v })
-              }}
-              className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3"
-            >
-              <option value="Local">Local (Same City)</option>
-              <option value="Domestic">Domestic (City-to-City)</option>
-            </select>
-          </label>
+          <GlobalDropdown
+            label="Move Type"
+            value={moveType}
+            onChange={(v) => {
+              const next = singleDropdownValue(v) as typeof moveType
+              setMoveType(next)
+              trackEvent('ecosystem_tool_use', { tool: 'movers_quote_calculator', field: 'move_type', value: next })
+            }}
+            options={[
+              { value: 'Local', label: 'Local (Same City)' },
+              { value: 'Domestic', label: 'Domestic (City-to-City)' },
+            ]}
+            appearance="admin-light"
+            className="mt-1"
+          />
 
-          <label className="text-sm">
-            <div className="font-semibold text-gray-900">Volume</div>
-            <select
-              value={volume}
-              onChange={(e) => {
-                const v = e.target.value as any
-                setVolume(v)
-                trackEvent('ecosystem_tool_use', { tool: 'movers_quote_calculator', field: 'volume', value: v })
-              }}
-              className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3"
-            >
-              <option value="1BHK">1BHK</option>
-              <option value="2BHK">2BHK</option>
-              <option value="3BHK">3BHK</option>
-              <option value="4BHK+">4BHK+</option>
-              <option value="Office">Office</option>
-            </select>
-          </label>
+          <GlobalDropdown
+            label="Volume"
+            value={volume}
+            onChange={(v) => {
+              const next = singleDropdownValue(v) as typeof volume
+              setVolume(next)
+              trackEvent('ecosystem_tool_use', { tool: 'movers_quote_calculator', field: 'volume', value: next })
+            }}
+            options={[
+              { value: '1BHK', label: '1BHK' },
+              { value: '2BHK', label: '2BHK' },
+              { value: '3BHK', label: '3BHK' },
+              { value: '4BHK+', label: '4BHK+' },
+              { value: 'Office', label: 'Office' },
+            ]}
+            appearance="admin-light"
+            className="mt-1"
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label className="text-sm">

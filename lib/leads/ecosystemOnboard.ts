@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { ecosystemCategoryToSlug, normalizeEcosystemCategory } from '@/lib/leads/types'
+import { slugifyPartnerName } from '@/lib/ecosystem/slugify'
+import { revalidatePartnerSurfaces } from '@/lib/ecosystem/revalidatePartner'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
@@ -86,10 +88,22 @@ export async function onboardEcosystemLeadToPartner(leadId: string) {
     return { partnerId: existing.id, alreadyExists: true }
   }
 
+  const partnerName = contact.companyName || contact.name
+  const baseSlug = slugifyPartnerName(partnerName)
+  let slug = baseSlug
+  if (baseSlug) {
+    const collision = await prisma.ecosystemPartner.findFirst({
+      where: { categoryId: category.id, slug: baseSlug },
+      select: { id: true },
+    })
+    if (collision) slug = `${baseSlug}-${Date.now().toString(36)}`
+  }
+
   const partner = await prisma.ecosystemPartner.create({
     data: {
       categoryId: category.id,
-      name: contact.companyName || contact.name,
+      name: partnerName,
+      slug: slug || null,
       contactPerson: contact.name,
       contactEmail: contact.email,
       contactPhone: contact.phone || null,
@@ -101,8 +115,10 @@ export async function onboardEcosystemLeadToPartner(leadId: string) {
       isVerified: true,
       isActive: true,
     },
-    select: { id: true },
+    select: { id: true, slug: true },
   })
+
+  revalidatePartnerSurfaces(category.slug, partner.slug)
 
   await prisma.lead.update({
     where: { id: leadId },

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { PUBLIC_PARTNER_VISIBILITY } from '@/lib/ecosystem/partnerVisibility'
 import type {
   PartnerFaqItem,
   PartnerGalleryItem,
@@ -83,8 +84,7 @@ export async function getPartnerProfile(
   const partner = await (prisma as any).ecosystemPartner.findFirst({
     where: {
       slug: normalizedPartner,
-      isActive: true,
-      status: 'APPROVED',
+      ...PUBLIC_PARTNER_VISIBILITY,
       category: { slug: normalizedCategory, isActive: true },
     },
     include: {

@@ -17,11 +17,12 @@ import {
   statusesForLeadType,
   THREE_D_TOUR_PROPERTY_TYPE_FILTER_OPTIONS,
 } from '@/lib/leads/constants'
-import { budgetRangeLabel, timelineLabel } from '@/lib/leads/threeDTour'
 import { normalizeLeadType } from '@/lib/leads/types'
 import { fetchAdminLeads, filtersToSearchParams, type LeadsApiFilters } from '@/lib/leads/clientFetch'
 import { getAdminCapabilities } from '@/lib/adminCapabilities'
 import { LEAD_TEMPERATURE_STYLES, threeDTourLeadTemperature } from '@/lib/leads/leadTemperature'
+import type { LeadForDisplay } from '@/lib/leads/mapLeadForDisplay'
+import { isLeadCountInSync } from '@/lib/leads/syncHealth'
 
 function LeadTemperatureBadge({
   leadType,
@@ -78,25 +79,6 @@ type LeadStats = {
   threeDTourProposalSent: number
   threeDTourWon: number
   threeDTourLost: number
-}
-
-type LeadDetail = LeadRow & {
-  propertyName?: string | null
-  propertySize?: string | null
-  budgetRange?: string | null
-  timeline?: string | null
-  referralCode?: string | null
-  whatsapp?: string | null
-  message?: string | null
-  utmSource?: string | null
-  utmMedium?: string | null
-  utmCampaign?: string | null
-  referrer?: string | null
-  landingUrl?: string | null
-  metadata?: Record<string, unknown> | null
-  allowedStatuses?: string[]
-  project?: { id: string; name: string; slug: string } | null
-  ecosystemPartner?: { id: string; name: string; status: string } | null
 }
 
 function safeString(v: unknown) {
@@ -171,11 +153,13 @@ export default function AdminLeadsClient({
   const [leads, setLeads] = useState<LeadRow[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [listError, setListError] = useState('')
 
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [detail, setDetail] = useState<LeadDetail | null>(null)
+  const [detail, setDetail] = useState<LeadForDisplay | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState('')
+  const [detailLeadId, setDetailLeadId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [syncOk, setSyncOk] = useState(true)
 
@@ -200,33 +184,32 @@ export default function AdminLeadsClient({
 
   const loadLeads = useCallback(async (params: URLSearchParams) => {
     setLoading(true)
-    setError('')
+    setListError('')
     try {
       const data = (await fetchAdminLeads(params)) as {
         stats: LeadStats
         leads: LeadRow[]
         total: number
-        sync?: { inSync: boolean; difference: number; filteredDifference?: number }
+        sync?: { inSync: boolean; dashboardCount?: number; tableCount?: number }
         filters?: LeadsApiFilters
       }
       setStats(data.stats)
       setLeads(data.leads ?? [])
       setTotal(data.total ?? 0)
-      const diff = data.sync?.filteredDifference ?? data.sync?.difference ?? 0
-      setSyncOk(Boolean(data.sync?.inSync) && diff === 0 && data.stats.total === data.total)
-      if (data.stats.total !== data.total) {
-        console.error('Lead Synchronization Error', {
-          dashboardTotal: data.stats.total,
+      const inSync = isLeadCountInSync(data.stats?.total, data.total)
+      setSyncOk(inSync)
+      if (!inSync) {
+        console.warn('Lead data verification warning', {
+          dashboardTotal: data.stats?.total,
           tableTotal: data.total,
           filters: data.filters,
           query: params.toString(),
         })
-        setSyncOk(false)
       }
     } catch (e) {
       setLeads([])
       setTotal(0)
-      setError(e instanceof Error ? e.message : 'Failed to load leads')
+      setListError(e instanceof Error ? e.message : 'Failed to load leads')
     } finally {
       setLoading(false)
     }
@@ -249,15 +232,42 @@ export default function AdminLeadsClient({
   }, [searchKey, loadLeads])
 
   const openDetail = async (id: string) => {
+    const leadId = String(id || '').trim()
+    if (!leadId) {
+      setDetailError('Invalid lead ID')
+      setDrawerOpen(true)
+      return
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Lead ID', leadId)
+    }
+
     setDrawerOpen(true)
+    setDetailLeadId(leadId)
     setDetailLoading(true)
+    setDetailError('')
     setDetail(null)
+
     try {
-      const data = await fetchJson<{ lead: LeadDetail }>(`/api/admin/leads/${encodeURIComponent(id)}`)
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Fetching lead', leadId)
+      }
+      const data = await fetchJson<{ lead: LeadForDisplay }>(`/api/admin/leads/${encodeURIComponent(leadId)}`)
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Lead fetch response', data)
+        console.log('Lead data', data.lead)
+      }
+      if (!data.lead?.id) {
+        throw new Error('Lead record missing from API response')
+      }
       setDetail(data.lead)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load lead')
-      setDrawerOpen(false)
+      const message = e instanceof Error ? e.message : 'Failed to load lead'
+      setDetailError(message)
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Lead detail fetch failed', { leadId, message })
+      }
     } finally {
       setDetailLoading(false)
     }
@@ -266,7 +276,7 @@ export default function AdminLeadsClient({
   const updateLead = async (patch: { status?: string; onboard?: boolean }) => {
     if (!detail?.id) return
     setBusy(true)
-    setError('')
+    setDetailError('')
     try {
       await fetchJson(`/api/admin/leads/${encodeURIComponent(detail.id)}`, {
         method: 'PATCH',
@@ -277,7 +287,7 @@ export default function AdminLeadsClient({
       await loadLeads(filtersToSearchParams(filtersFromSearchParams(sp)))
       router.refresh()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Update failed')
+      setDetailError(e instanceof Error ? e.message : 'Update failed')
     } finally {
       setBusy(false)
     }
@@ -288,7 +298,7 @@ export default function AdminLeadsClient({
     return [{ value: '', label: 'All statuses' }, ...list.map((s) => ({ value: s, label: s.replace(/_/g, ' ') }))]
   }, [leadType, detail?.leadType])
 
-  const drawerStatuses = detail?.allowedStatuses || statusesForLeadType(detail?.leadType)
+  const drawerStatuses = detail?.allowedStatuses ?? statusesForLeadType(detail?.leadType)
 
   const drawerPanel = (
     <div className="flex h-full flex-col">
@@ -318,18 +328,68 @@ export default function AdminLeadsClient({
       <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-6 mf-drawer-scroll">
         {detailLoading ? (
           <p className="text-sm text-white/50">Loading…</p>
+        ) : detailError ? (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 space-y-3">
+            <p className="text-sm font-semibold text-red-200">Unable to load lead details.</p>
+            <p className="text-xs text-red-200/80 break-words">{detailError}</p>
+            <div className="flex flex-wrap gap-2">
+              {detailLeadId ? (
+                <button
+                  type="button"
+                  onClick={() => openDetail(detailLeadId)}
+                  className="rounded-lg border border-red-400/40 bg-red-400/10 px-3 py-1.5 text-xs font-semibold text-red-100 hover:bg-red-400/20"
+                >
+                  Retry
+                </button>
+              ) : null}
+              <Link
+                href="/admin/leads/health"
+                className="inline-flex rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-white/70 hover:bg-white/5"
+              >
+                View diagnostics
+              </Link>
+            </div>
+          </div>
         ) : detail ? (
           <>
             <section className="space-y-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-white/35">Contact</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-white/35">Lead</h3>
               <dl className="grid gap-2 text-sm">
-                <div><dt className="text-white/45">Email</dt><dd className="text-white break-all">{detail.email}</dd></div>
-                <div><dt className="text-white/45">Phone</dt><dd className="text-white">{detail.phone || '—'}</dd></div>
-                <div><dt className="text-white/45">Country</dt><dd className="text-white">{detail.country}</dd></div>
-                <div><dt className="text-white/45">Type</dt><dd className="text-white">{LEAD_TYPE_LABELS[detail.leadType]}</dd></div>
+                <div>
+                  <dt className="text-white/45">Lead ID</dt>
+                  <dd className="text-white font-mono text-xs break-all">{detail.id}</dd>
+                </div>
+                <div>
+                  <dt className="text-white/45">Lead type</dt>
+                  <dd className="text-white">{detail.leadTypeLabel}</dd>
+                </div>
+                {detail.leadType === 'ECOSYSTEM' ? (
+                  <>
+                    <div>
+                      <dt className="text-white/45">Partner category</dt>
+                      <dd className="text-white">{detail.partnerCategory || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-white/45">Partner name</dt>
+                      <dd className="text-white">{detail.partnerName || '—'}</dd>
+                    </div>
+                  </>
+                ) : null}
                 <div>
                   <dt className="text-white/45">Category</dt>
-                  <dd className="text-white">{displayCategory(detail.leadType, detail.category)}</dd>
+                  <dd className="text-white">{detail.categoryLabel}</dd>
+                </div>
+                <div>
+                  <dt className="text-white/45">Status</dt>
+                  <dd className="text-white">{detail.status}</dd>
+                </div>
+                <div>
+                  <dt className="text-white/45">Assigned to</dt>
+                  <dd className="text-white">{detail.assignedTo || '—'}</dd>
+                </div>
+                <div>
+                  <dt className="text-white/45">Created</dt>
+                  <dd className="text-white">{new Date(detail.createdAt).toLocaleString()}</dd>
                 </div>
                 {detail.project ? (
                   <div>
@@ -341,6 +401,23 @@ export default function AdminLeadsClient({
                     </dd>
                   </div>
                 ) : null}
+              </dl>
+            </section>
+
+            <section className="space-y-2">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-white/35">Contact</h3>
+              <dl className="grid gap-2 text-sm">
+                <div><dt className="text-white/45">Name</dt><dd className="text-white">{detail.name}</dd></div>
+                <div><dt className="text-white/45">Email</dt><dd className="text-white break-all">{detail.email}</dd></div>
+                <div><dt className="text-white/45">Phone</dt><dd className="text-white">{detail.phone || '—'}</dd></div>
+                {detail.whatsapp ? (
+                  <div><dt className="text-white/45">WhatsApp</dt><dd className="text-white">{detail.whatsapp}</dd></div>
+                ) : null}
+                <div><dt className="text-white/45">Country</dt><dd className="text-white">{detail.country}</dd></div>
+                <div>
+                  <dt className="text-white/45">Source page</dt>
+                  <dd className="text-white break-all">{detail.sourcePage || '—'}</dd>
+                </div>
               </dl>
             </section>
 
@@ -364,6 +441,15 @@ export default function AdminLeadsClient({
               </section>
             ) : null}
 
+            {detail.notes ? (
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-white/35 mb-2">Notes</h3>
+                <p className="text-sm text-white/80 whitespace-pre-wrap rounded-xl border border-white/[0.06] bg-black/20 p-3">
+                  {detail.notes}
+                </p>
+              </section>
+            ) : null}
+
             {detail.leadType === 'THREE_D_TOUR' ? (
               <section className="space-y-2">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-white/35">3D Tour inquiry</h3>
@@ -378,11 +464,11 @@ export default function AdminLeadsClient({
                   </div>
                   <div>
                     <dt className="text-white/45">Budget</dt>
-                    <dd className="text-white">{budgetRangeLabel(detail.budgetRange) || '—'}</dd>
+                    <dd className="text-white">{detail.budgetRangeLabel || '—'}</dd>
                   </div>
                   <div>
                     <dt className="text-white/45">Timeline</dt>
-                    <dd className="text-white">{timelineLabel(detail.timeline) || '—'}</dd>
+                    <dd className="text-white">{detail.timelineLabel || '—'}</dd>
                   </div>
                   {detail.referralCode ? (
                     <div>
@@ -429,13 +515,13 @@ export default function AdminLeadsClient({
 
   return (
     <div className="space-y-6">
-      {error ? <p className="text-sm font-semibold text-red-300">{error}</p> : null}
+      {listError ? <p className="text-sm font-semibold text-red-300">{listError}</p> : null}
 
-      {!syncOk && stats ? (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-          Lead synchronization mismatch: dashboard shows {stats.total} but the table has {total} rows for the current
-          filters.{' '}
-          <Link href="/admin/leads/health" className="underline text-red-100">
+      {!loading && !syncOk && stats ? (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          Data verification warning: dashboard shows {Number(stats.total).toLocaleString()} but the table has{' '}
+          {Number(total).toLocaleString()} rows for the current filters.{' '}
+          <Link href="/admin/leads/health" className="underline text-amber-50">
             View diagnostics
           </Link>
         </div>
@@ -638,7 +724,7 @@ export default function AdminLeadsClient({
           <p className="text-sm text-white/50">
             {loading
               ? 'Loading…'
-              : `${total.toLocaleString()} lead${total === 1 ? '' : 's'}${stats && stats.total === total ? '' : ' (count mismatch)'}`}
+              : `${total.toLocaleString()} lead${total === 1 ? '' : 's'}${stats && isLeadCountInSync(stats.total, total) ? '' : ' (count mismatch)'}`}
           </p>
         </div>
 

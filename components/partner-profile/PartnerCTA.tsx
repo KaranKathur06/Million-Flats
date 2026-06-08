@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
+import { singleDropdownValue } from '@/components/ui/dropdownUtils'
 import type { PartnerProfileData } from './types'
 
 type PartnerCTAProps = {
@@ -22,8 +24,13 @@ export default function PartnerCTA({ partner }: PartnerCTAProps) {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+    setError('')
+  }
+
+  const setField = (name: keyof typeof form, value: string) => {
+    setForm((prev) => ({ ...prev, [name]: value }))
     setError('')
   }
 
@@ -136,32 +143,43 @@ export default function PartnerCTA({ partner }: PartnerCTAProps) {
                     placeholder="City"
                     className="h-11 rounded-xl border border-gray-200 px-3.5 text-sm outline-none focus:border-dark-blue"
                   />
-                  <select
+                  <GlobalDropdown
                     name="propertyType"
+                    label="Property Type"
+                    showLabel={false}
                     value={form.propertyType}
-                    onChange={handleChange}
-                    className="h-11 rounded-xl border border-gray-200 px-3 text-sm text-gray-600 outline-none focus:border-dark-blue bg-white"
-                  >
-                    <option value="">Property Type</option>
-                    <option value="Apartment">Apartment</option>
-                    <option value="Villa">Villa</option>
-                    <option value="Penthouse">Penthouse</option>
-                    <option value="Commercial">Commercial</option>
-                    <option value="Office">Office</option>
-                  </select>
+                    onChange={(v) => setField('propertyType', singleDropdownValue(v))}
+                    placeholder="Property Type"
+                    options={[
+                      { value: '', label: 'Property Type' },
+                      { value: 'Apartment', label: 'Apartment' },
+                      { value: 'Villa', label: 'Villa' },
+                      { value: 'Penthouse', label: 'Penthouse' },
+                      { value: 'Commercial', label: 'Commercial' },
+                      { value: 'Office', label: 'Office' },
+                    ]}
+                    appearance="admin-light"
+                    dense
+                  />
                 </div>
-                <select
+                <GlobalDropdown
                   name="budget"
+                  label="Budget"
+                  showLabel={false}
                   value={form.budget}
-                  onChange={handleChange}
-                  className="mt-3 h-11 w-full rounded-xl border border-gray-200 px-3 text-sm text-gray-600 outline-none focus:border-dark-blue bg-white"
-                >
-                  <option value="">Budget Range</option>
-                  <option value="₹5L - ₹15L">₹5L - ₹15L</option>
-                  <option value="₹15L - ₹50L">₹15L - ₹50L</option>
-                  <option value="₹50L - ₹1Cr">₹50L - ₹1Cr</option>
-                  <option value="₹1Cr+">₹1Cr+ (Luxury)</option>
-                </select>
+                  onChange={(v) => setField('budget', singleDropdownValue(v))}
+                  placeholder="Budget Range"
+                  options={[
+                    { value: '', label: 'Budget Range' },
+                    { value: '₹5L - ₹15L', label: '₹5L - ₹15L' },
+                    { value: '₹15L - ₹50L', label: '₹15L - ₹50L' },
+                    { value: '₹50L - ₹1Cr', label: '₹50L - ₹1Cr' },
+                    { value: '₹1Cr+', label: '₹1Cr+ (Luxury)' },
+                  ]}
+                  appearance="admin-light"
+                  dense
+                  className="mt-3"
+                />
                 <input
                   type="text"
                   name="requirement"
