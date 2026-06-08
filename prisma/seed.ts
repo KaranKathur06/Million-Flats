@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { ECOSYSTEM_CATEGORY_CONFIG } from '../lib/ecosystem/categoryConfig'
+import { seedInteriorDesignPartners } from '../lib/ecosystem/seedInteriorPartners'
 
 const prisma = new PrismaClient()
 
@@ -27,6 +28,8 @@ async function main() {
       },
     })
   }
+
+  await seedInteriorDesignPartners()
 }
 
 main()

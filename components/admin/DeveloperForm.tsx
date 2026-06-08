@@ -20,8 +20,8 @@ export interface DeveloperFormData {
   countryCode: string
   countryIso2: string
   city: string
-  logo: string // final URL stored in DB
-  banner: string // final URL stored in DB
+  logo: string
+  banner: string
   shortDescription: string
   description: string
   website: string
@@ -29,6 +29,23 @@ export interface DeveloperFormData {
   isFeatured: boolean
   featuredRank: string
   status: string
+  // New fields
+  headquarters: string
+  email: string
+  phone: string
+  address: string
+  facebookUrl: string
+  instagramUrl: string
+  linkedinUrl: string
+  youtubeUrl: string
+  customerRating: string
+  projectsDelivered: string
+  countriesPresent: string
+  verixScore: string
+  brochureUrl: string
+  metaTitle: string
+  metaDescription: string
+  metaKeywords: string
 }
 
 export const emptyDeveloperForm: DeveloperFormData = {
@@ -46,6 +63,22 @@ export const emptyDeveloperForm: DeveloperFormData = {
   isFeatured: false,
   featuredRank: '',
   status: 'ACTIVE',
+  headquarters: '',
+  email: '',
+  phone: '',
+  address: '',
+  facebookUrl: '',
+  instagramUrl: '',
+  linkedinUrl: '',
+  youtubeUrl: '',
+  customerRating: '',
+  projectsDelivered: '',
+  countriesPresent: '',
+  verixScore: '',
+  brochureUrl: '',
+  metaTitle: '',
+  metaDescription: '',
+  metaKeywords: '',
 }
 
 interface DeveloperFormProps {
@@ -166,6 +199,23 @@ export default function DeveloperForm({ isEditMode = false, developerId, initial
       isFeatured: form.isFeatured,
       featuredRank: form.featuredRank ? parseInt(form.featuredRank) : null,
       status: form.status,
+      // Extended fields
+      headquarters: form.headquarters.trim() || null,
+      email: form.email.trim() || null,
+      phone: form.phone.trim() || null,
+      address: form.address.trim() || null,
+      facebookUrl: form.facebookUrl.trim() || null,
+      instagramUrl: form.instagramUrl.trim() || null,
+      linkedinUrl: form.linkedinUrl.trim() || null,
+      youtubeUrl: form.youtubeUrl.trim() || null,
+      customerRating: form.customerRating ? parseFloat(form.customerRating) : null,
+      projectsDelivered: form.projectsDelivered ? parseInt(form.projectsDelivered) : null,
+      countriesPresent: form.countriesPresent ? parseInt(form.countriesPresent) : null,
+      verixScore: form.verixScore ? parseInt(form.verixScore) : null,
+      brochureUrl: form.brochureUrl.trim() || null,
+      metaTitle: form.metaTitle.trim() || null,
+      metaDescription: form.metaDescription.trim() || null,
+      metaKeywords: form.metaKeywords.trim() || null,
     }
 
     try {
@@ -391,9 +441,71 @@ export default function DeveloperForm({ isEditMode = false, developerId, initial
         )}
       </div>
 
-      {/* ── Section 5: Status ── */}
+      {/* ── Section 5: Contact & Headquarters ── */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
-        <SectionHeader num={5} title="Status" />
+        <SectionHeader num={5} title="Contact & Headquarters" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <FormInput label="Headquarters" value={form.headquarters} onChange={(v) => update('headquarters', v)} placeholder="e.g. Dubai Marina, Dubai" />
+          <FormInput label="Email" value={form.email} onChange={(v) => update('email', v)} placeholder="info@developer.com" type="email" />
+          <FormInput label="Phone" value={form.phone} onChange={(v) => update('phone', v)} placeholder="+971 4 xxx xxxx" />
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Address</label>
+            <textarea
+              value={form.address}
+              onChange={(e) => update('address', e.target.value)}
+              rows={2}
+              placeholder="Full office address…"
+              className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-amber-400/30 focus:ring-1 focus:ring-amber-400/20 transition-all resize-none"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Section 6: Social Links ── */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
+        <SectionHeader num={6} title="Social Links" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <FormInput label="Facebook URL" value={form.facebookUrl} onChange={(v) => update('facebookUrl', v)} placeholder="https://facebook.com/developer" />
+          <FormInput label="Instagram URL" value={form.instagramUrl} onChange={(v) => update('instagramUrl', v)} placeholder="https://instagram.com/developer" />
+          <FormInput label="LinkedIn URL" value={form.linkedinUrl} onChange={(v) => update('linkedinUrl', v)} placeholder="https://linkedin.com/company/developer" />
+          <FormInput label="YouTube URL" value={form.youtubeUrl} onChange={(v) => update('youtubeUrl', v)} placeholder="https://youtube.com/@developer" hint="Link to a YouTube video or channel" />
+        </div>
+      </div>
+
+      {/* ── Section 7: Trust & Rating ── */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
+        <SectionHeader num={7} title="Trust & Rating" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <FormInput label="Customer Rating (0-5)" value={form.customerRating} onChange={(v) => update('customerRating', v)} placeholder="e.g. 4.8" type="number" hint="Decimal rating out of 5" />
+          <FormInput label="Projects Delivered" value={form.projectsDelivered} onChange={(v) => update('projectsDelivered', v)} placeholder="e.g. 120" type="number" />
+          <FormInput label="Countries Present" value={form.countriesPresent} onChange={(v) => update('countriesPresent', v)} placeholder="e.g. 2" type="number" />
+          <FormInput label="Verix Score (0-100)" value={form.verixScore} onChange={(v) => update('verixScore', v)} placeholder="e.g. 92" type="number" hint="Verix Developer Score™ — set by admin" />
+          <FormInput label="Brochure URL" value={form.brochureUrl} onChange={(v) => update('brochureUrl', v)} placeholder="https://cdn.example.com/brochure.pdf" hint="Link to developer brochure PDF" />
+        </div>
+      </div>
+
+      {/* ── Section 8: SEO ── */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
+        <SectionHeader num={8} title="SEO Settings" />
+        <div className="space-y-5">
+          <FormInput label="Meta Title" value={form.metaTitle} onChange={(v) => update('metaTitle', v)} placeholder="Custom page title for search engines" hint="Leave blank to auto-generate from developer name" />
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">Meta Description</label>
+            <textarea
+              value={form.metaDescription}
+              onChange={(e) => update('metaDescription', e.target.value)}
+              rows={3}
+              placeholder="Custom meta description for search engines (recommended 150-160 chars)…"
+              className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-amber-400/30 focus:ring-1 focus:ring-amber-400/20 transition-all resize-none"
+            />
+          </div>
+          <FormInput label="Meta Keywords" value={form.metaKeywords} onChange={(v) => update('metaKeywords', v)} placeholder="developer, real estate, dubai" hint="Comma-separated keywords" />
+        </div>
+      </div>
+
+      {/* ── Section 9: Status ── */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
+        <SectionHeader num={9} title="Status" />
         <div className="flex gap-3">
           {(['ACTIVE', 'INACTIVE'] as const).map((s) => (
             <button

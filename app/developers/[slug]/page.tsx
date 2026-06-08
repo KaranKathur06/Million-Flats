@@ -1,12 +1,17 @@
-﻿import type { Metadata } from 'next'
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import DeveloperHero from '@/components/developer-profile/DeveloperHero'
 import DeveloperStats from '@/components/developer-profile/DeveloperStats'
 import DeveloperAbout from '@/components/developer-profile/DeveloperAbout'
 import DeveloperProjects from '@/components/developer-profile/DeveloperProjects'
+import DeveloperAchievements from '@/components/developer-profile/DeveloperAchievements'
+import DeveloperGallery from '@/components/developer-profile/DeveloperGallery'
+import DeveloperVideos from '@/components/developer-profile/DeveloperVideos'
+import DeveloperFaqs from '@/components/developer-profile/DeveloperFaqs'
 import DeveloperCTA from '@/components/developer-profile/DeveloperCTA'
 import type { DeveloperProfileData } from '@/components/developer-profile/types'
+import EcosystemPartnerRecommendationsSection from '@/components/ecosystem/EcosystemPartnerRecommendationsSection'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -47,6 +52,33 @@ async function getDeveloperProfile(slug: string): Promise<DeveloperProfileData |
             completionYear: true,
             coverImage: true,
             goldenVisa: true,
+          },
+        },
+        achievements: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            imageUrl: true,
+            awardDate: true,
+          },
+        },
+        faqs: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            id: true,
+            question: true,
+            answer: true,
+          },
+        },
+        gallery: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            id: true,
+            imageUrl: true,
+            caption: true,
+            category: true,
           },
         },
       },
@@ -107,6 +139,28 @@ From design-led communities to strategic launch locations, ${developer.name} con
     specialization: 'Luxury Residential / Mixed-Use / Commercial',
     website: developer.website || null,
     verified: true,
+
+    // Extended fields
+    headquarters: developer.headquarters || null,
+    email: developer.email || null,
+    phone: developer.phone || null,
+    address: developer.address || null,
+    brochureUrl: developer.brochureUrl || null,
+
+    // Social links
+    socialLinks: {
+      facebook: developer.facebookUrl || null,
+      instagram: developer.instagramUrl || null,
+      linkedin: developer.linkedinUrl || null,
+      youtube: developer.youtubeUrl || null,
+    },
+
+    // Trust & rating
+    customerRating: developer.customerRating || null,
+    projectsDelivered: developer.projectsDelivered || null,
+    countriesPresent: developer.countriesPresent || null,
+    verixScore: developer.verixScore || null,
+
     stats: {
       projects: projects.length,
       cities: citySet.size || 1,
@@ -118,6 +172,7 @@ From design-led communities to strategic launch locations, ${developer.name} con
             ? `${formatAED(minPrice)}+`
             : null,
     },
+
     projects: projects.map((project: any, index: number) => ({
       id: project.id,
       name: project.name,
@@ -127,6 +182,27 @@ From design-led communities to strategic launch locations, ${developer.name} con
       startingPrice: formatAED(project.startingPrice),
       status: project.completionYear ? `Handover ${project.completionYear}` : 'New Launch',
       tag: index === 0 ? 'Featured' : project.goldenVisa ? '3D Tour Available' : null,
+    })),
+
+    achievements: (developer.achievements || []).map((a: any) => ({
+      id: a.id,
+      title: a.title,
+      description: a.description || null,
+      imageUrl: a.imageUrl || null,
+      awardDate: a.awardDate ? new Date(a.awardDate).toISOString() : null,
+    })),
+
+    faqs: (developer.faqs || []).map((f: any) => ({
+      id: f.id,
+      question: f.question,
+      answer: f.answer,
+    })),
+
+    gallery: (developer.gallery || []).map((g: any) => ({
+      id: g.id,
+      imageUrl: g.imageUrl,
+      caption: g.caption || null,
+      category: g.category || null,
     })),
   }
 }
@@ -167,6 +243,9 @@ export default async function DeveloperProfilePage({ params }: DeveloperPageProp
     notFound()
   }
 
+  const base = getMetadataBase()
+  const canonical = base ? `${base}/developers/${params.slug}` : ''
+
   const reasons = [
     {
       title: 'Premium Quality',
@@ -186,17 +265,83 @@ export default async function DeveloperProfilePage({ params }: DeveloperPageProp
     },
   ]
 
+  // Build structured data
+  const organizationSchema: any = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: developer.name,
+    url: developer.website || canonical || undefined,
+    logo: developer.logo !== '/LOGO.jpeg' ? developer.logo : undefined,
+    image: developer.banner !== '/HOMEPAGE.jpg' ? developer.banner : undefined,
+    description: developer.shortDescription || developer.tagline,
+    foundingDate: developer.founded_year ? `${developer.founded_year}` : undefined,
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: developer.city,
+      addressCountry: developer.country,
+    },
+  }
+
+  if (developer.customerRating && developer.customerRating > 0) {
+    organizationSchema.aggregateRating = {
+      '@type': 'AggregateRating',
+      ratingValue: developer.customerRating,
+      bestRating: 5,
+      worstRating: 1,
+    }
+  }
+
+  // FAQ schema
+  const faqSchema = developer.faqs.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: developer.faqs.map((faq) => ({
+          '@type': 'Question',
+          name: faq.question,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: faq.answer,
+          },
+        })),
+      }
+    : null
+
+  // Breadcrumb schema
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: base || undefined },
+      { '@type': 'ListItem', position: 2, name: 'Developers', item: base ? `${base}/developers` : undefined },
+      { '@type': 'ListItem', position: 3, name: developer.name, item: canonical || undefined },
+    ],
+  }
+
   return (
     <main className="bg-gray-50 pb-16">
       <DeveloperHero developer={developer} />
-      <DeveloperStats stats={developer.stats} />
+      <DeveloperStats developer={developer} />
       <DeveloperAbout developer={developer} />
-      <DeveloperProjects projects={developer.projects} />
+      <DeveloperProjects projects={developer.projects} stats={developer.stats} developerName={developer.name} />
 
+      {/* Achievements */}
+      <DeveloperAchievements achievements={developer.achievements} developerName={developer.name} />
+
+      {/* Gallery */}
+      <DeveloperGallery gallery={developer.gallery} developerName={developer.name} />
+
+      {/* Videos */}
+      <DeveloperVideos youtubeUrl={developer.socialLinks.youtube} developerName={developer.name} />
+
+      {/* FAQs */}
+      <DeveloperFaqs faqs={developer.faqs} developerName={developer.name} />
+
+      {/* Why Choose Section */}
       <section className="py-12 sm:py-14 lg:py-16">
         <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-8">
           <div className="mb-8 sm:mb-10">
-            <h2 className="text-2xl font-bold tracking-tight text-dark-blue sm:text-3xl">Why Choose This Developer</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-dark-blue sm:text-3xl">Why Choose {developer.name}</h2>
             <p className="mt-2 text-sm text-gray-600 sm:text-base">A trusted development partner for premium real estate decisions.</p>
           </div>
 
@@ -211,31 +356,30 @@ export default async function DeveloperProfilePage({ params }: DeveloperPageProp
         </div>
       </section>
 
+      <EcosystemPartnerRecommendationsSection
+        context="developer"
+        city={developer.city}
+        layout="full"
+        className="bg-white"
+      />
+
       <DeveloperCTA developer={developer} />
 
       {/* JSON-LD Structured Data */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'Organization',
-            name: developer.name,
-            url: developer.website || undefined,
-            logo: developer.logo !== '/LOGO.jpeg' ? developer.logo : undefined,
-            image: developer.banner !== '/HOMEPAGE.jpg' ? developer.banner : undefined,
-            description: developer.shortDescription || developer.tagline,
-            foundingDate: developer.founded_year ? `${developer.founded_year}` : undefined,
-            address: {
-              '@type': 'PostalAddress',
-              addressLocality: developer.city,
-              addressCountry: developer.country,
-            },
-          }),
-        }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
     </main>
   )
 }
-
-

@@ -4,6 +4,7 @@ import PropertyGallery from '@/components/PropertyGallery'
 import ClientLazyMap from '@/components/ClientLazyMap'
 import AmenitiesListModal from '@/components/AmenitiesListModal'
 import { AIShieldCTA } from '@/components/aishield/AIShieldCTA'
+import EcosystemPartnerRecommendationsSection from '@/components/ecosystem/EcosystemPartnerRecommendationsSection'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v : ''
@@ -237,6 +238,12 @@ export default function ManualPropertyPreview({ manual }: { manual: any }) {
               </Link>
             </div>
           </section>
+
+          <EcosystemPartnerRecommendationsSection
+            context="property"
+            city={city || null}
+            layout="sidebar"
+          />
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import { ProjectPageSkeleton } from '@/components/skeletons/ProjectPageSkeletons'
 import ProjectDetailClient from './ProjectDetailClient'
+import { getRecommendationsForContext } from '@/lib/ecosystem/getRecommendedPartners'
 
 /* ═══════════════════════════════════════════════
    PERFORMANCE-OPTIMISED PROJECT PAGE
@@ -31,7 +32,7 @@ async function getProject(slug: string) {
         const projectPromise = (prisma as any).project.findFirst({
             where: { slug, status: 'PUBLISHED', isDeleted: false },
             include: {
-                developer: { select: { id: true, name: true, slug: true, logo: true } },
+                developer: { select: { id: true, name: true, slug: true, logo: true, foundedYear: true, customerRating: true, _count: { select: { projects: { where: { status: 'PUBLISHED' } } } } } },
                 media: { orderBy: { sortOrder: 'asc' } },
                 unitTypes: {
                     orderBy: { sortOrder: 'asc' },
@@ -176,9 +177,13 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         notFound()
     }
 
+    const ecosystemRecommendations = await getRecommendationsForContext('project', {
+        city: project.city || undefined,
+    }).catch(() => [])
+
     return (
         <Suspense fallback={<ProjectPageSkeleton />}>
-            <ProjectDetailClient project={project} />
+            <ProjectDetailClient project={project} ecosystemRecommendations={ecosystemRecommendations} />
         </Suspense>
     )
 }

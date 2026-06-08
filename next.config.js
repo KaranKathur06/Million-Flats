@@ -51,6 +51,13 @@ const nextConfig = {
       { source: '/verix/pro', destination: '/ai/pro', permanent: true },
     ]
   },
+  async rewrites() {
+    return [
+      // ── Developer marketplace SEO-friendly country pages ──
+      { source: '/dubai-developers', destination: '/developers?country=UAE' },
+      { source: '/india-developers', destination: '/developers?country=INDIA' },
+    ]
+  },
 }
 
 module.exports = nextConfig

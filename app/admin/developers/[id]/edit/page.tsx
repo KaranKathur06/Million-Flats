@@ -43,6 +43,23 @@ export default function AdminEditDeveloperPage({ params }: Props) {
         isFeatured: developer.isFeatured ?? false,
         featuredRank: developer.featuredRank ? String(developer.featuredRank) : '',
         status: developer.status || 'ACTIVE',
+        // Extended fields
+        headquarters: developer.headquarters || '',
+        email: developer.email || '',
+        phone: developer.phone || '',
+        address: developer.address || '',
+        facebookUrl: developer.facebookUrl || '',
+        instagramUrl: developer.instagramUrl || '',
+        linkedinUrl: developer.linkedinUrl || '',
+        youtubeUrl: developer.youtubeUrl || '',
+        customerRating: developer.customerRating ? String(developer.customerRating) : '',
+        projectsDelivered: developer.projectsDelivered ? String(developer.projectsDelivered) : '',
+        countriesPresent: developer.countriesPresent ? String(developer.countriesPresent) : '',
+        verixScore: developer.verixScore ? String(developer.verixScore) : '',
+        brochureUrl: developer.brochureUrl || '',
+        metaTitle: developer.metaTitle || '',
+        metaDescription: developer.metaDescription || '',
+        metaKeywords: developer.metaKeywords || '',
       }
     : {}
 

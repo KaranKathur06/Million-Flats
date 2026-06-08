@@ -30,6 +30,23 @@ const developerSchema = z.object({
   featuredRank: z.number().int().min(0).optional().nullable(),
   featured_rank: z.number().int().min(0).optional().nullable(),
   status: z.enum(['ACTIVE', 'INACTIVE', 'active', 'inactive']).optional(),
+  // Extended fields
+  headquarters: z.string().max(300).optional().nullable(),
+  email: z.string().max(300).optional().nullable(),
+  phone: z.string().max(50).optional().nullable(),
+  address: z.string().optional().nullable(),
+  facebookUrl: z.string().max(500).optional().nullable(),
+  instagramUrl: z.string().max(500).optional().nullable(),
+  linkedinUrl: z.string().max(500).optional().nullable(),
+  youtubeUrl: z.string().max(500).optional().nullable(),
+  customerRating: z.number().min(0).max(5).optional().nullable(),
+  projectsDelivered: z.number().int().min(0).optional().nullable(),
+  countriesPresent: z.number().int().min(0).optional().nullable(),
+  verixScore: z.number().int().min(0).max(100).optional().nullable(),
+  brochureUrl: z.string().max(2000).optional().nullable(),
+  metaTitle: z.string().max(300).optional().nullable(),
+  metaDescription: z.string().optional().nullable(),
+  metaKeywords: z.string().max(500).optional().nullable(),
 })
 
 function normalizeDevData(data: z.infer<typeof developerSchema>) {
@@ -51,6 +68,23 @@ function normalizeDevData(data: z.infer<typeof developerSchema>) {
     isFeatured: data.isFeatured ?? data.is_featured ?? false,
     featuredRank: data.featuredRank ?? data.featured_rank ?? null,
     status: status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
+    // Extended fields
+    headquarters: data.headquarters?.trim() || null,
+    email: data.email?.trim() || null,
+    phone: data.phone?.trim() || null,
+    address: data.address?.trim() || null,
+    facebookUrl: data.facebookUrl?.trim() || null,
+    instagramUrl: data.instagramUrl?.trim() || null,
+    linkedinUrl: data.linkedinUrl?.trim() || null,
+    youtubeUrl: data.youtubeUrl?.trim() || null,
+    customerRating: data.customerRating ?? null,
+    projectsDelivered: data.projectsDelivered ?? null,
+    countriesPresent: data.countriesPresent ?? null,
+    verixScore: data.verixScore ?? null,
+    brochureUrl: data.brochureUrl?.trim() || null,
+    metaTitle: data.metaTitle?.trim() || null,
+    metaDescription: data.metaDescription?.trim() || null,
+    metaKeywords: data.metaKeywords?.trim() || null,
   }
 }
 
@@ -71,8 +105,13 @@ export async function GET(req: Request) {
     const baseSelect = {
       id: true, name: true, slug: true, logo: true, banner: true,
       countryCode: true, countryIso2: true, city: true,
-      shortDescription: true, website: true, foundedYear: true,
+      shortDescription: true, description: true, website: true, foundedYear: true,
       isFeatured: true, featuredRank: true, status: true,
+      headquarters: true, email: true, phone: true, address: true,
+      facebookUrl: true, instagramUrl: true, linkedinUrl: true, youtubeUrl: true,
+      customerRating: true, projectsDelivered: true, countriesPresent: true,
+      verixScore: true, brochureUrl: true,
+      metaTitle: true, metaDescription: true, metaKeywords: true,
       createdAt: true, updatedAt: true,
       _count: { select: { projects: true, properties: true } },
     }

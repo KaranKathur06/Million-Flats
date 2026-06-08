@@ -26,6 +26,23 @@ const updateSchema = z.object({
   isFeatured: z.boolean().optional(),
   featuredRank: z.number().int().min(0).optional().nullable(),
   status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
+  // Extended fields
+  headquarters: z.string().max(300).optional().nullable(),
+  email: z.string().max(300).optional().nullable(),
+  phone: z.string().max(50).optional().nullable(),
+  address: z.string().optional().nullable(),
+  facebookUrl: z.string().max(500).optional().nullable(),
+  instagramUrl: z.string().max(500).optional().nullable(),
+  linkedinUrl: z.string().max(500).optional().nullable(),
+  youtubeUrl: z.string().max(500).optional().nullable(),
+  customerRating: z.number().min(0).max(5).optional().nullable(),
+  projectsDelivered: z.number().int().min(0).optional().nullable(),
+  countriesPresent: z.number().int().min(0).optional().nullable(),
+  verixScore: z.number().int().min(0).max(100).optional().nullable(),
+  brochureUrl: z.string().max(2000).optional().nullable(),
+  metaTitle: z.string().max(300).optional().nullable(),
+  metaDescription: z.string().optional().nullable(),
+  metaKeywords: z.string().max(500).optional().nullable(),
 })
 
 // ─── GET single developer (admin) ──────────────────────────
@@ -42,6 +59,11 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       description: true, shortDescription: true, website: true,
       foundedYear: true, isFeatured: true, featuredRank: true,
       status: true, createdAt: true, updatedAt: true,
+      headquarters: true, email: true, phone: true, address: true,
+      facebookUrl: true, instagramUrl: true, linkedinUrl: true, youtubeUrl: true,
+      customerRating: true, projectsDelivered: true, countriesPresent: true,
+      verixScore: true, brochureUrl: true,
+      metaTitle: true, metaDescription: true, metaKeywords: true,
       _count: { select: { projects: true, properties: true } },
     }
 
@@ -145,6 +167,23 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       ...(data.isFeatured !== undefined && { isFeatured: data.isFeatured }),
       ...(data.featuredRank !== undefined && { featuredRank }),
       ...(data.status !== undefined && { status: data.status }),
+      // Extended fields
+      ...(data.headquarters !== undefined && { headquarters: data.headquarters?.trim() || null }),
+      ...(data.email !== undefined && { email: data.email?.trim() || null }),
+      ...(data.phone !== undefined && { phone: data.phone?.trim() || null }),
+      ...(data.address !== undefined && { address: data.address?.trim() || null }),
+      ...(data.facebookUrl !== undefined && { facebookUrl: data.facebookUrl?.trim() || null }),
+      ...(data.instagramUrl !== undefined && { instagramUrl: data.instagramUrl?.trim() || null }),
+      ...(data.linkedinUrl !== undefined && { linkedinUrl: data.linkedinUrl?.trim() || null }),
+      ...(data.youtubeUrl !== undefined && { youtubeUrl: data.youtubeUrl?.trim() || null }),
+      ...(data.customerRating !== undefined && { customerRating: data.customerRating }),
+      ...(data.projectsDelivered !== undefined && { projectsDelivered: data.projectsDelivered }),
+      ...(data.countriesPresent !== undefined && { countriesPresent: data.countriesPresent }),
+      ...(data.verixScore !== undefined && { verixScore: data.verixScore }),
+      ...(data.brochureUrl !== undefined && { brochureUrl: data.brochureUrl?.trim() || null }),
+      ...(data.metaTitle !== undefined && { metaTitle: data.metaTitle?.trim() || null }),
+      ...(data.metaDescription !== undefined && { metaDescription: data.metaDescription?.trim() || null }),
+      ...(data.metaKeywords !== undefined && { metaKeywords: data.metaKeywords?.trim() || null }),
     }
 
     if (data.countryCode !== undefined) {

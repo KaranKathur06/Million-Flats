@@ -2,7 +2,9 @@ import { notFound } from 'next/navigation'
 import Script from 'next/script'
 import EcosystemHero from '@/components/ecosystem/EcosystemHero'
 import EcosystemBenefits from '@/components/ecosystem/EcosystemBenefits'
-import EcosystemPartnerGrid, { type EcosystemPartnerCard } from '@/components/ecosystem/EcosystemPartnerGrid'
+import EcosystemPartnerDirectoryClient, {
+  type EcosystemPartnerCard,
+} from '@/components/ecosystem/EcosystemPartnerDirectoryClient'
 import EcosystemToolSection from '@/components/ecosystem/EcosystemToolSection'
 import EcosystemFAQ, { buildFaqSchema } from '@/components/ecosystem/EcosystemFAQ'
 import StickyLeadCaptureClient from '@/components/ecosystem/StickyLeadCaptureClient'
@@ -40,11 +42,15 @@ export default async function EcosystemCategoryLanding({ slug, page }: { slug: s
         select: {
           id: true,
           name: true,
+          slug: true,
           logo: true,
+          coverImage: true,
           shortDescription: true,
           rating: true,
           yearsExperience: true,
+          projectsCompleted: true,
           locationCoverage: true,
+          pricingRange: true,
           isFeatured: true,
           isVerified: true,
         },
@@ -56,11 +62,15 @@ export default async function EcosystemCategoryLanding({ slug, page }: { slug: s
   const partners: EcosystemPartnerCard[] = (partnersRaw as any[]).map((p) => ({
     id: String(p.id),
     name: String(p.name),
+    slug: p.slug ?? null,
     logo: p.logo ?? null,
+    coverImage: p.coverImage ?? null,
     shortDescription: p.shortDescription ?? null,
     rating: safeNumber(p.rating),
     yearsExperience: safeNumber(p.yearsExperience),
+    projectsCompleted: safeNumber(p.projectsCompleted),
     locationCoverage: p.locationCoverage ?? null,
+    pricingRange: p.pricingRange ?? null,
     isFeatured: Boolean(p.isFeatured),
     isVerified: Boolean(p.isVerified),
   }))
@@ -128,9 +138,10 @@ export default async function EcosystemCategoryLanding({ slug, page }: { slug: s
 
       <EcosystemToolSection tool={cfg.tool} />
 
-      <EcosystemPartnerGrid
+      <EcosystemPartnerDirectoryClient
         partners={partners}
         slug={cfg.slug}
+        categoryTitle={cfg.title}
         initialPage={pageSafe}
         take={take}
         total={totalPartners}

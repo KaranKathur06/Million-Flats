@@ -7,6 +7,7 @@ export const LEAD_TYPE_LABELS: Record<LeadType, string> = {
   PROJECT: 'Project Lead',
   CONTACT: 'Contact Lead',
   ECOSYSTEM: 'Ecosystem Lead',
+  DEVELOPER: 'Developer Inquiry',
 }
 
 export const LEAD_TYPE_FILTER_OPTIONS = [
@@ -15,6 +16,7 @@ export const LEAD_TYPE_FILTER_OPTIONS = [
   { value: 'PROJECT', label: 'Project Lead' },
   { value: 'CONTACT', label: 'Contact Lead' },
   { value: 'ECOSYSTEM', label: 'Ecosystem Lead' },
+  { value: 'DEVELOPER', label: 'Developer Inquiry' },
 ] as const
 
 export const CONTACT_CATEGORY_LABELS: Record<string, string> = {

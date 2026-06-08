@@ -76,6 +76,7 @@ const STATIC_PAGES: SitemapUrl[] = [
   { loc: '/privacy', lastmod: new Date().toISOString().split('T')[0], changefreq: 'yearly', priority: 0.3 },
   { loc: '/terms', lastmod: new Date().toISOString().split('T')[0], changefreq: 'yearly', priority: 0.3 },
   { loc: '/ecosystem', lastmod: new Date().toISOString().split('T')[0], changefreq: 'weekly', priority: 0.6 },
+  { loc: '/ecosystem-partners', lastmod: new Date().toISOString().split('T')[0], changefreq: 'weekly', priority: 0.7 },
   { loc: '/market-analysis', lastmod: new Date().toISOString().split('T')[0], changefreq: 'weekly', priority: 0.7 },
   { loc: '/featured-listings', lastmod: new Date().toISOString().split('T')[0], changefreq: 'daily', priority: 0.8 },
 ]
@@ -225,6 +226,53 @@ async function fetchBlogUrls(): Promise<SitemapUrl[]> {
   }
 }
 
+async function fetchEcosystemPartnerUrls(): Promise<SitemapUrl[]> {
+  try {
+    const partners = await (prisma as any).ecosystemPartner.findMany({
+      where: {
+        isActive: true,
+        status: 'APPROVED',
+        slug: { not: null },
+      },
+      select: {
+        slug: true,
+        updatedAt: true,
+        category: { select: { slug: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    })
+
+    const categoryUrls: SitemapUrl[] = []
+    const seenCategories = new Set<string>()
+    const today = new Date().toISOString().split('T')[0]
+
+    const partnerUrls = partners
+      .filter((p: any) => p.slug && p.category?.slug)
+      .map((p: any) => {
+        if (!seenCategories.has(p.category.slug)) {
+          seenCategories.add(p.category.slug)
+          categoryUrls.push({
+            loc: `/ecosystem-partners/${p.category.slug}`,
+            lastmod: today,
+            changefreq: 'weekly' as const,
+            priority: 0.65,
+          })
+        }
+        return {
+          loc: `/ecosystem-partners/${p.category.slug}/${p.slug}`,
+          lastmod: p.updatedAt ? new Date(p.updatedAt).toISOString().split('T')[0] : today,
+          changefreq: 'weekly' as const,
+          priority: 0.6,
+        }
+      })
+
+    return [...categoryUrls, ...partnerUrls]
+  } catch (err) {
+    console.error('[Sitemap] Error fetching ecosystem partner URLs:', err)
+    return []
+  }
+}
+
 async function fetchDeveloperUrls(): Promise<SitemapUrl[]> {
   try {
     const developers = await (prisma as any).developer.findMany({
@@ -271,7 +319,7 @@ export async function generateAllSitemaps(): Promise<SitemapGenerationResult> {
   console.log('[Sitemap] Starting full sitemap generation...')
 
   // Fetch all URL sets in parallel
-  const [projectUrls, blogUrls, developerUrls] = await Promise.all([
+  const [projectUrls, blogUrls, developerUrls, ecosystemPartnerUrls] = await Promise.all([
     fetchProjectUrls().catch((err) => {
       errors.push({ type: 'projects', message: String(err), timestamp: new Date().toISOString() })
       return [] as SitemapUrl[]
@@ -284,6 +332,10 @@ export async function generateAllSitemaps(): Promise<SitemapGenerationResult> {
       errors.push({ type: 'developers', message: String(err), timestamp: new Date().toISOString() })
       return [] as SitemapUrl[]
     }),
+    fetchEcosystemPartnerUrls().catch((err) => {
+      errors.push({ type: 'ecosystem-partners', message: String(err), timestamp: new Date().toISOString() })
+      return [] as SitemapUrl[]
+    }),
   ])
 
   // Static pages
@@ -293,6 +345,7 @@ export async function generateAllSitemaps(): Promise<SitemapGenerationResult> {
   const dedupedProjects = deduplicateUrls(projectUrls)
   const dedupedBlogs = deduplicateUrls(blogUrls)
   const dedupedDevelopers = deduplicateUrls(developerUrls)
+  const dedupedEcosystemPartners = deduplicateUrls(ecosystemPartnerUrls)
 
   // Generate XML for each type
   const sitemapTypes: { type: string; urls: SitemapUrl[] }[] = [
@@ -300,6 +353,7 @@ export async function generateAllSitemaps(): Promise<SitemapGenerationResult> {
     { type: 'projects', urls: dedupedProjects },
     { type: 'blogs', urls: dedupedBlogs },
     { type: 'developers', urls: dedupedDevelopers },
+    { type: 'ecosystem-partners', urls: dedupedEcosystemPartners },
   ]
 
   const sitemapResults: { type: string; urlCount: number }[] = []
@@ -382,7 +436,7 @@ export interface SitemapDashboardData {
 export async function getSitemapDashboardData(): Promise<SitemapDashboardData> {
   const meta = readMeta()
 
-  const cacheTypes = ['index', 'pages', 'projects', 'blogs', 'developers']
+  const cacheTypes = ['index', 'pages', 'projects', 'blogs', 'developers', 'ecosystem-partners']
   const cacheStatus = cacheTypes.map((type) => {
     const cachePath = getCachePath(type)
     let valid = false

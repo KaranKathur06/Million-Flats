@@ -9,6 +9,9 @@ import { formatAEDCompact } from '@/lib/pricing'
 import dynamic from 'next/dynamic'
 import { LocationSkeleton, SimilarProjectsSkeleton, VideosSkeleton } from '@/components/skeletons/ProjectPageSkeletons'
 import { AIShieldCTA } from '@/components/aishield/AIShieldCTA'
+import DeveloperCardInProject from '@/components/developer-profile/DeveloperCardInProject'
+import EcosystemPartnerRecommendationsClient from '@/components/ecosystem/EcosystemPartnerRecommendationsClient'
+import type { RecommendationGroup } from '@/lib/ecosystem/getRecommendedPartners'
 
 /* ═══════════════════════════════════════════════
    LAZY SECTION — Deferred rendering via IntersectionObserver
@@ -53,7 +56,7 @@ interface ProjectData {
     coverImage: string | null
     status: string
     createdAt: string
-    developer: { id: string; name: string; slug: string | null; logo: string | null } | null
+    developer: { id: string; name: string; slug: string | null; logo: string | null; foundedYear?: number | null; customerRating?: number | null; _count?: { projects: number } } | null
     media: { id: string; mediaUrl: string; mediaType: string; category?: string | null; label?: string | null; sortOrder: number | null }[]
     mediaStructured?: {
         hero?: string
@@ -175,7 +178,13 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
 /* ═══════════════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════════════ */
-export default function ProjectDetailClient({ project }: { project: ProjectData }) {
+export default function ProjectDetailClient({
+    project,
+    ecosystemRecommendations = [],
+}: {
+    project: ProjectData
+    ecosystemRecommendations?: RecommendationGroup[]
+}) {
     const router = useRouter()
     const searchParams = useSearchParams()
     const { data: session } = useSession()
@@ -655,10 +664,10 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
                             <SectionHeader title="Key Details" />
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                                 {project.developer && (
-                                    <div className="rounded-xl border border-gray-200 bg-white p-4 hover:shadow-md transition-shadow">
+                                    <Link href={project.developer.slug ? `/developers/${project.developer.slug}` : '#'} className="rounded-xl border border-gray-200 bg-white p-4 hover:shadow-md hover:border-primary-200 transition-all block">
                                         <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Developer</p>
                                         <p className="text-sm font-semibold text-gray-900">{project.developer.name}</p>
-                                    </div>
+                                    </Link>
                                 )}
                                 {project.city && (
                                     <div className="rounded-xl border border-gray-200 bg-white p-4 hover:shadow-md transition-shadow">
@@ -1338,21 +1347,15 @@ export default function ProjectDetailClient({ project }: { project: ProjectData 
 
                             {/* Developer Card */}
                             {project.developer && (
-                                <div className="rounded-2xl border border-gray-200 bg-white p-5">
-                                    <div className="flex items-center gap-3">
-                                        {project.developer.logo ? (
-                                            <img src={project.developer.logo} alt={project.developer.name} className="h-12 w-12 rounded-xl object-cover border border-gray-100" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                                        ) : (
-                                            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center text-lg font-bold text-white">
-                                                {project.developer.name.charAt(0)}
-                                            </div>
-                                        )}
-                                        <div>
-                                            <p className="text-sm font-semibold text-gray-900">{project.developer.name}</p>
-                                            <p className="text-xs text-gray-400">Developer</p>
-                                        </div>
-                                    </div>
-                                </div>
+                                <DeveloperCardInProject developer={project.developer} />
+                            )}
+
+                            {/* Ecosystem Partner Recommendations */}
+                            {ecosystemRecommendations.length > 0 && (
+                                <EcosystemPartnerRecommendationsClient
+                                    groups={ecosystemRecommendations}
+                                    layout="sidebar"
+                                />
                             )}
 
                             {/* AIShield — links to AI Intelligence Platform */}

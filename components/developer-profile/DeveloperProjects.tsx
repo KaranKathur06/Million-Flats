@@ -1,18 +1,61 @@
 import Link from 'next/link'
-import type { DeveloperProjectCard } from './types'
+import type { DeveloperProjectCard, DeveloperProfileData } from './types'
 
 type DeveloperProjectsProps = {
   projects: DeveloperProjectCard[]
+  stats?: DeveloperProfileData['stats']
+  developerName?: string
 }
 
-export default function DeveloperProjects({ projects }: DeveloperProjectsProps) {
+export default function DeveloperProjects({ projects, stats, developerName }: DeveloperProjectsProps) {
+  // Calculate analytics from projects
+  const prices = projects
+    .map((p) => {
+      const match = p.startingPrice?.replace(/[^0-9]/g, '')
+      return match ? Number(match) : 0
+    })
+    .filter((v) => v > 0)
+  const avgPrice = prices.length > 0 ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : null
+
   return (
     <section id="developer-projects" className="py-12 sm:py-14 lg:py-16">
       <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-8">
         <div className="mb-8 sm:mb-10">
-          <h2 className="text-2xl font-bold tracking-tight text-dark-blue sm:text-3xl">Featured Projects</h2>
-          <p className="mt-2 text-sm text-gray-600 sm:text-base">Explore signature developments from this verified developer.</p>
+          <h2 className="text-2xl font-bold tracking-tight text-dark-blue sm:text-3xl">
+            {developerName ? `${developerName} Projects` : 'Featured Projects'}
+          </h2>
+          <p className="mt-2 text-sm text-gray-600 sm:text-base">
+            Explore signature developments from this verified developer.
+          </p>
         </div>
+
+        {/* Analytics bar */}
+        {projects.length > 0 && (
+          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+              <p className="text-xs font-medium text-gray-500">Total Projects</p>
+              <p className="text-lg font-bold text-dark-blue">{projects.length}</p>
+            </div>
+            {avgPrice && (
+              <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+                <p className="text-xs font-medium text-gray-500">Avg. Starting Price</p>
+                <p className="text-lg font-bold text-amber-600">AED {avgPrice.toLocaleString()}</p>
+              </div>
+            )}
+            {stats && stats.cities > 0 && (
+              <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+                <p className="text-xs font-medium text-gray-500">Cities</p>
+                <p className="text-lg font-bold text-dark-blue">{stats.cities}</p>
+              </div>
+            )}
+            {stats && stats.totalInquiries && stats.totalInquiries > 0 && (
+              <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+                <p className="text-xs font-medium text-gray-500">Total Inquiries</p>
+                <p className="text-lg font-bold text-emerald-600">{stats.totalInquiries}</p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {projects.length === 0 ? (

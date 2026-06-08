@@ -10,6 +10,9 @@ const QuerySchema = z.object({
   take: z.coerce.number().int().min(1).max(48).default(12),
   featuredOnly: z.coerce.boolean().optional(),
   minRating: z.coerce.number().min(0).max(5).optional(),
+  search: z.string().optional(),
+  location: z.string().optional(),
+  budget: z.string().optional(),
 })
 
 function bad(message: string, status = 400) {
@@ -25,6 +28,9 @@ export async function GET(req: Request) {
       take: searchParams.get('take') ?? '12',
       featuredOnly: searchParams.get('featuredOnly') ?? undefined,
       minRating: searchParams.get('minRating') ?? undefined,
+      search: searchParams.get('search') ?? undefined,
+      location: searchParams.get('location') ?? undefined,
+      budget: searchParams.get('budget') ?? undefined,
     })
 
     const category = await (prisma as any).ecosystemCategory.findUnique({
@@ -46,6 +52,18 @@ export async function GET(req: Request) {
     if (typeof parsed.minRating === 'number' && parsed.minRating > 0) {
       where.rating = { gte: parsed.minRating }
     }
+    if (parsed.search?.trim()) {
+      where.OR = [
+        { name: { contains: parsed.search.trim(), mode: 'insensitive' } },
+        { shortDescription: { contains: parsed.search.trim(), mode: 'insensitive' } },
+      ]
+    }
+    if (parsed.location?.trim()) {
+      where.locationCoverage = { contains: parsed.location.trim(), mode: 'insensitive' }
+    }
+    if (parsed.budget?.trim()) {
+      where.pricingRange = { contains: parsed.budget.trim(), mode: 'insensitive' }
+    }
 
     const [items, total] = await Promise.all([
       (prisma as any).ecosystemPartner.findMany({
@@ -56,11 +74,15 @@ export async function GET(req: Request) {
         select: {
           id: true,
           name: true,
+          slug: true,
           logo: true,
+          coverImage: true,
           shortDescription: true,
           rating: true,
           yearsExperience: true,
+          projectsCompleted: true,
           locationCoverage: true,
+          pricingRange: true,
           isFeatured: true,
           isVerified: true,
         },

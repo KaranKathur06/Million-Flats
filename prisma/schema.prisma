@@ -609,6 +609,33 @@ model Developer {
   shortDescription String?     @map("short_description")
   website     String?
   foundedYear Int?             @map("founded_year")
+  headquarters String?
+  email       String?
+  phone       String?
+  address     String?          @db.Text
+
+  // Social links
+  facebookUrl  String?         @map("facebook_url")
+  instagramUrl String?         @map("instagram_url")
+  linkedinUrl  String?         @map("linkedin_url")
+  youtubeUrl   String?         @map("youtube_url")
+
+  // Trust & rating
+  customerRating    Float?     @map("customer_rating")
+  projectsDelivered Int?       @map("projects_delivered")
+  countriesPresent  Int?       @map("countries_present")
+  verixScore        Int?       @map("verix_score")
+
+  // SEO fields
+  metaTitle       String?      @map("meta_title")
+  metaDescription String?      @map("meta_description") @db.Text
+  metaKeywords    String?      @map("meta_keywords")
+  ogImage         String?      @map("og_image")
+  canonicalUrl    String?      @map("canonical_url")
+
+  // Brochure
+  brochureUrl     String?      @map("developer_brochure_url")
+
   isFeatured Boolean @default(false) @map("is_featured")
   featuredRank Int?            @map("featured_rank")
   status      DeveloperStatus @default(ACTIVE)
@@ -617,6 +644,10 @@ model Developer {
 
   properties ManualProperty[]
   projects   Project[]
+  achievements DeveloperAchievement[]
+  faqs         DeveloperFaq[]
+  gallery      DeveloperGallery[]
+  leads        Lead[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -627,6 +658,48 @@ model Developer {
   @@index([slug])
   @@index([isDeleted])
   @@map("developers")
+}
+
+model DeveloperAchievement {
+  id           String    @id @default(uuid())
+  developerId  String    @map("developer_id") @db.Text
+  developer    Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?   @db.Text
+  imageUrl     String?   @map("image_url")
+  awardDate    DateTime? @map("award_date")
+  sortOrder    Int       @default(0) @map("sort_order")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([developerId])
+  @@map("developer_achievements")
+}
+
+model DeveloperFaq {
+  id           String    @id @default(uuid())
+  developerId  String    @map("developer_id") @db.Text
+  developer    Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  question     String
+  answer       String    @db.Text
+  sortOrder    Int       @default(0) @map("sort_order")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([developerId])
+  @@map("developer_faqs")
+}
+
+model DeveloperGallery {
+  id           String    @id @default(uuid())
+  developerId  String    @map("developer_id") @db.Text
+  developer    Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  imageUrl     String    @map("image_url")
+  caption      String?
+  category     String?
+  sortOrder    Int       @default(0) @map("sort_order")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([developerId])
+  @@map("developer_gallery")
 }
 
 model AgentServiceArea {
@@ -1196,10 +1269,15 @@ model EcosystemPartner {
   id               String  @id @default(cuid())
   categoryId       String
   name             String
+  slug             String?
+  tagline          String?
   logo             String?
   shortDescription String?
   rating           Float?
   yearsExperience  Int?
+  projectsCompleted Int?
+  teamSize         Int?
+  partnerSince     Int?
   locationCoverage String?
   contactEmail     String?
   contactPhone     String?
@@ -1213,6 +1291,14 @@ model EcosystemPartner {
   registrationNumber String?
   pricingRange     String?
   categoryData     Json?
+  whyChoose        Json?
+  workProcess      Json?
+
+  metaTitle        String?
+  metaDescription  String?
+  metaKeywords     String?
+  ogImage          String?
+  canonicalUrl     String?
 
   status           EcosystemPartnerStatus @default(PENDING)
   isFeatured       Boolean @default(false)
@@ -1221,14 +1307,21 @@ model EcosystemPartner {
   priorityOrder    Int     @default(0)
   isActive         Boolean @default(true)
 
-  category EcosystemCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  leads    EcosystemLead[]
-  crmLeads Lead[]
+  category   EcosystemCategory            @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  leads      EcosystemLead[]
+  crmLeads   Lead[]
+  services   EcosystemPartnerService[]
+  locations  EcosystemPartnerLocation[]
+  gallery    EcosystemPartnerGallery[]
+  portfolios EcosystemPartnerPortfolio[]
+  reviews    EcosystemPartnerReview[]
+  faqs       EcosystemPartnerFaq[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([categoryId])
+  @@index([slug])
   @@index([priorityOrder])
   @@index([isFeatured])
   @@index([isVerified])
@@ -1236,19 +1329,121 @@ model EcosystemPartner {
   @@index([subscriptionTier])
   @@index([isActive])
   @@unique([categoryId, contactEmail])
+  @@unique([categoryId, slug])
+}
+
+model EcosystemPartnerService {
+  id          String @id @default(cuid())
+  partnerId   String
+  name        String
+  description String?
+  sortOrder   Int    @default(0)
+
+  partner EcosystemPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+  @@index([sortOrder])
+}
+
+model EcosystemPartnerLocation {
+  id        String  @id @default(cuid())
+  partnerId String
+  city      String
+  region    String?
+  isPrimary Boolean @default(false)
+  sortOrder Int     @default(0)
+
+  partner EcosystemPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+  @@index([city])
+}
+
+model EcosystemPartnerGallery {
+  id        String  @id @default(cuid())
+  partnerId String
+  imageUrl  String
+  caption   String?
+  category  String?
+  sortOrder Int     @default(0)
+
+  partner EcosystemPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+  @@index([sortOrder])
+}
+
+model EcosystemPartnerPortfolio {
+  id             String  @id @default(cuid())
+  partnerId      String
+  projectName    String
+  location       String?
+  projectSize    String?
+  completionDate String?
+  style          String?
+  budgetRange    String?
+  projectType    String?
+  description    String? @db.Text
+  coverImage     String?
+  images         Json?
+  sortOrder      Int     @default(0)
+
+  partner EcosystemPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+  @@index([projectType])
+  @@index([sortOrder])
+}
+
+model EcosystemPartnerReview {
+  id           String  @id @default(cuid())
+  partnerId    String
+  reviewerName String
+  location     String?
+  projectType  String?
+  review       String  @db.Text
+  rating       Float?
+  isFeatured   Boolean @default(false)
+  isApproved   Boolean @default(false)
+  sortOrder    Int     @default(0)
+
+  partner EcosystemPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+  @@index([isApproved])
+  @@index([sortOrder])
+}
+
+model EcosystemPartnerFaq {
+  id        String @id @default(cuid())
+  partnerId String
+  question  String
+  answer    String @db.Text
+  sortOrder Int    @default(0)
+
+  partner EcosystemPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+  @@index([sortOrder])
 }
 
 model EcosystemLead {
-  id         String  @id @default(cuid())
-  categoryId String
-  partnerId  String?
-  name       String
-  email      String
-  phone      String
-  message    String
-  source     String?
-  assignedTo String?
-  status     EcosystemLeadStatus @default(NEW)
+  id           String  @id @default(cuid())
+  categoryId   String
+  partnerId    String?
+  name         String
+  email        String
+  phone        String
+  message      String
+  city         String?
+  propertyType String?
+  budgetRange  String?
+  requirement  String?
+  source       String?
+  sourcePage   String?
+  leadSource   String? @default("Ecosystem Partner Lead")
+  assignedTo   String?
+  status       EcosystemLeadStatus @default(NEW)
 
   category EcosystemCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   partner  EcosystemPartner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
@@ -1324,6 +1519,7 @@ enum LeadType {
   PROJECT
   ECOSYSTEM
   THREE_D_TOUR
+  DEVELOPER
 }
 
 enum LeadCountry {
@@ -1355,6 +1551,7 @@ model Lead {
   landingUrl       String?     @map("landing_url")
   metadata         Json?
   projectId        String?     @map("project_id")
+  developerId      String?     @map("developer_id") @db.Text
   ecosystemPartnerId String?   @map("ecosystem_partner_id")
   legacyTable      String?     @map("legacy_table")
   legacyId         String?     @map("legacy_id")
@@ -1369,6 +1566,7 @@ model Lead {
   referralPartnerId  String?   @map("referral_partner_id")
 
   project          Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  developer        Developer?       @relation(fields: [developerId], references: [id], onDelete: SetNull)
   ecosystemPartner EcosystemPartner? @relation(fields: [ecosystemPartnerId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -1380,6 +1578,7 @@ model Lead {
   @@index([country])
   @@index([category])
   @@index([projectId])
+  @@index([developerId])
   @@index([assignedTo])
   @@index([createdAt])
   @@index([leadType, status])
