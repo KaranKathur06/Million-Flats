@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import SelectDropdown from '@/components/SelectDropdown'
 
 type Category = { id: string; slug: string; title: string }
 
@@ -68,8 +69,12 @@ export default function EcosystemPartnerForm({
 
   const isEdit = Boolean(initial?.id)
 
+  const update = (name: keyof PartnerFormData, value: string | boolean) => {
+    setForm((prev) => ({ ...prev, [name]: value }))
+  }
+
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target
     const checked = (e.target as HTMLInputElement).checked
@@ -83,6 +88,12 @@ export default function EcosystemPartnerForm({
     e.preventDefault()
     setSaving(true)
     setError('')
+
+    if (!form.categoryId) {
+      setError('Category is required.')
+      setSaving(false)
+      return
+    }
 
     const payload = {
       categoryId: form.categoryId,
@@ -133,23 +144,19 @@ export default function EcosystemPartnerForm({
       <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
         <h2 className="text-lg font-bold text-white">Partner Details</h2>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label className="block sm:col-span-2">
-            <span className="text-xs font-semibold text-white/60">Category *</span>
-            <select
-              name="categoryId"
+          <div className="sm:col-span-2">
+            <SelectDropdown
+              label="Category"
+              variant="dark"
               value={form.categoryId}
-              onChange={handleChange}
-              required
-              className="mt-1 h-11 w-full rounded-xl border border-white/10 bg-[#0b1220] px-3 text-sm text-white"
-            >
-              <option value="">Select category</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.title}
-                </option>
-              ))}
-            </select>
-          </label>
+              onChange={(v) => update('categoryId', v)}
+              placeholder="Select category"
+              options={[
+                { value: '', label: 'Select category' },
+                ...categories.map((c) => ({ value: c.id, label: c.title })),
+              ]}
+            />
+          </div>
           <label className="block">
             <span className="text-xs font-semibold text-white/60">Company Name *</span>
             <input name="name" value={form.name} onChange={handleChange} required className="field" />
@@ -218,14 +225,19 @@ export default function EcosystemPartnerForm({
       <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
         <h2 className="text-lg font-bold text-white">Status & SEO</h2>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label className="block">
-            <span className="text-xs font-semibold text-white/60">Status</span>
-            <select name="status" value={form.status} onChange={handleChange} className="field">
-              <option value="PENDING">Pending</option>
-              <option value="APPROVED">Approved</option>
-              <option value="REJECTED">Rejected</option>
-            </select>
-          </label>
+          <div>
+            <SelectDropdown
+              label="Status"
+              variant="dark"
+              value={form.status}
+              onChange={(v) => update('status', v)}
+              options={[
+                { value: 'PENDING', label: 'Pending' },
+                { value: 'APPROVED', label: 'Approved' },
+                { value: 'REJECTED', label: 'Rejected' },
+              ]}
+            />
+          </div>
           <div className="flex flex-wrap items-center gap-4 pt-6">
             <label className="flex items-center gap-2 text-sm text-white/80">
               <input type="checkbox" name="isVerified" checked={form.isVerified} onChange={handleChange} />

@@ -39,7 +39,7 @@ export default function PartnerCTA({ partner }: PartnerCTAProps) {
 
     try {
       const res = await fetch(
-        `/api/ecosystem-partners/${partner.categorySlug}/${partner.slug}/inquiry`,
+        `/api/partners/${partner.categorySlug}/${partner.slug}/inquiry`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

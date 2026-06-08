@@ -118,6 +118,9 @@ export async function POST(req: Request) {
     })
 
     revalidatePath(`/ecosystem-partners/${partner.category.slug}`)
+    if (partner.slug) {
+      revalidatePath(`/partners/${partner.category.slug}/${partner.slug}`)
+    }
     return NextResponse.json({ success: true, data: partner })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Failed to create partner'

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import SelectDropdown from '@/components/SelectDropdown'
+import { partnerProfileUrl } from '@/lib/ecosystem/partnerProfile'
 
 type Category = { id: string; slug: string; title: string }
 
@@ -83,28 +85,34 @@ export default function AdminEcosystemPartnersManagePage() {
           placeholder="Search partners..."
           className="h-10 rounded-xl border border-white/10 bg-[#0b1220] px-3 text-sm text-white outline-none focus:border-accent-yellow/50"
         />
-        <select
+        <SelectDropdown
+          label="Category"
+          showLabel={false}
+          variant="dark"
+          dense
           value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="h-10 rounded-xl border border-white/10 bg-[#0b1220] px-3 text-sm text-white"
-        >
-          <option value="">All Categories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.title}
-            </option>
-          ))}
-        </select>
-        <select
+          onChange={setCategoryFilter}
+          placeholder="All Categories"
+          options={[
+            { value: '', label: 'All Categories' },
+            ...categories.map((c) => ({ value: c.id, label: c.title })),
+          ]}
+        />
+        <SelectDropdown
+          label="Status"
+          showLabel={false}
+          variant="dark"
+          dense
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-10 rounded-xl border border-white/10 bg-[#0b1220] px-3 text-sm text-white"
-        >
-          <option value="">All Status</option>
-          <option value="APPROVED">Approved</option>
-          <option value="PENDING">Pending</option>
-          <option value="REJECTED">Rejected</option>
-        </select>
+          onChange={setStatusFilter}
+          placeholder="All Status"
+          options={[
+            { value: '', label: 'All Status' },
+            { value: 'APPROVED', label: 'Approved' },
+            { value: 'PENDING', label: 'Pending' },
+            { value: 'REJECTED', label: 'Rejected' },
+          ]}
+        />
         <button
           type="button"
           onClick={load}
@@ -184,7 +192,7 @@ export default function AdminEcosystemPartnersManagePage() {
                       </Link>
                       {p.slug && (
                         <a
-                          href={`/ecosystem-partners/${p.category.slug}/${p.slug}`}
+                          href={partnerProfileUrl(p.category.slug, p.slug)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold hover:bg-white/5"

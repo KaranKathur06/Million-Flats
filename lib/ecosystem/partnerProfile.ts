@@ -207,5 +207,5 @@ export async function getPartnerProfile(
 }
 
 export function partnerProfileUrl(categorySlug: string, partnerSlug: string) {
-  return `/ecosystem-partners/${categorySlug}/${partnerSlug}`
+  return `/partners/${categorySlug}/${partnerSlug}`
 }

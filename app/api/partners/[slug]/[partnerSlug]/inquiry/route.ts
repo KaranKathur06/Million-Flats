@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { partnerProfileUrl } from '@/lib/ecosystem/partnerProfile'
 import { notifyAdminNewLead } from '@/lib/leads/notifications'
 import { formatEcosystemLeadEmail, sendEmail } from '@/lib/email/sendEmail'
 
@@ -42,7 +43,7 @@ export async function POST(
       return NextResponse.json({ success: false, message: 'Partner not found.' }, { status: 404 })
     }
 
-    const sourcePage = `/ecosystem-partners/${categorySlug}/${partnerSlug}`
+    const sourcePage = partnerProfileUrl(categorySlug, partnerSlug)
     const fullMessage = [
       requirement ? `Requirement: ${requirement}` : null,
       message ? String(message).trim() : null,

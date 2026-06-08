@@ -267,12 +267,12 @@ export default function InteriorDesignPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { name: 'Studio Elemento', tag: 'Modern Contemporary', loc: 'Delhi NCR', img: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=400' },
-              { name: 'Livspace Interiors', tag: 'Turnkey Execution', loc: 'Pan India', img: 'https://images.unsplash.com/photo-1600607687644-aac4c153115f?auto=format&fit=crop&q=80&w=400' },
-              { name: 'DesignCafe', tag: 'Space Optimisation', loc: 'Mumbai', img: 'https://images.unsplash.com/photo-1598928506311-c55dd5e8e32b?auto=format&fit=crop&q=80&w=400' },
-              { name: 'Bonito Designs', tag: 'Bespoke Luxury', loc: 'Bangalore', img: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=400' },
-              { name: 'Urban Ladder Tech', tag: 'Modular Finishes', loc: 'Hyderabad', img: 'https://images.unsplash.com/photo-1556817411-31ae72fa3ea8?auto=format&fit=crop&q=80&w=400' },
-              { name: 'Aura Aesthetics', tag: 'Minimalist Scandinavian', loc: 'Pune', img: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&q=80&w=400' },
+              { slug: 'studio-elemento', name: 'Studio Elemento', tag: 'Modern Contemporary', loc: 'Delhi NCR', img: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=400' },
+              { slug: 'livspace-interiors', name: 'Livspace Interiors', tag: 'Turnkey Execution', loc: 'Pan India', img: 'https://images.unsplash.com/photo-1600607687644-aac4c153115f?auto=format&fit=crop&q=80&w=400' },
+              { slug: 'designcafe', name: 'DesignCafe', tag: 'Space Optimisation', loc: 'Mumbai', img: 'https://images.unsplash.com/photo-1598928506311-c55dd5e8e32b?auto=format&fit=crop&q=80&w=400' },
+              { slug: 'bonito-designs', name: 'Bonito Designs', tag: 'Bespoke Luxury', loc: 'Bangalore', img: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=400' },
+              { slug: 'urban-ladder-tech', name: 'Urban Ladder Tech', tag: 'Modular Finishes', loc: 'Hyderabad', img: 'https://images.unsplash.com/photo-1556817411-31ae72fa3ea8?auto=format&fit=crop&q=80&w=400' },
+              { slug: 'aura-aesthetics', name: 'Aura Aesthetics', tag: 'Minimalist Scandinavian', loc: 'Pune', img: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&q=80&w=400' },
             ].map((firm, i) => (
               <div key={i} className="bg-white border border-slate-200 rounded-[2rem] p-3 hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] hover:border-rose-200 transition-all group flex flex-col h-full overflow-hidden">
                 <div className="w-full h-48 bg-slate-100 rounded-[1.25rem] overflow-hidden relative">
@@ -291,9 +291,9 @@ export default function InteriorDesignPage() {
                       <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Location Hub</div>
                       <div className="text-sm font-extrabold text-[#111827]">{firm.loc}</div>
                     </div>
-                    <button className="bg-slate-50 text-[#111827] border border-slate-200 font-bold px-4 py-2 rounded-xl text-sm hover:bg-rose-50 transition-colors">
+                    <Link href={`/partners/interior-design-renovation/${firm.slug}`} className="bg-slate-50 text-[#111827] border border-slate-200 font-bold px-4 py-2 rounded-xl text-sm hover:bg-rose-50 transition-colors">
                       View Profile
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>

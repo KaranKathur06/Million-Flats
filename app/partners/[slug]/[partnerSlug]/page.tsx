@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { getPartnerProfile } from '@/lib/ecosystem/partnerProfile'
+import { getPartnerProfile, partnerProfileUrl } from '@/lib/ecosystem/partnerProfile'
 import {
   PartnerHero,
   PartnerStats,
@@ -33,9 +33,7 @@ export async function generateMetadata({ params }: PartnerPageProps): Promise<Me
   if (!partner) return { title: 'Partner Not Found | MillionFlats' }
 
   const base = getMetadataBase()
-  const canonical = base
-    ? `${base}/ecosystem-partners/${partner.categorySlug}/${partner.slug}`
-    : ''
+  const canonical = base ? `${base}${partnerProfileUrl(partner.categorySlug, partner.slug)}` : ''
 
   const title =
     partner.shortDescription
@@ -63,9 +61,7 @@ export default async function PartnerProfilePage({ params }: PartnerPageProps) {
   if (!partner) notFound()
 
   const base = getMetadataBase()
-  const canonical = base
-    ? `${base}/ecosystem-partners/${partner.categorySlug}/${partner.slug}`
-    : ''
+  const canonical = base ? `${base}${partnerProfileUrl(partner.categorySlug, partner.slug)}` : ''
 
   const organizationSchema: Record<string, unknown> = {
     '@context': 'https://schema.org',

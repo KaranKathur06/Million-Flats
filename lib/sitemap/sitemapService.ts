@@ -259,7 +259,7 @@ async function fetchEcosystemPartnerUrls(): Promise<SitemapUrl[]> {
           })
         }
         return {
-          loc: `/ecosystem-partners/${p.category.slug}/${p.slug}`,
+          loc: `/partners/${p.category.slug}/${p.slug}`,
           lastmod: p.updatedAt ? new Date(p.updatedAt).toISOString().split('T')[0] : today,
           changefreq: 'weekly' as const,
           priority: 0.6,

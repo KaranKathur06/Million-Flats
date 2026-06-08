@@ -95,7 +95,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     revalidatePath(`/ecosystem-partners/${existing.category.slug}`)
     if (partner.slug) {
-      revalidatePath(`/ecosystem-partners/${partner.category.slug}/${partner.slug}`)
+      revalidatePath(`/partners/${partner.category.slug}/${partner.slug}`)
     }
 
     return NextResponse.json({ success: true, data: partner })
