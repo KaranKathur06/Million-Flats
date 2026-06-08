@@ -1,0 +1,291 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import 'react-phone-number-input/style.css';
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 255, 255, 255;
+  --background-end-rgb: 255, 255, 255;
+
+  /* Responsive design system */
+  --mf-space-xs: clamp(0.25rem, 0.2rem + 0.25vw, 0.5rem);
+  --mf-space-sm: clamp(0.5rem, 0.4rem + 0.5vw, 0.75rem);
+  --mf-space-md: clamp(1rem, 0.8rem + 1vw, 1.5rem);
+  --mf-space-lg: clamp(1.5rem, 1.2rem + 1.5vw, 2.5rem);
+  --mf-space-xl: clamp(2rem, 1.5rem + 2.5vw, 4rem);
+
+  --mf-text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  --mf-text-sm: clamp(0.875rem, 0.8rem + 0.375vw, 1rem);
+  --mf-text-base: clamp(1rem, 0.9rem + 0.5vw, 1.125rem);
+  --mf-text-lg: clamp(1.125rem, 1rem + 0.625vw, 1.25rem);
+  --mf-text-xl: clamp(1.25rem, 1rem + 1.25vw, 1.5rem);
+  --mf-text-2xl: clamp(1.5rem, 1.25rem + 1.25vw, 2rem);
+
+  /* Sticky mobile CTA + footer clearance (homepage, agent bar, etc.) */
+  --mf-mobile-sticky-inset: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  background-color: #0d1f38;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  line-height: 1.55;
+}
+
+img,
+video,
+canvas,
+iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+table {
+  width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font-size: max(16px, 1em);
+}
+
+.mf-phone {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mf-phone .PhoneInputCountry {
+  margin: 0;
+}
+
+.mf-phone .PhoneInputCountrySelect {
+  height: 2.5rem;
+  padding: 0 0.5rem;
+  border: 1px solid rgb(229 231 235);
+  border-radius: 0.75rem;
+  background: white;
+}
+
+.mf-phone .PhoneInputInput {
+  height: 2.5rem;
+  width: 100%;
+  padding: 0 0.875rem;
+  border: 1px solid rgb(229 231 235);
+  border-radius: 0.75rem;
+  background: white;
+  color: rgb(17 24 39);
+}
+
+.mf-phone .PhoneInputInput:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(10, 25, 60, 0.2);
+  border-color: rgba(10, 25, 60, 0.3);
+}
+
+.mf-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  outline: none;
+  box-shadow: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.22s ease;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 12px;
+  padding-right: 2rem;
+  cursor: pointer;
+}
+
+.mf-select:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.mf-select:focus-visible {
+  outline: 2px solid rgba(255, 193, 7, 0.5);
+  outline-offset: 2px;
+}
+
+.mf-select::-ms-expand {
+  display: none;
+}
+
+.mf-select option {
+  background: #0f1726;
+  color: rgba(255, 255, 255, 0.9);
+  padding: 8px 12px;
+}
+
+/* Admin scrollbar — legacy thin (forms, dropdowns) */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #1a2d4a #081321;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #081321;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #1a2d4a;
+  border-radius: 999px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #f5b400;
+}
+
+/* MillionFlats admin — auto-hide luxury scroll (Notion / Linear style) */
+.mf-admin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.mf-admin-scroll:hover {
+  scrollbar-color: #1a2d4a #081321;
+}
+
+.mf-admin-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.mf-admin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mf-admin-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+
+.mf-admin-scroll:hover::-webkit-scrollbar-track {
+  background: #081321;
+}
+
+.mf-admin-scroll:hover::-webkit-scrollbar-thumb {
+  background: #1a2d4a;
+}
+
+.mf-admin-scroll::-webkit-scrollbar-thumb:hover {
+  background: #f5b400;
+}
+
+html[data-admin-sidebar='expanded'] .admin-main-inner {
+  max-width: 1600px;
+}
+
+html[data-admin-sidebar='collapsed'] .admin-main-inner {
+  max-width: none;
+}
+
+html[data-admin-sidebar='collapsed'] .admin-project-name-cell {
+  max-width: min(480px, 42vw);
+}
+
+html[data-admin-sidebar='collapsed'] .admin-project-name-cell .admin-project-name {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@keyframes mf-admin-drawer-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.mf-admin-drawer-panel {
+  animation: mf-admin-drawer-in 300ms ease-out;
+}
+
+/* Dark color scheme for date inputs */
+input[type="date"].bg-white {
+  color-scheme: light;
+}
+
+input[type="date"]:not(.bg-white) {
+  color-scheme: dark;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .section-spacing {
+    @apply py-14 md:py-[72px] lg:py-24;
+  }
+
+  .mf-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .mf-table-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mf-drawer-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mf-sticky-mobile-cta {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: env(safe-area-inset-bottom, 0px);
+    z-index: 90;
+  }
+
+  .mf-footer-mobile-clearance {
+    padding-bottom: var(--mf-mobile-sticky-inset);
+  }
+
+  @media (min-width: 480px) {
+    .mf-footer-mobile-clearance {
+      padding-bottom: 0;
+    }
+  }
+}
+

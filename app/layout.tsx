@@ -1,0 +1,54 @@
+import type { Metadata } from 'next'
+import React, { Suspense } from 'react'
+import { Public_Sans } from 'next/font/google'
+import { getServerSession } from 'next-auth'
+import './globals.css'
+import AppProviders from '@/components/AppProviders'
+import AppShell from '@/components/AppShell'
+import GoogleAnalytics from '@/components/GoogleAnalytics'
+import AnalyticsTracker from '@/components/AnalyticsTracker'
+import { authOptions } from '@/lib/auth'
+
+const publicSans = Public_Sans({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-public-sans',
+})
+
+export const metadata: Metadata = {
+  title: 'MillionFlats | AI Property Valuation & 3D Virtual Tours for Developers',
+  description: 'Premium luxury real estate in UAE for discerning investors and buyers. Explore properties in Dubai, Abu Dhabi, Sharjah, and across the Emirates.',
+  keywords: 'luxury real estate UAE, premium properties Dubai, Abu Dhabi properties, luxury villas UAE, penthouses Dubai, real estate UAE',
+  icons: {
+    icon: '/FAVICON.jpeg',
+    apple: '/LOGO.jpeg',
+  },
+  other: {
+    'p:domain_verify': 'e6933b23e105c64206750c2e27779d48',
+  },
+}
+
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const session = await getServerSession(authOptions)
+  return (
+    <html lang="en" className={publicSans.variable}>
+      <body className="font-sans antialiased">
+        <Suspense fallback={null}>
+          <GoogleAnalytics />
+        </Suspense>
+        <AppProviders session={session}>
+          <Suspense fallback={null}>
+            <AnalyticsTracker />
+          </Suspense>
+          <Suspense fallback={null}>
+            <AppShell>{children}</AppShell>
+          </Suspense>
+        </AppProviders>
+      </body>
+    </html>
+  )
+}

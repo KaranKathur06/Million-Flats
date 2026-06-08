@@ -1,0 +1,114 @@
+{
+    "slug": "chelsea-residences",
+    "name": "Chelsea Residences",
+    "developer": "DAMAC Properties",
+    "location": "Dubai Maritime City",
+    "propertyType": "Apartments",
+    "unitTypes": [
+        "1 Bedroom",
+        "2 Bedroom",
+        "3 Bedroom"
+    ],
+    "towers": 6,
+    "floors": "G + 2 Podium + 25–33 Floors",
+    "description": "Chelsea Residences by DAMAC is a luxury waterfront development located in Dubai Maritime City created in partnership with Chelsea Football Club. The six towers are inspired by coral reefs and offer resort style living with panoramic sea views and world class sports and wellness amenities.",
+    "highlights": [
+        "Waterfront apartments",
+        "Chelsea FC themed residences",
+        "Rooftop football pitch",
+        "270 degree sea views",
+        "Private beach access",
+        "Resort style amenities"
+    ],
+    "amenities": [
+        "Infinity Pool",
+        "Coral Reef Pool",
+        "Chelsea Lion Beach",
+        "Football Simulation Room",
+        "Rooftop Football Pitch",
+        "Jogging Track",
+        "Outdoor Gym",
+        "Meditation Garden",
+        "Serenity Spa",
+        "Cryotherapy",
+        "Rain Therapy Room",
+        "Starlit Wellness Centre",
+        "Sunset Bar",
+        "Fine Dining Restaurant",
+        "Stamford Cinema",
+        "Kids Pool",
+        "Indoor Kids Play Area"
+    ],
+    "connectivity": [
+        {
+            "place": "J1 Beach",
+            "time": "14 Minutes"
+        },
+        {
+            "place": "City Walk",
+            "time": "15 Minutes"
+        },
+        {
+            "place": "Metro Station",
+            "time": "18 Minutes"
+        },
+        {
+            "place": "Downtown Dubai",
+            "time": "22 Minutes"
+        },
+        {
+            "place": "Dubai International Airport",
+            "time": "23 Minutes"
+        }
+    ],
+    "media": {
+        "hero": "public/projects/damac/chelsea-residences/gallery/HERO.webp",
+        "featured": [
+            "public/projects/damac/chelsea-residences/gallery/BUILDINGS.webp",
+            "public/projects/damac/chelsea-residences/gallery/EXTERIOR - 1.webp",
+            "public/projects/damac/chelsea-residences/gallery/CHELSEA LION BEACH.webp",
+            "public/projects/damac/chelsea-residences/gallery/LIVING & KITCHEN.webp",
+            "public/projects/damac/chelsea-residences/gallery/STARLIT WELLNESS CENTRE.webp"
+        ],
+        "tabs": {
+            "exterior": [
+                "public/projects/damac/chelsea-residences/gallery/BUILDINGS.webp",
+                "public/projects/damac/chelsea-residences/gallery/EXTERIOR - 1.webp",
+                "public/projects/damac/chelsea-residences/gallery/EXTERIOR - 2.webp",
+                "public/projects/damac/chelsea-residences/gallery/EXTERIOR - 3.webp",
+                "public/projects/damac/chelsea-residences/gallery/EXTERIOR - 4.webp"
+            ],
+            "amenities": [
+                "public/projects/damac/chelsea-residences/gallery/CHELSEA LION BEACH.webp",
+                "public/projects/damac/chelsea-residences/gallery/CHELSEA SUNSET BAR.webp",
+                "public/projects/damac/chelsea-residences/gallery/CHELSEA POWERHOUSE LOUNGE.webp",
+                "public/projects/damac/chelsea-residences/gallery/FINE DINING.webp",
+                "public/projects/damac/chelsea-residences/gallery/STAMFORD CINEMA.webp",
+                "public/projects/damac/chelsea-residences/gallery/TRANQUILLITY FALLS.webp"
+            ],
+            "interiors": [
+                "public/projects/damac/chelsea-residences/gallery/LIVING & KITCHEN.webp",
+                "public/projects/damac/chelsea-residences/gallery/LIVING & KITCHEN 2.webp",
+                "public/projects/damac/chelsea-residences/gallery/MASTER BEDROOM.webp",
+                "public/projects/damac/chelsea-residences/gallery/MASTER BEDROOM 2.webp",
+                "public/projects/damac/chelsea-residences/gallery/MASTER BATHROOM.webp",
+                "public/projects/damac/chelsea-residences/gallery/WALK-IN CLOSET.webp",
+                "public/projects/damac/chelsea-residences/gallery/GRAND ATRIUM.webp"
+            ],
+            "lifestyle": [
+                "public/projects/damac/chelsea-residences/gallery/AERIAL YOGA.webp",
+                "public/projects/damac/chelsea-residences/gallery/ATHLETE PERFORMANCE TRAINING CENTRE.webp",
+                "public/projects/damac/chelsea-residences/gallery/FOOTBALL SIMULATION ROOM.webp",
+                "public/projects/damac/chelsea-residences/gallery/STAMFORD SUMMIT.webp",
+                "public/projects/damac/chelsea-residences/gallery/UNDERWATER-THEMED KIDS AREA.webp",
+                "public/projects/damac/chelsea-residences/gallery/WATER TREATMENT TUNNEL.webp",
+                "public/projects/damac/chelsea-residences/gallery/FOREST RELAXATION PODS.webp",
+                "public/projects/damac/chelsea-residences/gallery/STARLIT WELLNESS CENTRE.webp"
+            ]
+        }
+    },
+    "brochure": {
+        "title": "Chelsea Residences by DAMAC Brochure",
+        "file": "/brochures/chelsea-residences-damac.pdf"
+    }
+}
