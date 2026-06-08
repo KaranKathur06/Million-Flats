@@ -2,8 +2,26 @@ import { Resend } from "resend";
 import * as React from "react";
 import { render } from "@react-email/render";
 
-// ---------- Resend client (singleton) ----------
-const resend = new Resend(process.env.RESEND_API_KEY);
+// ---------- Resend client (lazy singleton — avoid throwing during `next build`) ----------
+let resendClient: Resend | null | undefined
+
+function getResendClient(): Resend | null {
+  if (resendClient !== undefined) return resendClient
+
+  const apiKey = safeString(process.env.RESEND_API_KEY)
+  if (!apiKey) {
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      resendClient = null
+      return resendClient
+    }
+    console.warn('[email] RESEND_API_KEY is not set — emails will be skipped')
+    resendClient = null
+    return resendClient
+  }
+
+  resendClient = new Resend(apiKey)
+  return resendClient
+}
 
 // ---------- Helpers ----------
 function safeString(v: unknown) {
@@ -40,6 +58,11 @@ type SendEmailInput = {
  * React components are pre-rendered to HTML to avoid Next.js production bundling issues.
  */
 export async function sendEmail(input: SendEmailInput) {
+    const resend = getResendClient()
+    if (!resend) {
+        return { ok: false as const, skipped: true as const }
+    }
+
     const from =
         safeString(process.env.EMAIL_FROM) ||
         "MillionFlats <support@millionflats.com>";

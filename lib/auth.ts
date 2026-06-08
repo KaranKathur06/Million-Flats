@@ -15,7 +15,19 @@ const nextAuthSecret = getEnv('NEXTAUTH_SECRET')
 const googleClientId = getEnv('GOOGLE_CLIENT_ID')
 const googleClientSecret = getEnv('GOOGLE_CLIENT_SECRET')
 const jwtSecret = getEnv('JWT_SECRET')
-const authSecret = nextAuthSecret || jwtSecret
+
+// Next.js sets NEXT_PHASE=phase-production-build during `next build`. Env vars may be
+// absent locally, so allow the build to complete and enforce secrets at runtime.
+const isProdBuild = process.env.NEXT_PHASE === 'phase-production-build'
+
+const authSecret =
+  nextAuthSecret ||
+  jwtSecret ||
+  (isProdBuild
+    ? '__next_build_placeholder__'
+    : process.env.NODE_ENV !== 'production'
+      ? 'development-secret-change-me'
+      : undefined)
 
 function normalizeRole(input: unknown) {
   const r = typeof input === 'string' ? input.trim().toUpperCase() : ''
@@ -63,7 +75,7 @@ async function backfillNullRoles() {
   }
 }
 
-if (process.env.NODE_ENV === 'production' && !authSecret) {
+if (process.env.NODE_ENV === 'production' && !nextAuthSecret && !jwtSecret && !isProdBuild) {
   throw new Error('Missing NEXTAUTH_SECRET (or JWT_SECRET) in production')
 }
 
