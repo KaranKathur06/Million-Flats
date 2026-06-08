@@ -5,10 +5,10 @@ import { formatEcosystemLeadEmail, sendEmail } from '@/lib/email/sendEmail'
 
 export async function POST(
   request: Request,
-  { params }: { params: { categorySlug: string; partnerSlug: string } }
+  { params }: { params: { slug: string; partnerSlug: string } }
 ) {
   try {
-    const categorySlug = decodeURIComponent(params.categorySlug || '').trim().toLowerCase()
+    const categorySlug = decodeURIComponent(params.slug || '').trim().toLowerCase()
     const partnerSlug = decodeURIComponent(params.partnerSlug || '').trim().toLowerCase()
 
     if (!categorySlug || !partnerSlug) {

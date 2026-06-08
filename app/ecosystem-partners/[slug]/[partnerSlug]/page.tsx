@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 type PartnerPageProps = {
-  params: { categorySlug: string; partnerSlug: string }
+  params: { slug: string; partnerSlug: string }
 }
 
 function getMetadataBase() {
@@ -29,7 +29,7 @@ function getMetadataBase() {
 }
 
 export async function generateMetadata({ params }: PartnerPageProps): Promise<Metadata> {
-  const partner = await getPartnerProfile(params.categorySlug, params.partnerSlug)
+  const partner = await getPartnerProfile(params.slug, params.partnerSlug)
   if (!partner) return { title: 'Partner Not Found | MillionFlats' }
 
   const base = getMetadataBase()
@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: PartnerPageProps): Promise<Me
 }
 
 export default async function PartnerProfilePage({ params }: PartnerPageProps) {
-  const partner = await getPartnerProfile(params.categorySlug, params.partnerSlug)
+  const partner = await getPartnerProfile(params.slug, params.partnerSlug)
   if (!partner) notFound()
 
   const base = getMetadataBase()
