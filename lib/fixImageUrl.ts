@@ -74,6 +74,19 @@ export function fixImageUrl(
     }
   }
 
+  // Relative S3 key stored in DB (public/...)
+  if (
+    CDN_BASE &&
+    (trimmed.startsWith('public/') ||
+      trimmed.startsWith('private/') ||
+      trimmed.startsWith('protected/'))
+  ) {
+    return `${CDN_BASE}/${trimmed.replace(/^\/+/, '')}`
+  }
+
+  // Absolute local asset
+  if (trimmed.startsWith('/')) return trimmed
+
   return trimmed
 }
 

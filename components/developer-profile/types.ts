@@ -6,6 +6,8 @@ export type DeveloperProjectCard = {
   location: string
   startingPrice?: string | null
   status?: string | null
+  completionYear?: number | null
+  goldenVisa?: boolean
   tag?: string | null
 }
 
@@ -35,6 +37,8 @@ export type DeveloperProfileData = {
   slug: string
   logo: string
   banner: string
+  /** True when developer.banner resolves to a CDN URL (not synthesized from projects) */
+  hasCustomBanner?: boolean
   tagline: string
   description: string
   shortDescription: string | null

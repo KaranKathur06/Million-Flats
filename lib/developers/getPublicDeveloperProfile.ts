@@ -1,5 +1,13 @@
 import { prisma } from '@/lib/prisma'
 import type { DeveloperProfileData } from '@/components/developer-profile/types'
+import {
+  resolveAssetUrl,
+  resolveDeveloperBanner,
+  resolveDeveloperLogo,
+  resolveProjectImage,
+  MEDIA_FALLBACKS,
+} from '@/lib/media/resolveMedia'
+import { buildAssetUrl } from '@/lib/assetUrl'
 
 function formatAED(value: number | null | undefined) {
   if (!value || value <= 0) return null
@@ -19,10 +27,21 @@ const PUBLISHED_PROJECTS_SELECT = {
     name: true,
     slug: true,
     city: true,
+    community: true,
     startingPrice: true,
     completionYear: true,
     coverImage: true,
     goldenVisa: true,
+    isFeatured: true,
+    media: {
+      orderBy: { sortOrder: 'asc' as const },
+      select: {
+        mediaUrl: true,
+        mediaType: true,
+        category: true,
+        sortOrder: true,
+      },
+    },
   },
 }
 
@@ -46,6 +65,33 @@ function mapDeveloperToProfile(developer: any, slug: string): DeveloperProfileDa
   const primaryCity = developer.city || citySet.values().next().value || 'Dubai'
   const country = mapCountry(developer.countryCode)
 
+  const resolvedProjectCards = projects.map((project: any, index: number) => {
+    const image = resolveProjectImage({
+      coverImage: project.coverImage,
+      isFeatured: project.isFeatured,
+      media: project.media,
+    })
+
+    return {
+      id: project.id,
+      name: project.name,
+      slug: project.slug,
+      image,
+      location: [project.city, project.community, country].filter(Boolean).join(', '),
+      startingPrice: formatAED(project.startingPrice),
+      status: project.completionYear ? `Handover ${project.completionYear}` : 'New Launch',
+      completionYear: project.completionYear ?? null,
+      goldenVisa: Boolean(project.goldenVisa),
+      tag: index === 0 ? 'Featured' : project.goldenVisa ? 'Golden Visa' : project.isFeatured ? 'Featured' : null,
+    }
+  })
+
+  const firstProjectImage = resolvedProjectCards[0]?.image
+  const logo = resolveDeveloperLogo(developer.logo)
+  const hasCustomBanner = Boolean(buildAssetUrl(developer.banner))
+  const resolvedBanner = resolveDeveloperBanner(developer.banner, firstProjectImage)
+  const banner = resolvedBanner || MEDIA_FALLBACKS.developerBanner
+
   const description =
     developer.description ||
     `${developer.name} is known for premium residential developments built with a strong focus on trust, quality, and long-term value.
@@ -60,8 +106,9 @@ From design-led communities to strategic launch locations, ${developer.name} con
   return {
     name: developer.name,
     slug: developer.slug || slug,
-    logo: developer.logo || '/LOGO.jpeg',
-    banner: developer.banner || projects[0]?.coverImage || '/HOMEPAGE.jpg',
+    logo,
+    banner,
+    hasCustomBanner,
     tagline,
     description,
     shortDescription: developer.shortDescription || null,
@@ -75,7 +122,7 @@ From design-led communities to strategic launch locations, ${developer.name} con
     email: developer.email || null,
     phone: developer.phone || null,
     address: developer.address || null,
-    brochureUrl: developer.brochureUrl || null,
+    brochureUrl: buildAssetUrl(developer.brochureUrl),
     socialLinks: {
       facebook: developer.facebookUrl || null,
       instagram: developer.instagramUrl || null,
@@ -97,21 +144,12 @@ From design-led communities to strategic launch locations, ${developer.name} con
             ? `${formatAED(minPrice)}+`
             : null,
     },
-    projects: projects.map((project: any, index: number) => ({
-      id: project.id,
-      name: project.name,
-      slug: project.slug,
-      image: project.coverImage || '/image-placeholder.svg',
-      location: [project.city, country].filter(Boolean).join(', '),
-      startingPrice: formatAED(project.startingPrice),
-      status: project.completionYear ? `Handover ${project.completionYear}` : 'New Launch',
-      tag: index === 0 ? 'Featured' : project.goldenVisa ? '3D Tour Available' : null,
-    })),
+    projects: resolvedProjectCards,
     achievements: (developer.achievements || []).map((a: any) => ({
       id: a.id,
       title: a.title,
       description: a.description || null,
-      imageUrl: a.imageUrl || null,
+      imageUrl: resolveAssetUrl(a.imageUrl, MEDIA_FALLBACKS.placeholder),
       awardDate: a.awardDate ? new Date(a.awardDate).toISOString() : null,
     })),
     faqs: (developer.faqs || []).map((f: any) => ({
@@ -121,7 +159,7 @@ From design-led communities to strategic launch locations, ${developer.name} con
     })),
     gallery: (developer.gallery || []).map((g: any) => ({
       id: g.id,
-      imageUrl: g.imageUrl,
+      imageUrl: resolveAssetUrl(g.imageUrl, MEDIA_FALLBACKS.placeholder),
       caption: g.caption || null,
       category: g.category || null,
     })),
@@ -155,7 +193,6 @@ export async function getPublicDeveloperProfile(rawSlug: string): Promise<Develo
     { where: baseWhere(true) },
     { where: baseWhere(false), include: { projects: PUBLISHED_PROJECTS_SELECT } },
     { where: baseWhere(false) },
-    // Slug partial match (e.g. /developers/damac → "DAMAC Properties")
     {
       where: {
         OR: [

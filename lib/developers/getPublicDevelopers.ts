@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { resolveDeveloperBanner, resolveDeveloperLogo } from '@/lib/media/resolveMedia'
 
 export type PublicDeveloperSort =
   | 'featured'
@@ -77,8 +78,11 @@ function buildOrderBy(sort: PublicDeveloperSort) {
 
 function normalizeRow(row: Record<string, unknown>): PublicDeveloperListItem {
   const count = (row._count as { projects?: number; properties?: number } | undefined) || {}
+  const raw = row as Omit<PublicDeveloperListItem, '_count' | 'logo' | 'banner'>
   return {
-    ...(row as Omit<PublicDeveloperListItem, '_count'>),
+    ...raw,
+    logo: resolveDeveloperLogo(row.logo as string | null),
+    banner: resolveDeveloperBanner(row.banner as string | null) || resolveDeveloperLogo(row.logo as string | null),
     _count: {
       projects: typeof count.projects === 'number' ? count.projects : 0,
       properties: typeof count.properties === 'number' ? count.properties : 0,

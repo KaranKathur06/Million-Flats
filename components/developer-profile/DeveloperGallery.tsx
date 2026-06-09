@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import ResolvedImage from '@/components/media/ResolvedImage'
+import { MEDIA_FALLBACKS } from '@/lib/media/resolveMedia'
 import type { DeveloperGalleryItem } from './types'
 
 type DeveloperGalleryProps = {
@@ -58,11 +60,11 @@ export default function DeveloperGallery({ gallery, developerName }: DeveloperGa
               onClick={() => { setLightboxIndex(idx); setLightboxOpen(true) }}
               className="group relative aspect-[4/3] overflow-hidden rounded-2xl bg-gray-100 cursor-pointer"
             >
-              <img
+              <ResolvedImage
                 src={item.imageUrl}
                 alt={item.caption || `${developerName} gallery`}
-                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
-                loading="lazy"
+                fallback={MEDIA_FALLBACKS.placeholder}
+                className="h-full w-full transition-transform duration-500 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               {item.caption && (

@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { MEDIA_FALLBACKS, resolveDeveloperLogo, resolveProjectImage } from '@/lib/media/resolveMedia'
 
 export const dynamic = 'force-dynamic'
 
-const FALLBACK_IMAGE = '/images/default-property.jpg'
+const FALLBACK_IMAGE = MEDIA_FALLBACKS.project
 
 /**
  * GET /api/search/projects
@@ -145,13 +146,10 @@ export async function GET(req: Request) {
 
         const results = items.map((item: any) => {
             // Resolve cover image
-            const heroMedia = (item.media || []).find((m: any) => {
-                const mt = String(m?.mediaType || '').toLowerCase()
-                const cat = String(m?.category || '').toLowerCase()
-                return mt === 'hero' || cat === 'hero'
-            })
-            const firstMedia = (item.media || []).find((m: any) => String(m?.mediaUrl || '').trim())
-            const heroImage = heroMedia?.mediaUrl || item.coverImage || firstMedia?.mediaUrl || FALLBACK_IMAGE
+            const heroImage = resolveProjectImage(
+                { coverImage: item.coverImage, isFeatured: item.isFeatured, media: item.media },
+                FALLBACK_IMAGE
+            )
 
             // Extract BHK options
             const bhkOptions = [...new Set(
@@ -203,7 +201,12 @@ export async function GET(req: Request) {
                 isFeatured: item.isFeatured,
                 status: item.status,
                 createdAt: item.createdAt,
-                developer: item.developer,
+                developer: item.developer
+                    ? {
+                          ...item.developer,
+                          logo: item.developer.logo ? resolveDeveloperLogo(item.developer.logo) : null,
+                      }
+                    : item.developer,
                 bhkOptions,
                 _score: score,
             }

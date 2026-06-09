@@ -6,6 +6,7 @@ import {
   getS3Client,
   buildCdnAssetUrl,
 } from '@/lib/s3'
+import { validateStoredMediaKey } from '@/lib/media/validateMedia'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import crypto from 'crypto'
 
@@ -80,7 +81,16 @@ export async function POST(req: Request) {
       })
     )
 
-    const url = buildCdnAssetUrl({ key })
+    const verified = await validateStoredMediaKey(key)
+    if (!verified.ok) {
+      console.error('[POST /api/admin/developers/upload] verification failed', verified.error)
+      return NextResponse.json(
+        { success: false, message: 'Upload completed but asset could not be verified in storage' },
+        { status: 502 }
+      )
+    }
+
+    const url = verified.url || buildCdnAssetUrl({ key })
 
     return NextResponse.json({ success: true, url, key })
   } catch (err: any) {

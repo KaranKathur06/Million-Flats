@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import ResolvedImage from '@/components/media/ResolvedImage'
+import { MEDIA_FALLBACKS } from '@/lib/media/resolveMedia'
 
 type DeveloperCardInProjectProps = {
   developer: {
@@ -21,12 +23,15 @@ export default function DeveloperCardInProject({ developer }: DeveloperCardInPro
     <div className="flex items-center gap-3.5">
       {/* Logo */}
       {developer.logo ? (
-        <img
-          src={developer.logo}
-          alt={developer.name}
-          className="h-12 w-12 rounded-xl object-cover border border-gray-100"
-          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-        />
+        <div className="h-12 w-12 overflow-hidden rounded-xl border border-gray-100 bg-white p-1">
+          <ResolvedImage
+            src={developer.logo}
+            alt={developer.name}
+            fallback={MEDIA_FALLBACKS.developerLogo}
+            className="h-full w-full rounded-lg"
+            objectFit="contain"
+          />
+        </div>
       ) : (
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-base font-bold text-dark-blue">
           {developer.name.charAt(0)}

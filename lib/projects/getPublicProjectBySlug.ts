@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/prisma'
+import { buildAssetUrl } from '@/lib/assetUrl'
+import { resolveDeveloperLogo, resolveProjectImage } from '@/lib/media/resolveMedia'
 
 /** Shared select shape — matches GET /api/projects/[slug] (production-verified). */
 export const publicProjectDetailSelect = {
@@ -196,17 +198,27 @@ export async function getPublicProjectBySlug(rawSlug: string) {
     const developer = project.developer
       ? {
           ...project.developer,
+          logo: resolveDeveloperLogo(project.developer.logo),
           _count: { projects: publishedProjectCount },
         }
       : null
 
+    const resolvedCover = resolveProjectImage({
+      coverImage: project.coverImage,
+      media: project.media,
+    })
+
     return {
       ...project,
+      coverImage: resolvedCover,
       highlights: parseHighlights(project.highlights),
       mediaStructured: null,
       brochure,
       developer,
-      similarProjects,
+      similarProjects: (similarProjects as any[]).map((sp) => ({
+        ...sp,
+        coverImage: sp.coverImage ? buildAssetUrl(sp.coverImage) || sp.coverImage : sp.coverImage,
+      })),
     }
   } catch (err) {
     console.error('[getPublicProjectBySlug]', { slug, err })

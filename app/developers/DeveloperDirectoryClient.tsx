@@ -1,9 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
+import ResolvedImage from '@/components/media/ResolvedImage'
 import type { PublicDeveloperListItem } from '@/lib/developers/getPublicDevelopers'
+import { MEDIA_FALLBACKS } from '@/lib/media/resolveMedia'
 
 type SortOption = 'featured' | 'most_projects' | 'newest' | 'oldest' | 'alphabetical'
 
@@ -12,8 +13,6 @@ type DeveloperItem = PublicDeveloperListItem
 type Props = {
   initialDevelopers?: DeveloperItem[]
 }
-
-const FALLBACK_IMAGE = '/images/default-property.jpg'
 
 const SORT_OPTIONS: { key: SortOption; label: string }[] = [
   { key: 'featured', label: 'Featured' },
@@ -303,13 +302,11 @@ function DeveloperCard({ developer: d }: { developer: DeveloperItem }) {
 
       {/* Banner */}
       <div className="relative aspect-[16/9] overflow-hidden bg-gray-100">
-        <Image
-          src={d.banner || d.logo || FALLBACK_IMAGE}
+        <ResolvedImage
+          src={d.banner || d.logo}
           alt={d.name}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          loading="lazy"
+          fallback={MEDIA_FALLBACKS.project}
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
 
@@ -317,7 +314,13 @@ function DeveloperCard({ developer: d }: { developer: DeveloperItem }) {
         <div className="absolute bottom-3 left-3 flex items-center gap-2">
           <div className="relative h-10 w-10 overflow-hidden rounded-xl bg-white shadow-lg border border-white/30">
             {d.logo ? (
-              <Image src={d.logo} alt="" fill className="object-contain p-1" sizes="40px" />
+              <ResolvedImage
+                src={d.logo}
+                alt=""
+                fallback={MEDIA_FALLBACKS.developerLogo}
+                className="h-full w-full rounded-lg p-1"
+                objectFit="contain"
+              />
             ) : (
               <div className="h-full w-full flex items-center justify-center text-sm font-bold text-dark-blue">
                 {d.name.charAt(0)}

@@ -144,12 +144,13 @@ export default async function DeveloperProfilePage({ params }: DeveloperPageProp
       <DeveloperHero developer={developer} />
       <DeveloperStats developer={developer} />
       <DeveloperAbout developer={developer} />
+      <DeveloperAchievements achievements={developer.achievements} developerName={developer.name} />
       <DeveloperProjects
         projects={developer.projects}
         stats={developer.stats}
         developerName={developer.name}
+        developerSlug={developer.slug}
       />
-      <DeveloperAchievements achievements={developer.achievements} developerName={developer.name} />
       <DeveloperGallery gallery={developer.gallery} developerName={developer.name} />
       <DeveloperVideos youtubeUrl={developer.socialLinks.youtube} developerName={developer.name} />
       <DeveloperFaqs faqs={developer.faqs} developerName={developer.name} />
