@@ -1,9 +1,13 @@
 import Link from 'next/link'
+import EcosystemPartnerDirectorySection from '@/components/ecosystem/EcosystemPartnerDirectorySection'
 
 export const metadata = {
   title: 'Property Management - MillionFlats Ecosystem',
   description: 'Protect and grow your real estate investment with verified, professional property management firms.',
 }
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export default function PropertyManagementPage() {
   return (
@@ -229,68 +233,11 @@ export default function PropertyManagementPage() {
         </div>
       </section>
 
-      {/* 6. PARTNER DIRECTORY & FILTER */}
-      <section id="directory" className="bg-white py-24 border-y border-slate-200">
-        <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
-            <div>
-              <h2 className="text-3xl font-sans font-extrabold text-[#0f172a] tracking-tight">Verified Firms Directory</h2>
-              <p className="text-slate-500 font-medium mt-2">Filter visually absolutely accurately matching strictly your exact absolute property scale requirements flawlessly.</p>
-            </div>
-            <div className="flex flex-wrap gap-3 w-full md:w-auto justify-end">
-              <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-teal-500 font-semibold w-full sm:w-auto">
-                <option>Portfolio Size</option>
-                <option>Boutique (1-50 Units)</option>
-                <option>Mid-Tier (51-500 Units)</option>
-                <option>Enterprise (500+ Units)</option>
-              </select>
-              <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-teal-500 font-semibold w-full sm:w-auto">
-                <option>Specialization</option>
-                <option>NRI Specialized</option>
-                <option>Luxury Villas</option>
-                <option>Commercial Blocks</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { name: 'Apex Property Mgmt', tag: 'Luxury Residential', loc: 'Mumbai', xp: '12 Yrs' },
-              { name: 'Rentokil Estates', tag: 'Corporate Leasing', loc: 'Delhi NCR', xp: '8 Yrs' },
-              { name: 'GlobalNRI Care', tag: 'Remote Yield Maximization', loc: 'Pan India', xp: '15 Yrs' },
-              { name: 'Oyo Life Holdings', tag: 'Co-living Operators', loc: 'Bangalore', xp: '9 Yrs' },
-              { name: 'SecureHomz', tag: 'Villa Maintenance', loc: 'Pune, Goa', xp: '5 Yrs' },
-              { name: 'MetroFacilities', tag: 'Complete Block Mgmt', loc: 'Hyderbad', xp: '14 Yrs' },
-            ].map((firm, i) => (
-              <div key={i} className="bg-white border border-slate-200 rounded-[2rem] p-6 hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] hover:border-teal-300 transition-all group flex flex-col h-full overflow-hidden">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="w-14 h-14 bg-teal-50 border border-teal-100 rounded-xl flex items-center justify-center text-2xl shadow-inner shrink-0 group-hover:bg-teal-100 transition-colors">
-                    🗝️
-                  </div>
-                  <span className="bg-[#0f172a] text-teal-300 text-[10px] font-extrabold uppercase tracking-widest px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1 shadow-sm">
-                    Verified
-                  </span>
-                </div>
-
-                <div className="flex-1">
-                  <h4 className="font-extrabold text-[#0f172a] text-xl mb-1">{firm.name}</h4>
-                  <p className="text-sm font-semibold text-teal-600 mb-6">{firm.tag}</p>
-                </div>
-
-                <div className="border-t border-slate-100 pt-5 flex items-center justify-between">
-                  <div>
-                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{firm.loc}</div>
-                    <div className="text-sm font-extrabold text-[#0f172a]">{firm.xp} Experience</div>
-                  </div>
-                  <button className="bg-teal-50 text-teal-700 border border-teal-200 font-bold px-4 py-2 rounded-xl text-sm hover:bg-teal-600 hover:text-white transition-colors">
-                    Contact Firm
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <EcosystemPartnerDirectorySection
+        categorySlug="property-management"
+        title="Verified Firms Directory"
+        subtitle="Filter visually absolutely accurately matching strictly your exact absolute property scale requirements flawlessly."
+      />
 
       {/* 7. EDUCATIONAL RESOURCES */}
       <section className="bg-slate-50 py-24 border-b border-slate-200 text-center">

@@ -216,9 +216,13 @@ export default function EcosystemPartnerDirectoryClient({
 
         {filtered.length === 0 ? (
           <div className="rounded-2xl border border-gray-200 bg-white p-8">
-            <div className="text-sm font-semibold text-gray-900">No partners match your filters</div>
+            <div className="text-sm font-semibold text-gray-900">
+              {items.length === 0 ? 'No verified partners listed yet' : 'No partners match your filters'}
+            </div>
             <div className="mt-2 text-sm text-gray-600">
-              Try adjusting filters or request a consultation and we&apos;ll connect you.
+              {items.length === 0
+                ? 'We are onboarding partners for this category. Request a consultation and our team will connect you with the right expert.'
+                : "Try adjusting filters or request a consultation and we'll connect you."}
             </div>
           </div>
         ) : (

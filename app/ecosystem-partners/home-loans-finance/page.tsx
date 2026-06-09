@@ -1,9 +1,13 @@
 import Link from 'next/link'
+import EcosystemPartnerDirectorySection from '@/components/ecosystem/EcosystemPartnerDirectorySection'
 
 export const metadata = {
   title: 'Home Loans & Finance - MillionFlats Ecosystem',
   description: 'Finance Your Dream Home with Confidence. Get matched with trusted lenders offering competitive rates, exclusive deals, and fast approvals.',
 }
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export default function HomeLoansFinancePage() {
   return (
@@ -250,64 +254,11 @@ export default function HomeLoansFinancePage() {
         </div>
       </section>
 
-      {/* 6. COMPREHENSIVE LENDER DIRECTORY */}
-      <section id="directory" className="bg-white py-24 border-y border-slate-200">
-        <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
-            <div>
-              <h2 className="text-3xl font-sans font-extrabold text-dark-blue tracking-tight">Comprehensive Directory</h2>
-              <p className="text-slate-500 font-medium mt-2">Filter and find the perfect Verified Partner for your property type.</p>
-            </div>
-            <div className="flex gap-3 w-full md:w-auto">
-              <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-emerald-500 font-semibold w-full md:w-auto">
-                <option>All Bank / NBFC</option>
-                <option>Public Sector</option>
-                <option>Private Sector</option>
-              </select>
-              <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-emerald-500 font-semibold w-full md:w-auto">
-                <option>Specialization</option>
-                <option>NRI Loans</option>
-                <option>Balance Transfer</option>
-                <option>First-Time Buyers</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { name: 'Axis Bank', type: 'Private Bank', tag: 'Quick Disbursement', rate: '8.55%' },
-              { name: 'Kotak Mahindra', type: 'Private Bank', tag: 'Waiver on Balance Transfer', rate: '8.45%' },
-              { name: 'Bajaj Housing', type: 'NBFC', tag: 'High Value Loans', rate: '8.60%' },
-              { name: 'Bank of Baroda', type: 'Public Bank', tag: 'Lowest rates for Salaried', rate: '8.40%' },
-              { name: 'PNB Housing', type: 'HFC', tag: 'Flexi EMI options', rate: '8.75%' },
-              { name: 'L&T Finance', type: 'NBFC', tag: 'Self-Employed Friendly', rate: '8.90%' },
-            ].map((ld, i) => (
-              <div key={i} className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-[0_10px_30px_rgba(0,0,0,0.06)] hover:border-emerald-200 transition-all group flex flex-col justify-between h-full">
-                <div>
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-xl shadow-inner shrink-0 group-hover:bg-emerald-50 transition-colors">
-                      🏦
-                    </div>
-                    <span className="bg-slate-100 text-slate-500 text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded border border-slate-200">{ld.type}</span>
-                  </div>
-                  <h4 className="font-extrabold text-dark-blue text-lg mb-1">{ld.name}</h4>
-                  <p className="text-sm font-semibold text-emerald-600 mb-4">{ld.tag}</p>
-                </div>
-
-                <div className="border-t border-slate-100 pt-4 flex items-center justify-between mt-auto">
-                  <div>
-                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Rates From</div>
-                    <div className="text-xl font-extrabold text-dark-blue">{ld.rate}</div>
-                  </div>
-                  <button className="bg-white text-emerald-600 border border-emerald-200 font-bold px-4 py-2 rounded-lg text-sm hover:bg-emerald-600 hover:text-white transition-colors">
-                    Get Quote
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <EcosystemPartnerDirectorySection
+        categorySlug="home-loans-finance"
+        title="Comprehensive Directory"
+        subtitle="Filter and find the perfect Verified Partner for your property type."
+      />
 
       {/* 7. EDUCATIONAL RESOURCES */}
       <section className="bg-slate-50 py-24 border-b border-slate-200">

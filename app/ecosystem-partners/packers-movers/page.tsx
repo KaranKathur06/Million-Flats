@@ -1,9 +1,13 @@
 import Link from 'next/link'
+import EcosystemPartnerDirectorySection from '@/components/ecosystem/EcosystemPartnerDirectorySection'
 
 export const metadata = {
   title: 'Packers & Movers - MillionFlats Ecosystem',
   description: 'Find strictly verified relocation experts for a flawless, damage-free move locally or internationally.',
 }
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export default function PackersMoversPage() {
   return (
@@ -246,68 +250,11 @@ export default function PackersMoversPage() {
         </div>
       </section>
 
-      {/* 6. PARTNER DIRECTORY & FILTER */}
-      <section id="directory" className="bg-white py-24 border-y border-slate-200">
-        <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
-            <div>
-              <h2 className="text-3xl font-sans font-extrabold text-[#1f2937] tracking-tight">Verified Movers Directory</h2>
-              <p className="text-slate-500 font-medium mt-2">Filter visually to strictly find exact logistical capacity specifically handling your destination.</p>
-            </div>
-            <div className="flex flex-wrap gap-3 w-full md:w-auto justify-end">
-              <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-amber-500 font-semibold w-full sm:w-auto">
-                <option>Service Area</option>
-                <option>Local (Intra-city)</option>
-                <option>Domestic (Inter-state)</option>
-                <option>International</option>
-              </select>
-              <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-amber-500 font-semibold w-full sm:w-auto">
-                <option>Specialization</option>
-                <option>Residential Shifting</option>
-                <option>Vehicle Transport</option>
-                <option>Corporate/Office Move</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { name: 'ShiftSafe Logistics', tag: 'Interstate Specialists', loc: 'Pan India' },
-              { name: 'Metro Movers HQ', tag: 'Local Apartment Shifting', loc: 'Mumbai, Pune' },
-              { name: 'Global Freight Packers', tag: 'Intl Customs & Shipping', loc: 'Global Ports' },
-              { name: 'Leo Packers', tag: 'Premium Furniture Padding', loc: 'Pan India' },
-              { name: 'V-Trans Logistics', tag: 'Corporate Relocations', loc: 'Tier 1 Cities' },
-              { name: 'AutoMove Care', tag: 'Enclosed Vehicle Transit', loc: 'Pan India' },
-            ].map((firm, i) => (
-              <div key={i} className="bg-white border border-slate-200 rounded-[2rem] p-6 hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] hover:border-amber-300 transition-all group flex flex-col h-full overflow-hidden">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="w-14 h-14 bg-amber-50 border border-amber-100 rounded-xl flex items-center justify-center text-2xl shadow-inner shrink-0 group-hover:bg-amber-100 transition-colors">
-                    🚚
-                  </div>
-                  <span className="bg-[#1f2937] text-amber-400 text-[10px] font-extrabold uppercase tracking-widest px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1 shadow-sm">
-                    Verified
-                  </span>
-                </div>
-
-                <div className="flex-1">
-                  <h4 className="font-extrabold text-[#1f2937] text-xl mb-1">{firm.name}</h4>
-                  <p className="text-sm font-semibold text-amber-600 mb-6">{firm.tag}</p>
-                </div>
-
-                <div className="border-t border-slate-100 pt-5 flex items-center justify-between">
-                  <div>
-                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Coverage</div>
-                    <div className="text-sm font-extrabold text-[#1f2937]">{firm.loc}</div>
-                  </div>
-                  <button className="bg-amber-50 text-amber-700 border border-amber-200 font-bold px-4 py-2 rounded-xl text-sm hover:bg-amber-600 hover:text-white transition-colors">
-                    Get Quote
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <EcosystemPartnerDirectorySection
+        categorySlug="packers-movers"
+        title="Verified Movers Directory"
+        subtitle="Filter visually to strictly find exact logistical capacity specifically handling your destination."
+      />
 
       {/* 7. EDUCATIONAL RESOURCES */}
       <section className="bg-slate-50 py-24 border-b border-slate-200 text-center">

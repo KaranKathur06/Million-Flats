@@ -1,11 +1,10 @@
 /**
  * Single source of truth for public partner visibility.
- * Maps CMS fields: status=APPROVED, isVerified=true, isActive=true (published).
+ * status=APPROVED + isActive=true (published). isVerified is a badge, not a visibility gate.
  */
 export const PUBLIC_PARTNER_VISIBILITY = {
   status: 'APPROVED' as const,
   isActive: true,
-  isVerified: true,
 }
 
 export function buildPublicPartnerWhere(extra?: Record<string, unknown>) {

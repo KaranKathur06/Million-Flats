@@ -1,9 +1,13 @@
 import Link from 'next/link'
+import EcosystemPartnerDirectorySection from '@/components/ecosystem/EcosystemPartnerDirectorySection'
 
 export const metadata = {
   title: 'Legal & Documentation - MillionFlats Ecosystem',
   description: 'Connect with verified legal partners for due diligence, agreement drafting, registration, and peace of mind.',
 }
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export default function LegalDocumentationPage() {
   return (
@@ -201,66 +205,11 @@ export default function LegalDocumentationPage() {
         </div>
       </section>
 
-      {/* 6. PARTNER DIRECTORY & FILTER */}
-      <section id="directory" className="bg-white py-24 border-y border-slate-200">
-        <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
-            <div>
-              <h2 className="text-3xl font-sans font-extrabold text-dark-blue tracking-tight">Legal Experts Directory</h2>
-              <p className="text-slate-500 font-medium mt-2">Filter to find the exact legal expertise your transaction absolutely requires.</p>
-            </div>
-            <div className="flex flex-wrap gap-3 w-full md:w-auto justify-end">
-              <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 font-semibold w-full sm:w-auto">
-                <option>Firm Type</option>
-                <option>Law Firm</option>
-                <option>Individual Advocate</option>
-              </select>
-              <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 font-semibold w-full sm:w-auto">
-                <option>Jurisdiction</option>
-                <option>Mumbai</option>
-                <option>Delhi NCR</option>
-                <option>Dubai (UAE)</option>
-              </select>
-              <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 font-semibold w-full sm:w-auto">
-                <option>Specialization</option>
-                <option>NRI Protocols</option>
-                <option>Commercial</option>
-                <option>Litigation</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-[0_10px_30px_rgba(0,0,0,0.06)] hover:border-indigo-200 transition-all group flex flex-col justify-between h-full">
-                <div>
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-xl shadow-inner shrink-0 group-hover:bg-indigo-50 transition-colors">
-                      ✍️
-                    </div>
-                    <span className="bg-emerald-50 text-emerald-600 text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded border border-emerald-100 flex items-center gap-1">
-                      <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                      Verified
-                    </span>
-                  </div>
-                  <h4 className="font-extrabold text-dark-blue text-lg mb-1">Adhya Legal {i + 1}</h4>
-                  <p className="text-sm font-semibold text-indigo-600 mb-4">Complete Title Due Diligence</p>
-                </div>
-
-                <div className="border-t border-slate-100 pt-4 flex items-center justify-between mt-auto">
-                  <div>
-                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Jurisdiction</div>
-                    <div className="text-sm font-extrabold text-dark-blue">Mumbai Central</div>
-                  </div>
-                  <button className="bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold px-4 py-2 rounded-lg text-sm hover:bg-indigo-600 hover:text-white transition-colors">
-                    Request Quote
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <EcosystemPartnerDirectorySection
+        categorySlug="legal-documentation"
+        title="Legal Experts Directory"
+        subtitle="Filter to find the exact legal expertise your transaction absolutely requires."
+      />
 
       {/* 7. EDUCATIONAL RESOURCES */}
       <section className="bg-slate-50 py-24 border-b border-slate-200">

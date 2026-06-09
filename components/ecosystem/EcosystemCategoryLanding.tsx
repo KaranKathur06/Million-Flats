@@ -9,7 +9,6 @@ import EcosystemToolSection from '@/components/ecosystem/EcosystemToolSection'
 import EcosystemFAQ, { buildFaqSchema } from '@/components/ecosystem/EcosystemFAQ'
 import StickyLeadCaptureClient from '@/components/ecosystem/StickyLeadCaptureClient'
 import { getEcosystemCategoryConfig } from '@/lib/ecosystem/categoryConfig'
-import { prisma } from '@/lib/prisma'
 import { fetchPublicPartners } from '@/lib/ecosystem/fetchPublicPartners'
 import FinalCTA from '@/app/ecosystem-partners/_components/FinalCTA'
 
@@ -28,10 +27,11 @@ export default async function EcosystemCategoryLanding({ slug, page }: { slug: s
   const baseUrl = `https://millionflats.com/ecosystem-partners/${cfg.slug}`
   const url = pageSafe > 1 ? `${baseUrl}?page=${pageSafe}` : baseUrl
 
-  const category = await (prisma as any).ecosystemCategory.findUnique({ where: { slug: cfg.slug }, select: { id: true } })
-  if (!category) return notFound()
-
-  const { items: partnersRaw, total: totalPartners, hasMore: hasMorePartners } = await fetchPublicPartners({
+  const {
+    items: partnersRaw,
+    total: totalPartners,
+    hasMore: hasMorePartners,
+  } = await fetchPublicPartners({
     categorySlug: cfg.slug,
     page: pageSafe,
     take,

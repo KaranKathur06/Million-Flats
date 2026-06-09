@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { isPrismaConnectionError } from '@/lib/prisma/errors'
 import { buildPublicPartnerWhere } from '@/lib/ecosystem/partnerVisibility'
 
 export type PublicPartnerListItem = {
@@ -17,6 +18,15 @@ export type PublicPartnerListItem = {
   isVerified: boolean
 }
 
+export type FetchPublicPartnersResult = {
+  items: PublicPartnerListItem[]
+  total: number
+  page: number
+  take: number
+  hasMore: boolean
+  dbUnavailable?: boolean
+}
+
 const PARTNER_SELECT = {
   id: true,
   name: true,
@@ -33,6 +43,15 @@ const PARTNER_SELECT = {
   isVerified: true,
 } as const
 
+const EMPTY_RESULT = (page: number, take: number, dbUnavailable = false): FetchPublicPartnersResult => ({
+  items: [],
+  total: 0,
+  page,
+  take,
+  hasMore: false,
+  ...(dbUnavailable ? { dbUnavailable: true } : {}),
+})
+
 export type FetchPublicPartnersParams = {
   categorySlug: string
   page?: number
@@ -44,21 +63,14 @@ export type FetchPublicPartnersParams = {
   budget?: string
 }
 
-export async function fetchPublicPartners(params: FetchPublicPartnersParams) {
+export async function fetchPublicPartners(params: FetchPublicPartnersParams): Promise<FetchPublicPartnersResult> {
   const page = Math.max(1, params.page ?? 1)
   const take = Math.min(48, Math.max(1, params.take ?? 12))
-
-  const category = await (prisma as any).ecosystemCategory.findUnique({
-    where: { slug: params.categorySlug },
-    select: { id: true },
-  })
-
-  if (!category) {
-    return { items: [] as PublicPartnerListItem[], total: 0, page, take, hasMore: false }
-  }
-
   const skip = (page - 1) * take
-  const where: Record<string, unknown> = buildPublicPartnerWhere({ categoryId: category.id })
+
+  const where: Record<string, unknown> = buildPublicPartnerWhere({
+    category: { slug: params.categorySlug, isActive: true },
+  })
 
   if (params.featuredOnly) where.isFeatured = true
   if (typeof params.minRating === 'number' && params.minRating > 0) {
@@ -77,18 +89,26 @@ export async function fetchPublicPartners(params: FetchPublicPartnersParams) {
     where.pricingRange = { contains: params.budget.trim(), mode: 'insensitive' }
   }
 
-  const [items, total] = await Promise.all([
-    (prisma as any).ecosystemPartner.findMany({
-      where,
-      orderBy: [{ isFeatured: 'desc' }, { priorityOrder: 'asc' }, { createdAt: 'desc' }],
-      take,
-      skip,
-      select: PARTNER_SELECT,
-    }),
-    (prisma as any).ecosystemPartner.count({ where }),
-  ])
+  try {
+    const [items, total] = await Promise.all([
+      (prisma as any).ecosystemPartner.findMany({
+        where,
+        orderBy: [{ isFeatured: 'desc' }, { priorityOrder: 'asc' }, { createdAt: 'desc' }],
+        take,
+        skip,
+        select: PARTNER_SELECT,
+      }),
+      (prisma as any).ecosystemPartner.count({ where }),
+    ])
 
-  const hasMore = skip + items.length < total
+    const hasMore = skip + items.length < total
 
-  return { items: items as PublicPartnerListItem[], total, page, take, hasMore }
+    return { items: items as PublicPartnerListItem[], total, page, take, hasMore }
+  } catch (error) {
+    if (isPrismaConnectionError(error)) {
+      console.error('[fetchPublicPartners] Database unavailable:', error)
+      return EMPTY_RESULT(page, take, true)
+    }
+    throw error
+  }
 }

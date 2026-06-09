@@ -55,6 +55,7 @@ export async function GET(req: Request) {
         total: result.total,
         hasMore: result.hasMore,
         items: result.items,
+        dbUnavailable: result.dbUnavailable ?? false,
       },
       {
         headers: {

@@ -1,9 +1,14 @@
 import Link from 'next/link'
+import EcosystemFeaturedPartnersSection from '@/components/ecosystem/EcosystemFeaturedPartnersSection'
+import EcosystemPartnerDirectorySection from '@/components/ecosystem/EcosystemPartnerDirectorySection'
 
 export const metadata = {
   title: 'Interior Design & Renovation - MillionFlats Ecosystem',
   description: 'From concept to completion, connect with top-tier interior designers and renovation experts.',
 }
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export default function InteriorDesignPage() {
   return (
@@ -185,122 +190,15 @@ export default function InteriorDesignPage() {
             </div>
           </div>
 
-          {/* Featured Partners */}
-          <div>
-            <div className="flex justify-between items-end mb-10">
-              <div>
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-50 text-rose-700 text-xs font-bold tracking-widest uppercase border border-rose-200 mb-6 shadow-sm">
-                  Top Design Studios
-                </div>
-                <h2 className="text-4xl font-sans font-extrabold text-[#111827] tracking-tight">Featured Partners</h2>
-              </div>
-            </div>
-
-            <div className="space-y-5">
-              {[
-                { n: 'Aesthetic Studios HQ', tag: 'Luxury Modern Minimalism', img: 'https://images.unsplash.com/photo-1600210491369-e753d80a41f3?auto=format&fit=crop&q=80&w=200' },
-                { n: 'Haven Interior Tech', tag: 'Warm & Functional Family Spaces', img: 'https://images.unsplash.com/photo-1598928506311-c55dd5e8e32b?auto=format&fit=crop&q=80&w=200' },
-                { n: 'Verve Architecturals', tag: 'Ultra-Premium NRI Turnkey', img: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=200' },
-              ].map((des, i) => (
-                <div key={i} className="bg-white border border-slate-200 p-4 rounded-3xl shadow-sm hover:shadow-lg hover:border-rose-300 transition-all group flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 w-full">
-                    <div className="w-20 h-20 bg-slate-100 rounded-[1.25rem] overflow-hidden shadow-inner shrink-0 group-hover:shadow-[0_0_15px_rgba(225,29,72,0.3)] transition-all">
-                      <img src={des.img} alt={des.n} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                    </div>
-                    <div>
-                      <h4 className="font-extrabold text-[#111827] text-lg">{des.n}</h4>
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">{des.tag}</p>
-                      <div className="flex gap-1 mt-2">
-                        <span className="w-2 h-2 rounded-full bg-slate-200"></span>
-                        <span className="w-2 h-2 rounded-full bg-slate-200"></span>
-                        <span className="w-2 h-2 rounded-full bg-rose-400"></span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex-shrink-0 hidden sm:block">
-                    <button className="bg-slate-50 hover:bg-rose-50 text-rose-600 border border-slate-200 hover:border-rose-200 text-sm font-bold w-10 h-10 rounded-full flex items-center justify-center transition-colors">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-8 text-center sm:text-left">
-              <Link href="#directory" className="text-rose-600 font-bold hover:text-rose-700 hover:underline flex items-center sm:justify-start justify-center gap-2">
-                Explore The Partner Directory <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-              </Link>
-            </div>
-          </div>
+          <EcosystemFeaturedPartnersSection categorySlug="interior-design-renovation" limit={3} />
         </div>
       </section>
 
-      {/* 6. PARTNER DIRECTORY & FILTER */}
-      <section id="directory" className="bg-white py-24 border-y border-slate-200">
-        <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
-            <div>
-              <h2 className="text-3xl font-sans font-extrabold text-[#111827] tracking-tight">Design Experts Directory</h2>
-              <p className="text-slate-500 font-medium mt-2">Filter visually to strictly find the exact architectural style your property demands.</p>
-            </div>
-            <div className="flex flex-wrap gap-3 w-full md:w-auto justify-end">
-              <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-rose-500 font-semibold w-full sm:w-auto">
-                <option>Design Style</option>
-                <option>Modern Minimalist</option>
-                <option>Traditional / Classic</option>
-                <option>Scandinavian</option>
-              </select>
-              <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-rose-500 font-semibold w-full sm:w-auto">
-                <option>Service Type</option>
-                <option>Full-Service Turnkey</option>
-                <option>Consultation Only</option>
-                <option>Renovation & Civil</option>
-              </select>
-              <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-rose-500 font-semibold w-full sm:w-auto">
-                <option>Budget Range</option>
-                <option>₹5L - ₹15L</option>
-                <option>₹15L - ₹50L</option>
-                <option>₹50L+ (Luxury)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { slug: 'studio-elemento', name: 'Studio Elemento', tag: 'Modern Contemporary', loc: 'Delhi NCR', img: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=400' },
-              { slug: 'livspace-interiors', name: 'Livspace Interiors', tag: 'Turnkey Execution', loc: 'Pan India', img: 'https://images.unsplash.com/photo-1600607687644-aac4c153115f?auto=format&fit=crop&q=80&w=400' },
-              { slug: 'designcafe', name: 'DesignCafe', tag: 'Space Optimisation', loc: 'Mumbai', img: 'https://images.unsplash.com/photo-1598928506311-c55dd5e8e32b?auto=format&fit=crop&q=80&w=400' },
-              { slug: 'bonito-designs', name: 'Bonito Designs', tag: 'Bespoke Luxury', loc: 'Bangalore', img: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=400' },
-              { slug: 'urban-ladder-tech', name: 'Urban Ladder Tech', tag: 'Modular Finishes', loc: 'Hyderabad', img: 'https://images.unsplash.com/photo-1556817411-31ae72fa3ea8?auto=format&fit=crop&q=80&w=400' },
-              { slug: 'aura-aesthetics', name: 'Aura Aesthetics', tag: 'Minimalist Scandinavian', loc: 'Pune', img: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&q=80&w=400' },
-            ].map((firm, i) => (
-              <div key={i} className="bg-white border border-slate-200 rounded-[2rem] p-3 hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] hover:border-rose-200 transition-all group flex flex-col h-full overflow-hidden">
-                <div className="w-full h-48 bg-slate-100 rounded-[1.25rem] overflow-hidden relative">
-                  <img src={firm.img} alt={firm.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                  <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-[#111827] text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-lg border border-white flex items-center gap-1 shadow-sm">
-                    <svg className="w-3 h-3 text-rose-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                    Verified
-                  </div>
-                </div>
-                <div className="p-5 flex-1 flex flex-col">
-                  <h4 className="font-extrabold text-[#111827] text-lg mb-1">{firm.name}</h4>
-                  <p className="text-sm font-semibold text-rose-600 mb-4">{firm.tag}</p>
-
-                  <div className="border-t border-slate-100 pt-4 flex items-center justify-between mt-auto">
-                    <div>
-                      <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Location Hub</div>
-                      <div className="text-sm font-extrabold text-[#111827]">{firm.loc}</div>
-                    </div>
-                    <Link href={`/partners/interior-design-renovation/${firm.slug}`} className="bg-slate-50 text-[#111827] border border-slate-200 font-bold px-4 py-2 rounded-xl text-sm hover:bg-rose-50 transition-colors">
-                      View Profile
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <EcosystemPartnerDirectorySection
+        categorySlug="interior-design-renovation"
+        title="Design Experts Directory"
+        subtitle="Filter visually to strictly find the exact architectural style your property demands."
+      />
 
       {/* 7. EDUCATIONAL RESOURCES */}
       <section className="bg-[#fafafa] py-24 border-b border-slate-200 text-center">

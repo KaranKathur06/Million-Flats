@@ -23,8 +23,6 @@ export const publicProjectDetailSelect = {
       name: true,
       slug: true,
       logo: true,
-      foundedYear: true,
-      customerRating: true,
     },
   },
   media: {

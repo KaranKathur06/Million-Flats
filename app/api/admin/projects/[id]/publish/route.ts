@@ -1,3 +1,4 @@
+import { revalidatePath } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
@@ -39,6 +40,8 @@ export async function PUT(_req: Request, { params }: { params: { id: string } })
                 data: { status: toggled, archivedAt: null },
                 select: { id: true, slug: true, status: true },
             })
+            revalidatePath('/projects')
+            if (updated.slug) revalidatePath(`/projects/${updated.slug}`)
             return NextResponse.json({ success: true, project: updated })
         }
 
@@ -57,6 +60,9 @@ export async function PUT(_req: Request, { params }: { params: { id: string } })
                 meta: { status: newStatus },
             })
         }
+
+        revalidatePath('/projects')
+        if (updated.slug) revalidatePath(`/projects/${updated.slug}`)
 
         return NextResponse.json({ success: true, project: updated })
     } catch (err: any) {

@@ -1,9 +1,13 @@
 import Link from 'next/link'
+import EcosystemPartnerDirectorySection from '@/components/ecosystem/EcosystemPartnerDirectorySection'
 
 export const metadata = {
   title: 'Vastu & Feng Shui - MillionFlats Ecosystem',
   description: 'Connect with verified Vastu and Feng Shui consultants to harmonize your space and elevate your life.',
 }
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export default function VastuFengShuiPage() {
   return (
@@ -234,67 +238,11 @@ export default function VastuFengShuiPage() {
         </div>
       </section>
 
-      {/* 6. PARTNER DIRECTORY & FILTER */}
-      <section id="directory" className="bg-white py-24 border-y border-slate-200">
-        <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
-            <div>
-              <h2 className="text-3xl font-sans font-extrabold text-[#1f2937] tracking-tight">Verified Consultants Directory</h2>
-              <p className="text-slate-500 font-medium mt-2">Filter visually thoroughly cleanly flawlessly profoundly accurately heavily precisely robustly effectively smartly strictly brilliantly natively fully absolutely perfectly safely seamlessly completely intelligently strongly purely.</p>
-            </div>
-            <div className="flex flex-wrap gap-3 w-full md:w-auto justify-end">
-              <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-purple-500 font-semibold w-full sm:w-auto">
-                <option>Specialization</option>
-                <option>Vastu Shastra</option>
-                <option>Feng Shui</option>
-                <option>Integrated (Both)</option>
-              </select>
-              <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-purple-500 font-semibold w-full sm:w-auto">
-                <option>Service Mode</option>
-                <option>Online Consultation</option>
-                <option>On-site Visit</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { name: 'Dr. Shruti Alignment', tag: 'Vastu Expert', mod: 'Both' },
-              { name: 'YinYang Masters', tag: 'Feng Shui', mod: 'Online' },
-              { name: 'Sacred Architecture', tag: 'Integrated', mod: 'On-site' },
-              { name: 'Cosmic Layouts', tag: 'Vastu Shastra', mod: 'Both' },
-              { name: 'Harmony Spaces', tag: 'Feng Shui', mod: 'On-site' },
-              { name: 'Energy Flow Analytics', tag: 'Integrated', mod: 'Online' },
-            ].map((firm, i) => (
-              <div key={i} className="bg-white border border-slate-200 rounded-[2rem] p-6 hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] hover:border-purple-300 transition-all group flex flex-col h-full overflow-hidden">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="w-12 h-12 bg-purple-50 border border-purple-100 rounded-full flex items-center justify-center text-xl shadow-inner shrink-0 group-hover:bg-purple-100 transition-colors">
-                    🪔
-                  </div>
-                  <span className="bg-[#1f2937] text-purple-300 text-[10px] font-extrabold uppercase tracking-widest px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1 shadow-sm">
-                    Verified
-                  </span>
-                </div>
-
-                <div className="flex-1">
-                  <h4 className="font-extrabold text-[#1f2937] text-lg mb-1">{firm.name}</h4>
-                  <p className="text-sm font-semibold text-purple-600 mb-6">{firm.tag}</p>
-                </div>
-
-                <div className="border-t border-slate-100 pt-5 flex items-center justify-between">
-                  <div>
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Mode</div>
-                    <div className="text-sm font-extrabold text-[#1f2937]">{firm.mod}</div>
-                  </div>
-                  <button className="bg-purple-50 text-purple-700 border border-purple-200 font-bold px-4 py-2 rounded-xl text-sm hover:bg-purple-600 hover:text-white transition-colors">
-                    Book
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <EcosystemPartnerDirectorySection
+        categorySlug="vastu-feng-shui"
+        title="Verified Consultants Directory"
+        subtitle="Filter and find verified Vastu and Feng Shui consultants for your property."
+      />
 
       {/* 7. EDUCATIONAL RESOURCES */}
       <section className="bg-slate-50 py-24 border-b border-slate-200 text-center">
