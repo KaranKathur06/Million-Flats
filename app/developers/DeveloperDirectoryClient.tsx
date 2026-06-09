@@ -3,27 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import type { PublicDeveloperListItem } from '@/lib/developers/getPublicDevelopers'
 
 type SortOption = 'featured' | 'most_projects' | 'newest' | 'oldest' | 'alphabetical'
 
-interface DeveloperItem {
-  id: string
-  name: string
-  slug: string | null
-  logo: string | null
-  banner: string | null
-  countryCode: string
-  city: string | null
-  shortDescription: string | null
-  website: string | null
-  foundedYear: number | null
-  isFeatured: boolean
-  featuredRank: number | null
-  customerRating: number | null
-  projectsDelivered: number | null
-  countriesPresent: number | null
-  verixScore: number | null
-  _count: { projects: number; properties: number }
+type DeveloperItem = PublicDeveloperListItem
+
+type Props = {
+  initialDevelopers?: DeveloperItem[]
 }
 
 const FALLBACK_IMAGE = '/images/default-property.jpg'
@@ -80,13 +67,16 @@ function DeveloperCardSkeleton() {
   )
 }
 
-export default function DeveloperDirectoryClient() {
-  const [developers, setDevelopers] = useState<DeveloperItem[]>([])
-  const [loading, setLoading] = useState(true)
+export default function DeveloperDirectoryClient({ initialDevelopers = [] }: Props) {
+  const [developers, setDevelopers] = useState<DeveloperItem[]>(initialDevelopers)
+  const [loading, setLoading] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [country, setCountry] = useState('')
   const [search, setSearch] = useState('')
   const [searchDebounced, setSearchDebounced] = useState('')
   const [sort, setSort] = useState<SortOption>('featured')
+
+  const isDefaultFilters = !country && !searchDebounced && sort === 'featured'
 
   // Debounce search
   useEffect(() => {
@@ -95,7 +85,15 @@ export default function DeveloperDirectoryClient() {
   }, [search])
 
   const load = useCallback(async () => {
+    if (isDefaultFilters && initialDevelopers.length > 0) {
+      setDevelopers(initialDevelopers)
+      setFetchError(null)
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
+    setFetchError(null)
     try {
       const params = new URLSearchParams()
       params.set('limit', '100')
@@ -107,13 +105,18 @@ export default function DeveloperDirectoryClient() {
       const json = await res.json()
       if (json.success && Array.isArray(json.data)) {
         setDevelopers(json.data)
+      } else {
+        setFetchError(json.message || 'Unable to load developers right now.')
+        if (!isDefaultFilters) setDevelopers([])
       }
     } catch (err) {
       console.error('Developer directory fetch error:', err)
+      setFetchError('Unable to load developers right now.')
+      if (!isDefaultFilters) setDevelopers([])
     } finally {
       setLoading(false)
     }
-  }, [country, searchDebounced, sort])
+  }, [country, searchDebounced, sort, initialDevelopers, isDefaultFilters])
 
   useEffect(() => {
     load()
@@ -179,8 +182,13 @@ export default function DeveloperDirectoryClient() {
           {showFeaturedSections ? 'All Developers' : `Developers${country ? ` — ${country}` : ''}`}
         </h2>
         <p className="mt-1 text-sm text-gray-500">
-          {loading ? 'Loading...' : `${developers.length} developer${developers.length !== 1 ? 's' : ''} found`}
+          {loading
+            ? 'Loading...'
+            : `${developers.length} developer${developers.length !== 1 ? 's' : ''} found`}
         </p>
+        {fetchError ? (
+          <p className="mt-2 text-sm text-amber-700">{fetchError}</p>
+        ) : null}
       </div>
 
       {/* ═══════ FILTER BAR ═══════ */}
@@ -255,7 +263,9 @@ export default function DeveloperDirectoryClient() {
           <svg className="h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <p className="text-sm font-medium text-gray-500">No developers found matching your filters.</p>
+          <p className="text-sm font-medium text-gray-500">
+            {fetchError || 'No developers found matching your filters.'}
+          </p>
           <button
             type="button"
             onClick={() => { setSearch(''); setCountry(''); setSort('featured') }}

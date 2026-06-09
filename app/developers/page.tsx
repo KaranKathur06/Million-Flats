@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { prisma } from '@/lib/prisma'
+import { getPublicDeveloperStats, getPublicDevelopers } from '@/lib/developers/getPublicDevelopers'
 import DeveloperDirectoryClient from './DeveloperDirectoryClient'
 
 export const dynamic = 'force-dynamic'
@@ -29,26 +29,11 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-async function getDirectoryStats() {
-  try {
-    const [developerCount, projectCount, propertyCount] = await Promise.all([
-      (prisma as any).developer.count({ where: { status: 'ACTIVE', isDeleted: { not: true } } }),
-      (prisma as any).project.count({ where: { status: 'PUBLISHED', isDeleted: false } }),
-      (prisma as any).manualProperty.count({ where: { status: 'APPROVED' } }),
-    ])
-    return {
-      developers: developerCount || 0,
-      projects: projectCount || 0,
-      properties: propertyCount || 0,
-      countries: 2,
-    }
-  } catch {
-    return { developers: 0, projects: 0, properties: 0, countries: 2 }
-  }
-}
-
 export default async function DeveloperDirectoryPage() {
-  const stats = await getDirectoryStats()
+  const [stats, { developers: initialDevelopers }] = await Promise.all([
+    getPublicDeveloperStats(),
+    getPublicDevelopers({ sort: 'featured', limit: 100 }),
+  ])
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -123,7 +108,7 @@ export default async function DeveloperDirectoryPage() {
       </section>
 
       {/* ═══════ DEVELOPER DIRECTORY ═══════ */}
-      <DeveloperDirectoryClient />
+      <DeveloperDirectoryClient initialDevelopers={initialDevelopers} />
 
       {/* ═══════ JSON-LD ═══════ */}
       <script

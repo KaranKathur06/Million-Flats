@@ -1,68 +1,22 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getPublicDevelopers, type PublicDeveloperSort } from '@/lib/developers/getPublicDevelopers'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const country = (searchParams.get('country') || '').toUpperCase()
-  const featured = searchParams.get('featured')
+  const country = (searchParams.get('country') || '').trim()
+  const featured = searchParams.get('featured') === 'true'
   const search = (searchParams.get('search') || '').trim()
-  const sort = searchParams.get('sort') || 'featured'
+  const sort = (searchParams.get('sort') || 'featured') as PublicDeveloperSort
   const limit = Math.min(parseInt(searchParams.get('limit') || '50') || 50, 200)
 
   try {
-    const where: any = { status: 'ACTIVE', isDeleted: { not: true } }
-    if (country === 'UAE' || country === 'INDIA') where.countryCode = country
-    if (featured === 'true') where.isFeatured = true
-    if (search) where.name = { contains: search, mode: 'insensitive' }
-
-    const orderByMap: Record<string, any[]> = {
-      featured: [{ isFeatured: 'desc' }, { featuredRank: 'asc' }, { name: 'asc' }],
-      most_projects: [{ projects: { _count: 'desc' } }, { name: 'asc' }],
-      newest: [{ createdAt: 'desc' }],
-      oldest: [{ createdAt: 'asc' }],
-      alphabetical: [{ name: 'asc' }],
-    }
-    const orderBy = orderByMap[sort] || orderByMap.featured
-
-    const runQuery = async (withIsDeleted: boolean) =>
-      (prisma as any).developer.findMany({
-        where: withIsDeleted
-          ? where
-          : Object.fromEntries(Object.entries(where).filter(([key]) => key !== 'isDeleted')),
-        orderBy,
-        take: limit,
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          logo: true,
-          banner: true,
-          countryCode: true,
-          city: true,
-          shortDescription: true,
-          website: true,
-          foundedYear: true,
-          isFeatured: true,
-          featuredRank: true,
-          customerRating: true,
-          projectsDelivered: true,
-          countriesPresent: true,
-          verixScore: true,
-          _count: {
-            select: {
-              projects: { where: { status: 'PUBLISHED' } },
-              properties: true,
-            },
-          },
-        },
-      })
-
-    let developers: any[] = []
-    try {
-      developers = await runQuery(true)
-    } catch {
-      developers = await runQuery(false)
-    }
+    const { developers } = await getPublicDevelopers({
+      country: country || undefined,
+      featured,
+      search: search || undefined,
+      sort,
+      limit,
+    })
 
     return NextResponse.json(
       { success: true, data: developers },
