@@ -18,10 +18,16 @@ export default async function EcosystemPartnerRecommendationsSection({
   layout = 'full',
   className = '',
 }: EcosystemPartnerRecommendationsSectionProps) {
-  const groups = await getRecommendationsForContext(context, {
-    city: city || undefined,
-    partnersPerCategory: 1,
-  })
+  let groups: RecommendationGroup[] = []
+  try {
+    groups = await getRecommendationsForContext(context, {
+      city: city || undefined,
+      partnersPerCategory: 1,
+    })
+  } catch (err) {
+    console.warn('[EcosystemPartnerRecommendationsSection] skipped', { context, err })
+    return null
+  }
 
   if (groups.length === 0) return null
 

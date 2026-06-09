@@ -96,6 +96,21 @@ export async function getPublicDevelopers(params: GetPublicDevelopersParams = {}
   const where = buildWhere(params)
   const orderBy = buildOrderBy(sort)
 
+  const MINIMAL_SELECT = {
+    id: true,
+    name: true,
+    slug: true,
+    logo: true,
+    banner: true,
+    countryCode: true,
+    city: true,
+    shortDescription: true,
+    website: true,
+    foundedYear: true,
+    isFeatured: true,
+    customerRating: true,
+  }
+
   const attempts: Array<{ where: Record<string, unknown>; select: Record<string, unknown> }> = [
     {
       where,
@@ -114,6 +129,10 @@ export async function getPublicDevelopers(params: GetPublicDevelopersParams = {}
     {
       where,
       select: { ...BASE_SELECT },
+    },
+    {
+      where: { ...where, status: undefined, isDeleted: undefined },
+      select: { ...MINIMAL_SELECT },
     },
   ]
 
@@ -141,9 +160,24 @@ export async function getPublicDevelopers(params: GetPublicDevelopersParams = {}
 }
 
 export async function getPublicDeveloperStats() {
+  const countAttempts = [
+    () => (prisma as any).developer.count({ where: { status: 'ACTIVE', isDeleted: false } }),
+    () => (prisma as any).developer.count({ where: { status: 'ACTIVE' } }),
+    () => (prisma as any).developer.count(),
+  ]
+
+  let developerCount = 0
+  for (const attempt of countAttempts) {
+    try {
+      developerCount = await attempt()
+      break
+    } catch {
+      /* try next */
+    }
+  }
+
   try {
-    const [developerCount, projectCount, propertyCount] = await Promise.all([
-      (prisma as any).developer.count({ where: { status: 'ACTIVE', isDeleted: false } }),
+    const [projectCount, propertyCount] = await Promise.all([
       (prisma as any).project.count({ where: { status: 'PUBLISHED', isDeleted: false } }),
       (prisma as any).manualProperty.count({ where: { status: 'APPROVED' } }),
     ])
@@ -154,6 +188,6 @@ export async function getPublicDeveloperStats() {
       countries: 2,
     }
   } catch {
-    return { developers: 0, projects: 0, properties: 0, countries: 2 }
+    return { developers: developerCount || 0, projects: 0, properties: 0, countries: 2 }
   }
 }

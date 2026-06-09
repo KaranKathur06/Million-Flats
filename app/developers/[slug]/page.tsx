@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
 import DeveloperHero from '@/components/developer-profile/DeveloperHero'
 import DeveloperStats from '@/components/developer-profile/DeveloperStats'
 import DeveloperAbout from '@/components/developer-profile/DeveloperAbout'
@@ -10,8 +9,8 @@ import DeveloperGallery from '@/components/developer-profile/DeveloperGallery'
 import DeveloperVideos from '@/components/developer-profile/DeveloperVideos'
 import DeveloperFaqs from '@/components/developer-profile/DeveloperFaqs'
 import DeveloperCTA from '@/components/developer-profile/DeveloperCTA'
-import type { DeveloperProfileData } from '@/components/developer-profile/types'
 import EcosystemPartnerRecommendationsSection from '@/components/ecosystem/EcosystemPartnerRecommendationsSection'
+import { getPublicDeveloperProfile } from '@/lib/developers/getPublicDeveloperProfile'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -20,200 +19,13 @@ type DeveloperPageProps = {
   params: { slug: string }
 }
 
-function formatAED(value: number | null | undefined) {
-  if (!value || value <= 0) return null
-  return `AED ${Math.round(value).toLocaleString('en-US')}`
-}
-
-function mapCountry(code?: string | null) {
-  if (code === 'INDIA') return 'India'
-  return 'UAE'
-}
-
-async function getDeveloperProfile(slug: string): Promise<DeveloperProfileData | null> {
-  const normalizedSlug = decodeURIComponent(String(slug || '')).trim().toLowerCase()
-  if (!normalizedSlug) return null
-
-  const runQuery = async (withDeletedFilter: boolean) =>
-    (prisma as any).developer.findFirst({
-      where: withDeletedFilter
-        ? { slug: normalizedSlug, status: 'ACTIVE', isDeleted: { not: true } }
-        : { slug: normalizedSlug, status: 'ACTIVE' },
-      include: {
-        projects: {
-          where: { status: 'PUBLISHED' },
-          orderBy: { updatedAt: 'desc' },
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            city: true,
-            startingPrice: true,
-            completionYear: true,
-            coverImage: true,
-            goldenVisa: true,
-          },
-        },
-        achievements: {
-          orderBy: { sortOrder: 'asc' },
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            imageUrl: true,
-            awardDate: true,
-          },
-        },
-        faqs: {
-          orderBy: { sortOrder: 'asc' },
-          select: {
-            id: true,
-            question: true,
-            answer: true,
-          },
-        },
-        gallery: {
-          orderBy: { sortOrder: 'asc' },
-          select: {
-            id: true,
-            imageUrl: true,
-            caption: true,
-            category: true,
-          },
-        },
-      },
-    })
-
-  let developer: any = null
-  try {
-    developer = await runQuery(true)
-  } catch {
-    developer = await runQuery(false)
-  }
-
-  if (!developer) return null
-
-  // Hide inactive or soft-deleted developers from public view
-  if (developer.status === 'INACTIVE' || developer.isDeleted) return null
-
-  const projects = Array.isArray(developer.projects) ? developer.projects : []
-  const projectPrices = projects.map((item: any) => Number(item.startingPrice || 0)).filter((value: number) => value > 0)
-  const minPrice = projectPrices.length > 0 ? Math.min(...projectPrices) : null
-  const maxPrice = projectPrices.length > 0 ? Math.max(...projectPrices) : null
-
-  const citySet = new Set<string>(
-    projects
-      .map((item: any) => String(item.city || '').trim())
-      .filter(Boolean)
-  )
-
-  // Calculate experience from foundedYear (DB) or fallback to createdAt
-  const foundedYear = developer.foundedYear || new Date(developer.createdAt).getFullYear()
-  const experience = Math.max(1, new Date().getFullYear() - foundedYear)
-
-  const primaryCity = developer.city || citySet.values().next().value || 'Dubai'
-  const country = mapCountry(developer.countryCode)
-
-  // Use DB description or generate fallback
-  const description = developer.description
-    || `${developer.name} is known for premium residential developments built with a strong focus on trust, quality, and long-term value.
-
-With a delivery-first approach, the brand has scaled across key micro-markets while maintaining construction standards and investor confidence.
-
-From design-led communities to strategic launch locations, ${developer.name} continues to serve end-users and investors looking for reliable execution at scale.`
-
-  const tagline = developer.shortDescription
-    || 'Luxury communities crafted with trust, scale, and on-time delivery.'
-
-  return {
-    name: developer.name,
-    slug: developer.slug || slug,
-    logo: developer.logo || '/LOGO.jpeg',
-    banner: developer.banner || projects[0]?.coverImage || '/HOMEPAGE.jpg',
-    tagline,
-    description,
-    shortDescription: developer.shortDescription || null,
-    city: primaryCity,
-    country,
-    founded_year: foundedYear,
-    specialization: 'Luxury Residential / Mixed-Use / Commercial',
-    website: developer.website || null,
-    verified: true,
-
-    // Extended fields
-    headquarters: developer.headquarters || null,
-    email: developer.email || null,
-    phone: developer.phone || null,
-    address: developer.address || null,
-    brochureUrl: developer.brochureUrl || null,
-
-    // Social links
-    socialLinks: {
-      facebook: developer.facebookUrl || null,
-      instagram: developer.instagramUrl || null,
-      linkedin: developer.linkedinUrl || null,
-      youtube: developer.youtubeUrl || null,
-    },
-
-    // Trust & rating
-    customerRating: developer.customerRating || null,
-    projectsDelivered: developer.projectsDelivered || null,
-    countriesPresent: developer.countriesPresent || null,
-    verixScore: developer.verixScore || null,
-
-    stats: {
-      projects: projects.length,
-      cities: citySet.size || 1,
-      experience,
-      startingPriceRange:
-        minPrice && maxPrice
-          ? `${formatAED(minPrice)} - ${formatAED(maxPrice)}`
-          : minPrice
-            ? `${formatAED(minPrice)}+`
-            : null,
-    },
-
-    projects: projects.map((project: any, index: number) => ({
-      id: project.id,
-      name: project.name,
-      slug: project.slug,
-      image: project.coverImage || '/image-placeholder.svg',
-      location: [project.city, country].filter(Boolean).join(', '),
-      startingPrice: formatAED(project.startingPrice),
-      status: project.completionYear ? `Handover ${project.completionYear}` : 'New Launch',
-      tag: index === 0 ? 'Featured' : project.goldenVisa ? '3D Tour Available' : null,
-    })),
-
-    achievements: (developer.achievements || []).map((a: any) => ({
-      id: a.id,
-      title: a.title,
-      description: a.description || null,
-      imageUrl: a.imageUrl || null,
-      awardDate: a.awardDate ? new Date(a.awardDate).toISOString() : null,
-    })),
-
-    faqs: (developer.faqs || []).map((f: any) => ({
-      id: f.id,
-      question: f.question,
-      answer: f.answer,
-    })),
-
-    gallery: (developer.gallery || []).map((g: any) => ({
-      id: g.id,
-      imageUrl: g.imageUrl,
-      caption: g.caption || null,
-      category: g.category || null,
-    })),
-  }
-}
-
 function getMetadataBase() {
   const base = (process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || '').trim()
   return base ? base.replace(/\/$/, '') : ''
 }
 
 export async function generateMetadata({ params }: DeveloperPageProps): Promise<Metadata> {
-  const developer = await getDeveloperProfile(params.slug)
+  const developer = await getPublicDeveloperProfile(params.slug)
 
   if (!developer) {
     return { title: 'Developer Not Found | MillionFlats' }
@@ -224,7 +36,9 @@ export async function generateMetadata({ params }: DeveloperPageProps): Promise<
 
   return {
     title: `${developer.name} Developer Profile | MillionFlats`,
-    description: developer.shortDescription || `Explore ${developer.name} projects, delivery track record, and verified developer details on MillionFlats.`,
+    description:
+      developer.shortDescription ||
+      `Explore ${developer.name} projects, delivery track record, and verified developer details on MillionFlats.`,
     alternates: canonical ? { canonical } : undefined,
     openGraph: {
       title: `${developer.name} Developer Profile | MillionFlats`,
@@ -237,7 +51,7 @@ export async function generateMetadata({ params }: DeveloperPageProps): Promise<
 }
 
 export default async function DeveloperProfilePage({ params }: DeveloperPageProps) {
-  const developer = await getDeveloperProfile(params.slug)
+  const developer = await getPublicDeveloperProfile(params.slug)
 
   if (!developer) {
     notFound()
@@ -249,24 +63,27 @@ export default async function DeveloperProfilePage({ params }: DeveloperPageProp
   const reasons = [
     {
       title: 'Premium Quality',
-      description: 'Every project is planned around long-term value, superior materials, and design consistency.',
+      description:
+        'Every project is planned around long-term value, superior materials, and design consistency.',
     },
     {
       title: 'On-Time Delivery',
-      description: 'A delivery-first model keeps execution transparent and timelines reliable for buyers and investors.',
+      description:
+        'A delivery-first model keeps execution transparent and timelines reliable for buyers and investors.',
     },
     {
       title: 'Trusted Brand',
-      description: 'Strong market credibility built through verified operations and repeat customer confidence.',
+      description:
+        'Strong market credibility built through verified operations and repeat customer confidence.',
     },
     {
       title: 'Innovation in Design',
-      description: 'Modern layouts and future-ready communities designed for comfort, utility, and appreciation.',
+      description:
+        'Modern layouts and future-ready communities designed for comfort, utility, and appreciation.',
     },
   ]
 
-  // Build structured data
-  const organizationSchema: any = {
+  const organizationSchema: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: developer.name,
@@ -291,29 +108,33 @@ export default async function DeveloperProfilePage({ params }: DeveloperPageProp
     }
   }
 
-  // FAQ schema
-  const faqSchema = developer.faqs.length > 0
-    ? {
-        '@context': 'https://schema.org',
-        '@type': 'FAQPage',
-        mainEntity: developer.faqs.map((faq) => ({
-          '@type': 'Question',
-          name: faq.question,
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: faq.answer,
-          },
-        })),
-      }
-    : null
+  const faqSchema =
+    developer.faqs.length > 0
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: developer.faqs.map((faq) => ({
+            '@type': 'Question',
+            name: faq.question,
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: faq.answer,
+            },
+          })),
+        }
+      : null
 
-  // Breadcrumb schema
   const breadcrumbSchema = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Home', item: base || undefined },
-      { '@type': 'ListItem', position: 2, name: 'Developers', item: base ? `${base}/developers` : undefined },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Developers',
+        item: base ? `${base}/developers` : undefined,
+      },
       { '@type': 'ListItem', position: 3, name: developer.name, item: canonical || undefined },
     ],
   }
@@ -323,31 +144,33 @@ export default async function DeveloperProfilePage({ params }: DeveloperPageProp
       <DeveloperHero developer={developer} />
       <DeveloperStats developer={developer} />
       <DeveloperAbout developer={developer} />
-      <DeveloperProjects projects={developer.projects} stats={developer.stats} developerName={developer.name} />
-
-      {/* Achievements */}
+      <DeveloperProjects
+        projects={developer.projects}
+        stats={developer.stats}
+        developerName={developer.name}
+      />
       <DeveloperAchievements achievements={developer.achievements} developerName={developer.name} />
-
-      {/* Gallery */}
       <DeveloperGallery gallery={developer.gallery} developerName={developer.name} />
-
-      {/* Videos */}
       <DeveloperVideos youtubeUrl={developer.socialLinks.youtube} developerName={developer.name} />
-
-      {/* FAQs */}
       <DeveloperFaqs faqs={developer.faqs} developerName={developer.name} />
 
-      {/* Why Choose Section */}
       <section className="py-12 sm:py-14 lg:py-16">
         <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-8">
           <div className="mb-8 sm:mb-10">
-            <h2 className="text-2xl font-bold tracking-tight text-dark-blue sm:text-3xl">Why Choose {developer.name}</h2>
-            <p className="mt-2 text-sm text-gray-600 sm:text-base">A trusted development partner for premium real estate decisions.</p>
+            <h2 className="text-2xl font-bold tracking-tight text-dark-blue sm:text-3xl">
+              Why Choose {developer.name}
+            </h2>
+            <p className="mt-2 text-sm text-gray-600 sm:text-base">
+              A trusted development partner for premium real estate decisions.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {reasons.map((reason) => (
-              <article key={reason.title} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+              <article
+                key={reason.title}
+                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
+              >
                 <h3 className="text-base font-semibold text-dark-blue">{reason.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-gray-600">{reason.description}</p>
               </article>
@@ -365,7 +188,6 @@ export default async function DeveloperProfilePage({ params }: DeveloperPageProp
 
       <DeveloperCTA developer={developer} />
 
-      {/* JSON-LD Structured Data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
@@ -374,12 +196,12 @@ export default async function DeveloperProfilePage({ params }: DeveloperPageProp
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
-      {faqSchema && (
+      {faqSchema ? (
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
         />
-      )}
+      ) : null}
     </main>
   )
 }
