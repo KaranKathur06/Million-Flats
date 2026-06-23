@@ -104,16 +104,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         },
       })
 
-      // Audit log
-      await (prisma as any).auditLog.create({
-        data: {
-          action: 'DEVELOPER_PROFILE_APPROVED',
-          entityType: 'DEVELOPER_PROFILE',
-          entityId: params.id,
-          performedById: (admin as any).id || null,
-          details: { companyName: profile.companyName, linkedDeveloperId: developerId },
-        },
-      }).catch(() => null)
+      // Lightweight audit trail (replace with your audit system if available)
+      console.log('[AUDIT] DEVELOPER_PROFILE_APPROVED', { profileId: params.id, companyName: profile.companyName, linkedDeveloperId: developerId, adminId: (admin as any).id })
 
       return NextResponse.json({ message: `${profile.companyName} approved successfully.`, profile: updated })
     }
