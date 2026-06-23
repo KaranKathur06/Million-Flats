@@ -45,35 +45,23 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- ── 2. Extend LeadType enum (only if it exists) ────────────────────────────────
+-- ── 2. Extend LeadType enum (OID-based — avoids ::regtype parse errors) ────────
+-- Using DECLARE + OID lookup so PostgreSQL never parses 'LeadType'::regtype
+-- at statement compile time (which would fail if the type doesn't exist).
 
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'LeadType') THEN
-    IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumtypid = 'LeadType'::regtype AND enumlabel = 'BROCHURE_REQUEST') THEN
+DO $$ DECLARE _oid oid; BEGIN
+  SELECT oid INTO _oid FROM pg_type WHERE typname = 'LeadType';
+  IF _oid IS NOT NULL THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumtypid = _oid AND enumlabel = 'BROCHURE_REQUEST') THEN
       ALTER TYPE "LeadType" ADD VALUE 'BROCHURE_REQUEST';
     END IF;
-  END IF;
-END $$;
-
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'LeadType') THEN
-    IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumtypid = 'LeadType'::regtype AND enumlabel = 'SITE_VISIT_REQUEST') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumtypid = _oid AND enumlabel = 'SITE_VISIT_REQUEST') THEN
       ALTER TYPE "LeadType" ADD VALUE 'SITE_VISIT_REQUEST';
     END IF;
-  END IF;
-END $$;
-
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'LeadType') THEN
-    IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumtypid = 'LeadType'::regtype AND enumlabel = 'CALL_BACK') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumtypid = _oid AND enumlabel = 'CALL_BACK') THEN
       ALTER TYPE "LeadType" ADD VALUE 'CALL_BACK';
     END IF;
-  END IF;
-END $$;
-
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'LeadType') THEN
-    IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumtypid = 'LeadType'::regtype AND enumlabel = 'THREE_D_TOUR_REQUEST') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumtypid = _oid AND enumlabel = 'THREE_D_TOUR_REQUEST') THEN
       ALTER TYPE "LeadType" ADD VALUE 'THREE_D_TOUR_REQUEST';
     END IF;
   END IF;
@@ -223,7 +211,7 @@ CREATE TABLE IF NOT EXISTS "developer_documents" (
   "file_name"             TEXT,
   "mime_type"             TEXT,
   "size_bytes"            INTEGER,
-  -- verification_status as TEXT with CHECK (no DocumentStatus enum needed)
+  -- verification_status stored as TEXT with CHECK (avoids DocumentStatus enum dependency)
   "verification_status"   TEXT NOT NULL DEFAULT 'PENDING'
                             CHECK ("verification_status" IN ('PENDING','UNDER_REVIEW','VERIFIED','REJECTED')),
   "reviewed_by"           TEXT,
@@ -236,10 +224,10 @@ CREATE TABLE IF NOT EXISTS "developer_documents" (
   CONSTRAINT "developer_documents_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS "developer_documents_profile_type_key"      ON "developer_documents" ("developer_profile_id", "document_type");
-CREATE INDEX        IF NOT EXISTS "developer_documents_profile_id_idx"        ON "developer_documents" ("developer_profile_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "developer_documents_profile_type_key"        ON "developer_documents" ("developer_profile_id", "document_type");
+CREATE INDEX        IF NOT EXISTS "developer_documents_profile_id_idx"          ON "developer_documents" ("developer_profile_id");
 CREATE INDEX        IF NOT EXISTS "developer_documents_verification_status_idx" ON "developer_documents" ("verification_status");
-CREATE INDEX        IF NOT EXISTS "developer_documents_type_idx"              ON "developer_documents" ("document_type");
+CREATE INDEX        IF NOT EXISTS "developer_documents_type_idx"                ON "developer_documents" ("document_type");
 
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'developer_documents_developer_profile_id_fkey') THEN
