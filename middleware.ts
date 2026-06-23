@@ -23,6 +23,12 @@ const PUBLIC_AUTH_PREFIXES = [
   '/agent/forgot-password',
   '/agent/verify-email',
   '/agent/verify',
+  // Developer auth pages
+  '/developer/login',
+  '/developer/register',
+  '/developer/forgot-password',
+  '/developer/verify-email',
+  '/developer/verify',
 ]
 
 function isPublicAuth(pathname: string) {
@@ -112,10 +118,12 @@ export async function middleware(req: NextRequest) {
   const nextAuthToken = secret ? await getToken({ req, secret }) : null
 
   let roleRaw = String((nextAuthToken as any)?.role || '').toUpperCase()
-  const emailVerified         = Boolean((nextAuthToken as any)?.emailVerified)
-  const agentStatus           = String((nextAuthToken as any)?.agentStatus || '').toUpperCase()
-  const subscriptionStatus    = String((nextAuthToken as any)?.subscriptionStatus || '').toUpperCase()
-  const subscriptionPlan      = String((nextAuthToken as any)?.subscriptionPlan || 'BASIC').toUpperCase()
+  const emailVerified              = Boolean((nextAuthToken as any)?.emailVerified)
+  const agentStatus                = String((nextAuthToken as any)?.agentStatus || '').toUpperCase()
+  const subscriptionStatus         = String((nextAuthToken as any)?.subscriptionStatus || '').toUpperCase()
+  const subscriptionPlan           = String((nextAuthToken as any)?.subscriptionPlan || 'BASIC').toUpperCase()
+  // Developer-specific token fields
+  const developerOnboardingStatus  = String((nextAuthToken as any)?.developerOnboardingStatus || '').toUpperCase()
 
   // Legacy JWT fallback
   if (!roleRaw) {
@@ -320,15 +328,134 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // DEVELOPER portal guard
-  // ─────────────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────────────
+  // DEVELOPER portal guard — enforces the DeveloperOnboardingStatus state machine
+  // Mirrors the agent guard pattern exactly.
+  // ─────────────────────────────────────────────────────────────────────────────────
   if (isDeveloperProtected) {
     if (role !== 'DEVELOPER') {
       const url = req.nextUrl.clone()
-      url.pathname = '/auth/login'
+      url.pathname = '/developer/login'
       const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`
       url.search = `next=${encodeURIComponent(next)}`
+      return NextResponse.redirect(url)
+    }
+
+    // Pages always accessible regardless of onboarding status
+    const isAlwaysAllowed =
+      pathname.startsWith('/developer/onboarding') ||
+      pathname.startsWith('/developer/profile') ||
+      pathname.startsWith('/developer/verification') ||
+      pathname.startsWith('/developer/settings') ||
+      pathname === '/developer/on-hold' ||
+      pathname === '/developer/rejected' ||
+      pathname === '/developer/suspended'
+
+    // Pages that require APPROVED status
+    const isApprovalGated =
+      pathname.startsWith('/developer/projects') ||
+      pathname.startsWith('/developer/leads') ||
+      pathname.startsWith('/developer/crm') ||
+      pathname.startsWith('/developer/analytics')
+
+    const devStatus = developerOnboardingStatus
+
+    // REGISTERED: email not verified yet
+    if (devStatus === 'REGISTERED' || devStatus === '') {
+      if (!isAlwaysAllowed) {
+        if (!emailVerified) {
+          const url = req.nextUrl.clone()
+          url.pathname = '/developer/verify-email'
+          url.search = ''
+          return NextResponse.redirect(url)
+        } else {
+          if (pathname !== '/developer/onboarding' && !pathname.startsWith('/developer/onboarding/')) {
+            const url = req.nextUrl.clone()
+            url.pathname = '/developer/onboarding'
+            url.search = ''
+            return NextResponse.redirect(url)
+          }
+        }
+      }
+    }
+
+    // EMAIL_VERIFIED: must complete onboarding form
+    if (devStatus === 'EMAIL_VERIFIED') {
+      if (!pathname.startsWith('/developer/onboarding') && !isAlwaysAllowed) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/developer/onboarding'
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
+    }
+
+    // PROFILE_INCOMPLETE: must complete profile
+    if (devStatus === 'PROFILE_INCOMPLETE') {
+      if (!pathname.startsWith('/developer/profile') && !pathname.startsWith('/developer/onboarding') && !isAlwaysAllowed) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/developer/profile'
+        url.search = '?notice=complete_profile'
+        return NextResponse.redirect(url)
+      }
+    }
+
+    // PROFILE_COMPLETED: must upload documents
+    if (devStatus === 'PROFILE_COMPLETED') {
+      if (!pathname.startsWith('/developer/verification') && !pathname.startsWith('/developer/profile') && !isAlwaysAllowed) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/developer/verification'
+        url.search = '?notice=upload_documents'
+        return NextResponse.redirect(url)
+      }
+    }
+
+    // DOCUMENTS_UPLOADED / UNDER_REVIEW: redirect to on-hold page
+    if (devStatus === 'DOCUMENTS_UPLOADED' || devStatus === 'UNDER_REVIEW') {
+      if (isApprovalGated) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/developer/on-hold'
+        url.search = `reason=${devStatus.toLowerCase()}`
+        return NextResponse.redirect(url)
+      }
+    }
+
+    // REJECTED: forced to rejected page
+    if (devStatus === 'REJECTED') {
+      if (pathname !== '/developer/rejected' && !pathname.startsWith('/developer/rejected/')) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/developer/rejected'
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
+      return NextResponse.next()
+    }
+
+    // SUSPENDED: forced to suspended page
+    if (devStatus === 'SUSPENDED') {
+      if (pathname !== '/developer/suspended') {
+        const url = req.nextUrl.clone()
+        url.pathname = '/developer/suspended'
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
+      return NextResponse.next()
+    }
+
+    // APPROVED: redirect away from status pages
+    if (devStatus === 'APPROVED') {
+      if (pathname === '/developer/on-hold' || pathname === '/developer/rejected' || pathname === '/developer/suspended') {
+        const url = req.nextUrl.clone()
+        url.pathname = '/developer/dashboard'
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
+    }
+
+    // For non-APPROVED developers, gate approval-required pages
+    if (isApprovalGated && devStatus !== 'APPROVED') {
+      const url = req.nextUrl.clone()
+      url.pathname = '/developer/on-hold'
+      url.search = 'reason=not_approved'
       return NextResponse.redirect(url)
     }
   }

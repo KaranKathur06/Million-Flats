@@ -215,6 +215,7 @@ model User {
 
   buyer Buyer?
   agent Agent?
+  developerProfile DeveloperProfile?
 
   accounts Account[]
   sessions Session[]
@@ -648,6 +649,7 @@ model Developer {
   faqs         DeveloperFaq[]
   gallery      DeveloperGallery[]
   leads        Lead[]
+  userProfiles DeveloperProfile[] // Authenticated developer users linked to this company
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -922,6 +924,7 @@ enum AuditEntityType {
   ECOSYSTEM_PARTNER
   ECOSYSTEM_PARTNER_APPLICATION
   PROJECT
+  DEVELOPER_PROFILE
 }
 
 enum AuditAction {
@@ -964,6 +967,17 @@ enum AuditAction {
   PROJECT_RESTORED
   PROJECT_HARD_DELETED
   PROJECT_ARCHIVED
+  // Developer audit actions
+  DEVELOPER_PROFILE_SUBMITTED
+  ADMIN_DEVELOPER_APPROVED
+  ADMIN_DEVELOPER_REJECTED
+  ADMIN_DEVELOPER_VERIFIED
+  ADMIN_DEVELOPER_SUSPENDED
+  ADMIN_DEVELOPER_UNSUSPENDED
+  ADMIN_DEVELOPER_FEATURED
+  ADMIN_DEVELOPER_DOCUMENT_APPROVED
+  ADMIN_DEVELOPER_DOCUMENT_REJECTED
+  ADMIN_DEVELOPER_LINKED
 }
 
 model AuditLog {
@@ -1520,6 +1534,10 @@ enum LeadType {
   ECOSYSTEM
   THREE_D_TOUR
   DEVELOPER
+  BROCHURE_REQUEST
+  SITE_VISIT_REQUEST
+  CALL_BACK
+  THREE_D_TOUR_REQUEST
 }
 
 enum LeadCountry {
@@ -1565,9 +1583,15 @@ model Lead {
   referralCode       String?   @map("referral_code")
   referralPartnerId  String?   @map("referral_partner_id")
 
+  // Developer CRM fields
+  developerProfileId String?   @map("developer_profile_id")
+  leadSubType        String?   @map("lead_sub_type")  // PROPERTY_INQUIRY | PROJECT_INQUIRY | DEVELOPER_CONTACT | BROCHURE_REQUEST | SITE_VISIT_REQUEST | CALL_BACK | THREE_D_TOUR_REQUEST
+  crmStage           String?   @map("crm_stage")      // NEW | CONTACTED | QUALIFIED | SITE_VISIT | NEGOTIATION | BOOKED | CLOSED | LOST
+
   project          Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
   developer        Developer?       @relation(fields: [developerId], references: [id], onDelete: SetNull)
   ecosystemPartner EcosystemPartner? @relation(fields: [ecosystemPartnerId], references: [id], onDelete: SetNull)
+  developerProfile DeveloperProfile? @relation(fields: [developerProfileId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -1579,6 +1603,8 @@ model Lead {
   @@index([category])
   @@index([projectId])
   @@index([developerId])
+  @@index([developerProfileId])
+  @@index([crmStage])
   @@index([assignedTo])
   @@index([createdAt])
   @@index([leadType, status])
@@ -1756,6 +1782,10 @@ model Project {
   paymentPlan     Json?    @map("payment_plan")
   isFeatured      Boolean  @default(false) @map("is_featured")
   featuredOrder   Int?     @map("featured_order")
+
+  // Link to authenticated developer user (null for admin-seeded projects)
+  ownedByProfileId String?  @map("owned_by_profile_id")
+  ownedByProfile   DeveloperProfile? @relation(fields: [ownedByProfileId], references: [id], onDelete: SetNull)
 
   status          ProjectStatus @default(DRAFT)
   isDeleted       Boolean  @default(false) @map("is_deleted")
@@ -2582,4 +2612,213 @@ model AssetAccessLog {
   @@index([createdAt])
   @@index([userId, assetType, createdAt])
   @@map("asset_access_logs")
+}
+
+// ━━━ Developer Profile System ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// This is the self-service authenticated developer profile.
+// Separate from the `developers` table (which is admin-seeded static content).
+// A `developers` row is only created/linked AFTER kycStatus=VERIFIED AND profileCompletion=100%.
+
+enum DeveloperKycStatus {
+  PENDING
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+}
+
+enum DeveloperOnboardingStatus {
+  REGISTERED
+  EMAIL_VERIFIED
+  PROFILE_INCOMPLETE
+  PROFILE_COMPLETED
+  DOCUMENTS_UPLOADED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum DeveloperSubscriptionPlan {
+  FREE
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum DeveloperDocumentType {
+  RERA_CERTIFICATE
+  GST_CERTIFICATE
+  PAN_CARD
+  REGISTRATION_CERTIFICATE
+  AUTHORIZED_PERSON_ID
+  COMPANY_LOGO
+  BROCHURE
+  OTHER
+}
+
+enum DeveloperNotificationType {
+  NEW_LEAD
+  PROJECT_APPROVED
+  PROJECT_REJECTED
+  BROCHURE_DOWNLOADED
+  PROFILE_VERIFIED
+  PROJECT_FEATURED
+  ADMIN_MESSAGE
+  SUBSCRIPTION_EXPIRY
+}
+
+model DeveloperProfile {
+  id                     String                    @id @default(uuid())
+  userId                 String                    @unique @map("user_id")
+  user                   User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Link to the `developers` table row — only set AFTER kycStatus=VERIFIED AND profileCompletion=100%
+  // Admin can link to an existing `developers` row or trigger auto-creation of a new one.
+  linkedDeveloperId      String?                   @map("linked_developer_id") @db.Text
+  linkedDeveloper        Developer?                @relation(fields: [linkedDeveloperId], references: [id], onDelete: SetNull)
+
+  // ── Company Basics (Step 1 of onboarding) ──────────────────────────────────
+  companyName            String?                   @map("company_name")
+  slug                   String?                   @unique
+  description            String?                   @db.Text
+  shortDescription       String?                   @map("short_description")
+  logo                   String?                   // CloudFront URL
+  logoS3Key              String?                   @map("logo_s3_key")
+  banner                 String?                   // CloudFront URL
+  bannerS3Key            String?                   @map("banner_s3_key")
+  website                String?
+  foundedYear            Int?                      @map("founded_year")
+  headquarters           String?
+  countriesServed        String[]                  @default([]) @map("countries_served")
+  totalEmployees         Int?                      @map("total_employees")
+  yearsExperience        Int?                      @map("years_experience")
+
+  // ── Legal & Verification (Step 2 of onboarding) ────────────────────────────
+  reraNumber             String?                   @map("rera_number")
+  gstNumber              String?                   @map("gst_number")
+  panNumber              String?                   @map("pan_number")
+
+  // ── Business Information (Step 3 of onboarding) ────────────────────────────
+  projectTypesFocus      String[]                  @default([]) @map("project_types_focus")
+  // e.g. ["RESIDENTIAL","COMMERCIAL","VILLA","LUXURY","AFFORDABLE","MIXED_USE"]
+  citiesServed           String[]                  @default([]) @map("cities_served")
+
+  // ── Social Links ───────────────────────────────────────────────────────────
+  instagramUrl           String?                   @map("instagram_url")
+  linkedinUrl            String?                   @map("linkedin_url")
+  facebookUrl            String?                   @map("facebook_url")
+  youtubeUrl             String?                   @map("youtube_url")
+  twitterUrl             String?                   @map("twitter_url")
+  whatsapp               String?
+  telegram               String?
+
+  // ── Phone (for OTP auth, matches Agent pattern) ────────────────────────────
+  phone                  String?
+  phoneCountryCode       String?                   @map("phone_country_code")
+
+  // ── Status & KYC ───────────────────────────────────────────────────────────
+  onboardingStatus       DeveloperOnboardingStatus @default(REGISTERED) @map("onboarding_status")
+  kycStatus              DeveloperKycStatus        @default(PENDING) @map("kyc_status")
+  isVerified             Boolean                   @default(false) @map("is_verified")
+  isFeatured             Boolean                   @default(false) @map("is_featured")
+  featuredRank           Int?                      @map("featured_rank")
+
+  // ── Profile Completion Score ────────────────────────────────────────────────
+  // Total: Company(20) + Verification(25) + Business(20) + Media(20) + Social(5) + Projects(10) = 100
+  profileCompletion      Int                       @default(0) @map("profile_completion")
+  completionCompany      Int                       @default(0) @map("completion_company")       // max 20
+  completionVerification Int                       @default(0) @map("completion_verification")  // max 25
+  completionBusiness     Int                       @default(0) @map("completion_business")      // max 20
+  completionMedia        Int                       @default(0) @map("completion_media")         // max 20
+  completionSocial       Int                       @default(0) @map("completion_social")        // max 5
+  completionProjects     Int                       @default(0) @map("completion_projects")      // max 10
+
+  // ── Subscription ───────────────────────────────────────────────────────────
+  subscriptionPlan       DeveloperSubscriptionPlan @default(FREE) @map("subscription_plan")
+  subscriptionExpiresAt  DateTime?                 @map("subscription_expires_at")
+
+  // ── Analytics Counters (denormalized for performance) ──────────────────────
+  totalLeadsReceived     Int                       @default(0) @map("total_leads_received")
+  totalProjectViews      Int                       @default(0) @map("total_project_views")
+  totalProjectsPublished Int                       @default(0) @map("total_projects_published")
+
+  // ── Admin Fields ───────────────────────────────────────────────────────────
+  approvedBy             String?                   @map("approved_by")
+  approvedAt             DateTime?                 @map("approved_at")
+  rejectionReason        String?                   @db.Text @map("rejection_reason")
+  suspendedAt            DateTime?                 @map("suspended_at")
+  suspendedBy            String?                   @map("suspended_by")
+
+  // Admin-provided match suggestion during verification
+  // Stores suggested existing developer IDs from fuzzy name matching
+  adminMatchSuggestions  Json?                     @map("admin_match_suggestions")
+
+  // ── VerixDeveloper™ Score ──────────────────────────────────────────────────
+  verixDeveloperScore    Int?                      @map("verix_developer_score")
+  verixScoreBreakdown    Json?                     @map("verix_score_breakdown")
+  verixScoredAt          DateTime?                 @map("verix_scored_at")
+
+  // ── Relations ──────────────────────────────────────────────────────────────
+  documents              DeveloperDocument[]
+  notifications          DeveloperNotification[]
+  projects               Project[]                 // Projects owned by this profile (Phase 1)
+  leads                  Lead[]                    // CRM leads routed to this developer profile
+
+  createdAt              DateTime                  @default(now()) @map("created_at")
+  updatedAt              DateTime                  @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([onboardingStatus])
+  @@index([kycStatus])
+  @@index([isVerified])
+  @@index([isFeatured, featuredRank])
+  @@index([profileCompletion])
+  @@index([linkedDeveloperId])
+  @@index([subscriptionPlan])
+  @@map("developer_profiles")
+}
+
+model DeveloperDocument {
+  id                   String                  @id @default(uuid())
+  developerProfileId   String                  @map("developer_profile_id")
+  developerProfile     DeveloperProfile        @relation(fields: [developerProfileId], references: [id], onDelete: Cascade)
+
+  type                 DeveloperDocumentType   @map("document_type")
+  fileUrl              String                  @map("file_url")   // CloudFront URL
+  s3Key                String?                 @map("s3_key")
+  fileName             String?                 @map("file_name")
+  mimeType             String?                 @map("mime_type")
+  sizeBytes            Int?                    @map("size_bytes")
+
+  status               DocumentStatus          @default(PENDING)
+  reviewedBy           String?                 @map("reviewed_by")
+  reviewedAt           DateTime?               @map("reviewed_at")
+  rejectionReason      String?                 @db.Text @map("rejection_reason")
+
+  createdAt            DateTime                @default(now()) @map("created_at")
+  updatedAt            DateTime                @updatedAt @map("updated_at")
+
+  @@unique([developerProfileId, type])
+  @@index([developerProfileId])
+  @@index([status])
+  @@index([type])
+  @@map("developer_documents")
+}
+
+model DeveloperNotification {
+  id                   String                      @id @default(uuid())
+  developerProfileId   String                      @map("developer_profile_id")
+  developerProfile     DeveloperProfile            @relation(fields: [developerProfileId], references: [id], onDelete: Cascade)
+
+  type                 DeveloperNotificationType
+  title                String
+  message              String                      @db.Text
+  isRead               Boolean                     @default(false) @map("is_read")
+  metadata             Json?                       // e.g. { projectId, leadId, amount }
+
+  createdAt            DateTime                    @default(now()) @map("created_at")
+
+  @@index([developerProfileId, isRead])
+  @@index([developerProfileId, createdAt])
+  @@index([type])
+  @@map("developer_notifications")
 }

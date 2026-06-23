@@ -128,10 +128,10 @@ export const authOptions: NextAuthOptions = {
 
         if (!email) return null
 
-        const intent = intentRaw === 'agent' || intentRaw === 'user' ? intentRaw : ''
+        const intent = intentRaw === 'agent' || intentRaw === 'user' || intentRaw === 'developer' ? intentRaw : ''
 
         if (loginToken) {
-          const expectedRole = intent === 'agent' ? 'AGENT' : 'USER'
+          const expectedRole = intent === 'agent' ? 'AGENT' : intent === 'developer' ? 'DEVELOPER' : 'USER'
           const tokenHash = crypto.createHash('sha256').update(loginToken).digest('hex')
           const now = new Date()
 
@@ -188,6 +188,11 @@ export const authOptions: NextAuthOptions = {
               throw new Error('DATABASE_ERROR');
             }
             if (role !== 'AGENT' && !agent) throw new Error('AGENT_NOT_REGISTERED')
+          }
+
+          if (intent === 'developer') {
+            const role = String((user as any)?.role || '').toUpperCase()
+            if (role !== 'DEVELOPER') throw new Error('DEVELOPER_NOT_REGISTERED')
           }
 
           return {
@@ -285,7 +290,7 @@ export const authOptions: NextAuthOptions = {
             (typeof (token as any)?.agentApproved !== 'boolean' || !String((token as any)?.agentVerificationStatus || ''))
 
           if (shouldBackfillIdentity || shouldRefreshAgentStatus || shouldRefreshAgentAuthz) {
-            const dbUser = await prisma.user.findUnique({ where: { email }, include: { agent: true } }).catch(() => null)
+            const dbUser = await prisma.user.findUnique({ where: { email }, include: { agent: true, developerProfile: true } }).catch(() => null)
             if (dbUser) {
               ; (token as any).id = (token as any).id || dbUser.id
                 ; (token as any).role = normalizeRole((dbUser as any).role)
@@ -296,6 +301,16 @@ export const authOptions: NextAuthOptions = {
                 ; (token as any).agentVerificationStatus = normalizeAgentVerificationStatus((dbUser as any)?.agent?.verificationStatus)
                 // ✅ KEY FIX: Populate the new unified agentStatus from agent.status
                 ; (token as any).agentStatus = String((dbUser as any)?.agent?.status || 'REGISTERED')
+
+              // ── Developer token enrichment ────────────────────────────────
+              if (normalizeRole((dbUser as any).role) === 'DEVELOPER' && (dbUser as any).developerProfile) {
+                const dp = (dbUser as any).developerProfile
+                ; (token as any).developerProfileId = dp.id
+                ; (token as any).developerOnboardingStatus = String(dp.onboardingStatus || 'REGISTERED')
+                ; (token as any).developerKycStatus = String(dp.kycStatus || 'PENDING')
+                ; (token as any).developerProfileCompletion = Number(dp.profileCompletion || 0)
+                ; (token as any).developerIsVerified = Boolean(dp.isVerified)
+              }
 
               if (!(dbUser as any).role) {
                 await prisma.user.update({ where: { id: dbUser.id }, data: { role: 'USER' } as any }).catch(() => null)
@@ -343,6 +358,14 @@ export const authOptions: NextAuthOptions = {
         }
         if (tokenAgentVerificationStatus) {
           ; (session.user as any).agentVerificationStatus = normalizeAgentVerificationStatus(tokenAgentVerificationStatus)
+        }
+        // ── Developer session fields ─────────────────────────────────────────
+        if ((token as any)?.developerProfileId) {
+          ; (session.user as any).developerProfileId = (token as any).developerProfileId
+          ; (session.user as any).developerOnboardingStatus = (token as any).developerOnboardingStatus || 'REGISTERED'
+          ; (session.user as any).developerKycStatus = (token as any).developerKycStatus || 'PENDING'
+          ; (session.user as any).developerProfileCompletion = (token as any).developerProfileCompletion || 0
+          ; (session.user as any).developerIsVerified = Boolean((token as any).developerIsVerified)
         }
       }
       return session

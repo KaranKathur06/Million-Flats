@@ -8,6 +8,10 @@ export const LEAD_TYPE_LABELS: Record<LeadType, string> = {
   CONTACT: 'Contact Lead',
   ECOSYSTEM: 'Ecosystem Lead',
   DEVELOPER: 'Developer Inquiry',
+  BROCHURE_REQUEST: 'Brochure Request',
+  SITE_VISIT_REQUEST: 'Site Visit Request',
+  CALL_BACK: 'Call Back',
+  THREE_D_TOUR_REQUEST: '3D Tour Request',
 }
 
 export const LEAD_TYPE_FILTER_OPTIONS = [
