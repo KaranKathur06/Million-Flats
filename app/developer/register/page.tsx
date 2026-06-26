@@ -1,16 +1,6 @@
-import type { Metadata } from 'next'
-import { Suspense } from 'react'
-import DeveloperRegisterClient from './DeveloperRegisterClient'
+import { redirect } from 'next/navigation'
 
-export const metadata: Metadata = {
-  title: 'Register as Developer | MillionFlats',
-  description: 'Register your real estate development company on MillionFlats. Publish projects, manage leads, and reach buyers across India and the UAE.',
-}
-
+// Permanently moved to unified /developer/auth
 export default function DeveloperRegisterPage() {
-  return (
-    <Suspense>
-      <DeveloperRegisterClient />
-    </Suspense>
-  )
+  redirect('/developer/auth?tab=register')
 }

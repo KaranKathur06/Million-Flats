@@ -1,56 +1,56 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import { useEffect, useState } from 'react'
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
+import { useWhatsAppAuth } from "@/contexts/WhatsAppAuthContext";
 
 type Props = {
-  href: string
-  className?: string
-  children: React.ReactNode
-}
+  href: string;
+  className?: string;
+  children: React.ReactNode;
+};
 
 function buildNext(pathname: string, search: string) {
-  const next = `${pathname}${search ? `?${search}` : ''}`
-  return next
+  return `${pathname}${search ? `?${search}` : ""}`;
 }
 
 export default function GatedActionLink({ href, className, children }: Props) {
-  const router = useRouter()
-  const pathname = usePathname() ?? ''
-  const { status } = useSession()
+  const pathname = usePathname() ?? "";
+  const { status } = useSession();
+  const { openModal } = useWhatsAppAuth();
 
-  const [search, setSearch] = useState('')
-
-  const isAuthed = status === 'authenticated'
+  const [search, setSearch] = useState("");
+  const isAuthed = status === "authenticated";
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    const raw = window.location.search || ''
-    setSearch(raw.startsWith('?') ? raw.slice(1) : raw)
-  }, [])
+    if (typeof window === "undefined") return;
+    const raw = window.location.search || "";
+    setSearch(raw.startsWith("?") ? raw.slice(1) : raw);
+  }, []);
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (isAuthed) return
-    e.preventDefault()
-    const next = buildNext(pathname, search)
-    router.push(`/auth/login?next=${encodeURIComponent(next)}`)
-  }
+    if (isAuthed) return;
+    e.preventDefault();
+    const next = buildNext(pathname, search);
+    // Open WhatsApp auth modal, redirect to the target after auth
+    openModal(href.startsWith("/") ? href : next);
+  };
 
-  const isInternal = href.startsWith('/')
+  const isInternal = href.startsWith("/");
 
   if (isInternal) {
     return (
       <Link href={href} className={className} onClick={handleClick}>
         {children}
       </Link>
-    )
+    );
   }
 
   return (
     <a href={href} className={className} onClick={handleClick}>
       {children}
     </a>
-  )
+  );
 }

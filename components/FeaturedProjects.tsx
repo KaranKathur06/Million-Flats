@@ -163,19 +163,25 @@ export default function FeaturedProjects({ market }: { market: CountryCode }) {
                     )}
                 </div>
 
-                {/* Discovery CTAs: preserves internal linking after removing property/agent discovery blocks */}
-                <div className="mt-12 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                {/* Discovery CTAs */}
+                <div className="mt-12 flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
                     <Link
                         href="/projects"
-                        className="inline-flex h-11 items-center justify-center rounded-lg bg-dark-blue px-8 text-sm font-semibold text-white transition-colors hover:bg-opacity-90 cursor-pointer"
+                        className="inline-flex h-11 items-center justify-center rounded-lg bg-dark-blue px-8 text-sm font-semibold text-white transition-colors hover:bg-opacity-90"
                     >
                         View All Projects
                     </Link>
                     <Link
                         href="/developers"
-                        className="inline-flex h-11 items-center justify-center rounded-lg border border-dark-blue/15 bg-white px-8 text-sm font-semibold text-dark-blue transition-colors hover:bg-gray-50 cursor-pointer"
+                        className="inline-flex h-11 items-center justify-center rounded-lg border border-dark-blue/20 bg-white px-8 text-sm font-semibold text-dark-blue transition-colors hover:bg-gray-50"
                     >
-                        Explore Developers
+                        View All Developers
+                    </Link>
+                    <Link
+                        href="/developer/auth"
+                        className="inline-flex h-11 items-center justify-center rounded-lg bg-accent-yellow px-8 text-sm font-semibold text-dark-blue transition-all hover:brightness-105 shadow-lg shadow-accent-yellow/30 hover:shadow-accent-yellow/50"
+                    >
+                        Join as Developer →
                     </Link>
                 </div>
             </div>

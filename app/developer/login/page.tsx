@@ -1,16 +1,6 @@
-import type { Metadata } from 'next'
-import { Suspense } from 'react'
-import DeveloperLoginClient from './DeveloperLoginClient'
+import { redirect } from 'next/navigation'
 
-export const metadata: Metadata = {
-  title: 'Developer Login | MillionFlats',
-  description: 'Sign in to the MillionFlats Developer Portal to manage your projects, leads, and company profile.',
-}
-
+// Permanently moved to unified /developer/auth
 export default function DeveloperLoginPage() {
-  return (
-    <Suspense>
-      <DeveloperLoginClient />
-    </Suspense>
-  )
+  redirect('/developer/auth?tab=login')
 }

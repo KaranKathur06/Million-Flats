@@ -129,7 +129,7 @@ export default async function Home({
           <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/40 to-[#1e3a5f]/60" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0d1f38]/85 via-transparent to-transparent" />
         </div>
-
+        <br></br>
         <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-20 lg:pb-24">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-3 py-1 mb-5">
@@ -139,8 +139,9 @@ export default async function Home({
               </span>
             </div>
             <h1 className="text-[clamp(30px,5vw,58px)] font-serif font-bold text-white mb-4 leading-[1.1] tracking-tight">
-              We Sell Luxury.<br />
-              <span className="text-accent-yellow">We Verify Everything.</span>
+              <br></br>
+              The Architecture of Trust.<br />
+              <span className="text-accent-yellow">Own the Extraordinary</span>
             </h1>
             <p className="text-[clamp(14px,1.8vw,17px)] text-white/80 max-w-xl leading-relaxed mb-5">
               Premium UAE and Indian real estate - with certified 3D property tours, AI investment scoring, and independent legal checks. The smarter way to buy from anywhere in the world.
@@ -181,20 +182,20 @@ export default async function Home({
         <section className="bg-dark-blue section-spacing">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl md:text-4xl font-serif font-bold text-white mb-4">
-              Ready to List Your Property?
+              Grow Your Real Estate Business
             </h2>
             <p className="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
-              Join hundreds of premium agents worldwide who trust millionflats to sell luxury properties at the highest value.
+              Join verified agents, developers, and agencies on MillionFlats — the premium platform built for real estate professionals.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/agent/register" className="bg-accent-yellow text-dark-blue px-8 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
+              <Link href="/agent/register" className="bg-white text-dark-blue px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
                 Become an Agent
               </Link>
-              <Link href="/projects" className="bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-dark-blue transition-colors">
-                Browse Projects
+              <Link href="/developer/auth" className="bg-transparent border-2 border-white/60 text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-dark-blue transition-colors">
+                Become a Developer
               </Link>
-              <Link href="/developers" className="bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-dark-blue transition-colors">
-                Explore Developers
+              <Link href="/agency/auth" className="bg-accent-yellow text-dark-blue px-8 py-3 rounded-lg font-semibold hover:brightness-105 shadow-lg shadow-accent-yellow/20 transition-all">
+                Become an Agency
               </Link>
             </div>
           </div>

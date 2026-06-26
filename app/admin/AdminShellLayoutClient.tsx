@@ -1,269 +1,463 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { useAdminWorkspace } from '@/components/admin/AdminWorkspaceProvider'
-import SidebarToggleButton from '@/components/admin/SidebarToggleButton'
-import { MobileOffCanvasPanel } from '@/components/responsive'
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useAdminWorkspace } from "@/components/admin/AdminWorkspaceProvider";
+import SidebarToggleButton from "@/components/admin/SidebarToggleButton";
+import { MobileOffCanvasPanel } from "@/components/responsive";
 
 /* ---------- flat nav items (no children) ---------- */
 type NavItem = {
-  href: string
-  label: string
-  icon: React.ReactNode
-}
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+};
 
 /* ---------- nav group with sub-items ---------- */
 type NavGroup = {
-  label: string
-  icon: React.ReactNode
-  basePath: string
-  children: { href: string; label: string }[]
-}
+  label: string;
+  icon: React.ReactNode;
+  basePath: string;
+  children: { href: string; label: string }[];
+};
 
-type NavEntry = NavItem | NavGroup
-const isGroup = (e: NavEntry): e is NavGroup => 'children' in e
+type NavEntry = NavItem | NavGroup;
+const isGroup = (e: NavEntry): e is NavGroup => "children" in e;
 
 const navEntries: NavEntry[] = [
   {
-    href: '/admin',
-    label: 'Dashboard',
+    href: "/admin",
+    label: "Dashboard",
     icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+        />
       </svg>
     ),
   },
   {
-    href: '/admin/leads',
-    label: 'Leads',
+    href: "/admin/leads",
+    label: "Leads",
     icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+        />
       </svg>
     ),
   },
   {
-    href: '/admin/governance',
-    label: 'Governance',
+    href: "/admin/governance",
+    label: "Governance",
     icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+        />
       </svg>
     ),
   },
   {
-    href: '/admin/listings',
-    label: 'Listings',
+    href: "/admin/listings",
+    label: "Listings",
     icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+        />
       </svg>
     ),
   },
   {
-    href: '/admin/drafts',
-    label: 'Drafts',
+    href: "/admin/drafts",
+    label: "Drafts",
     icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+        />
       </svg>
     ),
   },
 
-
-   /* ---- FINANCIAL GROUP ---- */
+  /* ---- FINANCIAL GROUP ---- */
   {
-    label: 'Financial',
-    basePath: '/admin/financial',
+    label: "Financial",
+    basePath: "/admin/financial",
     icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
       </svg>
     ),
     children: [
-      { href: '/admin/financial', label: 'Overview' },
-      { href: '/admin/financial/payments', label: 'Payments' },
-      { href: '/admin/financial/subscriptions', label: 'Subscriptions' },
-      { href: '/admin/financial/revenue', label: 'Revenue' },
-      { href: '/admin/financial/webhooks', label: 'Webhooks' },
+      { href: "/admin/financial", label: "Overview" },
+      { href: "/admin/financial/payments", label: "Payments" },
+      { href: "/admin/financial/subscriptions", label: "Subscriptions" },
+      { href: "/admin/financial/revenue", label: "Revenue" },
+      { href: "/admin/financial/webhooks", label: "Webhooks" },
     ],
   },
 
   {
-    href: '/admin/agents',
-    label: 'Agents',
+    href: "/admin/agents",
+    label: "Agents",
     icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+        />
       </svg>
     ),
   },
 
-    /* ---- BLOGS GROUP ---- */
+  /* ---- BLOGS GROUP ---- */
   {
-    label: 'Blogs',
-    basePath: '/admin/blogs',
+    label: "Blogs",
+    basePath: "/admin/blogs",
     icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
+        />
       </svg>
     ),
     children: [
-      { href: '/admin/blogs/dashboard', label: 'Dashboard' },
-      { href: '/admin/blogs/all', label: 'All Blogs' },
-      { href: '/admin/blogs/new', label: 'Create Blog' },
-      { href: '/admin/blogs/categories', label: 'Categories' },
+      { href: "/admin/blogs/dashboard", label: "Dashboard" },
+      { href: "/admin/blogs/all", label: "All Blogs" },
+      { href: "/admin/blogs/new", label: "Create Blog" },
+      { href: "/admin/blogs/categories", label: "Categories" },
     ],
   },
 
   /* ---- ECOSYSTEM PARTNERS GROUP ---- */
   {
-    label: 'Ecosystem',
-    basePath: '/admin/ecosystem-partners',
+    label: "Ecosystem",
+    basePath: "/admin/ecosystem-partners",
     icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+        />
       </svg>
     ),
     children: [
-      { href: '/admin/ecosystem-partners/manage', label: 'All Partners' },
-      { href: '/admin/ecosystem-partners/manage/new', label: 'Add Partner' },
-      { href: '/admin/leads?leadType=ECOSYSTEM', label: 'Partner Leads' },
+      { href: "/admin/ecosystem-partners/manage", label: "All Partners" },
+      { href: "/admin/ecosystem-partners/manage/new", label: "Add Partner" },
+      { href: "/admin/leads?leadType=ECOSYSTEM", label: "Partner Leads" },
     ],
   },
 
   /* ---- DEVELOPERS GROUP ---- */
   {
-    label: 'Developers',
-    basePath: '/admin/developer',
+    label: "Developers",
+    basePath: "/admin/developer",
     icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+        />
       </svg>
     ),
     children: [
-      { href: '/admin/developers', label: 'All Developers' },
-      { href: '/admin/developers/new', label: 'Add Developer' },
-      { href: '/admin/developer-profiles', label: 'Developer Applications' },
+      { href: "/admin/developers", label: "All Developers" },
+      { href: "/admin/developers/new", label: "Add Developer" },
+      { href: "/admin/developer-profiles", label: "Developer Applications" },
     ],
   },
   {
-    href: '/admin/projects',
-    label: 'Projects',
+    href: "/admin/projects",
+    label: "Projects",
     icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
+        />
       </svg>
     ),
   },
   {
-    href: '/admin/ai-shield',
-    label: 'AI Shield',
+    href: "/admin/ai-shield",
+    label: "AI Shield",
     icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+        />
       </svg>
     ),
   },
   {
-    href: '/admin/reports',
-    label: 'Reports',
+    href: "/admin/reports",
+    label: "Reports",
     icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+        />
       </svg>
     ),
   },
   {
-    href: '/admin/users',
-    label: 'Users',
+    href: "/admin/users",
+    label: "Users",
     icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+        />
       </svg>
     ),
   },
   {
-    href: '/admin/audit-logs',
-    label: 'Audit Logs',
+    href: "/admin/audit-logs",
+    label: "Audit Logs",
     icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+    ),
+  },
+  {
+    href: "/admin/whatsapp-auth",
+    label: "WhatsApp Auth",
+    icon: (
+      <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
       </svg>
     ),
   },
   /* ---- SEO GROUP ---- */
   {
-    label: 'SEO',
-    basePath: '/admin/seo',
+    label: "SEO",
+    basePath: "/admin/seo",
     icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        />
       </svg>
     ),
     children: [
-      { href: '/admin/seo/sitemap-dashboard', label: 'Sitemap Dashboard' },
+      { href: "/admin/seo/sitemap-dashboard", label: "Sitemap Dashboard" },
     ],
   },
   {
-    label: 'Settings',
-    basePath: '/admin/settings',
+    label: "Settings",
+    basePath: "/admin/settings",
     icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+        />
       </svg>
     ),
     children: [
-      { href: '/admin/settings', label: 'Overview' },
-      { href: '/admin/settings/general', label: 'General' },
-      { href: '/admin/settings/analytics', label: 'Analytics' },
-      { href: '/admin/settings/integrations', label: 'Integrations' },
-      { href: '/admin/settings/lead-magnets', label: 'Lead Magnets' },
+      { href: "/admin/settings", label: "Overview" },
+      { href: "/admin/settings/general", label: "General" },
+      { href: "/admin/settings/analytics", label: "Analytics" },
+      { href: "/admin/settings/integrations", label: "Integrations" },
+      { href: "/admin/settings/lead-magnets", label: "Lead Magnets" },
     ],
   },
-]
+];
 
 /* ============ Chevron icon for collapsable groups ============ */
 function ChevronIcon({ expanded }: { expanded: boolean }) {
   return (
     <svg
-      className={`h-3.5 w-3.5 text-white/30 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
+      className={`h-3.5 w-3.5 text-white/30 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
     >
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M9 5l7 7-7 7"
+      />
     </svg>
-  )
+  );
 }
 
 /* ============ Nav links component ============ */
-function NavLinks({ onNavigate, collapsed }: { onNavigate?: () => void; collapsed?: boolean }) {
-  const pathname = usePathname() ?? ''
+function NavLinks({
+  onNavigate,
+  collapsed,
+}: {
+  onNavigate?: () => void;
+  collapsed?: boolean;
+}) {
+  const pathname = usePathname() ?? "";
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
     // Auto-expand groups whose basePath matches the current URL
-    const init: Record<string, boolean> = {}
+    const init: Record<string, boolean> = {};
     navEntries.forEach((e) => {
       if (isGroup(e) && pathname.startsWith(e.basePath)) {
-        init[e.label] = true
+        init[e.label] = true;
       }
-    })
-    return init
-  })
+    });
+    return init;
+  });
 
   const toggle = (label: string) =>
-    setExpanded((prev) => ({ ...prev, [label]: !prev[label] }))
+    setExpanded((prev) => ({ ...prev, [label]: !prev[label] }));
 
   return (
-    <nav className={`py-4 ${collapsed ? 'px-2' : 'px-3'}`}>
+    <nav className={`py-4 ${collapsed ? "px-2" : "px-3"}`}>
       <div className="space-y-0.5">
         {navEntries.map((entry) => {
           if (isGroup(entry)) {
-            const isOpen = !!expanded[entry.label]
-            const groupActive = pathname.startsWith(entry.basePath)
+            const isOpen = !!expanded[entry.label];
+            const groupActive = pathname.startsWith(entry.basePath);
 
             return (
               <div key={entry.label}>
@@ -272,16 +466,20 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate?: () => void; collapse
                   type="button"
                   onClick={() => toggle(entry.label)}
                   title={collapsed ? entry.label : undefined}
-                  className={`group relative flex w-full items-center ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'} rounded-xl py-2.5 text-[13px] font-medium transition-all duration-200 ${
+                  className={`group relative flex w-full items-center ${collapsed ? "justify-center px-2" : "gap-3 px-3"} rounded-xl py-2.5 text-[13px] font-medium transition-all duration-200 ${
                     groupActive
-                      ? 'bg-gradient-to-r from-amber-400/[0.15] to-amber-400/[0.05] text-white shadow-sm border border-amber-400/[0.15]'
-                      : 'text-white/55 hover:bg-white/[0.04] hover:text-white/90 border border-transparent'
+                      ? "bg-gradient-to-r from-amber-400/[0.15] to-amber-400/[0.05] text-white shadow-sm border border-amber-400/[0.15]"
+                      : "text-white/55 hover:bg-white/[0.04] hover:text-white/90 border border-transparent"
                   }`}
                 >
-                  <span className={`flex-shrink-0 transition-colors duration-200 ${groupActive ? 'text-amber-300' : 'text-white/40 group-hover:text-white/70'}`}>
+                  <span
+                    className={`flex-shrink-0 transition-colors duration-200 ${groupActive ? "text-amber-300" : "text-white/40 group-hover:text-white/70"}`}
+                  >
                     {entry.icon}
                   </span>
-                  {!collapsed ? <span className="flex-1 text-left">{entry.label}</span> : null}
+                  {!collapsed ? (
+                    <span className="flex-1 text-left">{entry.label}</span>
+                  ) : null}
                   {!collapsed ? <ChevronIcon expanded={isOpen} /> : null}
                   {groupActive && (
                     <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-amber-400 shadow-sm shadow-amber-400/50" />
@@ -290,11 +488,13 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate?: () => void; collapse
 
                 {/* Sub-items (animated) */}
                 <div
-                  className={`overflow-hidden transition-all duration-200 ease-in-out ${!collapsed && isOpen ? 'max-h-60 opacity-100 mt-0.5' : 'max-h-0 opacity-0'}`}
+                  className={`overflow-hidden transition-all duration-200 ease-in-out ${!collapsed && isOpen ? "max-h-60 opacity-100 mt-0.5" : "max-h-0 opacity-0"}`}
                 >
                   <div className="ml-4 pl-4 border-l border-white/[0.06] space-y-0.5 py-0.5">
                     {entry.children.map((child) => {
-                      const childActive = pathname === child.href || pathname.startsWith(child.href + '/')
+                      const childActive =
+                        pathname === child.href ||
+                        pathname.startsWith(child.href + "/");
 
                       return (
                         <Link
@@ -303,22 +503,24 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate?: () => void; collapse
                           onClick={onNavigate}
                           className={`block rounded-lg px-3 py-2 text-[12px] font-medium transition-all duration-200 ${
                             childActive
-                              ? 'text-amber-300 bg-amber-400/[0.08]'
-                              : 'text-white/45 hover:text-white/80 hover:bg-white/[0.03]'
+                              ? "text-amber-300 bg-amber-400/[0.08]"
+                              : "text-white/45 hover:text-white/80 hover:bg-white/[0.03]"
                           }`}
                         >
                           {child.label}
                         </Link>
-                      )
+                      );
                     })}
                   </div>
                 </div>
               </div>
-            )
+            );
           }
 
           /* ---- Flat nav item ---- */
-          const isActive = pathname === entry.href || (entry.href !== '/admin' && pathname.startsWith(entry.href))
+          const isActive =
+            pathname === entry.href ||
+            (entry.href !== "/admin" && pathname.startsWith(entry.href));
 
           return (
             <Link
@@ -326,12 +528,15 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate?: () => void; collapse
               href={entry.href}
               onClick={onNavigate}
               title={collapsed ? entry.label : undefined}
-              className={`group relative flex items-center ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'} rounded-xl py-2.5 text-[13px] font-medium transition-all duration-200 ${isActive
-                ? 'bg-gradient-to-r from-amber-400/[0.15] to-amber-400/[0.05] text-white shadow-sm border border-amber-400/[0.15]'
-                : 'text-white/55 hover:bg-white/[0.04] hover:text-white/90 border border-transparent'
-                }`}
+              className={`group relative flex items-center ${collapsed ? "justify-center px-2" : "gap-3 px-3"} rounded-xl py-2.5 text-[13px] font-medium transition-all duration-200 ${
+                isActive
+                  ? "bg-gradient-to-r from-amber-400/[0.15] to-amber-400/[0.05] text-white shadow-sm border border-amber-400/[0.15]"
+                  : "text-white/55 hover:bg-white/[0.04] hover:text-white/90 border border-transparent"
+              }`}
             >
-              <span className={`flex-shrink-0 transition-colors duration-200 ${isActive ? 'text-amber-300' : 'text-white/40 group-hover:text-white/70'}`}>
+              <span
+                className={`flex-shrink-0 transition-colors duration-200 ${isActive ? "text-amber-300" : "text-white/40 group-hover:text-white/70"}`}
+              >
                 {entry.icon}
               </span>
               {!collapsed ? <span>{entry.label}</span> : null}
@@ -339,29 +544,35 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate?: () => void; collapse
                 <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-amber-400 shadow-sm shadow-amber-400/50" />
               )}
             </Link>
-          )
+          );
         })}
       </div>
     </nav>
-  )
+  );
 }
 
-export default function AdminShellLayoutClient({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useState(false)
-  const { sidebarCollapsed, toggleSidebar } = useAdminWorkspace()
+export default function AdminShellLayoutClient({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const { sidebarCollapsed, toggleSidebar } = useAdminWorkspace();
 
   return (
     <>
       <div className="flex w-full min-w-0 flex-1 h-[calc(100dvh-var(--admin-header-height,4.5rem))] overflow-hidden">
         <aside
           className={`hidden md:flex flex-col shrink-0 h-full border-r border-white/[0.06] bg-[#080e1a] transition-[width] duration-300 ease-out ${
-            sidebarCollapsed ? 'w-20' : 'w-[280px]'
+            sidebarCollapsed ? "w-20" : "w-[280px]"
           }`}
           aria-label="Admin navigation"
         >
           {!sidebarCollapsed ? (
             <div className="shrink-0 border-b border-white/[0.06] px-4 py-4">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/30">Navigation</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/30">
+                Navigation
+              </p>
             </div>
           ) : (
             <div className="shrink-0 flex justify-center border-b border-white/[0.06] py-3">
@@ -378,7 +589,11 @@ export default function AdminShellLayoutClient({ children }: { children: React.R
         <main className="flex-1 min-w-0 h-full overflow-y-auto overflow-x-hidden overscroll-y-contain mf-admin-scroll">
           <div className="admin-main-inner w-full mx-auto px-4 sm:px-6 lg:px-10 py-6 md:py-8 transition-[max-width] duration-300 ease-out">
             <div className="md:hidden mb-4 flex items-center gap-3">
-              <SidebarToggleButton collapsed={false} variant="menu" onClick={() => setOpen(true)} />
+              <SidebarToggleButton
+                collapsed={false}
+                variant="menu"
+                onClick={() => setOpen(true)}
+              />
               <span className="text-sm font-semibold text-white/60">Menu</span>
             </div>
             {children}
@@ -396,9 +611,15 @@ export default function AdminShellLayoutClient({ children }: { children: React.R
           <div className="flex h-20 shrink-0 items-center justify-between border-b border-white/[0.04] px-4 pt-[env(safe-area-inset-top)]">
             <div className="flex items-center gap-3 min-w-0">
               <div className="relative flex h-10 w-auto aspect-video shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-white/[0.08] bg-white px-1.5">
-                <img src="/LOGO.jpeg" alt="MF Logo" className="h-full w-full object-contain" />
+                <img
+                  src="/LOGO.jpeg"
+                  alt="MF Logo"
+                  className="h-full w-full object-contain"
+                />
               </div>
-              <span className="truncate text-[17px] font-extrabold tracking-tight text-white/95">MillionFlats</span>
+              <span className="truncate text-[17px] font-extrabold tracking-tight text-white/95">
+                MillionFlats
+              </span>
             </div>
             <button
               type="button"
@@ -406,8 +627,18 @@ export default function AdminShellLayoutClient({ children }: { children: React.R
               className="mf-touch-target inline-flex items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.02] text-white/50 hover:bg-white/[0.06] hover:text-white"
               aria-label="Close"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -416,5 +647,5 @@ export default function AdminShellLayoutClient({ children }: { children: React.R
         <NavLinks onNavigate={() => setOpen(false)} />
       </MobileOffCanvasPanel>
     </>
-  )
+  );
 }

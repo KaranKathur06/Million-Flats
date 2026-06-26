@@ -12,6 +12,7 @@ enum Role {
   BUYER
   AGENT
   DEVELOPER
+  AGENCY
   MODERATOR
   VERIFIER
   ADMIN
@@ -216,6 +217,7 @@ model User {
   buyer Buyer?
   agent Agent?
   developerProfile DeveloperProfile?
+  agencyProfile    AgencyProfile?
 
   accounts Account[]
   sessions Session[]
@@ -241,6 +243,17 @@ model User {
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
+  phoneVerified     Boolean   @default(false) @map("phone_verified")
+  whatsappVerified  Boolean   @default(false) @map("whatsapp_verified")
+  lastWhatsappLogin DateTime? @map("last_whatsapp_login")
+  preferredLanguage String?   @map("preferred_language")
+  authProvider      String?   @map("auth_provider")
+  lastDevice        String?   @map("last_device")
+  lastIp            String?   @map("last_ip")
+  profileCompletion Int       @default(0) @map("profile_completion")
+  welcomeWhatsappSent Boolean @default(false) @map("welcome_whatsapp_sent")
+  whatsappAuthSessions WhatsAppAuthSession[]
 
   @@map("users")
 }
@@ -582,6 +595,7 @@ model Agency {
   isFeatured Boolean @default(false) @map("is_featured")
 
   agents Agent[]
+  agencyProfiles AgencyProfile[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -590,6 +604,7 @@ model Agency {
   @@index([countryIso2, isFeatured])
   @@map("agencies")
 }
+
 
 enum DeveloperStatus {
   ACTIVE
@@ -2821,4 +2836,299 @@ model DeveloperNotification {
   @@index([developerProfileId, createdAt])
   @@index([type])
   @@map("developer_notifications")
+}
+// ═══════════════════════════════════════════════════════════════
+// AGENCY ROLE SYSTEM
+// Mirrors DeveloperProfile architecture: agency_profiles ↔ agencies
+// ═══════════════════════════════════════════════════════════════
+
+enum AgencyOnboardingStatus {
+  REGISTERED
+  EMAIL_VERIFIED
+  PROFILE_INCOMPLETE
+  PROFILE_COMPLETED
+  DOCUMENTS_UPLOADED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum AgencyKycStatus {
+  PENDING
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+}
+
+enum AgencySubscriptionPlan {
+  FREE
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum AgencyDocumentType {
+  TRADE_LICENSE
+  RERA_CERTIFICATE
+  VAT_CERTIFICATE
+  GST_CERTIFICATE
+  PAN_CARD
+  AGENCY_LOGO
+  COMPANY_BROCHURE
+  OTHER
+}
+
+enum AgencySize {
+  MICRO
+  SMALL
+  MEDIUM
+  LARGE
+  ENTERPRISE
+}
+
+enum AgencyNotificationType {
+  NEW_LEAD
+  LISTING_APPROVED
+  LISTING_REJECTED
+  PROFILE_VERIFIED
+  PROFILE_FEATURED
+  ADMIN_MESSAGE
+  SUBSCRIPTION_EXPIRY
+  APPLICATION_REJECTED
+  ACCOUNT_SUSPENDED
+  GENERAL
+}
+
+model AgencyProfile {
+  id                    String                  @id @default(uuid())
+  userId                String                  @unique @map("user_id")
+  user                  User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Link to the existing admin-seeded agencies table (optional merge)
+  linkedAgencyId        String?                 @map("linked_agency_id")
+  linkedAgency          Agency?                 @relation(fields: [linkedAgencyId], references: [id], onDelete: SetNull)
+
+  // Identity
+  agencyName            String?                 @map("agency_name")
+  slug                  String?                 @unique
+  description           String?                 @db.Text
+  shortDescription      String?                 @map("short_description")
+  logo                  String?
+  logoS3Key             String?                 @map("logo_s3_key")
+  banner                String?
+  bannerS3Key           String?                 @map("banner_s3_key")
+  website               String?
+
+  // Legal
+  licenseNumber         String?                 @map("license_number")
+  reraNumber            String?                 @map("rera_number")
+  vatNumber             String?                 @map("vat_number")
+  gstNumber             String?                 @map("gst_number")
+  panNumber             String?                 @map("pan_number")
+
+  // Business
+  agencySize            AgencySize?             @map("agency_size")
+  yearEstablished       Int?                    @map("year_established")
+  totalAgents           Int?                    @map("total_agents")
+  specializations       String[]                @default([]) @map("specializations")
+  languages             String[]                @default([]) @map("languages")
+  operatingAreas        String[]                @default([]) @map("operating_areas")
+  countriesServed       String[]                @default([]) @map("countries_served")
+
+  // Location
+  headquarters          String?
+  country               String?
+  state                 String?
+  city                  String?
+  address               String?                 @db.Text
+
+  // Contact
+  phone                 String?
+  phoneCountryCode      String?                 @map("phone_country_code")
+  email                 String?
+
+  // Social
+  instagramUrl          String?                 @map("instagram_url")
+  linkedinUrl           String?                 @map("linkedin_url")
+  facebookUrl           String?                 @map("facebook_url")
+  youtubeUrl            String?                 @map("youtube_url")
+  twitterUrl            String?                 @map("twitter_url")
+  whatsapp              String?
+  telegram              String?
+
+  // Status
+  onboardingStatus      AgencyOnboardingStatus  @default(REGISTERED) @map("onboarding_status")
+  kycStatus             AgencyKycStatus         @default(PENDING)    @map("kyc_status")
+  isVerified            Boolean                 @default(false)      @map("is_verified")
+  isFeatured            Boolean                 @default(false)      @map("is_featured")
+  featuredRank          Int?                    @map("featured_rank")
+
+  // Profile completion
+  profileCompletion     Int                     @default(0)  @map("profile_completion")
+  completionIdentity    Int                     @default(0)  @map("completion_identity")
+  completionLegal       Int                     @default(0)  @map("completion_legal")
+  completionBusiness    Int                     @default(0)  @map("completion_business")
+  completionMedia       Int                     @default(0)  @map("completion_media")
+  completionSocial      Int                     @default(0)  @map("completion_social")
+
+  // Subscription
+  subscriptionPlan      AgencySubscriptionPlan  @default(FREE) @map("subscription_plan")
+  subscriptionExpiresAt DateTime?               @map("subscription_expires_at")
+
+  // Analytics
+  totalLeadsReceived    Int                     @default(0) @map("total_leads_received")
+  totalListings         Int                     @default(0) @map("total_listings")
+  totalClosedDeals      Int                     @default(0) @map("total_closed_deals")
+
+  // VerixAgency™ score
+  verixAgencyScore      Int?                    @map("verix_agency_score")
+  verixScoreBreakdown   Json?                   @map("verix_score_breakdown")
+  verixScoredAt         DateTime?               @map("verix_scored_at")
+
+  // Admin
+  approvedBy            String?                 @map("approved_by")
+  approvedAt            DateTime?               @map("approved_at")
+  verifiedAt            DateTime?               @map("verified_at")
+  rejectionReason       String?                 @map("rejection_reason")
+  suspendedAt           DateTime?               @map("suspended_at")
+  suspendedBy           String?                 @map("suspended_by")
+  adminNotes            String?                 @db.Text @map("admin_notes")
+  adminMatchSuggestions Json?                   @map("admin_match_suggestions")
+
+  createdAt             DateTime                @default(now()) @map("created_at")
+  updatedAt             DateTime                @updatedAt      @map("updated_at")
+
+  documents             AgencyDocument[]
+  notifications         AgencyNotification[]
+
+  @@index([onboardingStatus])
+  @@index([kycStatus])
+  @@index([isVerified])
+  @@index([isFeatured, featuredRank])
+  @@index([profileCompletion])
+  @@index([linkedAgencyId])
+  @@index([subscriptionPlan])
+  @@map("agency_profiles")
+}
+
+model AgencyDocument {
+  id                  String              @id @default(uuid())
+  agencyProfileId     String              @map("agency_profile_id")
+  agencyProfile       AgencyProfile       @relation(fields: [agencyProfileId], references: [id], onDelete: Cascade)
+
+  documentType        AgencyDocumentType  @map("document_type")
+  fileUrl             String              @map("file_url")
+  s3Key               String?             @map("s3_key")
+  fileName            String?             @map("file_name")
+  mimeType            String?             @map("mime_type")
+  sizeBytes           Int?                @map("size_bytes")
+
+  // TEXT field — avoids needing a separate enum (values: PENDING|UNDER_REVIEW|VERIFIED|REJECTED)
+  verificationStatus  String              @default("PENDING") @map("verification_status")
+  reviewedBy          String?             @map("reviewed_by")
+  reviewedAt          DateTime?           @map("reviewed_at")
+  rejectionReason     String?             @map("rejection_reason")
+  uploadedAt          DateTime            @default(now()) @map("uploaded_at")
+
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt      @map("updated_at")
+
+  @@unique([agencyProfileId, documentType])
+  @@index([agencyProfileId])
+  @@index([verificationStatus])
+  @@index([documentType])
+  @@map("agency_documents")
+}
+
+model AgencyNotification {
+  id                  String                  @id @default(uuid())
+  agencyProfileId     String                  @map("agency_profile_id")
+  agencyProfile       AgencyProfile           @relation(fields: [agencyProfileId], references: [id], onDelete: Cascade)
+
+  type                AgencyNotificationType
+  title               String
+  message             String                  @db.Text
+  isRead              Boolean                 @default(false) @map("is_read")
+  metadata            Json?
+
+  createdAt           DateTime                @default(now()) @map("created_at")
+
+  @@index([agencyProfileId, isRead])
+  @@index([agencyProfileId, createdAt])
+  @@index([type])
+  @@map("agency_notifications")
+}
+
+// ─── WhatsApp Authentication System ──────────────────────────────────────────
+
+enum WhatsAppSessionStatus {
+  PENDING
+  MESSAGE_RECEIVED
+  OTP_SENT
+  VERIFIED
+  EXPIRED
+  FAILED
+}
+
+model WhatsAppAuthSession {
+  id                String                @id @default(uuid())
+  sessionId         String                @unique @map("session_id")
+  phone             String
+  status            WhatsAppSessionStatus @default(PENDING)
+  userId            String?               @map("user_id")
+  device            String?
+  ipAddress         String?               @map("ip_address")
+  userAgent         String?               @map("user_agent")
+  messageReceivedAt DateTime?             @map("message_received_at")
+  otpSentAt         DateTime?             @map("otp_sent_at")
+  verifiedAt        DateTime?             @map("verified_at")
+  expiresAt         DateTime              @map("expires_at")
+  createdAt         DateTime              @default(now()) @map("created_at")
+
+  user              User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  otps              WhatsAppOtp[]
+
+  @@index([sessionId])
+  @@index([phone])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([userId])
+  @@map("whatsapp_auth_sessions")
+}
+
+model WhatsAppOtp {
+  id        String              @id @default(uuid())
+  sessionId String              @map("session_id")
+  hashedOtp String              @map("hashed_otp")
+  attempts  Int                 @default(0)
+  expiresAt DateTime            @map("expires_at")
+  used      Boolean             @default(false)
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  session   WhatsAppAuthSession @relation(fields: [sessionId], references: [sessionId])
+
+  @@index([sessionId])
+  @@index([expiresAt])
+  @@index([used])
+  @@map("whatsapp_otps")
+}
+
+model WhatsAppLog {
+  id             String    @id @default(uuid())
+  sessionId      String?   @map("session_id")
+  phone          String
+  logType        String    @map("log_type")
+  template       String?
+  messageId      String?   @map("message_id")
+  deliveryStatus String?   @map("delivery_status")
+  sentAt         DateTime? @map("sent_at")
+  errorCode      String?   @map("error_code")
+  response       Json?
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([sessionId])
+  @@index([phone])
+  @@index([logType])
+  @@index([createdAt])
+  @@map("whatsapp_logs")
 }

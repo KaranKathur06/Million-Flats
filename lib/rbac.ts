@@ -3,6 +3,7 @@ export type AppRole =
   | 'BUYER'
   | 'AGENT'
   | 'DEVELOPER'
+  | 'AGENCY'
   | 'MODERATOR'
   | 'VERIFIER'
   | 'ADMIN'
@@ -13,6 +14,7 @@ export const ROLE_POWER: Record<AppRole, number> = {
   BUYER: 1,
   DEVELOPER: 2,
   AGENT: 2,
+  AGENCY: 2,
   MODERATOR: 3,
   VERIFIER: 4,
   ADMIN: 5,
@@ -28,6 +30,7 @@ export function normalizeRole(input: unknown): AppRole {
     r === 'MODERATOR' ||
     r === 'AGENT' ||
     r === 'DEVELOPER' ||
+    r === 'AGENCY' ||
     r === 'BUYER' ||
     r === 'USER'
   )

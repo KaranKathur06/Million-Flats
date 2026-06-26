@@ -24,11 +24,15 @@ const PUBLIC_AUTH_PREFIXES = [
   '/agent/verify-email',
   '/agent/verify',
   // Developer auth pages
+  '/developer/auth',
   '/developer/login',
   '/developer/register',
   '/developer/forgot-password',
   '/developer/verify-email',
   '/developer/verify',
+  // Agency auth pages
+  '/agency/auth',
+  '/agency/verify-email',
 ]
 
 function isPublicAuth(pathname: string) {
@@ -97,6 +101,7 @@ export async function middleware(req: NextRequest) {
   const isAdminProtected           = pathname === '/admin'            || pathname.startsWith('/admin/')
   const isAgentProtected           = pathname === '/agent'            || pathname.startsWith('/agent/')
   const isDeveloperProtected       = pathname === '/developer'        || pathname.startsWith('/developer/')
+  const isAgencyProtected          = pathname === '/agency'           || pathname.startsWith('/agency/')
   const isDashboardProtected       = pathname === '/dashboard'        || pathname.startsWith('/dashboard/')
   const isEcosystemAdminProtected  = pathname === '/ecosystem/admin'  || pathname.startsWith('/ecosystem/admin/')
   const isEcosystemDashProtected   = pathname === '/ecosystem/dashboard' || pathname.startsWith('/ecosystem/dashboard/')
@@ -107,6 +112,7 @@ export async function middleware(req: NextRequest) {
     isAdminProtected ||
     isAgentProtected ||
     isDeveloperProtected ||
+    isAgencyProtected ||
     isDashboardProtected ||
     isEcosystemAdminProtected ||
     isEcosystemDashProtected ||
@@ -124,6 +130,8 @@ export async function middleware(req: NextRequest) {
   const subscriptionPlan           = String((nextAuthToken as any)?.subscriptionPlan || 'BASIC').toUpperCase()
   // Developer-specific token fields
   const developerOnboardingStatus  = String((nextAuthToken as any)?.developerOnboardingStatus || '').toUpperCase()
+  // Agency-specific token fields
+  const agencyOnboardingStatus     = String((nextAuthToken as any)?.agencyOnboardingStatus || '').toUpperCase()
 
   // Legacy JWT fallback
   if (!roleRaw) {
@@ -335,7 +343,7 @@ export async function middleware(req: NextRequest) {
   if (isDeveloperProtected) {
     if (role !== 'DEVELOPER') {
       const url = req.nextUrl.clone()
-      url.pathname = '/developer/login'
+      url.pathname = '/developer/auth'
       const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`
       url.search = `next=${encodeURIComponent(next)}`
       return NextResponse.redirect(url)
@@ -461,6 +469,109 @@ export async function middleware(req: NextRequest) {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // AGENCY portal guard — enforces the AgencyOnboardingStatus state machine
+  // Mirrors the developer guard pattern exactly.
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (isAgencyProtected) {
+    if (role !== 'AGENCY') {
+      const url = req.nextUrl.clone()
+      url.pathname = '/agency/auth'
+      const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`
+      url.search = `next=${encodeURIComponent(next)}`
+      return NextResponse.redirect(url)
+    }
+
+    // Pages always accessible regardless of onboarding status
+    const isAlwaysAllowed =
+      pathname.startsWith('/agency/onboarding') ||
+      pathname.startsWith('/agency/profile') ||
+      pathname.startsWith('/agency/verification') ||
+      pathname.startsWith('/agency/settings') ||
+      pathname === '/agency/on-hold' ||
+      pathname === '/agency/rejected' ||
+      pathname === '/agency/suspended'
+
+    // Pages that require APPROVED status
+    const isApprovalGated =
+      pathname.startsWith('/agency/leads') ||
+      pathname.startsWith('/agency/analytics')
+
+    const agStatus = agencyOnboardingStatus
+
+    if (agStatus === 'REGISTERED' || agStatus === '') {
+      if (!isAlwaysAllowed) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/agency/onboarding'
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
+    }
+
+    if (agStatus === 'EMAIL_VERIFIED' || agStatus === 'PROFILE_INCOMPLETE') {
+      if (!pathname.startsWith('/agency/onboarding') && !isAlwaysAllowed) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/agency/onboarding'
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
+    }
+
+    if (agStatus === 'PROFILE_COMPLETED') {
+      if (!pathname.startsWith('/agency/verification') && !pathname.startsWith('/agency/profile') && !isAlwaysAllowed) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/agency/verification'
+        url.search = '?notice=upload_documents'
+        return NextResponse.redirect(url)
+      }
+    }
+
+    if (agStatus === 'DOCUMENTS_UPLOADED' || agStatus === 'UNDER_REVIEW') {
+      if (isApprovalGated) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/agency/on-hold'
+        url.search = `reason=${agStatus.toLowerCase()}`
+        return NextResponse.redirect(url)
+      }
+    }
+
+    if (agStatus === 'REJECTED') {
+      if (pathname !== '/agency/rejected') {
+        const url = req.nextUrl.clone()
+        url.pathname = '/agency/rejected'
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
+      return NextResponse.next()
+    }
+
+    if (agStatus === 'SUSPENDED') {
+      if (pathname !== '/agency/suspended') {
+        const url = req.nextUrl.clone()
+        url.pathname = '/agency/suspended'
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
+      return NextResponse.next()
+    }
+
+    if (agStatus === 'APPROVED') {
+      if (pathname === '/agency/on-hold' || pathname === '/agency/rejected' || pathname === '/agency/suspended') {
+        const url = req.nextUrl.clone()
+        url.pathname = '/agency/dashboard'
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
+    }
+
+    if (isApprovalGated && agStatus !== 'APPROVED') {
+      const url = req.nextUrl.clone()
+      url.pathname = '/agency/on-hold'
+      url.search = 'reason=not_approved'
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // VERIX guard — same as agent but requires approval
   // ─────────────────────────────────────────────────────────────────────────────
   if (isVerixProtected) {
@@ -501,6 +612,7 @@ export const config = {
     '/admin/:path*',
     '/agent/:path*',
     '/developer/:path*',
+    '/agency/:path*',
     '/user/dashboard/:path*',
     '/user/profile/:path*',
     '/ecosystem/admin/:path*',

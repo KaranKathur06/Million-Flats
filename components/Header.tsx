@@ -1,132 +1,170 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import Image from 'next/image'
-import { useEffect, useState } from 'react'
-import { MobileOffCanvasPanel } from '@/components/responsive'
-import { useSession } from 'next-auth/react'
-import { getHomeRouteForRole, isAdminPanelRole } from '@/lib/roleHomeRoute'
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import Image from "next/image";
+import { useEffect, useState } from "react";
+import { MobileOffCanvasPanel } from "@/components/responsive";
+import { useSession } from "next-auth/react";
+import { getHomeRouteForRole, isAdminPanelRole } from "@/lib/roleHomeRoute";
+import { useWhatsAppAuth } from "@/contexts/WhatsAppAuthContext";
 
-type NavItem = { href: string; label: React.ReactNode }
+type NavItem = { href: string; label: React.ReactNode };
 
 async function doLogout() {
-  await fetch('/api/auth/logout', { method: 'POST', credentials: 'include', cache: 'no-store' }).catch(() => null)
-  window.location.replace('/')
+  await fetch("/api/auth/logout", {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+  }).catch(() => null);
+  window.location.replace("/");
 }
 
 export default function Header() {
-  const pathname = usePathname() ?? ''
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const { data: session, status } = useSession()
+  const pathname = usePathname() ?? "";
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { data: session, status } = useSession();
+  const { openModal } = useWhatsAppAuth();
 
-  const [mobileEl, setMobileEl] = useState<HTMLDivElement | null>(null)
+  const [mobileEl, setMobileEl] = useState<HTMLDivElement | null>(null);
 
-  const role = String((session?.user as any)?.role || '').toUpperCase()
-  const isAuthed = status === 'authenticated'
-  const isAuthLoading = status === 'loading'
-  const dashboardHref = getHomeRouteForRole(role)
+  const role = String((session?.user as any)?.role || "").toUpperCase();
+  const isAuthed = status === "authenticated";
+  const isAuthLoading = status === "loading";
+  const dashboardHref = getHomeRouteForRole(role);
 
-  const isAgent = isAuthed && role === 'AGENT'
-  const isAdminOrHigher = isAuthed && isAdminPanelRole(role)
-  const showServices = !isAuthed || role === 'USER'
+  const isAgent = isAuthed && role === "AGENT";
+  const isAdminOrHigher = isAuthed && isAdminPanelRole(role);
+  const showServices = !isAuthed || role === "USER";
 
-  const showVerfix = !isAuthed || role === 'USER'
-  const verfixHref = !isAuthed ? '/auth/redirect?next=%2Fai-system' : '/ai-system'
+  const showVerfix = !isAuthed || role === "USER";
+  const verfixHref = !isAuthed
+    ? "/auth/redirect?next=%2Fai-system"
+    : "/ai-system";
 
   const publicLinks: NavItem[] = [
-    { href: '/', label: 'Home' },
-    { href: '/buy', label: 'Buy' },
-    { href: '/rent', label: 'Rent' },
-    { href: '/projects', label: 'Projects' },
-    { href: '/agents', label: 'Find an Agent' },
-    { href: '/agents/pricing', label: 'Pricing' },
-    ...(showVerfix ? [{ href: verfixHref, label: <span>AI System<sup>™</sup></span> }] : []),
-  ]
+    { href: "/", label: "Home" },
+    { href: "/buy", label: "Buy" },
+    { href: "/rent", label: "Rent" },
+    { href: "/projects", label: "Projects" },
+    { href: "/agents", label: "Find an Agent" },
+    { href: "/agents/pricing", label: "Pricing" },
+    ...(showVerfix
+      ? [
+          {
+            href: verfixHref,
+            label: (
+              <span>
+                AI System<sup>™</sup>
+              </span>
+            ),
+          },
+        ]
+      : []),
+  ];
 
   const userLinks: NavItem[] = [
-    { href: '/', label: 'Home' },
-    { href: '/buy', label: 'Buy' },
-    { href: '/rent', label: 'Rent' },
-    { href: '/projects', label: 'Projects' },
-    { href: '/agents', label: 'Find an Agent' },
-    { href: '/agents/pricing', label: 'Pricing' },
-    ...(showVerfix ? [{ href: verfixHref, label: <span>AI System<sup>™</sup></span> }] : []),
-    { href: '/market-analysis', label: 'Market Analysis' },
-  ]
+    { href: "/", label: "Home" },
+    { href: "/buy", label: "Buy" },
+    { href: "/rent", label: "Rent" },
+    { href: "/projects", label: "Projects" },
+    { href: "/agents", label: "Find an Agent" },
+    { href: "/agents/pricing", label: "Pricing" },
+    ...(showVerfix
+      ? [
+          {
+            href: verfixHref,
+            label: (
+              <span>
+                AI System<sup>™</sup>
+              </span>
+            ),
+          },
+        ]
+      : []),
+    { href: "/market-analysis", label: "Market Analysis" },
+  ];
 
   const servicesLinks: NavItem[] = showServices
     ? [
-      { href: '/services/3d-tours', label: '3D Tours' },
-      { href: '/services/ai-analytics', label: 'AI Analytics' },
-      { href: '/services/featured-listings', label: 'Featured Listings' },
-      { href: '/services/advertising', label: 'Premium Ads' },
-      { href: '/services/partnerships', label: 'Partnerships' },
-    ]
-    : []
+        { href: "/services/3d-tours", label: "3D Tours" },
+        { href: "/services/ai-analytics", label: "AI Analytics" },
+        { href: "/services/featured-listings", label: "Featured Listings" },
+        { href: "/services/advertising", label: "Premium Ads" },
+        { href: "/services/partnerships", label: "Partnerships" },
+      ]
+    : [];
 
   const agentLinks: NavItem[] = [
-    { href: '/agent/dashboard', label: 'Agent Dashboard' },
-    { href: '/agent/profile', label: 'Profile' },
-  ]
+    { href: "/agent/dashboard", label: "Agent Dashboard" },
+    { href: "/agent/profile", label: "Profile" },
+  ];
 
-  const navLinks = !isAuthed ? publicLinks : isAdminOrHigher ? [] : isAgent ? agentLinks : userLinks
+  const navLinks = !isAuthed
+    ? publicLinks
+    : isAdminOrHigher
+      ? []
+      : isAgent
+        ? agentLinks
+        : userLinks;
 
   const isActive = (href: string) => {
-    if (href === '/') return pathname === '/'
-    return pathname === href || pathname.startsWith(`${href}/`)
-  }
+    if (href === "/") return pathname === "/";
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
-  const isAgentPath = pathname === '/agent' || pathname.startsWith('/agent/')
-
-  useEffect(() => {
-    setMobileOpen(false)
-  }, [pathname])
+  const isAgentPath = pathname === "/agent" || pathname.startsWith("/agent/");
 
   useEffect(() => {
-    if (!mobileOpen) return
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMobileOpen(false)
+      if (e.key === "Escape") setMobileOpen(false);
 
-      if (e.key === 'Tab' && mobileEl) {
+      if (e.key === "Tab" && mobileEl) {
         const focusables = Array.from(
           mobileEl.querySelectorAll<HTMLElement>(
-            'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
-          )
-        ).filter((el) => !el.hasAttribute('disabled') && el.tabIndex !== -1)
+            'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])',
+          ),
+        ).filter((el) => !el.hasAttribute("disabled") && el.tabIndex !== -1);
 
-        if (focusables.length === 0) return
+        if (focusables.length === 0) return;
 
-        const first = focusables[0]
-        const last = focusables[focusables.length - 1]
-        const active = document.activeElement as HTMLElement | null
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        const active = document.activeElement as HTMLElement | null;
 
         if (e.shiftKey) {
           if (!active || active === first) {
-            e.preventDefault()
-            last.focus()
+            e.preventDefault();
+            last.focus();
           }
         } else {
           if (active === last) {
-            e.preventDefault()
-            first.focus()
+            e.preventDefault();
+            first.focus();
           }
         }
       }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [mobileEl, mobileOpen])
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [mobileEl, mobileOpen]);
 
   useEffect(() => {
-    if (!mobileOpen || !mobileEl) return
+    if (!mobileOpen || !mobileEl) return;
     window.setTimeout(() => {
-      const btn = mobileEl.querySelector<HTMLElement>('button[aria-label="Close menu"]')
-      btn?.focus()
-    }, 0)
-  }, [mobileEl, mobileOpen])
+      const btn = mobileEl.querySelector<HTMLElement>(
+        'button[aria-label="Close menu"]',
+      );
+      btn?.focus();
+    }, 0);
+  }, [mobileEl, mobileOpen]);
 
-  if (isAgentPath) return null
+  if (isAgentPath) return null;
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -153,8 +191,11 @@ export default function Header() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`text-sm font-medium transition-colors ${isActive(item.href) ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-                    }`}
+                  className={`text-sm font-medium transition-colors ${
+                    isActive(item.href)
+                      ? "text-dark-blue"
+                      : "text-gray-600 hover:text-dark-blue"
+                  }`}
                 >
                   {item.label}
                 </Link>
@@ -164,13 +205,26 @@ export default function Header() {
                 <div className="relative group">
                   <button
                     type="button"
-                    className={`text-sm font-medium transition-colors inline-flex items-center gap-1 ${servicesLinks.some((l) => isActive(l.href)) ? 'text-dark-blue' : 'text-gray-600 hover:text-dark-blue'
-                      }`}
+                    className={`text-sm font-medium transition-colors inline-flex items-center gap-1 ${
+                      servicesLinks.some((l) => isActive(l.href))
+                        ? "text-dark-blue"
+                        : "text-gray-600 hover:text-dark-blue"
+                    }`}
                     aria-haspopup="menu"
                   >
                     Services
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
                     </svg>
                   </button>
                   <div className="absolute left-0 top-full pt-3 hidden group-hover:block">
@@ -179,8 +233,11 @@ export default function Header() {
                         <Link
                           key={s.href}
                           href={s.href}
-                          className={`block px-4 py-3 text-sm transition-colors ${isActive(s.href) ? 'bg-gray-50 text-dark-blue font-medium' : 'text-gray-700 hover:bg-gray-50 hover:text-dark-blue'
-                            }`}
+                          className={`block px-4 py-3 text-sm transition-colors ${
+                            isActive(s.href)
+                              ? "bg-gray-50 text-dark-blue font-medium"
+                              : "text-gray-700 hover:bg-gray-50 hover:text-dark-blue"
+                          }`}
                         >
                           {s.label}
                         </Link>
@@ -199,20 +256,25 @@ export default function Header() {
             {isAuthLoading ? null : !isAuthed ? (
               <>
                 <Link
-                  href="/sell"
-                  className="text-sm font-semibold text-white bg-[#F4B400] px-4 py-2 rounded-lg hover:bg-[#E1A800] transition-colors"
+                  href="/agent-portal"
+                  className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors"
                 >
-                  Sell or Rent Property
+                  Agent Portal
                 </Link>
-                <Link href="/auth/login" className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors">
-                  Login
-                </Link>
-                <Link
-                  href="/auth/register"
-                  className="bg-dark-blue text-white px-6 py-2 rounded-lg font-medium hover:bg-opacity-90 transition-colors"
+                <button
+                  type="button"
+                  onClick={() => openModal()}
+                  className="inline-flex items-center gap-2 bg-[#25D366] text-white px-5 py-2 rounded-lg font-semibold text-sm hover:bg-[#22c35e] transition-colors shadow-md shadow-[#25D366]/25"
                 >
-                  Register
-                </Link>
+                  <svg
+                    className="w-4 h-4"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                  </svg>
+                  Login with WhatsApp
+                </button>
               </>
             ) : (
               <>
@@ -242,8 +304,18 @@ export default function Header() {
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen(true)}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
             </svg>
           </button>
         </div>
@@ -264,8 +336,18 @@ export default function Header() {
               aria-label="Close menu"
               onClick={() => setMobileOpen(false)}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -277,8 +359,11 @@ export default function Header() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`block px-4 py-3 rounded-xl text-sm font-medium ${isActive(item.href) ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-                  }`}
+                className={`block px-4 py-3 rounded-xl text-sm font-medium ${
+                  isActive(item.href)
+                    ? "bg-gray-100 text-dark-blue"
+                    : "text-gray-700"
+                }`}
                 onClick={() => setMobileOpen(false)}
               >
                 {item.label}
@@ -287,14 +372,19 @@ export default function Header() {
 
             {servicesLinks.length > 0 ? (
               <div className="pt-2">
-                <div className="px-4 pt-3 pb-2 text-xs font-semibold tracking-wide text-gray-500 uppercase">Services</div>
+                <div className="px-4 pt-3 pb-2 text-xs font-semibold tracking-wide text-gray-500 uppercase">
+                  Services
+                </div>
                 <div className="space-y-2">
                   {servicesLinks.map((s) => (
                     <Link
                       key={s.href}
                       href={s.href}
-                      className={`block px-4 py-3 rounded-xl text-sm font-medium ${isActive(s.href) ? 'bg-gray-100 text-dark-blue' : 'text-gray-700'
-                        }`}
+                      className={`block px-4 py-3 rounded-xl text-sm font-medium ${
+                        isActive(s.href)
+                          ? "bg-gray-100 text-dark-blue"
+                          : "text-gray-700"
+                      }`}
                       onClick={() => setMobileOpen(false)}
                     >
                       {s.label}
@@ -308,26 +398,29 @@ export default function Header() {
               {isAuthLoading ? null : !isAuthed ? (
                 <>
                   <Link
-                    href="/sell"
-                    className="block px-4 py-3 rounded-xl text-sm font-semibold text-white bg-[#F4B400]"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    Sell or Rent Property
-                  </Link>
-                  <Link
-                    href="/auth/login"
+                    href="/agent-portal"
                     className="block px-4 py-3 rounded-xl text-sm font-semibold text-dark-blue bg-gray-100"
                     onClick={() => setMobileOpen(false)}
                   >
-                    Login
+                    Agent Portal
                   </Link>
-                  <Link
-                    href="/auth/register"
-                    className="block px-4 py-3 rounded-xl text-sm font-semibold text-white bg-dark-blue"
-                    onClick={() => setMobileOpen(false)}
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold text-white bg-[#25D366]"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      openModal();
+                    }}
                   >
-                    Register
-                  </Link>
+                    <svg
+                      className="w-4 h-4"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                    </svg>
+                    Login with WhatsApp
+                  </button>
                 </>
               ) : (
                 <>
@@ -342,8 +435,8 @@ export default function Header() {
                     type="button"
                     className="w-full text-left block px-4 py-3 rounded-xl text-sm font-semibold text-dark-blue bg-gray-100"
                     onClick={() => {
-                      setMobileOpen(false)
-                      doLogout()
+                      setMobileOpen(false);
+                      doLogout();
                     }}
                   >
                     Logout
@@ -355,6 +448,5 @@ export default function Header() {
         </div>
       </MobileOffCanvasPanel>
     </header>
-  )
+  );
 }
-
