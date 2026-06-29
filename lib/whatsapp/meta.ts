@@ -12,15 +12,33 @@ function getConfig() {
   };
 }
 
-/** Sends a WhatsApp Authentication Template OTP to the buyer's phone */
+/**
+ * Sends a WhatsApp Authentication Template OTP.
+ *
+ * Set WHATSAPP_TEST_MODE=true in .env to bypass Meta API entirely —
+ * the OTP will be printed to the server console instead of delivered.
+ * Never use this in production.
+ */
 export async function sendAuthenticationOtp(
   phone: string,
   otp: string,
 ): Promise<MetaMessageResult> {
-  const { accessToken, phoneNumberId } = getConfig();
+  // ── Test / development bypass ─────────────────────────────────────────────
+  if (process.env.WHATSAPP_TEST_MODE === "true") {
+    console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("  [WhatsApp TEST MODE] OTP not sent via Meta API");
+    console.log(`  Phone : ${phone}`);
+    console.log(`  OTP   : ${otp}`);
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+    return { success: true, messageId: `test_${Date.now()}` };
+  }
 
+  // ── Config validation ─────────────────────────────────────────────────────
+  const { accessToken, phoneNumberId } = getConfig();
   if (!accessToken || !phoneNumberId) {
-    console.error("[WhatsApp Meta] API not configured");
+    console.error(
+      "[WhatsApp Meta] Missing credentials. Set META_WHATSAPP_ACCESS_TOKEN and META_WHATSAPP_PHONE_NUMBER_ID.",
+    );
     return { success: false, error: "API_NOT_CONFIGURED" };
   }
 
@@ -61,9 +79,25 @@ export async function sendAuthenticationOtp(
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      const errorMsg = (data as any)?.error?.message || "API_ERROR";
-      console.error("[WhatsApp Meta] Send OTP failed:", errorMsg);
-      return { success: false, error: errorMsg };
+      const errorCode: number | undefined = (data as any)?.error?.code;
+      const errorMsg: string = (data as any)?.error?.message || "API_ERROR";
+      const errorSubcode: number | undefined = (data as any)?.error
+        ?.error_subcode;
+      const fbTraceId: string | undefined = (data as any)?.error?.fbtrace_id;
+
+      // Human-readable hint for the most common Meta error codes
+      const hint = metaErrorHint(errorCode);
+
+      console.error("[WhatsApp Meta] Send OTP failed:", {
+        errorCode,
+        errorSubcode,
+        errorMsg,
+        fbTraceId,
+        hint,
+        phone: cleanPhone,
+      });
+
+      return { success: false, error: errorMsg, errorCode };
     }
 
     return { success: true, messageId: (data as any)?.messages?.[0]?.id };
@@ -77,6 +111,11 @@ export async function sendAuthenticationOtp(
 export async function sendWelcomeMessage(
   phone: string,
 ): Promise<MetaMessageResult> {
+  if (process.env.WHATSAPP_TEST_MODE === "true") {
+    console.log(`[WhatsApp TEST MODE] Welcome message skipped for ${phone}`);
+    return { success: true, messageId: `test_welcome_${Date.now()}` };
+  }
+
   const { accessToken, phoneNumberId } = getConfig();
   if (!accessToken || !phoneNumberId)
     return { success: false, error: "API_NOT_CONFIGURED" };
@@ -133,3 +172,20 @@ export function verifyWebhookSignature(
 }
 
 export { getConfig as getMetaConfig };
+
+// ── Internal helpers ──────────────────────────────────────────────────────────
+
+function metaErrorHint(code?: number): string {
+  if (!code) return "";
+  const hints: Record<number, string> = {
+    131030:
+      "Template not found or not approved. Check META_WHATSAPP_AUTH_TEMPLATE_NAME.",
+    131031: "Template paused or disabled in Meta Business Manager.",
+    131047: "Re-engagement window — 24h session expired for this number.",
+    131051: "Unsupported message type.",
+    190: "Access token expired or invalid. Regenerate META_WHATSAPP_ACCESS_TOKEN.",
+    100: "Invalid parameter — check phone number format or phone number ID.",
+    200: "WhatsApp Business Account permission issue.",
+  };
+  return hints[code] ?? `Unknown error code ${code}`;
+}

@@ -78,13 +78,48 @@ export async function POST(req: NextRequest) {
         phone: cleanPhone,
         logType: "error",
         errorCode: sendResult.error,
-        response: { event: "otp_send_failed_on_init" },
+        response: {
+          event: "otp_send_failed_on_init",
+          metaErrorCode: sendResult.errorCode,
+        },
       });
+
+      // Determine user-facing message based on error type
+      let message =
+        "Unable to send WhatsApp code right now. Please try again in a moment.";
+
+      if (sendResult.error === "API_NOT_CONFIGURED") {
+        message =
+          "WhatsApp delivery is not yet configured. Please contact support.";
+      } else if (sendResult.error === "NETWORK_ERROR") {
+        message =
+          "Network error reaching WhatsApp. Please check your connection and try again.";
+      } else if (
+        sendResult.errorCode === 131030 ||
+        sendResult.errorCode === 131031
+      ) {
+        // Template not found / paused — config issue, not user's fault
+        message =
+          "WhatsApp delivery is temporarily unavailable. Please contact support.";
+      } else if (sendResult.errorCode === 190 || sendResult.errorCode === 100) {
+        // Expired token / invalid param
+        message =
+          "WhatsApp service configuration error. Please contact support.";
+      }
+
       return NextResponse.json(
         {
-          message:
-            "Failed to send WhatsApp code. Please check your number and try again.",
+          message,
           error: "META_API_ERROR",
+          // Expose error code only outside production for easier debugging
+          ...(process.env.NODE_ENV !== "production"
+            ? {
+                debug: {
+                  metaError: sendResult.error,
+                  metaCode: sendResult.errorCode,
+                },
+              }
+            : {}),
         },
         { status: 503 },
       );
@@ -104,7 +139,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ sessionId, expiresAt });
   } catch (err) {
-    console.error("[WhatsApp Init] Error:", err);
+    console.error("[WhatsApp Init] Unexpected error:", err);
     return NextResponse.json(
       { message: "Failed to send code. Please try again." },
       { status: 500 },
