@@ -44,6 +44,31 @@ export async function sendAuthenticationOtp(
 
   const cleanPhone = phone.replace(/[^0-9]/g, "");
 
+  // Template name — set META_WHATSAPP_AUTH_TEMPLATE_NAME in env vars
+  const templateName =
+    process.env.META_WHATSAPP_AUTH_TEMPLATE_NAME || "login_millionflats";
+
+  // Button type — set META_WHATSAPP_BUTTON_TYPE=copy_code OR url
+  // Meta's newer auth templates use "copy_code"; older ones use "url"
+  const buttonType = (
+    process.env.META_WHATSAPP_BUTTON_TYPE || "copy_code"
+  ).toLowerCase();
+
+  const buttonComponent =
+    buttonType === "url"
+      ? {
+          type: "button",
+          sub_type: "url",
+          index: "0",
+          parameters: [{ type: "text", text: otp }],
+        }
+      : {
+          type: "button",
+          sub_type: "COPY_CODE",
+          index: "0",
+          parameters: [{ type: "coupon_code", coupon_code: otp }],
+        };
+
   try {
     const response = await fetch(`${META_API_BASE}/${phoneNumberId}/messages`, {
       method: "POST",
@@ -56,21 +81,14 @@ export async function sendAuthenticationOtp(
         to: cleanPhone,
         type: "template",
         template: {
-          name:
-            process.env.META_WHATSAPP_AUTH_TEMPLATE_NAME ||
-            "mf_authentication_otp",
+          name: templateName,
           language: { code: "en" },
           components: [
             {
               type: "body",
               parameters: [{ type: "text", text: otp }],
             },
-            {
-              type: "button",
-              sub_type: "url",
-              index: "0",
-              parameters: [{ type: "text", text: otp }],
-            },
+            buttonComponent,
           ],
         },
       }),

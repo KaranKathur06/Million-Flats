@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
       phone: session.phone,
       logType: "otp_sent",
       template:
-        process.env.META_WHATSAPP_AUTH_TEMPLATE_NAME || "mf_authentication_otp",
+        process.env.META_WHATSAPP_AUTH_TEMPLATE_NAME || "login_millionflats",
       messageId: sendResult.messageId,
       sentAt: new Date(),
     });
