@@ -4,12 +4,23 @@ import type { MetaMessageResult } from "./types";
 const META_API_BASE = "https://graph.facebook.com/v19.0";
 
 function getConfig() {
-  return {
-    accessToken: process.env.META_WHATSAPP_ACCESS_TOKEN || "",
-    phoneNumberId: process.env.META_WHATSAPP_PHONE_NUMBER_ID || "",
-    appSecret: process.env.META_WHATSAPP_APP_SECRET || "",
-    webhookVerifyToken: process.env.META_WHATSAPP_WEBHOOK_VERIFY_TOKEN || "",
-  };
+  // .trim() is critical — env vars with leading/trailing spaces produce malformed
+  // Authorization headers (e.g. "Bearer  EAAV...") that Meta's API rejects with 401,
+  // which the init route surfaces as a 503 to the client.
+  const accessToken = (process.env.META_WHATSAPP_ACCESS_TOKEN || "").trim();
+  const phoneNumberId = (process.env.META_WHATSAPP_PHONE_NUMBER_ID || "").trim();
+  const appSecret = (process.env.META_WHATSAPP_APP_SECRET || "").trim();
+  const webhookVerifyToken = (process.env.META_WHATSAPP_WEBHOOK_VERIFY_TOKEN || "").trim();
+
+  // Log config validation once in non-production so developers catch missing vars fast
+  if (process.env.NODE_ENV !== "production" && !accessToken) {
+    console.warn("[WhatsApp Meta] META_WHATSAPP_ACCESS_TOKEN is not set or empty.");
+  }
+  if (process.env.NODE_ENV !== "production" && !phoneNumberId) {
+    console.warn("[WhatsApp Meta] META_WHATSAPP_PHONE_NUMBER_ID is not set or empty.");
+  }
+
+  return { accessToken, phoneNumberId, appSecret, webhookVerifyToken };
 }
 
 /**

@@ -43,69 +43,67 @@ export default async function DeveloperDirectoryPage() {
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-br from-[#0a1628] via-[#0d1f38] to-[#132a4a]" />
           <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary-600/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-amber-500/8 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/4" />
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary-600/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/4" />
+          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-amber-500/8 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/4" />
         </div>
 
-        <div className="relative mx-auto max-w-[1200px] px-4 py-20 sm:px-6 sm:py-24 lg:px-8 lg:py-32">
-          <div className="text-center max-w-3xl mx-auto">
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary-400/30 bg-primary-600/15 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-primary-200 mb-6">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary-300 animate-pulse" />
-              Developer Marketplace
-            </span>
-
-            <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl xl:text-[3.25rem] leading-tight">
-              Explore Trusted Real Estate{' '}
-              <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 bg-clip-text text-transparent">
-                Developers
+        <div className="relative mx-auto max-w-[1200px] px-4 py-10 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            {/* Left: Title + description */}
+            <div className="max-w-xl">
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary-400/30 bg-primary-600/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary-200 mb-4">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary-300 animate-pulse" />
+                Developer Marketplace
               </span>
-              <br className="hidden sm:inline" />
-              Across India &amp; Dubai
-            </h1>
 
-            <p className="mt-5 text-base text-white/65 sm:text-lg leading-relaxed max-w-2xl mx-auto">
-              Discover verified developers, explore projects, compare portfolios and invest with confidence.
-            </p>
+              <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl leading-tight">
+                Explore Trusted{' '}
+                <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 bg-clip-text text-transparent">
+                  Real Estate Developers
+                </span>
+              </h1>
 
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <a
-                href="#developer-grid"
-                className="inline-flex h-12 items-center justify-center rounded-xl bg-amber-500 px-6 text-sm font-bold text-black shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-amber-400/30"
-              >
-                Explore Developers
-              </a>
-              <a
-                href="/projects"
-                className="inline-flex h-12 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-6 text-sm font-semibold text-white backdrop-blur transition-all hover:bg-white/10"
-              >
-                View Featured Projects
-              </a>
+              <p className="mt-3 text-sm text-white/60 sm:text-base leading-relaxed">
+                Verified builders across global markets — compare portfolios, explore projects, invest with confidence.
+              </p>
+            </div>
+
+            {/* Right: Quick stats */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4 lg:shrink-0">
+              {[
+                { icon: '🏗️', value: stats.developers, label: 'Developers' },
+                { icon: '🏢', value: stats.projects, label: 'Projects' },
+                { icon: '🌍', value: stats.countries, label: 'Countries' },
+                { icon: '🏠', value: stats.properties.toLocaleString(), label: 'Properties' },
+              ].map((s) => (
+                <div key={s.label} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm text-center">
+                  <div className="text-lg mb-0.5">{s.icon}</div>
+                  <p className="text-lg font-bold text-white">{s.value}</p>
+                  <p className="text-[10px] text-white/50 font-medium uppercase tracking-wide">{s.label}</p>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* ═══════ GLOBAL STATS BAR ═══════ */}
-      <section className="relative z-10 -mt-8">
-        <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-lg shadow-black/5 sm:grid-cols-4 sm:gap-5 sm:p-6">
-            {[
-              { label: 'Developers Listed', value: stats.developers, icon: '🏗️' },
-              { label: 'Projects Listed', value: stats.projects, icon: '🏢' },
-              { label: 'Properties Available', value: stats.properties.toLocaleString(), icon: '🏠' },
-              { label: 'Countries Covered', value: stats.countries, icon: '🌍' },
-            ].map((stat) => (
-              <article key={stat.label} className="rounded-xl bg-gray-50 px-4 py-3.5 text-center sm:text-left">
-                <div className="flex items-center gap-2 justify-center sm:justify-start">
-                  <span className="text-lg">{stat.icon}</span>
-                  <p className="text-xl font-bold text-dark-blue sm:text-2xl">{stat.value}</p>
-                </div>
-                <p className="mt-1 text-xs text-gray-500 sm:text-sm">{stat.label}</p>
-              </article>
-            ))}
+          {/* Hero CTAs */}
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <a
+              href="#developer-grid"
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-amber-500 px-5 text-sm font-bold text-black shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400"
+            >
+              Browse Developers
+            </a>
+            <a
+              href="/developer/auth"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-amber-400/40 bg-amber-500/10 px-5 text-sm font-semibold text-amber-300 backdrop-blur transition-all hover:bg-amber-500/20"
+            >
+              Join as Developer →
+            </a>
           </div>
         </div>
       </section>
+
+      {/* Stats bar is now inline in hero — remove duplicate section */}
 
       {/* ═══════ DEVELOPER DIRECTORY ═══════ */}
       <DeveloperDirectoryClient initialDevelopers={initialDevelopers} />

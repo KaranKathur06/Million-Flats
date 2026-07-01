@@ -6,24 +6,43 @@ import { useWhatsAppAuth } from "@/contexts/WhatsAppAuthContext";
 
 type Step = "phone" | "otp" | "success";
 
+// First 5 are pinned (Popular section), rest are in "All Countries"
 const COUNTRY_CODES = [
-  { code: "+971", flag: "🇦🇪", name: "UAE", iso: "AE" },
-  { code: "+966", flag: "🇸🇦", name: "Saudi Arabia", iso: "SA" },
-  { code: "+974", flag: "🇶🇦", name: "Qatar", iso: "QA" },
-  { code: "+965", flag: "🇰🇼", name: "Kuwait", iso: "KW" },
-  { code: "+968", flag: "🇴🇲", name: "Oman", iso: "OM" },
-  { code: "+973", flag: "🇧🇭", name: "Bahrain", iso: "BH" },
-  { code: "+91", flag: "🇮🇳", name: "India", iso: "IN" },
-  { code: "+44", flag: "🇬🇧", name: "UK", iso: "GB" },
-  { code: "+1", flag: "🇺🇸", name: "USA", iso: "US" },
-  { code: "+33", flag: "🇫🇷", name: "France", iso: "FR" },
-  { code: "+49", flag: "🇩🇪", name: "Germany", iso: "DE" },
-  { code: "+7", flag: "🇷🇺", name: "Russia", iso: "RU" },
-  { code: "+86", flag: "🇨🇳", name: "China", iso: "CN" },
-  { code: "+81", flag: "🇯🇵", name: "Japan", iso: "JP" },
-  { code: "+82", flag: "🇰🇷", name: "Korea", iso: "KR" },
-  { code: "+92", flag: "🇵🇰", name: "Pakistan", iso: "PK" },
-  { code: "+20", flag: "🇪🇬", name: "Egypt", iso: "EG" },
+  { code: "+971", flag: "🇦🇪", name: "UAE", iso: "AE", pinned: true },
+  { code: "+91", flag: "🇮🇳", name: "India", iso: "IN", pinned: true },
+  { code: "+966", flag: "🇸🇦", name: "Saudi Arabia", iso: "SA", pinned: true },
+  { code: "+44", flag: "🇬🇧", name: "United Kingdom", iso: "GB", pinned: true },
+  { code: "+1", flag: "🇺🇸", name: "United States", iso: "US", pinned: true },
+  { code: "+61", flag: "🇦🇺", name: "Australia", iso: "AU", pinned: false },
+  { code: "+65", flag: "🇸🇬", name: "Singapore", iso: "SG", pinned: false },
+  { code: "+60", flag: "🇲🇾", name: "Malaysia", iso: "MY", pinned: false },
+  { code: "+974", flag: "🇶🇦", name: "Qatar", iso: "QA", pinned: false },
+  { code: "+968", flag: "🇴🇲", name: "Oman", iso: "OM", pinned: false },
+  { code: "+973", flag: "🇧🇭", name: "Bahrain", iso: "BH", pinned: false },
+  { code: "+965", flag: "🇰🇼", name: "Kuwait", iso: "KW", pinned: false },
+  { code: "+92", flag: "🇵🇰", name: "Pakistan", iso: "PK", pinned: false },
+  { code: "+880", flag: "🇧🇩", name: "Bangladesh", iso: "BD", pinned: false },
+  { code: "+94", flag: "🇱🇰", name: "Sri Lanka", iso: "LK", pinned: false },
+  { code: "+977", flag: "🇳🇵", name: "Nepal", iso: "NP", pinned: false },
+  { code: "+49", flag: "🇩🇪", name: "Germany", iso: "DE", pinned: false },
+  { code: "+33", flag: "🇫🇷", name: "France", iso: "FR", pinned: false },
+  { code: "+39", flag: "🇮🇹", name: "Italy", iso: "IT", pinned: false },
+  { code: "+34", flag: "🇪🇸", name: "Spain", iso: "ES", pinned: false },
+  { code: "+31", flag: "🇳🇱", name: "Netherlands", iso: "NL", pinned: false },
+  { code: "+41", flag: "🇨🇭", name: "Switzerland", iso: "CH", pinned: false },
+  { code: "+1", flag: "🇨🇦", name: "Canada", iso: "CA", pinned: false },
+  { code: "+55", flag: "🇧🇷", name: "Brazil", iso: "BR", pinned: false },
+  { code: "+27", flag: "🇿🇦", name: "South Africa", iso: "ZA", pinned: false },
+  { code: "+254", flag: "🇰🇪", name: "Kenya", iso: "KE", pinned: false },
+  { code: "+234", flag: "🇳🇬", name: "Nigeria", iso: "NG", pinned: false },
+  { code: "+82", flag: "🇰🇷", name: "South Korea", iso: "KR", pinned: false },
+  { code: "+81", flag: "🇯🇵", name: "Japan", iso: "JP", pinned: false },
+  { code: "+86", flag: "🇨🇳", name: "China", iso: "CN", pinned: false },
+  { code: "+62", flag: "🇮🇩", name: "Indonesia", iso: "ID", pinned: false },
+  { code: "+63", flag: "🇵🇭", name: "Philippines", iso: "PH", pinned: false },
+  { code: "+66", flag: "🇹🇭", name: "Thailand", iso: "TH", pinned: false },
+  { code: "+20", flag: "🇪🇬", name: "Egypt", iso: "EG", pinned: false },
+  { code: "+90", flag: "🇹🇷", name: "Turkey", iso: "TR", pinned: false },
 ];
 
 const RESEND_COOLDOWN = 30;
@@ -108,6 +127,8 @@ export default function WhatsAppAuthModal() {
   const [countryCode, setCountryCode] = useState("+971");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [countrySearch, setCountrySearch] = useState("");
+  const [countryFocused, setCountryFocused] = useState(-1);
   const [sessionId, setSessionId] = useState("");
   const [fullPhone, setFullPhone] = useState("");
   const [otpInputs, setOtpInputs] = useState(["", "", "", "", "", ""]);
@@ -119,9 +140,44 @@ export default function WhatsAppAuthModal() {
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const countryDropdownRef = useRef<HTMLDivElement>(null);
+  const countrySearchRef = useRef<HTMLInputElement>(null);
 
-  const selectedCountry =
-    COUNTRY_CODES.find((c) => c.code === countryCode) ?? COUNTRY_CODES[0];
+  const pinnedCountries = COUNTRY_CODES.filter((c) => c.pinned);
+  const otherCountries = COUNTRY_CODES.filter((c) => !c.pinned);
+  const allCountries = [...pinnedCountries, ...otherCountries];
+
+  const selectedCountry = COUNTRY_CODES.find((c) => c.code === countryCode) ?? COUNTRY_CODES[0];
+
+  const filteredCountries = countrySearch
+    ? allCountries.filter(
+        (c) =>
+          c.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
+          c.code.includes(countrySearch) ||
+          c.iso.toLowerCase().includes(countrySearch.toLowerCase()),
+      )
+    : allCountries;
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (countryDropdownRef.current && !countryDropdownRef.current.contains(e.target as Node)) {
+        setShowCountryDropdown(false);
+        setCountrySearch("");
+        setCountryFocused(-1);
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
+
+  // Auto-focus search when dropdown opens
+  useEffect(() => {
+    if (showCountryDropdown) {
+      setTimeout(() => countrySearchRef.current?.focus(), 50);
+      setCountryFocused(-1);
+    }
+  }, [showCountryDropdown]);
 
   // Reset on open / cleanup on close
   useEffect(() => {
@@ -398,18 +454,23 @@ export default function WhatsAppAuthModal() {
                       </label>
                       <div className="flex gap-2">
                         {/* Country code */}
-                        <div className="relative shrink-0">
+                        <div className="relative shrink-0" ref={countryDropdownRef}>
                           <button
                             type="button"
-                            onClick={() => setShowCountryDropdown((v) => !v)}
-                            className="h-12 px-3 rounded-xl border-2 border-gray-100 bg-gray-50 hover:border-gray-200 hover:bg-white flex items-center gap-1.5 text-sm font-semibold text-gray-700 transition-all min-w-[90px]"
+                            onClick={() =>
+                              setShowCountryDropdown((v) => {
+                                if (!v) setCountrySearch("");
+                                return !v;
+                              })
+                            }
+                            className="h-12 px-3 rounded-xl border-2 border-gray-100 bg-gray-50 hover:border-gray-200 hover:bg-white flex items-center gap-1.5 text-sm font-semibold text-gray-700 transition-all min-w-[90px] focus:outline-none focus:border-[#25D366]/50 focus:ring-2 focus:ring-[#25D366]/15"
                           >
                             <span className="text-base leading-none">
                               {selectedCountry.flag}
                             </span>
                             <span>{selectedCountry.code}</span>
                             <svg
-                              className="w-3 h-3 text-gray-400"
+                              className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${showCountryDropdown ? "rotate-180" : ""}`}
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -423,26 +484,106 @@ export default function WhatsAppAuthModal() {
                             </svg>
                           </button>
                           {showCountryDropdown && (
-                            <div className="absolute top-full left-0 mt-1 w-60 bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 max-h-52 overflow-y-auto">
-                              {COUNTRY_CODES.map((c) => (
-                                <button
-                                  key={c.iso}
-                                  type="button"
-                                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 flex items-center gap-3 transition-colors first:rounded-t-2xl last:rounded-b-2xl"
-                                  onClick={() => {
-                                    setCountryCode(c.code);
-                                    setShowCountryDropdown(false);
-                                  }}
-                                >
-                                  <span className="text-base">{c.flag}</span>
-                                  <span className="flex-1 font-medium text-gray-700">
-                                    {c.name}
-                                  </span>
-                                  <span className="text-xs text-gray-400">
-                                    {c.code}
-                                  </span>
-                                </button>
-                              ))}
+                            <div
+                              className="absolute top-full left-0 mt-1.5 w-72 bg-white border border-gray-100 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.14)] z-50 overflow-hidden"
+                              onKeyDown={(e) => {
+                                if (e.key === "ArrowDown") { e.preventDefault(); setCountryFocused((p) => Math.min(p + 1, filteredCountries.length - 1)); }
+                                else if (e.key === "ArrowUp") { e.preventDefault(); setCountryFocused((p) => Math.max(p - 1, -1)); }
+                                else if (e.key === "Enter" && countryFocused >= 0 && filteredCountries[countryFocused]) {
+                                  e.preventDefault();
+                                  setCountryCode(filteredCountries[countryFocused].code);
+                                  setShowCountryDropdown(false);
+                                  setCountrySearch("");
+                                  setCountryFocused(-1);
+                                } else if (e.key === "Escape") {
+                                  setShowCountryDropdown(false);
+                                  setCountrySearch("");
+                                  setCountryFocused(-1);
+                                }
+                              }}
+                            >
+                              {/* Search bar */}
+                              <div className="p-2.5 border-b border-gray-100 sticky top-0 bg-white">
+                                <div className="relative">
+                                  <svg
+                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                    />
+                                  </svg>
+                                  <input
+                                    type="text"
+                                    ref={countrySearchRef}
+                                    value={countrySearch}
+                                    onChange={(e) => { setCountrySearch(e.target.value); setCountryFocused(-1); }}
+                                    placeholder="Search country..."
+                                    className="w-full h-9 pl-8 pr-3 text-xs rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-[#25D366]/50 focus:bg-white transition-all"
+                                  />
+                                </div>
+                              </div>
+                              {/* Country list */}
+                              <div className="max-h-72 overflow-y-auto overscroll-contain" role="listbox">
+                                {/* Pinned section header */}
+                                {!countrySearch && (
+                                  <div className="px-3 pt-2.5 pb-1">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Popular</p>
+                                  </div>
+                                )}
+                                {filteredCountries.length === 0 ? (
+                                  <div className="px-4 py-6 text-center text-xs text-gray-400">
+                                    No countries found
+                                  </div>
+                                ) : (
+                                  filteredCountries.map((c, i) => {
+                                    const isSelected = c.code === countryCode && c.name === selectedCountry.name;
+                                    const isFocused = i === countryFocused;
+                                    const showSeparator = !countrySearch && c === otherCountries[0];
+                                    return (
+                                      <div key={`${c.iso}-${c.code}`}>
+                                        {showSeparator && (
+                                          <div className="px-3 pt-2.5 pb-1 border-t border-gray-100 mt-1">
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">All Countries</p>
+                                          </div>
+                                        )}
+                                        <button
+                                          type="button"
+                                          role="option"
+                                          aria-selected={isSelected}
+                                          onClick={() => {
+                                            setCountryCode(c.code);
+                                            setShowCountryDropdown(false);
+                                            setCountrySearch("");
+                                            setCountryFocused(-1);
+                                          }}
+                                          className={`w-full text-left px-4 py-3 text-sm flex items-center gap-3 transition-colors ${
+                                            isFocused
+                                              ? "bg-[#25D366]/8"
+                                              : isSelected
+                                                ? "bg-[#25D366]/8"
+                                                : "hover:bg-gray-50"
+                                          }`}
+                                        >
+                                          <span className="text-base leading-none w-6 text-center">{c.flag}</span>
+                                          <span className="flex-1 font-medium text-gray-700">{c.name}</span>
+                                          <span className="text-xs text-gray-400 font-mono">{c.code}</span>
+                                          {isSelected && (
+                                            <svg className="w-4 h-4 text-[#25D366] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                          )}
+                                        </button>
+                                      </div>
+                                    );
+                                  })
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -460,7 +601,7 @@ export default function WhatsAppAuthModal() {
                         />
                       </div>
                       <p className="text-[11px] text-gray-400 mt-2">
-                        We'll send a 6-digit code to this WhatsApp number.
+                        We&apos;ll send a 6-digit code to this WhatsApp number.
                       </p>
                     </div>
 
