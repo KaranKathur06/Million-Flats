@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { signIn } from "next-auth/react";
 import { useWhatsAppAuth } from "@/contexts/WhatsAppAuthContext";
 
@@ -47,6 +48,19 @@ const COUNTRY_CODES = [
 
 const RESEND_COOLDOWN = 30;
 const MAX_RESENDS = 3;
+const COUNTRY_DROPDOWN_WIDTH = 288;
+const COUNTRY_DROPDOWN_MIN_HEIGHT = 220;
+const COUNTRY_DROPDOWN_MAX_HEIGHT = 360;
+const COUNTRY_DROPDOWN_GAP = 6;
+const COUNTRY_DROPDOWN_MARGIN = 12;
+
+type CountryDropdownPosition = {
+  top: number;
+  left: number;
+  width: number;
+  maxHeight: number;
+  placement: "top" | "bottom";
+};
 
 function Spinner() {
   return (
@@ -141,7 +155,11 @@ export default function WhatsAppAuthModal() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const countryDropdownRef = useRef<HTMLDivElement>(null);
+  const countryTriggerRef = useRef<HTMLButtonElement>(null);
+  const countryMenuRef = useRef<HTMLDivElement>(null);
   const countrySearchRef = useRef<HTMLInputElement>(null);
+  const [countryDropdownPosition, setCountryDropdownPosition] =
+    useState<CountryDropdownPosition | null>(null);
 
   const pinnedCountries = COUNTRY_CODES.filter((c) => c.pinned);
   const otherCountries = COUNTRY_CODES.filter((c) => !c.pinned);
@@ -158,18 +176,85 @@ export default function WhatsAppAuthModal() {
       )
     : allCountries;
 
+  const closeCountryDropdown = useCallback(() => {
+    setShowCountryDropdown(false);
+    setCountrySearch("");
+    setCountryFocused(-1);
+  }, []);
+
+  const selectCountry = useCallback(
+    (code: string) => {
+      setCountryCode(code);
+      closeCountryDropdown();
+    },
+    [closeCountryDropdown],
+  );
+
+  const updateCountryDropdownPosition = useCallback(() => {
+    const trigger = countryTriggerRef.current;
+    if (!trigger || typeof window === "undefined") return;
+
+    const rect = trigger.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const width = Math.min(
+      COUNTRY_DROPDOWN_WIDTH,
+      Math.max(0, viewportWidth - COUNTRY_DROPDOWN_MARGIN * 2),
+    );
+    const left = Math.min(
+      Math.max(rect.left, COUNTRY_DROPDOWN_MARGIN),
+      Math.max(COUNTRY_DROPDOWN_MARGIN, viewportWidth - width - COUNTRY_DROPDOWN_MARGIN),
+    );
+    const availableBelow =
+      viewportHeight - rect.bottom - COUNTRY_DROPDOWN_GAP - COUNTRY_DROPDOWN_MARGIN;
+    const availableAbove =
+      rect.top - COUNTRY_DROPDOWN_GAP - COUNTRY_DROPDOWN_MARGIN;
+    const placement =
+      availableBelow >= COUNTRY_DROPDOWN_MIN_HEIGHT || availableBelow >= availableAbove
+        ? "bottom"
+        : "top";
+    const availableSpace = placement === "bottom" ? availableBelow : availableAbove;
+    const maxHeight = Math.max(
+      160,
+      Math.min(COUNTRY_DROPDOWN_MAX_HEIGHT, availableSpace),
+    );
+    const top =
+      placement === "bottom"
+        ? rect.bottom + COUNTRY_DROPDOWN_GAP
+        : Math.max(COUNTRY_DROPDOWN_MARGIN, rect.top - COUNTRY_DROPDOWN_GAP - maxHeight);
+
+    setCountryDropdownPosition({ top, left, width, maxHeight, placement });
+  }, []);
+
+  useEffect(() => {
+    if (!showCountryDropdown) return;
+
+    updateCountryDropdownPosition();
+    window.addEventListener("resize", updateCountryDropdownPosition);
+    window.addEventListener("scroll", updateCountryDropdownPosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updateCountryDropdownPosition);
+      window.removeEventListener("scroll", updateCountryDropdownPosition, true);
+    };
+  }, [showCountryDropdown, updateCountryDropdownPosition]);
+
   // Close dropdown on outside click
   useEffect(() => {
     function handleOutside(e: MouseEvent) {
-      if (countryDropdownRef.current && !countryDropdownRef.current.contains(e.target as Node)) {
-        setShowCountryDropdown(false);
-        setCountrySearch("");
-        setCountryFocused(-1);
+      const target = e.target as Node;
+      if (
+        countryDropdownRef.current?.contains(target) ||
+        countryMenuRef.current?.contains(target)
+      ) {
+        return;
       }
+
+      closeCountryDropdown();
     }
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
-  }, []);
+  }, [closeCountryDropdown]);
 
   // Auto-focus search when dropdown opens
   useEffect(() => {
@@ -191,11 +276,13 @@ export default function WhatsAppAuthModal() {
       setLoading(false);
       setResendTimer(0);
       setResendCount(0);
+      closeCountryDropdown();
       if (timerRef.current) clearInterval(timerRef.current);
     } else {
+      closeCountryDropdown();
       if (timerRef.current) clearInterval(timerRef.current);
     }
-  }, [isOpen]);
+  }, [closeCountryDropdown, isOpen]);
 
   useEffect(
     () => () => {
@@ -374,6 +461,11 @@ export default function WhatsAppAuthModal() {
 
   if (!isOpen) return null;
 
+  const countryListMaxHeight = Math.max(
+    96,
+    (countryDropdownPosition?.maxHeight ?? COUNTRY_DROPDOWN_MAX_HEIGHT) - 58,
+  );
+
   return (
     <>
       {/* Backdrop */}
@@ -456,6 +548,7 @@ export default function WhatsAppAuthModal() {
                         {/* Country code */}
                         <div className="relative shrink-0" ref={countryDropdownRef}>
                           <button
+                            ref={countryTriggerRef}
                             type="button"
                             onClick={() =>
                               setShowCountryDropdown((v) => {
@@ -463,6 +556,9 @@ export default function WhatsAppAuthModal() {
                                 return !v;
                               })
                             }
+                            aria-haspopup="listbox"
+                            aria-expanded={showCountryDropdown}
+                            aria-controls="whatsapp-country-dropdown"
                             className="h-12 px-3 rounded-xl border-2 border-gray-100 bg-gray-50 hover:border-gray-200 hover:bg-white flex items-center gap-1.5 text-sm font-semibold text-gray-700 transition-all min-w-[90px] focus:outline-none focus:border-[#25D366]/50 focus:ring-2 focus:ring-[#25D366]/15"
                           >
                             <span className="text-base leading-none">
@@ -483,109 +579,6 @@ export default function WhatsAppAuthModal() {
                               />
                             </svg>
                           </button>
-                          {showCountryDropdown && (
-                            <div
-                              className="absolute top-full left-0 mt-1.5 w-72 bg-white border border-gray-100 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.14)] z-50 overflow-hidden"
-                              onKeyDown={(e) => {
-                                if (e.key === "ArrowDown") { e.preventDefault(); setCountryFocused((p) => Math.min(p + 1, filteredCountries.length - 1)); }
-                                else if (e.key === "ArrowUp") { e.preventDefault(); setCountryFocused((p) => Math.max(p - 1, -1)); }
-                                else if (e.key === "Enter" && countryFocused >= 0 && filteredCountries[countryFocused]) {
-                                  e.preventDefault();
-                                  setCountryCode(filteredCountries[countryFocused].code);
-                                  setShowCountryDropdown(false);
-                                  setCountrySearch("");
-                                  setCountryFocused(-1);
-                                } else if (e.key === "Escape") {
-                                  setShowCountryDropdown(false);
-                                  setCountrySearch("");
-                                  setCountryFocused(-1);
-                                }
-                              }}
-                            >
-                              {/* Search bar */}
-                              <div className="p-2.5 border-b border-gray-100 sticky top-0 bg-white">
-                                <div className="relative">
-                                  <svg
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                                    />
-                                  </svg>
-                                  <input
-                                    type="text"
-                                    ref={countrySearchRef}
-                                    value={countrySearch}
-                                    onChange={(e) => { setCountrySearch(e.target.value); setCountryFocused(-1); }}
-                                    placeholder="Search country..."
-                                    className="w-full h-9 pl-8 pr-3 text-xs rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-[#25D366]/50 focus:bg-white transition-all"
-                                  />
-                                </div>
-                              </div>
-                              {/* Country list */}
-                              <div className="max-h-72 overflow-y-auto overscroll-contain" role="listbox">
-                                {/* Pinned section header */}
-                                {!countrySearch && (
-                                  <div className="px-3 pt-2.5 pb-1">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Popular</p>
-                                  </div>
-                                )}
-                                {filteredCountries.length === 0 ? (
-                                  <div className="px-4 py-6 text-center text-xs text-gray-400">
-                                    No countries found
-                                  </div>
-                                ) : (
-                                  filteredCountries.map((c, i) => {
-                                    const isSelected = c.code === countryCode && c.name === selectedCountry.name;
-                                    const isFocused = i === countryFocused;
-                                    const showSeparator = !countrySearch && c === otherCountries[0];
-                                    return (
-                                      <div key={`${c.iso}-${c.code}`}>
-                                        {showSeparator && (
-                                          <div className="px-3 pt-2.5 pb-1 border-t border-gray-100 mt-1">
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">All Countries</p>
-                                          </div>
-                                        )}
-                                        <button
-                                          type="button"
-                                          role="option"
-                                          aria-selected={isSelected}
-                                          onClick={() => {
-                                            setCountryCode(c.code);
-                                            setShowCountryDropdown(false);
-                                            setCountrySearch("");
-                                            setCountryFocused(-1);
-                                          }}
-                                          className={`w-full text-left px-4 py-3 text-sm flex items-center gap-3 transition-colors ${
-                                            isFocused
-                                              ? "bg-[#25D366]/8"
-                                              : isSelected
-                                                ? "bg-[#25D366]/8"
-                                                : "hover:bg-gray-50"
-                                          }`}
-                                        >
-                                          <span className="text-base leading-none w-6 text-center">{c.flag}</span>
-                                          <span className="flex-1 font-medium text-gray-700">{c.name}</span>
-                                          <span className="text-xs text-gray-400 font-mono">{c.code}</span>
-                                          {isSelected && (
-                                            <svg className="w-4 h-4 text-[#25D366] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                                            </svg>
-                                          )}
-                                        </button>
-                                      </div>
-                                    );
-                                  })
-                                )}
-                              </div>
-                            </div>
-                          )}
                         </div>
                         {/* Number */}
                         <input
@@ -809,6 +802,155 @@ export default function WhatsAppAuthModal() {
           </div>
         </div>
       </div>
+      {showCountryDropdown &&
+        countryDropdownPosition &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            id="whatsapp-country-dropdown"
+            ref={countryMenuRef}
+            className="fixed z-[110] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.14)]"
+            style={{
+              top: countryDropdownPosition.top,
+              left: countryDropdownPosition.left,
+              width: countryDropdownPosition.width,
+              maxHeight: countryDropdownPosition.maxHeight,
+              transformOrigin:
+                countryDropdownPosition.placement === "bottom"
+                  ? "top left"
+                  : "bottom left",
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setCountryFocused((p) =>
+                  Math.min(p + 1, filteredCountries.length - 1),
+                );
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setCountryFocused((p) => Math.max(p - 1, -1));
+              } else if (
+                e.key === "Enter" &&
+                countryFocused >= 0 &&
+                filteredCountries[countryFocused]
+              ) {
+                e.preventDefault();
+                selectCountry(filteredCountries[countryFocused].code);
+              } else if (e.key === "Escape") {
+                closeCountryDropdown();
+                countryTriggerRef.current?.focus();
+              }
+            }}
+          >
+            <div className="border-b border-gray-100 bg-white p-2.5">
+              <div className="relative">
+                <svg
+                  className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                <input
+                  type="text"
+                  ref={countrySearchRef}
+                  value={countrySearch}
+                  onChange={(e) => {
+                    setCountrySearch(e.target.value);
+                    setCountryFocused(-1);
+                  }}
+                  placeholder="Search country..."
+                  className="h-9 w-full rounded-xl border border-gray-200 bg-gray-50 pl-8 pr-3 text-xs transition-all focus:border-[#25D366]/50 focus:bg-white focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div
+              className="overflow-y-auto overscroll-contain"
+              style={{ maxHeight: countryListMaxHeight }}
+              role="listbox"
+              aria-label="Country code"
+            >
+              {!countrySearch && (
+                <div className="px-3 pb-1 pt-2.5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    Popular
+                  </p>
+                </div>
+              )}
+              {filteredCountries.length === 0 ? (
+                <div className="px-4 py-6 text-center text-xs text-gray-400">
+                  No countries found
+                </div>
+              ) : (
+                filteredCountries.map((c, i) => {
+                  const isSelected =
+                    c.code === countryCode && c.name === selectedCountry.name;
+                  const isFocused = i === countryFocused;
+                  const showSeparator =
+                    !countrySearch && c === otherCountries[0];
+
+                  return (
+                    <div key={`${c.iso}-${c.code}`}>
+                      {showSeparator && (
+                        <div className="mt-1 border-t border-gray-100 px-3 pb-1 pt-2.5">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                            All Countries
+                          </p>
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => selectCountry(c.code)}
+                        className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${
+                          isFocused
+                            ? "bg-[#25D366]/8"
+                            : isSelected
+                              ? "bg-[#25D366]/8"
+                              : "hover:bg-gray-50"
+                        }`}
+                      >
+                        <span className="w-6 text-center text-base leading-none">
+                          {c.flag}
+                        </span>
+                        <span className="flex-1 font-medium text-gray-700">
+                          {c.name}
+                        </span>
+                        <span className="font-mono text-xs text-gray-400">
+                          {c.code}
+                        </span>
+                        {isSelected && (
+                          <svg
+                            className="h-4 w-4 shrink-0 text-[#25D366]"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2.5}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

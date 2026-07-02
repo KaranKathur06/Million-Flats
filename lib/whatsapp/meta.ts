@@ -93,7 +93,9 @@ export async function sendAuthenticationOtp(
         type: "template",
         template: {
           name: templateName,
-          language: { code: "en" },
+          language: {
+            code: process.env.META_WHATSAPP_TEMPLATE_LANGUAGE || "en_US"
+          },
           components: [
             {
               type: "body",

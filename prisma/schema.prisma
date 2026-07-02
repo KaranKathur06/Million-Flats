@@ -526,6 +526,7 @@ model Agent {
 
   subscription AgentSubscription?
   payments     Payment[]
+  aiIntelligence AgentAIIntelligence?
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -3132,3 +3133,817 @@ model WhatsAppLog {
   @@index([createdAt])
   @@map("whatsapp_logs")
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MillionFlats AI Intelligence Platform — Data Layer
+// Volume 2: Data Platform Schema
+// These tables form the intelligence backbone consumed by all AI engines.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum AIModuleType {
+  SHIELD     // Property valuation & pricing
+  INDEX      // Investment intelligence
+  VIEW       // Computer vision & media
+  TITLE      // Legal document intelligence
+  PRO        // Agent CRM intelligence
+  MARKET     // Market intelligence
+  RISK       // Risk scoring
+  RECOMMEND  // Recommendation engine
+}
+
+enum AIJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  RETRYING
+}
+
+enum DataProviderType {
+  MAPS_POI       // Google Maps Points of Interest
+  RERA           // RERA portal data
+  CIRCLE_RATE    // Government circle rates
+  INFRASTRUCTURE // Infrastructure projects (metro, highway, etc.)
+  NEWS_NLP       // Real estate news NLP
+  MARKET_DATA    // Market transaction data
+  RENTAL_DATA    // Rental market data
+  GOVERNMENT     // Government records
+  INTERNAL       // MillionFlats own data
+}
+
+enum InfrastructureType {
+  METRO_LINE
+  BRT_CORRIDOR
+  HIGHWAY
+  EXPRESSWAY
+  AIRPORT
+  PORT
+  HOSPITAL
+  SCHOOL
+  UNIVERSITY
+  SEZ
+  IT_HUB
+  SMART_CITY
+  MALL
+  BUSINESS_DISTRICT
+  PARK
+}
+
+enum InfrastructureStatus {
+  ANNOUNCED
+  APPROVED
+  LAND_ACQUIRED
+  UNDER_CONSTRUCTION
+  COMPLETED
+  CANCELLED
+}
+
+enum MarketHeat {
+  VERY_HOT
+  HOT
+  WARM
+  NEUTRAL
+  COOL
+  COLD
+  VERY_COLD
+}
+
+enum InvestmentGrade {
+  A_PLUS
+  A
+  B_PLUS
+  B
+  C_PLUS
+  C
+  D
+}
+
+enum LegalRiskClassification {
+  CLEAR
+  MINOR_ISSUES
+  CAUTION
+  HIGH_RISK
+  BLOCKED
+}
+
+enum KnowledgeEdgeType {
+  PROPERTY_NEAR_METRO
+  PROPERTY_NEAR_SCHOOL
+  PROPERTY_NEAR_HOSPITAL
+  PROPERTY_NEAR_MALL
+  PROPERTY_NEAR_AIRPORT
+  PROPERTY_NEAR_IT_HUB
+  PROPERTY_NEAR_HIGHWAY
+  PROPERTY_DEVELOPED_BY
+  PROPERTY_LISTED_BY
+  PROPERTY_IN_PROJECT
+  DEVELOPER_HAS_LITIGATION
+  AGENT_CLOSED_IN_AREA
+  AREA_NEAR_INFRA
+}
+
+// ─── Property Feature Vector (300+ AI features per property) ──────────────────
+// This is the core AI intelligence table. Every AI engine reads from here.
+
+model PropertyFeatureVector {
+  id         String @id @default(uuid())
+  entityType String // MANUAL_PROPERTY | PROJECT
+  entityId   String @map("entity_id")
+
+  // ── Location Intelligence (computed from GIS) ──────────────────────────────
+  latitude              Float?
+  longitude             Float?
+  distanceMetroKm       Float?  @map("distance_metro_km")
+  distanceAirportKm     Float?  @map("distance_airport_km")
+  distanceHospitalKm    Float?  @map("distance_hospital_km")
+  distanceSchoolKm      Float?  @map("distance_school_km")
+  distanceMallKm        Float?  @map("distance_mall_km")
+  distanceItHubKm       Float?  @map("distance_it_hub_km")
+  distanceHighwayKm     Float?  @map("distance_highway_km")
+  walkScore             Int?    @map("walk_score")       // 0-100
+  connectivityScore     Int?    @map("connectivity_score") // 0-100
+  nearbyMetroCount      Int?    @map("nearby_metro_count")
+  nearbySchoolCount     Int?    @map("nearby_school_count")
+  nearbyHospitalCount   Int?    @map("nearby_hospital_count")
+  nearbyMallCount       Int?    @map("nearby_mall_count")
+  poiDensityScore       Float?  @map("poi_density_score")
+  pollutionIndex        Float?  @map("pollution_index")
+  floodRiskScore        Float?  @map("flood_risk_score")
+  crimeIndexScore       Float?  @map("crime_index_score")
+
+  // ── Developer Intelligence ─────────────────────────────────────────────────
+  developerPastProjects      Int?    @map("developer_past_projects")
+  developerDelayPct          Float?  @map("developer_delay_pct")
+  developerQualityRating     Float?  @map("developer_quality_rating")
+  developerLitigationCount   Int?    @map("developer_litigation_count")
+  developerCompletionRate    Float?  @map("developer_completion_rate")
+  developerCustomerRating    Float?  @map("developer_customer_rating")
+  developerYearsExperience   Int?    @map("developer_years_experience")
+  developerDeliveredUnits    Int?    @map("developer_delivered_units")
+  developerReputationScore   Float?  @map("developer_reputation_score") // composite 0-100
+
+  // ── Property Physical Features ─────────────────────────────────────────────
+  carpetAreaSqft        Float?  @map("carpet_area_sqft")
+  superBuiltUpSqft      Float?  @map("super_built_up_sqft")
+  builtUpRatio          Float?  @map("built_up_ratio")   // carpet/super_builtup
+  facingDirection       String? @map("facing_direction")
+  floorNumber           Int?    @map("floor_number")
+  totalFloors           Int?    @map("total_floors")
+  floorRatio            Float?  @map("floor_ratio")      // floor/total_floors
+  hasLift               Boolean? @map("has_lift")
+  parkingCount          Int?    @map("parking_count")
+  furnishingStatus      String? @map("furnishing_status")
+  propertyAgeYears      Float?  @map("property_age_years")
+  amenityCount          Int?    @map("amenity_count")
+  bedroomCount          Int?    @map("bedroom_count")
+  bathroomCount         Int?    @map("bathroom_count")
+  hasGym                Boolean? @map("has_gym")
+  hasPool               Boolean? @map("has_pool")
+  hasSecurity24h        Boolean? @map("has_security_24h")
+  hasClubhouse          Boolean? @map("has_clubhouse")
+  constructionQuality   String? @map("construction_quality") // STANDARD|PREMIUM|LUXURY
+
+  // ── Market Intelligence (updated weekly) ───────────────────────────────────
+  demandIndex           Float?  @map("demand_index")         // 0-100
+  supplyIndex           Float?  @map("supply_index")         // 0-100
+  inventoryMonths       Float?  @map("inventory_months")
+  absorptionRate        Float?  @map("absorption_rate")      // units/month
+  recentSalesCount      Int?    @map("recent_sales_count")   // 90 days
+  avgAppreciationPct    Float?  @map("avg_appreciation_pct") // 3-year CAGR
+  pricePerSqftAreaAvg   Float?  @map("price_per_sqft_area_avg")
+  priceVolatilityScore  Float?  @map("price_volatility_score")
+  marketHeat            MarketHeat? @map("market_heat")
+  rentalYieldArea       Float?  @map("rental_yield_area")    // area-level yield
+  vacancyRateArea       Float?  @map("vacancy_rate_area")
+
+  // ── Behavioral Signals (from platform activity) ────────────────────────────
+  listingViewCount      Int     @default(0) @map("listing_view_count")
+  saveCount             Int     @default(0) @map("save_count")
+  buyerInterestScore    Float?  @map("buyer_interest_score") // 0-100
+  contactRate           Float?  @map("contact_rate")         // contacts/view
+  offerRate             Float?  @map("offer_rate")           // offers/contact
+  daysOnMarket          Int?    @map("days_on_market")
+  priceDropCount        Int?    @map("price_drop_count")
+
+  // ── Agent Intelligence ─────────────────────────────────────────────────────
+  agentResponseTimeHrs  Float?  @map("agent_response_time_hrs")
+  agentConversionRate   Float?  @map("agent_conversion_rate")
+  agentCloseRate        Float?  @map("agent_close_rate")
+  agentReviewRating     Float?  @map("agent_review_rating")
+  agentReviewCount      Int?    @map("agent_review_count")
+
+  // ── Legal Intelligence ─────────────────────────────────────────────────────
+  reraRegistered        Boolean @default(false) @map("rera_registered")
+  reraNumber            String? @map("rera_number")
+  reraCompletionPct     Float?  @map("rera_completion_pct")  // from RERA portal
+  hasEncumbrance        Boolean? @map("has_encumbrance")
+  ownershipType         String? @map("ownership_type")        // FREEHOLD|LEASEHOLD
+  hasMutation           Boolean? @map("has_mutation")
+  taxPaid               Boolean? @map("tax_paid")
+  litigationCount       Int?    @map("litigation_count")
+  documentCompletenessScore Float? @map("document_completeness_score") // 0-100
+
+  // ── Media Intelligence (from AIView engine) ────────────────────────────────
+  imageQualityScore     Float?  @map("image_quality_score")    // 0-100
+  imageDuplicateScore   Float?  @map("image_duplicate_score")  // 0 = unique
+  aiManipulationScore   Float?  @map("ai_manipulation_score")  // 0-100 (lower=authentic)
+  mediaCount            Int     @default(0) @map("media_count")
+  has3dTour             Boolean @default(false) @map("has_3d_tour")
+  tourCompletenessScore Float?  @map("tour_completeness_score") // 0-100
+  mediaTrustScore       Float?  @map("media_trust_score")       // 0-100
+  hasDefectsDetected    Boolean? @map("has_defects_detected")
+
+  // ── Cached AI Outputs (read-through cache for fast API responses) ──────────
+  fairValueMin          Float?  @map("fair_value_min")
+  fairValueMid          Float?  @map("fair_value_mid")
+  fairValueMax          Float?  @map("fair_value_max")
+  valuationConfidence   Float?  @map("valuation_confidence")   // 0-100
+  riskScore             Float?  @map("risk_score")             // 0-100
+  liquidityScore        Float?  @map("liquidity_score")        // 0-100
+  investmentGrade       InvestmentGrade? @map("investment_grade")
+  opportunityScore      Float?  @map("opportunity_score")      // 0-100
+  overallAiScore        Float?  @map("overall_ai_score")       // composite 0-100
+
+  // ── Feature Engineering Metadata ──────────────────────────────────────────
+  featureVersion        String  @default("2.0") @map("feature_version")
+  featureCompleteness   Float?  @map("feature_completeness")  // % features populated
+  computedAt            DateTime? @map("computed_at")
+  expiresAt             DateTime? @map("expires_at")          // when stale
+
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@unique([entityType, entityId])
+  @@index([entityType])
+  @@index([marketHeat])
+  @@index([investmentGrade])
+  @@index([overallAiScore])
+  @@index([computedAt])
+  @@index([expiresAt])
+  @@map("property_feature_vectors")
+}
+
+// ─── Market Snapshot (micromarket-level intelligence, updated weekly) ──────────
+
+model MarketSnapshot {
+  id              String     @id @default(uuid())
+  marketKey       String     @map("market_key")   // "{countryIso2}:{city}:{community}" e.g. "AE:Dubai:JVC"
+  countryIso2     String     @db.Char(2) @map("country_iso2")
+  city            String
+  community       String?
+  propertyType    String?    @map("property_type") // APARTMENT|VILLA|COMMERCIAL
+
+  // ── Pricing Intelligence ───────────────────────────────────────────────────
+  avgPricePerSqft       Float  @map("avg_price_per_sqft")
+  medianPricePerSqft    Float  @map("median_price_per_sqft")
+  avgTotalPrice         Float  @map("avg_total_price")
+  medianTotalPrice      Float  @map("median_total_price")
+  priceChangeMomPct     Float  @map("price_change_mom_pct")   // month-over-month
+  priceChangeYoyPct     Float  @map("price_change_yoy_pct")   // year-over-year
+  priceChangeQoqPct     Float  @map("price_change_qoq_pct")   // quarter-over-quarter
+
+  // ── Supply & Demand ────────────────────────────────────────────────────────
+  demandIndex           Float  @map("demand_index")         // 0-100
+  supplyIndex           Float  @map("supply_index")         // 0-100
+  inventoryMonths       Float  @map("inventory_months")     // months of supply
+  absorptionRate        Float  @map("absorption_rate")      // units sold/month
+  newListingsCount      Int    @map("new_listings_count")
+  transactionsCount     Int    @map("transactions_count")   // actual sales
+  marketHeat            MarketHeat @map("market_heat")
+
+  // ── Investment Intelligence ────────────────────────────────────────────────
+  rentalYieldAvg        Float? @map("rental_yield_avg")
+  rentalYieldMedian     Float? @map("rental_yield_median")
+  vacancyRateAvg        Float? @map("vacancy_rate_avg")
+  capitalAppreciation3yr Float? @map("capital_appreciation_3yr")
+  priceToRentRatio      Float? @map("price_to_rent_ratio")
+
+  // ── Data Quality ───────────────────────────────────────────────────────────
+  sampleSize            Int    @map("sample_size")           // data points used
+  dataQualityScore      Float  @map("data_quality_score")   // 0-100
+  sourcesCount          Int    @map("sources_count")
+
+  snapshotDate          DateTime @db.Date @map("snapshot_date")
+  computedAt            DateTime @default(now()) @map("computed_at")
+
+  @@unique([marketKey, snapshotDate, propertyType])
+  @@index([countryIso2, city])
+  @@index([snapshotDate])
+  @@index([marketHeat])
+  @@index([marketKey])
+  @@map("market_snapshots")
+}
+
+// ─── Infrastructure Events (metro lines, highways, hospitals, etc.) ───────────
+
+model InfrastructureEvent {
+  id              String               @id @default(uuid())
+  type            InfrastructureType
+  name            String
+  description     String?              @db.Text
+  status          InfrastructureStatus @default(ANNOUNCED)
+
+  // ── Location ──────────────────────────────────────────────────────────────
+  latitude        Float?
+  longitude       Float?
+  radiusImpactKm  Float?  @map("radius_impact_km")  // properties within this radius are affected
+  city            String
+  countryIso2     String  @db.Char(2) @map("country_iso2")
+  route           Json?   // GeoJSON LineString for metro lines, highways
+
+  // ── Impact Intelligence ────────────────────────────────────────────────────
+  estimatedPriceImpactPct Float? @map("estimated_price_impact_pct") // +/- % on nearby properties
+  timelineMonths          Int?   @map("timeline_months")
+  investmentMagnitude     String? @map("investment_magnitude")       // "₹2,000 Cr"
+
+  // ── Timeline ──────────────────────────────────────────────────────────────
+  announcedDate   DateTime? @db.Date @map("announced_date")
+  expectedDate    DateTime? @db.Date @map("expected_date")
+  completedDate   DateTime? @db.Date @map("completed_date")
+
+  // ── Source Tracking ────────────────────────────────────────────────────────
+  sourceUrl       String?   @map("source_url")
+  sourceType      String    @map("source_type")   // GOVERNMENT|NEWS|OFFICIAL
+  sourceName      String?   @map("source_name")
+  confidence      Float?                          // 0-100 data confidence
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([type, status])
+  @@index([countryIso2, city])
+  @@index([status])
+  @@index([expectedDate])
+  @@map("infrastructure_events")
+}
+
+// ─── Property Valuation History (learning loop ground truth) ──────────────────
+
+model PropertyValuationHistory {
+  id              String   @id @default(uuid())
+  entityType      String   @map("entity_type")  // MANUAL_PROPERTY | PROJECT
+  entityId        String   @map("entity_id")
+
+  // ── Valuation Record ──────────────────────────────────────────────────────
+  valuationType   String   @map("valuation_type")   // AI_ESTIMATE|ACTUAL_SALE|LISTED_PRICE|MANUAL
+  currency        String   @default("AED")
+  valuationAmount Float    @map("valuation_amount")
+
+  // ── AI Prediction Context (filled for AI_ESTIMATE type) ───────────────────
+  predictedMin    Float?   @map("predicted_min")
+  predictedMid    Float?   @map("predicted_mid")
+  predictedMax    Float?   @map("predicted_max")
+  confidenceScore Float?   @map("confidence_score")
+  modelName       String?  @map("model_name")       // "avm_xgboost_v2.1"
+  modelVersion    String?  @map("model_version")
+  featureVersion  String?  @map("feature_version")
+  comparablesUsed Int?     @map("comparables_used")
+  dataSourceCount Int?     @map("data_source_count")
+
+  // ── Explainability ────────────────────────────────────────────────────────
+  priceDrivers    Json?    @map("price_drivers")  // [{feature, impact_pct, direction}]
+  hiddenRisks     Json?    @map("hidden_risks")   // [{risk, severity, description}]
+  comparables     Json?    @map("comparables")    // [{entityId, price, similarity, source}]
+
+  // ── Learning Loop (filled when actual_sale is recorded) ───────────────────
+  actualSaleAmount    Float?  @map("actual_sale_amount")
+  predictionError     Float?  @map("prediction_error")      // |predicted - actual| / actual
+  absoluteErrorAed    Float?  @map("absolute_error_aed")
+  includedInRetraining Boolean @default(false) @map("included_in_retraining")
+
+  recordedAt      DateTime @default(now()) @map("recorded_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@index([valuationType])
+  @@index([recordedAt])
+  @@index([modelVersion])
+  @@index([includedInRetraining])
+  @@map("property_valuation_history")
+}
+
+// ─── Property Similarity Index (comparable engine + recommendation engine) ────
+
+model PropertySimilarityIndex {
+  id              String   @id @default(uuid())
+  entityType      String   @map("entity_type")
+  propertyId      String   @map("property_id")
+  comparableId    String   @map("comparable_id")
+  similarityScore Float    @map("similarity_score")   // 0.0-1.0 cosine similarity
+
+  // ── Match Breakdown ───────────────────────────────────────────────────────
+  matchFactors    Json     @map("match_factors")
+  // {
+  //   area_score: 0.95,
+  //   location_score: 0.88,
+  //   price_range_score: 0.91,
+  //   property_type_score: 1.0,
+  //   amenity_score: 0.72,
+  //   age_score: 0.85
+  // }
+
+  computedAt      DateTime @default(now()) @map("computed_at")
+
+  @@unique([entityType, propertyId, comparableId])
+  @@index([entityType, propertyId, similarityScore(sort: Desc)])
+  @@index([computedAt])
+  @@map("property_similarity_index")
+}
+
+// ─── AI Model Registry (MLOps — version, performance, lifecycle) ───────────────
+
+model AIModelRegistry {
+  id              String   @id @default(uuid())
+  modelName       String   @map("model_name")   // "avm_xgboost", "investment_classifier"
+  version         String                          // "2.1.0"
+  moduleType      AIModuleType @map("module_type")
+  description     String?  @db.Text
+
+  // ── Performance Metrics ───────────────────────────────────────────────────
+  maePercent      Float?   @map("mae_percent")   // Mean Absolute Error %
+  rmsePercent     Float?   @map("rmse_percent")
+  r2Score         Float?   @map("r2_score")
+  f1Score         Float?   @map("f1_score")       // for classifiers
+  accuracyPct     Float?   @map("accuracy_pct")
+  validationSetSize Int?   @map("validation_set_size")
+  trainingSetSize Int?     @map("training_set_size")
+
+  // ── Configuration ─────────────────────────────────────────────────────────
+  featureList     Json?    @map("feature_list")   // ["carpet_area", "distance_metro", ...]
+  hyperparams     Json?    @map("hyperparams")
+  trainingConfig  Json?    @map("training_config")
+  frameworkName   String?  @map("framework_name") // "xgboost", "lightgbm", "sklearn"
+
+  // ── Artifact Location ─────────────────────────────────────────────────────
+  artifactPath    String?  @map("artifact_path")  // S3/VPS path to model pkl/onnx
+  artifactSizeBytes Int?   @map("artifact_size_bytes")
+
+  // ── Lifecycle ─────────────────────────────────────────────────────────────
+  status          String   @default("TRAINING") // TRAINING|STAGING|PRODUCTION|RETIRED|FAILED
+  trainedAt       DateTime? @map("trained_at")
+  validatedAt     DateTime? @map("validated_at")
+  deployedAt      DateTime? @map("deployed_at")
+  retiredAt       DateTime? @map("retired_at")
+  retiredReason   String?  @map("retired_reason")
+
+  // ── Shadow Mode ───────────────────────────────────────────────────────────
+  shadowingProductionId String? @map("shadowing_production_id")  // A/B comparison
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  learningRecords AILearningRecord[]
+
+  @@unique([modelName, version])
+  @@index([moduleType, status])
+  @@index([status])
+  @@index([deployedAt])
+  @@map("ai_model_registry")
+}
+
+// ─── AI Learning Record (continuous learning loop — prediction vs actual) ──────
+
+model AILearningRecord {
+  id              String   @id @default(uuid())
+  modelRegistryId String   @map("model_registry_id")
+  modelRegistry   AIModelRegistry @relation(fields: [modelRegistryId], references: [id], onDelete: Cascade)
+
+  entityType      String   @map("entity_type")
+  entityId        String   @map("entity_id")
+  moduleType      AIModuleType @map("module_type")
+
+  // ── Prediction vs Reality ─────────────────────────────────────────────────
+  predictedValue  Float    @map("predicted_value")
+  actualValue     Float?   @map("actual_value")
+  absoluteError   Float?   @map("absolute_error")
+  percentageError Float?   @map("percentage_error")    // |pred-actual|/actual * 100
+
+  // ── Context ───────────────────────────────────────────────────────────────
+  inputSnapshot   Json?    @map("input_snapshot")      // feature values at prediction time
+  predictionMeta  Json?    @map("prediction_meta")
+
+  predictedAt     DateTime @default(now()) @map("predicted_at")
+  actualizedAt    DateTime? @map("actualized_at")       // when actual value was recorded
+  retrainingFlag  Boolean  @default(false) @map("retraining_flag") // flagged for next training run
+
+  @@index([modelRegistryId])
+  @@index([moduleType, retrainingFlag])
+  @@index([entityType, entityId])
+  @@index([predictedAt])
+  @@map("ai_learning_records")
+}
+
+// ─── Data Ingestion Jobs (provider-pattern ETL orchestration) ─────────────────
+
+model DataIngestionJob {
+  id              String          @id @default(uuid())
+  providerType    DataProviderType @map("provider_type")
+  providerName    String          @map("provider_name")   // "google_maps", "maharera", etc.
+  targetCity      String?         @map("target_city")
+  targetCountry   String?         @db.Char(2) @map("target_country")
+  sourceUrl       String?         @map("source_url")
+  parameters      Json?                                   // provider-specific params
+
+  // ── Execution ─────────────────────────────────────────────────────────────
+  status          AIJobStatus     @default(PENDING)
+  recordsIngested Int             @default(0) @map("records_ingested")
+  recordsFailed   Int             @default(0) @map("records_failed")
+  recordsSkipped  Int             @default(0) @map("records_skipped")
+  processingMs    Int?            @map("processing_ms")
+  errorMessage    String?         @db.Text @map("error_message")
+  errorStack      String?         @db.Text @map("error_stack")
+
+  // ── Scheduling ────────────────────────────────────────────────────────────
+  scheduledFor    DateTime?       @map("scheduled_for")
+  startedAt       DateTime?       @map("started_at")
+  completedAt     DateTime?       @map("completed_at")
+  nextRunAt       DateTime?       @map("next_run_at")
+  cronExpression  String?         @map("cron_expression")
+  retryCount      Int             @default(0) @map("retry_count")
+  maxRetries      Int             @default(3) @map("max_retries")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([status, scheduledFor])
+  @@index([providerType])
+  @@index([nextRunAt])
+  @@index([createdAt])
+  @@map("data_ingestion_jobs")
+}
+
+// ─── AI Intelligence Audit Log (every AI prediction logged) ───────────────────
+
+model AIIntelligenceAuditLog {
+  id              String       @id @default(uuid())
+  entityType      String       @map("entity_type")
+  entityId        String       @map("entity_id")
+  moduleType      AIModuleType @map("module_type")
+  action          String                           // VALUATION|RISK_SCORE|MEDIA_TRUST|LEGAL_CHECK|etc.
+
+  // ── Inputs & Outputs ──────────────────────────────────────────────────────
+  inputFeatures   Json?        @map("input_features")
+  outputResult    Json?        @map("output_result")
+  confidenceScore Float?       @map("confidence_score")
+  modelName       String?      @map("model_name")
+  modelVersion    String?      @map("model_version")
+  processingMs    Int?         @map("processing_ms")
+  cacheHit        Boolean      @default(false) @map("cache_hit")
+
+  // ── Explainability ────────────────────────────────────────────────────────
+  topFeatures     Json?        @map("top_features")  // SHAP top-5 feature importances
+  reasoning       String?      @db.Text              // plain-English explanation
+
+  requestedBy     String?      @map("requested_by")  // userId or "system" or "worker"
+  requestIp       String?      @map("request_ip")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@index([moduleType, createdAt])
+  @@index([action])
+  @@index([createdAt])
+  @@map("ai_intelligence_audit_logs")
+}
+
+// ─── Data Provider Registry (provider pattern — pluggable external sources) ───
+
+model DataProvider {
+  id              String           @id @default(uuid())
+  type            DataProviderType
+  name            String           @unique   // "google_maps_poi", "maharera_india"
+  displayName     String           @map("display_name")
+  description     String?          @db.Text
+  countryIso2     String?          @db.Char(2) @map("country_iso2")
+
+  // ── Configuration ─────────────────────────────────────────────────────────
+  isEnabled       Boolean          @default(false) @map("is_enabled")
+  config          Json?            // provider-specific config (NOT secrets — those in env)
+  rateLimit       Int?             @map("rate_limit")       // requests/minute
+  batchSize       Int?             @map("batch_size")
+  cronSchedule    String?          @map("cron_schedule")    // "0 2 * * *"
+
+  // ── Health ────────────────────────────────────────────────────────────────
+  lastSuccessAt   DateTime?        @map("last_success_at")
+  lastErrorAt     DateTime?        @map("last_error_at")
+  lastErrorMsg    String?          @map("last_error_msg")
+  successRate     Float?           @map("success_rate")     // 0-100
+  avgLatencyMs    Int?             @map("avg_latency_ms")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([type, isEnabled])
+  @@index([countryIso2])
+  @@map("data_providers")
+}
+
+// ─── Property Knowledge Graph Edges (entity relationship network) ─────────────
+
+model PropertyKnowledgeEdge {
+  id              String            @id @default(uuid())
+  edgeType        KnowledgeEdgeType @map("edge_type")
+
+  // ── Source Node ───────────────────────────────────────────────────────────
+  sourceType      String            @map("source_type")   // PROPERTY|PROJECT|DEVELOPER|AGENT
+  sourceId        String            @map("source_id")
+
+  // ── Target Node ───────────────────────────────────────────────────────────
+  targetType      String            @map("target_type")   // INFRASTRUCTURE|SCHOOL|HOSPITAL|etc.
+  targetId        String?           @map("target_id")     // ID if internal entity
+  targetName      String?           @map("target_name")   // Name if external (e.g. metro station)
+
+  // ── Edge Properties (what AI knows about this relationship) ───────────────
+  distanceKm      Float?            @map("distance_km")
+  impactScore     Float?            @map("impact_score")  // 0-100 impact on property value
+  properties      Json?             // edge-specific metadata
+
+  // ── Data Provenance ───────────────────────────────────────────────────────
+  sourceProvider  String?           @map("source_provider")   // which data provider created this
+  confidence      Float?                                       // 0-100
+
+  computedAt      DateTime @default(now()) @map("computed_at")
+  expiresAt       DateTime? @map("expires_at")
+
+  @@index([sourceType, sourceId])
+  @@index([edgeType])
+  @@index([targetType, targetId])
+  @@index([computedAt])
+  @@map("property_knowledge_edges")
+}
+
+// ─── Media Intelligence (AIView engine results per media item) ────────────────
+
+model MediaIntelligence {
+  id              String   @id @default(uuid())
+  entityType      String   @map("entity_type")
+  entityId        String   @map("entity_id")
+  mediaUrl        String   @map("media_url")
+  s3Key           String?  @map("s3_key")
+  mediaType       String   @map("media_type")    // IMAGE|VIDEO|3D_TOUR|FLOOR_PLAN
+
+  // ── Authenticity Analysis ─────────────────────────────────────────────────
+  isAiGenerated   Boolean? @map("is_ai_generated")
+  isManipulated   Boolean? @map("is_manipulated")
+  manipulationScore Float? @map("manipulation_score")  // 0-100 (0=authentic)
+  isBlurry        Boolean? @map("is_blurry")
+  hasLightingIssues Boolean? @map("has_lighting_issues")
+  hasPerspectiveDistortion Boolean? @map("has_perspective_distortion")
+
+  // ── Defect Detection ──────────────────────────────────────────────────────
+  hasWaterLeakage Boolean? @map("has_water_leakage")
+  hasWallCracks   Boolean? @map("has_wall_cracks")
+  hasCeilingDamage Boolean? @map("has_ceiling_damage")
+  defectsDetected Json?    @map("defects_detected")  // [{type, confidence, bbox}]
+  hasDefects      Boolean  @default(false) @map("has_defects")
+
+  // ── Content Classification ─────────────────────────────────────────────────
+  roomType        String?  @map("room_type")       // LIVING_ROOM|BEDROOM|KITCHEN|BATHROOM
+  estimatedSqft   Float?   @map("estimated_sqft")  // room size estimation
+  isVirtualStaged Boolean? @map("is_virtual_staged")
+  furnitureDetected Boolean? @map("furniture_detected")
+
+  // ── Duplicate Detection ────────────────────────────────────────────────────
+  perceptualHash  String?  @map("perceptual_hash")   // for duplicate detection
+  isDuplicate     Boolean? @map("is_duplicate")
+  duplicateOf     String?  @map("duplicate_of")       // mediaUrl of original
+
+  // ── Quality Score ─────────────────────────────────────────────────────────
+  qualityScore    Float?   @map("quality_score")    // 0-100
+  trustScore      Float?   @map("trust_score")      // 0-100
+
+  // ── AI Model Meta ─────────────────────────────────────────────────────────
+  modelUsed       String?  @map("model_used")        // "gpt-4o-vision", "clip-vit"
+  modelVersion    String?  @map("model_version")
+  processingMs    Int?     @map("processing_ms")
+  rawAnalysis     Json?    @map("raw_analysis")      // full AI response
+
+  analyzedAt      DateTime @default(now()) @map("analyzed_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@index([mediaType])
+  @@index([trustScore])
+  @@index([hasDefects])
+  @@index([isDuplicate])
+  @@index([analyzedAt])
+  @@map("media_intelligence")
+}
+
+// ─── Legal Document Intelligence (AITitle engine results) ─────────────────────
+
+model LegalDocumentIntelligence {
+  id              String   @id @default(uuid())
+  entityType      String   @map("entity_type")
+  entityId        String   @map("entity_id")
+  documentUrl     String   @map("document_url")
+  s3Key           String?  @map("s3_key")
+  documentType    String   @map("document_type")
+  // SALE_DEED|INDEX_II|RERA|NA_ORDER|7_12|PROPERTY_CARD|MUTATION|TAX_RECEIPT
+  // BUILDING_PERMISSION|COMPLETION_CERT|OCCUPANCY_CERT|POWER_OF_ATTORNEY|NOC|MORTGAGE
+
+  // ── OCR Extraction ────────────────────────────────────────────────────────
+  extractedData   Json?    @map("extracted_data")      // structured key-value extraction
+  ocrConfidence   Float?   @map("ocr_confidence")      // 0-100
+  ocrEngine       String?  @map("ocr_engine")          // "google_doc_ai", "tesseract"
+  rawText         String?  @db.Text @map("raw_text")
+
+  // ── Ownership Intelligence ────────────────────────────────────────────────
+  ownerName       String?  @map("owner_name")
+  ownershipChain  Json?    @map("ownership_chain")     // [{owner, fromDate, toDate, transferType}]
+  registrationNo  String?  @map("registration_no")
+
+  // ── Timeline & Consistency ────────────────────────────────────────────────
+  documentDate    DateTime? @db.Date @map("document_date")
+  timelineStatus  String?  @map("timeline_status")     // CONSISTENT|GAPS|CONTRADICTIONS
+  missingDocuments Json?   @map("missing_documents")   // [docType strings]
+
+  // ── Risk Assessment ────────────────────────────────────────────────────────
+  riskClassification LegalRiskClassification? @map("risk_classification")
+  redFlags        Json?    @map("red_flags")            // [{flag, severity, description}]
+  litigationRecords Json?  @map("litigation_records")  // [{court, caseNo, status}]
+  encumbranceDetails Json? @map("encumbrance_details")
+  legalHealthScore Float?  @map("legal_health_score")  // 0-100
+  documentCompletenessScore Float? @map("document_completeness_score") // 0-100
+
+  // ── Recommendations ────────────────────────────────────────────────────────
+  recommendations Json?    @map("recommendations")     // ["Get mutation done", "Verify RERA registration"]
+
+  // ── AI Model Meta ─────────────────────────────────────────────────────────
+  modelVersion    String?  @map("model_version")
+  processingMs    Int?     @map("processing_ms")
+
+  analyzedAt      DateTime @default(now()) @map("analyzed_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([entityType, entityId])
+  @@index([documentType])
+  @@index([riskClassification])
+  @@index([legalHealthScore])
+  @@index([analyzedAt])
+  @@map("legal_document_intelligence")
+}
+
+// ─── Agent AI Intelligence (AIPro engine — behavioral CRM) ───────────────────
+
+model AgentAIIntelligence {
+  id              String   @id @default(uuid())
+  agentId         String   @unique @map("agent_id")
+  agent           Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  // ── Performance Intelligence ───────────────────────────────────────────────
+  performanceScore      Float?  @map("performance_score")     // 0-100
+  leadConversionRate    Float?  @map("lead_conversion_rate")
+  avgResponseTimeHrs    Float?  @map("avg_response_time_hrs")
+  avgDealSizeAed        Float?  @map("avg_deal_size_aed")
+  dealsClosedLast90     Int?    @map("deals_closed_last_90")
+  revenueEstimateLast90 Float?  @map("revenue_estimate_last_90")
+  clientRetentionRate   Float?  @map("client_retention_rate")
+
+  // ── Behavior Prediction ────────────────────────────────────────────────────
+  churnProbability      Float?  @map("churn_probability")       // 0-1
+  renewalProbability    Float?  @map("renewal_probability")     // 0-1
+  upsellProbability     Float?  @map("upsell_probability")      // 0-1
+  nextDealProbability   Float?  @map("next_deal_probability")   // 0-1 (will close deal this month)
+
+  // ── Lead Intelligence ──────────────────────────────────────────────────────
+  bestLeadResponseWindow String? @map("best_lead_response_window") // "Tuesday 10AM-12PM"
+  optimalLeadCount      Int?    @map("optimal_lead_count")          // leads/month for best performance
+  leadQualityScore      Float?  @map("lead_quality_score")          // avg quality of leads they accept
+
+  // ── Fraud Risk ─────────────────────────────────────────────────────────────
+  fraudRiskScore        Float?  @map("fraud_risk_score")         // 0-100
+  fraudRiskReasons      Json?   @map("fraud_risk_reasons")
+
+  // ── Sentiment Analysis ────────────────────────────────────────────────────
+  reviewSentimentScore  Float?  @map("review_sentiment_score")   // -1 to +1
+  reviewSentimentLabel  String? @map("review_sentiment_label")   // POSITIVE|NEUTRAL|NEGATIVE
+  reviewTopThemes       Json?   @map("review_top_themes")        // ["fast response", "knows area"]
+
+  // ── AI Coaching ───────────────────────────────────────────────────────────
+  coachingRecommendations Json? @map("coaching_recommendations")
+  strengthAreas         Json?   @map("strength_areas")
+  improvementAreas      Json?   @map("improvement_areas")
+
+  // ── Badge Eligibility ──────────────────────────────────────────────────────
+  badgeEligibility      Json?   @map("badge_eligibility")        // [{badge, eligible, reason}]
+  autoEarnedBadges      Json?   @map("auto_earned_badges")
+
+  // ── Model Meta ────────────────────────────────────────────────────────────
+  modelVersion          String? @map("model_version")
+  computedAt            DateTime? @map("computed_at")
+  expiresAt             DateTime? @map("expires_at")
+
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@index([performanceScore])
+  @@index([churnProbability])
+  @@index([fraudRiskScore])
+  @@index([computedAt])
+  @@map("agent_ai_intelligence")
+}
+
