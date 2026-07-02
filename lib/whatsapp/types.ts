@@ -28,6 +28,9 @@ export interface MetaMessageResult {
   error?: string;
   /** Meta error code (e.g. 131030 = template not found, 190 = token expired) */
   errorCode?: number;
+  errorSubcode?: number;
+  fbTraceId?: string;
+  requestId?: string;
 }
 
 export interface InitSessionResult {

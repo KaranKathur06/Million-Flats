@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
   const templateName =
     process.env.META_WHATSAPP_AUTH_TEMPLATE_NAME || "login_millionflats";
   const buttonType = process.env.META_WHATSAPP_BUTTON_TYPE || "copy_code";
+  const graphVersion = process.env.META_WHATSAPP_GRAPH_VERSION || "v23.0";
   const testMode = process.env.WHATSAPP_TEST_MODE || "false";
 
   const checks: Record<string, string> = {
@@ -52,7 +53,7 @@ export async function GET(req: NextRequest) {
   let metaPhoneCheck: Record<string, unknown> = {};
   try {
     const phoneRes = await fetch(
-      `https://graph.facebook.com/v19.0/${phoneNumberId}?fields=display_phone_number,verified_name,quality_rating,platform_type`,
+      `https://graph.facebook.com/${graphVersion}/${phoneNumberId}?fields=display_phone_number,verified_name,quality_rating,platform_type`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       },
@@ -73,7 +74,7 @@ export async function GET(req: NextRequest) {
   try {
     // First get the WABA ID via the phone number endpoint
     const wabaRes = await fetch(
-      `https://graph.facebook.com/v19.0/${phoneNumberId}?fields=account_mode`,
+      `https://graph.facebook.com/${graphVersion}/${phoneNumberId}?fields=account_mode`,
       { headers: { Authorization: `Bearer ${accessToken}` } },
     );
     const wabaData = (await wabaRes.json().catch(() => ({}))) as any;

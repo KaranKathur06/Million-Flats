@@ -88,6 +88,9 @@ export async function POST(req: NextRequest) {
         response: {
           event: "otp_send_failed_on_init",
           metaErrorCode: sendResult.errorCode,
+          metaErrorSubcode: sendResult.errorSubcode,
+          fbTraceId: sendResult.fbTraceId,
+          requestId: sendResult.requestId,
         },
       });
 
@@ -107,6 +110,7 @@ export async function POST(req: NextRequest) {
           "Network error reaching WhatsApp. Please check your connection and try again.";
         errorType = "NETWORK_ERROR";
       } else if (
+        sendResult.errorCode === 132001 ||
         sendResult.errorCode === 131030 ||
         sendResult.errorCode === 131031
       ) {
@@ -114,7 +118,7 @@ export async function POST(req: NextRequest) {
         message =
           "WhatsApp delivery is temporarily unavailable. Please contact support.";
         errorType = "TEMPLATE_ERROR";
-        console.error(`[WhatsApp Init] TEMPLATE_ERROR: code=${sendResult.errorCode}. Check META_WHATSAPP_AUTH_TEMPLATE_NAME and template approval status in Meta Business Manager.`);
+        console.error(`[WhatsApp Init] TEMPLATE_ERROR: code=${sendResult.errorCode}. Check META_WHATSAPP_AUTH_TEMPLATE_NAME, META_WHATSAPP_TEMPLATE_LANGUAGE, and template approval status in Meta Business Manager.`);
       } else if (sendResult.errorCode === 190) {
         // Expired token
         message =
@@ -141,6 +145,9 @@ export async function POST(req: NextRequest) {
                 debug: {
                   metaError: sendResult.error,
                   metaCode: sendResult.errorCode,
+                  metaSubcode: sendResult.errorSubcode,
+                  fbTraceId: sendResult.fbTraceId,
+                  requestId: sendResult.requestId,
                   hint: "Check that META_WHATSAPP_ACCESS_TOKEN and META_WHATSAPP_PHONE_NUMBER_ID have no leading/trailing spaces in your .env file.",
                 },
               }
@@ -160,6 +167,7 @@ export async function POST(req: NextRequest) {
         process.env.META_WHATSAPP_AUTH_TEMPLATE_NAME || "login_millionflats",
       messageId: sendResult.messageId,
       sentAt: new Date(),
+      response: { requestId: sendResult.requestId },
     });
 
     return NextResponse.json({ sessionId, expiresAt });

@@ -104,6 +104,9 @@ export async function POST(req: NextRequest) {
         response: {
           event: "otp_resend_failed",
           metaErrorCode: sendResult.errorCode,
+          metaErrorSubcode: sendResult.errorSubcode,
+          fbTraceId: sendResult.fbTraceId,
+          requestId: sendResult.requestId,
         },
       });
       return NextResponse.json(
@@ -116,6 +119,9 @@ export async function POST(req: NextRequest) {
                 debug: {
                   metaError: sendResult.error,
                   metaCode: sendResult.errorCode,
+                  metaSubcode: sendResult.errorSubcode,
+                  fbTraceId: sendResult.fbTraceId,
+                  requestId: sendResult.requestId,
                 },
               }
             : {}),
@@ -132,6 +138,7 @@ export async function POST(req: NextRequest) {
         process.env.META_WHATSAPP_AUTH_TEMPLATE_NAME || "login_millionflats",
       messageId: sendResult.messageId,
       sentAt: new Date(),
+      response: { requestId: sendResult.requestId },
     });
 
     return NextResponse.json({
