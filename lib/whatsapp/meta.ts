@@ -8,10 +8,8 @@ const DEFAULT_OTP_CONTEXT = "MillionFlats login";
 const DEFAULT_SUPPORT_CONTACT = "1800-555-1234";
 const TEMPLATE_CACHE_TTL_MS = 5 * 60 * 1000;
 
-type WhatsAppTemplateButtonType = "url" | "COPY_CODE";
-type TemplateParameter =
-  | { type: "text"; text: string }
-  | { type: "coupon_code"; coupon_code: string };
+type WhatsAppTemplateButtonType = "url";
+type TemplateParameter = { type: "text"; text: string };
 type TemplateComponent = {
   type: "body" | "button";
   sub_type?: WhatsAppTemplateButtonType;
@@ -59,6 +57,7 @@ type GraphError = {
   message?: string;
   code?: number;
   error_subcode?: number;
+  error_data?: unknown;
   fbtrace_id?: string;
 };
 
@@ -75,7 +74,7 @@ const VERIFIED_AUTH_TEMPLATES: GraphTemplate[] = [
       {
         type: "BODY",
         text:
-          "OTP Code: {{1}}\n\nThis is your OTP code for {{2}}\n\nContact us at {{3}}",
+          "OTP Code: {{1}}. This is your OTP code for {{2}}. For your security, do not share this code. Contact us at {{3}}.",
       },
       {
         type: "FOOTER",
@@ -124,7 +123,7 @@ function getConfig() {
  *
  * Verified template shape:
  * BODY: {{1}}, {{2}}, {{3}}
- * Copy-code authentication button represented by Meta as a WhatsApp OTP URL.
+ * URL button: https://www.whatsapp.com/otp/code/?...&code=otp{{1}}
  */
 export async function sendAuthenticationOtp(
   phone: string,
@@ -182,7 +181,7 @@ export async function sendAuthenticationOtp(
   });
 
   if (!validation.ok) {
-    console.error("[WhatsApp Meta] Template validation failed", validation.log);
+    logMetaError("Template validation failed", validation.log);
     return {
       success: false,
       error: validation.error,
@@ -220,7 +219,7 @@ export async function sendAuthenticationOtp(
     const fbTraceId = graphError?.fbtrace_id;
     const errorMsg = graphError?.message || "API_ERROR";
 
-    console.error("[WhatsApp Meta] Send OTP failed", {
+    logMetaError("Send OTP failed", {
       requestId,
       httpStatus: sent.status,
       endpoint,
@@ -346,6 +345,7 @@ function buildAuthenticationOtpPayload(input: {
   templateName: string;
   templateLanguage: string;
 }): TemplatePayload {
+  const otp = normalizeAuthenticationOtp(input.otp);
   const context = (
     process.env.META_WHATSAPP_OTP_CONTEXT || DEFAULT_OTP_CONTEXT
   ).trim();
@@ -365,16 +365,16 @@ function buildAuthenticationOtpPayload(input: {
         {
           type: "body",
           parameters: [
-            { type: "text", text: input.otp },
+            { type: "text", text: otp },
             { type: "text", text: context },
             { type: "text", text: supportContact },
           ],
         },
         {
           type: "button",
-          sub_type: "COPY_CODE",
+          sub_type: "url",
           index: "0",
-          parameters: [{ type: "coupon_code", coupon_code: input.otp }],
+          parameters: [{ type: "text", text: otp }],
         },
       ],
     },
@@ -430,6 +430,8 @@ async function validateAuthenticationTemplate(input: {
   const templateButtonType = resolveTemplateButtonType(templateButton);
   const payloadButtonType = getPayloadButtonSubtype(input.payload);
   const payloadButtonParameterType = getButtonParameterType(input.payload);
+  const bodyParameters = getBodyParameters(input.payload);
+  const buttonParameter = getButtonParameter(input.payload);
   const errors: string[] = [];
 
   if (template.status !== "APPROVED") {
@@ -451,13 +453,17 @@ async function validateAuthenticationTemplate(input: {
   if (templateButtonType !== payloadButtonType) {
     errors.push(`Template button is ${templateButtonType}, payload button is ${payloadButtonType}.`);
   }
-  if (templateButtonType === "COPY_CODE" && payloadButtonParameterType !== "coupon_code") {
-    errors.push(
-      `Copy-code authentication button expects coupon_code, payload sends ${payloadButtonParameterType}.`,
-    );
-  }
   if (templateButtonType === "url" && payloadButtonParameterType !== "text") {
     errors.push(`URL button expects text, payload sends ${payloadButtonParameterType}.`);
+  }
+  if (!isSixDigitOtp(bodyParameters[0]?.text || "")) {
+    errors.push("Body parameter {{1}} must be a 6-digit OTP text value.");
+  }
+  if (buttonParameter?.type !== "text" || buttonParameter.text !== bodyParameters[0]?.text) {
+    errors.push("URL button parameter must be text and must exactly match body parameter {{1}}.");
+  }
+  if (bodyParameters.some((parameter) => /[\r\n\t]/.test(parameter.text))) {
+    errors.push("Template text parameters must not contain control whitespace.");
   }
   if (templateButtonUrlCount !== payloadButtonCount) {
     errors.push(
@@ -483,6 +489,7 @@ async function validateAuthenticationTemplate(input: {
         templateButtonType,
         payloadButtonType,
         payloadButtonParameterType,
+        bodyParameterTypes: bodyParameters.map((parameter) => parameter.type),
         templateButtonUrlCount,
         payloadButtonCount,
         errors,
@@ -647,6 +654,8 @@ async function graphRequestWithRetry(input: {
 function metaErrorHint(code?: number): string {
   if (!code) return "";
   const hints: Record<number, string> = {
+    132018:
+      "Template parameter validation failed. Check parameter types, URL button parameter text, body variable values, and template freshness.",
     132001:
       "Template translation not found. Check exact name, en_US locale, WABA ownership, and approval propagation.",
     131030:
@@ -706,6 +715,18 @@ function getButtonParameterType(payload: TemplatePayload): string {
   );
 }
 
+function getBodyParameters(payload: TemplatePayload): TemplateParameter[] {
+  return (
+    payload.template.components.find((component) => component.type === "body")
+      ?.parameters || []
+  );
+}
+
+function getButtonParameter(payload: TemplatePayload): TemplateParameter | undefined {
+  return payload.template.components.find((component) => component.type === "button")
+    ?.parameters[0];
+}
+
 function getTemplateBodyVariableCount(template: GraphTemplate): number {
   const body = template.components?.find(
     (component) => (component.type || "").toLowerCase() === "body",
@@ -724,16 +745,6 @@ function resolveTemplateButtonType(button?: GraphTemplateButton): WhatsAppTempla
   if (!button) return "";
 
   const type = (button.type || "").toLowerCase();
-  const url = button.url || "";
-
-  if (
-    type === "url" &&
-    url.includes("www.whatsapp.com/otp/code/") &&
-    url.includes("otp_type=COPY_CODE")
-  ) {
-    return "COPY_CODE";
-  }
-
   return type === "url" ? "url" : "";
 }
 
@@ -750,6 +761,18 @@ function getVerifiedLocalTemplate(
 function countTemplateVariables(value: string): number {
   const matches = value.match(/{{\d+}}/g) || [];
   return new Set(matches).size;
+}
+
+function normalizeAuthenticationOtp(value: string): string {
+  const otp = value.trim();
+  if (!isSixDigitOtp(otp)) {
+    throw new Error("INVALID_AUTHENTICATION_OTP");
+  }
+  return otp;
+}
+
+function isSixDigitOtp(value: string): boolean {
+  return /^\d{6}$/.test(value);
 }
 
 function redactWhatsAppPayload<T>(payload: T): T {
@@ -775,5 +798,17 @@ function maskPhone(value: string): string {
 }
 
 function logMetaEvent(event: string, data: Record<string, unknown>): void {
-  console.info(`[WhatsApp Meta] ${event}`, data);
+  console.info(`[WhatsApp Meta] ${event}`, safeJson(data));
+}
+
+function logMetaError(event: string, data: Record<string, unknown>): void {
+  console.error(`[WhatsApp Meta] ${event}`, safeJson(data));
+}
+
+function safeJson(data: Record<string, unknown>): string {
+  try {
+    return JSON.stringify(data, null, 2);
+  } catch {
+    return JSON.stringify({ serializationError: "Unable to serialize log payload" });
+  }
 }
