@@ -4,7 +4,7 @@ import type { MetaMessageResult } from "./types";
 const DEFAULT_META_GRAPH_VERSION = "v23.0";
 const DEFAULT_AUTH_TEMPLATE_NAME = "login_millionflats";
 const DEFAULT_AUTH_TEMPLATE_LANGUAGE = "en_US";
-const DEFAULT_OTP_CONTEXT = "MillionFlats login";
+const DEFAULT_OTP_CONTEXT = "login";
 const DEFAULT_SUPPORT_CONTACT = "1800-555-1234";
 const TEMPLATE_CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -164,12 +164,23 @@ export async function sendAuthenticationOtp(
     graphVersion,
     `${config.phoneNumberId}/messages`,
   );
-  const payload = buildAuthenticationOtpPayload({
-    to: cleanPhone,
-    otp,
-    templateName,
-    templateLanguage,
-  });
+  let payload: TemplatePayload;
+  try {
+    payload = buildAuthenticationOtpPayload({
+      to: cleanPhone,
+      otp,
+      templateName,
+      templateLanguage,
+    });
+  } catch (err) {
+    logMetaError("Invalid OTP payload", {
+      requestId,
+      templateName,
+      templateLanguage,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return { success: false, error: "INVALID_AUTHENTICATION_OTP", requestId };
+  }
 
   const validation = await validateAuthenticationTemplate({
     requestId,
@@ -353,6 +364,9 @@ function buildAuthenticationOtpPayload(input: {
     process.env.META_WHATSAPP_SUPPORT_CONTACT || DEFAULT_SUPPORT_CONTACT
   ).trim();
 
+  validateAuthenticationTextParameter("OTP context", context);
+  validateAuthenticationTextParameter("support contact", supportContact);
+
   return {
     messaging_product: "whatsapp",
     recipient_type: "individual",
@@ -464,6 +478,13 @@ async function validateAuthenticationTemplate(input: {
   }
   if (bodyParameters.some((parameter) => /[\r\n\t]/.test(parameter.text))) {
     errors.push("Template text parameters must not contain control whitespace.");
+  }
+  for (const [index, parameter] of bodyParameters.entries()) {
+    if (parameter.text.length > 15) {
+      errors.push(
+        `Body parameter at index ${index} exceeds Authentication template length limit 15.`,
+      );
+    }
   }
   if (templateButtonUrlCount !== payloadButtonCount) {
     errors.push(
@@ -773,6 +794,13 @@ function normalizeAuthenticationOtp(value: string): string {
 
 function isSixDigitOtp(value: string): boolean {
   return /^\d{6}$/.test(value);
+}
+
+function validateAuthenticationTextParameter(label: string, value: string): void {
+  if (!value || value.length > 15 || /[\r\n\t]/.test(value)) {
+    const code = label.toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+    throw new Error(`INVALID_AUTHENTICATION_PARAMETER_${code}`);
+  }
 }
 
 function redactWhatsAppPayload<T>(payload: T): T {
