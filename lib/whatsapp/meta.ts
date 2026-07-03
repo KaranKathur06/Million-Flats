@@ -63,9 +63,46 @@ type GraphError = {
 
 const templateCache = new Map<string, TemplateRegistryEntry>();
 
+const VERIFIED_AUTH_TEMPLATES: GraphTemplate[] = [
+  {
+    name: DEFAULT_AUTH_TEMPLATE_NAME,
+    status: "APPROVED",
+    language: DEFAULT_AUTH_TEMPLATE_LANGUAGE,
+    category: "AUTHENTICATION",
+    sub_category: "CUSTOM",
+    components: [
+      {
+        type: "BODY",
+        text:
+          "OTP Code: {{1}}\n\nThis is your OTP code for {{2}}\n\nContact us at {{3}}",
+      },
+      {
+        type: "FOOTER",
+        text: "Expires in 5 minutes.",
+      },
+      {
+        type: "BUTTONS",
+        buttons: [
+          {
+            type: "URL",
+            url:
+              "https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code_expiration_minutes=5&code=otp{{1}}",
+          },
+        ],
+      },
+    ],
+  },
+];
+
 function getConfig() {
   const accessToken = (process.env.META_WHATSAPP_ACCESS_TOKEN || "").trim();
   const phoneNumberId = (process.env.META_WHATSAPP_PHONE_NUMBER_ID || "").trim();
+  const wabaId = (
+    process.env.META_WHATSAPP_WABA_ID ||
+    process.env.META_WHATSAPP_BUSINESS_ACCOUNT_ID ||
+    process.env.META_WHATSAPP_WABA_ACCOUNT_ID ||
+    ""
+  ).trim();
   const appSecret = (process.env.META_WHATSAPP_APP_SECRET || "").trim();
   const webhookVerifyToken = (
     process.env.META_WHATSAPP_WEBHOOK_VERIFY_TOKEN || ""
@@ -78,7 +115,7 @@ function getConfig() {
     console.warn("[WhatsApp Meta] META_WHATSAPP_PHONE_NUMBER_ID is not set or empty.");
   }
 
-  return { accessToken, phoneNumberId, appSecret, webhookVerifyToken };
+  return { accessToken, phoneNumberId, wabaId, appSecret, webhookVerifyToken };
 }
 
 /**
@@ -457,7 +494,7 @@ async function getTemplateFromRegistry(input: {
 > {
   const cacheKey = [
     input.graphVersion,
-    input.config.phoneNumberId,
+    input.config.wabaId || input.config.phoneNumberId,
     input.templateName,
     input.templateLanguage,
   ].join(":");
@@ -467,38 +504,30 @@ async function getTemplateFromRegistry(input: {
     return { ok: true, template: cached.template, wabaId: cached.wabaId };
   }
 
-  const phoneLookup = await graphRequestWithRetry({
-    endpoint: graphEndpoint(
-      input.graphVersion,
-      `${input.config.phoneNumberId}?fields=whatsapp_business_account`,
-    ),
-    token: input.config.accessToken,
-    method: "GET",
-  });
-
-  if (!phoneLookup.ok) {
-    return {
-      ok: false,
-      error: "PHONE_NUMBER_LOOKUP_FAILED",
-      data: phoneLookup.data,
-    };
-  }
-
-  const wabaId = phoneLookup.data?.whatsapp_business_account?.id;
+  const wabaId = input.config.wabaId;
   if (!wabaId) {
-    return {
-      ok: false,
-      error: "WABA_ID_NOT_FOUND_FOR_PHONE_NUMBER",
-      data: phoneLookup.data,
-    };
+    const localTemplate = getVerifiedLocalTemplate(
+      input.templateName,
+      input.templateLanguage,
+    );
+
+    if (localTemplate) {
+      const localWabaId = "configured-local-template";
+      templateCache.set(cacheKey, {
+        template: localTemplate,
+        wabaId: localWabaId,
+        fetchedAt: Date.now(),
+      });
+      return { ok: true, template: localTemplate, wabaId: localWabaId };
+    }
+
+    return { ok: false, error: "WABA_ID_NOT_CONFIGURED" };
   }
 
   const templateLookup = await graphRequestWithRetry({
     endpoint: graphEndpoint(
       input.graphVersion,
-      `${wabaId}/message_templates?name=${encodeURIComponent(
-        input.templateName,
-      )}&fields=name,status,language,category,sub_category,components`,
+      `${wabaId}/message_templates?fields=name,status,language,category,sub_category,components&limit=250`,
     ),
     token: input.config.accessToken,
     method: "GET",
@@ -517,6 +546,13 @@ async function getTemplateFromRegistry(input: {
       item.name === input.templateName && item.language === input.templateLanguage,
   ) as GraphTemplate | undefined;
 
+  cacheGraphTemplates({
+    graphVersion: input.graphVersion,
+    wabaId,
+    phoneNumberId: input.config.phoneNumberId,
+    templates: templateLookup.data?.data || [],
+  });
+
   if (!template) {
     return {
       ok: false,
@@ -532,6 +568,24 @@ async function getTemplateFromRegistry(input: {
   });
 
   return { ok: true, template, wabaId };
+}
+
+function cacheGraphTemplates(input: {
+  graphVersion: string;
+  wabaId: string;
+  phoneNumberId: string;
+  templates: GraphTemplate[];
+}): void {
+  for (const template of input.templates) {
+    templateCache.set(
+      [input.graphVersion, input.wabaId, template.name, template.language].join(":"),
+      { template, wabaId: input.wabaId, fetchedAt: Date.now() },
+    );
+    templateCache.set(
+      [input.graphVersion, input.phoneNumberId, template.name, template.language].join(":"),
+      { template, wabaId: input.wabaId, fetchedAt: Date.now() },
+    );
+  }
 }
 
 async function graphRequestWithRetry(input: {
@@ -646,6 +700,16 @@ function getFirstTemplateButton(template: GraphTemplate) {
     (component) => (component.type || "").toLowerCase() === "buttons",
   );
   return buttons?.buttons?.[0];
+}
+
+function getVerifiedLocalTemplate(
+  templateName: string,
+  templateLanguage: string,
+): GraphTemplate | undefined {
+  return VERIFIED_AUTH_TEMPLATES.find(
+    (template) =>
+      template.name === templateName && template.language === templateLanguage,
+  );
 }
 
 function countTemplateVariables(value: string): number {
