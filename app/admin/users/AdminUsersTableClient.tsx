@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAdminCapabilities } from '@/lib/adminCapabilities'
@@ -11,7 +12,21 @@ type UserRow = {
   role: string
   status: string
   emailVerified: boolean
+  whatsappVerified: boolean
+  profileCompletion: number
+  phone: string
+  authProvider: string
+  image: string
+  country: string
+  lastWhatsappLogin: string
   createdAt: string
+  identityStatus: string
+  primaryIdentifier: string
+  buyerType: string
+  lifecycleStage: string
+  crmStage: string
+  healthScore: number
+  recommendationConfidence: string
 }
 
 const ALL_ROLES = ['USER', 'AGENT', 'MODERATOR', 'VERIFIER', 'ADMIN', 'SUPERADMIN'] as const
@@ -27,6 +42,10 @@ const ROLE_POWER: Record<string, number> = {
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v : ''
+}
+
+function isSyntheticWhatsappEmail(email: string) {
+  return /^wa_\d+@millionflats\.auth$/i.test(email)
 }
 
 function getRoleBadge(role: string) {
@@ -70,6 +89,42 @@ export default function AdminUsersTableClient({
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  const getDisplayName = (user: UserRow) => {
+    if (safeString(user.name)) return user.name
+    if (user.phone) return 'Unnamed User'
+    if (user.email && !isSyntheticWhatsappEmail(user.email)) return user.email
+    return 'Anonymous'
+  }
+
+  const getActivityLabel = (completion: number) => {
+    if (completion >= 80) return 'High'
+    if (completion >= 40) return 'Medium'
+    if (completion > 0) return 'Low'
+    return 'Missing'
+  }
+
+  const getRegistrationStatus = (user: UserRow) => {
+    return user.identityStatus || 'Unknown'
+  }
+
+  const renderAvatar = (user: UserRow) => {
+    if (user.image) {
+      return <img src={user.image} alt={getDisplayName(user)} className="h-10 w-10 rounded-full object-cover" />
+    }
+    const initials = getDisplayName(user)
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0].toUpperCase())
+      .join('')
+
+    return (
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-sm font-bold uppercase text-white/90">
+        {initials || 'U'}
+      </div>
+    )
+  }
 
   // Role change modal state
   const [roleModalUser, setRoleModalUser] = useState<UserRow | null>(null)
@@ -148,8 +203,8 @@ export default function AdminUsersTableClient({
             <div key={u.id} className="rounded-2xl border border-white/10 bg-[#0f1a2e] p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-white font-semibold break-all">{safeString(u.email)}</div>
-                  <div className="mt-1 text-xs text-white/70">{safeString(u.name) || '—'}</div>
+                  <div className="text-white font-semibold break-all">{getDisplayName(u)}</div>
+                  <div className="mt-1 text-xs text-white/70">{u.phone ? u.phone : u.email && !isSyntheticWhatsappEmail(u.email) ? u.email : 'WhatsApp user'}</div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase ${getRoleBadge(targetRole)}`}>
@@ -166,12 +221,23 @@ export default function AdminUsersTableClient({
 
               <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-white/80">
                 <div>
-                  <div className="text-white/50">Verified</div>
-                  <div className={`font-semibold ${u.emailVerified ? 'text-emerald-400' : 'text-white/90'}`}>{u.emailVerified ? 'Yes' : 'No'}</div>
+                  <div className="text-white/50">Profile Completion</div>
+                  <div className="font-semibold text-white/90">{u.profileCompletion}%</div>
                 </div>
                 <div>
-                  <div className="text-white/50">Created</div>
-                  <div className="font-semibold text-white/90">{u.createdAt || '—'}</div>
+                  <div className="text-white/50">Lifecycle</div>
+                  <div className="font-semibold text-white/90">{u.lifecycleStage}</div>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-white/80">
+                <div>
+                  <div className="text-white/50">Health Score</div>
+                  <div className="font-semibold text-white/90">{u.healthScore}</div>
+                </div>
+                <div>
+                  <div className="text-white/50">CRM stage</div>
+                  <div className="font-semibold text-white/90">{u.crmStage}</div>
                 </div>
               </div>
 
@@ -239,12 +305,14 @@ export default function AdminUsersTableClient({
         <table className="min-w-full text-sm">
           <thead>
             <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-white/40 border-b border-white/[0.08]">
-              <th className="py-3 pr-4">Email</th>
-              <th className="py-3 pr-4">Name</th>
-              <th className="py-3 pr-4">Role</th>
-              <th className="py-3 pr-4">Status</th>
-              <th className="py-3 pr-4">Verified</th>
-              <th className="py-3 pr-4">Created</th>
+              <th className="py-3 pr-4">User</th>
+              <th className="py-3 pr-4">Profile %</th>
+              <th className="py-3 pr-4">Buyer Type</th>
+              <th className="py-3 pr-4">Lifecycle</th>
+              <th className="py-3 pr-4">CRM</th>
+              <th className="py-3 pr-4">Health</th>
+              <th className="py-3 pr-4">Country</th>
+              <th className="py-3 pr-4">Last Login</th>
               <th className="py-3 pr-4">Actions</th>
             </tr>
           </thead>
@@ -263,27 +331,27 @@ export default function AdminUsersTableClient({
 
               return (
                 <tr key={u.id} className="border-b border-white/[0.04] hover:bg-white/[0.015] transition-colors">
-                  <td className="py-4 pr-4 text-white">{safeString(u.email)}</td>
-                  <td className="py-4 pr-4 text-white/80">{safeString(u.name) || '—'}</td>
                   <td className="py-4 pr-4">
-                    <span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase ${getRoleBadge(targetRole)}`}>
-                      {targetRole}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      {renderAvatar(u)}
+                      <div className="min-w-0">
+                        <div className="text-white font-semibold truncate">
+                          <Link href={`/admin/users?id=${encodeURIComponent(u.id)}`} className="hover:text-amber-300 transition-colors">
+                            {getDisplayName(u)}
+                          </Link>
+                        </div>
+                        <div className="text-xs text-white/50 truncate">{u.primaryIdentifier}</div>
+                        <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-white/40">{u.identityStatus}</div>
+                      </div>
+                    </div>
                   </td>
-                  <td className="py-4 pr-4">
-                    <span className={`rounded-full border px-3 py-1 text-[10px] font-bold ${status === 'BANNED' ? 'border-red-500/30 bg-red-500/10 text-red-200'
-                      : status === 'SUSPENDED' ? 'border-amber-500/30 bg-amber-500/10 text-amber-200'
-                        : 'border-white/10 bg-black/20 text-white/90'
-                      }`}>
-                      {status}
-                    </span>
-                  </td>
-                  <td className="py-4 pr-4">
-                    <span className={u.emailVerified ? 'text-emerald-400' : 'text-white/50'}>
-                      {u.emailVerified ? 'Yes' : 'No'}
-                    </span>
-                  </td>
-                  <td className="py-4 pr-4 text-xs text-white/50">{u.createdAt || '—'}</td>
+                  <td className="py-4 pr-4 text-white/90">{u.profileCompletion}%</td>
+                  <td className="py-4 pr-4 text-white/90">{u.buyerType || 'Buyer'}</td>
+                  <td className="py-4 pr-4 text-white/90">{u.lifecycleStage}</td>
+                  <td className="py-4 pr-4 text-white/90">{u.crmStage}</td>
+                  <td className="py-4 pr-4 text-white/90">{u.healthScore}</td>
+                  <td className="py-4 pr-4 text-white/90">{u.country || '—'}</td>
+                  <td className="py-4 pr-4 text-xs text-white/50">{u.lastWhatsappLogin || '—'}</td>
                   <td className="py-4 pr-4">
                     <div className="flex flex-wrap gap-2">
                       {u.emailVerified ? (
@@ -345,7 +413,7 @@ export default function AdminUsersTableClient({
 
             {items.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-16 text-center text-white/40">No users found.</td>
+                <td colSpan={9} className="py-16 text-center text-white/40">No users found.</td>
               </tr>
             ) : null}
           </tbody>
