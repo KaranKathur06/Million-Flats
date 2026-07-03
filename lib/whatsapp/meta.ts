@@ -8,7 +8,7 @@ const DEFAULT_OTP_CONTEXT = "MillionFlats login";
 const DEFAULT_SUPPORT_CONTACT = "1800-555-1234";
 const TEMPLATE_CACHE_TTL_MS = 5 * 60 * 1000;
 
-type WhatsAppTemplateButtonType = "url" | "copy_code";
+type WhatsAppTemplateButtonType = "url" | "COPY_CODE";
 type TemplateParameter =
   | { type: "text"; text: string }
   | { type: "coupon_code"; coupon_code: string };
@@ -32,12 +32,13 @@ type TemplatePayload = {
 type GraphTemplateComponent = {
   type?: string;
   text?: string;
-  buttons?: Array<{
-    type?: string;
-    text?: string;
-    url?: string;
-    otp_type?: string;
-  }>;
+  buttons?: GraphTemplateButton[];
+};
+type GraphTemplateButton = {
+  type?: string;
+  text?: string;
+  url?: string;
+  otp_type?: string;
 };
 type GraphTemplate = {
   id?: string;
@@ -123,7 +124,7 @@ function getConfig() {
  *
  * Verified template shape:
  * BODY: {{1}}, {{2}}, {{3}}
- * URL button: https://www.whatsapp.com/otp/code/?...&code=otp{{1}}
+ * Copy-code authentication button represented by Meta as a WhatsApp OTP URL.
  */
 export async function sendAuthenticationOtp(
   phone: string,
@@ -371,9 +372,9 @@ function buildAuthenticationOtpPayload(input: {
         },
         {
           type: "button",
-          sub_type: "url",
+          sub_type: "COPY_CODE",
           index: "0",
-          parameters: [{ type: "text", text: input.otp }],
+          parameters: [{ type: "coupon_code", coupon_code: input.otp }],
         },
       ],
     },
@@ -426,8 +427,9 @@ async function validateAuthenticationTemplate(input: {
   const templateButton = getFirstTemplateButton(template);
   const templateButtonUrlCount = countTemplateVariables(templateButton?.url || "");
   const payloadButtonCount = getButtonParameterCount(input.payload);
-  const templateButtonType = (templateButton?.type || "").toLowerCase();
+  const templateButtonType = resolveTemplateButtonType(templateButton);
   const payloadButtonType = getPayloadButtonSubtype(input.payload);
+  const payloadButtonParameterType = getButtonParameterType(input.payload);
   const errors: string[] = [];
 
   if (template.status !== "APPROVED") {
@@ -446,8 +448,16 @@ async function validateAuthenticationTemplate(input: {
       `Template body expects ${templateBodyCount} parameters, payload sends ${payloadBodyCount}.`,
     );
   }
-  if (templateButtonType === "url" && payloadButtonType !== "url") {
-    errors.push(`Template button is URL, payload button is ${payloadButtonType}.`);
+  if (templateButtonType !== payloadButtonType) {
+    errors.push(`Template button is ${templateButtonType}, payload button is ${payloadButtonType}.`);
+  }
+  if (templateButtonType === "COPY_CODE" && payloadButtonParameterType !== "coupon_code") {
+    errors.push(
+      `Copy-code authentication button expects coupon_code, payload sends ${payloadButtonParameterType}.`,
+    );
+  }
+  if (templateButtonType === "url" && payloadButtonParameterType !== "text") {
+    errors.push(`URL button expects text, payload sends ${payloadButtonParameterType}.`);
   }
   if (templateButtonUrlCount !== payloadButtonCount) {
     errors.push(
@@ -472,6 +482,7 @@ async function validateAuthenticationTemplate(input: {
         payloadBodyCount,
         templateButtonType,
         payloadButtonType,
+        payloadButtonParameterType,
         templateButtonUrlCount,
         payloadButtonCount,
         errors,
@@ -688,6 +699,13 @@ function getPayloadButtonSubtype(payload: TemplatePayload): string {
   );
 }
 
+function getButtonParameterType(payload: TemplatePayload): string {
+  return (
+    payload.template.components.find((component) => component.type === "button")
+      ?.parameters[0]?.type || ""
+  );
+}
+
 function getTemplateBodyVariableCount(template: GraphTemplate): number {
   const body = template.components?.find(
     (component) => (component.type || "").toLowerCase() === "body",
@@ -700,6 +718,23 @@ function getFirstTemplateButton(template: GraphTemplate) {
     (component) => (component.type || "").toLowerCase() === "buttons",
   );
   return buttons?.buttons?.[0];
+}
+
+function resolveTemplateButtonType(button?: GraphTemplateButton): WhatsAppTemplateButtonType | "" {
+  if (!button) return "";
+
+  const type = (button.type || "").toLowerCase();
+  const url = button.url || "";
+
+  if (
+    type === "url" &&
+    url.includes("www.whatsapp.com/otp/code/") &&
+    url.includes("otp_type=COPY_CODE")
+  ) {
+    return "COPY_CODE";
+  }
+
+  return type === "url" ? "url" : "";
 }
 
 function getVerifiedLocalTemplate(
