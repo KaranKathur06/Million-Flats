@@ -336,7 +336,7 @@ export default function AdminUsersTableClient({
                       {renderAvatar(u)}
                       <div className="min-w-0">
                         <div className="text-white font-semibold truncate">
-                          <Link href={`/admin/users?id=${encodeURIComponent(u.id)}`} className="hover:text-amber-300 transition-colors">
+                          <Link href={`/admin/users/${encodeURIComponent(u.id)}`} className="hover:text-amber-300 transition-colors">
                             {getDisplayName(u)}
                           </Link>
                         </div>

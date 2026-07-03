@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { getUserHealthScore, getLifecycleStage, getCRMStage, getRecommendationConfidence } from '@/lib/userIntelligence'
 
@@ -13,10 +13,9 @@ function isSyntheticWhatsappEmail(email: string | null | undefined) {
   return typeof email === 'string' && /^wa_\d+@millionflats\.auth$/i.test(email)
 }
 
-export default function AdminUserDetailPage() {
-  const searchParams = useSearchParams()
+export default function AdminUserDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const router = useRouter()
-  const id = searchParams?.get('id')
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

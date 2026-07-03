@@ -15,7 +15,7 @@ export default async function GovernanceCasePage({ params }: { params: { id: str
   const role = normalizeRole((session?.user as any)?.role)
 
   if (!session?.user) {
-    redirect(`/auth/login?next=${encodeURIComponent(`/admin/governance/cases/${params.id}`)}`)
+    redirect(`/admin/login?next=${encodeURIComponent(`/admin/governance/cases/${params.id}`)}`)
   }
 
   if (!hasMinRole(role, 'ADMIN')) {

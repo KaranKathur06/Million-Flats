@@ -25,7 +25,7 @@ export default async function AdminDeveloperProfilesPage({
   searchParams: { status?: string; page?: string; q?: string }
 }) {
   const session = await getServerSession(authOptions)
-  if (!session?.user) redirect('/auth/login')
+  if (!session?.user) redirect('/admin/login')
   const role = (session.user as any)?.role
   if (!['ADMIN', 'SUPERADMIN', 'MODERATOR', 'VERIFIER'].includes(role)) redirect('/admin')
 

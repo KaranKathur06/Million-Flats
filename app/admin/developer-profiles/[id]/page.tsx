@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'Review Developer Application | Milli
 
 export default async function AdminDeveloperProfileReviewPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
-  if (!session?.user) redirect('/auth/login')
+  if (!session?.user) redirect('/admin/login')
   const role = (session.user as any)?.role
   if (!['ADMIN', 'SUPERADMIN', 'MODERATOR'].includes(role)) redirect('/admin')
 

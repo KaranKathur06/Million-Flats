@@ -128,10 +128,20 @@ export const authOptions: NextAuthOptions = {
 
         if (!email) return null
 
-        const intent = intentRaw === 'agent' || intentRaw === 'user' || intentRaw === 'developer' ? intentRaw : ''
+        const intent =
+          intentRaw === 'agent' || intentRaw === 'user' || intentRaw === 'developer' || intentRaw === 'admin'
+            ? intentRaw
+            : ''
 
         if (loginToken) {
-          const expectedRole = intent === 'agent' ? 'AGENT' : intent === 'developer' ? 'DEVELOPER' : 'USER'
+          const expectedRole =
+            intent === 'agent'
+              ? 'AGENT'
+              : intent === 'developer'
+              ? 'DEVELOPER'
+              : intent === 'admin'
+              ? 'ADMIN'
+              : 'USER'
           const tokenHash = crypto.createHash('sha256').update(loginToken).digest('hex')
           const now = new Date()
 
@@ -148,26 +158,26 @@ export const authOptions: NextAuthOptions = {
                   loginTokenExpiresAt: { gt: now },
                 },
                 orderBy: { createdAt: 'desc' },
-              });
+              })
           } catch (error) {
-            console.error('[auth] Database error querying loginOtp:', error);
-            throw new Error('DATABASE_ERROR');
+            console.error('[auth] Database error querying loginOtp:', error)
+            throw new Error('DATABASE_ERROR')
           }
 
           if (!otpRow) return null
 
           try {
-            await (prisma as any).loginOtp.update({ where: { id: otpRow.id }, data: { usedAt: now } });
+            await (prisma as any).loginOtp.update({ where: { id: otpRow.id }, data: { usedAt: now } })
           } catch (error) {
-            console.error('[auth] Database error updating loginOtp:', error);
+            console.error('[auth] Database error updating loginOtp:', error)
           }
 
-          let user;
+          let user
           try {
-            user = await prisma.user.findUnique({ where: { email } });
+            user = await prisma.user.findUnique({ where: { email } })
           } catch (error) {
-            console.error('[auth] Database error querying user:', error);
-            throw new Error('DATABASE_ERROR');
+            console.error('[auth] Database error querying user:', error)
+            throw new Error('DATABASE_ERROR')
           }
           if (!user) return null
 
@@ -180,12 +190,12 @@ export const authOptions: NextAuthOptions = {
 
           if (intent === 'agent') {
             const role = String((user as any)?.role || '').toUpperCase()
-            let agent;
+            let agent
             try {
-              agent = await (prisma as any).agent.findUnique({ where: { userId: user.id } });
+              agent = await (prisma as any).agent.findUnique({ where: { userId: user.id } })
             } catch (error) {
-              console.error('[auth] Database error querying agent:', error);
-              throw new Error('DATABASE_ERROR');
+              console.error('[auth] Database error querying agent:', error)
+              throw new Error('DATABASE_ERROR')
             }
             if (role !== 'AGENT' && !agent) throw new Error('AGENT_NOT_REGISTERED')
           }
@@ -204,7 +214,44 @@ export const authOptions: NextAuthOptions = {
           } as any
         }
 
-        if (password) throw new Error('OTP_REQUIRED')
+        if (password) {
+          if (intent === 'admin') {
+            let user
+            try {
+              user = await prisma.user.findUnique({ where: { email } })
+            } catch (error) {
+              console.error('[auth] Database error querying user:', error)
+              throw new Error('DATABASE_ERROR')
+            }
+            if (!user) return null
+
+            const status = String((user as any).status || 'ACTIVE')
+            if (status === 'BANNED') throw new Error('ACCOUNT_BANNED')
+            if (status === 'SUSPENDED') throw new Error('ACCOUNT_DISABLED')
+
+            const isEmailVerified = Boolean((user as any).emailVerified) || Boolean((user as any).verified)
+            if (!isEmailVerified) throw new Error('EMAIL_NOT_VERIFIED')
+
+            const passwordHash = typeof (user as any).password === 'string' ? String((user as any).password) : ''
+            if (!passwordHash) throw new Error('PASSWORD_NOT_SET')
+
+            const validPassword = await bcrypt.compare(password, passwordHash)
+            if (!validPassword) throw new Error('INVALID_PASSWORD')
+
+            const role = String((user as any)?.role || '').toUpperCase()
+            if (!['ADMIN', 'SUPERADMIN', 'MODERATOR', 'VERIFIER'].includes(role)) throw new Error('ADMIN_ONLY')
+
+            return {
+              id: user.id,
+              email: user.email,
+              name: user.name ?? undefined,
+              role: user.role,
+              status: (user as any).status || 'ACTIVE',
+            } as any
+          }
+          throw new Error('OTP_REQUIRED')
+        }
+
         return null
       },
     }),
@@ -389,6 +436,8 @@ export const authOptions: NextAuthOptions = {
         `${baseUrl}/user/verify`,
         `${baseUrl}/agent/login`,
         `${baseUrl}/agent/register`,
+        `${baseUrl}/admin/login`,
+        `${baseUrl}/admin`,
       ]
       if (allowedPrefixes.some((p) => resolvedUrl.startsWith(p))) return resolvedUrl
 

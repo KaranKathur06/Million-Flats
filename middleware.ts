@@ -33,6 +33,8 @@ const PUBLIC_AUTH_PREFIXES = [
   // Agency auth pages
   '/agency/auth',
   '/agency/verify-email',
+  // Admin auth page
+  '/admin/login',
 ]
 
 function isPublicAuth(pathname: string) {
@@ -161,7 +163,7 @@ export async function middleware(req: NextRequest) {
   // ── Unauthenticated redirect ──
   if (isProtected && !roleRaw) {
     const url = req.nextUrl.clone()
-    url.pathname = '/auth/login'
+    url.pathname = isAdminProtected ? '/admin/login' : '/auth/login'
     const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`
     url.search = `next=${encodeURIComponent(next)}`
     return NextResponse.redirect(url)

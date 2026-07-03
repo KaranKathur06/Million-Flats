@@ -15,7 +15,7 @@ export default async function AdminReportsPage() {
   const role = normalizeRole((session?.user as any)?.role)
 
   if (!session?.user) {
-    redirect('/auth/login?next=%2Fadmin%2Freports')
+    redirect('/admin/login?next=%2Fadmin%2Freports')
   }
 
   if (!hasMinRole(role, 'ADMIN')) {

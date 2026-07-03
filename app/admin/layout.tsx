@@ -13,7 +13,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const role = normalizeRole((session?.user as any)?.role)
 
   if (!session?.user) {
-    redirect('/auth/login?next=%2Fadmin')
+    redirect('/admin/login?next=%2Fadmin')
   }
 
   if (!hasMinRole(role, 'MODERATOR')) {

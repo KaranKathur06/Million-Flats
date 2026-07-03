@@ -17,7 +17,7 @@ export default async function SitemapDashboardPage() {
   const role = normalizeRole((session?.user as any)?.role)
 
   if (!session?.user) {
-    redirect('/auth/login?next=%2Fadmin%2Fseo%2Fsitemap-dashboard')
+    redirect('/admin/login?next=%2Fadmin%2Fseo%2Fsitemap-dashboard')
   }
 
   if (!hasMinRole(role, 'MODERATOR')) {
