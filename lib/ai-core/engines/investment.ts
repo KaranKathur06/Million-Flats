@@ -19,6 +19,7 @@ import type {
   InvestmentIntelligence,
   GradeDetail,
   InvestmentGrade,
+  FeatureImportance,
 } from '../types'
 
 const ENGINE_VERSION = '2.0.0'
@@ -376,7 +377,7 @@ function computeTopFactors(
   infra: InfrastructureRecord[],
   rentalGrade: GradeDetail,
   growthGrade: GradeDetail
-) {
+): FeatureImportance[] {
   return [
     {
       feature: 'rental_yield',
@@ -384,7 +385,7 @@ function computeTopFactors(
       value: `${features?.rentalYieldArea?.toFixed(1) ?? 'N/A'}%`,
       shapValue: 0.12,
       impactPct: rentalGrade.score - 50,
-      direction: rentalGrade.score >= 50 ? 'positive' : 'negative' as const,
+      direction: rentalGrade.score >= 50 ? 'positive' : 'negative',
     },
     {
       feature: 'area_appreciation',
@@ -392,7 +393,7 @@ function computeTopFactors(
       value: `${features?.avgAppreciationPct?.toFixed(1) ?? 'N/A'}% CAGR`,
       shapValue: 0.18,
       impactPct: growthGrade.score - 50,
-      direction: growthGrade.score >= 50 ? 'positive' : 'negative' as const,
+      direction: growthGrade.score >= 50 ? 'positive' : 'negative',
     },
     {
       feature: 'infrastructure_nearby',

@@ -39,6 +39,8 @@ export interface FeatureVector {
   distanceHighwayKm?: number
   walkScore?: number
   connectivityScore?: number
+  pollutionIndex?: number
+  floodRiskScore?: number
   nearbyMetroCount?: number
   nearbySchoolCount?: number
   nearbyHospitalCount?: number
@@ -82,6 +84,8 @@ export interface FeatureVector {
   priceVolatilityScore?: number
   rentalYieldArea?: number
   vacancyRateArea?: number
+  marketHeat?: string
+  investmentGrade?: string
   
   // Behavioral
   listingViewCount?: number
@@ -107,6 +111,12 @@ export interface FeatureVector {
   has3dTour?: boolean
   mediaTrustScore?: number
   hasDefectsDetected?: boolean
+  aiManipulationScore?: number
+  imageDuplicateScore?: number
+
+  // Agent
+  agentReviewRating?: number
+  agentReviewCount?: number
   
   // Completeness
   completeness: number  // 0-100 % of features populated
@@ -539,10 +549,3 @@ function extractAmenityFlag(amenities: unknown, keywords: string[]): boolean | u
 }
 
 // ─── Type extension for agent review rating (not in FeatureVector yet) ─────
-declare module './types' {
-  interface FeatureVector {
-    agentReviewRating?: number
-    agentReviewCount?: number
-    marketHeat?: string
-  }
-}

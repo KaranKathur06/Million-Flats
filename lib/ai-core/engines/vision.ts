@@ -25,6 +25,21 @@ interface EngineOptions {
   requestedBy?: string
 }
 
+type HeuristicMediaAnalysis = Pick<
+  MediaItemAnalysis,
+  | 'isAiGenerated'
+  | 'isManipulated'
+  | 'manipulationScore'
+  | 'isBlurry'
+  | 'hasLightingIssues'
+  | 'hasDefects'
+  | 'defectsDetected'
+  | 'isDuplicate'
+  | 'qualityScore'
+  | 'trustScore'
+  | 'isVirtualStaged'
+>
+
 // ─── Main Engine Entry Point ──────────────────────────────────────────────────
 
 export async function runVisionEngine(
@@ -110,7 +125,7 @@ async function analyzeImage(
 // ─── Phase 1: Heuristic Analysis ─────────────────────────────────────────────
 // No VPS required — runs from metadata, URL patterns, and filename analysis
 
-function runHeuristicAnalysis(url: string): Partial<MediaItemAnalysis> {
+function runHeuristicAnalysis(url: string): HeuristicMediaAnalysis {
   const lowerUrl = url.toLowerCase()
 
   // Detect common AI-generated image hosting patterns
@@ -300,7 +315,7 @@ async function loadExistingAnalysis(
     manipulationScore: r.manipulationScore ?? 0,
     isBlurry: r.isBlurry ?? false,
     hasLightingIssues: r.hasLightingIssues ?? false,
-    hasDefects: r.hasDefects,
+    hasDefects: r.hasDefects ?? false,
     defectsDetected: (r.defectsDetected as any[]) ?? [],
     isDuplicate: r.isDuplicate ?? false,
     qualityScore: r.qualityScore ?? 75,

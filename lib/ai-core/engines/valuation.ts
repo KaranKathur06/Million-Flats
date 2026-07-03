@@ -231,7 +231,7 @@ async function findComparables(params: ComparableSearchParams) {
 
   // Attempt 1: Same community, similar BHK
   let results = await searchComparables({
-    entityId, city, community, bedrooms, sqft, countryIso2,
+    entityId, city, community: community ?? null, bedrooms, sqft, countryIso2,
     sameCommOnly: true,
   })
   if (results.length >= 3) return { comparables: results, fallbackLevel: 'COMMUNITY' }
@@ -308,17 +308,16 @@ async function searchComparables(params: {
         title: `${p.bedrooms}BR in ${p.community ?? p.city}`,
         price: p.price!,
         pricePerSqft,
-        normalizedPricePerSqft: pricePerSqft,
         sqft: p.squareFeet,
-        bhk: p.bedrooms,
+        bedrooms: p.bedrooms ?? 0,
         city: p.city ?? '',
         community: p.community ?? undefined,
         source: 'PLATFORM',
-        similarity,
+        similarityScore: similarity,
         recencyWeight,
       }
     })
-    .sort((a, b) => b.similarity - a.similarity)
+    .sort((a, b) => b.similarityScore - a.similarityScore)
 }
 
 // ─── Market Statistics ────────────────────────────────────────────────────────
@@ -346,9 +345,9 @@ function computeMarketStats(comparables: Comparable[]): MarketStats {
   const avgPricePerSqft = comparables.reduce((s, c) => s + c.pricePerSqft, 0) / comparables.length
 
   // Weighted average by similarity score
-  const totalWeight = comparables.reduce((s, c) => s + c.similarity, 0)
+  const totalWeight = comparables.reduce((s, c) => s + c.similarityScore, 0)
   const weightedAvg = totalWeight > 0
-    ? comparables.reduce((s, c) => s + c.pricePerSqft * (c.similarity / totalWeight), 0)
+    ? comparables.reduce((s, c) => s + c.pricePerSqft * (c.similarityScore / totalWeight), 0)
     : avgPricePerSqft
 
   const medianPrices = [...comparables].sort((a, b) => a.price - b.price)
@@ -356,7 +355,7 @@ function computeMarketStats(comparables: Comparable[]): MarketStats {
     ? (medianPrices[mid - 1].price + medianPrices[mid].price) / 2
     : medianPrices[Math.floor(medianPrices.length / 2)].price
 
-  const avgSimilarity = comparables.reduce((s, c) => s + c.similarity, 0) / comparables.length
+  const avgSimilarity = comparables.reduce((s, c) => s + c.similarityScore, 0) / comparables.length
   const qualityScore = Math.round(avgSimilarity * 100)
 
   return { avgPricePerSqft, medianPricePerSqft, medianPrice, weightedAvg, count: comparables.length, qualityScore }

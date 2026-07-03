@@ -35,6 +35,7 @@ export async function runLegalEngine(
     documentsAnalyzed: 1,
     documentTypes: [normalizedType],
     missingDocuments: missingDocumentsFor(normalizedType),
+    ownershipChain: [],
     legalHealthScore,
     documentCompletenessScore,
     riskClassification,
