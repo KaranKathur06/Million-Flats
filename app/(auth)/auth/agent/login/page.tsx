@@ -1,9 +1,7 @@
-import { Suspense } from 'react'
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
-import AuthAgentLoginClient from './AuthAgentLoginClient'
 
 export default async function AuthAgentLoginPage() {
   const session = await getServerSession(authOptions)
@@ -12,9 +10,5 @@ export default async function AuthAgentLoginPage() {
     redirect(getHomeRouteForRole(role))
   }
 
-  return (
-    <Suspense fallback={null}>
-      <AuthAgentLoginClient />
-    </Suspense>
-  )
+  redirect('/agent/auth?tab=login')
 }

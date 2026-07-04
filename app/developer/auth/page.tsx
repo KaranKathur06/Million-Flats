@@ -13,14 +13,15 @@ export const metadata: Metadata = {
 export default async function DeveloperAuthPage({
   searchParams,
 }: {
-  searchParams: { tab?: string }
+  searchParams?: Promise<{ tab?: string }>
 }) {
   const session = await getServerSession(authOptions)
   if (session?.user && (session.user as any)?.role === 'DEVELOPER') {
     redirect('/developer/dashboard')
   }
 
-  const tab = searchParams?.tab === 'register' ? 'register' : 'login'
+  const params = await searchParams
+  const tab = params?.tab === 'register' ? 'register' : 'login'
 
   return (
     <Suspense>

@@ -98,7 +98,7 @@ async function verifyLegacyJwt(token: string, secret: string) {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // Pass public auth pages through
+  // Pass public auth pages through (including all gateway routes)
   if (isPublicAuth(pathname)) return NextResponse.next()
 
   // ── Route classification ──

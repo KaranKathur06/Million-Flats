@@ -22,14 +22,15 @@ function FeaturePill({ title, description }: { title: string; description: strin
 export default async function AgentAuthPage({
   searchParams,
 }: {
-  searchParams?: { tab?: string }
+  searchParams?: Promise<{ tab?: string }>
 }) {
   const session = await getServerSession(authOptions)
   if (session?.user && (session.user as any)?.role === 'AGENT') {
     redirect('/agent/dashboard')
   }
 
-  const tab = searchParams?.tab === 'register' ? 'register' : 'login'
+  const params = await searchParams
+  const tab = params?.tab === 'register' ? 'register' : 'login'
 
   return (
     <Suspense fallback={null}>
