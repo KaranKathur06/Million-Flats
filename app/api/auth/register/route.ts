@@ -217,7 +217,7 @@ export async function POST(req: Request) {
           }
 
           return NextResponse.json(
-            { success: true, message: 'Password set successfully', redirectTo: getRoleScopedLoginRedirect('user', email) },
+            { success: true, message: 'Password set successfully', redirectTo: '/user/onboarding' },
             { status: 200 }
           )
         }

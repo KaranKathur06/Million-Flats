@@ -77,7 +77,7 @@ export default function UserRegisterPage() {
             keepalive: true,
           }).catch(() => null)
         }
-        const to = data?.redirectTo && typeof data.redirectTo === 'string' ? data.redirectTo : '/auth/user/login'
+        const to = data?.redirectTo && typeof data.redirectTo === 'string' ? data.redirectTo : '/user/onboarding'
         router.push(to)
       } else {
         setError(data.message || 'Registration failed')

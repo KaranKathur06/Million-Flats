@@ -41,11 +41,24 @@ export default async function AuthRedirectPage({
   }
 
   const email = String((session?.user as any)?.email || '').trim().toLowerCase()
-  const dbRole = email
-    ? String((await prisma.user.findUnique({ where: { email }, select: { role: true } }))?.role || '').toUpperCase()
-    : ''
+  const user = email
+    ? await prisma.user.findUnique({
+        where: { email },
+        select: {
+          role: true,
+          profileCompletion: true,
+        },
+      })
+    : null
 
+  const dbRole = String(user?.role || '').toUpperCase()
+  const profileCompletion = Number(user?.profileCompletion || 0)
   const effectiveRole = dbRole || sessionRole || legacyRole
+
+  if (effectiveRole === 'USER' && profileCompletion < 100) {
+    redirect('/user/onboarding')
+  }
+
   const home = getRedirectPath(effectiveRole)
 
   if (safeNext) {

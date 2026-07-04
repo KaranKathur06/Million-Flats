@@ -16,6 +16,7 @@ const PUBLIC_AUTH_PREFIXES = [
   '/auth/verify-otp',
   '/user/login',
   '/user/register',
+  '/user/onboarding',
   '/user/forgot-password',
   '/user/reset-password',
   '/agent/login',
