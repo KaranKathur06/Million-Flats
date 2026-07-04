@@ -6,7 +6,7 @@ export default function RegisterSelectPage() {
     <AuthLayout title="Create an Account" subtitle="Choose your access type">
       <div className="space-y-6">
         <Link
-          href="/auth/agent/register"
+          href="/agent/auth?tab=register"
           className="group block rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-[#F5F8FF] p-6 transition-all hover:-translate-y-0.5 hover:border-dark-blue/30 hover:shadow-[0_18px_45px_rgba(10,25,60,0.12)]"
         >
           <div className="flex items-center gap-4">

@@ -89,7 +89,7 @@ export default function AgentRegisterPage() {
       const data = await res.json()
 
       if (res.ok) {
-        const to = data?.redirectTo && typeof data.redirectTo === 'string' ? data.redirectTo : '/auth/agent/login'
+        const to = data?.redirectTo && typeof data.redirectTo === 'string' ? data.redirectTo : '/agent/auth?tab=login'
         router.push(to)
       } else {
         setError(data.message || 'Registration failed')
@@ -309,7 +309,7 @@ export default function AgentRegisterPage() {
         {/* Login Link */}
         <p className="text-center text-sm text-gray-600">
           Already have an agent account?{' '}
-          <Link href="/auth/agent/login" className="font-medium text-dark-blue hover:text-dark-blue/80 transition-colors">
+          <Link href="/agent/auth?tab=login" className="font-medium text-dark-blue hover:text-dark-blue/80 transition-colors">
             Sign in
           </Link>
         </p>

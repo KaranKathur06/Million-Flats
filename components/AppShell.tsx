@@ -9,7 +9,7 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { isAdminPanelRole } from '@/lib/roleHomeRoute'
 
-const AUTH_PREFIXES = ['/auth', '/user/login', '/user/register', '/agent/login', '/agent/register']
+const AUTH_PREFIXES = ['/auth', '/user/login', '/user/register', '/agent/login', '/agent/register', '/agent/auth', '/developer/auth', '/agency/auth']
 const DownloadGatePopup = dynamic(() => import('@/components/lead-magnets/DownloadGatePopup'), { ssr: false })
 const PostLoginActionHandler = dynamic(() => import('@/components/lead-magnets/PostLoginActionHandler'), { ssr: false })
 

@@ -21,6 +21,7 @@ const PUBLIC_AUTH_PREFIXES = [
   '/user/reset-password',
   '/agent/login',
   '/agent/register',
+  '/agent/auth',
   '/agent/forgot-password',
   '/agent/verify-email',
   '/agent/verify',
@@ -200,7 +201,7 @@ export async function middleware(req: NextRequest) {
   if (isAgentProtected) {
     if (role !== 'AGENT') {
       const url = req.nextUrl.clone()
-      url.pathname = '/auth/agent/login'
+      url.pathname = '/agent/auth'
       const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`
       url.search = `next=${encodeURIComponent(next)}`
       return NextResponse.redirect(url)
@@ -580,7 +581,7 @@ export async function middleware(req: NextRequest) {
   if (isVerixProtected) {
     if (role !== 'AGENT') {
       const url = req.nextUrl.clone()
-      url.pathname = '/auth/agent/login'
+      url.pathname = '/agent/auth'
       const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`
       url.search = `next=${encodeURIComponent(next)}`
       return NextResponse.redirect(url)

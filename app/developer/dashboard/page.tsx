@@ -6,10 +6,10 @@ import DeveloperDashboardClient from './DeveloperDashboardClient'
 
 export default async function DeveloperDashboardPage() {
   const session = await getServerSession(authOptions)
-  if (!session?.user) redirect('/developer/login')
+  if (!session?.user) redirect('/developer/auth?tab=login')
 
   const userId = (session.user as any)?.id
-  if (!userId) redirect('/developer/login')
+  if (!userId) redirect('/developer/auth?tab=login')
 
   // Fetch developer profile + project stats + recent leads
   const [profile, projectStats, recentLeads] = await Promise.all([

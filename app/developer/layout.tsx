@@ -7,7 +7,7 @@ export default async function DeveloperLayout({ children }: { children: React.Re
   const session = await getServerSession(authOptions)
 
   if (!session?.user) {
-    redirect('/developer/login')
+    redirect('/developer/auth?tab=login')
   }
 
   const role = (session.user as any)?.role

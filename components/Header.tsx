@@ -256,7 +256,7 @@ export default function Header() {
             {isAuthLoading ? null : !isAuthed ? (
               <>
                 <Link
-                  href="/agent-portal"
+                  href="/agent/auth"
                   className="text-sm font-medium text-gray-600 hover:text-dark-blue transition-colors"
                 >
                   Agent Portal
@@ -398,7 +398,7 @@ export default function Header() {
               {isAuthLoading ? null : !isAuthed ? (
                 <>
                   <Link
-                    href="/agent-portal"
+                    href="/agent/auth"
                     className="block px-4 py-3 rounded-xl text-sm font-semibold text-dark-blue bg-gray-100"
                     onClick={() => setMobileOpen(false)}
                   >

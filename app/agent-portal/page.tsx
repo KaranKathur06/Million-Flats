@@ -20,7 +20,7 @@ export default async function AgentPortalPage() {
   const profileStatus = String((dbUser as any)?.agent?.profileStatus || 'DRAFT').toUpperCase()
 
   if (!role) {
-    redirect('/agent/login')
+    redirect('/agent/auth')
   }
 
   if (role !== 'AGENT') {
@@ -28,7 +28,7 @@ export default async function AgentPortalPage() {
   }
 
   if (status !== 'ACTIVE') {
-    redirect('/agent/login?error=account_disabled')
+    redirect('/agent/auth?tab=login')
   }
 
   if (profileStatus === 'LIVE') {

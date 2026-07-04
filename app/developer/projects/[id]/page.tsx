@@ -6,7 +6,7 @@ import Link from 'next/link'
 
 export default async function DeveloperProjectDetailPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
-  if (!session?.user) redirect('/developer/login')
+  if (!session?.user) redirect('/developer/auth?tab=login')
 
   const userId = (session.user as any)?.id
   const profile = await (prisma as any).developerProfile.findUnique({ where: { userId }, select: { id: true } })

@@ -77,7 +77,7 @@ export default function AuthLoginPage() {
 
         {/* Agent — unchanged email/password */}
         <Link
-          href="/auth/agent/login"
+          href="/agent/auth"
           className="group block rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-[#F5F8FF] p-5 transition-all hover:border-dark-blue/30 hover:shadow-[0_18px_45px_rgba(10,25,60,0.12)] active:scale-[0.99]"
         >
           <div className="flex items-center gap-4">

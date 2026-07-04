@@ -10,14 +10,14 @@ export default async function AgentOnboardingPage() {
   const sessionUser = session?.user as any
 
   if (!sessionUser?.email) {
-    redirect('/agent/login')
+    redirect('/agent/auth?tab=login')
   }
 
   const email = String(sessionUser.email).trim().toLowerCase()
   const dbUser = await prisma.user.findUnique({ where: { email }, include: { agent: true } })
 
   if (!dbUser) {
-    redirect('/agent/login')
+    redirect('/agent/auth?tab=login')
   }
 
   if (dbUser.role !== 'AGENT') {

@@ -203,7 +203,7 @@ export default function AgentLoginClient() {
 
         <p className="text-center text-sm text-gray-600">
           Don&apos;t have an agent account?{' '}
-          <Link href="/auth/agent/register" className="font-medium text-dark-blue hover:text-dark-blue/80 transition-colors">
+          <Link href="/agent/auth?tab=register" className="font-medium text-dark-blue hover:text-dark-blue/80 transition-colors">
             Register as Agent
           </Link>
         </p>

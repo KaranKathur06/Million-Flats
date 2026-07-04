@@ -188,7 +188,7 @@ export default function VerifyOtpPage() {
             {isResendDisabled ? `Resend OTP (${resendCooldown}s)` : 'Resend OTP'}
           </button>
 
-          <Link href={role === 'agent' ? '/auth/agent/login' : '/auth/user/login'} className="font-medium text-gray-600 hover:text-gray-900 transition-colors mt-3 sm:mt-0">
+          <Link href={role === 'agent' ? '/agent/auth?tab=login' : '/auth/user/login'} className="font-medium text-gray-600 hover:text-gray-900 transition-colors mt-3 sm:mt-0">
             Back to login
           </Link>
         </div>

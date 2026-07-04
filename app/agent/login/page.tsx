@@ -13,6 +13,10 @@ export default async function AgentLoginPage({
   const session = await getServerSession(authOptions)
   const email = String((session?.user as any)?.email || '').trim().toLowerCase()
 
+  if (!email) {
+    redirect('/agent/auth?tab=login')
+  }
+
   if (email) {
     const user = await (prisma as any).user
       .findUnique({

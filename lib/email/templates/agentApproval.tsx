@@ -8,7 +8,7 @@ interface AgentApprovalProps {
 }
 
 export default function AgentApproval({ name, dashboardLink }: AgentApprovalProps) {
-    const href = dashboardLink || "https://millionflats.com/auth/agent/login";
+    const href = dashboardLink || "https://millionflats.com/agent/auth?tab=login";
 
     return (
         <EmailLayout>

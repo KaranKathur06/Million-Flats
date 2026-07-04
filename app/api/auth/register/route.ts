@@ -31,7 +31,7 @@ function roleLabel(role: string) {
 
 function getRoleScopedLoginRedirect(type: string, email?: string) {
   const t = String(type || '').toLowerCase()
-  const base = t === 'agent' ? '/auth/agent/login' : '/auth/user/login'
+  const base = t === 'agent' ? '/agent/auth?tab=login' : '/auth/user/login'
   const safeEmail = typeof email === 'string' ? email.trim().toLowerCase() : ''
   if (!safeEmail) return base
   return `${base}?email=${encodeURIComponent(safeEmail)}`

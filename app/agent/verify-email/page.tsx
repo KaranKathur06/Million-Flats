@@ -9,14 +9,14 @@ export default async function AgentVerifyEmailPage() {
   const sessionUser = session?.user as any
 
   if (!sessionUser?.email) {
-    redirect('/agent/login')
+    redirect('/agent/auth?tab=login')
   }
 
   const email = String(sessionUser.email).trim().toLowerCase()
   const dbUser = await prisma.user.findUnique({ where: { email } })
 
   if (!dbUser) {
-    redirect('/agent/login')
+    redirect('/agent/auth?tab=login')
   }
 
   // If already verified, go to onboarding
