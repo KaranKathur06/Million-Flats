@@ -4,8 +4,18 @@ import { authOptions } from '@/lib/auth'
 
 export default async function AgencyLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
-  if (!session?.user || (session.user as any)?.role !== 'AGENCY') {
-    redirect('/agency/auth')
+  const role = (session?.user as any)?.role
+  
+  // This layout wraps all /agency/* routes, including auth pages
+  // Don't redirect on auth pages - let them render independently
+  // Only render content for authenticated, authorized agencies
+  
+  if (session?.user && role === 'AGENCY') {
+    // User is authenticated and authorized
+    return <>{children}</>
   }
+  
+  // Not authenticated or wrong role - just render children
+  // Page component (auth page) will handle showing appropriate content
   return <>{children}</>
 }

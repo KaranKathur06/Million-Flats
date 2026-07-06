@@ -7,6 +7,7 @@ import AgentNavbar from '@/app/_components/agent/AgentNavbar'
 import { AgentStatus } from '@/lib/agentLifecycle'
 
 const EXCLUDED_PATHS_FROM_LAYOUT = [
+  '/agent/auth',
   '/agent/login',
   '/agent/register',
   '/agent/verify-email',
@@ -14,6 +15,7 @@ const EXCLUDED_PATHS_FROM_LAYOUT = [
   '/agent/onboarding',
   '/agent/on-hold',
   '/agent/rejected',
+  '/agent/suspended',
 ]
 
 interface AgentData {
