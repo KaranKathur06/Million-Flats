@@ -36,6 +36,10 @@ export default function AgentLayout({ children }: { children: ReactNode }) {
     (p) => pathname === p || pathname.startsWith(p + '/')
   )
 
+  if (isExcluded) {
+    return <>{children}</>
+  }
+
   // Fetch agent data for navbar
   useEffect(() => {
     if (status === 'loading' || !session?.user || role !== 'AGENT' || isExcluded) {
