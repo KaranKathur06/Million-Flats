@@ -617,7 +617,7 @@ export default function DeveloperAuthClient({ defaultTab }: { defaultTab: Tab })
   const [tab, setTab] = useState<Tab>(defaultTab);
 
   return (
-    <div className="min-h-screen lg:h-screen lg:overflow-hidden flex flex-col lg:flex-row">
+    <div className="min-h-screen flex flex-col lg:flex-row">
       {/* ── Left panel: Form ─────────────────────── */}
       <div className="w-full lg:w-[520px] flex flex-col bg-white shrink-0 relative">
         {/* Mobile hero strip */}
@@ -640,7 +640,7 @@ export default function DeveloperAuthClient({ defaultTab }: { defaultTab: Tab })
           <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-b from-transparent to-white" />
         </div>
 
-        <div className="-mt-5 lg:mt-0 rounded-t-[28px] lg:rounded-none bg-white relative z-10 flex-1 flex flex-col shadow-[0_-8px_40px_rgba(0,0,0,0.06)] lg:shadow-none">
+        <div className="-mt-5 lg:mt-0 rounded-t-[28px] lg:rounded-none bg-white relative z-10 flex-1 flex flex-col shadow-[0_-8px_40px_rgba(0,0,0,0.06)] lg:shadow-none min-h-0">
           {/* Top nav — desktop */}
           <div className="hidden lg:flex items-center justify-between px-8 py-5 border-b border-gray-100">
             <Link href="/" className="inline-flex items-center gap-2.5">
@@ -658,7 +658,7 @@ export default function DeveloperAuthClient({ defaultTab }: { defaultTab: Tab })
           </div>
 
           {/* Form area */}
-          <div className={`flex-1 px-6 sm:px-8 pb-8 ${tab === "register" ? "overflow-y-auto" : "flex items-center justify-center"}`}>
+          <div className={`flex-1 min-h-0 overflow-y-auto px-6 sm:px-8 pb-8 ${tab === "login" ? "flex items-center justify-center" : ""}`}>
             <div className="w-full max-w-[420px] mx-auto py-6">
               {/* Badge */}
               <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200/80 text-blue-700 text-xs font-bold rounded-full px-3 py-1 mb-5 tracking-wide">

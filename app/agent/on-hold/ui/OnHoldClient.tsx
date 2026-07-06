@@ -10,7 +10,7 @@ export default function OnHoldClient({ status }: { status?: AgentStatus }) {
 
   const logout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => null)
-    window.location.href = '/agent/login'
+    window.location.href = '/agent/auth?tab=login'
   }
 
   return (

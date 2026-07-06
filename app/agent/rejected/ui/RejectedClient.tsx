@@ -7,7 +7,7 @@ export default function RejectedClient() {
 
   const logout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => null)
-    router.push('/agent/login')
+    router.push('/agent/auth?tab=login')
   }
 
   return (
@@ -23,7 +23,7 @@ export default function RejectedClient() {
         </div>
         <div className="mt-6 flex flex-col sm:flex-row gap-3">
           <button
-            onClick={() => router.push('/agent/register')}
+            onClick={() => router.push('/agent/auth?tab=register')}
             className="flex-1 h-11 rounded-xl bg-dark-blue text-white font-semibold"
           >
             Re-Apply

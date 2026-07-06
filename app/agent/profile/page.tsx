@@ -10,22 +10,22 @@ export default async function AgentProfilePage() {
   const role = String((session?.user as any)?.role || '').toUpperCase()
 
   if (!session?.user) {
-    redirect('/agent/login?next=%2Fagent%2Fprofile')
+    redirect('/agent/auth?tab=login&next=%2Fagent%2Fprofile')
   }
 
   const email = String((session.user as any).email || '').trim().toLowerCase()
   if (!email) {
-    redirect('/agent/login?next=%2Fagent%2Fprofile')
+    redirect('/agent/auth?tab=login&next=%2Fagent%2Fprofile')
   }
 
   const user = await prisma.user.findUnique({ where: { email }, include: { agent: true } })
   if (!user) {
-    redirect('/agent/login?next=%2Fagent%2Fprofile')
+    redirect('/agent/auth?tab=login&next=%2Fagent%2Fprofile')
   }
 
   const status = String((user as any)?.status || 'ACTIVE').toUpperCase()
   if (status !== 'ACTIVE') {
-    redirect('/agent/login?error=account_disabled')
+    redirect('/agent/auth?tab=login&error=account_disabled')
   }
 
   if (!user.agent) {

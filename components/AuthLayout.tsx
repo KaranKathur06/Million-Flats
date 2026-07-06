@@ -10,7 +10,7 @@ interface AuthLayoutProps {
 
 export default function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen lg:h-screen lg:overflow-hidden flex flex-col lg:flex-row bg-gradient-to-br from-white via-[#F5F8FF] to-white">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-gradient-to-br from-white via-[#F5F8FF] to-white">
       <div className="lg:hidden relative h-[28vh] min-h-[220px]">
         <Image
           src="/auth-bg.jpg"
@@ -25,7 +25,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
       </div>
 
       {/* Left Section - Visual/Branding */}
-      <div className="hidden lg:flex lg:w-[60%] relative">
+      <div className="hidden lg:flex lg:w-[60%] relative lg:sticky lg:top-0 lg:h-screen overflow-hidden">
         <Image
           src="/auth-bg.jpg"
           alt="Luxury Real Estate"
@@ -47,7 +47,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
       </div>
 
       {/* Right Section - Auth Card */}
-      <div className="w-full lg:w-[40%] flex flex-col bg-white lg:bg-gradient-to-br lg:from-white lg:via-[#F5F8FF] lg:to-white -mt-10 lg:mt-0 rounded-t-[28px] lg:rounded-none shadow-[0_-18px_45px_rgba(10,25,60,0.10)] lg:shadow-none relative z-10">
+      <div className="w-full lg:w-[40%] flex flex-col bg-white lg:bg-gradient-to-br lg:from-white lg:via-[#F5F8FF] lg:to-white -mt-10 lg:mt-0 rounded-t-[28px] lg:rounded-none shadow-[0_-18px_45px_rgba(10,25,60,0.10)] lg:shadow-none relative z-10 min-h-0">
         <div className="flex items-center justify-between px-6 sm:px-8 py-5 lg:py-4">
           <Link href="/" className="inline-flex items-center gap-3">
             <span className="relative w-8 h-8">
@@ -60,8 +60,8 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
           </Link>
         </div>
 
-        <div className="flex-1 flex items-start lg:items-center justify-center px-4 sm:px-8 pb-[calc(2rem+env(safe-area-inset-bottom))] lg:pb-5">
-          <div className="w-full max-w-[440px]">
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 pb-[calc(2rem+env(safe-area-inset-bottom))] lg:pb-5">
+          <div className="w-full max-w-[440px] mx-auto py-6">
             <div className="rounded-2xl border border-gray-200 bg-white shadow-[0_18px_50px_rgba(10,25,60,0.10)] p-6 space-y-4">
               <div>
                 <h2 className="text-[clamp(24px,4.6vw,32px)] font-serif font-bold text-dark-blue mb-2">{title}</h2>

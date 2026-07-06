@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   const email = safeString((session?.user as any)?.email).toLowerCase()
 
   if (!email) {
-    return redirectTo(req, '/agent/login')
+    return redirectTo(req, '/agent/auth?tab=login')
   }
 
   const form = await req.formData()
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     include: { agent: true, accounts: true },
   })
   if (!dbUser) {
-    return redirectTo(req, '/agent/login')
+    return redirectTo(req, '/agent/auth?tab=login')
   }
 
   const isEmailVerified = Boolean((dbUser as any).emailVerified) || Boolean((dbUser as any).verified)

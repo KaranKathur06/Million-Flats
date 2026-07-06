@@ -31,7 +31,7 @@ export default async function AuthErrorPage({
                 User Login
               </Link>
               <Link
-                href="/agent/login"
+                href="/agent/auth?tab=login"
                 className="inline-flex items-center justify-center h-11 px-4 rounded-xl border border-gray-300 bg-white text-gray-800 font-semibold hover:bg-gray-50 transition-colors"
               >
                 Agent Login

@@ -52,5 +52,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   ]
 
   res.setHeader('Set-Cookie', clearCookies)
-  return res.redirect(`${baseUrl}${meta.type === 'agent' ? '/agent/login' : '/user/login'}?error=oauth_disabled`)
+  return res.redirect(`${baseUrl}${meta.type === 'agent' ? '/agent/auth?tab=login' : '/user/login'}?error=oauth_disabled`)
 }

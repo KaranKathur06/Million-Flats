@@ -63,7 +63,7 @@ export default async function AgentDashboardPage() {
   const role = String((session?.user as any)?.role || '').toUpperCase()
 
   if (!session?.user) {
-    redirect('/agent/login?next=%2Fagent-portal')
+    redirect('/agent/auth?tab=login&next=%2Fagent-portal')
   }
 
   if (role !== 'AGENT') {
@@ -72,12 +72,12 @@ export default async function AgentDashboardPage() {
 
   const email = String((session.user as any).email || '').trim().toLowerCase()
   if (!email) {
-    redirect('/agent/login?next=%2Fagent-portal')
+    redirect('/agent/auth?tab=login&next=%2Fagent-portal')
   }
 
   const dbUser = await prisma.user.findUnique({ where: { email }, include: { agent: true } })
   if (!dbUser || !dbUser.agent) {
-    redirect('/agent/login?next=%2Fagent-portal')
+    redirect('/agent/auth?tab=login&next=%2Fagent-portal')
   }
 
   const agent = dbUser.agent

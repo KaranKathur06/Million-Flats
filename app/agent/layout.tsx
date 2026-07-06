@@ -8,7 +8,6 @@ import { AgentStatus } from '@/lib/agentLifecycle'
 
 const EXCLUDED_PATHS_FROM_LAYOUT = [
   '/agent/auth',
-  '/agent/login',
   '/agent/register',
   '/agent/verify-email',
   '/agent/verify',
