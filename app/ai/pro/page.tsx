@@ -1,14 +1,18 @@
+import type { Metadata } from 'next'
+import { Suspense } from 'react'
+import { AIPageSkeleton } from '@/components/ai-shared/AISkeletons'
+import AIPro from './AIPro'
+
+export const metadata: Metadata = {
+  title: 'AIPro™ Agent Intelligence | MillionFlats',
+  description: 'AI-powered agent performance scoring, churn prediction, lead intelligence, and coaching for real estate professionals on the MillionFlats platform.',
+  alternates: { canonical: '/ai/pro' },
+}
+
 export default function AIProPage() {
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-dark-blue mb-4">
-            AIPro<sup>™</sup>
-          </h1>
-          <p className="text-lg text-gray-600">AIPro<sup>™</sup> helps assess professional credibility and platform trust.</p>
-        </div>
-      </div>
-    </div>
+    <Suspense fallback={<AIPageSkeleton />}>
+      <AIPro />
+    </Suspense>
   )
 }

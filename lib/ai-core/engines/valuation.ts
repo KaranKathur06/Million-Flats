@@ -797,13 +797,14 @@ async function getCachedValuation(
   entityType: EntityType
 ): Promise<ValuationReport | null> {
   try {
-    const cached = await prisma.verixShieldResult.findUnique({
-      where: { entityType_entityId: { entityType, entityId } },
+    const entityTypeEnum = entityType === 'MANUAL_PROPERTY' ? 'MANUAL_PROPERTY' : 'PROJECT'
+    const cached = await (prisma as any).verixShieldResult.findUnique({
+      where: { entityType_entityId: { entityType: entityTypeEnum, entityId } },
     })
 
     if (!cached) return null
 
-    const expiresAt = new Date((cached as any).expiresAt ?? Date.now() - 1)
+    const expiresAt = new Date(cached.expiresAt ?? Date.now() - 1)
     if (expiresAt < new Date()) return null
 
     // Convert existing cache to new ValuationReport format
@@ -861,32 +862,25 @@ async function persistValuation(
   report: ValuationReport
 ): Promise<void> {
   try {
-    await prisma.verixShieldResult.upsert({
+    const expiresAt = new Date(Date.now() + CACHE_TTL_MS)
+    const data = {
+      estimatedMin: report.fairValue.min,
+      estimatedMedian: report.fairValue.mid,
+      estimatedMax: report.fairValue.max,
+      confidence: report.confidence.score,
+      askingPrice: report.askingPrice ?? null,
+      status: mapStatusToEnum(report.marketPosition) as any,
+      demandScore: report.liquidityScore,
+      modelVersion: report.modelVersion,
+      comparablesCount: report.comparables.length,
+      deviation: report.deviationPercent,
+      computedAt: new Date(),
+      expiresAt,
+    }
+    await (prisma as any).verixShieldResult.upsert({
       where: { entityType_entityId: { entityType, entityId } },
-      create: {
-        entityType,
-        entityId,
-        estimatedMin: report.fairValue.min,
-        estimatedMedian: report.fairValue.mid,
-        estimatedMax: report.fairValue.max,
-        confidence: report.confidence.score,
-        askingPrice: report.askingPrice ?? undefined,
-        status: mapStatusToEnum(report.marketPosition),
-        demandScore: report.liquidityScore,
-        modelVersion: report.modelVersion,
-        comparableCount: report.comparables.length,
-      } as any,
-      update: {
-        estimatedMin: report.fairValue.min,
-        estimatedMedian: report.fairValue.mid,
-        estimatedMax: report.fairValue.max,
-        confidence: report.confidence.score,
-        askingPrice: report.askingPrice ?? undefined,
-        status: mapStatusToEnum(report.marketPosition),
-        demandScore: report.liquidityScore,
-        modelVersion: report.modelVersion,
-        comparableCount: report.comparables.length,
-      } as any,
+      create: { entityType, entityId, ...data },
+      update: data,
     })
   } catch {
     // Non-fatal

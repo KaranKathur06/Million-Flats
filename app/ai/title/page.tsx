@@ -1,16 +1,18 @@
+import type { Metadata } from 'next'
+import { Suspense } from 'react'
+import { AIPageSkeleton } from '@/components/ai-shared/AISkeletons'
+import AITitle from './AITitle'
+
+export const metadata: Metadata = {
+  title: 'AITitle™ Legal Document Intelligence | MillionFlats',
+  description: 'AI-powered title deed analysis, RERA compliance, NOC verification, and legal risk scoring for UAE and India properties.',
+  alternates: { canonical: '/ai/title' },
+}
+
 export default function AITitlePage() {
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-dark-blue mb-4">
-            AITitle<sup>™</sup>
-          </h1>
-          <p className="text-lg text-gray-600">
-            AITitle<sup>™</sup> helps surface compliance and title clarity considerations.
-          </p>
-        </div>
-      </div>
-    </div>
+    <Suspense fallback={<AIPageSkeleton />}>
+      <AITitle />
+    </Suspense>
   )
 }
