@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
-import { normalizeRole } from '@/lib/rbac'
+import { prisma } from '@/lib/prisma'
 import UserOnboardingClient from './UserOnboardingClient'
 
 export const metadata = {
@@ -11,31 +11,27 @@ export const metadata = {
 
 export default async function UserOnboardingPage() {
   const session = await getServerSession(authOptions)
-  const role = normalizeRole((session?.user as any)?.role)
-
+  
   if (!session?.user) {
-    redirect('/user/login?next=%2Fuser%2Fonboarding')
-  }
-
-  if (role !== 'USER') {
-    redirect('/')
+    redirect('/auth/login?next=%2Fuser%2Fonboarding')
   }
 
   const email = String((session.user as any).email || '').trim().toLowerCase()
+  
+  // Fetch latest state from DB to populate initial data and step
   const user = email
     ? await prisma.user.findUnique({
-        where: { email },
-        select: { profileCompletion: true },
+        where: { email }
       })
     : null
 
-  if (user?.profileCompletion && user.profileCompletion >= 100) {
-    redirect('/dashboard')
+  if (!user) {
+    redirect('/auth/login')
   }
 
   return (
     <Suspense fallback={null}>
-      <UserOnboardingClient />
+      <UserOnboardingClient initialData={user} />
     </Suspense>
   )
 }

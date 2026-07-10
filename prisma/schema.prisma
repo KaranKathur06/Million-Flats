@@ -255,6 +255,28 @@ model User {
   welcomeWhatsappSent Boolean @default(false) @map("welcome_whatsapp_sent")
   whatsappAuthSessions WhatsAppAuthSession[]
 
+  // Onboarding Fields
+  fullName              String?   @map("full_name")
+  city                  String?
+  occupation            String?
+  ageGroup              String?   @map("age_group")
+  purpose               String?
+  interestedCountry     String?   @map("interested_country")
+  budgetMin             Float?    @map("budget_min")
+  budgetMax             Float?    @map("budget_max")
+  propertyTypes         String[]  @map("property_types")
+  bedrooms              String[]
+  preferredCities       String[]  @map("preferred_cities")
+  preferredLocalities   String[]  @map("preferred_localities")
+  buyingTimeline        String?   @map("buying_timeline")
+  investmentGoal        String?   @map("investment_goal")
+  servicesInterested    String[]  @map("services_interested")
+  communicationPrefs    String[]  @map("communication_prefs")
+  marketingConsent      Boolean   @default(true) @map("marketing_consent")
+  profileCompletedAt    DateTime? @map("profile_completed_at")
+  onboardingVersion     Int       @default(0) @map("onboarding_version")
+  currentOnboardingStep Int       @default(1) @map("current_onboarding_step")
+
   @@map("users")
 }
 

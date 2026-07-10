@@ -604,6 +604,40 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // ── Onboarding Guard for ALL Authenticated Users ──
+  const profileCompletion = Number((nextAuthToken as any)?.profileCompletion || 0);
+  const onboardingVersion = Number((nextAuthToken as any)?.onboardingVersion || 0);
+  const CURRENT_ONBOARDING_VERSION = 1;
+
+  if (roleRaw && !isPublicAuth(pathname) && !pathname.startsWith('/api') && !pathname.startsWith('/_next') && !pathname.includes('.')) {
+    const isProfileIncomplete = profileCompletion < 100 || onboardingVersion < CURRENT_ONBOARDING_VERSION;
+    const isOnboardingRoute = pathname === '/user/onboarding' || pathname.startsWith('/user/onboarding/');
+    
+    if ((role === 'USER' || role === 'BUYER') && !isAdminPanelRole) {
+       if (isProfileIncomplete && !isOnboardingRoute) {
+         const url = req.nextUrl.clone();
+         url.pathname = '/user/onboarding';
+         return NextResponse.redirect(url);
+       }
+       
+       if (!isProfileIncomplete && isOnboardingRoute) {
+         const url = req.nextUrl.clone();
+         const returnUrlCookie = req.cookies.get('mf_return_context')?.value;
+         if (returnUrlCookie) {
+           try {
+             const context = JSON.parse(returnUrlCookie);
+             if (context.url) {
+               url.pathname = context.url;
+               return NextResponse.redirect(url);
+             }
+           } catch (e) {}
+         }
+         url.pathname = '/';
+         return NextResponse.redirect(url);
+       }
+    }
+  }
+
   return NextResponse.next()
 }
 

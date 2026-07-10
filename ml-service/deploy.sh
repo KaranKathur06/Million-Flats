@@ -11,11 +11,10 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 # ── System Dependencies ───────────────────────────────────────────────────────
 apt-get update -qq
-apt-get install -y python3.11 python3.11-venv python3-pip nginx certbot python3-certbot-nginx -qq
-
+apt-get install -y python3 python3-venv python3-pip nginx certbot python3-certbot-nginx -qq
 # ── Python Environment ────────────────────────────────────────────────────────
-cd /opt/millionflats-ml
-python3.11 -m venv venv
+cd /var/www/millionflats/ml-service
+python3 -m venv venv
 source venv/bin/activate
 
 pip install --upgrade pip wheel

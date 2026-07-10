@@ -5,6 +5,9 @@ import { ProjectPageSkeleton } from '@/components/skeletons/ProjectPageSkeletons
 import ProjectDetailClient from './ProjectDetailClient'
 import { getRecommendationsForContext } from '@/lib/ecosystem/getRecommendedPartners'
 import { getPublicProjectBySlug } from '@/lib/projects/getPublicProjectBySlug'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { isSearchBot } from '@/lib/botDetection'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -57,13 +60,38 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         notFound()
     }
 
+    const session = await getServerSession(authOptions)
+    const isBot = isSearchBot()
+    const isAuthenticated = !!session?.user
+    
+    // Determine lock state: Guest users (non-bots) get gated content
+    const isLocked = !isAuthenticated && !isBot
+
+    if (isLocked) {
+        // Redact sensitive data from the payload sent to the client
+        project.description = null;
+        project.developer = null;
+        project.location = null;
+        project.nearbyPlaces = [];
+        // Keep limited unit types info but redact floor plans
+        project.floorPlans = [];
+        project.unitTypes = project.unitTypes.map((ut: any) => ({
+            ...ut,
+            variants: ut.variants?.map((v: any) => ({ ...v, floorPlans: [] })) || []
+        }));
+    }
+
     const ecosystemRecommendations = await getRecommendationsForContext('project', {
         city: project.city || undefined,
     }).catch(() => [])
 
     return (
         <Suspense fallback={<ProjectPageSkeleton />}>
-            <ProjectDetailClient project={project} ecosystemRecommendations={ecosystemRecommendations} />
+            <ProjectDetailClient 
+               project={project} 
+               ecosystemRecommendations={ecosystemRecommendations} 
+               isLocked={isLocked}
+            />
         </Suspense>
     )
 }

@@ -33,12 +33,6 @@ const sections: TeamSection[] = [
         bio: "She provides strategic oversight and governance. She represents the interests of our investors and guides the company's long-term vision and financial stewardship.",
         image: '/team/neelam.jpeg',
       },
-      {
-        name: 'Hardik Vyas',
-        role: 'COO',
-        bio: 'Marketing and networking leader with 15+ years of global experience, including leadership roles at Falcon Company, Rajkot, as Export Manager.',
-        image: '/team/hardik.jpeg',
-      },
     ],
   },
   {
@@ -68,13 +62,6 @@ const sections: TeamSection[] = [
         bio: 'Strong foundation in Python, PostgreSQL, and task orchestration, contributing to real-time analytics and intelligent dashboards.',
         image: '/team/karan%20.jpeg',
       },
-
-      {
-        name: 'Kushal Bhatt',
-        role: '3D Specialist',
-        bio: 'Expert in Unreal Engine development, real-time 3D environments, simulations, and gamified user experiences.',
-        image: '/team/kushal.jpeg',
-      },
     ],
   },
 
@@ -82,9 +69,24 @@ const sections: TeamSection[] = [
     title: 'Marketing Team',
     members: [
       {
+        name: 'Divesh More',
+        role: 'Sales Development Manager',
+        bio: 'Driving strategic growth through enterprise partnerships, market expansion, and high-value business relationships across the MillionFlats ecosystem.',
+        image: '/team/pratik.jpeg',
+      },
+
+      {
         name: 'Pratik Bachchhe',
         role: 'Sales Development Representative',
         bio: 'Dedicated to growing the MillionFlats verified ecosystem by onboarding India’s top RERA-registered agents and developers.',
+        image: '/team/pratik.jpeg',
+      },
+
+
+      {
+        name: 'Bharat Tank',
+        role: 'Sales Development Representative',
+        bio: 'Supporting business growth by engaging prospective clients, nurturing qualified leads, and building lasting customer relationships across the real estate marketplace.',
         image: '/team/pratik.jpeg',
       },
     ],

@@ -348,6 +348,8 @@ export const authOptions: NextAuthOptions = {
                 ; (token as any).agentVerificationStatus = normalizeAgentVerificationStatus((dbUser as any)?.agent?.verificationStatus)
                 // ✅ KEY FIX: Populate the new unified agentStatus from agent.status
                 ; (token as any).agentStatus = String((dbUser as any)?.agent?.status || 'REGISTERED')
+                ; (token as any).profileCompletion = Number((dbUser as any).profileCompletion || 0)
+                ; (token as any).onboardingVersion = Number((dbUser as any).onboardingVersion || 0)
 
               // ── Developer token enrichment ────────────────────────────────
               if (normalizeRole((dbUser as any).role) === 'DEVELOPER' && (dbUser as any).developerProfile) {
@@ -405,6 +407,12 @@ export const authOptions: NextAuthOptions = {
         }
         if (tokenAgentVerificationStatus) {
           ; (session.user as any).agentVerificationStatus = normalizeAgentVerificationStatus(tokenAgentVerificationStatus)
+        }
+        if (typeof (token as any).profileCompletion === 'number') {
+          ; (session.user as any).profileCompletion = (token as any).profileCompletion
+        }
+        if (typeof (token as any).onboardingVersion === 'number') {
+          ; (session.user as any).onboardingVersion = (token as any).onboardingVersion
         }
         // ── Developer session fields ─────────────────────────────────────────
         if ((token as any)?.developerProfileId) {
