@@ -178,15 +178,28 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
 /* ═══════════════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════════════ */
+import PremiumLock from './_components/PremiumLock'
+
 export default function ProjectDetailClient({
-    project,
+    publicData,
+    privateData,
     ecosystemRecommendations = [],
     isLocked = false,
 }: {
-    project: ProjectData
+    publicData: any
+    privateData: any | null
     ecosystemRecommendations?: RecommendationGroup[]
     isLocked?: boolean
 }) {
+    const project = {
+        ...publicData,
+        ...(privateData || {}),
+        media: privateData?.media || publicData.media || [],
+        nearbyPlaces: privateData?.nearbyPlaces || [],
+        videos: privateData?.videos || [],
+        similarProjects: privateData?.similarProjects || []
+    } as ProjectData
+
     const router = useRouter()
     const searchParams = useSearchParams()
     const { data: session } = useSession()
@@ -567,11 +580,11 @@ export default function ProjectDetailClient({
             <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
                 <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <nav className="flex gap-1 overflow-x-auto scrollbar-none -mb-px">
-                        {(['overview', 'amenities', 'plans', 'gallery', 'location'] as const).map((tab) => (
+                        {(['overview', 'amenities', 'plans', ...(isLocked ? [] : ['gallery', 'location'])] as const).map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => {
-                                    setActiveTab(tab)
+                                    setActiveTab(tab as any)
                                     document.getElementById(`section-${tab}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                                 }}
                                 className={`whitespace-nowrap px-4 py-3 text-sm font-semibold border-b-2 transition-all capitalize ${activeTab === tab
@@ -590,7 +603,7 @@ export default function ProjectDetailClient({
             <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 lg:py-16">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 lg:gap-12">
                     {/* ─── MAIN COLUMN ─── */}
-                    <div className="lg:col-span-2 space-y-12">
+                    <div className={`${isLocked ? 'lg:col-span-3 max-w-4xl mx-auto w-full' : 'lg:col-span-2'} space-y-12`}>
 
                         {/* OVERVIEW SECTION */}
                         <section id="section-overview">
@@ -889,6 +902,9 @@ export default function ProjectDetailClient({
                             </section>
                         )}
 
+                        {/* PRIVATE SECTIONS */}
+                        {privateData && (
+                            <>
                         {/* GALLERY */}
                         {(featuredImagesResolved.length > 0 || activeGalleryImages.length > 0) && (
                             <section id="section-gallery">
@@ -1316,43 +1332,14 @@ export default function ProjectDetailClient({
                                 </section>
                             </LazySection>
                         )}
-                        {/* PREMIUM LOCK OVERLAY */}
-                        {isLocked && (
-                            <div className="relative mt-8 rounded-3xl overflow-hidden border border-white/40 shadow-2xl bg-white/20 backdrop-blur-xl p-10 text-center">
-                                {/* Blurred Background Elements */}
-                                <div className="absolute -top-24 -right-24 w-64 h-64 bg-amber-400/20 rounded-full blur-3xl" />
-                                <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-blue-400/20 rounded-full blur-3xl" />
-                                
-                                <div className="relative z-10 flex flex-col items-center">
-                                    <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-lg shadow-amber-500/30 mb-6">
-                                        <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                        </svg>
-                                    </div>
-                                    <h3 className="text-2xl sm:text-3xl font-serif font-bold text-gray-900 mb-4 tracking-tight">
-                                        Unlock Full Property Details
-                                    </h3>
-                                    <p className="text-gray-600 max-w-lg mb-8 text-lg">
-                                        Create a free account to instantly access complete floor plans, developer information, exact location, and Verix™ Investment Analytics for {project.name}.
-                                    </p>
-                                    
-                                    <button 
-                                        onClick={() => {
-                                            const currentPath = `/projects/${project.slug}`;
-                                            sessionStorage.setItem(`scroll_${currentPath}`, window.scrollY.toString());
-                                            router.push(`/user/login?next=${encodeURIComponent(currentPath)}`);
-                                        }}
-                                        className="inline-flex items-center gap-3 px-10 py-4 bg-dark-blue text-white rounded-xl font-bold text-lg hover:bg-dark-blue/90 shadow-xl shadow-blue-900/20 transition-all hover:scale-105 active:scale-95"
-                                    >
-                                        Unlock Now (Free)
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                                    </button>
-                                </div>
-                            </div>
+                            </>
                         )}
+                        {/* PREMIUM LOCK OVERLAY */}
+                        {isLocked && <PremiumLock />}
                     </div>
 
                     {/* ─── SIDEBAR ─── */}
+                    {privateData && (
                     <div className="lg:col-span-1">
                         <div className="sticky top-16 space-y-4">
                             {/* Inquiry Form */}
@@ -1434,6 +1421,7 @@ export default function ProjectDetailClient({
                             </div>
                         </div>
                     </div>
+                    )}
                 </div>
             </div>
         </div>

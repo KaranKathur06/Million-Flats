@@ -67,19 +67,46 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     // Determine lock state: Guest users (non-bots) get gated content
     const isLocked = !isAuthenticated && !isBot
 
-    if (isLocked) {
-        // Redact sensitive data from the payload sent to the client
-        project.description = null;
-        project.developer = null;
-        project.location = null;
-        project.nearbyPlaces = [];
-        // Keep limited unit types info but redact floor plans
-        project.floorPlans = [];
-        project.unitTypes = project.unitTypes.map((ut: any) => ({
+    // Strict Server-Side Data Splitting
+    const publicData = {
+        id: project.id,
+        name: project.name,
+        slug: project.slug,
+        city: project.city,
+        community: project.community,
+        countryIso2: project.countryIso2,
+        startingPrice: project.startingPrice,
+        goldenVisa: project.goldenVisa,
+        coverImage: project.coverImage,
+        highlights: project.highlights,
+        completionYear: project.completionYear,
+        status: project.status,
+        createdAt: project.createdAt,
+        amenities: project.amenities,
+        paymentPlans: project.paymentPlans,
+        unitTypes: project.unitTypes.map((ut: any) => ({
             ...ut,
             variants: ut.variants?.map((v: any) => ({ ...v, floorPlans: [] })) || []
-        }));
-    }
+        })),
+        floorPlans: project.floorPlans,
+        // Include minimal media for Hero Image resolution
+        media: project.media.filter((m: any) => m.mediaType === 'hero' || m.category === 'hero').slice(0, 1),
+        mediaStructured: project.mediaStructured,
+        // Include basic developer info for the hero badge
+        developer: project.developer ? { name: project.developer.name, slug: project.developer.slug } : null
+    };
+
+    // Private Data is strictly null for guests
+    const privateData = isLocked ? null : {
+        description: project.description,
+        developer: project.developer, // full developer data with logo, rating, etc.
+        media: project.media, // full gallery
+        brochure: project.brochure,
+        location: project.location,
+        nearbyPlaces: project.nearbyPlaces,
+        videos: project.videos,
+        similarProjects: project.similarProjects
+    };
 
     const ecosystemRecommendations = await getRecommendationsForContext('project', {
         city: project.city || undefined,
@@ -88,7 +115,8 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     return (
         <Suspense fallback={<ProjectPageSkeleton />}>
             <ProjectDetailClient 
-               project={project} 
+               publicData={publicData}
+               privateData={privateData}
                ecosystemRecommendations={ecosystemRecommendations} 
                isLocked={isLocked}
             />
