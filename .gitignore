@@ -38,3 +38,20 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Environment
+.env
+.env.*
+!.env.example
+
+# Python
+venv/
+.venv/
+ml-service/venv/
+
+# Database backups
+*.sql
+*.dump
+*.backup
+
+# Temporary
+*.log
