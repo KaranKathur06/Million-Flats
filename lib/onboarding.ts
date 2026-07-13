@@ -11,9 +11,11 @@ export function calculateProfileCompletion(user: Partial<User>): number {
   // Total weight: 100
   let score = 0;
   const totalWeight = 100;
+
+  const hasName = Boolean(user.name || user.fullName);
   
   // Basic Information (30%)
-  if (user.fullName) score += 10;
+  if (hasName) score += 10;
   if (user.email) score += 10;
   if (user.city || user.countryIso2) score += 5;
   if (user.purpose) score += 5;

@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import { getLegalFullName } from './userDisplayService';
 
 export async function syncUserToCRM(email: string) {
   try {
@@ -16,7 +17,7 @@ export async function syncUserToCRM(email: string) {
     const payload = {
       externalId: user.id,
       email: user.email,
-      fullName: user.fullName || user.name,
+      fullName: getLegalFullName(user),
       phone: user.phone,
       country: user.countryIso2,
       city: user.city,
