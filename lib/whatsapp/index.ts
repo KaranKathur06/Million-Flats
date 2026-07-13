@@ -1,6 +1,6 @@
 export * from './types'
 export * from './session'
 export * from './otp'
-export * from './meta'
+export * from './aisensy'
 export * from './rateLimit'
 export * from './log'

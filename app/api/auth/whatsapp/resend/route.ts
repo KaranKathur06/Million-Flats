@@ -103,9 +103,7 @@ export async function POST(req: NextRequest) {
         errorCode: sendResult.error,
         response: {
           event: "otp_resend_failed",
-          metaErrorCode: sendResult.errorCode,
-          metaErrorSubcode: sendResult.errorSubcode,
-          fbTraceId: sendResult.fbTraceId,
+          errorType: sendResult.errorType,
           requestId: sendResult.requestId,
         },
       });
@@ -113,14 +111,11 @@ export async function POST(req: NextRequest) {
         {
           message:
             "Unable to resend WhatsApp code. Please try again in a moment.",
-          error: "META_API_ERROR",
+          error: sendResult.errorType || "PROVIDER_ERROR",
           ...(process.env.NODE_ENV !== "production"
             ? {
                 debug: {
-                  metaError: sendResult.error,
-                  metaCode: sendResult.errorCode,
-                  metaSubcode: sendResult.errorSubcode,
-                  fbTraceId: sendResult.fbTraceId,
+                  providerError: sendResult.error,
                   requestId: sendResult.requestId,
                 },
               }
@@ -135,7 +130,7 @@ export async function POST(req: NextRequest) {
       phone: session.phone,
       logType: "otp_sent",
       template:
-        process.env.META_WHATSAPP_AUTH_TEMPLATE_NAME || "login_millionflats",
+        process.env.AISENSY_AUTH_CAMPAIGN_NAME || "login_millionflats",
       messageId: sendResult.messageId,
       sentAt: new Date(),
       response: { requestId: sendResult.requestId },

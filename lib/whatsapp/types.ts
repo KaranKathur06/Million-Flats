@@ -22,14 +22,11 @@ export interface WhatsAppSession {
   createdAt: Date;
 }
 
-export interface MetaMessageResult {
+export interface WhatsAppMessageResult {
   success: boolean;
   messageId?: string;
   error?: string;
-  /** Meta error code (e.g. 131030 = template not found, 190 = token expired) */
-  errorCode?: number;
-  errorSubcode?: number;
-  fbTraceId?: string;
+  errorType?: "CONFIG_ERROR" | "NETWORK_ERROR" | "TEMPLATE_ERROR" | "TOKEN_EXPIRED" | "INVALID_PARAM" | "PROVIDER_ERROR";
   requestId?: string;
 }
 
