@@ -98,7 +98,30 @@ export async function POST(req: NextRequest) {
 
     // ── 3. Find or create buyer account ──────────────────────────────────────
     const phone = session.phone;
-    let user = (await prisma.user.findFirst({ where: { phone } })) as any;
+
+    // Hotfix: In WhatsApp OTP confirmation flow, never project `full_name/fullName`.
+    // Some production DBs may temporarily not have `users.full_name`, causing P2022.
+    const userSelect = {
+      id: true,
+      phone: true,
+      email: true,
+      status: true,
+      role: true,
+      verified: true,
+      whatsappVerified: true,
+      phoneVerified: true,
+      lastWhatsappLogin: true,
+      welcomeWhatsappSent: true,
+      authProvider: true,
+      // buyer relation is used only for existence; selecting it avoids pulling full user fields
+      buyer: { select: { id: true } },
+    } as const
+
+    let user = (await prisma.user.findFirst({
+      where: { phone },
+      select: userSelect,
+    })) as any
+
     let isNewUser = false;
 
     if (!user) {
