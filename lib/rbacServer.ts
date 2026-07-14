@@ -15,7 +15,10 @@ export async function requireRole(minRole: AppRole) {
     return { ok: false as const, status: 401, message: 'Unauthorized' }
   }
 
-  const dbUser = await prisma.user.findUnique({ where: { email } })
+  const dbUser = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true, email: true, role: true },
+  })
   if (!dbUser) {
     return { ok: false as const, status: 401, message: 'Unauthorized' }
   }

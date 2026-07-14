@@ -31,3 +31,16 @@ test('validateAiSensyPayload rejects empty and mismatched template params', () =
   assert.equal(result.valid, false);
   assert.match(result.error, /expected 1 placeholder/i);
 });
+
+test('validateAiSensyPayload rejects unsupported userName values', () => {
+  const result = validateAiSensyPayload({
+    apiKey: 'test-key',
+    campaignName: 'login_millionflats',
+    destination: '+971501234567',
+    templateParams: ['123456'],
+    userName: 'Test User',
+  }, { expectedPlaceholderCount: 1 });
+
+  assert.equal(result.valid, false);
+  assert.match(result.error, /userName/i);
+});

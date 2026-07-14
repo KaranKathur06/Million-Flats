@@ -26,7 +26,19 @@ export interface WhatsAppMessageResult {
   success: boolean;
   messageId?: string;
   error?: string;
-  errorType?: "CONFIG_ERROR" | "NETWORK_ERROR" | "TEMPLATE_ERROR" | "TOKEN_EXPIRED" | "INVALID_PARAM" | "PROVIDER_ERROR";
+  errorType?:
+    | "CONFIG_ERROR"
+    | "NETWORK_ERROR"
+    | "TEMPLATE_ERROR"
+    | "TOKEN_EXPIRED"
+    | "INVALID_PARAM"
+    | "PROVIDER_ERROR"
+    | "INVALID_USERNAME"
+    | "INVALID_TEMPLATE"
+    | "INVALID_CAMPAIGN"
+    | "INVALID_DESTINATION"
+    | "INVALID_API_KEY"
+    | "PROVIDER_VALIDATION_ERROR";
   requestId?: string;
 }
 

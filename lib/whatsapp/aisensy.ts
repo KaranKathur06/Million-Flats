@@ -196,7 +196,7 @@ export async function sendAuthenticationOtp(
     return {
       success: false,
       error: validation.error,
-      errorType: "TEMPLATE_ERROR",
+      errorType: getValidationErrorType(validation.error),
       requestId,
     };
   }
@@ -205,6 +205,9 @@ export async function sendAuthenticationOtp(
     apiKey: config.apiKey,
   });
 
+  console.log("========== AISENSY REQUEST ==========");
+  console.log(JSON.stringify(payload, null, 2));
+  console.log("====================================");
   console.info("[WhatsApp AiSensy] Sending OTP request", {
     requestId,
     endpoint: AISENSY_CAMPAIGN_API,
@@ -284,7 +287,7 @@ export async function sendWelcomeMessage(
     return {
       success: false,
       error: validation.error,
-      errorType: "TEMPLATE_ERROR",
+      errorType: getValidationErrorType(validation.error),
     };
   }
 
@@ -383,15 +386,26 @@ function getAiSensyErrorType(status: number, data?: any): AiSensyErrorType {
 
   if (status === 401 || status === 403) return "CONFIG_ERROR";
   if (status === 400) {
-    if (message.includes("username")) return "INVALID_PARAM";
-    if (message.includes("destination")) return "INVALID_PARAM";
-    if (message.includes("campaign")) return "TEMPLATE_ERROR";
-    if (message.includes("template") || message.includes("parameter")) return "TEMPLATE_ERROR";
-    return "TEMPLATE_ERROR";
+    if (message.includes("username")) return "INVALID_USERNAME";
+    if (message.includes("destination")) return "INVALID_DESTINATION";
+    if (message.includes("campaign")) return "INVALID_CAMPAIGN";
+    if (message.includes("template") || message.includes("parameter")) return "INVALID_TEMPLATE";
+    return "PROVIDER_VALIDATION_ERROR";
   }
   if (status === 429) return "PROVIDER_ERROR";
   if (status >= 500) return "NETWORK_ERROR";
   return "PROVIDER_ERROR";
+}
+
+function getValidationErrorType(error?: string): AiSensyErrorType {
+  const message = (error || "").toLowerCase();
+
+  if (message.includes("api key")) return "INVALID_API_KEY";
+  if (message.includes("campaign")) return "INVALID_CAMPAIGN";
+  if (message.includes("destination")) return "INVALID_DESTINATION";
+  if (message.includes("templateparams")) return "INVALID_TEMPLATE";
+  if (message.includes("username")) return "INVALID_USERNAME";
+  return "PROVIDER_VALIDATION_ERROR";
 }
 
 function delay(ms: number): Promise<void> {
