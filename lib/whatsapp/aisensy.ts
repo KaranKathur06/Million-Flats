@@ -2,6 +2,9 @@ import crypto from "crypto";
 import type { WhatsAppMessageResult } from "./types";
 
 const DEFAULT_AUTH_CAMPAIGN_NAME = "login_millionflats";
+const DEFAULT_AISENSY_USER_NAME = "MillionFlats User";
+const DEFAULT_AISENSY_MIN_USERNAME_LENGTH = 2;
+const DEFAULT_AISENSY_MAX_USERNAME_LENGTH = 50;
 const DEFAULT_WELCOME_CAMPAIGN_NAME = "welcome_millionflats";
 const DEFAULT_OTP_CONTEXT = "login";
 const DEFAULT_SUPPORT_CONTACT = "1800-555-1234";
@@ -30,11 +33,13 @@ export function buildAiSensyOtpPayload(input: {
   otp: string;
   context?: string;
   supportContact?: string;
+  userName?: string;
   expectedPlaceholderCount?: number;
 }): {
   apiKey: string;
   campaignName: string;
   destination: string;
+  userName: string;
   templateParams: string[];
 } {
   const expectedCount =
@@ -46,10 +51,13 @@ export function buildAiSensyOtpPayload(input: {
     return "";
   });
 
+  const resolvedUserName = normalizeAndValidateUserName(input.userName) ?? DEFAULT_AISENSY_USER_NAME;
+
   return {
     apiKey: input.apiKey,
     campaignName: input.campaignName,
     destination: normalizeDestination(input.destination),
+    userName: resolvedUserName,
     templateParams,
   };
 }
@@ -91,11 +99,35 @@ export function validateAiSensyPayload(
     };
   }
 
-  if (payload.userName !== undefined) {
+  if (payload.userName === undefined || payload.userName === null) {
+    return { valid: false, error: "AiSensy userName is required." };
+  }
+
+  if (typeof payload.userName !== "string") {
+    return { valid: false, error: "AiSensy userName must be a string." };
+  }
+
+  const trimmedUserName = payload.userName.trim();
+  if (!trimmedUserName) {
+    return { valid: false, error: "AiSensy userName must not be empty." };
+  }
+
+  if (trimmedUserName.length < DEFAULT_AISENSY_MIN_USERNAME_LENGTH) {
     return {
       valid: false,
-      error: "AiSensy userName is not supported for this template and must be omitted.",
+      error: `AiSensy userName must be at least ${DEFAULT_AISENSY_MIN_USERNAME_LENGTH} characters.`,
     };
+  }
+
+  if (trimmedUserName.length > DEFAULT_AISENSY_MAX_USERNAME_LENGTH) {
+    return {
+      valid: false,
+      error: `AiSensy userName must be at most ${DEFAULT_AISENSY_MAX_USERNAME_LENGTH} characters.`,
+    };
+  }
+
+  if (!isMeaningfulUserName(trimmedUserName)) {
+    return { valid: false, error: "AiSensy userName must contain letters or a meaningful display name." };
   }
 
   if (!Array.isArray(payload.templateParams)) {
@@ -140,6 +172,7 @@ function getConfig() {
 export async function sendAuthenticationOtp(
   phone: string,
   otp: string,
+  requestContext?: { user?: unknown; registration?: unknown; auth?: unknown },
 ): Promise<WhatsAppMessageResult> {
   if (process.env.WHATSAPP_TEST_MODE === "true") {
     console.log("[WhatsApp TEST MODE] OTP not sent via AiSensy API", {
@@ -169,6 +202,8 @@ export async function sendAuthenticationOtp(
   const cleanPhone = normalizeDestination(phone);
 
   const expectedPlaceholderCount = getExpectedTemplatePlaceholderCount();
+  const userNameResolution = resolveAiSensyUserNameWithMetadata(requestContext?.user, requestContext?.registration, requestContext?.auth);
+  const userName = userNameResolution.value;
   const payload = buildAiSensyOtpPayload({
     apiKey: config.apiKey,
     campaignName,
@@ -176,6 +211,7 @@ export async function sendAuthenticationOtp(
     otp,
     context,
     supportContact,
+    userName,
     expectedPlaceholderCount,
   });
 
@@ -216,6 +252,7 @@ export async function sendAuthenticationOtp(
       "Content-Type": "application/json",
     },
     payload: payloadInspection,
+    userNameResolution,
   });
 
   const sent = await aisensyRequestWithRetry({
@@ -253,6 +290,7 @@ export async function sendAuthenticationOtp(
 /** Sends the one-time welcome message after successful first login using Campaign API */
 export async function sendWelcomeMessage(
   phone: string,
+  requestContext?: { user?: unknown; registration?: unknown; auth?: unknown },
 ): Promise<WhatsAppMessageResult> {
   if (process.env.WHATSAPP_TEST_MODE === "true") {
     console.log(`[WhatsApp TEST MODE] Welcome message skipped for ${phone}`);
@@ -267,10 +305,13 @@ export async function sendWelcomeMessage(
     process.env.AISENSY_WELCOME_CAMPAIGN_NAME || DEFAULT_WELCOME_CAMPAIGN_NAME
   ).trim();
 
+  const userNameResolution = resolveAiSensyUserNameWithMetadata(requestContext?.user, requestContext?.registration, requestContext?.auth);
+  const userName = userNameResolution.value;
   const payload = {
     apiKey: config.apiKey,
     campaignName,
     destination: cleanPhone,
+    userName,
     templateParams: [],
   };
 
@@ -422,6 +463,71 @@ function maskApiKey(apiKey: string): string {
 function normalizeDestination(phone: string): string {
   const digits = phone.replace(/\D/g, "");
   return digits ? `+${digits}` : "";
+}
+
+function normalizeAndValidateUserName(userName?: string | null): string | null {
+  if (typeof userName !== "string") return null;
+  const trimmed = userName.trim();
+  if (!trimmed) return null;
+  const collapsed = trimmed.replace(/\s+/g, " ");
+  return isMeaningfulUserName(collapsed) ? collapsed : null;
+}
+
+export function resolveAiSensyUserName(
+  user?: unknown,
+  registration?: unknown,
+  auth?: unknown,
+): string {
+  return resolveAiSensyUserNameWithMetadata(user, registration, auth).value;
+}
+
+function resolveAiSensyUserNameWithMetadata(
+  user?: unknown,
+  registration?: unknown,
+  auth?: unknown,
+): { value: string; source: string } {
+  const candidates: Array<{ source: string; value: string | null }> = [
+    { source: "user", value: getNameFromCandidate(user) },
+    { source: "registration", value: getNameFromCandidate(registration) },
+    { source: "auth", value: getNameFromCandidate(auth) },
+    { source: "user.fullName", value: getNameFromCandidate((user as { fullName?: unknown })?.fullName) },
+    { source: "user.name", value: getNameFromCandidate((user as { name?: unknown })?.name) },
+    { source: "registration.fullName", value: getNameFromCandidate((registration as { fullName?: unknown })?.fullName) },
+    { source: "registration.firstName", value: getNameFromCandidate((registration as { firstName?: unknown })?.firstName) },
+    { source: "registration.name", value: getNameFromCandidate((registration as { name?: unknown })?.name) },
+    { source: "auth.fullName", value: getNameFromCandidate((auth as { fullName?: unknown })?.fullName) },
+    { source: "auth.firstName", value: getNameFromCandidate((auth as { firstName?: unknown })?.firstName) },
+    { source: "auth.name", value: getNameFromCandidate((auth as { name?: unknown })?.name) },
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate.value) return { value: candidate.value, source: candidate.source };
+  }
+
+  return { value: DEFAULT_AISENSY_USER_NAME, source: "fallback" };
+}
+
+function getNameFromCandidate(candidate: unknown): string | null {
+  if (typeof candidate === "string") {
+    return normalizeAndValidateUserName(candidate);
+  }
+
+  if (candidate && typeof candidate === "object") {
+    const record = candidate as Record<string, unknown>;
+    const direct = [record.fullName, record.name, record.firstName].find((value): value is string => typeof value === "string");
+    return normalizeAndValidateUserName(direct ?? null);
+  }
+
+  return null;
+}
+
+function isMeaningfulUserName(value: string): boolean {
+  if (!value) return false;
+  if (/^[+\d\s()-]+$/.test(value)) return false;
+  if (/^[^a-zA-Z0-9]+$/.test(value)) return false;
+  if (/^[0-9]+$/.test(value)) return false;
+  if (/^[a-zA-Z]+$/.test(value) && value.length < 2) return false;
+  return /[a-zA-Z]/.test(value);
 }
 
 function describeAiSensyPayload(
