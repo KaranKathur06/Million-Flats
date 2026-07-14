@@ -5,10 +5,108 @@ const DEFAULT_AUTH_CAMPAIGN_NAME = "login_millionflats";
 const DEFAULT_WELCOME_CAMPAIGN_NAME = "welcome_millionflats";
 const DEFAULT_OTP_CONTEXT = "login";
 const DEFAULT_SUPPORT_CONTACT = "1800-555-1234";
+const DEFAULT_OTP_TEMPLATE_PLACEHOLDER_COUNT = 1;
 const AISENSY_CAMPAIGN_API = "https://backend.aisensy.com/campaign/t1/api/v2";
 
 type AiSensyConfig = ReturnType<typeof getConfig>;
 type AiSensyErrorType = NonNullable<WhatsAppMessageResult['errorType']>;
+
+function getExpectedTemplatePlaceholderCount(): number {
+  const parsed = Number(
+    process.env.AISENSY_OTP_TEMPLATE_PLACEHOLDER_COUNT ||
+      DEFAULT_OTP_TEMPLATE_PLACEHOLDER_COUNT,
+  );
+
+  return Number.isFinite(parsed) && parsed > 0
+    ? Math.floor(parsed)
+    : DEFAULT_OTP_TEMPLATE_PLACEHOLDER_COUNT;
+}
+
+export function buildAiSensyOtpPayload(input: {
+  apiKey: string;
+  campaignName: string;
+  destination: string;
+  otp: string;
+  context?: string;
+  supportContact?: string;
+  expectedPlaceholderCount?: number;
+}): {
+  apiKey: string;
+  campaignName: string;
+  destination: string;
+  templateParams: string[];
+} {
+  const expectedCount =
+    input.expectedPlaceholderCount ?? getExpectedTemplatePlaceholderCount();
+  const templateParams = Array.from({ length: expectedCount }, (_, index) => {
+    if (index === 0) return input.otp;
+    if (index === 1) return input.context ?? "";
+    if (index === 2) return input.supportContact ?? "";
+    return "";
+  });
+
+  return {
+    apiKey: input.apiKey,
+    campaignName: input.campaignName,
+    destination: input.destination,
+    templateParams,
+  };
+}
+
+export function validateAiSensyPayload(
+  payload: {
+    apiKey?: string;
+    campaignName?: string;
+    destination?: string;
+    templateParams?: unknown;
+  },
+  options?: { expectedPlaceholderCount?: number },
+): { valid: boolean; error?: string } {
+  if (!payload.apiKey || typeof payload.apiKey !== "string" || !payload.apiKey.trim()) {
+    return { valid: false, error: "AiSensy API key is required." };
+  }
+
+  if (
+    !payload.campaignName ||
+    typeof payload.campaignName !== "string" ||
+    !payload.campaignName.trim()
+  ) {
+    return { valid: false, error: "AiSensy campaignName is required." };
+  }
+
+  if (
+    !payload.destination ||
+    typeof payload.destination !== "string" ||
+    !payload.destination.trim()
+  ) {
+    return { valid: false, error: "AiSensy destination is required." };
+  }
+
+  if (!Array.isArray(payload.templateParams)) {
+    return { valid: false, error: "AiSensy templateParams must be an array." };
+  }
+
+  const expectedCount = options?.expectedPlaceholderCount ?? getExpectedTemplatePlaceholderCount();
+  if (payload.templateParams.length !== expectedCount) {
+    return {
+      valid: false,
+      error: `AiSensy templateParams expected ${expectedCount} placeholder(s), received ${payload.templateParams.length}.`,
+    };
+  }
+
+  const invalidValue = payload.templateParams.find((value) => {
+    return value === null || value === undefined || String(value).trim() === "";
+  });
+
+  if (invalidValue !== undefined) {
+    return {
+      valid: false,
+      error: "AiSensy templateParams contains empty or invalid values.",
+    };
+  }
+
+  return { valid: true };
+}
 
 function getConfig() {
   const apiKey = (process.env.AISENSY_API_KEY || "").trim();
@@ -54,27 +152,51 @@ export async function sendAuthenticationOtp(
 
   const cleanPhone = phone.replace(/[^0-9]/g, "");
 
-  const payload = {
+  const expectedPlaceholderCount = getExpectedTemplatePlaceholderCount();
+  const payload = buildAiSensyOtpPayload({
     apiKey: config.apiKey,
     campaignName,
     destination: cleanPhone,
-    userName: "User",
-    source: "millionflats-auth",
-    templateParams: [otp, context, supportContact],
-    buttons: [
-      {
-        type: "button",
-        sub_type: "url",
-        index: "0",
-        parameters: [
-          {
-            type: "text",
-            text: otp,
-          },
-        ],
+    otp,
+    context,
+    supportContact,
+    expectedPlaceholderCount,
+  });
+
+  const validation = validateAiSensyPayload(payload, {
+    expectedPlaceholderCount,
+  });
+
+  if (!validation.valid) {
+    console.error("[WhatsApp AiSensy] Payload validation failed", {
+      requestId,
+      error: validation.error,
+      payload: {
+        ...payload,
+        apiKey: maskApiKey(config.apiKey),
       },
-    ],
-  };
+    });
+
+    return {
+      success: false,
+      error: validation.error,
+      errorType: "TEMPLATE_ERROR",
+      requestId,
+    };
+  }
+
+  console.info("[WhatsApp AiSensy] Sending OTP request", {
+    requestId,
+    endpoint: AISENSY_CAMPAIGN_API,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    payload: {
+      ...payload,
+      apiKey: maskApiKey(config.apiKey),
+    },
+  });
 
   const sent = await aisensyRequestWithRetry({
     endpoint: AISENSY_CAMPAIGN_API,
@@ -129,10 +251,25 @@ export async function sendWelcomeMessage(
     apiKey: config.apiKey,
     campaignName,
     destination: cleanPhone,
-    userName: "User",
-    source: "millionflats-auth",
     templateParams: [],
   };
+
+  const validation = validateAiSensyPayload(payload, { expectedPlaceholderCount: 0 });
+  if (!validation.valid) {
+    console.error("[WhatsApp AiSensy] Welcome payload validation failed", {
+      error: validation.error,
+      payload: {
+        ...payload,
+        apiKey: maskApiKey(config.apiKey),
+      },
+    });
+
+    return {
+      success: false,
+      error: validation.error,
+      errorType: "TEMPLATE_ERROR",
+    };
+  }
 
   const sent = await aisensyRequestWithRetry({
     endpoint: AISENSY_CAMPAIGN_API,
@@ -175,6 +312,7 @@ async function aisensyRequestWithRetry(input: {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
+      const startedAt = Date.now();
       const response = await fetch(input.endpoint, {
         method: "POST",
         headers: {
@@ -184,6 +322,15 @@ async function aisensyRequestWithRetry(input: {
       });
       
       const data = await response.json().catch(() => ({}));
+      const latencyMs = Date.now() - startedAt;
+
+      console.info("[WhatsApp AiSensy] HTTP response", {
+        endpoint: input.endpoint,
+        method: "POST",
+        status: response.status,
+        latencyMs,
+        responseBody: data,
+      });
 
       if (
         response.ok ||
@@ -223,4 +370,11 @@ function getAiSensyErrorType(status: number): AiSensyErrorType {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function maskApiKey(apiKey: string): string {
+  if (!apiKey) return "";
+  if (apiKey.length <= 10) return "***";
+
+  return `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}`;
 }
