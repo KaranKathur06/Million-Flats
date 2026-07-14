@@ -10,6 +10,7 @@ const AISENSY_CAMPAIGN_API = "https://backend.aisensy.com/campaign/t1/api/v2";
 
 type AiSensyConfig = ReturnType<typeof getConfig>;
 type AiSensyErrorType = NonNullable<WhatsAppMessageResult['errorType']>;
+const E164_DESTINATION_REGEX = /^\+[1-9]\d{6,14}$/;
 
 function getExpectedTemplatePlaceholderCount(): number {
   const parsed = Number(
@@ -48,7 +49,7 @@ export function buildAiSensyOtpPayload(input: {
   return {
     apiKey: input.apiKey,
     campaignName: input.campaignName,
-    destination: input.destination,
+    destination: normalizeDestination(input.destination),
     templateParams,
   };
 }
@@ -59,6 +60,7 @@ export function validateAiSensyPayload(
     campaignName?: string;
     destination?: string;
     templateParams?: unknown;
+    userName?: unknown;
   },
   options?: { expectedPlaceholderCount?: number },
 ): { valid: boolean; error?: string } {
@@ -80,6 +82,20 @@ export function validateAiSensyPayload(
     !payload.destination.trim()
   ) {
     return { valid: false, error: "AiSensy destination is required." };
+  }
+
+  if (!E164_DESTINATION_REGEX.test(payload.destination.trim())) {
+    return {
+      valid: false,
+      error: "AiSensy destination must be a valid E.164 phone number.",
+    };
+  }
+
+  if (payload.userName !== undefined) {
+    return {
+      valid: false,
+      error: "AiSensy userName is not supported for this template and must be omitted.",
+    };
   }
 
   if (!Array.isArray(payload.templateParams)) {
@@ -150,7 +166,7 @@ export async function sendAuthenticationOtp(
     return { success: false, errorType: "CONFIG_ERROR", requestId };
   }
 
-  const cleanPhone = phone.replace(/[^0-9]/g, "");
+  const cleanPhone = normalizeDestination(phone);
 
   const expectedPlaceholderCount = getExpectedTemplatePlaceholderCount();
   const payload = buildAiSensyOtpPayload({
@@ -214,7 +230,7 @@ export async function sendAuthenticationOtp(
       response: sent.data,
     });
     
-    const errorType = getAiSensyErrorType(sent.status);
+    const errorType = getAiSensyErrorType(sent.status, sent.data);
 
     return {
       success: false,
@@ -243,7 +259,7 @@ export async function sendWelcomeMessage(
   const config = getConfig();
   if (!config.apiKey) return { success: false, errorType: "CONFIG_ERROR" };
 
-  const cleanPhone = phone.replace(/[^0-9]/g, "");
+  const cleanPhone = normalizeDestination(phone);
   const campaignName = (
     process.env.AISENSY_WELCOME_CAMPAIGN_NAME || DEFAULT_WELCOME_CAMPAIGN_NAME
   ).trim();
@@ -280,7 +296,7 @@ export async function sendWelcomeMessage(
   if (!sent.ok) {
     return {
       success: false,
-      errorType: getAiSensyErrorType(sent.status),
+      errorType: getAiSensyErrorType(sent.status, sent.data),
       error: sent.data?.error || sent.data?.message,
     };
   }
@@ -362,9 +378,18 @@ function isRetryableStatus(status: number): boolean {
   return status === 429 || status >= 500;
 }
 
-function getAiSensyErrorType(status: number): AiSensyErrorType {
+function getAiSensyErrorType(status: number, data?: any): AiSensyErrorType {
+  const message = [data?.error, data?.message].filter(Boolean).join(" ").toLowerCase();
+
   if (status === 401 || status === 403) return "CONFIG_ERROR";
-  if (status === 400 || status === 404) return "TEMPLATE_ERROR";
+  if (status === 400) {
+    if (message.includes("username")) return "INVALID_PARAM";
+    if (message.includes("destination")) return "INVALID_PARAM";
+    if (message.includes("campaign")) return "TEMPLATE_ERROR";
+    if (message.includes("template") || message.includes("parameter")) return "TEMPLATE_ERROR";
+    return "TEMPLATE_ERROR";
+  }
+  if (status === 429) return "PROVIDER_ERROR";
   if (status >= 500) return "NETWORK_ERROR";
   return "PROVIDER_ERROR";
 }
@@ -378,6 +403,11 @@ function maskApiKey(apiKey: string): string {
   if (apiKey.length <= 10) return "***";
 
   return `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}`;
+}
+
+function normalizeDestination(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  return digits ? `+${digits}` : "";
 }
 
 function describeAiSensyPayload(
