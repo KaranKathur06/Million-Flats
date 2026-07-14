@@ -132,6 +132,7 @@ export async function POST(req: NextRequest) {
       // Edge case: synthetic email already exists (previous failed creation)
       const existingByEmail = (await prisma.user.findUnique({
         where: { email: syntheticEmail },
+        select: userSelect,
       })) as any;
 
       if (existingByEmail) {
