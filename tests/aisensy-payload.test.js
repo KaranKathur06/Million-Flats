@@ -17,6 +17,7 @@ test('buildAiSensyOtpPayload uses a single OTP template parameter by default', (
   assert.deepEqual(payload.templateParams, ['123456']);
   assert.equal(payload.campaignName, 'login_millionflats');
   assert.equal(payload.destination, '971501234567');
+  assert.equal(Object.prototype.hasOwnProperty.call(payload, 'userName'), false);
 });
 
 test('validateAiSensyPayload rejects empty and mismatched template params', () => {

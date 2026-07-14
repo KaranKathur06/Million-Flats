@@ -185,6 +185,10 @@ export async function sendAuthenticationOtp(
     };
   }
 
+  const payloadInspection = describeAiSensyPayload(payload, {
+    apiKey: config.apiKey,
+  });
+
   console.info("[WhatsApp AiSensy] Sending OTP request", {
     requestId,
     endpoint: AISENSY_CAMPAIGN_API,
@@ -192,10 +196,7 @@ export async function sendAuthenticationOtp(
     headers: {
       "Content-Type": "application/json",
     },
-    payload: {
-      ...payload,
-      apiKey: maskApiKey(config.apiKey),
-    },
+    payload: payloadInspection,
   });
 
   const sent = await aisensyRequestWithRetry({
@@ -377,4 +378,61 @@ function maskApiKey(apiKey: string): string {
   if (apiKey.length <= 10) return "***";
 
   return `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}`;
+}
+
+function describeAiSensyPayload(
+  payload: Record<string, unknown>,
+  options?: { apiKey?: string },
+): Record<string, unknown> {
+  const apiKey = options?.apiKey;
+  const summary: Record<string, unknown> = {
+    ...payload,
+    apiKey: maskApiKey(apiKey || ""),
+  };
+
+  if (Object.prototype.hasOwnProperty.call(payload, "userName")) {
+    const userName = payload.userName;
+    summary.userName = {
+      present: true,
+      type: typeof userName,
+      value: userName,
+      trimmed: typeof userName === "string" ? userName.trim() : null,
+      length: typeof userName === "string" ? userName.length : null,
+    };
+  } else {
+    summary.userName = {
+      present: false,
+      reason: "not sent",
+    };
+  }
+
+  if (Array.isArray(payload.templateParams)) {
+    summary.templateParams = payload.templateParams.map((value, index) => ({
+      index,
+      type: typeof value,
+      value,
+      trimmed: typeof value === "string" ? value.trim() : null,
+      length: typeof value === "string" ? value.length : null,
+    }));
+  }
+
+  if (typeof payload.campaignName === "string") {
+    summary.campaignName = {
+      type: typeof payload.campaignName,
+      value: payload.campaignName,
+      trimmed: payload.campaignName.trim(),
+      length: payload.campaignName.length,
+    };
+  }
+
+  if (typeof payload.destination === "string") {
+    summary.destination = {
+      type: typeof payload.destination,
+      value: payload.destination,
+      trimmed: payload.destination.trim(),
+      length: payload.destination.length,
+    };
+  }
+
+  return summary;
 }
