@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   createAuthSession,
   createOtp,
-  sendAuthenticationOtp,
+  createOtpNotificationProvider,
   markOtpSent,
   markFailed,
   checkSessionInitRateLimit,
@@ -75,8 +75,9 @@ export async function POST(req: NextRequest) {
     // Generate and hash OTP immediately
     const otp = await createOtp(sessionId);
 
-    // Send OTP via Meta Authentication Template
-    const sendResult = await sendAuthenticationOtp(cleanPhone, otp);
+    // Send OTP via the configured notification provider
+    const provider = createOtpNotificationProvider();
+    const sendResult = await provider.sendOtp(cleanPhone, otp);
 
     if (!sendResult.success) {
       await markFailed(sessionId);
@@ -108,7 +109,7 @@ export async function POST(req: NextRequest) {
       } else if (errorType === "TEMPLATE_ERROR") {
         message =
           "WhatsApp delivery is temporarily unavailable. Please contact support.";
-        console.error(`[WhatsApp Init] TEMPLATE_ERROR: Check AISENSY_AUTH_CAMPAIGN_NAME and campaign status in AiSensy dashboard.`);
+        console.error(`[WhatsApp Init] TEMPLATE_ERROR: Check AISENSY_CAMPAIGN_NAME and campaign status in AiSensy dashboard.`);
       }
 
       const status = errorType === "PROVIDER_ERROR" || errorType === "NETWORK_ERROR" || errorType === "TEMPLATE_ERROR" ? 503 : 500;
@@ -139,7 +140,9 @@ export async function POST(req: NextRequest) {
       phone: cleanPhone,
       logType: "otp_sent",
       template:
-        process.env.META_WHATSAPP_AUTH_TEMPLATE_NAME || "login_millionflats",
+        process.env.AISENSY_CAMPAIGN_NAME ||
+        process.env.AISENSY_AUTH_CAMPAIGN_NAME ||
+        "millionflats_auth_otp",
       messageId: sendResult.messageId,
       sentAt: new Date(),
       response: { requestId: sendResult.requestId },

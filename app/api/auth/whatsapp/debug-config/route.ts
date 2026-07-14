@@ -20,7 +20,9 @@ export async function GET(req: NextRequest) {
   const accessToken = process.env.META_WHATSAPP_ACCESS_TOKEN || "";
   const phoneNumberId = process.env.META_WHATSAPP_PHONE_NUMBER_ID || "";
   const templateName =
-    process.env.META_WHATSAPP_AUTH_TEMPLATE_NAME || "login_millionflats";
+    process.env.AISENSY_CAMPAIGN_NAME ||
+    process.env.AISENSY_AUTH_CAMPAIGN_NAME ||
+    "millionflats_auth_otp";
   const buttonType = process.env.META_WHATSAPP_BUTTON_TYPE || "copy_code";
   const graphVersion = process.env.META_WHATSAPP_GRAPH_VERSION || "v23.0";
   const testMode = process.env.WHATSAPP_TEST_MODE || "false";

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import {
   getSession,
   createOtp,
-  sendAuthenticationOtp,
+  createOtpNotificationProvider,
   logWhatsAppEvent,
 } from "@/lib/whatsapp";
 
@@ -93,7 +93,8 @@ export async function POST(req: NextRequest) {
 
     // createOtp invalidates any previous unused OTPs and creates a fresh one
     const otp = await createOtp(sessionId);
-    const sendResult = await sendAuthenticationOtp(session.phone, otp);
+    const provider = createOtpNotificationProvider();
+    const sendResult = await provider.sendOtp(session.phone, otp);
 
     if (!sendResult.success) {
       await logWhatsAppEvent({
@@ -130,7 +131,9 @@ export async function POST(req: NextRequest) {
       phone: session.phone,
       logType: "otp_sent",
       template:
-        process.env.AISENSY_AUTH_CAMPAIGN_NAME || "login_millionflats",
+        process.env.AISENSY_CAMPAIGN_NAME ||
+        process.env.AISENSY_AUTH_CAMPAIGN_NAME ||
+        "millionflats_auth_otp",
       messageId: sendResult.messageId,
       sentAt: new Date(),
       response: { requestId: sendResult.requestId },
