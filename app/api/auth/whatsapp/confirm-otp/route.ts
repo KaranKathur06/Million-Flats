@@ -163,7 +163,9 @@ export async function POST(req: NextRequest) {
             status: "ACTIVE",
             authProvider: "whatsapp",
             profileCompletion: 15,
-            buyer: { create: {} },
+            // Hotfix: avoid nested relation creation in this flow to prevent unintended writes
+            // to columns that may not exist in the current production DB schema.
+            // buyer: { create: {} },
           },
         });
       }
