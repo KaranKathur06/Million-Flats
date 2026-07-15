@@ -1,4 +1,4 @@
-// ━━━ VerixShield Orchestrator Service (Main Controller) ━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield Orchestrator Service (Main Controller) ━━━━━━━━━━━━━━━━━━
 // Aggregates outputs from all service engines
 // Handles caching, error recovery, and unified response assembly
 
@@ -8,12 +8,12 @@ import { runComparablesEngine } from './comparables-engine'
 import { runTrendEngine } from './trend-engine'
 import { runMarketSignalEngine } from './market-signal-engine'
 import { runRuleEngine, computeRentalIntelligence, computePriceDistribution } from './rule-engine'
-import type { PropertyInput, VerixShieldResponse, EntityType, ValuationResult } from './types'
+import type { PropertyInput, AIShieldResponse, EntityType, ValuationResult } from './types'
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000  // 6 hours
 const MODEL_VERSION = '1.0.0'
 
-export async function orchestrate(propertyId: string, entityType: EntityType): Promise<VerixShieldResponse> {
+export async function orchestrate(propertyId: string, entityType: EntityType): Promise<AIShieldResponse> {
   const startTime = Date.now()
   const servicesUsed: string[] = []
   const errors: string[] = []
@@ -47,34 +47,34 @@ export async function orchestrate(propertyId: string, entityType: EntityType): P
   const valuation = valuationResult.status === 'fulfilled'
     ? valuationResult.value
     : (() => {
-        errors.push(`Valuation: ${(valuationResult as any).reason?.message || 'unknown error'}`)
-        return {
-          estimatedMin: 0, estimatedMax: 0, estimatedMedian: 0,
-          confidence: 0, confidenceReasons: ['Valuation engine unavailable'],
-          modelVersion: MODEL_VERSION,
-        }
-      })()
+      errors.push(`Valuation: ${(valuationResult as any).reason?.message || 'unknown error'}`)
+      return {
+        estimatedMin: 0, estimatedMax: 0, estimatedMedian: 0,
+        confidence: 0, confidenceReasons: ['Valuation engine unavailable'],
+        modelVersion: MODEL_VERSION,
+      }
+    })()
 
   const comparables = comparablesResult.status === 'fulfilled'
     ? comparablesResult.value
     : (() => {
-        errors.push(`Comparables: ${(comparablesResult as any).reason?.message || 'unknown error'}`)
-        return { comparables: [], avgPricePerSqft: 0, medianPrice: 0, count: 0 }
-      })()
+      errors.push(`Comparables: ${(comparablesResult as any).reason?.message || 'unknown error'}`)
+      return { comparables: [], avgPricePerSqft: 0, medianPrice: 0, count: 0 }
+    })()
 
   const trends = trendResult.status === 'fulfilled'
     ? trendResult.value
     : (() => {
-        errors.push(`Trends: ${(trendResult as any).reason?.message || 'unknown error'}`)
-        return { trend: [], overallChange: 0, direction: 'stable' as const }
-      })()
+      errors.push(`Trends: ${(trendResult as any).reason?.message || 'unknown error'}`)
+      return { trend: [], overallChange: 0, direction: 'stable' as const }
+    })()
 
   const signals = signalsResult.status === 'fulfilled'
     ? signalsResult.value
     : (() => {
-        errors.push(`Signals: ${(signalsResult as any).reason?.message || 'unknown error'}`)
-        return { demandScore: 50, supplyScore: 50, listingVelocity: 0, avgDaysOnMarket: 0, inventoryMonths: null, priceToRentRatio: null, dataPointCount: 0 }
-      })()
+      errors.push(`Signals: ${(signalsResult as any).reason?.message || 'unknown error'}`)
+      return { demandScore: 50, supplyScore: 50, listingVelocity: 0, avgDaysOnMarket: 0, inventoryMonths: null, priceToRentRatio: null, dataPointCount: 0 }
+    })()
 
   // ── Step 4: Run rule engine (synchronous, depends on valuation + comparables) ──
   servicesUsed.push('rule_engine')
@@ -94,7 +94,7 @@ export async function orchestrate(propertyId: string, entityType: EntityType): P
   const now = new Date()
   const expiresAt = new Date(now.getTime() + CACHE_TTL_MS)
 
-  const response: VerixShieldResponse = {
+  const response: AIShieldResponse = {
     propertyId: input.id,
     entityType: input.entityType,
 
@@ -156,7 +156,7 @@ export async function orchestrate(propertyId: string, entityType: EntityType): P
   if (input.entityType === 'PROJECT') {
     import('@/lib/aishield/projects')
       .then(({ syncAiShieldSnapshot }) => syncAiShieldSnapshot(input.id))
-      .catch(() => {})
+      .catch(() => { })
   }
 
   // ── Step 10: Audit log ──
@@ -272,7 +272,7 @@ async function loadPropertyInput(id: string, entityType: EntityType): Promise<Pr
 
     return null
   } catch (error) {
-    console.error('[VerixShield:Orchestrator] Load error:', error)
+    console.error('[AIShield:Orchestrator] Load error:', error)
     return null
   }
 }
@@ -281,7 +281,7 @@ async function loadPropertyInput(id: string, entityType: EntityType): Promise<Pr
 
 async function getCachedResult(entityId: string, entityType: EntityType): Promise<any | null> {
   try {
-    const result = await (prisma as any).verixShieldResult.findUnique({
+    const result = await (prisma as any).AIShieldResult.findUnique({
       where: {
         entityType_entityId: { entityType, entityId },
       },
@@ -300,7 +300,7 @@ async function getCachedResult(entityId: string, entityType: EntityType): Promis
   }
 }
 
-function formatCachedResponse(cached: any, input: PropertyInput): VerixShieldResponse {
+function formatCachedResponse(cached: any, input: PropertyInput): AIShieldResponse {
   return {
     propertyId: input.id,
     entityType: input.entityType,
@@ -361,9 +361,9 @@ function formatCachedResponse(cached: any, input: PropertyInput): VerixShieldRes
   }
 }
 
-async function cacheResult(input: PropertyInput, response: VerixShieldResponse, expiresAt: Date): Promise<void> {
+async function cacheResult(input: PropertyInput, response: AIShieldResponse, expiresAt: Date): Promise<void> {
   try {
-    await (prisma as any).verixShieldResult.upsert({
+    await (prisma as any).AIShieldResult.upsert({
       where: {
         entityType_entityId: {
           entityType: input.entityType,
@@ -424,7 +424,7 @@ async function cacheResult(input: PropertyInput, response: VerixShieldResponse, 
       },
     })
   } catch (error) {
-    console.error('[VerixShield:Cache] Error storing result:', error)
+    console.error('[AIShield:Cache] Error storing result:', error)
   }
 }
 
@@ -466,10 +466,10 @@ async function logAudit(
   durationMs: number,
   servicesUsed: string[],
   errors: string[],
-  response: VerixShieldResponse,
+  response: AIShieldResponse,
 ): Promise<void> {
   try {
-    await (prisma as any).verixShieldAuditLog.create({
+    await (prisma as any).AIShieldAuditLog.create({
       data: {
         entityType: input.entityType,
         entityId: input.id,

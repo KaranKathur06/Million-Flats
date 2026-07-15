@@ -1,4 +1,4 @@
-// ━━━ VerixShield Market Data Seed ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield Market Data Seed ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Seeds the database with UAE market listing data for the valuation engine
 // Usage: npx tsx scripts/seed-market-data.ts
 
@@ -69,7 +69,7 @@ function generateFingerprint(community: string, bhk: number, sqft: number, price
 }
 
 async function seed() {
-  console.log('🛡️  VerixShield Market Data Seed')
+  console.log('🛡️  AIShield Market Data Seed')
   console.log('━'.repeat(50))
 
   // ── Seed MarketListings ──
@@ -269,7 +269,7 @@ async function seed() {
   console.log(`  Total signal records created: ${signalCount}`)
 
   console.log('\n' + '━'.repeat(50))
-  console.log('✅ VerixShield market data seeding complete!')
+  console.log('✅ AIShield market data seeding complete!')
   console.log(`   Listings:     ${listingCount}`)
   console.log(`   Transactions: ${transactionCount}`)
   console.log(`   Trends:       ${trendCount}`)

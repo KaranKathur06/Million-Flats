@@ -4,8 +4,6 @@ import React from "react";
 import { SessionProvider, type SessionProviderProps } from "next-auth/react";
 import CountryProvider from "@/components/CountryProvider";
 import MarketProvider from "@/components/MarketProvider";
-import { WhatsAppAuthProvider } from "@/contexts/WhatsAppAuthContext";
-import WhatsAppAuthModal from "@/components/WhatsAppAuthModal";
 
 export default function AppProviders({
   children,
@@ -18,10 +16,7 @@ export default function AppProviders({
     <SessionProvider session={session}>
       <CountryProvider>
         <MarketProvider>
-          <WhatsAppAuthProvider>
-            {children}
-            <WhatsAppAuthModal />
-          </WhatsAppAuthProvider>
+          {children}
         </MarketProvider>
       </CountryProvider>
     </SessionProvider>

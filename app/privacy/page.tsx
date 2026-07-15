@@ -71,7 +71,7 @@ export default function PrivacyPolicyPage() {
                   <td className="p-3 border-b border-gray-200">“Services”</td>
                   <td className="p-3 border-b border-gray-200">
                     means all offerings provided through the Platform, including but not limited to AI-powered property
-                    recommendations, immersive 3D tours, Verix Trust Score<sup>™</sup> analytics, agent ProScore<sup>™</sup>{' '}
+                    recommendations, immersive 3D tours, AI Trust Score<sup>™</sup> analytics, agent ProScore<sup>™</sup>{' '}
                     verification, ecosystem partner referrals, and SaaS subscriptions.
                   </td>
                 </tr>
@@ -97,7 +97,7 @@ export default function PrivacyPolicyPage() {
                   </td>
                 </tr>
                 <tr>
-                  <td className="p-3">“Verix AI<sup>™</sup>”</td>
+                  <td className="p-3">“AI AI<sup>™</sup>”</td>
                   <td className="p-3">
                     means our proprietary artificial intelligence system that generates trust scores, property valuations, and
                     investment insights.
@@ -135,7 +135,7 @@ export default function PrivacyPolicyPage() {
                     specialization areas, portfolio links
                   </td>
                   <td className="p-3 border-b border-gray-200">
-                    Verification for VerixPro<sup>™</sup> scoring, platform trust building
+                    Verification for AIPro<sup>™</sup> scoring, platform trust building
                   </td>
                 </tr>
                 <tr>
@@ -191,7 +191,7 @@ export default function PrivacyPolicyPage() {
           <h3 className="mt-6 text-xl font-semibold text-dark-blue">3.3 Information from Third Parties</h3>
           <div className="mt-3 text-gray-700 leading-relaxed space-y-2">
             <p>
-              <span className="font-medium">Verix AI Data:</span> Our AI generates insights, trust scores, and valuations
+              <span className="font-medium">AI AI Data:</span> Our AI generates insights, trust scores, and valuations
               based on your platform activity and publicly available data
             </p>
             <p>
@@ -222,7 +222,7 @@ export default function PrivacyPolicyPage() {
                   <td className="p-3 border-b border-gray-200">Performance of contract</td>
                 </tr>
                 <tr>
-                  <td className="p-3 border-b border-gray-200">To verify agent and developer credentials for VerixPro<sup>™</sup> scoring</td>
+                  <td className="p-3 border-b border-gray-200">To verify agent and developer credentials for AIPro<sup>™</sup> scoring</td>
                   <td className="p-3 border-b border-gray-200">Consent and legitimate interest</td>
                 </tr>
                 <tr>
@@ -310,7 +310,7 @@ export default function PrivacyPolicyPage() {
             <p>Payment Processors: For secure subscription payment processing</p>
             <p>Analytics Providers: Google Analytics, Meta Pixel, LinkedIn Insights</p>
             <p>Customer Support Tools: For managing communications</p>
-            <p>AI/ML Service Providers: For enhancing our Verix AI capabilities</p>
+            <p>AI/ML Service Providers: For enhancing our AI AI capabilities</p>
           </div>
           <p className="mt-3 text-gray-700 leading-relaxed">
             All such providers are contractually bound to process data only on our instructions and in compliance with

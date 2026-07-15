@@ -90,7 +90,7 @@ interface DashboardData {
     isVerified: boolean
     isFeatured: boolean
     subscriptionPlan: string
-    verixDeveloperScore: number | null
+    AIDeveloperScore: number | null
     totalLeadsReceived: number
     totalProjectViews: number
     totalProjectsPublished: number
@@ -218,11 +218,11 @@ export default function DeveloperDashboardClient({ data }: { data: DashboardData
           icon={<svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>}
         />
         <StatCard
-          label="Verix™ Score"
-          value={profile.verixDeveloperScore !== null ? `${profile.verixDeveloperScore}/100` : '—'}
+          label="AI™ Score"
+          value={profile.AIDeveloperScore !== null ? `${profile.AIDeveloperScore}/100` : '—'}
           sub="Developer Trust Score"
           color="bg-amber-50"
-          href="/developer/verix"
+          href="/developer/AI"
           icon={<svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>}
         />
       </div>
@@ -263,12 +263,11 @@ export default function DeveloperDashboardClient({ data }: { data: DashboardData
                 <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-3 font-medium text-gray-900">{p.name}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                      p.status === 'PUBLISHED' ? 'bg-emerald-100 text-emerald-700' :
-                      p.status === 'DRAFT' ? 'bg-gray-100 text-gray-600' :
-                      p.status === 'UNDER_REVIEW' ? 'bg-amber-100 text-amber-700' :
-                      'bg-gray-100 text-gray-500'
-                    }`}>
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${p.status === 'PUBLISHED' ? 'bg-emerald-100 text-emerald-700' :
+                        p.status === 'DRAFT' ? 'bg-gray-100 text-gray-600' :
+                          p.status === 'UNDER_REVIEW' ? 'bg-amber-100 text-amber-700' :
+                            'bg-gray-100 text-gray-500'
+                      }`}>
                       {p.status.replace('_', ' ')}
                     </span>
                   </td>

@@ -230,5 +230,5 @@ export const ASSET_TTL = {
   /** AI system docs — 10 minutes */
   AI_SYSTEM: 600,
   /** @deprecated Use AI_SYSTEM */
-  VERIX: 600,
+  AI: 600,
 } as const

@@ -11,7 +11,9 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { prisma } from '@/lib/prisma'
-import type { EntityType } from './types'
+import type { EntityType, FeatureVector } from './types'
+
+export type { FeatureVector } from './types'
 
 // ── TTL Configuration ─────────────────────────────────────────────────────────
 const FEATURE_TTL_MS = {
@@ -21,105 +23,6 @@ const FEATURE_TTL_MS = {
   LEGAL: 30 * 24 * 60 * 60 * 1000,       // 30 days (legal rarely changes)
   MEDIA: 3 * 24 * 60 * 60 * 1000,        // 3 days (media infrequently changes)
   DEVELOPER: 7 * 24 * 60 * 60 * 1000,    // 7 days
-}
-
-export interface FeatureVector {
-  entityId: string
-  entityType: EntityType
-  
-  // Location
-  latitude?: number
-  longitude?: number
-  distanceMetroKm?: number
-  distanceAirportKm?: number
-  distanceHospitalKm?: number
-  distanceSchoolKm?: number
-  distanceMallKm?: number
-  distanceItHubKm?: number
-  distanceHighwayKm?: number
-  walkScore?: number
-  connectivityScore?: number
-  pollutionIndex?: number
-  floodRiskScore?: number
-  nearbyMetroCount?: number
-  nearbySchoolCount?: number
-  nearbyHospitalCount?: number
-  poiDensityScore?: number
-  
-  // Developer
-  developerPastProjects?: number
-  developerDelayPct?: number
-  developerQualityRating?: number
-  developerLitigationCount?: number
-  developerCompletionRate?: number
-  developerCustomerRating?: number
-  developerReputationScore?: number
-  
-  // Property
-  carpetAreaSqft?: number
-  superBuiltUpSqft?: number
-  builtUpRatio?: number
-  floorNumber?: number
-  totalFloors?: number
-  floorRatio?: number
-  bedroomCount?: number
-  bathroomCount?: number
-  amenityCount?: number
-  hasLift?: boolean
-  hasGym?: boolean
-  hasPool?: boolean
-  parkingCount?: number
-  furnishingStatus?: string
-  propertyAgeYears?: number
-  constructionQuality?: string
-  
-  // Market
-  demandIndex?: number
-  supplyIndex?: number
-  inventoryMonths?: number
-  absorptionRate?: number
-  recentSalesCount?: number
-  avgAppreciationPct?: number
-  pricePerSqftAreaAvg?: number
-  priceVolatilityScore?: number
-  rentalYieldArea?: number
-  vacancyRateArea?: number
-  marketHeat?: string
-  investmentGrade?: string
-  
-  // Behavioral
-  listingViewCount?: number
-  saveCount?: number
-  buyerInterestScore?: number
-  contactRate?: number
-  offerRate?: number
-  daysOnMarket?: number
-  priceDropCount?: number
-  
-  // Legal
-  reraRegistered?: boolean
-  reraNumber?: string
-  reraCompletionPct?: number
-  hasEncumbrance?: boolean
-  ownershipType?: string
-  litigationCount?: number
-  documentCompletenessScore?: number
-  
-  // Media
-  imageQualityScore?: number
-  mediaCount?: number
-  has3dTour?: boolean
-  mediaTrustScore?: number
-  hasDefectsDetected?: boolean
-  aiManipulationScore?: number
-  imageDuplicateScore?: number
-
-  // Agent
-  agentReviewRating?: number
-  agentReviewCount?: number
-  
-  // Completeness
-  completeness: number  // 0-100 % of features populated
 }
 
 // ─── Get Feature Vector (with cache) ──────────────────────────────────────────
@@ -244,6 +147,8 @@ async function buildFromProject(entityId: string, vector: FeatureVector): Promis
     const dev = proj.developer
     vector.developerCustomerRating = dev.customerRating ?? undefined
     vector.developerPastProjects = dev.projectsDelivered ?? undefined
+    vector.developerProjectsDelivered = dev.projectsDelivered ?? undefined
+    vector.developerLitigation = (dev as any).litigationCount ?? undefined
     vector.developerReputationScore = dev.customerRating
       ? Math.min(100, (dev.customerRating / 5) * 100)
       : undefined
@@ -415,6 +320,7 @@ function mapVectorToDb(v: FeatureVector) {
     furnishingStatus: v.furnishingStatus ?? null,
     propertyAgeYears: v.propertyAgeYears ?? null,
     amenityCount: v.amenityCount ?? null,
+    marketSegment: v.marketSegment ?? null,
     demandIndex: v.demandIndex ?? null,
     supplyIndex: v.supplyIndex ?? null,
     inventoryMonths: v.inventoryMonths ?? null,
@@ -422,6 +328,7 @@ function mapVectorToDb(v: FeatureVector) {
     recentSalesCount: v.recentSalesCount ?? null,
     avgAppreciationPct: v.avgAppreciationPct ?? null,
     pricePerSqftAreaAvg: v.pricePerSqftAreaAvg ?? null,
+    pricePerSqft: v.pricePerSqft ?? null,
     priceVolatilityScore: v.priceVolatilityScore ?? null,
     rentalYieldArea: v.rentalYieldArea ?? null,
     vacancyRateArea: v.vacancyRateArea ?? null,
@@ -487,6 +394,7 @@ function deserializeFeatureVector(row: any): FeatureVector {
     furnishingStatus: row.furnishingStatus ?? undefined,
     propertyAgeYears: row.propertyAgeYears ?? undefined,
     amenityCount: row.amenityCount ?? undefined,
+    marketSegment: row.marketSegment ?? undefined,
     demandIndex: row.demandIndex ?? undefined,
     supplyIndex: row.supplyIndex ?? undefined,
     inventoryMonths: row.inventoryMonths ?? undefined,
@@ -494,6 +402,7 @@ function deserializeFeatureVector(row: any): FeatureVector {
     recentSalesCount: row.recentSalesCount ?? undefined,
     avgAppreciationPct: row.avgAppreciationPct ?? undefined,
     pricePerSqftAreaAvg: row.pricePerSqftAreaAvg ?? undefined,
+    pricePerSqft: row.pricePerSqftAreaAvg ?? undefined,
     priceVolatilityScore: row.priceVolatilityScore ?? undefined,
     rentalYieldArea: row.rentalYieldArea ?? undefined,
     vacancyRateArea: row.vacancyRateArea ?? undefined,

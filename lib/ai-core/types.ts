@@ -8,7 +8,127 @@
 
 // ─── Core Primitives ──────────────────────────────────────────────────────────
 
+import type { DeveloperBrandTier } from './canonical/developer'
+
 export type EntityType = 'MANUAL_PROPERTY' | 'PROJECT'
+
+export interface FeatureVector {
+  entityId: string
+  entityType: EntityType
+
+  // Metadata
+  title?: string
+  propertyType?: string
+  countryIso2?: string
+  city?: string
+  community?: string
+  projectId?: string
+
+  // Location
+  latitude?: number
+  longitude?: number
+  distanceMetroKm?: number
+  distanceAirportKm?: number
+  distanceHospitalKm?: number
+  distanceSchoolKm?: number
+  distanceMallKm?: number
+  distanceItHubKm?: number
+  distanceHighwayKm?: number
+  walkScore?: number
+  connectivityScore?: number
+  pollutionIndex?: number
+  floodRiskScore?: number
+  nearbyMetroCount?: number
+  nearbySchoolCount?: number
+  nearbyHospitalCount?: number
+  poiDensityScore?: number
+
+  // Developer
+  developerName?: string
+  developerBrandTier?: DeveloperBrandTier
+  developerPastProjects?: number
+  developerProjectsDelivered?: number
+  developerDelayPct?: number
+  developerQualityRating?: number
+  developerLitigationCount?: number
+  developerLitigation?: number
+  developerCompletionRate?: number
+  developerCustomerRating?: number
+  developerReputationScore?: number
+
+  // Property
+  carpetAreaSqft?: number
+  superBuiltUpSqft?: number
+  builtUpRatio?: number
+  floorNumber?: number
+  totalFloors?: number
+  floorRatio?: number
+  bedrooms?: number
+  bathrooms?: number
+  bedroomCount?: number
+  bathroomCount?: number
+  amenities?: unknown
+  amenityCount?: number
+  hasLift?: boolean
+  hasGym?: boolean
+  hasPool?: boolean
+  parkingCount?: number
+  furnishing?: string
+  furnishingStatus?: string
+  constructionYear?: number
+  propertyAgeYears?: number
+  constructionQuality?: string
+  marketSegment?: string
+
+  // Market
+  demandIndex?: number
+  supplyIndex?: number
+  inventoryMonths?: number
+  absorptionRate?: number
+  recentSalesCount?: number
+  avgAppreciationPct?: number
+  pricePerSqftAreaAvg?: number
+  pricePerSqft?: number
+  priceVolatilityScore?: number
+  rentalYieldArea?: number
+  vacancyRateArea?: number
+  marketHeat?: string
+  investmentGrade?: string
+
+  // Behavioral
+  listingViewCount?: number
+  saveCount?: number
+  buyerInterestScore?: number
+  contactRate?: number
+  offerRate?: number
+  daysOnMarket?: number
+  priceDropCount?: number
+
+  // Legal
+  reraRegistered?: boolean
+  reraNumber?: string
+  reraCompletionPct?: number
+  hasEncumbrance?: boolean
+  ownershipType?: string
+  litigationCount?: number
+  documentCompletenessScore?: number
+
+  // Media
+  imageQualityScore?: number
+  mediaCount?: number
+  has3dTour?: boolean
+  mediaTrustScore?: number
+  hasDefectsDetected?: boolean
+  aiManipulationScore?: number
+  imageDuplicateScore?: number
+
+  // Agent
+  agentReviewRating?: number
+  agentReviewCount?: number
+
+  // Completeness
+  completeness: number
+}
 
 export type AIModule = 'SHIELD' | 'INDEX' | 'VIEW' | 'TITLE' | 'PRO' | 'MARKET' | 'RISK' | 'RECOMMEND'
 

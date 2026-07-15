@@ -1,6 +1,6 @@
 'use client'
 
-import type { VerixShieldStatusType } from '@/lib/verixshield/types'
+import type { AIShieldStatusType } from '@/lib/verixshield/types'
 
 interface ValuationCardProps {
   valuation: {
@@ -12,7 +12,7 @@ interface ValuationCardProps {
   }
   askingPrice: number | null
   deviation: number
-  status: VerixShieldStatusType
+  status: AIShieldStatusType
 }
 
 function formatPrice(n: number): string {

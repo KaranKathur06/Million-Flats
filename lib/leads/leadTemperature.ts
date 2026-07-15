@@ -1,4 +1,4 @@
-/** VerixLead-style temperature for 3D Tour pipeline prioritization */
+/** AILead-style temperature for 3D Tour pipeline prioritization */
 
 export type LeadTemperature = 'HOT' | 'WARM' | 'COLD'
 

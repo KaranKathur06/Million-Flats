@@ -12,13 +12,11 @@ type UserRow = {
   role: string
   status: string
   emailVerified: boolean
-  whatsappVerified: boolean
   profileCompletion: number
   phone: string
-  authProvider: string
   image: string
   country: string
-  lastWhatsappLogin: string
+  lastLogin: string
   createdAt: string
   identityStatus: string
   primaryIdentifier: string
@@ -44,9 +42,7 @@ function safeString(v: unknown) {
   return typeof v === 'string' ? v : ''
 }
 
-function isSyntheticWhatsappEmail(email: string) {
-  return /^wa_\d+@millionflats\.auth$/i.test(email)
-}
+
 
 function getRoleBadge(role: string) {
   switch (role.toUpperCase()) {
@@ -92,8 +88,8 @@ export default function AdminUsersTableClient({
 
   const getDisplayName = (user: UserRow) => {
     if (safeString(user.name)) return user.name
+    if (user.email) return user.email
     if (user.phone) return 'Unnamed User'
-    if (user.email && !isSyntheticWhatsappEmail(user.email)) return user.email
     return 'Anonymous'
   }
 
@@ -204,7 +200,7 @@ export default function AdminUsersTableClient({
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-white font-semibold break-all">{getDisplayName(u)}</div>
-                  <div className="mt-1 text-xs text-white/70">{u.phone ? u.phone : u.email && !isSyntheticWhatsappEmail(u.email) ? u.email : 'WhatsApp user'}</div>
+                  <div className="mt-1 text-xs text-white/70">{u.email || u.phone || 'Unknown'}</div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase ${getRoleBadge(targetRole)}`}>
@@ -351,7 +347,7 @@ export default function AdminUsersTableClient({
                   <td className="py-4 pr-4 text-white/90">{u.crmStage}</td>
                   <td className="py-4 pr-4 text-white/90">{u.healthScore}</td>
                   <td className="py-4 pr-4 text-white/90">{u.country || '—'}</td>
-                  <td className="py-4 pr-4 text-xs text-white/50">{u.lastWhatsappLogin || '—'}</td>
+                  <td className="py-4 pr-4 text-xs text-white/50">{u.lastLogin || '—'}</td>
                   <td className="py-4 pr-4">
                     <div className="flex flex-wrap gap-2">
                       {u.emailVerified ? (

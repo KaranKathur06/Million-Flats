@@ -12,7 +12,6 @@ const PUBLIC_AUTH_PREFIXES = [
   '/auth/user/login',
   '/auth/user/register',
   '/auth/agent/register',
-  '/auth/verify-otp',
   '/user/login',
   '/user/register',
   '/user/onboarding',
@@ -100,15 +99,15 @@ export async function middleware(req: NextRequest) {
   if (isPublicAuth(pathname)) return NextResponse.next()
 
   // ── Route classification ──
-  const isAdminProtected           = pathname === '/admin'            || pathname.startsWith('/admin/')
-  const isAgentProtected           = pathname === '/agent'            || pathname.startsWith('/agent/')
-  const isDeveloperProtected       = pathname === '/developer'        || pathname.startsWith('/developer/')
-  const isAgencyProtected          = pathname === '/agency'           || pathname.startsWith('/agency/')
-  const isDashboardProtected       = pathname === '/dashboard'        || pathname.startsWith('/dashboard/')
-  const isEcosystemAdminProtected  = pathname === '/ecosystem/admin'  || pathname.startsWith('/ecosystem/admin/')
-  const isEcosystemDashProtected   = pathname === '/ecosystem/dashboard' || pathname.startsWith('/ecosystem/dashboard/')
+  const isAdminProtected = pathname === '/admin' || pathname.startsWith('/admin/')
+  const isAgentProtected = pathname === '/agent' || pathname.startsWith('/agent/')
+  const isDeveloperProtected = pathname === '/developer' || pathname.startsWith('/developer/')
+  const isAgencyProtected = pathname === '/agency' || pathname.startsWith('/agency/')
+  const isDashboardProtected = pathname === '/dashboard' || pathname.startsWith('/dashboard/')
+  const isEcosystemAdminProtected = pathname === '/ecosystem/admin' || pathname.startsWith('/ecosystem/admin/')
+  const isEcosystemDashProtected = pathname === '/ecosystem/dashboard' || pathname.startsWith('/ecosystem/dashboard/')
   const isEcosystemManageProtected = pathname === '/ecosystem/manage' || pathname.startsWith('/ecosystem/manage/')
-  const isVerixProtected           = pathname === '/verix'            || pathname.startsWith('/verix/')
+  const isAIProtected = pathname === '/AI' || pathname.startsWith('/AI/')
 
   const isProtected =
     isAdminProtected ||
@@ -119,21 +118,21 @@ export async function middleware(req: NextRequest) {
     isEcosystemAdminProtected ||
     isEcosystemDashProtected ||
     isEcosystemManageProtected ||
-    isVerixProtected
+    isAIProtected
 
   // ── Token extraction ──
   const secret = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET
   const nextAuthToken = secret ? await getToken({ req, secret }) : null
 
   let roleRaw = String((nextAuthToken as any)?.role || '').toUpperCase()
-  const emailVerified              = Boolean((nextAuthToken as any)?.emailVerified)
-  const agentStatus                = String((nextAuthToken as any)?.agentStatus || '').toUpperCase()
-  const subscriptionStatus         = String((nextAuthToken as any)?.subscriptionStatus || '').toUpperCase()
-  const subscriptionPlan           = String((nextAuthToken as any)?.subscriptionPlan || 'BASIC').toUpperCase()
+  const emailVerified = Boolean((nextAuthToken as any)?.emailVerified)
+  const agentStatus = String((nextAuthToken as any)?.agentStatus || '').toUpperCase()
+  const subscriptionStatus = String((nextAuthToken as any)?.subscriptionStatus || '').toUpperCase()
+  const subscriptionPlan = String((nextAuthToken as any)?.subscriptionPlan || 'BASIC').toUpperCase()
   // Developer-specific token fields
-  const developerOnboardingStatus  = String((nextAuthToken as any)?.developerOnboardingStatus || '').toUpperCase()
+  const developerOnboardingStatus = String((nextAuthToken as any)?.developerOnboardingStatus || '').toUpperCase()
   // Agency-specific token fields
-  const agencyOnboardingStatus     = String((nextAuthToken as any)?.agencyOnboardingStatus || '').toUpperCase()
+  const agencyOnboardingStatus = String((nextAuthToken as any)?.agencyOnboardingStatus || '').toUpperCase()
 
   // Legacy JWT fallback
   if (!roleRaw) {
@@ -574,9 +573,9 @@ export async function middleware(req: NextRequest) {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // VERIX guard — same as agent but requires approval
+  // AI guard — same as agent but requires approval
   // ─────────────────────────────────────────────────────────────────────────────
-  if (isVerixProtected) {
+  if (isAIProtected) {
     if (role !== 'AGENT') {
       const url = req.nextUrl.clone()
       url.pathname = '/agent/auth'
@@ -612,29 +611,29 @@ export async function middleware(req: NextRequest) {
   if (roleRaw && !isPublicAuth(pathname) && !pathname.startsWith('/api') && !pathname.startsWith('/_next') && !pathname.includes('.')) {
     const isProfileIncomplete = profileCompletion < 100 || onboardingVersion < CURRENT_ONBOARDING_VERSION;
     const isOnboardingRoute = pathname === '/user/onboarding' || pathname.startsWith('/user/onboarding/');
-    
+
     if ((role === 'USER' || role === 'BUYER') && !isAdminPanelRole) {
-       if (isProfileIncomplete && !isOnboardingRoute) {
-         const url = req.nextUrl.clone();
-         url.pathname = '/user/onboarding';
-         return NextResponse.redirect(url);
-       }
-       
-       if (!isProfileIncomplete && isOnboardingRoute) {
-         const url = req.nextUrl.clone();
-         const returnUrlCookie = req.cookies.get('mf_return_context')?.value;
-         if (returnUrlCookie) {
-           try {
-             const context = JSON.parse(returnUrlCookie);
-             if (context.url) {
-               url.pathname = context.url;
-               return NextResponse.redirect(url);
-             }
-           } catch (e) {}
-         }
-         url.pathname = '/';
-         return NextResponse.redirect(url);
-       }
+      if (isProfileIncomplete && !isOnboardingRoute) {
+        const url = req.nextUrl.clone();
+        url.pathname = '/user/onboarding';
+        return NextResponse.redirect(url);
+      }
+
+      if (!isProfileIncomplete && isOnboardingRoute) {
+        const url = req.nextUrl.clone();
+        const returnUrlCookie = req.cookies.get('mf_return_context')?.value;
+        if (returnUrlCookie) {
+          try {
+            const context = JSON.parse(returnUrlCookie);
+            if (context.url) {
+              url.pathname = context.url;
+              return NextResponse.redirect(url);
+            }
+          } catch (e) { }
+        }
+        url.pathname = '/';
+        return NextResponse.redirect(url);
+      }
     }
   }
 
@@ -654,6 +653,6 @@ export const config = {
     '/ecosystem/admin/:path*',
     '/ecosystem/dashboard/:path*',
     '/ecosystem/manage/:path*',
-    '/verix/:path*',
+    '/AI/:path*',
   ],
 }

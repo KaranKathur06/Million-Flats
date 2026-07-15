@@ -1,4 +1,4 @@
-// ━━━ VerixShield v2.1 — Fusion Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Fusion Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Blends Comparable Engine output with ML prediction
 // Core formula: Final = (Comps × W_comp) + (ML × W_ml)
 // Comparables ALWAYS dominate (minimum 60% weight)

@@ -1,7 +1,7 @@
-// ━━━ VerixShield UI Components — Barrel Export ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield UI Components — Barrel Export ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-export { VerixShieldPanel } from './VerixShieldPanel'
-export { VerixShieldPanelV2 } from './VerixShieldPanelV2'
+export { AIShieldPanel } from './VerixShieldPanel'
+export { AIShieldPanelV2 } from './VerixShieldPanelV2'
 export { ValuationCard } from './ValuationCard'
 export { PriceGauge } from './PriceGauge'
 export { TrendChart } from './TrendChart'

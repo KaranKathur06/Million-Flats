@@ -1,4 +1,4 @@
-// ━━━ VerixShield Price Intelligence Engine — Barrel Export ━━━━━━━━━━━━━━━
+// ━━━ AIShield Price Intelligence Engine — Barrel Export ━━━━━━━━━━━━━━━
 
 export { orchestrate } from './orchestrator'
 export { runValuationEngine } from './valuation-engine'
@@ -7,7 +7,7 @@ export { runTrendEngine } from './trend-engine'
 export { runMarketSignalEngine } from './market-signal-engine'
 export { runRuleEngine, computeRentalIntelligence, computePriceDistribution } from './rule-engine'
 export type {
-  VerixShieldResponse,
+  AIShieldResponse,
   PropertyInput,
   ValuationResult,
   ComparableProperty,
@@ -18,6 +18,6 @@ export type {
   RuleEngineResult,
   RentalIntelligence,
   PriceDistribution,
-  VerixShieldStatusType,
+  AIShieldStatusType,
   EntityType,
 } from './types'

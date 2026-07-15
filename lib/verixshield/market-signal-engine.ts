@@ -1,4 +1,4 @@
-// ━━━ VerixShield Market Signal Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield Market Signal Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Calculates demand score, listing velocity, avg days on market
 // Uses both stored signals and real-time computation from listings data
 
@@ -28,7 +28,7 @@ export async function runMarketSignalEngine(input: PropertyInput): Promise<Marke
     // ── Step 2: Compute from live data ──
     return await computeSignals(input)
   } catch (error) {
-    console.error('[VerixShield:MarketSignal] Error:', error)
+    console.error('[AIShield:MarketSignal] Error:', error)
     return generateDefaultSignals(input)
   }
 }
@@ -105,7 +105,7 @@ async function computeSignals(input: PropertyInput): Promise<MarketSignalResult>
     if (input.city) propFilter.city = { equals: input.city, mode: 'insensitive' }
 
     internalCount = await (prisma as any).manualProperty.count({ where: propFilter })
-  } catch {}
+  } catch { }
 
   const totalDataPoints = activeListings + internalCount
   const listingVelocity = recentListings  // per week

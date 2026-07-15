@@ -92,7 +92,7 @@ export type ThreeDTourLeadMetadata = {
   leadSource: string
   referralCode?: string | null
   referralPartnerId?: string | null
-  /** VerixLead™ scoring inputs */
+  /** AILead™ scoring inputs */
   aiScoring?: {
     propertySize?: string | null
     budget?: string | null

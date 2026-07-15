@@ -30,7 +30,7 @@ Disallow: /settings/
 Disallow: /profile/
 Disallow: /ai/
 Disallow: /ai-system/
-Disallow: /verix/
+Disallow: /AI/
 Disallow: /verfix-system/
 Disallow: /unauthorized
 Disallow: /suspended

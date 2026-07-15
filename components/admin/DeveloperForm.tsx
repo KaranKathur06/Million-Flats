@@ -41,7 +41,7 @@ export interface DeveloperFormData {
   customerRating: string
   projectsDelivered: string
   countriesPresent: string
-  verixScore: string
+  AIScore: string
   brochureUrl: string
   metaTitle: string
   metaDescription: string
@@ -74,7 +74,7 @@ export const emptyDeveloperForm: DeveloperFormData = {
   customerRating: '',
   projectsDelivered: '',
   countriesPresent: '',
-  verixScore: '',
+  AIScore: '',
   brochureUrl: '',
   metaTitle: '',
   metaDescription: '',
@@ -211,7 +211,7 @@ export default function DeveloperForm({ isEditMode = false, developerId, initial
       customerRating: form.customerRating ? parseFloat(form.customerRating) : null,
       projectsDelivered: form.projectsDelivered ? parseInt(form.projectsDelivered) : null,
       countriesPresent: form.countriesPresent ? parseInt(form.countriesPresent) : null,
-      verixScore: form.verixScore ? parseInt(form.verixScore) : null,
+      AIScore: form.AIScore ? parseInt(form.AIScore) : null,
       brochureUrl: form.brochureUrl.trim() || null,
       metaTitle: form.metaTitle.trim() || null,
       metaDescription: form.metaDescription.trim() || null,
@@ -479,7 +479,7 @@ export default function DeveloperForm({ isEditMode = false, developerId, initial
           <FormInput label="Customer Rating (0-5)" value={form.customerRating} onChange={(v) => update('customerRating', v)} placeholder="e.g. 4.8" type="number" hint="Decimal rating out of 5" />
           <FormInput label="Projects Delivered" value={form.projectsDelivered} onChange={(v) => update('projectsDelivered', v)} placeholder="e.g. 120" type="number" />
           <FormInput label="Countries Present" value={form.countriesPresent} onChange={(v) => update('countriesPresent', v)} placeholder="e.g. 2" type="number" />
-          <FormInput label="Verix Score (0-100)" value={form.verixScore} onChange={(v) => update('verixScore', v)} placeholder="e.g. 92" type="number" hint="Verix Developer Score™ — set by admin" />
+          <FormInput label="AI Score (0-100)" value={form.AIScore} onChange={(v) => update('AIScore', v)} placeholder="e.g. 92" type="number" hint="AI Developer Score™ — set by admin" />
           <FormInput label="Brochure URL" value={form.brochureUrl} onChange={(v) => update('brochureUrl', v)} placeholder="https://cdn.example.com/brochure.pdf" hint="Link to developer brochure PDF" />
         </div>
       </div>
@@ -512,13 +512,12 @@ export default function DeveloperForm({ isEditMode = false, developerId, initial
               key={s}
               type="button"
               onClick={() => update('status', s)}
-              className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 border ${
-                form.status === s
+              className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 border ${form.status === s
                   ? s === 'ACTIVE'
                     ? 'bg-emerald-400/15 text-emerald-300 border-emerald-400/25'
                     : 'bg-red-400/15 text-red-300 border-red-400/25'
                   : 'bg-white/[0.03] text-white/40 border-white/[0.06] hover:bg-white/[0.06]'
-              }`}
+                }`}
             >
               {s === 'ACTIVE' ? '● Active' : '○ Inactive'}
             </button>

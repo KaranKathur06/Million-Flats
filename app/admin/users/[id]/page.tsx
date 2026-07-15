@@ -9,10 +9,6 @@ function safeString(v: unknown) {
   return typeof v === 'string' ? v : ''
 }
 
-function isSyntheticWhatsappEmail(email: string | null | undefined) {
-  return typeof email === 'string' && /^wa_\d+@millionflats\.auth$/i.test(email)
-}
-
 export default function AdminUserDetailPage({ params }: { params: { id: string } }) {
   const { id } = params
   const router = useRouter()
@@ -57,15 +53,15 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
   const getDisplayName = () => {
     if (!user) return 'User details'
     if (safeString(user.name)) return user.name
+    if (safeString(user.email)) return user.email
     if (safeString(user.phone)) return 'Unnamed User'
-    if (user.email && !isSyntheticWhatsappEmail(user.email)) return user.email
     return 'Anonymous'
   }
 
   const getPrimaryIdentifier = () => {
+    if (safeString(user.email)) return user.email
     if (safeString(user.phone)) return user.phone
-    if (user.email && !isSyntheticWhatsappEmail(user.email)) return user.email
-    return 'WhatsApp user'
+    return 'Unknown'
   }
 
   const intelligence = useMemo(() => {
@@ -73,34 +69,25 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     return {
       healthScore: Number(user.healthScore ?? 0),
       lifecycleStage: safeString(user.lifecycleStage) || getLifecycleStage({
-        whatsappVerified: Boolean(user.whatsappVerified),
         emailVerified: Boolean(user.emailVerified),
         profileCompletion: Number(user.profileCompletion || 0),
         status: safeString(user.status),
         savedPropertiesCount: Number(user.savedPropertiesCount || 0),
         propertyLeadsCount: Number(user.propertyLeadsCount || 0),
-        whatsappSessionsCount: Number(user.whatsappSessionsCount || 0),
-        lastWhatsappLogin: user.lastWhatsappLogin,
       }),
       crmStage: safeString(user.crmStage) || getCRMStage({
-        whatsappVerified: Boolean(user.whatsappVerified),
         emailVerified: Boolean(user.emailVerified),
         profileCompletion: Number(user.profileCompletion || 0),
         status: safeString(user.status),
         savedPropertiesCount: Number(user.savedPropertiesCount || 0),
         propertyLeadsCount: Number(user.propertyLeadsCount || 0),
-        whatsappSessionsCount: Number(user.whatsappSessionsCount || 0),
-        lastWhatsappLogin: user.lastWhatsappLogin,
       }),
       recommendationConfidence: safeString(user.recommendationConfidence) || getRecommendationConfidence({
-        whatsappVerified: Boolean(user.whatsappVerified),
         emailVerified: Boolean(user.emailVerified),
         profileCompletion: Number(user.profileCompletion || 0),
         status: safeString(user.status),
         savedPropertiesCount: Number(user.savedPropertiesCount || 0),
         propertyLeadsCount: Number(user.propertyLeadsCount || 0),
-        whatsappSessionsCount: Number(user.whatsappSessionsCount || 0),
-        lastWhatsappLogin: user.lastWhatsappLogin,
       }),
     }
   }, [user])
@@ -113,7 +100,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
             <span className="inline-flex h-6 items-center rounded-md bg-amber-400/10 px-2 text-[11px] font-bold uppercase tracking-wider text-amber-400">Admin</span>
           </div>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">User detail</h1>
-          <p className="text-sm text-white/50">Manage WhatsApp-first user identity, profile completion, sessions and CRM linkage.</p>
+          <p className="text-sm text-white/50">Manage user identity, profile completion, and CRM linkage.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -203,12 +190,12 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
                   <div className="mt-2 text-lg font-semibold text-white">{user.profileCompletion}%</div>
                 </div>
                 <div className="rounded-2xl border border-white/[0.06] bg-black/20 p-4">
-                  <div className="text-xs uppercase tracking-wider text-white/50">WhatsApp verified</div>
-                  <div className="mt-2 text-lg font-semibold text-white">{user.whatsappVerified ? 'Yes' : 'No'}</div>
+                  <div className="text-xs uppercase tracking-wider text-white/50">Email verified</div>
+                  <div className="mt-2 text-lg font-semibold text-white">{user.emailVerified ? 'Yes' : 'No'}</div>
                 </div>
                 <div className="rounded-2xl border border-white/[0.06] bg-black/20 p-4">
-                  <div className="text-xs uppercase tracking-wider text-white/50">Primary provider</div>
-                  <div className="mt-2 text-lg font-semibold text-white">{user.authProvider || 'WhatsApp'}</div>
+                  <div className="text-xs uppercase tracking-wider text-white/50">Auth provider</div>
+                  <div className="mt-2 text-lg font-semibold text-white">{user.authProvider || 'Email'}</div>
                 </div>
               </div>
 
@@ -218,8 +205,8 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
                   <p className="mt-2 text-sm text-white/90">{user.country || 'Unknown'}</p>
                 </div>
                 <div className="rounded-2xl border border-white/[0.06] bg-black/20 p-4">
-                  <p className="text-xs uppercase tracking-wider text-white/50">Last WhatsApp login</p>
-                  <p className="mt-2 text-sm text-white/90">{user.lastWhatsappLogin ? new Date(user.lastWhatsappLogin).toLocaleString() : 'Never'}</p>
+                  <p className="text-xs uppercase tracking-wider text-white/50">Last login</p>
+                  <p className="mt-2 text-sm text-white/90">{user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}</p>
                 </div>
               </div>
             </div>
@@ -234,20 +221,16 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
                 </div>
                 <div className="mt-4 space-y-3 text-sm text-white/70">
                   <div className="flex justify-between gap-3 border-b border-white/[0.08] pb-3">
-                    <span>WhatsApp verified</span>
-                    <span>{user.whatsappVerified ? 'Yes' : 'No'}</span>
-                  </div>
-                  <div className="flex justify-between gap-3 border-b border-white/[0.08] pb-3">
-                    <span>Phone verified</span>
-                    <span>{user.phoneVerified ? 'Yes' : 'No'}</span>
-                  </div>
-                  <div className="flex justify-between gap-3 border-b border-white/[0.08] pb-3">
                     <span>Email verified</span>
                     <span>{user.emailVerified ? 'Yes' : 'No'}</span>
                   </div>
                   <div className="flex justify-between gap-3 border-b border-white/[0.08] pb-3">
-                    <span>Recent WhatsApp sessions</span>
-                    <span>{user.whatsappSessionsCount}</span>
+                    <span>Auth provider</span>
+                    <span>{user.authProvider || 'Email'}</span>
+                  </div>
+                  <div className="flex justify-between gap-3 border-b border-white/[0.08] pb-3">
+                    <span>Phone</span>
+                    <span>{user.phone || '—'}</span>
                   </div>
                   <div className="flex justify-between gap-3">
                     <span>Audit log entries</span>
@@ -282,38 +265,11 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
             <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-white">Recent WhatsApp sessions</h3>
-                  <p className="text-xs text-white/50">Latest authentication attempts for this user.</p>
+                  <h3 className="text-sm font-semibold text-white">Login history</h3>
+                  <p className="text-xs text-white/50">Recent authentication activity for this user.</p>
                 </div>
               </div>
-              <div className="mt-4 overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-white/[0.08] text-left text-[11px] uppercase tracking-wider text-white/40">
-                      <th className="px-3 py-2">Session</th>
-                      <th className="px-3 py-2">Status</th>
-                      <th className="px-3 py-2">Device</th>
-                      <th className="px-3 py-2">Created</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {user.recentSessions?.length ? (
-                      user.recentSessions.map((session: any) => (
-                        <tr key={session.sessionId} className="border-b border-white/[0.06] hover:bg-white/[0.02]">
-                          <td className="px-3 py-3 font-mono text-xs text-white/70">{session.sessionId}</td>
-                          <td className="px-3 py-3 text-white/90">{session.status}</td>
-                          <td className="px-3 py-3 text-xs text-white/60">{session.userAgent || session.device || '—'}</td>
-                          <td className="px-3 py-3 text-xs text-white/50">{new Date(session.createdAt).toLocaleString()}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={4} className="px-3 py-8 text-center text-white/30">No recent sessions</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <div className="mt-4 text-sm text-white/50 text-center py-8">Login history will be available soon.</div>
             </div>
 
             <div className="space-y-4">
@@ -330,14 +286,14 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
                     Suspend / reactivate (coming)
                   </button>
                   <button className="rounded-xl border border-emerald-400/20 bg-emerald-400/5 px-4 py-3 text-sm font-semibold text-emerald-200 hover:bg-emerald-400/10 transition" disabled>
-                    Send WhatsApp message (coming)
+                    Send email notification (coming)
                   </button>
                 </div>
               </div>
               <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
                 <h3 className="text-sm font-semibold text-white">CRM integration</h3>
                 <div className="mt-4 space-y-2 text-sm text-white/70">
-                  <p>CRM lead record will sync automatically from WhatsApp login, preserving:</p>
+                  <p>CRM lead record will sync automatically from user activity, preserving:</p>
                   <ul className="list-disc space-y-1 pl-5 text-white/70">
                     <li>Registration source</li>
                     <li>Last activity</li>

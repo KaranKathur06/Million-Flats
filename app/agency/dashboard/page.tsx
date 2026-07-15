@@ -7,11 +7,11 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = { title: 'Agency Dashboard | MillionFlats' }
 
 const STAT_CARDS = [
-  { key: 'totalLeadsReceived',  label: 'Total Leads',    icon: '👥', color: 'bg-blue-50   text-blue-700' },
-  { key: 'totalListings',       label: 'Listings',       icon: '🏢', color: 'bg-green-50  text-green-700' },
-  { key: 'totalClosedDeals',    label: 'Closed Deals',   icon: '✅', color: 'bg-purple-50 text-purple-700' },
-  { key: 'profileCompletion',   label: 'Profile %',      icon: '📊', color: 'bg-amber-50  text-amber-700', suffix: '%' },
-  { key: 'verixAgencyScore',    label: 'VerixAgency™',   icon: '⭐', color: 'bg-rose-50   text-rose-700' },
+  { key: 'totalLeadsReceived', label: 'Total Leads', icon: '👥', color: 'bg-blue-50   text-blue-700' },
+  { key: 'totalListings', label: 'Listings', icon: '🏢', color: 'bg-green-50  text-green-700' },
+  { key: 'totalClosedDeals', label: 'Closed Deals', icon: '✅', color: 'bg-purple-50 text-purple-700' },
+  { key: 'profileCompletion', label: 'Profile %', icon: '📊', color: 'bg-amber-50  text-amber-700', suffix: '%' },
+  { key: 'AIAgencyScore', label: 'AIAgency™', icon: '⭐', color: 'bg-rose-50   text-rose-700' },
 ]
 
 export default async function AgencyDashboardPage() {

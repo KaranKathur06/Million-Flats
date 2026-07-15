@@ -8,11 +8,11 @@ import RealtimeBadge from '@/components/analytics/RealtimeBadge'
 import { DEFAULT_COUNTRY, isCountryCode, type CountryCode } from '@/lib/country'
 import { authOptions } from '@/lib/auth'
 import { isAdminPanelRole } from '@/lib/roleHomeRoute'
+import MetaDologyVideoSection from '@/components/MetaDologyVideoSection'
 
 export const dynamic = 'force-dynamic'
 
 const TrustStats = dynamicImport(() => import('@/components/analytics/TrustStats'), { loading: () => null })
-const ThreeDTourIntelligence = dynamicImport(() => import('@/components/ThreeDTourIntelligence'), { loading: () => null })
 const GlobalMarketSelectorBar = dynamicImport(() => import('@/components/GlobalMarketSelectorBar'), { loading: () => null })
 const FeaturedProjects = dynamicImport(() => import('@/components/FeaturedProjects'), { loading: () => null })
 const FeaturedAgencies = dynamicImport(() => import('@/components/FeaturedAgencies'), { loading: () => null })
@@ -20,7 +20,7 @@ const FeaturedDevelopers = dynamicImport(() => import('@/components/FeaturedDeve
 
 type HomeSectionType =
   | 'trust-stats'
-  | '3d-tour'
+  | 'meta-dology-video'
   | 'market-selector'
   | 'featured-projects'
   | 'featured-properties'
@@ -31,7 +31,7 @@ type HomeSectionType =
 
 const HOME_SECTIONS: ReadonlyArray<{ type: HomeSectionType; enabled: boolean }> = [
   { type: 'trust-stats', enabled: true },
-  { type: '3d-tour', enabled: true },
+  { type: 'meta-dology-video', enabled: true },
   { type: 'market-selector', enabled: true },
   { type: 'featured-projects', enabled: true },
   { type: 'featured-properties', enabled: false },
@@ -160,7 +160,7 @@ export default async function Home({
       </section>
 
       {isHomeSectionEnabled('trust-stats') ? <TrustStats /> : null}
-      {isHomeSectionEnabled('3d-tour') ? <ThreeDTourIntelligence /> : null}
+      {isHomeSectionEnabled('meta-dology-video') ? <MetaDologyVideoSection /> : null}
 
       {isHomeSectionEnabled('market-selector') ? (
         <div className="bg-white pt-10">

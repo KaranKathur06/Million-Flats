@@ -15,7 +15,6 @@ export default function AuthUserLoginClient() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [showResetCta, setShowResetCta] = useState(false)
 
   const next = searchParams?.get('next')
   const safeNext = typeof next === 'string' && next.startsWith('/') ? next : ''
@@ -37,28 +36,29 @@ export default function AuthUserLoginClient() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    setShowResetCta(false)
 
     try {
-      const res = await fetch('/api/auth/login-otp/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, intent: 'user' }),
+      const result = await signIn('credentials', {
+        email,
+        password,
+        intent: 'user',
+        redirect: false,
+        callbackUrl,
       })
 
-      const data = await res.json().catch(() => null)
-      if (!res.ok) {
-        const code = (data && data.code) || ''
-        const msg = (data && data.message) || 'Login failed'
-        setError(msg)
-        if (code === 'PASSWORD_NOT_SET') {
-          setShowResetCta(true)
-        }
+      if (result?.ok && result.url) {
+        router.push(result.url)
         return
       }
 
-      const url = `/auth/verify-otp?role=user&email=${encodeURIComponent(email)}${safeNext ? `&next=${encodeURIComponent(safeNext)}` : ''}`
-      router.push(url)
+      const raw = (result as any)?.error || 'Login failed'
+      if (raw === 'EMAIL_NOT_VERIFIED') setError('Please verify your email before signing in.')
+      else if (raw === 'INVALID_PASSWORD') setError('Invalid email or password.')
+      else if (raw === 'PASSWORD_NOT_SET') setError('Password is not set for this account. Please reset your password.')
+      else if (raw === 'ACCOUNT_BANNED') setError('Your account has been banned. Please contact support.')
+      else if (raw === 'ACCOUNT_DISABLED') setError('Your account is suspended. Please contact support.')
+      else if (raw === 'CredentialsSignin') setError('Invalid email or password.')
+      else setError(raw)
     } catch {
       setError('An error occurred. Please try again.')
     } finally {
@@ -75,7 +75,7 @@ export default function AuthUserLoginClient() {
       <form className="space-y-4" onSubmit={handleSubmit}>
         {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">{error}</div>}
 
-        {showResetCta && (
+        {error === 'Password is not set for this account. Please reset your password.' && (
           <Link
             href={`/user/forgot-password?email=${encodeURIComponent(email)}`}
             className="block w-full text-center h-10 leading-10 rounded-xl font-medium bg-gray-900 text-white hover:bg-gray-800 transition-all duration-200"

@@ -1,6 +1,6 @@
 'use client'
 
-// ━━━ VerixShield v2.1 — Data Reliability Indicator ━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Data Reliability Indicator ━━━━━━━━━━━━━━━━━━━━━━
 // Shows HIGH / MEDIUM / LOW data confidence with visual cue
 
 import React, { useState } from 'react'

@@ -122,13 +122,12 @@ export function ComparablesList({ comparables, stats, askingPrice }: Comparables
 
                   {/* Price comparison badge */}
                   {priceDiff !== null && (
-                    <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${
-                      priceDiff > 5
+                    <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${priceDiff > 5
                         ? 'bg-orange-500/10 text-orange-400/70'
                         : priceDiff < -5
                           ? 'bg-emerald-500/10 text-emerald-400/70'
                           : 'bg-white/[0.04] text-white/30'
-                    }`}>
+                      }`}>
                       {priceDiff > 0 ? '+' : ''}{priceDiff.toFixed(1)}% vs asking
                     </span>
                   )}

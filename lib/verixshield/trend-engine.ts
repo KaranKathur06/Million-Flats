@@ -1,4 +1,4 @@
-// ━━━ VerixShield Trend Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield Trend Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Computes price trends over time using monthly aggregation
 // Falls back to synthetic trend data when historical data is insufficient
 
@@ -26,7 +26,7 @@ export async function runTrendEngine(input: PropertyInput): Promise<TrendResult>
     // ── Fallback: synthetic trend based on market averages ──
     return generateSyntheticTrend(input)
   } catch (error) {
-    console.error('[VerixShield:Trend] Error:', error)
+    console.error('[AIShield:Trend] Error:', error)
     return generateSyntheticTrend(input)
   }
 }

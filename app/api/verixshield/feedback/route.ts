@@ -1,5 +1,5 @@
-// ━━━ VerixShield v2.1 — Feedback API ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// POST /api/verixshield/feedback
+// ━━━ AIShield v2.1 — Feedback API ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// POST /api/AIshield/feedback
 // Records actual sold prices for self-learning calibration
 
 import { NextResponse } from 'next/server'
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result, { status: 201 })
   } catch (error: any) {
-    console.error('[VerixShield:Feedback] Error:', error)
+    console.error('[AIShield:Feedback] Error:', error)
     return NextResponse.json(
       { error: 'Failed to record feedback', message: error.message },
       { status: 500 },
@@ -52,7 +52,7 @@ export async function PUT(request: Request) {
     const result = await computeAccuracyMetrics()
     return NextResponse.json({ success: true, ...result })
   } catch (error: any) {
-    console.error('[VerixShield:Feedback] Accuracy compute error:', error)
+    console.error('[AIShield:Feedback] Accuracy compute error:', error)
     return NextResponse.json(
       { error: 'Failed to compute accuracy metrics', message: error.message },
       { status: 500 },

@@ -13,6 +13,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { prisma } from '@/lib/prisma'
+import { Prisma, KnowledgeEdgeType } from '@prisma/client'
 import type { KGEdge, KGEntityType, KGRelationshipType } from './schema'
 
 // ─── Write Edge ──────────────────────────────────────────────────────────────
@@ -26,7 +27,7 @@ export async function writeEdge(edge: KGEdge): Promise<string> {
     : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) // Default: 7 days
 
   const data = {
-    edgeType: prismaEdgeType,
+    edgeType: prismaEdgeType as KnowledgeEdgeType,
     sourceType: fromKGEntityType(edge.sourceType),
     sourceId: edge.sourceId,
     targetType: fromKGEntityType(edge.targetType),
@@ -34,7 +35,7 @@ export async function writeEdge(edge: KGEdge): Promise<string> {
     targetName: edge.targetName ?? null,
     distanceKm: edge.properties.distanceKm ?? null,
     impactScore: edge.properties.estimatedImpactPct ?? null,
-    properties: edge.properties.metadata ?? null,
+    properties: edge.properties.metadata ? (edge.properties.metadata as Prisma.InputJsonValue) : Prisma.JsonNull,
     sourceProvider: edge.sourceProvider ?? null,
     confidence: edge.confidence,
     computedAt: now,
@@ -48,19 +49,19 @@ export async function writeEdge(edge: KGEdge): Promise<string> {
       sourceId: data.sourceId,
       targetType: data.targetType,
       targetId: data.targetId,
-      edgeType: data.edgeType as any,
+      edgeType: data.edgeType,
     },
   })
 
   if (existing) {
     await prisma.propertyKnowledgeEdge.update({
       where: { id: existing.id },
-      data: data as any,
+      data,
     })
     return existing.id
   }
 
-  const created = await prisma.propertyKnowledgeEdge.create({ data: data as any })
+  const created = await prisma.propertyKnowledgeEdge.create({ data })
   return created.id
 }
 
@@ -87,7 +88,7 @@ export async function writeEdges(edges: KGEdge[]): Promise<number> {
 
         return prisma.propertyKnowledgeEdge.create({
           data: {
-            edgeType: prismaEdgeType as any,
+            edgeType: prismaEdgeType as KnowledgeEdgeType,
             sourceType: fromKGEntityType(edge.sourceType),
             sourceId: edge.sourceId,
             targetType: fromKGEntityType(edge.targetType),
@@ -95,12 +96,12 @@ export async function writeEdges(edges: KGEdge[]): Promise<number> {
             targetName: edge.targetName ?? null,
             distanceKm: edge.properties.distanceKm ?? null,
             impactScore: edge.properties.estimatedImpactPct ?? null,
-            properties: edge.properties.metadata ?? null,
+            properties: edge.properties.metadata ? (edge.properties.metadata as Prisma.InputJsonValue) : Prisma.JsonNull,
             sourceProvider: edge.sourceProvider ?? null,
             confidence: edge.confidence,
             computedAt: now,
             expiresAt,
-          } as any,
+          },
         })
       })
     )
@@ -144,12 +145,12 @@ export async function writeSimilarity(params: {
       propertyId: entityId,
       comparableId: similarEntityId,
       similarityScore,
-      matchFactors: (dimensions ?? []) as any,
+      matchFactors: dimensions ?? [],
       computedAt: new Date(),
     },
     update: {
       similarityScore,
-      matchFactors: (dimensions ?? []) as any,
+      matchFactors: dimensions ?? [],
       computedAt: new Date(),
     },
   })
@@ -215,33 +216,33 @@ function fromKGEntityType(kgType: KGEntityType): string {
  * The Prisma enum is more specific (e.g. PROPERTY_NEAR_METRO vs PROPERTY_NEAR_SCHOOL),
  * while our KG uses a generic NEAR with target type distinction.
  */
-function toDBEdgeType(rel: KGRelationshipType, targetType: KGEntityType): string {
+function toDBEdgeType(rel: KGRelationshipType, targetType: KGEntityType): KnowledgeEdgeType {
   if (rel === 'NEAR') {
-    const nearMap: Record<string, string> = {
-      'METRO_STATION':  'PROPERTY_NEAR_METRO',
-      'SCHOOL':         'PROPERTY_NEAR_SCHOOL',
-      'HOSPITAL':       'PROPERTY_NEAR_HOSPITAL',
-      'MALL':           'PROPERTY_NEAR_MALL',
-      'AIRPORT':        'PROPERTY_NEAR_AIRPORT',
-      'COMMUNITY':      'PROPERTY_NEAR_IT_HUB',
-      'ROAD':           'PROPERTY_NEAR_HIGHWAY',
+    const nearMap: Record<string, KnowledgeEdgeType> = {
+      'METRO_STATION':  KnowledgeEdgeType.PROPERTY_NEAR_METRO,
+      'SCHOOL':         KnowledgeEdgeType.PROPERTY_NEAR_SCHOOL,
+      'HOSPITAL':       KnowledgeEdgeType.PROPERTY_NEAR_HOSPITAL,
+      'MALL':           KnowledgeEdgeType.PROPERTY_NEAR_MALL,
+      'AIRPORT':        KnowledgeEdgeType.PROPERTY_NEAR_AIRPORT,
+      'COMMUNITY':      KnowledgeEdgeType.PROPERTY_NEAR_IT_HUB,
+      'ROAD':           KnowledgeEdgeType.PROPERTY_NEAR_HIGHWAY,
     }
-    return nearMap[targetType] ?? 'PROPERTY_NEAR_METRO'
+    return nearMap[targetType] ?? KnowledgeEdgeType.PROPERTY_NEAR_METRO
   }
 
-  const relMap: Record<KGRelationshipType, string> = {
-    'BUILT_BY':       'PROPERTY_DEVELOPED_BY',
-    'LOCATED_IN':     'PROPERTY_IN_PROJECT',
-    'NEAR':           'PROPERTY_NEAR_METRO',
-    'SIMILAR_TO':     'PROPERTY_IN_PROJECT',
-    'PART_OF':        'PROPERTY_IN_PROJECT',
-    'CONNECTED_TO':   'AREA_NEAR_INFRA',
-    'PURCHASED_BY':   'AGENT_CLOSED_IN_AREA',
-    'LISTED_BY':      'PROPERTY_LISTED_BY',
-    'REVIEWED_BY':    'DEVELOPER_HAS_LITIGATION',
-    'IMPACTS':        'AREA_NEAR_INFRA',
-    'COMPETES_WITH':  'PROPERTY_IN_PROJECT',
-    'TRANSACTED_AT':  'AGENT_CLOSED_IN_AREA',
+  const relMap: Record<KGRelationshipType, KnowledgeEdgeType> = {
+    'BUILT_BY':      KnowledgeEdgeType.PROPERTY_DEVELOPED_BY,
+    'LOCATED_IN':    KnowledgeEdgeType.PROPERTY_IN_PROJECT,
+    'NEAR':          KnowledgeEdgeType.PROPERTY_NEAR_METRO,
+    'SIMILAR_TO':    KnowledgeEdgeType.PROPERTY_IN_PROJECT,
+    'PART_OF':       KnowledgeEdgeType.PROPERTY_IN_PROJECT,
+    'CONNECTED_TO':  KnowledgeEdgeType.AREA_NEAR_INFRA,
+    'PURCHASED_BY':  KnowledgeEdgeType.AGENT_CLOSED_IN_AREA,
+    'LISTED_BY':     KnowledgeEdgeType.PROPERTY_LISTED_BY,
+    'REVIEWED_BY':   KnowledgeEdgeType.DEVELOPER_HAS_LITIGATION,
+    'IMPACTS':       KnowledgeEdgeType.AREA_NEAR_INFRA,
+    'COMPETES_WITH': KnowledgeEdgeType.PROPERTY_IN_PROJECT,
+    'TRANSACTED_AT': KnowledgeEdgeType.AGENT_CLOSED_IN_AREA,
   }
-  return relMap[rel] ?? 'PROPERTY_NEAR_METRO'
+  return relMap[rel] ?? KnowledgeEdgeType.PROPERTY_NEAR_METRO
 }

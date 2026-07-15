@@ -17,6 +17,7 @@ import type { MarketSnapshotData } from '../canonical/market'
 import {
   computeMarketHeatIndex,
   computeAffordabilityIndex,
+  classifyMarketHeat,
 } from '../canonical/market'
 
 // ─── Snapshot Generation ─────────────────────────────────────────────────────
@@ -76,8 +77,7 @@ export async function generateSnapshot(
   const inventoryMonths = transactions30d > 0 ? activeListings / transactions30d : 12
 
   // ── Compute rental metrics ─────────────────────────────────────────────────
-  const rentalListings = listings.filter(l => l.intent === 'RENT')
-  const rentalPrices = rentalListings.map(l => l.pricePerSqft).filter(Boolean) as number[]
+  const rentalPrices: number[] = []
   const avgRentPerSqft = average(rentalPrices)
   const rentalYieldAvg = avgPricePerSqft > 0 && avgRentPerSqft > 0
     ? (avgRentPerSqft * 12 / avgPricePerSqft) * 100
@@ -263,7 +263,6 @@ async function queryActiveListings(
   return listings.map(l => ({
     price: l.price,
     pricePerSqft: l.pricePerSqft,
-    intent: 'SELL',
     listedAt: l.listedAt.toISOString(),
     source: l.source ?? 'UNKNOWN',
   }))
@@ -291,7 +290,7 @@ async function queryRecentTransactions(
     pricePerSqft: t.pricePerSqft,
     date: t.soldDate.toISOString(),
     source: t.source ?? 'UNKNOWN',
-    listToSaleRatio: 0.95,
+    listToSaleRatio: 95,
   }))
 }
 
@@ -307,7 +306,7 @@ async function queryPriceTrends(
     take: 3,
   })
   return trends.map(t => ({
-    type: 'GENERAL',
+    type: 'MOM',
     changePct: t.priceChangePercent ?? 0,
   }))
 }
@@ -330,7 +329,10 @@ async function queryMarketSignals(
 async function persistSnapshot(snapshot: MarketSnapshotData): Promise<void> {
   await prisma.marketSnapshot.create({
     data: {
-      marketKey: `${snapshot.countryIso2}:${snapshot.city}:${snapshot.community ?? 'ALL'}`,
+      marketKey: [snapshot.countryIso2, snapshot.city, snapshot.community]
+        .filter((p): p is string => Boolean(p))
+        .map((p: string) => p.toLowerCase().replace(/\s+/g, '_'))
+        .join(':'),
       countryIso2: snapshot.countryIso2,
       city: snapshot.city,
       community: snapshot.community ?? null,
@@ -346,18 +348,18 @@ async function persistSnapshot(snapshot: MarketSnapshotData): Promise<void> {
       supplyIndex: snapshot.supplyIndex,
       inventoryMonths: snapshot.inventoryMonths,
       absorptionRate: snapshot.absorptionRate,
-      newListingsCount: (snapshot as any).newListings30d ?? 0,
-      transactionsCount: (snapshot as any).transactions30d ?? 0,
-      marketHeat: 'NEUTRAL',
+      newListingsCount: snapshot.newListings30d,
+      transactionsCount: snapshot.transactions30d,
       rentalYieldAvg: snapshot.rentalYieldAvg,
       rentalYieldMedian: snapshot.rentalYieldAvg,
-      vacancyRateAvg: (snapshot as any).vacancyRate ?? 0,
-      capitalAppreciation3yr: null,
+      vacancyRateAvg: snapshot.vacancyRate,
+      capitalAppreciation3yr: snapshot.priceChangeYoyPct,
       priceToRentRatio: snapshot.priceToRentRatio,
       sampleSize: snapshot.sampleSize,
       dataQualityScore: snapshot.dataQualityScore,
-      sourcesCount: (snapshot as any).sourceCount ?? 1,
-    } as any,
+      sourcesCount: snapshot.sourceCount,
+      marketHeat: classifyMarketHeat(snapshot.marketHeatIndex) as any,
+    },
   })
 }
 

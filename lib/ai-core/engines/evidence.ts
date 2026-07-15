@@ -10,8 +10,7 @@
 // Every AI output traces back to evidence — no black-box responses.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-import type { ConfidenceResult } from '../types'
-import type { FeatureVector } from '../feature-store'
+import type { FeatureVector, ConfidenceResult } from '../types'
 import type { ComparableResult, ScoredComparable } from './comparable'
 import type { MarketSnapshotData } from '../canonical/market'
 import type { DataQualityScore } from '../quality'
@@ -165,9 +164,9 @@ export async function collectEvidence(
     nearbyPOIs,
     entityProfile,
   ] = await Promise.allSettled([
-    findComparables(features as any, { limit: 20 }),
-    (features as any).city
-      ? getOrGenerateSnapshot((features as any).countryIso2 ?? 'AE', (features as any).city, (features as any).community ?? undefined)
+    findComparables(features, { limit: 20 }),
+    features.city
+      ? getOrGenerateSnapshot(features.countryIso2 ?? 'AE', features.city, features.community ?? undefined)
       : Promise.resolve(null),
     features.entityId
       ? getNearbyPOIs(features.entityId, 'PROPERTY', 5)
@@ -292,7 +291,7 @@ function buildComparableEvidence(
   const strongMatches = allComps.filter(c => c.similarityScore > 0.7).length
 
   // Price position
-  const subjectPPS = (features as any).pricePerSqft ?? 0
+  const subjectPPS = features.pricePerSqft ?? 0
   const medianPPS = result.marketStats.medianPricePerSqft
   let pricePosition: ComparableEvidence['pricePositionVsComparables'] = 'UNKNOWN'
   let priceDeviation = 0
@@ -402,16 +401,15 @@ function buildInfraEvidence(
 }
 
 function buildDeveloperEvidence(features: FeatureVector): DeveloperEvidence {
-  const f = features as any;
   return {
-    name: f.developerName ?? null,
-    brandTier: f.developerBrandTier ?? null,
-    completionRate: f.developerCompletionRate ?? null,
-    customerRating: f.developerCustomerRating ?? null,
-    totalDelivered: f.developerProjectsDelivered ?? null,
-    litigationCount: f.developerLitigation ?? null,
+    name: features.developerName ?? null,
+    brandTier: features.developerBrandTier ?? null,
+    completionRate: features.developerCompletionRate ?? null,
+    customerRating: features.developerCustomerRating ?? null,
+    totalDelivered: features.developerProjectsDelivered ?? null,
+    litigationCount: features.developerLitigation ?? null,
     reputationScore: null, // Computed from canonical developer model
-    hasData: !!f.developerName,
+    hasData: !!features.developerName,
   }
 }
 
@@ -452,11 +450,11 @@ function buildRiskEvidence(
   }
 
   // Developer risk
-  if (features.developerLitigationCount && features.developerLitigationCount > 2) {
+  if (features.developerLitigation && features.developerLitigation > 2) {
     risks.push({
       category: 'Developer',
-      severity: features.developerLitigationCount > 5 ? 'HIGH' : 'MEDIUM',
-      description: `Developer has ${features.developerLitigationCount} active litigation cases`,
+      severity: features.developerLitigation > 5 ? 'HIGH' : 'MEDIUM',
+      description: `Developer has ${features.developerLitigation} active litigation cases`,
       mitigation: 'Verify construction progress independently',
     })
   }

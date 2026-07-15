@@ -1,4 +1,4 @@
-// ━━━ VerixShield v2.1 — Demand Intelligence Engine ━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Demand Intelligence Engine ━━━━━━━━━━━━━━━━━━━━━━━
 // Captures real user behavioral signals beyond listing count proxies
 // Uses analytics events for views, property leads for enquiries
 
@@ -25,7 +25,7 @@ export async function computeDemandIntelligence(
         createdAt: { gte: thirtyDaysAgo },
       },
     })
-  } catch {}
+  } catch { }
 
   try {
     enquiryCount = await (prisma as any).propertyLead.count({
@@ -34,7 +34,7 @@ export async function computeDemandIntelligence(
         createdAt: { gte: thirtyDaysAgo },
       },
     })
-  } catch {}
+  } catch { }
 
   // ── Area-level context ──
   let areaAvgViews = 10
@@ -57,7 +57,7 @@ export async function computeDemandIntelligence(
         areaAvgViews = Math.max(1, totalAreaViews / totalListings)
       }
     }
-  } catch {}
+  } catch { }
 
   // ── Score computation ──
   const viewFactor = areaAvgViews > 0

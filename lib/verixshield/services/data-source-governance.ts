@@ -1,4 +1,4 @@
-// ━━━ VerixShield v2.1 — Data Source Governance Layer ━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Data Source Governance Layer ━━━━━━━━━━━━━━━━━━━━━
 // Defines allowed sources, trust scores, freshness SLAs
 // Prevents legal risks and dirty data from corrupting valuations
 

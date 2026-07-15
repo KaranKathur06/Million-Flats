@@ -1,4 +1,4 @@
-// ━━━ VerixShield v2.1 — Feedback Loop Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Feedback Loop Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Makes the system self-learning by capturing actual sold prices
 // Computes error rates and triggers model retraining when accuracy degrades
 
@@ -26,7 +26,7 @@ export async function recordFeedback(input: FeedbackInput): Promise<FeedbackResu
   // Step 1: Find the most recent prediction for this property
   let prediction: any = null
   try {
-    prediction = await (prisma as any).verixShieldResult.findUnique({
+    prediction = await (prisma as any).AIShieldResult.findUnique({
       where: {
         entityType_entityId: {
           entityType: input.entityType,
@@ -34,14 +34,14 @@ export async function recordFeedback(input: FeedbackInput): Promise<FeedbackResu
         },
       },
     })
-  } catch {}
+  } catch { }
 
   const predictedPrice = prediction?.estimatedMedian || null
   const errorPercentage =
     predictedPrice && input.actualPrice > 0
       ? Math.round(
-          (Math.abs(predictedPrice - input.actualPrice) / input.actualPrice) * 10000,
-        ) / 100
+        (Math.abs(predictedPrice - input.actualPrice) / input.actualPrice) * 10000,
+      ) / 100
       : null
 
   // Step 2: Store feedback
@@ -86,11 +86,11 @@ export async function recordFeedback(input: FeedbackInput): Promise<FeedbackResu
         if (avgError > 12) {
           actionTaken = 'retrain_triggered'
           console.warn(
-            `[VerixShield:Feedback] MAPE ${avgError.toFixed(1)}% exceeds 12% threshold — retraining alert`,
+            `[AIShield:Feedback] MAPE ${avgError.toFixed(1)}% exceeds 12% threshold — retraining alert`,
           )
         }
       }
-    } catch {}
+    } catch { }
   }
 
   if (!prediction) {
@@ -157,7 +157,7 @@ export async function computeAccuracyMetrics(): Promise<{ updated: number }> {
       updated++
     }
   } catch (error) {
-    console.error('[VerixShield:Feedback] Accuracy metrics error:', error)
+    console.error('[AIShield:Feedback] Accuracy metrics error:', error)
   }
 
   return { updated }

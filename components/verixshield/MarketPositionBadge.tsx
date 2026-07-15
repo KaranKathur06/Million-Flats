@@ -1,6 +1,6 @@
 'use client'
 
-// ━━━ VerixShield v2.1 — Market Position Badge ━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Market Position Badge ━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Visual percentile bar showing "Priced higher than X% of similar listings"
 
 import React from 'react'

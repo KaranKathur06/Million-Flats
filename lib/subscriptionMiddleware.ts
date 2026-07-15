@@ -19,7 +19,7 @@ export interface SubscriptionCheck {
   canCreateListing: boolean
   canFeatureListing: boolean
   hasAnalyticsAccess: boolean
-  verixAccessLevel: number
+  AIAccessLevel: number
   daysRemaining: number | null
   endDate: Date | null
 }
@@ -42,7 +42,7 @@ export async function getSubscriptionStatus(agentId: string): Promise<Subscripti
         endDate: true,
         listingsLimit: true,
         featuredLimit: true,
-        verixAccessLevel: true,
+        AIAccessLevel: true,
       },
     }),
     (prisma as any).manualProperty.count({
@@ -81,7 +81,7 @@ export async function getSubscriptionStatus(agentId: string): Promise<Subscripti
   const featuredLimit = subscription?.featuredLimit ?? planLimits.featuredLimit
 
   // Check if can create/feature listings
-  const canCreateListing = hasActiveSubscription && 
+  const canCreateListing = hasActiveSubscription &&
     (listingsLimit === null || listingCount < listingsLimit)
 
   const canFeatureListing = hasActiveSubscription &&
@@ -98,7 +98,7 @@ export async function getSubscriptionStatus(agentId: string): Promise<Subscripti
     canCreateListing,
     canFeatureListing,
     hasAnalyticsAccess: planLimits.analyticsAccess,
-    verixAccessLevel: subscription?.verixAccessLevel ?? planLimits.verixAccessLevel,
+    AIAccessLevel: subscription?.AIAccessLevel ?? planLimits.AIAccessLevel,
     daysRemaining,
     endDate: subscription?.endDate || null,
   }
@@ -172,15 +172,15 @@ export async function hasAnalyticsAccess(agentId: string): Promise<boolean> {
 }
 
 /**
- * Check if agent has Verix access at required level
+ * Check if agent has AI access at required level
  * 
  * @param agentId Agent ID
  * @param requiredLevel Minimum required level (0=none, 1=basic, 2=full)
  * @returns boolean
  */
-export async function hasVerixAccess(agentId: string, requiredLevel: number): Promise<boolean> {
+export async function hasAIAccess(agentId: string, requiredLevel: number): Promise<boolean> {
   const status = await getSubscriptionStatus(agentId)
-  return status.hasActiveSubscription && status.verixAccessLevel >= requiredLevel
+  return status.hasActiveSubscription && status.AIAccessLevel >= requiredLevel
 }
 
 /**
@@ -197,7 +197,7 @@ export async function getSubscriptionSummary(agentId: string): Promise<{
   daysRemaining: number | null
   features: {
     analytics: boolean
-    verixLevel: number
+    AILevel: number
     leadPriority: string
   }
 }> {
@@ -218,7 +218,7 @@ export async function getSubscriptionSummary(agentId: string): Promise<{
     daysRemaining: status.daysRemaining,
     features: {
       analytics: status.hasAnalyticsAccess,
-      verixLevel: status.verixAccessLevel,
+      AILevel: status.AIAccessLevel,
       leadPriority: planLimits.leadPriority,
     },
   }

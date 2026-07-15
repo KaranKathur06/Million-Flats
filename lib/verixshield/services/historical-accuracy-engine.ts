@@ -1,4 +1,4 @@
-// ━━━ VerixShield v2.1 — Historical Accuracy Engine ━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Historical Accuracy Engine ━━━━━━━━━━━━━━━━━━━━━━━
 // Calibrates confidence using real backtested MAPE from feedback data
 // If model is wrong 40% of the time, confidence MUST NOT show 85%
 

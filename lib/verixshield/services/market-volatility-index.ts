@@ -1,4 +1,4 @@
-// ━━━ VerixShield v2.1 — Market Volatility Index Engine ━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Market Volatility Index Engine ━━━━━━━━━━━━━━━━━━━
 // Computes dynamic anomaly detection thresholds based on market conditions
 // Stable market = tighter band, volatile market = wider band
 
@@ -45,7 +45,7 @@ export async function computeMarketVolatilityIndex(
         else priceVarianceTrend = 2.5
       }
     }
-  } catch {}
+  } catch { }
 
   // ── Factor 2: Demand Fluctuation (0.30) ──
   let demandFluctuation = 1.0
@@ -68,7 +68,7 @@ export async function computeMarketVolatilityIndex(
       else if (avgDemandChange > 5) demandFluctuation = 1.0
       else demandFluctuation = 0.7
     }
-  } catch {}
+  } catch { }
 
   // ── Factor 3: Transaction Velocity Change (0.30) ──
   let transactionVelocityChange = 1.0
@@ -89,7 +89,7 @@ export async function computeMarketVolatilityIndex(
       else if (velocityRatio < 0.5) transactionVelocityChange = 1.8
       else transactionVelocityChange = 1.0
     }
-  } catch {}
+  } catch { }
 
   // ── Composite MVI ──
   const mvi =

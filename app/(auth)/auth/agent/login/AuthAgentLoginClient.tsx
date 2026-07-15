@@ -37,25 +37,28 @@ export default function AuthAgentLoginClient() {
     setShowResetCta(false)
 
     try {
-      const res = await fetch('/api/auth/login-otp/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, password: formData.password, intent: 'agent' }),
+      const result = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        intent: 'agent',
+        redirect: false,
+        callbackUrl,
       })
 
-      const data = await res.json().catch(() => null)
-      if (!res.ok) {
-        const code = (data && data.code) || ''
-        const msg = (data && data.message) || 'Login failed'
-        setError(msg)
-        if (code === 'PASSWORD_NOT_SET') {
-          setShowResetCta(true)
-        }
+      if (result?.ok && result.url) {
+        router.push(result.url)
         return
       }
 
-      const url = `/auth/verify-otp?role=agent&email=${encodeURIComponent(formData.email)}${safeNext ? `&next=${encodeURIComponent(safeNext)}` : ''}`
-      router.push(url)
+      const raw = (result as any)?.error || 'Login failed'
+      if (raw === 'EMAIL_NOT_VERIFIED') setError('Please verify your email before signing in.')
+      else if (raw === 'INVALID_PASSWORD') setError('Invalid email or password.')
+      else if (raw === 'PASSWORD_NOT_SET') { setError('Password is not set for this account. Please reset your password.'); setShowResetCta(true) }
+      else if (raw === 'ACCOUNT_BANNED') setError('Your account has been banned. Please contact support.')
+      else if (raw === 'ACCOUNT_DISABLED') setError('Your account is suspended. Please contact support.')
+      else if (raw === 'AGENT_NOT_REGISTERED') setError('This account is not registered as an agent. Apply as an agent to continue.')
+      else if (raw === 'CredentialsSignin') setError('Invalid email or password.')
+      else setError(raw)
     } catch {
       setError('An error occurred. Please try again.')
     } finally {

@@ -45,7 +45,7 @@ export function ComingSoonModules() {
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-6 sm:p-8">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900">Verix Ecosystem</h2>
+        <h2 className="text-xl font-bold text-gray-900">AI Ecosystem</h2>
         <p className="text-sm text-gray-600 mt-1">
           The complete AI intelligence suite — launching on a phased roadmap
         </p>

@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import type { VerixShieldStatus } from '@prisma/client'
+import type { AIShieldStatus } from '@prisma/client'
 
 const COUNTRY_ISO_MAP: Record<string, string> = {
   uae: 'AE',
@@ -7,8 +7,8 @@ const COUNTRY_ISO_MAP: Record<string, string> = {
   dubai: 'AE',
 }
 
-/** User-facing AI status filter → VerixShield enum values */
-export const AI_STATUS_FILTER_MAP: Record<string, VerixShieldStatus[]> = {
+/** User-facing AI status filter → AIShield enum values */
+export const AI_STATUS_FILTER_MAP: Record<string, AIShieldStatus[]> = {
   'great-deal': ['UNDERPRICED'],
   'fair-value': ['FAIR'],
   'slightly-overpriced': ['OVERPRICED'],
@@ -17,7 +17,7 @@ export const AI_STATUS_FILTER_MAP: Record<string, VerixShieldStatus[]> = {
   'analysis-in-progress': ['INSUFFICIENT_DATA'],
 }
 
-export function mapStatusLabel(status: VerixShieldStatus | null | undefined): string {
+export function mapStatusLabel(status: AIShieldStatus | null | undefined): string {
   switch (status) {
     case 'UNDERPRICED':
       return 'Great Deal'
@@ -64,9 +64,9 @@ export async function bootstrapAiShieldRegistry() {
   })
 }
 
-/** Auto-enable projects that already have VerixShield valuation cache */
+/** Auto-enable projects that already have AIShield valuation cache */
 export async function syncAutoEnabledFromValuations() {
-  const results = await prisma.verixShieldResult.findMany({
+  const results = await prisma.aIShieldResult.findMany({
     where: { entityType: 'PROJECT' },
     select: { entityId: true },
   })
@@ -81,7 +81,7 @@ export async function syncAutoEnabledFromValuations() {
   })
 
   for (const id of ids) {
-    await syncAiShieldSnapshot(id).catch(() => {})
+    await syncAiShieldSnapshot(id).catch(() => { })
   }
 }
 
@@ -201,7 +201,7 @@ export async function getAiShieldPlatformStats() {
   const [enabledCount, publishedCount, valuationRows, totalStartingPrice] = await Promise.all([
     prisma.aiShieldProject.count({ where: { isAiEnabled: true } }),
     prisma.project.count({ where: { status: 'PUBLISHED', isDeleted: false } }),
-    prisma.verixShieldResult.findMany({
+    prisma.aIShieldResult.findMany({
       where: { entityType: 'PROJECT' },
       select: { confidence: true, estimatedMedian: true, askingPrice: true },
     }),
@@ -364,7 +364,7 @@ export async function getAiShieldProjectBySlug(slug: string) {
     await ensureAiShieldProject(project.id)
   }
 
-  const hasValuation = await prisma.verixShieldResult.findUnique({
+  const hasValuation = await prisma.aIShieldResult.findUnique({
     where: {
       entityType_entityId: { entityType: 'PROJECT', entityId: project.id },
     },
@@ -392,7 +392,7 @@ export async function getAiShieldSnapshot(projectId: string) {
 
   const [shield, valuation, project] = await Promise.all([
     prisma.aiShieldProject.findUnique({ where: { projectId } }),
-    prisma.verixShieldResult.findUnique({
+    prisma.aIShieldResult.findUnique({
       where: { entityType_entityId: { entityType: 'PROJECT', entityId: projectId } },
     }),
     prisma.project.findUnique({
@@ -420,9 +420,9 @@ export async function getAiShieldSnapshot(projectId: string) {
   }
 }
 
-/** Sync cached snapshot from VerixShieldResult after computation */
+/** Sync cached snapshot from AIShieldResult after computation */
 export async function syncAiShieldSnapshot(projectId: string) {
-  const result = await prisma.verixShieldResult.findUnique({
+  const result = await prisma.aIShieldResult.findUnique({
     where: {
       entityType_entityId: {
         entityType: 'PROJECT',

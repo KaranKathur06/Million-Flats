@@ -1,4 +1,4 @@
-// ━━━ VerixShield Valuation Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield Valuation Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Statistical + heuristic valuation model
 // In production, this would be replaced with XGBoost/RandomForest via Python microservice
 // Current implementation uses weighted comparables + market adjustments

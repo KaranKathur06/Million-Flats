@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MillionFlats AI Suite — Demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#16233D;
+    --navy-2:#1E304F;
+    --paper:#F7F4EC;
+    --card:#FFFFFF;
+    --ink:#1C2128;
+    --ink-soft:#565B62;
+    --line:rgba(28,33,40,.12);
+    --jade:#3E6E68;
+    --jade-light:#E4EEEC;
+    --gold:#B07F26;
+    --gold-light:#F3E7CE;
+    --rust:#B5502E;
+    --rust-light:#F6E4DC;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+  }
+  .app{
+    display:grid;
+    grid-template-columns:220px 1fr;
+    min-height:100vh;
+  }
+  .rail{
+    background:var(--navy);
+    color:#EDEFF3;
+    padding:28px 18px;
+    display:flex;
+    flex-direction:column;
+    gap:26px;
+  }
+  .brand{
+    font-family:'Fraunces', serif;
+    font-size:20px;
+    font-weight:600;
+    letter-spacing:.2px;
+  }
+  .brand span{color:#C9AF7C;}
+  .rail nav{display:flex;flex-direction:column;gap:4px;margin-top:8px;}
+  .rail-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:11px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:13.5px;
+    color:#B9C2D4;
+    border:1px solid transparent;
+    transition:.15s;
+  }
+  .rail-item:hover{background:var(--navy-2);}
+  .rail-item.active{
+    background:var(--navy-2);
+    color:#fff;
+    border-color:rgba(201,175,124,.35);
+  }
+  .rail-item .dot{
+    width:7px;height:7px;border-radius:50%;
+    background:#54607A;
+    flex-shrink:0;
+  }
+  .rail-item.active .dot{background:#C9AF7C;}
+  .rail-foot{
+    margin-top:auto;
+    font-size:11.5px;
+    color:#7C879E;
+    line-height:1.5;
+    border-top:1px solid rgba(255,255,255,.08);
+    padding-top:14px;
+  }
+
+  .main{padding:34px 42px 60px;}
+  .topline{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .eyebrow{
+    font-size:11.5px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--jade);
+    font-weight:500;
+    margin:0 0 6px;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:30px;
+    margin:0 0 8px;
+  }
+  .desc{
+    color:var(--ink-soft);
+    font-size:14.5px;
+    max-width:560px;
+    line-height:1.55;
+    margin:0;
+  }
+  .frame{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    overflow:hidden;
+    box-shadow:0 1px 2px rgba(20,25,40,.04);
+  }
+  .frame-bar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:11px 16px;
+    border-bottom:1px solid var(--line);
+    background:#FBFAF6;
+  }
+  .frame-bar .traffic{display:flex;gap:6px;}
+  .frame-bar .traffic span{width:9px;height:9px;border-radius:50%;background:#DDD9CC;}
+  .frame-bar .url{
+    margin-left:8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    background:#F2F0E8;
+    padding:4px 10px;
+    border-radius:6px;
+  }
+  .screen{padding:26px 28px;}
+
+  /* --- seal / signature element --- */
+  .seal{
+    width:64px;height:64px;border-radius:50%;
+    border:1.5px solid var(--jade);
+    display:flex;align-items:center;justify-content:center;
+    position:relative;flex-shrink:0;
+  }
+  .seal::before{
+    content:'';
+    position:absolute;inset:5px;
+    border:1px dashed var(--jade);
+    border-radius:50%;
+  }
+  .seal i{font-style:normal;color:var(--jade);font-size:20px;font-weight:600;}
+
+  /* generic bits */
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:11.5px;font-weight:500;
+    padding:4px 10px;border-radius:20px;
+  }
+  .pill.jade{background:var(--jade-light);color:var(--jade);}
+  .pill.gold{background:var(--gold-light);color:var(--gold);}
+  .pill.rust{background:var(--rust-light);color:var(--rust);}
+  .card{
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:16px 18px;
+    background:var(--card);
+  }
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  .btn{
+    border:1px solid var(--line);
+    background:#fff;
+    border-radius:8px;
+    padding:9px 15px;
+    font-size:13px;
+    font-weight:500;
+    cursor:pointer;
+    color:var(--ink);
+  }
+  .btn.primary{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .btn.jade{background:var(--jade);color:#fff;border-color:var(--jade);}
+  .label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);font-weight:500;}
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  hr.hair{border:none;border-top:1px solid var(--line);margin:18px 0;}
+
+  .tool-panel{display:none;}
+  .tool-panel.active{display:block;}
+
+  @media (max-width:820px){
+    .app{grid-template-columns:1fr;}
+    .rail{flex-direction:row;flex-wrap:wrap;padding:16px;}
+    .rail nav{flex-direction:row;flex-wrap:wrap;}
+    .rail-foot{display:none;}
+    .grid2,.grid3{grid-template-columns:1fr;}
+    .main{padding:22px 18px 50px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="rail">
+    <div class="brand">Million<span>Flats</span></div>
+    <nav id="nav"></nav>
+    <div class="rail-foot">AI Suite v0.1 — internal demo<br>build for review, not final copy</div>
+  </aside>
+
+  <main class="main">
+
+    <!-- AIVIEW -->
+    <section class="tool-panel" data-panel="aiview">
+      <p class="eyebrow">AIView</p>
+      <div class="topline">
+        <div>
+          <h1>Walk the unit before you fly to Dubai</h1>
+          <p class="desc">An AI-guided 3D walkthrough of the exact unit, floor, and view — built from the developer's model, not a showroom.</p>
+        </div>
+        <span class="pill jade">Live in 3D</span>
+      </div>
+      <div class="frame">
+        <div class="frame-bar"><div class="traffic"><span></span><span></span><span></span></div><div class="url">millionflats.com/damac/lagoon-views/unit-1204</div></div>
+        <div class="screen">
+          <div class="grid2" style="align-items:start;">
+            <div>
+              <div style="height:230px;border-radius:10px;background:linear-gradient(180deg,#DCE6DF 0%,#EDE7D8 60%,#F3EFE2 100%);position:relative;overflow:hidden;border:1px solid var(--line);">
+                <svg width="100%" height="100%" viewBox="0 0 400 230" preserveAspectRatio="none">
+                  <polygon points="0,230 60,120 120,230" fill="#C9D6CB"/>
+                  <polygon points="90,230 160,90 230,230" fill="#B9C9BD"/>
+                  <polygon points="200,230 260,60 320,230" fill="#A9BDAF"/>
+                  <rect x="0" y="200" width="400" height="30" fill="#7C8F94" opacity="0.5"/>
+                </svg>
+                <div style="position:absolute;bottom:12px;left:12px;background:rgba(22,35,61,.85);color:#fff;font-size:11px;padding:5px 10px;border-radius:6px;">Living room · facing lagoon</div>
+                <div style="position:absolute;top:12px;right:12px;display:flex;gap:6px;">
+                  <div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;font-size:14px;">⟳</div>
+                  <div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;font-size:14px;">⛶</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:10px;">
+                <button class="btn" style="flex:1;">Day light</button>
+                <button class="btn" style="flex:1;">Night light</button>
+                <button class="btn" style="flex:1;">Floor plan</button>
+              </div>
+            </div>
+            <div>
+              <p class="label" style="margin-bottom:8px;">Rooms in this walkthrough</p>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <div class="card" style="display:flex;justify-content:space-between;padding:10px 14px;border-color:var(--jade);background:var(--jade-light);"><span>Living room</span><span class="mono" style="color:var(--jade);">viewing</span></div>
+                <div class="card" style="display:flex;justify-content:space-between;padding:10px 14px;"><span>Master bedroom</span><span class="mono" style="color:var(--ink-soft);">02:14</span></div>
+                <div class="card" style="display:flex;justify-content:space-between;padding:10px 14px;"><span>Kitchen</span><span class="mono" style="color:var(--ink-soft);">00:48</span></div>
+                <div class="card" style="display:flex;justify-content:space-between;padding:10px 14px;"><span>Balcony · lagoon view</span><span class="mono" style="color:var(--ink-soft);">01:02</span></div>
+              </div>
+              <hr class="hair">
+              <p class="label" style="margin-bottom:8px;">Ask AIView</p>
+              <div class="card" style="font-size:13px;color:var(--ink-soft);">"Show me this room at sunset" · "Compare to unit 1104" · "What's the ceiling height here?"</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AISHIELD -->
+    <section class="tool-panel" data-panel="aishield">
+      <p class="eyebrow">AIShield · Verix Trust Score</p>
+      <div class="topline">
+        <div>
+          <h1>Know it's real before you wire a rupee</h1>
+          <p class="desc">Every listing is scored on authenticity, price fairness, seller standing, and legal safety — before a buyer ever asks.</p>
+        </div>
+        <span class="pill jade">Verified today, 09:41</span>
+      </div>
+      <div class="frame">
+        <div class="frame-bar"><div class="traffic"><span></span><span></span><span></span></div><div class="url">millionflats.com/trust/lagoon-views-1204</div></div>
+        <div class="screen">
+          <div class="grid2" style="align-items:center;">
+            <div style="display:flex;align-items:center;gap:18px;">
+              <div class="seal"><i>94</i></div>
+              <div>
+                <p style="margin:0 0 4px;font-weight:500;font-size:16px;">Verix Trust Score — 94 / 100</p>
+                <p style="margin:0;color:var(--ink-soft);font-size:13px;">Highly trusted listing. Verified by MillionFlats compliance team + AIShield.</p>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;justify-content:space-between;font-size:13px;"><span>Authenticity</span><span class="mono" style="color:var(--jade);">98</span></div>
+              <div style="height:6px;border-radius:4px;background:#EDEAE0;"><div style="width:98%;height:100%;border-radius:4px;background:var(--jade);"></div></div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;"><span>Pricing fairness</span><span class="mono" style="color:var(--jade);">89</span></div>
+              <div style="height:6px;border-radius:4px;background:#EDEAE0;"><div style="width:89%;height:100%;border-radius:4px;background:var(--jade);"></div></div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;"><span>Legal safety</span><span class="mono" style="color:var(--jade);">96</span></div>
+              <div style="height:6px;border-radius:4px;background:#EDEAE0;"><div style="width:96%;height:100%;border-radius:4px;background:var(--jade);"></div></div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;"><span>Seller standing</span><span class="mono" style="color:var(--gold);">78</span></div>
+              <div style="height:6px;border-radius:4px;background:#EDEAE0;"><div style="width:78%;height:100%;border-radius:4px;background:var(--gold);"></div></div>
+            </div>
+          </div>
+          <hr class="hair">
+          <div class="grid3">
+            <div class="card"><p class="label">Price check</p><p style="margin:6px 0 0;font-size:13.5px;">3% below area median for comparable lagoon-facing units.</p></div>
+            <div class="card"><p class="label">Seller flag</p><p style="margin:6px 0 0;font-size:13.5px;">Agent licence renewed 2026. No prior disputes on file.</p></div>
+            <div class="card"><p class="label">Document scan</p><p style="margin:6px 0 0;font-size:13.5px;">Title deed and NOC matched against DLD records.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AIINDEX -->
+    <section class="tool-panel" data-panel="aiindex">
+      <p class="eyebrow">AIIndex</p>
+      <div class="topline">
+        <div>
+          <h1>Where the yield actually is</h1>
+          <p class="desc">Price, rent, and appreciation data by community, refreshed against live DLD transactions — not agent guesswork.</p>
+        </div>
+        <span class="pill gold">Updated weekly</span>
+      </div>
+      <div class="frame">
+        <div class="frame-bar"><div class="traffic"><span></span><span></span><span></span></div><div class="url">millionflats.com/index/dubai</div></div>
+        <div class="screen">
+          <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+            <span class="pill jade">Dubai Marina</span>
+            <span class="pill" style="background:#F2F0E8;color:var(--ink-soft);">Business Bay</span>
+            <span class="pill" style="background:#F2F0E8;color:var(--ink-soft);">JVC</span>
+            <span class="pill" style="background:#F2F0E8;color:var(--ink-soft);">Downtown</span>
+          </div>
+          <div class="grid3" style="margin-bottom:18px;">
+            <div class="card"><p class="label">Avg price / sq ft</p><p style="font-family:'IBM Plex Mono';font-size:22px;margin:6px 0 0;">AED 1,940</p><p style="font-size:12px;color:var(--jade);margin:2px 0 0;">▲ 4.2% YoY</p></div>
+            <div class="card"><p class="label">Gross rental yield</p><p style="font-family:'IBM Plex Mono';font-size:22px;margin:6px 0 0;">6.8%</p><p style="font-size:12px;color:var(--jade);margin:2px 0 0;">▲ 0.3pt QoQ</p></div>
+            <div class="card"><p class="label">12-mo forecast</p><p style="font-family:'IBM Plex Mono';font-size:22px;margin:6px 0 0;">+7–9%</p><p style="font-size:12px;color:var(--ink-soft);margin:2px 0 0;">AIIndex model, 82% confidence</p></div>
+          </div>
+          <div class="card" style="padding:18px 20px;">
+            <p class="label" style="margin-bottom:10px;">Price trend, last 12 months</p>
+            <svg width="100%" height="120" viewBox="0 0 560 120" preserveAspectRatio="none">
+              <polyline points="0,90 50,85 100,88 150,75 200,70 250,72 300,58 350,55 400,42 450,38 500,25 560,18" fill="none" stroke="#3E6E68" stroke-width="2.5"/>
+              <polyline points="0,90 50,85 100,88 150,75 200,70 250,72 300,58 350,55 400,42 450,38 500,25 560,18 560,120 0,120" fill="#E4EEEC" stroke="none" opacity="0.6"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AITITLE -->
+    <section class="tool-panel" data-panel="aititle">
+      <p class="eyebrow">AITitle</p>
+      <div class="topline">
+        <div>
+          <h1>The paperwork, checked before you sign</h1>
+          <p class="desc">Title deed, NOC, escrow status, and encumbrance history — cross-checked against DLD and RERA records automatically.</p>
+        </div>
+        <span class="pill jade">Clear to proceed</span>
+      </div>
+      <div class="frame">
+        <div class="frame-bar"><div class="traffic"><span></span><span></span><span></span></div><div class="url">millionflats.com/title/lagoon-views-1204</div></div>
+        <div class="screen">
+          <div class="grid2" style="align-items:start;">
+            <div>
+              <p class="label" style="margin-bottom:10px;">Verification checklist</p>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;"><span>Title deed match</span><span class="pill jade">Passed</span></div>
+                <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;"><span>No objection certificate</span><span class="pill jade">Passed</span></div>
+                <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;"><span>Developer escrow status</span><span class="pill jade">Passed</span></div>
+                <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;"><span>Encumbrance / mortgage check</span><span class="pill jade">Passed</span></div>
+                <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;"><span>Ownership dispute history</span><span class="pill gold">Review</span></div>
+              </div>
+            </div>
+            <div>
+              <p class="label" style="margin-bottom:10px;">Scanned document</p>
+              <div class="card" style="text-align:center;padding:26px 20px;">
+                <div class="seal" style="margin:0 auto 12px;"><i>✓</i></div>
+                <p style="margin:0 0 4px;font-weight:500;font-size:14px;">Title Deed #DLD-2026-88231</p>
+                <p style="margin:0 0 16px;font-size:12.5px;color:var(--ink-soft);">Matched against Dubai Land Department registry</p>
+                <button class="btn jade" style="width:100%;">Download verified certificate</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AIPRO -->
+    <section class="tool-panel" data-panel="aipro">
+      <p class="eyebrow">AIPro</p>
+      <div class="topline">
+        <div>
+          <h1>Your portfolio, your advisor, one screen</h1>
+          <p class="desc">A running view of holdings, returns, and next moves for NRI and HNI investors — with Golden Visa tracking built in.</p>
+        </div>
+        <span class="pill gold">Pro tier</span>
+      </div>
+      <div class="frame">
+        <div class="frame-bar"><div class="traffic"><span></span><span></span><span></span></div><div class="url">millionflats.com/pro/portfolio</div></div>
+        <div class="screen">
+          <div class="grid3" style="margin-bottom:16px;">
+            <div class="card"><p class="label">Portfolio value</p><p style="font-family:'IBM Plex Mono';font-size:20px;margin:6px 0 0;">AED 8.4M</p></div>
+            <div class="card"><p class="label">Net return, 12 mo</p><p style="font-family:'IBM Plex Mono';font-size:20px;margin:6px 0 0;color:var(--jade);">+11.6%</p></div>
+            <div class="card"><p class="label">Golden Visa</p><p style="font-family:'IBM Plex Mono';font-size:20px;margin:6px 0 0;">Eligible</p></div>
+          </div>
+          <div class="card" style="margin-bottom:16px;">
+            <p class="label" style="margin-bottom:10px;">Holdings</p>
+            <div style="display:flex;flex-direction:column;gap:0;">
+              <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px;"><span>Lagoon Views · Unit 1204</span><span class="mono">AED 3.1M · +8.2%</span></div>
+              <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px;"><span>Damac Hills 2 · Villa 41</span><span class="mono">AED 2.9M · +14.1%</span></div>
+              <div style="display:flex;justify-content:space-between;padding:9px 0;font-size:13.5px;"><span>Business Bay · Studio 802</span><span class="mono">AED 2.4M · +12.0%</span></div>
+            </div>
+          </div>
+          <div class="card" style="background:var(--gold-light);border-color:transparent;">
+            <p class="label" style="color:var(--gold);margin-bottom:6px;">AIPro recommends</p>
+            <p style="margin:0;font-size:13.5px;">Reinvest this quarter's rental income into a JVC studio — AIIndex forecasts 9% appreciation and closes a diversification gap in your portfolio.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  const tools = [
+    {id:'aiview', name:'AIView', sub:'3D walkthroughs'},
+    {id:'aishield', name:'AIShield', sub:'Trust scoring'},
+    {id:'aiindex', name:'AIIndex', sub:'Market data'},
+    {id:'aititle', name:'AITitle', sub:'Document verification'},
+    {id:'aipro', name:'AIPro', sub:'Investor portfolio'}
+  ];
+  const nav = document.getElementById('nav');
+  tools.forEach((t,i)=>{
+    const el = document.createElement('div');
+    el.className = 'rail-item' + (i===0?' active':'');
+    el.dataset.target = t.id;
+    el.innerHTML = '<span class="dot"></span><span>'+t.name+'</span>';
+    el.onclick = () => setActive(t.id);
+    nav.appendChild(el);
+  });
+  function setActive(id){
+    document.querySelectorAll('.rail-item').forEach(e=>e.classList.toggle('active', e.dataset.target===id));
+    document.querySelectorAll('.tool-panel').forEach(e=>e.classList.toggle('active', e.dataset.panel===id));
+  }
+  setActive('aiview');
+</script>
+</body>
+</html>

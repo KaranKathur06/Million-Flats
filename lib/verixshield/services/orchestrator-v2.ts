@@ -1,4 +1,4 @@
-// ━━━ VerixShield v2.1 — Orchestrator (Intelligence Engine Controller) ━━━━
+// ━━━ AIShield v2.1 — Orchestrator (Intelligence Engine Controller) ━━━━
 // Runs 19 services in optimal parallel/sequential order
 // Handles caching, error recovery, data quality gating, and audit logging
 
@@ -28,7 +28,7 @@ import { SOURCE_QUALITY_WEIGHTS } from './data-source-governance'
 import type {
   PropertyInput,
   EntityType,
-  VerixShieldResponseV2,
+  AIShieldResponseV2,
   ComparablesResultV2,
   ComparablePropertyV2,
   MLPrediction,
@@ -51,7 +51,7 @@ const MODEL_VERSION = '2.1.0'
 export async function orchestrateV2(
   propertyId: string,
   entityType: EntityType,
-): Promise<VerixShieldResponseV2> {
+): Promise<AIShieldResponseV2> {
   const startTime = Date.now()
   const servicesUsed: string[] = []
   const errors: string[] = []
@@ -200,7 +200,7 @@ export async function orchestrateV2(
   const expiresAt = new Date(now.getTime() + CACHE_TTL_MS)
   const computeTimeMs = Date.now() - startTime
 
-  const response: VerixShieldResponseV2 = {
+  const response: AIShieldResponseV2 = {
     propertyId: input.id,
     entityType: input.entityType,
 
@@ -276,10 +276,10 @@ export async function orchestrateV2(
   }
 
   // ── Step 8: Cache result ──
-  await cacheResult(input, response, expiresAt).catch(() => {})
+  await cacheResult(input, response, expiresAt).catch(() => { })
 
   // ── Step 9: Audit log (fire-and-forget) ──
-  logAudit(input, computeTimeMs, servicesUsed, errors, response).catch(() => {})
+  logAudit(input, computeTimeMs, servicesUsed, errors, response).catch(() => { })
 
   return response
 }
@@ -434,7 +434,7 @@ async function loadPropertyInput(id: string, entityType: EntityType): Promise<Pr
     }
     return null
   } catch (error) {
-    console.error('[VerixShield:v2.1] Load error:', error)
+    console.error('[AIShield:v2.1] Load error:', error)
     return null
   }
 }
@@ -443,7 +443,7 @@ async function loadPropertyInput(id: string, entityType: EntityType): Promise<Pr
 
 async function getCachedResult(entityId: string, entityType: EntityType): Promise<any | null> {
   try {
-    const result = await (prisma as any).verixShieldResult.findUnique({
+    const result = await (prisma as any).AIShieldResult.findUnique({
       where: { entityType_entityId: { entityType, entityId } },
     })
     if (!result) return null
@@ -452,7 +452,7 @@ async function getCachedResult(entityId: string, entityType: EntityType): Promis
   } catch { return null }
 }
 
-function formatCachedResponse(cached: any, input: PropertyInput): VerixShieldResponseV2 {
+function formatCachedResponse(cached: any, input: PropertyInput): AIShieldResponseV2 {
   return {
     propertyId: input.id,
     entityType: input.entityType,
@@ -516,9 +516,9 @@ function formatCachedResponse(cached: any, input: PropertyInput): VerixShieldRes
   }
 }
 
-async function cacheResult(input: PropertyInput, response: VerixShieldResponseV2, expiresAt: Date): Promise<void> {
+async function cacheResult(input: PropertyInput, response: AIShieldResponseV2, expiresAt: Date): Promise<void> {
   try {
-    await (prisma as any).verixShieldResult.upsert({
+    await (prisma as any).AIShieldResult.upsert({
       where: { entityType_entityId: { entityType: input.entityType, entityId: input.id } },
       update: {
         estimatedMin: response.valuation.low,
@@ -574,7 +574,7 @@ async function cacheResult(input: PropertyInput, response: VerixShieldResponseV2
       },
     })
   } catch (error) {
-    console.error('[VerixShield:v2.1] Cache error:', error)
+    console.error('[AIShield:v2.1] Cache error:', error)
   }
 }
 
@@ -614,10 +614,10 @@ async function logAudit(
   durationMs: number,
   servicesUsed: string[],
   errors: string[],
-  response: VerixShieldResponseV2,
+  response: AIShieldResponseV2,
 ): Promise<void> {
   try {
-    await (prisma as any).verixShieldAuditLog.create({
+    await (prisma as any).AIShieldAuditLog.create({
       data: {
         entityType: input.entityType,
         entityId: input.id,
@@ -640,5 +640,5 @@ async function logAudit(
         errors: errors.length > 0 ? errors : undefined,
       },
     })
-  } catch {}
+  } catch { }
 }

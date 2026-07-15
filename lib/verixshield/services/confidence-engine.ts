@@ -1,4 +1,4 @@
-// ━━━ VerixShield v2.1 — Confidence Engine (7-Factor) ━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Confidence Engine (7-Factor) ━━━━━━━━━━━━━━━━━━━━
 // v2.1: Added Data Quality and Historical Accuracy as two new factors
 // Weights rebalanced to sum to 1.0
 

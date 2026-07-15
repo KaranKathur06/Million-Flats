@@ -1,6 +1,6 @@
 'use client'
 
-// ━━━ VerixShield v2.1 — Why This Price ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Why This Price ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Transparent explanation of how the price was computed
 
 import React from 'react'

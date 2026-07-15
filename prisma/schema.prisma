@@ -244,16 +244,12 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  phoneVerified     Boolean   @default(false) @map("phone_verified")
-  whatsappVerified  Boolean   @default(false) @map("whatsapp_verified")
-  lastWhatsappLogin DateTime? @map("last_whatsapp_login")
   preferredLanguage String?   @map("preferred_language")
   authProvider      String?   @map("auth_provider")
   lastDevice        String?   @map("last_device")
   lastIp            String?   @map("last_ip")
+  lastLogin         DateTime? @map("last_login")
   profileCompletion Int       @default(0) @map("profile_completion")
-  welcomeWhatsappSent Boolean @default(false) @map("welcome_whatsapp_sent")
-  whatsappAuthSessions WhatsAppAuthSession[]
 
   // Onboarding Fields
   city                  String?
@@ -577,7 +573,7 @@ model AgentSubscription {
   featuredLimit Int? @map("featured_limit")
   leadLimit     Int? @map("lead_limit")
   leadPriority  String? @map("lead_priority")
-  verixAccessLevel Int? @map("verix_access_level")
+  AIAccessLevel Int? @map("AI_access_level")
 
   provider String? @map("provider")
   providerSubscriptionId String? @map("provider_subscription_id")
@@ -662,7 +658,7 @@ model Developer {
   customerRating    Float?     @map("customer_rating")
   projectsDelivered Int?       @map("projects_delivered")
   countriesPresent  Int?       @map("countries_present")
-  verixScore        Int?       @map("verix_score")
+  AIScore        Int?       @map("AI_score")
 
   // SEO fields
   metaTitle       String?      @map("meta_title")
@@ -785,7 +781,7 @@ model AgentMetric {
   saleToListRatio  Float? @map("sale_to_list_ratio")
   responseRate     Float? @map("response_rate")
   repeatClientRate Float? @map("repeat_client_rate")
-  verixproScore    Int @default(0) @map("verixpro_score")
+  AIproScore    Int @default(0) @map("AIpro_score")
   lastCalculatedAt DateTime? @map("last_calculated_at")
 
   agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
@@ -793,7 +789,7 @@ model AgentMetric {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@index([verixproScore])
+  @@index([AIproScore])
   @@map("agent_metrics")
 }
 
@@ -1286,6 +1282,32 @@ model Community {
   @@map("communities")
 }
 
+enum MeetingCategory {
+  AGENT_REGISTRATION
+  AGENCY_REGISTRATION
+  DEVELOPER_REGISTRATION
+  PROPERTY_BUYER
+  PROPERTY_SELLER
+  ADVERTISEMENT
+  ECOSYSTEM_PARTNERS
+  THREE_D_TOUR
+}
+
+enum MeetingMode {
+  GOOGLE_MEET
+  ZOOM
+  MICROSOFT_TEAMS
+  PHONE_CALL
+  OFFICE_VISIT
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
 model ContactSubmission {
   id        String   @id @default(cuid())
   name      String
@@ -1293,6 +1315,40 @@ model ContactSubmission {
   phone     String?
   message   String
   createdAt DateTime @default(now())
+}
+
+model MeetingBooking {
+  id            String         @id @default(cuid())
+  referenceId  String         @unique @map("reference_id")
+
+  fullName     String         @map("full_name")
+  email        String         @map("email")
+  phone        String?        @map("phone")
+
+  country      String         @map("country")
+  city         String         @map("city")
+
+  category     MeetingCategory @map("category")
+  meetingMode  MeetingMode     @map("meeting_mode")
+
+  meetingDate  DateTime       @map("meeting_date")
+  meetingTime  String         @map("meeting_time") // e.g. "09:00" (timezone-safe via `timezone`)
+
+  timezone     String         @map("timezone")
+
+  message      String?        @db.Text @map("message")
+
+  status       BookingStatus  @default(PENDING)
+  leadId       String?        @map("lead_id")
+
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  @@index([meetingDate])
+  @@index([status])
+  @@index([category])
+  @@unique([meetingDate, meetingTime, category])
+  @@map("meeting_bookings")
 }
 
 model EcosystemCategory {
@@ -2248,9 +2304,9 @@ model PaymentWebhook {
   @@map("payment_webhooks")
 }
 
-// ━━━ VerixShield Price Intelligence Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield Price Intelligence Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-enum VerixShieldStatus {
+enum AIShieldStatus {
   FAIR
   OVERPRICED
   UNDERPRICED
@@ -2267,8 +2323,8 @@ model AiShieldProject {
   isAiEnabled       Boolean  @default(false) @map("is_ai_enabled")
   isAiFeatured      Boolean  @default(false) @map("is_ai_featured")
 
-  // Cached snapshot from VerixShield (synced after computation, not duplicated project data)
-  aiStatus          VerixShieldStatus? @map("ai_status")
+  // Cached snapshot from AIShield (synced after computation, not duplicated project data)
+  aiStatus          AIShieldStatus? @map("ai_status")
   confidenceScore   Float?   @map("confidence_score")
   fairValue         Float?   @map("fair_value")
   lowEstimate       Float?   @map("low_estimate")
@@ -2290,16 +2346,16 @@ enum MarketListingSource {
   PARTNER
 }
 
-enum VerixShieldPropertyType {
+enum AIShieldPropertyType {
   MANUAL_PROPERTY
   PROJECT
 }
 
-model VerixShieldResult {
+model AIShieldResult {
   id                String   @id @default(uuid())
 
   // Polymorphic: can reference ManualProperty or Project
-  entityType        VerixShieldPropertyType @map("entity_type")
+  entityType        AIShieldPropertyType @map("entity_type")
   entityId          String   @map("entity_id")
 
   // Valuation
@@ -2312,7 +2368,7 @@ model VerixShieldResult {
   // Price Analysis
   askingPrice       Float?   @map("asking_price")
   deviation         Float    @default(0)    // percentage
-  status            VerixShieldStatus @default(FAIR)
+  status            AIShieldStatus @default(FAIR)
   pricePosition     Float?   @map("price_position")  // 0-100 percentile
 
   // Comparables Summary
@@ -2347,7 +2403,7 @@ model VerixShieldResult {
   @@index([status])
   @@index([expiresAt])
   @@index([computedAt])
-  @@map("verixshield_results")
+  @@map("AIshield_results")
 }
 
 model MarketListing {
@@ -2496,10 +2552,10 @@ model MarketSignal {
   @@map("market_signals")
 }
 
-model VerixShieldAuditLog {
+model AIShieldAuditLog {
   id              String   @id @default(uuid())
 
-  entityType      VerixShieldPropertyType @map("entity_type")
+  entityType      AIShieldPropertyType @map("entity_type")
   entityId        String   @map("entity_id")
 
   // Computation details
@@ -2518,16 +2574,16 @@ model VerixShieldAuditLog {
   @@index([entityType, entityId])
   @@index([createdAt])
   @@index([hadErrors])
-  @@map("verixshield_audit_logs")
+  @@map("AIshield_audit_logs")
 }
 
-// ━━━ VerixShield v2.1 — Intelligence Engine Extensions ━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Intelligence Engine Extensions ━━━━━━━━━━━━━━━━━━━
 
 // Feedback loop: captures actual sold prices to calibrate model accuracy
 model ValuationFeedback {
   id              String   @id @default(uuid())
 
-  entityType      VerixShieldPropertyType @map("entity_type")
+  entityType      AIShieldPropertyType @map("entity_type")
   entityId        String   @map("entity_id")
 
   // What the model predicted
@@ -2789,10 +2845,10 @@ model DeveloperProfile {
   // Stores suggested existing developer IDs from fuzzy name matching
   adminMatchSuggestions  Json?                     @map("admin_match_suggestions")
 
-  // ── VerixDeveloper™ Score ──────────────────────────────────────────────────
-  verixDeveloperScore    Int?                      @map("verix_developer_score")
-  verixScoreBreakdown    Json?                     @map("verix_score_breakdown")
-  verixScoredAt          DateTime?                 @map("verix_scored_at")
+  // ── AIDeveloper™ Score ──────────────────────────────────────────────────
+  AIDeveloperScore    Int?                      @map("AI_developer_score")
+  AIScoreBreakdown    Json?                     @map("AI_score_breakdown")
+  AIScoredAt          DateTime?                 @map("AI_scored_at")
 
   // ── Relations ──────────────────────────────────────────────────────────────
   documents              DeveloperDocument[]
@@ -3002,10 +3058,10 @@ model AgencyProfile {
   totalListings         Int                     @default(0) @map("total_listings")
   totalClosedDeals      Int                     @default(0) @map("total_closed_deals")
 
-  // VerixAgency™ score
-  verixAgencyScore      Int?                    @map("verix_agency_score")
-  verixScoreBreakdown   Json?                   @map("verix_score_breakdown")
-  verixScoredAt         DateTime?               @map("verix_scored_at")
+  // AIAgency™ score
+  AIAgencyScore      Int?                    @map("AI_agency_score")
+  AIScoreBreakdown   Json?                   @map("AI_score_breakdown")
+  AIScoredAt         DateTime?               @map("AI_scored_at")
 
   // Admin
   approvedBy            String?                 @map("approved_by")
@@ -3081,79 +3137,7 @@ model AgencyNotification {
   @@map("agency_notifications")
 }
 
-// ─── WhatsApp Authentication System ──────────────────────────────────────────
 
-enum WhatsAppSessionStatus {
-  PENDING
-  MESSAGE_RECEIVED
-  OTP_SENT
-  VERIFIED
-  EXPIRED
-  FAILED
-}
-
-model WhatsAppAuthSession {
-  id                String                @id @default(uuid())
-  sessionId         String                @unique @map("session_id")
-  phone             String
-  status            WhatsAppSessionStatus @default(PENDING)
-  userId            String?               @map("user_id")
-  device            String?
-  ipAddress         String?               @map("ip_address")
-  userAgent         String?               @map("user_agent")
-  messageReceivedAt DateTime?             @map("message_received_at")
-  otpSentAt         DateTime?             @map("otp_sent_at")
-  verifiedAt        DateTime?             @map("verified_at")
-  expiresAt         DateTime              @map("expires_at")
-  createdAt         DateTime              @default(now()) @map("created_at")
-
-  user              User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
-  otps              WhatsAppOtp[]
-
-  @@index([sessionId])
-  @@index([phone])
-  @@index([status])
-  @@index([expiresAt])
-  @@index([userId])
-  @@map("whatsapp_auth_sessions")
-}
-
-model WhatsAppOtp {
-  id        String              @id @default(uuid())
-  sessionId String              @map("session_id")
-  hashedOtp String              @map("hashed_otp")
-  attempts  Int                 @default(0)
-  expiresAt DateTime            @map("expires_at")
-  used      Boolean             @default(false)
-  createdAt DateTime            @default(now()) @map("created_at")
-
-  session   WhatsAppAuthSession @relation(fields: [sessionId], references: [sessionId])
-
-  @@index([sessionId])
-  @@index([expiresAt])
-  @@index([used])
-  @@map("whatsapp_otps")
-}
-
-model WhatsAppLog {
-  id             String    @id @default(uuid())
-  sessionId      String?   @map("session_id")
-  phone          String
-  logType        String    @map("log_type")
-  template       String?
-  messageId      String?   @map("message_id")
-  deliveryStatus String?   @map("delivery_status")
-  sentAt         DateTime? @map("sent_at")
-  errorCode      String?   @map("error_code")
-  response       Json?
-  createdAt      DateTime  @default(now()) @map("created_at")
-
-  @@index([sessionId])
-  @@index([phone])
-  @@index([logType])
-  @@index([createdAt])
-  @@map("whatsapp_logs")
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MillionFlats AI Intelligence Platform — Data Layer
@@ -3273,6 +3257,15 @@ model PropertyFeatureVector {
   entityType String // MANUAL_PROPERTY | PROJECT
   entityId   String @map("entity_id")
 
+  // ── Property Metadata (for indexing and filtering) ──────────────────────────
+  title             String? @map("title")
+  propertyType      String? @map("property_type")
+  countryIso2       String? @db.Char(2) @map("country_iso2")
+  city              String? @map("city")
+  community         String? @map("community")
+  projectId         String? @map("project_id")
+  developerName     String? @map("developer_name")
+
   // ── Location Intelligence (computed from GIS) ──────────────────────────────
   latitude              Float?
   longitude             Float?
@@ -3327,6 +3320,7 @@ model PropertyFeatureVector {
   constructionQuality   String? @map("construction_quality") // STANDARD|PREMIUM|LUXURY
 
   // ── Market Intelligence (updated weekly) ───────────────────────────────────
+  marketSegment         String? @map("market_segment")      // ULTRA_LUXURY|LUXURY|PREMIUM|MID_RANGE|AFFORDABLE|BUDGET
   demandIndex           Float?  @map("demand_index")         // 0-100
   supplyIndex           Float?  @map("supply_index")         // 0-100
   inventoryMonths       Float?  @map("inventory_months")

@@ -1,11 +1,11 @@
 'use client'
 
-// ━━━ VerixShield Price Intelligence Panel ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield Price Intelligence Panel ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Premium analytics panel embedded on property/project detail pages
 // Orchestrates all sub-components with loading states and error handling
 
 import { useState, useEffect, useCallback } from 'react'
-import type { VerixShieldResponse } from '@/lib/verixshield/types'
+import type { AIShieldResponse } from '@/lib/verixshield/types'
 import { ValuationCard } from './ValuationCard'
 import { PriceGauge } from './PriceGauge'
 import { TrendChart } from './TrendChart'
@@ -15,7 +15,7 @@ import { MarketSignalsPanel } from './MarketSignalsPanel'
 import { NegotiationInsight } from './NegotiationInsight'
 import { RentalIntelligence } from './RentalIntelligence'
 
-interface VerixShieldPanelProps {
+interface AIShieldPanelProps {
   propertyId: string
   entityType: 'MANUAL_PROPERTY' | 'PROJECT'
   className?: string
@@ -24,14 +24,14 @@ interface VerixShieldPanelProps {
   showHeader?: boolean
 }
 
-export function VerixShieldPanel({
+export function AIShieldPanel({
   propertyId,
   entityType,
   className = '',
   variant = 'embed',
   showHeader = true,
-}: VerixShieldPanelProps) {
-  const [data, setData] = useState<VerixShieldResponse | null>(null)
+}: AIShieldPanelProps) {
+  const [data, setData] = useState<AIShieldResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'comparables' | 'signals' | 'trends'>('overview')
@@ -42,12 +42,12 @@ export function VerixShieldPanel({
     try {
       setLoading(true)
       setError(null)
-      const res = await fetch(`/api/verixshield/${propertyId}?type=${entityType}`)
+      const res = await fetch(`/api/AIshield/${propertyId}?type=${entityType}`)
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error || `Request failed (${res.status})`)
       }
-      const result: VerixShieldResponse = await res.json()
+      const result: AIShieldResponse = await res.json()
       setData(result)
     } catch (e: any) {
       setError(e.message || 'Failed to load price intelligence')
@@ -65,7 +65,7 @@ export function VerixShieldPanel({
   if (!data) return null
 
   const tabs = [
-    { key: 'overview' as const, label: isDashboard ? 'VerixShield™' : 'Overview', icon: '📊' },
+    { key: 'overview' as const, label: isDashboard ? 'AIShield™' : 'Overview', icon: '📊' },
     { key: 'comparables' as const, label: 'Comparables', icon: '🏘️' },
     { key: 'signals' as const, label: 'Market Signals', icon: '📡' },
     ...(isDashboard ? [{ key: 'trends' as const, label: 'Price Trend', icon: '📈' }] : []),
@@ -74,7 +74,7 @@ export function VerixShieldPanel({
   const analysisInProgress = data.status === 'INSUFFICIENT_DATA'
 
   return (
-    <section id="verixshield-panel" className={`relative ${className}`}>
+    <section id="AIshield-panel" className={`relative ${className}`}>
       <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0a1628] via-[#0d1f38] to-[#132d50] border border-white/[0.06] ${isDashboard ? 'shadow-xl' : 'shadow-2xl'}`}>
         {/* Ambient glow */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -86,7 +86,7 @@ export function VerixShieldPanel({
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-400/20">
                   <svg className="w-5 h-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
                 <div>
@@ -104,11 +104,10 @@ export function VerixShieldPanel({
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex-1 min-w-[100px] flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md transition-all duration-200 ${
-                    activeTab === tab.key
+                  className={`flex-1 min-w-[100px] flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md transition-all duration-200 ${activeTab === tab.key
                       ? 'bg-white/[0.08] text-white shadow-sm border border-white/[0.08]'
                       : 'text-white/40 hover:text-white/60 hover:bg-white/[0.03]'
-                  }`}
+                    }`}
                 >
                   <span className="text-[11px]">{tab.icon}</span>
                   {tab.label}
@@ -127,11 +126,10 @@ export function VerixShieldPanel({
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key)}
-                    className={`px-3 py-2 text-xs font-medium rounded-md transition-all ${
-                      activeTab === tab.key
+                    className={`px-3 py-2 text-xs font-medium rounded-md transition-all ${activeTab === tab.key
                         ? 'bg-white/[0.08] text-white border border-white/[0.08]'
                         : 'text-white/40 hover:text-white/60'
-                    }`}
+                      }`}
                   >
                     {tab.icon} {tab.label}
                   </button>
@@ -238,11 +236,10 @@ export function VerixShieldPanel({
                     key={p}
                     type="button"
                     onClick={() => setTrendPeriod(p)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                      trendPeriod === p
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${trendPeriod === p
                         ? 'bg-white/[0.1] text-white border-white/20'
                         : 'text-white/40 border-white/[0.06] hover:text-white/60'
-                    }`}
+                      }`}
                   >
                     {p === '1y' ? '1 Year' : p === '3y' ? '3 Year' : p === '5y' ? '5 Year' : 'Forecast'}
                   </button>
@@ -365,4 +362,4 @@ function ErrorState({ error, onRetry, isDashboard = false }: { error: string; on
   )
 }
 
-export default VerixShieldPanel
+export default AIShieldPanel

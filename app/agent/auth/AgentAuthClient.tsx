@@ -118,22 +118,29 @@ export default function AgentAuthClient({ defaultTab }: { defaultTab: Tab }) {
     setShowLoginResetCta(false)
 
     try {
-      const res = await fetch('/api/auth/login-otp/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...loginData, intent: 'agent' }),
+      const callbackUrl = safeNext ? `/auth/redirect?next=${encodeURIComponent(safeNext)}` : '/auth/redirect'
+      const result = await signIn('credentials', {
+        email: loginData.email,
+        password: loginData.password,
+        intent: 'agent',
+        redirect: false,
+        callbackUrl,
       })
-      const data = await res.json().catch(() => null)
-      if (!res.ok) {
-        const code = (data && data.code) || ''
-        const msg = (data && data.message) || 'Login failed'
-        setLoginError(msg)
-        if (code === 'PASSWORD_NOT_SET') setShowLoginResetCta(true)
+
+      if (result?.ok && result.url) {
+        router.push(result.url)
         return
       }
 
-      const redirectPath = `/auth/verify-otp?role=agent&email=${encodeURIComponent(loginData.email)}${safeNext ? `&next=${encodeURIComponent(safeNext)}` : ''}`
-      router.push(redirectPath)
+      const raw = (result as any)?.error || 'Login failed'
+      if (raw === 'EMAIL_NOT_VERIFIED') setLoginError('Please verify your email before signing in.')
+      else if (raw === 'INVALID_PASSWORD') setLoginError('Invalid email or password.')
+      else if (raw === 'PASSWORD_NOT_SET') { setLoginError('Password is not set. Please reset your password.'); setShowLoginResetCta(true) }
+      else if (raw === 'ACCOUNT_BANNED') setLoginError('Your account has been banned. Please contact support.')
+      else if (raw === 'ACCOUNT_DISABLED') setLoginError('Your account is suspended. Please contact support.')
+      else if (raw === 'AGENT_NOT_REGISTERED') setLoginError('This account is not registered as an agent. Apply as an agent to continue.')
+      else if (raw === 'CredentialsSignin') setLoginError('Invalid email or password.')
+      else setLoginError(raw)
     } catch {
       setLoginError('An error occurred. Please try again.')
     } finally {

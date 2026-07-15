@@ -1,10 +1,10 @@
-// ━━━ VerixShield v2.1 — ML Engine Client (Multi-Model) ━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — ML Engine Client (Multi-Model) ━━━━━━━━━━━━━━━━━━
 // TypeScript client that calls the Python FastAPI microservice
 // Handles model routing, retries, timeout (3s), and graceful fallback
 
 import type { MLPrediction, PropertyInput, DataQualityResult } from '../types-v2'
 
-const ML_SERVICE_URL = process.env.VERIXSHIELD_ML_URL || 'http://localhost:8100'
+const ML_SERVICE_URL = process.env.AISHIELD_ML_URL || 'http://localhost:8100'
 const ML_TIMEOUT_MS = 3000
 
 interface MLFeatureVector {
@@ -67,7 +67,7 @@ export async function callMLService(
     }
   } catch (error: any) {
     // Graceful fallback — ML is supplementary, never critical
-    console.warn('[VerixShield:ML] Service unavailable:', error.message || error)
+    console.warn('[AIShield:ML] Service unavailable:', error.message || error)
 
     return {
       predictedPrice: 0,

@@ -46,7 +46,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
  *  REACTIVATE       — Restore to APPROVED
  *  SAVE_NOTES       — Save adminNotes
  *  LINK_DEVELOPER   — Link/unlink to a developers row
- *  SET_VERIX_SCORE  — Override verixDeveloperScore
+ *  SET_AI_SCORE  — Override AIDeveloperScore
  *  TOGGLE_FEATURED  — Toggle isFeatured
  */
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -191,13 +191,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       })
     }
 
-    case 'SET_VERIX_SCORE': {
-      const score = body?.verixDeveloperScore
+    case 'SET_AI_SCORE': {
+      const score = body?.AIDeveloperScore
       const updated = await (prisma as any).developerProfile.update({
         where: { id: params.id },
-        data: { verixDeveloperScore: score !== null && score !== undefined ? parseInt(score) : null },
+        data: { AIDeveloperScore: score !== null && score !== undefined ? parseInt(score) : null },
       })
-      return NextResponse.json({ message: 'Verix score updated.', profile: updated })
+      return NextResponse.json({ message: 'AI score updated.', profile: updated })
     }
 
     case 'TOGGLE_FEATURED': {

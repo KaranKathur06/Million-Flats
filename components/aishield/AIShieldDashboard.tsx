@@ -9,11 +9,11 @@ import { AIShieldFiltersBar } from './AIShieldFiltersBar'
 import { AIShieldProjectExplorer, type ExplorerProject } from './AIShieldProjectExplorer'
 import { AIShieldProjectSummary, type AiShieldProjectDetail } from './AIShieldProjectSummary'
 import { ComingSoonModules } from './ComingSoonModules'
-import { VerixShieldSkeleton } from '@/components/skeletons/ProjectPageSkeletons'
+import { AIShieldSkeleton } from '@/components/skeletons/ProjectPageSkeletons'
 
-const VerixShieldPanel = dynamic(
-  () => import('@/components/verixshield/VerixShieldPanel').then((m) => m.VerixShieldPanel),
-  { ssr: false, loading: () => <VerixShieldSkeleton /> }
+const AIShieldPanel = dynamic(
+  () => import('@/components/verixshield').then((m) => m.AIShieldPanel),
+  { ssr: false, loading: () => <AIShieldSkeleton /> }
 )
 
 export default function AIShieldDashboard() {
@@ -99,7 +99,7 @@ export default function AIShieldDashboard() {
         setDeveloperOptions(json.developers || [])
         setCountryOptions(json.countries || [])
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   const fetchFeatured = useCallback(async () => {
@@ -274,18 +274,18 @@ export default function AIShieldDashboard() {
           </div>
 
           {showManualProperty ? (
-            <VerixShieldPanel
+            <AIShieldPanel
               propertyId={manualPropertyId}
               entityType={manualType === 'PROJECT' ? 'PROJECT' : 'MANUAL_PROPERTY'}
               variant="dashboard"
               showHeader
             />
           ) : loadingDetail && !selectedProject ? (
-            <VerixShieldSkeleton />
+            <AIShieldSkeleton />
           ) : selectedProject ? (
             <>
               <AIShieldProjectSummary project={selectedProject} />
-              <VerixShieldPanel
+              <AIShieldPanel
                 key={selectedProject.id}
                 propertyId={selectedProject.id}
                 entityType="PROJECT"

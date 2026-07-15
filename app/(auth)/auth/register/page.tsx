@@ -18,7 +18,7 @@ export default function RegisterSelectPage() {
                     CREATE AGENT ACCOUNT
                   </h3>
                   <p className="mt-1 text-sm text-gray-600">
-                    Publish listings and manage qualified leads with Verix
+                    Publish listings and manage qualified leads with AI
                     tools.
                   </p>
                 </div>

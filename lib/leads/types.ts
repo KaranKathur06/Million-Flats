@@ -1,5 +1,7 @@
 import type { LeadType } from '@prisma/client'
 
+export type { LeadType } from '@prisma/client'
+
 export type LeadEcosystemCategory =
   | 'HOME_LOANS'
   | 'LEGAL'

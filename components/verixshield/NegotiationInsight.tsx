@@ -1,6 +1,6 @@
 'use client'
 
-import type { VerixShieldStatusType } from '@/lib/verixshield/types'
+import type { AIShieldStatusType } from '@/lib/verixshield/types'
 
 interface NegotiationInsightProps {
   negotiation: {
@@ -8,7 +8,7 @@ interface NegotiationInsightProps {
     suggestedMax: number
     strategy: string
   }
-  status: VerixShieldStatusType
+  status: AIShieldStatusType
   deviation: number
 }
 

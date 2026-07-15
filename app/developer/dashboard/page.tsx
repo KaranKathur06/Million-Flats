@@ -80,7 +80,7 @@ export default async function DeveloperDashboardPage() {
       isVerified: profile.isVerified,
       isFeatured: profile.isFeatured,
       subscriptionPlan: profile.subscriptionPlan,
-      verixDeveloperScore: profile.verixDeveloperScore,
+      AIDeveloperScore: profile.AIDeveloperScore,
       totalLeadsReceived: profile.totalLeadsReceived || totalLeads,
       totalProjectViews: profile.totalProjectViews || 0,
       totalProjectsPublished: profile.totalProjectsPublished || 0,

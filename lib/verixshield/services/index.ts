@@ -1,4 +1,4 @@
-// ━━━ VerixShield v2.1 — Services Barrel Export ━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Services Barrel Export ━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export { orchestrateV2 } from './orchestrator-v2'
 export { runDataQualityEngine } from './data-quality-engine'

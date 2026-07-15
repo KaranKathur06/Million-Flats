@@ -12,7 +12,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { haversineDistance } from '../canonical/location'
-import type { PropertyFeatureInput } from '../types'
+import type { FeatureVector } from '../feature-store'
 
 // ─── Comparable Result ───────────────────────────────────────────────────────
 
@@ -132,7 +132,7 @@ const DEFAULT_WEIGHTS: Record<ComparableDimension, number> = {
  * Uses multi-dimensional similarity scoring across 11 dimensions.
  */
 export async function findComparables(
-  subject: PropertyFeatureInput,
+  subject: FeatureVector,
   options: {
     limit?: number
     maxRadiusKm?: number
@@ -172,17 +172,17 @@ export async function findComparables(
       snapshot: {
         title: candidate.title ?? undefined,
         propertyType: candidate.propertyType ?? undefined,
-        bedrooms: candidate.bedrooms ?? 0,
-        bathrooms: candidate.bathrooms ?? 0,
+        bedrooms: candidate.bedroomCount ?? 0,
+        bathrooms: candidate.bathroomCount ?? 0,
         areaSqft: candidate.carpetAreaSqft ?? 0,
-        price: candidate.askingPrice ?? undefined,
-        pricePerSqft: candidate.pricePerSqft ?? undefined,
+        price: undefined,
+        pricePerSqft: candidate.pricePerSqftAreaAvg ?? undefined,
         city: candidate.city ?? undefined,
         community: candidate.community ?? undefined,
         developerName: candidate.developerName ?? undefined,
         latitude: candidate.latitude ?? undefined,
         longitude: candidate.longitude ?? undefined,
-        distanceKm: computeDistanceKm(subject, candidate) ?? undefined,
+        distanceKm: computeDistanceKm(subject, candidate),
       },
     }
   })
@@ -235,7 +235,7 @@ export async function findComparables(
 // ─── Dimension Scoring ───────────────────────────────────────────────────────
 
 function scoreDimensions(
-  subject: PropertyFeatureInput,
+  subject: FeatureVector,
   candidate: CandidateRow,
   weights: Record<ComparableDimension, number>
 ): DimensionScore[] {
@@ -243,7 +243,7 @@ function scoreDimensions(
 
   // 1. Location (distance-based decay)
   const distKm = computeDistanceKm(subject, candidate)
-  const locationScore = distKm !== null
+  const locationScore = distKm !== undefined
     ? Math.max(0, 1 - distKm / 10) // Linear decay over 10km
     : (subject.community === candidate.community ? 0.8 : 0.3)
   dims.push({
@@ -251,11 +251,11 @@ function scoreDimensions(
     score: locationScore,
     weight: weights.LOCATION,
     weighted: locationScore * weights.LOCATION,
-    detail: distKm !== null ? `${distKm.toFixed(1)}km away` : (subject.community === candidate.community ? 'Same community' : 'Different community'),
+    detail: distKm !== undefined ? `${distKm.toFixed(1)}km away` : (subject.community === candidate.community ? 'Same community' : 'Different community'),
   })
 
   // 2. Area (±20% tolerance with score decay)
-  const subjectArea = subject.sqft ?? 0
+  const subjectArea = subject.carpetAreaSqft ?? 0
   const candidateArea = candidate.carpetAreaSqft ?? 0
   const areaScore = subjectArea > 0 && candidateArea > 0
     ? Math.max(0, 1 - Math.abs(subjectArea - candidateArea) / (subjectArea * 0.3))
@@ -269,22 +269,21 @@ function scoreDimensions(
   })
 
   // 3. Configuration (bedrooms + bathrooms)
-  const bedroomMatch = subject.bedrooms === candidate.bedrooms ? 1 : Math.max(0, 1 - Math.abs((subject.bedrooms ?? 0) - (candidate.bedrooms ?? 0)) * 0.3)
-  const bathroomMatch = subject.bathrooms === candidate.bathrooms ? 1 : Math.max(0, 1 - Math.abs((subject.bathrooms ?? 0) - (candidate.bathrooms ?? 0)) * 0.25)
+  // TODO: Update when PropertyFeatureVector includes full source data
+  const bedroomMatch = (subject.bedroomCount ?? 0) === (candidate.bedroomCount ?? 0) ? 1 : Math.max(0, 1 - Math.abs((subject.bedroomCount ?? 0) - (candidate.bedroomCount ?? 0)) * 0.3)
+  const bathroomMatch = (subject.bathroomCount ?? 0) === (candidate.bathroomCount ?? 0) ? 1 : Math.max(0, 1 - Math.abs((subject.bathroomCount ?? 0) - (candidate.bathroomCount ?? 0)) * 0.25)
   const configScore = bedroomMatch * 0.7 + bathroomMatch * 0.3
   dims.push({
     dimension: 'CONFIGURATION',
     score: configScore,
     weight: weights.CONFIGURATION,
     weighted: configScore * weights.CONFIGURATION,
-    detail: `${candidate.bedrooms}BR/${candidate.bathrooms}BA`,
+    detail: `${candidate.bedroomCount}BR/${candidate.bathroomCount}BA`,
   })
 
   // 4. Amenities (Jaccard similarity)
-  const amenityScore = computeJaccardSimilarity(
-    parseAmenities((subject as any).amenities),
-    parseAmenities(candidate.amenities)
-  )
+  // TODO: Implement once PropertyFeatureVector stores amenities
+  const amenityScore = 0.5 // Placeholder until amenities are available
   dims.push({
     dimension: 'AMENITIES',
     score: amenityScore,
@@ -305,11 +304,8 @@ function scoreDimensions(
   })
 
   // 6. Age proximity
-  const subjectYear = subject.constructionYear
-  const candidateYear = candidate.constructionYear
-  const ageScore = subjectYear && candidateYear
-    ? Math.max(0, 1 - Math.abs(subjectYear - candidateYear) / 10)
-    : 0.5
+  // TODO: Update once PropertyFeatureVector includes construction year
+  const ageScore = 0.5 // Placeholder
   dims.push({
     dimension: 'AGE',
     score: ageScore,
@@ -318,8 +314,8 @@ function scoreDimensions(
   })
 
   // 7. Furnishing match
-  const furnScore = subject.furnishingStatus && candidate.furnishing
-    ? (subject.furnishingStatus === candidate.furnishing ? 1 : 0.4)
+  const furnScore = (subject.furnishingStatus ?? '') && (candidate.furnishingStatus ?? '')
+    ? (subject.furnishingStatus === candidate.furnishingStatus ? 1 : 0.4)
     : 0.5
   dims.push({
     dimension: 'FURNISHING',
@@ -329,7 +325,7 @@ function scoreDimensions(
   })
 
   // 8. Floor proximity
-  const subjectFloor = subject.floor ?? 0
+  const subjectFloor = subject.floorNumber ?? 0
   const candidateFloor = candidate.floorNumber ?? 0
   const floorScore = subjectFloor > 0 && candidateFloor > 0
     ? Math.max(0, 1 - Math.abs(subjectFloor - candidateFloor) / 20)
@@ -342,8 +338,8 @@ function scoreDimensions(
   })
 
   // 9. Same project bonus
-  const projectScore = (subject as any).projectId && candidate.projectId
-    ? ((subject as any).projectId === candidate.projectId ? 1 : 0)
+  const projectScore = subject.projectId && candidate.projectId
+    ? (subject.projectId === candidate.projectId ? 1 : 0)
     : 0
   dims.push({
     dimension: 'PROJECT',
@@ -362,8 +358,8 @@ function scoreDimensions(
   })
 
   // 11. Market segment
-  const segmentScore = (subject as any).marketSegment && candidate.marketSegment
-    ? ((subject as any).marketSegment === candidate.marketSegment ? 1 : 0.4)
+  const segmentScore = subject.marketSegment && candidate.marketSegment
+    ? (subject.marketSegment === candidate.marketSegment ? 1 : 0.4)
     : 0.5
   dims.push({
     dimension: 'MARKET_SEGMENT',
@@ -382,26 +378,26 @@ interface CandidateRow {
   entityType: string
   title?: string | null
   propertyType?: string | null
-  bedrooms?: number | null
-  bathrooms?: number | null
+  bedroomCount?: number | null
+  bathroomCount?: number | null
   carpetAreaSqft?: number | null
-  askingPrice?: number | null
-  pricePerSqft?: number | null
+  pricePerSqftAreaAvg?: number | null
   city?: string | null
   community?: string | null
   developerName?: string | null
   latitude?: number | null
   longitude?: number | null
-  constructionYear?: number | null
-  furnishing?: string | null
+  furnishingStatus?: string | null
   floorNumber?: number | null
+  totalFloors?: number | null
   projectId?: string | null
   marketSegment?: string | null
-  amenities?: unknown
+  demandIndex?: number | null
+  supplyIndex?: number | null
 }
 
 async function fetchCandidates(
-  subject: PropertyFeatureInput,
+  subject: FeatureVector,
   radiusKm: number,
   limit: number,
   cityLevelOnly = false
@@ -410,6 +406,18 @@ async function fetchCandidates(
     entityId: { not: subject.entityId }, // Exclude self
   }
 
+  if (cityLevelOnly) {
+    if (subject.city) where.city = { equals: subject.city, mode: 'insensitive' }
+  } else {
+    if (subject.community) where.community = { equals: subject.community, mode: 'insensitive' }
+    else if (subject.city) where.city = { equals: subject.city, mode: 'insensitive' }
+  }
+
+  if (subject.countryIso2) where.countryIso2 = subject.countryIso2
+
+  // Property type filter (same type preferred)
+  if (subject.propertyType) where.propertyType = subject.propertyType
+
   const candidates = await prisma.propertyFeatureVector.findMany({
     where,
     take: limit,
@@ -417,28 +425,31 @@ async function fetchCandidates(
     select: {
       entityId: true,
       entityType: true,
+      // Metadata
+      title: true,
+      propertyType: true,
+      // Location
       latitude: true,
       longitude: true,
-      carpetAreaSqft: true,
+      city: true,
+      community: true,
+      // Property
       bedroomCount: true,
       bathroomCount: true,
+      carpetAreaSqft: true,
+      pricePerSqftAreaAvg: true,
       furnishingStatus: true,
       floorNumber: true,
+      totalFloors: true,
+      projectId: true,
+      marketSegment: true,
+      // Market
+      demandIndex: true,
+      supplyIndex: true,
     },
   })
 
-  // Map to CandidateRow
-  return candidates.map(c => ({
-    entityId: c.entityId,
-    entityType: c.entityType,
-    latitude: c.latitude,
-    longitude: c.longitude,
-    carpetAreaSqft: c.carpetAreaSqft,
-    bedrooms: c.bedroomCount,
-    bathrooms: c.bathroomCount,
-    furnishing: c.furnishingStatus,
-    floorNumber: c.floorNumber,
-  })) as CandidateRow[]
+  return candidates as CandidateRow[]
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -446,9 +457,9 @@ async function fetchCandidates(
 function computeDistanceKm(
   subject: { latitude?: number | null; longitude?: number | null },
   candidate: { latitude?: number | null; longitude?: number | null }
-): number | null {
+): number | undefined {
   if (!subject.latitude || !subject.longitude || !candidate.latitude || !candidate.longitude) {
-    return null
+    return undefined
   }
   return Math.round(haversineDistance(
     subject.latitude, subject.longitude,

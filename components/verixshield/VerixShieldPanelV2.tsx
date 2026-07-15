@@ -1,11 +1,11 @@
 'use client'
 
-// ━━━ VerixShield v2.1 — Intelligence Engine Panel ━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Intelligence Engine Panel ━━━━━━━━━━━━━━━━━━━━━━━
 // Upgraded panel with 4 tabs: Overview, Comparables, Signals, Insights
 // Includes DataReliabilityIndicator, MarketPositionBadge, WhyThisPrice
 
 import { useState, useEffect, useCallback } from 'react'
-import type { VerixShieldResponseV2 } from '@/lib/verixshield/types-v2'
+import type { AIShieldResponseV2 } from '@/lib/verixshield/types-v2'
 import { ValuationCard } from './ValuationCard'
 import { PriceGauge } from './PriceGauge'
 import { TrendChart } from './TrendChart'
@@ -26,8 +26,8 @@ interface Props {
 
 type TabKey = 'overview' | 'comparables' | 'signals' | 'insights'
 
-export function VerixShieldPanelV2({ propertyId, entityType, className = '' }: Props) {
-  const [data, setData] = useState<VerixShieldResponseV2 | null>(null)
+export function AIShieldPanelV2({ propertyId, entityType, className = '' }: Props) {
+  const [data, setData] = useState<AIShieldResponseV2 | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>('overview')
@@ -36,12 +36,12 @@ export function VerixShieldPanelV2({ propertyId, entityType, className = '' }: P
     try {
       setLoading(true)
       setError(null)
-      const res = await fetch(`/api/verixshield/v2/${propertyId}?type=${entityType}`)
+      const res = await fetch(`/api/AIshield/v2/${propertyId}?type=${entityType}`)
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error || `Request failed (${res.status})`)
       }
-      const result: VerixShieldResponseV2 = await res.json()
+      const result: AIShieldResponseV2 = await res.json()
       setData(result)
     } catch (e: any) {
       setError(e.message || 'Failed to load price intelligence')
@@ -77,10 +77,10 @@ export function VerixShieldPanelV2({ propertyId, entityType, className = '' }: P
   // Map v2.1 status values to v1 status for existing components
   const mappedStatus = data.status === 'ABOVE_MARKET' ? 'OVERPRICED'
     : data.status === 'HIGH_RISK' ? 'SUSPICIOUS'
-    : data.status
+      : data.status
 
   return (
-    <section id="verixshield-panel-v2" className={`relative ${className}`}>
+    <section id="AIshield-panel-v2" className={`relative ${className}`}>
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0a1628] via-[#0d1f38] to-[#132d50] border border-white/[0.06] shadow-2xl">
         {/* Ambient glow */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -92,7 +92,7 @@ export function VerixShieldPanelV2({ propertyId, entityType, className = '' }: P
             <div className="flex items-center gap-3">
               <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-400/20">
                 <svg className="w-5 h-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <div>
@@ -114,11 +114,10 @@ export function VerixShieldPanelV2({ propertyId, entityType, className = '' }: P
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md transition-all duration-200 ${
-                  activeTab === tab.key
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md transition-all duration-200 ${activeTab === tab.key
                     ? 'bg-white/[0.08] text-white shadow-sm border border-white/[0.08]'
                     : 'text-white/40 hover:text-white/60 hover:bg-white/[0.03]'
-                }`}
+                  }`}
               >
                 <span className="text-[11px]">{tab.icon}</span>
                 <span className="hidden sm:inline">{tab.label}</span>
@@ -278,9 +277,8 @@ export function VerixShieldPanelV2({ propertyId, entityType, className = '' }: P
                 {data.historicalAccuracy.mape !== null && (
                   <div className="mt-2 flex items-center gap-2">
                     <span className="text-xs text-white/30">MAPE:</span>
-                    <span className={`text-xs font-semibold ${
-                      data.historicalAccuracy.mape <= 10 ? 'text-emerald-400' : 'text-amber-400'
-                    }`}>
+                    <span className={`text-xs font-semibold ${data.historicalAccuracy.mape <= 10 ? 'text-emerald-400' : 'text-amber-400'
+                      }`}>
                       {data.historicalAccuracy.mape.toFixed(1)}%
                     </span>
                     <span className="text-[10px] text-white/20">
@@ -458,4 +456,4 @@ function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) 
   )
 }
 
-export default VerixShieldPanelV2
+export default AIShieldPanelV2

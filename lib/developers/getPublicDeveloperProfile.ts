@@ -132,7 +132,7 @@ From design-led communities to strategic launch locations, ${developer.name} con
     customerRating: developer.customerRating || null,
     projectsDelivered: developer.projectsDelivered || null,
     countriesPresent: developer.countriesPresent || null,
-    verixScore: developer.verixScore || null,
+    AIScore: developer.AIScore || null,
     stats: {
       projects: projects.length,
       cities: citySet.size || 1,

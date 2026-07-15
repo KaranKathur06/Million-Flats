@@ -16,7 +16,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import type { EvidenceBundle } from './evidence'
-import type { FeatureVector } from '../feature-store'
+import type { FeatureVector } from '../types'
 
 // ─── Forecast Result ─────────────────────────────────────────────────────────
 
@@ -356,7 +356,7 @@ function buildTimeline(
 ): TimelineEntry[] {
   const timeline: TimelineEntry[] = []
   const currentYear = new Date().getFullYear()
-  const currentPPS = (features as any).pricePerSqft ?? evidence.market.snapshot?.avgPricePerSqft ?? 0
+  const currentPPS = features.pricePerSqft ?? evidence.market.snapshot?.avgPricePerSqft ?? 0
 
   // Historical entries (simulated from YoY growth)
   const yoyGrowth = evidence.market.priceChangeYoyPct || 5
@@ -375,7 +375,7 @@ function buildTimeline(
     date: `${currentYear}`,
     type: 'CURRENT',
     pricePerSqft: Math.round(currentPPS),
-    event: `Current: ${(features as any).community ?? (features as any).city ?? 'Market'}`,
+    event: `Current: ${features.community ?? features.city ?? 'Market'}`,
   })
 
   // Forecast entries

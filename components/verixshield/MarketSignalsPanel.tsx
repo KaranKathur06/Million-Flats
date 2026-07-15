@@ -67,17 +67,17 @@ export function MarketSignalsPanel({ signals }: MarketSignalsPanelProps) {
   const secondaryMetrics = [
     ...(signals.inventoryMonths != null
       ? [{
-          label: 'Inventory Months',
-          value: `${signals.inventoryMonths.toFixed(1)} mo`,
-          description: 'Time to sell all current inventory at current pace. Under 6 = seller\'s market.',
-        }]
+        label: 'Inventory Months',
+        value: `${signals.inventoryMonths.toFixed(1)} mo`,
+        description: 'Time to sell all current inventory at current pace. Under 6 = seller\'s market.',
+      }]
       : []),
     ...(signals.priceToRentRatio != null
       ? [{
-          label: 'Price-to-Rent Ratio',
-          value: `${signals.priceToRentRatio.toFixed(1)}x`,
-          description: 'Annual price divided by annual rent. Lower = better for investors.',
-        }]
+        label: 'Price-to-Rent Ratio',
+        value: `${signals.priceToRentRatio.toFixed(1)}x`,
+        description: 'Annual price divided by annual rent. Lower = better for investors.',
+      }]
       : []),
   ]
 

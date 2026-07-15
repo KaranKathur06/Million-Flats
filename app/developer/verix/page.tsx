@@ -2,11 +2,11 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { computeAndSaveVerixDeveloperScore } from '@/lib/verix/verixDeveloper'
+import { computeAndSaveAIDeveloperScore } from '@/lib/verix/verixDeveloper'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Verix™ Developer Score | MillionFlats',
+  title: 'AI™ Developer Score | MillionFlats',
 }
 
 const SCORE_COLORS = {
@@ -53,21 +53,21 @@ function DimensionBar({ label, value, max, color }: { label: string; value: numb
   )
 }
 
-export default async function DeveloperVerixPage() {
+export default async function DeveloperAIPage() {
   const session = await getServerSession(authOptions)
   if (!session?.user) redirect('/developer/auth?tab=login')
 
   const userId = (session.user as any)?.id
   const profile = await (prisma as any).developerProfile.findUnique({
     where: { userId },
-    select: { id: true, onboardingStatus: true, verixDeveloperScore: true },
+    select: { id: true, onboardingStatus: true, AIDeveloperScore: true },
   })
   if (!profile) redirect('/developer/onboarding')
 
   // Compute fresh score (don't persist on every page load — just compute for display)
   let breakdown
   try {
-    breakdown = await computeAndSaveVerixDeveloperScore(profile.id, false)
+    breakdown = await computeAndSaveAIDeveloperScore(profile.id, false)
   } catch {
     breakdown = { total: 0, profileQuality: 0, legalVerification: 0, trackRecord: 0, marketActivity: 0, trustSignals: 0, grade: 'F' as const, label: 'Unrated' }
   }
@@ -84,7 +84,7 @@ export default async function DeveloperVerixPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">Verix™ Developer Score</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-1">AI™ Developer Score</h1>
       <p className="text-gray-500 text-sm mb-8">Your trust and quality score — used to rank your profile and build buyer confidence.</p>
 
       <div className={`rounded-2xl bg-gradient-to-br ${colors.bg} border ${colors.border} p-8 mb-6 text-center`}>

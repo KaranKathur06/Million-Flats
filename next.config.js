@@ -42,13 +42,13 @@ const nextConfig = {
   },
   async redirects() {
     return [
-      // ── Verix → AI branding redirects (301 permanent) ──
+      // ── AI → AI branding redirects (301 permanent) ──
       { source: '/verfix-system', destination: '/ai-system', permanent: true },
-      { source: '/verix/view', destination: '/ai/view', permanent: true },
-      { source: '/verix/shield', destination: '/ai/shield', permanent: true },
-      { source: '/verix/index', destination: '/ai/index', permanent: true },
-      { source: '/verix/title', destination: '/ai/title', permanent: true },
-      { source: '/verix/pro', destination: '/ai/pro', permanent: true },
+      { source: '/AI/view', destination: '/ai/view', permanent: true },
+      { source: '/AI/shield', destination: '/ai/shield', permanent: true },
+      { source: '/AI/index', destination: '/ai/index', permanent: true },
+      { source: '/AI/title', destination: '/ai/title', permanent: true },
+      { source: '/AI/pro', destination: '/ai/pro', permanent: true },
     ]
   },
   async rewrites() {

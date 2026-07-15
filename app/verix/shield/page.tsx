@@ -2,7 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'VerixShield™ Price Intelligence | MillionFlats',
+  title: 'AIShield™ Price Intelligence | MillionFlats',
   description: 'AI-powered price intelligence engine that calculates fair market value, detects anomalies, and provides actionable negotiation insights for every property on MillionFlats.',
 }
 
@@ -66,7 +66,7 @@ const STATS = [
   { value: '6h', label: 'Smart Cache TTL' },
 ]
 
-export default function VerixShieldPage() {
+export default function AIShieldPage() {
   return (
     <div className="min-h-screen bg-[#fafaf8]">
       {/* ── Hero ── */}
@@ -80,14 +80,14 @@ export default function VerixShieldPage() {
           <div className="flex items-center gap-3 mb-6">
             <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-400/20">
               <svg className="w-6 h-6 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
             <span className="text-xs font-bold uppercase tracking-[0.2em] text-blue-400/70">Price Intelligence Engine</span>
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight leading-[1.1]">
-            VerixShield<sup className="text-lg text-blue-400/60">™</sup>
+            AIShield<sup className="text-lg text-blue-400/60">™</sup>
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-white/45 leading-relaxed">
             Every property on MillionFlats is backed by real-time price intelligence.
@@ -97,7 +97,7 @@ export default function VerixShieldPage() {
           <div className="flex flex-wrap gap-3 mt-8">
             <Link href="/properties" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#0a1628] text-sm font-semibold rounded-xl hover:bg-white/90 transition-colors shadow-lg shadow-white/5">
               Browse Properties
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </Link>
             <Link href="/projects" className="inline-flex items-center gap-2 px-6 py-3 bg-white/[0.06] text-white/70 text-sm font-semibold rounded-xl border border-white/[0.08] hover:bg-white/[0.1] hover:text-white transition-colors">
               View Projects
@@ -120,7 +120,7 @@ export default function VerixShieldPage() {
       <section className="py-16 sm:py-24">
         <div className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">What VerixShield Analyzes</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">What AIShield Analyzes</h2>
             <p className="mt-3 text-gray-500 max-w-xl mx-auto">Six intelligence modules working in parallel to give you the complete picture on every listing.</p>
           </div>
 
@@ -201,7 +201,7 @@ export default function VerixShieldPage() {
               Start Making Smarter Property Decisions
             </h2>
             <p className="relative mt-3 text-white/40 max-w-md mx-auto text-sm">
-              Open any property or project listing on MillionFlats to see VerixShield in action. No signup required.
+              Open any property or project listing on MillionFlats to see AIShield in action. No signup required.
             </p>
             <div className="relative flex flex-wrap justify-center gap-3 mt-8">
               <Link href="/properties" className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-[#0a1628] text-sm font-bold rounded-xl hover:bg-white/90 transition-colors shadow-lg">

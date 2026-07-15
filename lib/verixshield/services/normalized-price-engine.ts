@@ -1,4 +1,4 @@
-// ━━━ VerixShield v2.1 — Normalized Price Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Normalized Price Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Adjusts raw price/sqft for floor, view, developer, furnishing, building quality
 // Makes comparables truly comparable by normalizing to a baseline
 

@@ -1,4 +1,4 @@
-// ━━━ VerixShield v2.1 — Anomaly Detection Engine ━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Anomaly Detection Engine ━━━━━━━━━━━━━━━━━━━━━━━━
 // Classifies asking price vs fair value using MVI-driven dynamic thresholds
 // Replaces v1's static ±15%/±30% thresholds
 
@@ -9,7 +9,7 @@ import type {
   ConfidenceResult,
   MVIResult,
   AnomalyResult,
-  VerixShieldStatusV2,
+  AIShieldStatusV2,
 } from '../types-v2'
 
 export function detectAnomalies(
@@ -40,7 +40,7 @@ export function detectAnomalies(
   const deviation = fairValue > 0 ? ((askingPrice - fairValue) / fairValue) * 100 : 0
 
   // ── Classify ──
-  let status: VerixShieldStatusV2 = 'FAIR'
+  let status: AIShieldStatusV2 = 'FAIR'
   const flags: string[] = []
 
   if (deviation > dynamicThreshold) {

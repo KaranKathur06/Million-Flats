@@ -1,10 +1,10 @@
 /**
- * lib/verix/verixDeveloper.ts
+ * lib/AI/AIDeveloper.ts
  *
- * VerixDeveloper™ Score Engine
+ * AIDeveloper™ Score Engine
  *
  * Computes a trust & quality score (0–100) for a developer profile.
- * The score is stored on DeveloperProfile.verixDeveloperScore and displayed
+ * The score is stored on DeveloperProfile.AIDeveloperScore and displayed
  * as a badge on both the developer portal and the public developer page.
  *
  * Score dimensions:
@@ -17,7 +17,7 @@
 
 import { prisma } from '@/lib/prisma'
 
-export interface VerixDeveloperBreakdown {
+export interface AIDeveloperBreakdown {
   total: number
   profileQuality: number
   legalVerification: number
@@ -29,13 +29,13 @@ export interface VerixDeveloperBreakdown {
 }
 
 /**
- * Compute and persist the VerixDeveloper™ score for a given developerProfileId.
+ * Compute and persist the AIDeveloper™ score for a given developerProfileId.
  * Returns the breakdown and persists total to DB.
  */
-export async function computeAndSaveVerixDeveloperScore(
+export async function computeAndSaveAIDeveloperScore(
   developerProfileId: string,
   persist = true
-): Promise<VerixDeveloperBreakdown> {
+): Promise<AIDeveloperBreakdown> {
   const profile = await (prisma as any).developerProfile.findUnique({
     where: { id: developerProfileId },
     include: {
@@ -126,23 +126,23 @@ export async function computeAndSaveVerixDeveloperScore(
 
   const grade =
     total >= 90 ? 'S' :
-    total >= 75 ? 'A' :
-    total >= 60 ? 'B' :
-    total >= 45 ? 'C' :
-    total >= 30 ? 'D' : 'F'
+      total >= 75 ? 'A' :
+        total >= 60 ? 'B' :
+          total >= 45 ? 'C' :
+            total >= 30 ? 'D' : 'F'
 
   const label =
     grade === 'S' ? 'Platinum Developer' :
-    grade === 'A' ? 'Gold Developer' :
-    grade === 'B' ? 'Silver Developer' :
-    grade === 'C' ? 'Verified Developer' :
-    grade === 'D' ? 'Registered Developer' :
-    'Unrated'
+      grade === 'A' ? 'Gold Developer' :
+        grade === 'B' ? 'Silver Developer' :
+          grade === 'C' ? 'Verified Developer' :
+            grade === 'D' ? 'Registered Developer' :
+              'Unrated'
 
   if (persist) {
     await (prisma as any).developerProfile.update({
       where: { id: developerProfileId },
-      data: { verixDeveloperScore: total },
+      data: { AIDeveloperScore: total },
     })
   }
 
@@ -159,10 +159,10 @@ export async function computeAndSaveVerixDeveloperScore(
 }
 
 /**
- * Batch-refresh Verix scores for all approved developer profiles.
+ * Batch-refresh AI scores for all approved developer profiles.
  * Intended for a nightly cron job.
  */
-export async function batchRefreshVerixScores(): Promise<{
+export async function batchRefreshAIScores(): Promise<{
   processed: number
   errors: number
 }> {
@@ -176,7 +176,7 @@ export async function batchRefreshVerixScores(): Promise<{
 
   for (const p of profiles) {
     try {
-      await computeAndSaveVerixDeveloperScore(p.id, true)
+      await computeAndSaveAIDeveloperScore(p.id, true)
       processed++
     } catch {
       errors++

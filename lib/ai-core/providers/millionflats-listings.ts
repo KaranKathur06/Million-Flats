@@ -52,7 +52,7 @@ interface RawManualProperty {
   amenities: unknown
   status: string
   tour3dUrl: string | null
-  media: Array<{ mediaUrl: string; category: string | null }>
+  media: Array<{ url: string; category: string | null }>
   createdAt: Date
   updatedAt: Date
 }

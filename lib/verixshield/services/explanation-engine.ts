@@ -1,4 +1,4 @@
-// ━━━ VerixShield v2.1 — Explanation Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Explanation Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Generates structured, human-readable explanations for every estimate
 // Shows users WHY a price was computed, not just WHAT
 

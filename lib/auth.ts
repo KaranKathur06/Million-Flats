@@ -133,6 +133,7 @@ export const authOptions: NextAuthOptions = {
             ? intentRaw
             : ''
 
+        // ── LoginToken path (used ONLY for registration email verification) ──
         if (loginToken) {
           const expectedRole =
             intent === 'agent'
@@ -185,25 +186,8 @@ export const authOptions: NextAuthOptions = {
           if (status === 'BANNED') throw new Error('ACCOUNT_BANNED')
           if (status === 'SUSPENDED') throw new Error('ACCOUNT_DISABLED')
 
-          const isEmailVerified = Boolean((user as any).emailVerified) || Boolean((user as any).verified)
-          if (!isEmailVerified) throw new Error('EMAIL_NOT_VERIFIED')
-
-          if (intent === 'agent') {
-            const role = String((user as any)?.role || '').toUpperCase()
-            let agent
-            try {
-              agent = await (prisma as any).agent.findUnique({ where: { userId: user.id } })
-            } catch (error) {
-              console.error('[auth] Database error querying agent:', error)
-              throw new Error('DATABASE_ERROR')
-            }
-            if (role !== 'AGENT' && !agent) throw new Error('AGENT_NOT_REGISTERED')
-          }
-
-          if (intent === 'developer') {
-            const role = String((user as any)?.role || '').toUpperCase()
-            if (role !== 'DEVELOPER') throw new Error('DEVELOPER_NOT_REGISTERED')
-          }
+          // Update last login timestamp
+          await prisma.user.update({ where: { id: user.id }, data: { lastLogin: now } as any }).catch(() => null)
 
           return {
             id: user.id,
@@ -214,42 +198,57 @@ export const authOptions: NextAuthOptions = {
           } as any
         }
 
+        // ── Direct Email + Password login (all roles) ──
         if (password) {
+          let user
+          try {
+            user = await prisma.user.findUnique({ where: { email }, include: { agent: true } })
+          } catch (error) {
+            console.error('[auth] Database error querying user:', error)
+            throw new Error('DATABASE_ERROR')
+          }
+          if (!user) return null
+
+          const status = String((user as any).status || 'ACTIVE')
+          if (status === 'BANNED') throw new Error('ACCOUNT_BANNED')
+          if (status === 'SUSPENDED') throw new Error('ACCOUNT_DISABLED')
+
+          const isEmailVerified = Boolean((user as any).emailVerified) || Boolean((user as any).verified)
+          if (!isEmailVerified) throw new Error('EMAIL_NOT_VERIFIED')
+
+          const passwordHash = typeof (user as any).password === 'string' ? String((user as any).password) : ''
+          if (!passwordHash) throw new Error('PASSWORD_NOT_SET')
+
+          const validPassword = await bcrypt.compare(password, passwordHash)
+          if (!validPassword) throw new Error('INVALID_PASSWORD')
+
+          // Role-specific authorization checks
           if (intent === 'admin') {
-            let user
-            try {
-              user = await prisma.user.findUnique({ where: { email } })
-            } catch (error) {
-              console.error('[auth] Database error querying user:', error)
-              throw new Error('DATABASE_ERROR')
-            }
-            if (!user) return null
-
-            const status = String((user as any).status || 'ACTIVE')
-            if (status === 'BANNED') throw new Error('ACCOUNT_BANNED')
-            if (status === 'SUSPENDED') throw new Error('ACCOUNT_DISABLED')
-
-            const isEmailVerified = Boolean((user as any).emailVerified) || Boolean((user as any).verified)
-            if (!isEmailVerified) throw new Error('EMAIL_NOT_VERIFIED')
-
-            const passwordHash = typeof (user as any).password === 'string' ? String((user as any).password) : ''
-            if (!passwordHash) throw new Error('PASSWORD_NOT_SET')
-
-            const validPassword = await bcrypt.compare(password, passwordHash)
-            if (!validPassword) throw new Error('INVALID_PASSWORD')
-
             const role = String((user as any)?.role || '').toUpperCase()
             if (!['ADMIN', 'SUPERADMIN', 'MODERATOR', 'VERIFIER'].includes(role)) throw new Error('ADMIN_ONLY')
-
-            return {
-              id: user.id,
-              email: user.email,
-              name: user.name ?? undefined,
-              role: user.role,
-              status: (user as any).status || 'ACTIVE',
-            } as any
           }
-          throw new Error('OTP_REQUIRED')
+
+          if (intent === 'agent') {
+            const role = String((user as any)?.role || '').toUpperCase()
+            if (role !== 'AGENT' && !(user as any).agent) throw new Error('AGENT_NOT_REGISTERED')
+          }
+
+          if (intent === 'developer') {
+            const role = String((user as any)?.role || '').toUpperCase()
+            if (role !== 'DEVELOPER') throw new Error('DEVELOPER_NOT_REGISTERED')
+          }
+
+          // Update last login timestamp
+          const now = new Date()
+          await prisma.user.update({ where: { id: user.id }, data: { lastLogin: now } as any }).catch(() => null)
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name ?? undefined,
+            role: user.role,
+            status: (user as any).status || 'ACTIVE',
+          } as any
         }
 
         return null

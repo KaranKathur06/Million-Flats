@@ -1,4 +1,4 @@
-// ━━━ VerixShield v2.1 — Distribution Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Distribution Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Computes P25/P50/P75 price percentile bands
 // Uses empirical (≥15 pts), parametric log-normal (≥5 pts), or synthetic fallback
 

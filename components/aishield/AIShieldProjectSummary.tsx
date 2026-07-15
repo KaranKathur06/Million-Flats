@@ -4,7 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { formatAEDCompact } from '@/lib/pricing'
 import { mapStatusLabel } from '@/lib/aishield/projects'
-import type { VerixShieldStatus } from '@prisma/client'
+import type { AIShieldStatus } from '@prisma/client'
 
 export interface AiShieldProjectDetail {
   id: string
@@ -19,7 +19,7 @@ export interface AiShieldProjectDetail {
   coverImage: string | null
   developer: { id: string; name: string; slug: string | null; logo: string | null } | null
   aiShield?: {
-    aiStatus: VerixShieldStatus | null
+    aiStatus: AIShieldStatus | null
     confidenceScore: number | null
   } | null
 }

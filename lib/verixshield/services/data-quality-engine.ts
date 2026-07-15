@@ -1,4 +1,4 @@
-// ━━━ VerixShield v2.1 — Data Quality Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Data Quality Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Gates every valuation — prevents garbage data from producing confident wrong prices
 // Must run BEFORE any computation in the orchestrator
 
@@ -48,7 +48,7 @@ export async function runDataQualityEngine(
         soldPrice: { gt: 0 },
       },
     })
-  } catch {}
+  } catch { }
 
   let txScore = 0
   if (txCount >= 50) txScore = 100
@@ -80,7 +80,7 @@ export async function runDataQualityEngine(
         bhk: { gte: Math.max(0, bhk - 1), lte: bhk + 1 },
       },
     })
-  } catch {}
+  } catch { }
 
   let listingScore = 0
   if (listingCount >= 30) listingScore = 100
@@ -110,7 +110,7 @@ export async function runDataQualityEngine(
         price: { gt: 0 },
       },
     })
-  } catch {}
+  } catch { }
 
   const recencyRatio = listingCount > 0 ? recentCount / listingCount : 0
   let recencyScore = Math.round(recencyRatio * 100)
@@ -134,7 +134,7 @@ export async function runDataQualityEngine(
       where: { ...locFilter, isActive: true },
     })
     sources = sourceRows.map((r: any) => r.source)
-  } catch {}
+  } catch { }
 
   if (txCount > 0 && !sources.includes('GOVERNMENT')) {
     sources.push('GOVERNMENT')

@@ -1,4 +1,4 @@
-// ━━━ VerixShield v2.1 — Relative Market Position Engine ━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Relative Market Position Engine ━━━━━━━━━━━━━━━━━━
 // "This property is priced higher than 72% of similar listings"
 
 import type { ComparablesResultV2, DistributionResult, RelativePositionResult } from '../types-v2'

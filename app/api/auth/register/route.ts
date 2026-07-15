@@ -210,7 +210,7 @@ export async function POST(req: Request) {
                 success: true,
                 message: 'Password set successfully. Please verify your email.',
                 requiresVerification: true,
-                redirectTo: `/auth/verify-otp?role=user&email=${encodeURIComponent(email)}`,
+                redirectTo: `/user/verify?email=${encodeURIComponent(email)}`,
               },
               { status: 200 }
             )
@@ -261,7 +261,7 @@ export async function POST(req: Request) {
               success: true,
               message: 'OTP sent to your email',
               requiresVerification: true,
-              redirectTo: `/auth/verify-otp?role=user&email=${encodeURIComponent(email)}`,
+              redirectTo: `/user/verify?email=${encodeURIComponent(email)}`,
             },
             { status: 200 }
           )
@@ -336,7 +336,7 @@ export async function POST(req: Request) {
           success: true,
           message: 'Registration successful. Please verify your email.',
           requiresVerification: true,
-          redirectTo: `/auth/verify-otp?role=user&email=${encodeURIComponent(email)}`,
+          redirectTo: `/user/verify?email=${encodeURIComponent(email)}`,
         },
         { status: 200 }
       )
@@ -477,7 +477,7 @@ export async function POST(req: Request) {
           success: true,
           message: 'Registration successful. Please verify your email.',
           requiresVerification: true,
-          redirectTo: `/auth/verify-otp?role=agent&email=${encodeURIComponent(email)}`,
+          redirectTo: `/agent/verify?email=${encodeURIComponent(email)}`,
         },
         { status: 200 }
       )

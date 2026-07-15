@@ -13,10 +13,6 @@ function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
 }
 
-function isSyntheticWhatsappEmail(email: string) {
-  return /^wa_\d+@millionflats\.auth$/i.test(email)
-}
-
 export default async function AdminUsersPage({
   searchParams,
 }: {
@@ -49,36 +45,27 @@ export default async function AdminUsersPage({
       role: true,
       status: true,
       emailVerified: true,
-      whatsappVerified: true,
       profileCompletion: true,
       phone: true,
-      authProvider: true,
       image: true,
-      lastWhatsappLogin: true,
+      lastLogin: true,
       createdAt: true,
       country: { select: { name: true, iso2: true } },
       buyer: { select: { propertyType: true, budgetRange: true } },
-      _count: { select: { savedProperties: true, propertyLeads: true, whatsappAuthSessions: true } },
+      _count: { select: { savedProperties: true, propertyLeads: true } },
     },
   })
 
   const items = (rows as any[]).map((u) => {
-    const identityStatus = u.phone
-      ? 'WhatsApp'
-      : u.email && !isSyntheticWhatsappEmail(u.email)
-      ? 'Email'
-      : 'Unknown'
+    const identityStatus = u.emailVerified ? 'Verified' : 'Unverified'
 
     const buyerType = u.buyer?.propertyType || (u.role === 'AGENT' ? 'Agent' : u.role === 'DEVELOPER' ? 'Developer' : u.role === 'BUYER' ? 'Buyer' : '')
     const healthScore = getUserHealthScore({
-      whatsappVerified: Boolean(u.whatsappVerified),
       emailVerified: Boolean(u.emailVerified),
       profileCompletion: Number(u.profileCompletion || 0),
       status: safeString(u.status),
       savedPropertiesCount: Number(u._count.savedProperties || 0),
       propertyLeadsCount: Number(u._count.propertyLeads || 0),
-      whatsappSessionsCount: Number(u._count.whatsappAuthSessions || 0),
-      lastWhatsappLogin: u.lastWhatsappLogin,
     })
 
     return {
@@ -88,52 +75,37 @@ export default async function AdminUsersPage({
       role: safeString(u.role),
       status: safeString(u.status),
       emailVerified: Boolean(u.emailVerified),
-      whatsappVerified: Boolean(u.whatsappVerified),
       profileCompletion: Number(u.profileCompletion || 0),
       phone: safeString(u.phone),
-      authProvider: safeString(u.authProvider),
       image: safeString(u.image),
-      lastWhatsappLogin: u.lastWhatsappLogin ? new Date(u.lastWhatsappLogin).toLocaleString() : '',
+      lastLogin: u.lastLogin ? new Date(u.lastLogin).toLocaleString() : '',
       createdAt: u.createdAt ? new Date(u.createdAt).toLocaleString() : '',
       country: u.country?.name || String(u.country?.iso2 || '').toUpperCase(),
       identityStatus,
       buyerType,
       healthScore,
       lifecycleStage: getLifecycleStage({
-        whatsappVerified: Boolean(u.whatsappVerified),
         emailVerified: Boolean(u.emailVerified),
         profileCompletion: Number(u.profileCompletion || 0),
         status: safeString(u.status),
         savedPropertiesCount: Number(u._count.savedProperties || 0),
         propertyLeadsCount: Number(u._count.propertyLeads || 0),
-        whatsappSessionsCount: Number(u._count.whatsappAuthSessions || 0),
-        lastWhatsappLogin: u.lastWhatsappLogin,
       }),
       crmStage: getCRMStage({
-        whatsappVerified: Boolean(u.whatsappVerified),
         emailVerified: Boolean(u.emailVerified),
         profileCompletion: Number(u.profileCompletion || 0),
         status: safeString(u.status),
         savedPropertiesCount: Number(u._count.savedProperties || 0),
         propertyLeadsCount: Number(u._count.propertyLeads || 0),
-        whatsappSessionsCount: Number(u._count.whatsappAuthSessions || 0),
-        lastWhatsappLogin: u.lastWhatsappLogin,
       }),
       recommendationConfidence: getRecommendationConfidence({
-        whatsappVerified: Boolean(u.whatsappVerified),
         emailVerified: Boolean(u.emailVerified),
         profileCompletion: Number(u.profileCompletion || 0),
         status: safeString(u.status),
         savedPropertiesCount: Number(u._count.savedProperties || 0),
         propertyLeadsCount: Number(u._count.propertyLeads || 0),
-        whatsappSessionsCount: Number(u._count.whatsappAuthSessions || 0),
-        lastWhatsappLogin: u.lastWhatsappLogin,
       }),
-      primaryIdentifier: u.phone
-        ? u.phone
-        : u.email && !isSyntheticWhatsappEmail(u.email)
-        ? u.email
-        : 'WhatsApp user',
+      primaryIdentifier: safeString(u.email) || safeString(u.phone) || 'Unknown',
     }
   })
 

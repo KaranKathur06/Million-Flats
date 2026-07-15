@@ -1806,7 +1806,7 @@ India and UAE markets
 
 
 
-The previous Verix branding has been permanently removed.
+The previous AI branding has been permanently removed.
 
 
 

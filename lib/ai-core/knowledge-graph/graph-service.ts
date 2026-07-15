@@ -14,6 +14,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { prisma } from '@/lib/prisma'
+import { KnowledgeEdgeType } from '@prisma/client'
 import type {
   KGEntityType,
   KGRelationshipType,
@@ -45,7 +46,7 @@ export async function getNeighbors(
     where: {
       sourceType: fromKGEntityType(entityType),
       sourceId: entityId,
-      ...(relationshipType ? { edgeType: { in: getEdgeTypesForRelationship(relationshipType) as any } } : {}),
+      ...(relationshipType ? { edgeType: { in: getEdgeTypesForRelationship(relationshipType) } } : {}),
       ...(targetType ? { targetType: fromKGEntityType(targetType) } : {}),
     },
     take: limit,
@@ -274,20 +275,28 @@ function fromKGEntityType(kgType: KGEntityType): string {
   return map[kgType] ?? kgType
 }
 
-function getEdgeTypesForRelationship(rel: KGRelationshipType): string[] {
-  const map: Record<KGRelationshipType, string[]> = {
-    'NEAR':           ['PROPERTY_NEAR_METRO', 'PROPERTY_NEAR_SCHOOL', 'PROPERTY_NEAR_HOSPITAL', 'PROPERTY_NEAR_MALL', 'PROPERTY_NEAR_AIRPORT', 'PROPERTY_NEAR_IT_HUB', 'PROPERTY_NEAR_HIGHWAY'],
-    'BUILT_BY':       ['PROPERTY_DEVELOPED_BY'],
-    'LOCATED_IN':     [],
-    'SIMILAR_TO':     [],
-    'PART_OF':        ['PROPERTY_IN_PROJECT'],
-    'CONNECTED_TO':   [],
-    'PURCHASED_BY':   [],
-    'LISTED_BY':      ['PROPERTY_LISTED_BY'],
-    'REVIEWED_BY':    ['DEVELOPER_HAS_LITIGATION'],
-    'IMPACTS':        ['AREA_NEAR_INFRA'],
-    'COMPETES_WITH':  [],
-    'TRANSACTED_AT':  ['AGENT_CLOSED_IN_AREA'],
+function getEdgeTypesForRelationship(rel: KGRelationshipType): KnowledgeEdgeType[] {
+  const map: Record<KGRelationshipType, KnowledgeEdgeType[]> = {
+    'NEAR': [
+      KnowledgeEdgeType.PROPERTY_NEAR_METRO,
+      KnowledgeEdgeType.PROPERTY_NEAR_SCHOOL,
+      KnowledgeEdgeType.PROPERTY_NEAR_HOSPITAL,
+      KnowledgeEdgeType.PROPERTY_NEAR_MALL,
+      KnowledgeEdgeType.PROPERTY_NEAR_AIRPORT,
+      KnowledgeEdgeType.PROPERTY_NEAR_IT_HUB,
+      KnowledgeEdgeType.PROPERTY_NEAR_HIGHWAY,
+    ],
+    'BUILT_BY': [KnowledgeEdgeType.PROPERTY_DEVELOPED_BY],
+    'LOCATED_IN': [],
+    'SIMILAR_TO': [],
+    'PART_OF': [KnowledgeEdgeType.PROPERTY_IN_PROJECT],
+    'CONNECTED_TO': [],
+    'PURCHASED_BY': [],
+    'LISTED_BY': [KnowledgeEdgeType.PROPERTY_LISTED_BY],
+    'REVIEWED_BY': [KnowledgeEdgeType.DEVELOPER_HAS_LITIGATION],
+    'IMPACTS': [KnowledgeEdgeType.AREA_NEAR_INFRA],
+    'COMPETES_WITH': [],
+    'TRANSACTED_AT': [KnowledgeEdgeType.AGENT_CLOSED_IN_AREA],
   }
   return map[rel] ?? []
 }

@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { formatAEDCompact } from '@/lib/pricing'
 import { mapStatusLabel } from '@/lib/aishield/projects'
 import { getAiStatusStyles } from './statusStyles'
-import type { VerixShieldStatus } from '@prisma/client'
+import type { AIShieldStatus } from '@prisma/client'
 
 export interface FeaturedProjectData {
   id: string
@@ -16,7 +16,7 @@ export interface FeaturedProjectData {
   startingPrice: number | null
   developer: { name: string } | null
   aiShield?: {
-    aiStatus: VerixShieldStatus | null
+    aiStatus: AIShieldStatus | null
     confidenceScore: number | null
     fairValue: number | null
   } | null
@@ -39,9 +39,8 @@ export function AIShieldFeaturedBanner({
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full text-left group rounded-2xl overflow-hidden border-2 transition-all ${
-        selected ? 'border-blue-500 shadow-lg shadow-blue-500/10' : 'border-gray-200 hover:border-blue-300 shadow-md'
-      }`}
+      className={`w-full text-left group rounded-2xl overflow-hidden border-2 transition-all ${selected ? 'border-blue-500 shadow-lg shadow-blue-500/10' : 'border-gray-200 hover:border-blue-300 shadow-md'
+        }`}
     >
       <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] bg-white">
         <div className="relative aspect-[16/10] md:aspect-auto md:min-h-[200px] bg-gray-100">

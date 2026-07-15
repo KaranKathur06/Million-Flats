@@ -41,7 +41,7 @@ interface Profile {
   isVerified: boolean
   isFeatured: boolean
   subscriptionPlan: string
-  verixDeveloperScore: number | null
+  AIDeveloperScore: number | null
   rejectionReason: string | null
   adminNotes: string | null
   linkedDeveloperId: string | null
@@ -76,7 +76,7 @@ export default function AdminDeveloperProfileReviewClient({ profile, allDevelope
   const [adminNotes, setAdminNotes] = useState(profile.adminNotes || '')
   const [rejectionReason, setRejectionReason] = useState(profile.rejectionReason || '')
   const [selectedDevId, setSelectedDevId] = useState(profile.linkedDeveloperId || '')
-  const [verixScore, setVerixScore] = useState(profile.verixDeveloperScore?.toString() || '')
+  const [AIScore, setAIScore] = useState(profile.AIDeveloperScore?.toString() || '')
   const [showRejectModal, setShowRejectModal] = useState(false)
 
   const showMsg = (msg: string) => {
@@ -273,11 +273,10 @@ export default function AdminDeveloperProfileReviewClient({ profile, allDevelope
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        doc.verificationStatus === 'VERIFIED' ? 'bg-emerald-100 text-emerald-700'
-                        : doc.verificationStatus === 'REJECTED' ? 'bg-red-100 text-red-700'
-                        : 'bg-gray-100 text-gray-500'
-                      }`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${doc.verificationStatus === 'VERIFIED' ? 'bg-emerald-100 text-emerald-700'
+                          : doc.verificationStatus === 'REJECTED' ? 'bg-red-100 text-red-700'
+                            : 'bg-gray-100 text-gray-500'
+                        }`}>
                         {doc.verificationStatus}
                       </span>
                       <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
@@ -336,23 +335,23 @@ export default function AdminDeveloperProfileReviewClient({ profile, allDevelope
             </button>
           </div>
 
-          {/* Verix Score */}
+          {/* AI Score */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <h2 className="font-semibold text-gray-900 mb-1">Verix™ Developer Score</h2>
+            <h2 className="font-semibold text-gray-900 mb-1">AI™ Developer Score</h2>
             <p className="text-xs text-gray-400 mb-3">Override the auto-calculated score (0–100).</p>
             <input
               type="number" min="0" max="100"
-              value={verixScore}
-              onChange={e => setVerixScore(e.target.value)}
+              value={AIScore}
+              onChange={e => setAIScore(e.target.value)}
               className="w-full h-10 px-4 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-dark-blue mb-3"
               placeholder="e.g. 78"
             />
             <button
-              onClick={() => callApi('SET_VERIX_SCORE', { verixDeveloperScore: parseInt(verixScore) || null })}
+              onClick={() => callApi('SET_AI_SCORE', { AIDeveloperScore: parseInt(AIScore) || null })}
               disabled={!!saving}
               className="w-full h-10 bg-amber-500 text-white rounded-xl text-sm font-semibold hover:bg-amber-600 disabled:opacity-50 transition-all"
             >
-              {saving === 'SET_VERIX_SCORE' ? 'Saving...' : 'Set Score'}
+              {saving === 'SET_AI_SCORE' ? 'Saving...' : 'Set Score'}
             </button>
           </div>
 

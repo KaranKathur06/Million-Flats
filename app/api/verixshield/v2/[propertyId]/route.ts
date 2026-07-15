@@ -1,5 +1,5 @@
-// ━━━ VerixShield v2.1 API Route ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// GET /api/verixshield/v2/[propertyId]?type=MANUAL_PROPERTY|PROJECT
+// ━━━ AIShield v2.1 API Route ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// GET /api/AIshield/v2/[propertyId]?type=MANUAL_PROPERTY|PROJECT
 // Returns the full v2.1 intelligence engine response
 
 import { NextResponse } from 'next/server'
@@ -34,9 +34,9 @@ export async function GET(
 
     const response = NextResponse.json(result, { status: 200 })
     // Legacy headers (backward compat)
-    response.headers.set('X-VerixShield-Duration', `${duration}ms`)
-    response.headers.set('X-VerixShield-Version', result.meta.modelVersion)
-    response.headers.set('X-VerixShield-Cached', result.meta.cached ? 'true' : 'false')
+    response.headers.set('X-AIShield-Duration', `${duration}ms`)
+    response.headers.set('X-AIShield-Version', result.meta.modelVersion)
+    response.headers.set('X-AIShield-Cached', result.meta.cached ? 'true' : 'false')
     // New AI-branded headers
     response.headers.set('X-AIShield-Duration', `${duration}ms`)
     response.headers.set('X-AIShield-Version', result.meta.modelVersion)
@@ -48,7 +48,7 @@ export async function GET(
 
     return response
   } catch (error: any) {
-    console.error('[VerixShield:v2.1:API] Error:', error)
+    console.error('[AIShield:v2.1:API] Error:', error)
 
     if (error.message?.includes('not found')) {
       return NextResponse.json(

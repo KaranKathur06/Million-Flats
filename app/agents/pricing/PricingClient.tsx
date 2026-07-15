@@ -207,10 +207,10 @@ export default function PricingClient() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {[
-                  { key: 'view', label: <span className="font-semibold text-slate-800">VerixView<sup>™</sup> (Authenticity)</span>, cols: ['Basic', 'Full', 'Full + Priority'], icon: true },
-                  { key: 'shield', label: <span className="font-semibold text-slate-800">VerixShield<sup>™</sup> (Fair Pricing)</span>, cols: ['-', 'Included', 'Included + Alerts'], icon: true },
-                  { key: 'index', label: <span className="font-semibold text-slate-800">VerixIndex<sup>™</sup> (Investment Potential)</span>, cols: ['-', 'Basic', 'Advanced'], icon: true },
-                  { key: 'pro', label: <span className="font-semibold text-slate-800">VerixPro<sup>™</sup> Agent Score</span>, cols: ['Standard', 'Enhanced', 'Featured Badge'], icon: true },
+                  { key: 'view', label: <span className="font-semibold text-slate-800">AIView<sup>™</sup> (Authenticity)</span>, cols: ['Basic', 'Full', 'Full + Priority'], icon: true },
+                  { key: 'shield', label: <span className="font-semibold text-slate-800">AIShield<sup>™</sup> (Fair Pricing)</span>, cols: ['-', 'Included', 'Included + Alerts'], icon: true },
+                  { key: 'index', label: <span className="font-semibold text-slate-800">AIIndex<sup>™</sup> (Investment Potential)</span>, cols: ['-', 'Basic', 'Advanced'], icon: true },
+                  { key: 'pro', label: <span className="font-semibold text-slate-800">AIPro<sup>™</sup> Agent Score</span>, cols: ['Standard', 'Enhanced', 'Featured Badge'], icon: true },
                   ['Agent Profile', 'Standard', 'Featured', 'Premium + Verified'],
                   ['Listings Included', '20 properties', '100 properties', 'Unlimited'],
                   ['Lead Alerts', 'Weekly', 'Daily', 'Real-time'],
@@ -363,9 +363,9 @@ export default function PricingClient() {
 
           <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 text-left">
             {[
-              { t: 'Win More Listings', d: 'Verix™ scores prove your listings are verified – sellers trust you immediately over competitors.', i: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', bg: 'bg-emerald-100', text: 'text-emerald-700' },
+              { t: 'Win More Listings', d: 'AI™ scores prove your listings are verified – sellers trust you immediately over competitors.', i: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', bg: 'bg-emerald-100', text: 'text-emerald-700' },
               { t: 'Close Deals Faster', d: 'AI-matched leads are pre-qualified to shrink your closing cycle and eliminate dead ends.', i: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', bg: 'bg-blue-100', text: 'text-blue-700' },
-              { t: 'Build Trust Base', d: 'VerixPro™ badge showcases your verified track record definitively to every buyer.', i: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', bg: 'bg-indigo-100', text: 'text-indigo-700' },
+              { t: 'Build Trust Base', d: 'AIPro™ badge showcases your verified track record definitively to every buyer.', i: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', bg: 'bg-indigo-100', text: 'text-indigo-700' },
               { t: 'Save Valuable Time', d: 'Automated lead scoring and native WhatsApp integration puts follow-ups on autopilot.', i: 'M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z', bg: 'bg-purple-100', text: 'text-purple-700' },
               { t: 'Stand Out Locally', d: 'Premium profile placement ensures you catch the eyes of serious, high-intent buyers first.', i: 'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z', bg: 'bg-amber-100', text: 'text-amber-700' },
             ].map((it, idx) => (

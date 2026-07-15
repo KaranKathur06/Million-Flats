@@ -1,4 +1,4 @@
-// ━━━ VerixShield Rule Engine (Non-AI) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield Rule Engine (Non-AI) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Applies business logic rules for price classification
 // Combines valuation + comparables to determine status
 
@@ -9,7 +9,7 @@ import type {
   RuleEngineResult,
   RentalIntelligence,
   PriceDistribution,
-  VerixShieldStatusType,
+  AIShieldStatusType,
 } from './types'
 
 // ── Thresholds ──
@@ -45,7 +45,7 @@ export function runRuleEngine(
   }
 
   // ── Determine status ──
-  let status: VerixShieldStatusType = 'FAIR'
+  let status: AIShieldStatusType = 'FAIR'
 
   if (askingPrice <= 0) {
     status = 'INSUFFICIENT_DATA'

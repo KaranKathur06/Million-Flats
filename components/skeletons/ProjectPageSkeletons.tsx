@@ -98,8 +98,8 @@ export function VideosSkeleton() {
     )
 }
 
-/* ─── VerixShield Sidebar Skeleton ─── */
-export function VerixShieldSkeleton() {
+/* ─── AIShield Sidebar Skeleton ─── */
+export function AIShieldSkeleton() {
     return (
         <div className="rounded-2xl border border-gray-200 bg-white p-5 space-y-4">
             <div className="flex items-center gap-3">

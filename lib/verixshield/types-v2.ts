@@ -1,7 +1,7 @@
-// ━━━ VerixShield v2.1 — Intelligence Engine Type Definitions ━━━━━━━━━━━━━
+// ━━━ AIShield v2.1 — Intelligence Engine Type Definitions ━━━━━━━━━━━━━
 // Extends v1 types without breaking backwards compatibility
 
-export type VerixShieldStatusV2 = 'FAIR' | 'ABOVE_MARKET' | 'UNDERPRICED' | 'HIGH_RISK' | 'INSUFFICIENT_DATA'
+export type AIShieldStatusV2 = 'FAIR' | 'ABOVE_MARKET' | 'UNDERPRICED' | 'HIGH_RISK' | 'INSUFFICIENT_DATA'
 export type EntityType = 'MANUAL_PROPERTY' | 'PROJECT'
 
 // ── Input (extended from v1) ──
@@ -198,7 +198,7 @@ export interface HistoricalAccuracyResult {
 // ── Anomaly Detection ──
 
 export interface AnomalyResult {
-  status: VerixShieldStatusV2
+  status: AIShieldStatusV2
   deviation: number
   pricePosition: number
   dynamicThreshold: number
@@ -260,7 +260,7 @@ export interface RentalIntelligence {
 
 // ── Unified v2.1 Response ──
 
-export interface VerixShieldResponseV2 {
+export interface AIShieldResponseV2 {
   propertyId: string
   entityType: EntityType
 
@@ -275,7 +275,7 @@ export interface VerixShieldResponseV2 {
 
   askingPrice: number | null
   deviation: number
-  status: VerixShieldStatusV2
+  status: AIShieldStatusV2
   pricePosition: number
 
   trend: TrendDataPoint[]

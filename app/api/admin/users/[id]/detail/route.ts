@@ -25,25 +25,10 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       buyer: { select: { propertyType: true, budgetRange: true } },
       agent: { select: { id: true } },
       developerProfile: { select: { id: true } },
-      whatsappAuthSessions: {
-        orderBy: { createdAt: 'desc' },
-        take: 8,
-        select: {
-          sessionId: true,
-          status: true,
-          device: true,
-          ipAddress: true,
-          userAgent: true,
-          otpSentAt: true,
-          verifiedAt: true,
-          createdAt: true,
-        },
-      },
       _count: {
         select: {
           savedProperties: true,
           propertyLeads: true,
-          whatsappAuthSessions: true,
           auditLogs: true,
         },
       },
@@ -56,21 +41,19 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
   const missingFields: string[] = []
   if (!safeString(user.name)) missingFields.push('Name')
-  if (!safeString(user.phone)) missingFields.push('WhatsApp number')
+  if (!safeString(user.phone)) missingFields.push('Phone number')
   if (!safeString(user.country?.name)) missingFields.push('Country')
-  if (!safeString(user.email) || /^wa_\d+@millionflats\.auth$/i.test(user.email)) missingFields.push('Email')
+  if (!safeString(user.email)) missingFields.push('Email')
   if (!safeString(user.image)) missingFields.push('Avatar')
   if (user.profileCompletion < 100) missingFields.push('Profile completion')
 
   const intelligence = {
-    whatsappVerified: user.whatsappVerified,
     emailVerified: user.emailVerified,
     profileCompletion: user.profileCompletion,
     status: user.status,
     savedPropertiesCount: user._count.savedProperties,
     propertyLeadsCount: user._count.propertyLeads,
-    whatsappSessionsCount: user._count.whatsappAuthSessions,
-    lastWhatsappLogin: user.lastWhatsappLogin,
+    lastLogin: user.lastLogin,
   }
 
   return NextResponse.json({
@@ -86,11 +69,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       image: user.image,
       country: user.country?.name || user.country?.iso2 || null,
       countryIso2: user.country?.iso2 || null,
-      whatsappVerified: user.whatsappVerified,
-      phoneVerified: user.phoneVerified,
       emailVerified: user.emailVerified,
       profileCompletion: user.profileCompletion,
-      lastWhatsappLogin: user.lastWhatsappLogin,
+      lastLogin: user.lastLogin,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       buyerType: user.buyer?.propertyType || null,
@@ -99,9 +80,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       developerProfileId: user.developerProfile?.id,
       savedPropertiesCount: user._count.savedProperties,
       propertyLeadsCount: user._count.propertyLeads,
-      whatsappSessionsCount: user._count.whatsappAuthSessions,
       auditLogCount: user._count.auditLogs,
-      recentSessions: user.whatsappAuthSessions,
       missingFields,
       healthScore: getUserHealthScore(intelligence),
       lifecycleStage: getLifecycleStage(intelligence),

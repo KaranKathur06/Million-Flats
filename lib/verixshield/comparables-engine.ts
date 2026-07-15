@@ -1,4 +1,4 @@
-// ━━━ VerixShield Comparables Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━ AIShield Comparables Engine ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Finds similar properties using location radius, sqft range, and BHK matching
 // Computes similarity scores and distance for each comparable
 
@@ -171,7 +171,7 @@ export async function runComparablesEngine(input: PropertyInput): Promise<Compar
       count: finalResults.length,
     }
   } catch (error) {
-    console.error('[VerixShield:Comparables] Error:', error)
+    console.error('[AIShield:Comparables] Error:', error)
     return { comparables: [], avgPricePerSqft: 0, medianPrice: 0, count: 0 }
   }
 }

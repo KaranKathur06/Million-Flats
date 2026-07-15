@@ -160,7 +160,7 @@ export async function runValuationEngine(
   }
 
   // ── Step 14: Persist result ───────────────────────────────────────────────
-  await persistValuation(entityId, entityType, report).catch(() => {})
+  await persistValuation(entityId, entityType, report).catch(() => { })
 
   return report
 }
@@ -373,10 +373,10 @@ function computeFairValue(
 
   // Location premium/discount
   const locationMultiplier = computeLocationMultiplier(features)
-  
+
   const adjustedPpsf = ppsf * locationMultiplier
   const mid = Math.round(adjustedPpsf * sqftVal)
-  
+
   // Range is +/- based on market volatility
   const volatility = features?.priceVolatilityScore ?? 15
   const rangePercent = Math.max(5, Math.min(20, volatility)) / 100
@@ -390,9 +390,9 @@ function computeFairValue(
 
 function computeLocationMultiplier(features: FeatureVector | null): number {
   if (!features) return 1.0
-  
+
   let multiplier = 1.0
-  
+
   // Metro proximity premium
   if (features.distanceMetroKm !== undefined) {
     if (features.distanceMetroKm < 0.5) multiplier *= 1.12
@@ -400,18 +400,18 @@ function computeLocationMultiplier(features: FeatureVector | null): number {
     else if (features.distanceMetroKm < 2.0) multiplier *= 1.02
     else if (features.distanceMetroKm > 5.0) multiplier *= 0.95
   }
-  
+
   // Floor premium (higher floors cost more in UAE/India)
   if (features.floorRatio !== undefined) {
     multiplier *= 1 + (features.floorRatio * 0.05)
   }
-  
+
   // Developer quality premium
   if (features.developerReputationScore !== undefined) {
     const devFactor = (features.developerReputationScore - 50) / 1000  // ±5%
     multiplier *= 1 + devFactor
   }
-  
+
   return Math.max(0.80, Math.min(1.25, multiplier))
 }
 
@@ -798,7 +798,7 @@ async function getCachedValuation(
 ): Promise<ValuationReport | null> {
   try {
     const entityTypeEnum = entityType === 'MANUAL_PROPERTY' ? 'MANUAL_PROPERTY' : 'PROJECT'
-    const cached = await (prisma as any).verixShieldResult.findUnique({
+    const cached = await (prisma as any).AIShieldResult.findUnique({
       where: { entityType_entityId: { entityType: entityTypeEnum, entityId } },
     })
 
@@ -877,7 +877,7 @@ async function persistValuation(
       computedAt: new Date(),
       expiresAt,
     }
-    await (prisma as any).verixShieldResult.upsert({
+    await (prisma as any).AIShieldResult.upsert({
       where: { entityType_entityId: { entityType, entityId } },
       create: { entityType, entityId, ...data },
       update: data,

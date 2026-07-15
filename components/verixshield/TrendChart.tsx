@@ -45,10 +45,10 @@ export function TrendChart({ trend, direction, overallChange }: TrendChartProps)
     // Build smooth SVG path (Catmull-Rom to Bezier)
     const linePath = points.length > 1
       ? `M ${points[0].x} ${points[0].y} ` + points.slice(1).map((p, i) => {
-          const prev = points[i]
-          const cpx = (prev.x + p.x) / 2
-          return `C ${cpx} ${prev.y}, ${cpx} ${p.y}, ${p.x} ${p.y}`
-        }).join(' ')
+        const prev = points[i]
+        const cpx = (prev.x + p.x) / 2
+        return `C ${cpx} ${prev.y}, ${cpx} ${p.y}, ${p.x} ${p.y}`
+      }).join(' ')
       : ''
 
     // Area path (fill under curve)

@@ -57,188 +57,188 @@ const CLASSIFICATION_RULES: Array<{
   pattern: RegExp
   classification: AssetClassification
 }> = [
-  // ── Private: Agent verification documents ──
-  {
-    pattern: /^private\/agents\//,
-    classification: {
-      tier: 'private',
-      requiredRole: 'OWNER',
-      ttl: ASSET_TTL.PRIVATE,
-      trackable: true,
-      assetType: 'agent_document',
-      description: 'Agent verification documents (ID, license, passport)',
+    // ── Private: Agent verification documents ──
+    {
+      pattern: /^private\/agents\//,
+      classification: {
+        tier: 'private',
+        requiredRole: 'OWNER',
+        ttl: ASSET_TTL.PRIVATE,
+        trackable: true,
+        assetType: 'agent_document',
+        description: 'Agent verification documents (ID, license, passport)',
+      },
     },
-  },
 
-  // ── Private: Ecosystem partner documents ──
-  {
-    pattern: /^private\/ecosystem\//,
-    classification: {
-      tier: 'private',
-      requiredRole: 'ADMIN',
-      ttl: ASSET_TTL.PRIVATE,
-      trackable: true,
-      assetType: 'ecosystem_document',
-      description: 'Ecosystem partner registration documents',
+    // ── Private: Ecosystem partner documents ──
+    {
+      pattern: /^private\/ecosystem\//,
+      classification: {
+        tier: 'private',
+        requiredRole: 'ADMIN',
+        ttl: ASSET_TTL.PRIVATE,
+        trackable: true,
+        assetType: 'ecosystem_document',
+        description: 'Ecosystem partner registration documents',
+      },
     },
-  },
 
-  // ── Private: AI system documents (formerly Verix) ──
-  {
-    pattern: /^private\/(ai|verix)\//,
-    classification: {
-      tier: 'private',
-      requiredRole: 'AGENT_APPROVED',
-      ttl: ASSET_TTL.AI_SYSTEM,
-      trackable: true,
-      assetType: 'ai_document',
-      description: 'AI system protected documents',
+    // ── Private: AI system documents (formerly AI) ──
+    {
+      pattern: /^private\/(ai|AI)\//,
+      classification: {
+        tier: 'private',
+        requiredRole: 'AGENT_APPROVED',
+        ttl: ASSET_TTL.AI_SYSTEM,
+        trackable: true,
+        assetType: 'ai_document',
+        description: 'AI system protected documents',
+      },
     },
-  },
 
-  // ── Private: Lead magnet PDFs ──
-  {
-    pattern: /^private\/lead-magnets\//,
-    classification: {
-      tier: 'protected',
-      requiredRole: 'USER',
-      ttl: ASSET_TTL.PROTECTED_DOWNLOAD,
-      trackable: true,
-      assetType: 'lead_magnet',
-      description: 'Lead magnet downloadable PDFs',
+    // ── Private: Lead magnet PDFs ──
+    {
+      pattern: /^private\/lead-magnets\//,
+      classification: {
+        tier: 'protected',
+        requiredRole: 'USER',
+        ttl: ASSET_TTL.PROTECTED_DOWNLOAD,
+        trackable: true,
+        assetType: 'lead_magnet',
+        description: 'Lead magnet downloadable PDFs',
+      },
     },
-  },
 
-  // ── Protected: Project brochures ──
-  {
-    pattern: /^(public|protected)\/projects\/.*\/brochure\//,
-    classification: {
-      tier: 'protected',
-      requiredRole: 'USER',
-      ttl: ASSET_TTL.PROTECTED_DOWNLOAD,
-      trackable: true,
-      assetType: 'brochure',
-      description: 'Project brochure PDFs',
+    // ── Protected: Project brochures ──
+    {
+      pattern: /^(public|protected)\/projects\/.*\/brochure\//,
+      classification: {
+        tier: 'protected',
+        requiredRole: 'USER',
+        ttl: ASSET_TTL.PROTECTED_DOWNLOAD,
+        trackable: true,
+        assetType: 'brochure',
+        description: 'Project brochure PDFs',
+      },
     },
-  },
 
-  // ── Protected: Floor plans ──
-  {
-    pattern: /^(public|protected)\/projects\/.*\/floor-plans?\//,
-    classification: {
-      tier: 'protected',
-      requiredRole: 'USER',
-      ttl: ASSET_TTL.PROTECTED_VIEW,
-      trackable: true,
-      assetType: 'floor_plan',
-      description: 'Project floor plan images',
+    // ── Protected: Floor plans ──
+    {
+      pattern: /^(public|protected)\/projects\/.*\/floor-plans?\//,
+      classification: {
+        tier: 'protected',
+        requiredRole: 'USER',
+        ttl: ASSET_TTL.PROTECTED_VIEW,
+        trackable: true,
+        assetType: 'floor_plan',
+        description: 'Project floor plan images',
+      },
     },
-  },
 
-  // ── Protected: Premium investor content ──
-  {
-    pattern: /^protected\/premium\//,
-    classification: {
-      tier: 'premium',
-      requiredRole: 'PREMIUM',
-      ttl: ASSET_TTL.PREMIUM,
-      trackable: true,
-      assetType: 'premium_content',
-      description: 'Premium investor guides and reports',
+    // ── Protected: Premium investor content ──
+    {
+      pattern: /^protected\/premium\//,
+      classification: {
+        tier: 'premium',
+        requiredRole: 'PREMIUM',
+        ttl: ASSET_TTL.PREMIUM,
+        trackable: true,
+        assetType: 'premium_content',
+        description: 'Premium investor guides and reports',
+      },
     },
-  },
 
-  // ── Protected: DAMAC partner assets ──
-  {
-    pattern: /^protected\/damac\//,
-    classification: {
-      tier: 'protected',
-      requiredRole: 'AGENT',
-      ttl: ASSET_TTL.PARTNER,
-      trackable: true,
-      assetType: 'damac_asset',
-      description: 'DAMAC partnership protected assets',
+    // ── Protected: DAMAC partner assets ──
+    {
+      pattern: /^protected\/damac\//,
+      classification: {
+        tier: 'protected',
+        requiredRole: 'AGENT',
+        ttl: ASSET_TTL.PARTNER,
+        trackable: true,
+        assetType: 'damac_asset',
+        description: 'DAMAC partnership protected assets',
+      },
     },
-  },
 
-  // ── Public: Project gallery / hero / interior / exterior / amenities ──
-  {
-    pattern: /^public\/projects\//,
-    classification: {
-      tier: 'public',
-      requiredRole: 'GUEST',
-      ttl: ASSET_TTL.PUBLIC,
-      trackable: false,
-      assetType: 'project_image',
-      description: 'Project gallery and media images',
+    // ── Public: Project gallery / hero / interior / exterior / amenities ──
+    {
+      pattern: /^public\/projects\//,
+      classification: {
+        tier: 'public',
+        requiredRole: 'GUEST',
+        ttl: ASSET_TTL.PUBLIC,
+        trackable: false,
+        assetType: 'project_image',
+        description: 'Project gallery and media images',
+      },
     },
-  },
 
-  // ── Public: Developer logos ──
-  {
-    pattern: /^public\/developers\//,
-    classification: {
-      tier: 'public',
-      requiredRole: 'GUEST',
-      ttl: ASSET_TTL.PUBLIC,
-      trackable: false,
-      assetType: 'developer_logo',
-      description: 'Developer logos and branding',
+    // ── Public: Developer logos ──
+    {
+      pattern: /^public\/developers\//,
+      classification: {
+        tier: 'public',
+        requiredRole: 'GUEST',
+        ttl: ASSET_TTL.PUBLIC,
+        trackable: false,
+        assetType: 'developer_logo',
+        description: 'Developer logos and branding',
+      },
     },
-  },
 
-  // ── Public: Blog images ──
-  {
-    pattern: /^public\/blogs\//,
-    classification: {
-      tier: 'public',
-      requiredRole: 'GUEST',
-      ttl: ASSET_TTL.PUBLIC,
-      trackable: false,
-      assetType: 'blog_image',
-      description: 'Blog featured images',
+    // ── Public: Blog images ──
+    {
+      pattern: /^public\/blogs\//,
+      classification: {
+        tier: 'public',
+        requiredRole: 'GUEST',
+        ttl: ASSET_TTL.PUBLIC,
+        trackable: false,
+        assetType: 'blog_image',
+        description: 'Blog featured images',
+      },
     },
-  },
 
-  // ── Public: Agent profile photos ──
-  {
-    pattern: /^public\/agents\//,
-    classification: {
-      tier: 'public',
-      requiredRole: 'GUEST',
-      ttl: ASSET_TTL.PUBLIC,
-      trackable: false,
-      assetType: 'agent_photo',
-      description: 'Agent profile photos',
+    // ── Public: Agent profile photos ──
+    {
+      pattern: /^public\/agents\//,
+      classification: {
+        tier: 'public',
+        requiredRole: 'GUEST',
+        ttl: ASSET_TTL.PUBLIC,
+        trackable: false,
+        assetType: 'agent_photo',
+        description: 'Agent profile photos',
+      },
     },
-  },
 
-  // ── Public: Property images ──
-  {
-    pattern: /^public\/properties\//,
-    classification: {
-      tier: 'public',
-      requiredRole: 'GUEST',
-      ttl: ASSET_TTL.PUBLIC,
-      trackable: false,
-      assetType: 'property_image',
-      description: 'Property listing images',
+    // ── Public: Property images ──
+    {
+      pattern: /^public\/properties\//,
+      classification: {
+        tier: 'public',
+        requiredRole: 'GUEST',
+        ttl: ASSET_TTL.PUBLIC,
+        trackable: false,
+        assetType: 'property_image',
+        description: 'Property listing images',
+      },
     },
-  },
 
-  // ── Public: Ecosystem partner logos ──
-  {
-    pattern: /^public\/ecosystem\//,
-    classification: {
-      tier: 'public',
-      requiredRole: 'GUEST',
-      ttl: ASSET_TTL.PUBLIC,
-      trackable: false,
-      assetType: 'ecosystem_logo',
-      description: 'Ecosystem partner logos',
+    // ── Public: Ecosystem partner logos ──
+    {
+      pattern: /^public\/ecosystem\//,
+      classification: {
+        tier: 'public',
+        requiredRole: 'GUEST',
+        ttl: ASSET_TTL.PUBLIC,
+        trackable: false,
+        assetType: 'ecosystem_logo',
+        description: 'Ecosystem partner logos',
+      },
     },
-  },
-]
+  ]
 
 /**
  * Default classification for unmatched keys.

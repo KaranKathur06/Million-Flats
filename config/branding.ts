@@ -21,8 +21,8 @@ export const BRAND = {
   SUITE_NAME_TM: 'AI™',
 
   /** Legacy name — for backward compat references */
-  LEGACY_SYSTEM_NAME: 'Verix System',
-  LEGACY_SUITE_NAME: 'Verix',
+  LEGACY_SYSTEM_NAME: 'AI System',
+  LEGACY_SUITE_NAME: 'AI',
 } as const
 
 // ─── Product Names ──────────────────────────────────────────────────────────
@@ -32,35 +32,35 @@ export const PRODUCTS = {
     nameTM: 'AIView™',
     subtitle: 'Authenticity',
     description: 'Detects manipulated images and ensures the listing matches reality.',
-    legacy: 'VerixView',
+    legacy: 'AIView',
   },
   SHIELD: {
     name: 'AIShield',
     nameTM: 'AIShield™',
     subtitle: 'Pricing Fairness',
     description: 'Compares against 50+ localized data points to flag over-pricing or uncover severe under-pricing.',
-    legacy: 'VerixShield',
+    legacy: 'AIShield',
   },
   INDEX: {
     name: 'AIIndex',
     nameTM: 'AIIndex™',
     subtitle: 'Investment Potential',
     description: 'Forecasts 1-5 year asset value based on infrastructure influx, demand, and micro-market trends.',
-    legacy: 'VerixIndex',
+    legacy: 'AIIndex',
   },
   TITLE: {
     name: 'AITitle',
     nameTM: 'AITitle™',
     subtitle: 'Legal Safety',
     description: 'Cross-references title records, municipal approvals, and litigation history to flag risks.',
-    legacy: 'VerixTitle',
+    legacy: 'AITitle',
   },
   PRO: {
     name: 'AIPro',
     nameTM: 'AIPro™',
     subtitle: 'Agent Performance',
     description: 'Scores real estate agents on response time, closure rate, and client satisfaction.',
-    legacy: 'VerixPro',
+    legacy: 'AIPro',
   },
 } as const
 
@@ -75,11 +75,11 @@ export const ROUTES = {
 
   // Legacy routes (for redirect mapping)
   LEGACY_SYSTEM: '/verfix-system',
-  LEGACY_VIEW: '/verix/view',
-  LEGACY_SHIELD: '/verix/shield',
-  LEGACY_INDEX: '/verix/index',
-  LEGACY_TITLE: '/verix/title',
-  LEGACY_PRO: '/verix/pro',
+  LEGACY_VIEW: '/AI/view',
+  LEGACY_SHIELD: '/AI/shield',
+  LEGACY_INDEX: '/AI/index',
+  LEGACY_TITLE: '/AI/title',
+  LEGACY_PRO: '/AI/pro',
 } as const
 
 // ─── Analytics Events ───────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ export const ANALYTICS_EVENTS = {
   SHIELD_IMPRESSION: 'ai_shield_impression',
 
   // Legacy event names (keep for backward compat in analytics dashboards)
-  LEGACY_CLICK: 'verix_click',
+  LEGACY_CLICK: 'AI_click',
 } as const
 
 // ─── Score Labels ───────────────────────────────────────────────────────────
@@ -99,6 +99,6 @@ export const LABELS = {
   VERIFIED: 'AI Verified',
   ACCESS_LEVEL: 'AI Access Level',
 
-  LEGACY_SCORE: 'Verix Score',
-  LEGACY_TRUST_SCORE: 'Verix Trust Score',
+  LEGACY_SCORE: 'AI Score',
+  LEGACY_TRUST_SCORE: 'AI Trust Score',
 } as const

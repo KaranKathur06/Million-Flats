@@ -1,6 +1,6 @@
-// ━━━ VerixShield Price Intelligence Engine — Type Definitions ━━━━━━━━━━━━━
+// ━━━ AIShield Price Intelligence Engine — Type Definitions ━━━━━━━━━━━━━
 
-export type VerixShieldStatusType = 'FAIR' | 'OVERPRICED' | 'UNDERPRICED' | 'SUSPICIOUS' | 'INSUFFICIENT_DATA'
+export type AIShieldStatusType = 'FAIR' | 'OVERPRICED' | 'UNDERPRICED' | 'SUSPICIOUS' | 'INSUFFICIENT_DATA'
 export type EntityType = 'MANUAL_PROPERTY' | 'PROJECT'
 
 // ── Input types ──
@@ -80,7 +80,7 @@ export interface MarketSignalResult {
 }
 
 export interface RuleEngineResult {
-  status: VerixShieldStatusType
+  status: AIShieldStatusType
   deviation: number        // percentage
   pricePosition: number    // 0-100 percentile
   flags: string[]
@@ -106,7 +106,7 @@ export interface PriceDistribution {
 
 // ── Orchestrator unified response ──
 
-export interface VerixShieldResponse {
+export interface AIShieldResponse {
   propertyId: string
   entityType: EntityType
 
@@ -120,7 +120,7 @@ export interface VerixShieldResponse {
 
   askingPrice: number | null
   deviation: number
-  status: VerixShieldStatusType
+  status: AIShieldStatusType
   pricePosition: number
 
   trend: TrendDataPoint[]

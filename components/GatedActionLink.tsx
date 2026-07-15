@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { useWhatsAppAuth } from "@/contexts/WhatsAppAuthContext";
 
 type Props = {
   href: string;
@@ -19,7 +18,6 @@ function buildNext(pathname: string, search: string) {
 export default function GatedActionLink({ href, className, children }: Props) {
   const pathname = usePathname() ?? "";
   const { status } = useSession();
-  const { openModal } = useWhatsAppAuth();
 
   const [search, setSearch] = useState("");
   const isAuthed = status === "authenticated";
@@ -33,9 +31,9 @@ export default function GatedActionLink({ href, className, children }: Props) {
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (isAuthed) return;
     e.preventDefault();
-    const next = buildNext(pathname, search);
-    // Open WhatsApp auth modal, redirect to the target after auth
-    openModal(href.startsWith("/") ? href : next);
+    // Redirect to login page with return URL
+    const next = href.startsWith("/") ? href : buildNext(pathname, search);
+    window.location.href = `/auth/login?next=${encodeURIComponent(next)}`;
   };
 
   const isInternal = href.startsWith("/");
