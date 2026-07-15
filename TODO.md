@@ -29,3 +29,10 @@
   - CRM sync trigger after onboarding completion
   - Admin users list/detail render name
   - Confirm no Prisma P2022 regressions during tested flows
+
+## Step 6 — Fix WhatsApp OTP flow P2022 (users.city missing)
+- Add Prisma migration to create nullable `users.city` column
+- Deploy migration
+- Smoke test critical endpoints:
+  - POST `/api/auth/whatsapp/confirm-otp`
+  - If it triggers onboarding writes, ensure onboarding PATCH no longer throws `users.city` P2022
