@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import type { WhatsAppMessageResult } from "./types";
+import { resolveUserName } from "../userDisplayService";
 
 const DEFAULT_AISENSY_ENDPOINT = "https://backend.aisensy.com/campaign/t1/api/v2";
 const DEFAULT_AISENSY_CAMPAIGN_NAME = "millionflats_auth_otp";
@@ -574,9 +575,8 @@ function getNameFromCandidate(candidate: unknown): string | null {
   }
 
   if (candidate && typeof candidate === "object") {
-    const record = candidate as Record<string, unknown>;
-    const direct = [record.fullName, record.name, record.firstName].find((value): value is string => typeof value === "string");
-    return normalizeAndValidateUserName(direct ?? null);
+    const resolved = resolveUserName(candidate as { name?: string | null; fullName?: string | null; firstName?: string | null });
+    return normalizeAndValidateUserName(resolved || null);
   }
 
   return null;

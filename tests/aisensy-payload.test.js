@@ -8,6 +8,7 @@ const {
   resolveAiSensyUserName,
   normalizePhoneNumber,
 } = require('../lib/whatsapp/aisensy');
+const { resolveUserName, getUserDisplayName } = require('../lib/userDisplayService');
 
 test('buildAiSensyOtpPayload creates the production-style AiSensy auth payload', () => {
   const payload = buildAiSensyOtpPayload({
@@ -72,4 +73,10 @@ test('normalizePhoneNumber converts common Indian formats to E.164', () => {
 test('resolveAiSensyUserName cleans and preserves valid display names', () => {
   const resolved = resolveAiSensyUserName({ fullName: '  Karan   Kathur  ' });
   assert.equal(resolved, 'Karan Kathur');
+});
+
+test('resolveUserName prefers persisted name values and preserves legacy compatibility', () => {
+  assert.equal(resolveUserName({ name: '  Jane Doe  ' }), 'Jane Doe');
+  assert.equal(resolveUserName({ fullName: 'Legacy User' }), 'Legacy User');
+  assert.equal(getUserDisplayName({ email: 'legacy@example.com' }), 'legacy@example.com');
 });

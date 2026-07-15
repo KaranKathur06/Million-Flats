@@ -1,4 +1,5 @@
 import { User } from "@prisma/client";
+import { resolveUserName } from "./userDisplayService";
 
 export const ONBOARDING_CURRENT_VERSION = 1;
 
@@ -12,7 +13,7 @@ export function calculateProfileCompletion(user: Partial<User>): number {
   let score = 0;
   const totalWeight = 100;
 
-  const hasName = Boolean(user.name || user.fullName);
+  const hasName = Boolean(resolveUserName(user));
   
   // Basic Information (30%)
   if (hasName) score += 10;

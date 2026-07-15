@@ -256,7 +256,6 @@ model User {
   whatsappAuthSessions WhatsAppAuthSession[]
 
   // Onboarding Fields
-  fullName              String?   @map("full_name")
   city                  String?
   occupation            String?
   ageGroup              String?   @map("age_group")

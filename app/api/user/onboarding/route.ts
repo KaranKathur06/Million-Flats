@@ -17,11 +17,12 @@ export async function PATCH(req: Request) {
 
     // Construct update data payload, filtering undefined values
     const dataToUpdate: any = {};
-    if (body.fullName !== undefined) {
-      // Legacy/legal full name column
-      dataToUpdate.fullName = body.fullName;
-      // Compatibility: also populate the display/auth name column
-      dataToUpdate.name = body.fullName;
+    const incomingName = body.name ?? body.fullName;
+    if (incomingName !== undefined) {
+      const normalizedName = typeof incomingName === 'string'
+        ? incomingName.trim()
+        : String(incomingName).trim();
+      dataToUpdate.name = normalizedName || null;
     }
     if (body.email !== undefined && body.email !== email) dataToUpdate.email = body.email;
     if (body.country !== undefined) dataToUpdate.countryIso2 = body.country; // Basic map
