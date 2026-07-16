@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
+import { signToken } from '@/lib/auth/token'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/sendEmail'
 import OTPEmail from '@/lib/email/templates/otpEmail'
@@ -10,9 +11,6 @@ function safeString(value: unknown) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function hashOtp(code: string) {
-  return crypto.createHash('sha256').update(code).digest('hex')
-}
 
 function normalizeRole(input: unknown) {
   const role = typeof input === 'string' ? input.trim().toUpperCase() : ''
@@ -51,7 +49,7 @@ export async function POST(req: Request) {
     const role = normalizeRole(user.role || requestedRole)
     const otp = generateOtp()
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
-    const codeHash = hashOtp(otp)
+    const codeHash = signToken(otp)
 
     await (prisma as any).loginOtp
       .updateMany({ where: { email: user.email, role, consumed: false, usedAt: null }, data: { consumed: true } })

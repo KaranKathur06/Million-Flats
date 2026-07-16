@@ -7,8 +7,12 @@
     "build": "prisma generate && next build",
     "start": "node -e \"const fs=require('fs'); if(!fs.existsSync('.next')){console.error('Missing .next build output. Run npm run build first.'); process.exit(1)}\" && next start -p 3000",
     "lint": "next lint",
+    "test": "jest --passWithNoTests",
+    "test:unit": "jest tests/unit --passWithNoTests",
+    "test:integration": "node tests/integration/run_integration.js",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
+    "prisma:generate:identity": "prisma generate --schema=prisma/identity.prisma",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:seed": "prisma db seed",
@@ -58,6 +62,7 @@
     "react-hot-toast": "^2.6.0",
     "react-phone-number-input": "^3.4.12",
     "resend": "^6.9.3",
+    "ioredis": "^5.3.2",
     "typescript": "^5.4.0",
     "zod": "^3.22.4"
   },
@@ -68,7 +73,10 @@
     "postcss": "^8.4.35",
     "prisma": "^5.22.0",
     "tailwindcss": "^3.4.1",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "@types/jest": "^29.0.0"
   },
   "prisma": {
     "seed": "node prisma/seed.cjs"

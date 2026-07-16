@@ -5,6 +5,7 @@ import { sendEmail } from '@/lib/email/sendEmail'
 import OTPEmail from '@/lib/email/templates/otpEmail'
 import { parsePhoneNumberFromString } from 'libphonenumber-js'
 import crypto from 'crypto'
+import { signToken } from '@/lib/auth/token'
 
 export const runtime = 'nodejs'
 
@@ -14,9 +15,6 @@ function getClientIp(req: Request) {
   return 'unknown'
 }
 
-function hashOtp(code: string) {
-  return crypto.createHash('sha256').update(code).digest('hex')
-}
 
 function safeString(v: unknown) {
   if (typeof v !== 'string') return ''
@@ -179,7 +177,7 @@ export async function POST(req: Request) {
           if (!updated.verified) {
             const otp = generateOtp()
             const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
-            const codeHash = hashOtp(otp)
+            const codeHash = signToken(otp)
 
             await (prisma as any).loginOtp.updateMany({
               where: { email: updated.email, role: 'USER', consumed: false, usedAt: null },
@@ -230,7 +228,7 @@ export async function POST(req: Request) {
         if (!existingUser.verified) {
           const otp = generateOtp()
           const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
-          const codeHash = hashOtp(otp)
+          const codeHash = signToken(otp)
 
           await (prisma as any).loginOtp.updateMany({
             where: { email: existingUser.email, role: 'USER', consumed: false, usedAt: null },
@@ -305,7 +303,7 @@ export async function POST(req: Request) {
 
       const otp = generateOtp()
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
-      const codeHash = hashOtp(otp)
+      const codeHash = signToken(otp)
 
       await (prisma as any).loginOtp.updateMany({
         where: { email: user.email, role: 'USER', consumed: false, usedAt: null },
@@ -446,7 +444,7 @@ export async function POST(req: Request) {
 
       const otp = generateOtp()
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
-      const codeHash = hashOtp(otp)
+      const codeHash = signToken(otp)
 
       await (prisma as any).loginOtp.updateMany({
         where: { email: user.email, role: 'AGENT', consumed: false, usedAt: null },

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { verifyToken } from '@/lib/auth/token'
+import { getRedis, setWithExpiry } from '@/lib/redis'
 
 export const runtime = 'nodejs'
 
@@ -8,9 +10,7 @@ function safeString(value: unknown) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function hashOtp(code: string) {
-  return crypto.createHash('sha256').update(code).digest('hex')
-}
+// OTP verification uses HMAC-PEPPER via verifyToken
 
 function normalizeRole(input: unknown) {
   const role = typeof input === 'string' ? input.trim().toUpperCase() : ''
@@ -60,20 +60,30 @@ export async function POST(req: Request) {
       )
     }
 
-    const codeHash = hashOtp(otp)
-    if (codeHash !== String(otpRow.codeHash)) {
+    // check for temporary lock via Redis
+    const redis = getRedis()
+    const lockKey = `lock:verify:email:${email}`
+    if (redis) {
+      const locked = await redis.get(lockKey).catch(() => null)
+      if (locked) {
+        return NextResponse.json({ success: false, message: 'Account locked due to repeated failed attempts. Try again later.' }, { status: 429 })
+      }
+    }
+
+    const isValid = verifyToken(otp, String(otpRow.codeHash))
+    if (!isValid) {
       const attempts = Number(otpRow.attempts || 0) + 1
+      const consumed = attempts >= 5
       await (prisma as any).loginOtp
-        .update({
-          where: { id: otpRow.id },
-          data: { attempts, consumed: attempts >= 5 } as any,
-        })
+        .update({ where: { id: otpRow.id }, data: { attempts, consumed } as any })
         .catch(() => null)
 
-      return NextResponse.json(
-        { success: false, message: 'Invalid verification code.' },
-        { status: 400 }
-      )
+      if (consumed && redis) {
+        // lock for 15 minutes
+        await setWithExpiry(lockKey, '1', Number(process.env.VERIFY_LOCK_SECONDS || 15 * 60))
+      }
+
+      return NextResponse.json({ success: false, message: 'Invalid verification code.' }, { status: 400 })
     }
 
     await (prisma as any).loginOtp

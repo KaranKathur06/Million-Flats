@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { signToken } from '@/lib/auth/token'
 
 /**
  * POST /api/developer/register
@@ -62,11 +63,11 @@ export async function POST(req: NextRequest) {
 
       // Generate email verification token
       const token = crypto.randomBytes(32).toString('hex')
-      const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
+      const tokenHash = signToken(token)
       await tx.emailVerificationToken.create({
         data: {
           userId: user.id,
-          token: tokenHash,
+          tokenHash,
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
         },
       })

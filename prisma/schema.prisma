@@ -431,7 +431,14 @@ model VerificationToken {
 model EmailVerificationToken {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
-  token     String   @unique
+  tokenHash String   @unique @map("token")
+  tokenType String?  @map("token_type")
+  codeLength Int?    @map("code_length")
+  attempts  Int      @default(0)
+  usedAt    DateTime? @map("used_at")
+  sentAt    DateTime? @map("sent_at")
+  ip        String?  @map("ip")
+  userAgent String?  @map("user_agent")
   expiresAt DateTime @map("expires_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
