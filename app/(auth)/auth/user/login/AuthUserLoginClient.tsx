@@ -75,6 +75,15 @@ export default function AuthUserLoginClient() {
       <form className="space-y-4" onSubmit={handleSubmit}>
         {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">{error}</div>}
 
+        {error === 'Please verify your email before signing in.' && (
+          <Link
+            href={`/user/verify?email=${encodeURIComponent(email)}`}
+            className="block w-full text-center h-10 leading-10 rounded-xl font-medium bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200"
+          >
+            Verify Email
+          </Link>
+        )}
+
         {error === 'Password is not set for this account. Please reset your password.' && (
           <Link
             href={`/user/forgot-password?email=${encodeURIComponent(email)}`}
