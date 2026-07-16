@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { signIn } from "next-auth/react";
+import OtpCodeInput from '@/components/OtpCodeInput'
 
 type Tab = "login" | "register";
 type Step = "form" | "otp";
@@ -238,11 +239,10 @@ function OtpStep({
   onSuccess: () => void;
   onBack: () => void;
 }) {
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [resendTimer, setResendTimer] = useState(30);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
     const t = setInterval(() => setResendTimer((p) => Math.max(0, p - 1)), 1000);
@@ -267,23 +267,6 @@ function OtpStep({
     onSuccess();
   };
 
-  const handleChange = (val: string, i: number) => {
-    const d = val.replace(/\D/g, "").slice(-1);
-    const next = [...otp]; next[i] = d; setOtp(next);
-    if (d) inputRefs.current[i + 1]?.focus();
-    if (next.every((v) => v) && next.join("").length === 6) verify(next.join(""));
-  };
-
-  const handleKey = (e: React.KeyboardEvent, i: number) => {
-    if (e.key === "Backspace" && !otp[i]) inputRefs.current[i - 1]?.focus();
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (pasted.length === 6) { setOtp(pasted.split("")); verify(pasted); }
-  };
-
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -300,28 +283,24 @@ function OtpStep({
 
       {error && <ErrorBanner message={error} />}
 
-      <div className="flex gap-2 justify-center" onPaste={handlePaste}>
-        {otp.map((d, i) => (
-          <input
-            key={i}
-            ref={(el) => { inputRefs.current[i] = el; }}
-            type="text"
-            inputMode="numeric"
-            maxLength={1}
-            value={d}
-            onChange={(e) => handleChange(e.target.value, i)}
-            onKeyDown={(e) => handleKey(e, i)}
-            className="w-12 h-14 text-center text-xl font-bold border-2 border-gray-100 rounded-xl bg-gray-50 focus:border-dark-blue focus:ring-2 focus:ring-dark-blue/15 focus:bg-white transition-all outline-none"
-          />
-        ))}
+      <div className="flex justify-center">
+        <OtpCodeInput value={otp} onChange={setOtp} className="max-w-xl w-full" />
       </div>
 
       <button
-        onClick={() => verify(otp.join(""))}
-        disabled={otp.join("").length < 6 || loading}
+        onClick={() => verify(otp)}
+        disabled={otp.length < 6 || loading}
         className="w-full h-12 bg-dark-blue text-white rounded-xl font-semibold disabled:opacity-40 hover:bg-dark-blue/90 transition-all shadow-lg shadow-dark-blue/20 flex items-center justify-center gap-2"
       >
-        {loading ? <><Spinner />Verifying...</> : "Verify & Continue →"}
+        {loading ? (
+          <>
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Verifying...
+          </>
+        ) : "Verify & Continue →"}
       </button>
 
       <div className="text-center space-y-2">

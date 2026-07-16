@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import AuthLayout from '@/components/AuthLayout'
+import OtpCodeInput from '@/components/OtpCodeInput'
 import { trackEvent } from '@/lib/tracking'
 import { POST_LOGIN_ACTION_KEY } from '@/lib/leadMagnets/constants'
 
@@ -161,19 +162,7 @@ export default function UserRegisterPage() {
             <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-2">
               Verification code
             </label>
-            <input
-              id="otp"
-              name="otp"
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              required
-              maxLength={6}
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              className="w-full h-10 px-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all text-center text-xl tracking-widest"
-              placeholder="000000"
-            />
+            <OtpCodeInput value={otp} onChange={setOtp} />
           </div>
 
           <button

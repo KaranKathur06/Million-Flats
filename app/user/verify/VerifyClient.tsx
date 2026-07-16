@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import OtpCodeInput from '@/components/OtpCodeInput'
 
 export default function VerifyClient() {
   const router = useRouter()
@@ -23,14 +24,14 @@ export default function VerifyClient() {
         body: JSON.stringify({ email, otp, type: 'user' }),
       })
 
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
 
       if (res.ok) {
         router.push(`/user/login?email=${encodeURIComponent(email)}&verified=1`)
       } else {
         setError(data.message || 'Verification failed')
       }
-    } catch (error) {
+    } catch {
       setError('An error occurred. Please try again.')
     } finally {
       setLoading(false)
@@ -38,48 +39,41 @@ export default function VerifyClient() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-serif font-bold text-dark-blue">
-            Verify Your Email
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            We&apos;ve sent a verification code to {email}
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-lg rounded-[2rem] border border-slate-200 bg-white/95 shadow-2xl shadow-slate-200/60 p-8 backdrop-blur-sm">
+        <div className="text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Secure verification</p>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">Verify your email</h1>
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            Enter the 6-digit code sent to <span className="font-semibold text-slate-900">{email}</span>.
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+
+        <form className="mt-10 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div className="rounded-3xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
             </div>
           )}
-          <div>
-            <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-2">
-              Enter OTP
-            </label>
-            <input
-              id="otp"
-              name="otp"
-              type="text"
-              required
-              maxLength={6}
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-              className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-dark-blue focus:border-dark-blue sm:text-sm text-center text-2xl tracking-widest"
-              placeholder="000000"
-            />
-          </div>
 
           <div>
-            <button
-              type="submit"
-              disabled={loading || otp.length !== 6}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-dark-blue hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-dark-blue disabled:opacity-50"
-            >
-              {loading ? 'Verifying...' : 'Verify'}
-            </button>
+            <label htmlFor="otp" className="block text-sm font-medium text-slate-700 mb-3">
+              Verification code
+            </label>
+            <OtpCodeInput value={otp} onChange={setOtp} />
           </div>
+
+          <button
+            type="submit"
+            disabled={loading || otp.length !== 6}
+            className="flex h-14 w-full items-center justify-center rounded-3xl bg-slate-900 px-6 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? 'Verifying…' : 'Verify email'}
+          </button>
+
+          <p className="text-center text-sm text-slate-500">
+            Didn&apos;t receive a code? Please check your spam folder or try again in a few minutes.
+          </p>
         </form>
       </div>
     </div>
