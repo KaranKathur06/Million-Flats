@@ -48,10 +48,7 @@ venv/
 .venv/
 ml-service/venv/
 
-# Database backups
-*.sql
-*.dump
-*.backup
+
 
 # Temporary
 *.log
