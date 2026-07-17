@@ -2410,7 +2410,7 @@ model AIShieldResult {
   @@index([status])
   @@index([expiresAt])
   @@index([computedAt])
-  @@map("AIshield_results")
+  @@map("ai_shield_results")
 }
 
 model MarketListing {

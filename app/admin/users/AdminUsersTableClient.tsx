@@ -245,7 +245,8 @@ export default function AdminUsersTableClient({
                   </span>
                 ) : null}
 
-                <ActionMenu user={u} onOpenRoleModal={openRoleModal} onAction={async (fn) => {
+                <div className="relative overflow-visible">
+                  <ActionMenu user={u} onOpenRoleModal={openRoleModal} onAction={async (fn) => {
                   try {
                     setBusyId(u.id)
                     setError('')
@@ -258,7 +259,8 @@ export default function AdminUsersTableClient({
                   } finally {
                     setBusyId('')
                   }
-                }} />
+                  }} />
+                </div>
               </div>
             </div>
           )
@@ -316,6 +318,12 @@ export default function AdminUsersTableClient({
                   <td className="py-4 pr-4 text-xs text-white/50">{u.lastLogin || '—'}</td>
                   <td className="py-4 pr-4">
                     <div className="flex flex-wrap gap-2">
+                      <Link
+                        href={`/admin/users/${encodeURIComponent(u.id)}`}
+                        className="h-8 rounded-lg px-3 text-[11px] font-semibold border border-white/10 bg-white/5 text-white/90 hover:bg-white/5"
+                      >
+                        Profile
+                      </Link>
                       {u.emailVerified ? (
                         <span className="inline-flex h-8 items-center rounded-lg px-3 text-[11px] font-semibold border border-green-500/30 bg-green-500/10 text-green-200">
                           ✓ Verified
