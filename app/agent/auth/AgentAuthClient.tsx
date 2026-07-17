@@ -22,28 +22,8 @@ type RegisterData = {
   password: string
   confirmPassword: string
   phone: string
-  license: string
-  licenseAuthority: string
-  yearsExperience: string
-  primaryMarket: string
-  specialization: string[]
-  company: string
-  linkedinUrl: string
-  websiteUrl: string
   acceptedTerms: boolean
-  acceptedPolicy: boolean
 }
-
-const SPECIALIZATIONS = [
-  'Luxury',
-  'Residential',
-  'Commercial',
-  'Off-Plan',
-  'Rental',
-  'Investment',
-  'Villa',
-  'Apartment',
-]
 
 export default function AgentAuthClient({ defaultTab }: { defaultTab: Tab }) {
   const router = useRouter()
@@ -56,16 +36,7 @@ export default function AgentAuthClient({ defaultTab }: { defaultTab: Tab }) {
     password: '',
     confirmPassword: '',
     phone: '',
-    license: '',
-    licenseAuthority: '',
-    yearsExperience: '',
-    primaryMarket: '',
-    specialization: [],
-    company: '',
-    linkedinUrl: '',
-    websiteUrl: '',
     acceptedTerms: false,
-    acceptedPolicy: false,
   })
   const [loginError, setLoginError] = useState('')
   const [registerError, setRegisterError] = useState('')
@@ -102,14 +73,6 @@ export default function AgentAuthClient({ defaultTab }: { defaultTab: Tab }) {
 
   const next = searchParams?.get('next')
   const safeNext = typeof next === 'string' && next.startsWith('/') ? next : ''
-
-  const toggleSpecialization = (value: string) => {
-    setRegisterData((prev) => {
-      const list = Array.isArray(prev.specialization) ? prev.specialization : []
-      const exists = list.includes(value)
-      return { ...prev, specialization: exists ? list.filter((item) => item !== value) : [...list, value] }
-    })
-  }
 
   const handleLoginSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -159,8 +122,8 @@ export default function AgentAuthClient({ defaultTab }: { defaultTab: Tab }) {
       return
     }
 
-    if (!registerData.acceptedTerms || !registerData.acceptedPolicy) {
-      setRegisterError('Please accept the terms and the agent verification policy')
+    if (!registerData.acceptedTerms) {
+      setRegisterError('Please accept the terms and conditions')
       setRegisterLoading(false)
       return
     }
@@ -181,16 +144,7 @@ export default function AgentAuthClient({ defaultTab }: { defaultTab: Tab }) {
           phone,
           phoneCountryIso2: phoneCountryIso2 || undefined,
           phoneNationalNumber: phoneNationalNumber || undefined,
-          license: registerData.license,
-          licenseAuthority: registerData.licenseAuthority,
-          yearsExperience: registerData.yearsExperience,
-          primaryMarket: registerData.primaryMarket,
-          specialization: registerData.specialization,
-          company: registerData.company,
-          linkedinUrl: registerData.linkedinUrl,
-          websiteUrl: registerData.websiteUrl,
           acceptedTerms: registerData.acceptedTerms,
-          acceptedPolicy: registerData.acceptedPolicy,
           type: 'agent',
         }),
       })
@@ -354,8 +308,8 @@ export default function AgentAuthClient({ defaultTab }: { defaultTab: Tab }) {
             ) : null}
 
             <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-700">Company Information</p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <p className="text-sm font-semibold text-slate-700">Account Details</p>
+              <div className="mt-4 space-y-4">
                 <label className="block text-sm text-slate-700">
                   <span className="mb-2 block font-medium">Full Name</span>
                   <input
@@ -399,73 +353,6 @@ export default function AgentAuthClient({ defaultTab }: { defaultTab: Tab }) {
                   />
                 </label>
 
-                <label className="block text-sm text-slate-700">
-                  <span className="mb-2 block font-medium">Primary Market</span>
-                  <input
-                    type="text"
-                    value={registerData.primaryMarket}
-                    onChange={(event) => setRegisterData((prev) => ({ ...prev, primaryMarket: event.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    placeholder="Dubai, Mumbai, Riyadh"
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-700">Business Contact</p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm text-slate-700">
-                  <span className="mb-2 block font-medium">Company</span>
-                  <input
-                    type="text"
-                    value={registerData.company}
-                    onChange={(event) => setRegisterData((prev) => ({ ...prev, company: event.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    placeholder="Agency or brokerage name"
-                  />
-                </label>
-
-                <label className="block text-sm text-slate-700">
-                  <span className="mb-2 block font-medium">License / Registration</span>
-                  <input
-                    type="text"
-                    value={registerData.license}
-                    onChange={(event) => setRegisterData((prev) => ({ ...prev, license: event.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    placeholder="License number"
-                  />
-                </label>
-              </div>
-
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm text-slate-700">
-                  <span className="mb-2 block font-medium">License Authority</span>
-                  <input
-                    type="text"
-                    value={registerData.licenseAuthority}
-                    onChange={(event) => setRegisterData((prev) => ({ ...prev, licenseAuthority: event.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    placeholder="RERA, DLD, etc."
-                  />
-                </label>
-
-                <label className="block text-sm text-slate-700">
-                  <span className="mb-2 block font-medium">Years of Experience</span>
-                  <input
-                    type="text"
-                    value={registerData.yearsExperience}
-                    onChange={(event) => setRegisterData((prev) => ({ ...prev, yearsExperience: event.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    placeholder="e.g. 5+ years"
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-700">Credentials</p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm text-slate-700">
                   <span className="mb-2 block font-medium">Password</span>
                   <div className="relative">
@@ -525,58 +412,11 @@ export default function AgentAuthClient({ defaultTab }: { defaultTab: Tab }) {
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-700">Specialization</p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {SPECIALIZATIONS.map((option) => {
-                  const selected = registerData.specialization.includes(option)
-                  return (
-                    <button
-                      type="button"
-                      key={option}
-                      onClick={() => toggleSpecialization(option)}
-                      className={`rounded-2xl border px-3 py-2 text-sm font-medium transition ${
-                        selected
-                          ? 'bg-slate-950 text-white border-slate-900'
-                          : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-700">Online Presence</p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm text-slate-700">
-                  <span className="mb-2 block font-medium">LinkedIn URL</span>
-                  <input
-                    type="url"
-                    value={registerData.linkedinUrl}
-                    onChange={(event) => setRegisterData((prev) => ({ ...prev, linkedinUrl: event.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    placeholder="https://linkedin.com/in/you"
-                  />
-                </label>
-                <label className="block text-sm text-slate-700">
-                  <span className="mb-2 block font-medium">Website URL</span>
-                  <input
-                    type="url"
-                    value={registerData.websiteUrl}
-                    onChange={(event) => setRegisterData((prev) => ({ ...prev, websiteUrl: event.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    placeholder="https://youragency.com"
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="space-y-3">
+              <p className="text-sm font-semibold text-slate-700 mb-3">Terms & Conditions</p>
               <label className="flex items-start gap-3 text-sm text-slate-700">
                 <input
                   type="checkbox"
+                  required
                   checked={registerData.acceptedTerms}
                   onChange={(event) => setRegisterData((prev) => ({ ...prev, acceptedTerms: event.target.checked }))}
                   className="mt-1 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-600"
@@ -586,19 +426,9 @@ export default function AgentAuthClient({ defaultTab }: { defaultTab: Tab }) {
                   <Link href="/terms" className="font-semibold text-slate-900 hover:underline">
                     Terms and Conditions
                   </Link>
-                </span>
-              </label>
-              <label className="flex items-start gap-3 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={registerData.acceptedPolicy}
-                  onChange={(event) => setRegisterData((prev) => ({ ...prev, acceptedPolicy: event.target.checked }))}
-                  className="mt-1 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-600"
-                />
-                <span>
-                  I accept the{' '}
-                  <Link href="/agent-verification" className="font-semibold text-slate-900 hover:underline">
-                    Agent Verification Policy
+                  {' '}and{' '}
+                  <Link href="/privacy" className="font-semibold text-slate-900 hover:underline">
+                    Privacy Policy
                   </Link>
                 </span>
               </label>
@@ -609,7 +439,7 @@ export default function AgentAuthClient({ defaultTab }: { defaultTab: Tab }) {
               disabled={registerLoading}
               className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {registerLoading ? 'Registering…' : 'Create Agent Account'}
+              {registerLoading ? 'Creating account…' : 'Create Agent Account'}
             </button>
 
             <p className="text-center text-sm text-slate-500">
