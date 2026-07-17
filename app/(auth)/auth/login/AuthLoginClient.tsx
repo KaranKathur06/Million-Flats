@@ -16,6 +16,7 @@ export default function AuthLoginClient() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const [showResetCta, setShowResetCta] = useState(false)
 
   const next = searchParams?.get('next')
@@ -27,11 +28,17 @@ export default function AuthLoginClient() {
     if (authError === 'email_not_registered') {
       window.alert('Email not registered. Please register first.')
       setError('Email not registered. Please register first.')
+      setSuccessMessage('')
+      return
     }
+
+    setError('')
 
     const verified = searchParams?.get('verified')
     if (verified === '1') {
-      setError('Email verified successfully. Please sign in to continue.')
+      setSuccessMessage('Email verified successfully. Please sign in to continue.')
+    } else {
+      setSuccessMessage('')
     }
   }, [searchParams])
 
@@ -39,6 +46,7 @@ export default function AuthLoginClient() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setSuccessMessage('')
     setShowResetCta(false)
 
     try {
@@ -85,6 +93,7 @@ export default function AuthLoginClient() {
   return (
     <AuthLayout title="Welcome Back" subtitle="Sign in to your account to continue">
       <form className="space-y-4" onSubmit={handleSubmit}>
+        {successMessage && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">{successMessage}</div>}
         {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>}
 
         {showResetCta && (

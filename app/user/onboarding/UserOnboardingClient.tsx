@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { trackEvent } from '@/lib/tracking'
+import FormSelect from '@/components/FormSelect'
 
 type StepId = 1 | 2 | 3 | 4 | 5 | 6 | 7
 
@@ -106,7 +107,8 @@ export default function UserOnboardingClient({ initialData }: { initialData?: an
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...formData, currentOnboardingStep: 7 })
     })
-    window.location.href = '/'
+    setIsSaving(false)
+    router.push('/dashboard')
   }
 
   const ProgressBar = () => (
@@ -190,17 +192,20 @@ export default function UserOnboardingClient({ initialData }: { initialData?: an
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
-                    <select
-                      value={formData.country}
-                      onChange={e => updateField('country', e.target.value)}
-                      className="w-full h-12 px-4 border border-gray-200 rounded-xl bg-white outline-none"
-                    >
-                      <option value="">Select Country</option>
-                      <option value="AE">United Arab Emirates</option>
-                      <option value="IN">India</option>
-                      <option value="UK">United Kingdom</option>
-                      <option value="US">United States</option>
-                    </select>
+                    <FormSelect
+                      name="country"
+                      options={[
+                        { value: '', label: 'Select Country' },
+                        { value: 'AE', label: 'United Arab Emirates' },
+                        { value: 'IN', label: 'India' },
+                        { value: 'UK', label: 'United Kingdom' },
+                        { value: 'US', label: 'United States' },
+                      ]}
+                      defaultValue={formData.country}
+                      onValueChange={(v) => updateField('country', v)}
+                      placeholder="Select Country"
+                      className="w-full"
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
@@ -227,17 +232,20 @@ export default function UserOnboardingClient({ initialData }: { initialData?: an
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Age Group</label>
-                    <select
-                      value={formData.ageGroup}
-                      onChange={e => updateField('ageGroup', e.target.value)}
-                      className="w-full h-12 px-4 border border-gray-200 rounded-xl bg-white outline-none"
-                    >
-                      <option value="">Select Age Group</option>
-                      <option value="20-30">20 - 30</option>
-                      <option value="31-40">31 - 40</option>
-                      <option value="41-50">41 - 50</option>
-                      <option value="50+">50+</option>
-                    </select>
+                    <FormSelect
+                      name="ageGroup"
+                      options={[
+                        { value: '', label: 'Select Age Group' },
+                        { value: '20-30', label: '20 - 30' },
+                        { value: '31-40', label: '31 - 40' },
+                        { value: '41-50', label: '41 - 50' },
+                        { value: '50+', label: '50+' },
+                      ]}
+                      defaultValue={formData.ageGroup}
+                      onValueChange={(v) => updateField('ageGroup', v)}
+                      placeholder="Select Age Group"
+                      className="w-full"
+                    />
                   </div>
                 </div>
 

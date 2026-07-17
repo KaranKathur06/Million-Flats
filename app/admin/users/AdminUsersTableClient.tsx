@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAdminCapabilities } from '@/lib/adminCapabilities'
+import ActionMenu from '@/components/admin/ActionMenu'
 
 type UserRow = {
   id: string
@@ -232,8 +233,8 @@ export default function AdminUsersTableClient({
                   <div className="font-semibold text-white/90">{u.healthScore}</div>
                 </div>
                 <div>
-                  <div className="text-white/50">CRM stage</div>
-                  <div className="font-semibold text-white/90">{u.crmStage}</div>
+                  <div className="text-white/50">Country</div>
+                  <div className="font-semibold text-white/90">{u.country || '—'}</div>
                 </div>
               </div>
 
@@ -242,53 +243,22 @@ export default function AdminUsersTableClient({
                   <span className="inline-flex h-9 items-center rounded-lg px-3 text-xs font-semibold border border-green-500/30 bg-green-500/10 text-green-200">
                     Verified
                   </span>
-                ) : (
-                  <button
-                    disabled={!canVerifyEmail || isBusy}
-                    onClick={() => doAction(u.id, async () => {
-                      const ok = window.confirm('Mark this user email as verified?')
-                      if (!ok) return
-                      await postJson(`/api/admin/users/${encodeURIComponent(u.id)}/verify-email`)
-                    })}
-                    className={`h-9 rounded-lg px-3 text-xs font-semibold ${canVerifyEmail && !isBusy ? 'border border-white/10 bg-transparent text-white/90 hover:bg-white/5' : 'bg-white/5 text-white/30 cursor-not-allowed'}`}
-                  >
-                    Verify email
-                  </button>
-                )}
+                ) : null}
 
-                {canRoleChange && (
-                  <button
-                    onClick={() => openRoleModal(u)}
-                    disabled={isBusy}
-                    className="h-9 rounded-lg border border-amber-400/20 bg-amber-400/5 px-3 text-xs font-bold text-amber-300 hover:bg-amber-400/10 transition-all disabled:opacity-50"
-                  >
-                    Change Role
-                  </button>
-                )}
-
-                <button
-                  disabled={!canBan || isBusy}
-                  onClick={() => doAction(u.id, async () => {
-                    const ok = window.confirm('Ban this user? This disables login.')
-                    if (!ok) return
-                    await postJson(`/api/admin/users/${encodeURIComponent(u.id)}/ban`)
-                  })}
-                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${canBan && !isBusy ? 'bg-red-500/20 text-red-200 border border-red-500/30 hover:bg-red-500/25' : 'bg-white/5 text-white/30 cursor-not-allowed'}`}
-                >
-                  Ban
-                </button>
-
-                <button
-                  disabled={!canDelete || isBusy}
-                  onClick={() => doAction(u.id, async () => {
-                    const ok = window.confirm('Delete this user? This is permanent.')
-                    if (!ok) return
-                    await postJson(`/api/admin/users/${encodeURIComponent(u.id)}/delete`)
-                  })}
-                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${canDelete && !isBusy ? 'border border-red-500/30 bg-transparent text-red-200 hover:bg-red-500/10' : 'bg-white/5 text-white/30 cursor-not-allowed'}`}
-                >
-                  Delete
-                </button>
+                <ActionMenu user={u} onOpenRoleModal={openRoleModal} onAction={async (fn) => {
+                  try {
+                    setBusyId(u.id)
+                    setError('')
+                    setSuccess('')
+                    await fn()
+                    setSuccess('Action completed')
+                    router.refresh()
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : 'Action failed')
+                  } finally {
+                    setBusyId('')
+                  }
+                }} />
               </div>
             </div>
           )
@@ -300,17 +270,15 @@ export default function AdminUsersTableClient({
       <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
-            <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-white/40 border-b border-white/[0.08]">
-              <th className="py-3 pr-4">User</th>
-              <th className="py-3 pr-4">Profile %</th>
-              <th className="py-3 pr-4">Buyer Type</th>
-              <th className="py-3 pr-4">Lifecycle</th>
-              <th className="py-3 pr-4">CRM</th>
-              <th className="py-3 pr-4">Health</th>
-              <th className="py-3 pr-4">Country</th>
-              <th className="py-3 pr-4">Last Login</th>
-              <th className="py-3 pr-4">Actions</th>
-            </tr>
+              <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-white/40 border-b border-white/[0.08]">
+                <th className="py-3 pr-4">User</th>
+                <th className="py-3 pr-4">Profile %</th>
+                <th className="py-3 pr-4">Lifecycle</th>
+                <th className="py-3 pr-4">Health</th>
+                <th className="py-3 pr-4">Country</th>
+                <th className="py-3 pr-4">Last Login</th>
+                <th className="py-3 pr-4">Actions</th>
+              </tr>
           </thead>
           <tbody>
             {items.map((u) => {
@@ -342,9 +310,7 @@ export default function AdminUsersTableClient({
                     </div>
                   </td>
                   <td className="py-4 pr-4 text-white/90">{u.profileCompletion}%</td>
-                  <td className="py-4 pr-4 text-white/90">{u.buyerType || 'Buyer'}</td>
                   <td className="py-4 pr-4 text-white/90">{u.lifecycleStage}</td>
-                  <td className="py-4 pr-4 text-white/90">{u.crmStage}</td>
                   <td className="py-4 pr-4 text-white/90">{u.healthScore}</td>
                   <td className="py-4 pr-4 text-white/90">{u.country || '—'}</td>
                   <td className="py-4 pr-4 text-xs text-white/50">{u.lastLogin || '—'}</td>

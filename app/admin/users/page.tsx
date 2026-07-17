@@ -7,7 +7,7 @@ import { hasMinRole, normalizeRole } from '@/lib/rbac'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import { getUserHealthScore, getLifecycleStage, getCRMStage, getRecommendationConfidence } from '@/lib/userIntelligence'
 import AdminUsersTableClient from './AdminUsersTableClient'
-import FormSelect from '@/components/FormSelect'
+import RoleSelect from '@/components/admin/RoleSelect'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
@@ -30,14 +30,27 @@ export default async function AdminUsersPage({
   }
 
   const roleFilter = safeString(searchParams?.role) || ''
+  const qFilter = safeString(searchParams?.q) || ''
+  const pageNum = Number(Array.isArray(searchParams?.page) ? searchParams?.page[0] : (searchParams?.page || '1')) || 1
+  const limit = Math.min(Number(Array.isArray(searchParams?.limit) ? searchParams?.limit[0] : (searchParams?.limit || '50')) || 50, 500)
+  const skip = (pageNum - 1) * limit
 
   const where: any = {}
   if (roleFilter) where.role = roleFilter.toUpperCase()
+  if (qFilter) {
+    where.OR = [
+      { email: { contains: qFilter, mode: 'insensitive' } },
+      { name: { contains: qFilter, mode: 'insensitive' } },
+      { phone: { contains: qFilter, mode: 'insensitive' } },
+      { id: { contains: qFilter, mode: 'insensitive' } },
+    ]
+  }
 
   const rows = await (prisma as any).user.findMany({
     where,
     orderBy: { createdAt: 'desc' },
-    take: 500,
+    skip,
+    take: limit,
     select: {
       id: true,
       email: true,
@@ -55,6 +68,8 @@ export default async function AdminUsersPage({
       _count: { select: { savedProperties: true, propertyLeads: true } },
     },
   })
+
+  const total = await (prisma as any).user.count({ where })
 
   const items = (rows as any[]).map((u) => {
     const identityStatus = u.emailVerified ? 'Verified' : 'Unverified'
@@ -130,34 +145,49 @@ export default async function AdminUsersPage({
       </div>
 
       {/* Filter form */}
-      <form className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5" method="get">
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
         <div className="flex flex-wrap items-end gap-3">
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35">Role</label>
-            <FormSelect
-              name="role"
-              defaultValue={roleFilter}
-              options={[
-                { value: '', label: 'All roles' },
-                { value: 'USER', label: 'USER' },
-                { value: 'AGENT', label: 'AGENT' },
-                { value: 'MODERATOR', label: 'MODERATOR' },
-                { value: 'VERIFIER', label: 'VERIFIER' },
-                { value: 'ADMIN', label: 'ADMIN' },
-                { value: 'SUPERADMIN', label: 'SUPERADMIN' },
-              ]}
-              dense
-            />
+          <div className="flex-1 min-w-[260px]">
+            <form method="get" className="flex items-center gap-3">
+              <input
+                name="q"
+                defaultValue={qFilter}
+                placeholder="Search users by name, email, phone or ID"
+                className="w-full h-10 px-4 rounded-xl border border-white/[0.06] bg-transparent text-white/90 placeholder:text-white/40"
+              />
+              {roleFilter ? <input type="hidden" name="role" value={roleFilter} /> : null}
+              <button type="submit" className="h-10 px-4 rounded-xl bg-white/5 text-sm font-semibold">Search</button>
+            </form>
           </div>
-          <button className="h-10 px-5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-[13px] text-[#0b1220] font-semibold shadow-md shadow-amber-500/20 hover:shadow-lg hover:shadow-amber-500/30 hover:from-amber-300 hover:to-amber-400 transition-all duration-200">
-            Apply
-          </button>
+
+          <div className="space-y-1.5">
+            <RoleSelect />
+          </div>
         </div>
-      </form>
+      </div>
 
       {/* Table */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 overflow-x-auto">
         <AdminUsersTableClient items={items} currentRole={role} />
+      </div>
+      {/* Pagination */}
+      <div className="flex items-center justify-between mt-4">
+        <div className="text-sm text-white/60">Showing {(skip + 1).toLocaleString()} - {Math.min(skip + limit, total).toLocaleString()} of {total.toLocaleString()}</div>
+        <div className="flex items-center gap-2">
+          {pageNum > 1 ? (
+            <Link href={`${'/admin/users'}?${new URLSearchParams({ ...(qFilter ? { q: qFilter } : {}), ...(roleFilter ? { role: roleFilter } : {}), page: String(pageNum - 1), limit: String(limit) }).toString()}`} className="px-3 py-1 rounded-xl bg-white/5">Previous</Link>
+          ) : (
+            <span className="px-3 py-1 rounded-xl bg-white/5 text-white/30">Previous</span>
+          )}
+
+          <div className="px-3 py-1 text-sm text-white/80">Page {pageNum} / {Math.max(1, Math.ceil(total / limit))}</div>
+
+          {skip + limit < total ? (
+            <Link href={`${'/admin/users'}?${new URLSearchParams({ ...(qFilter ? { q: qFilter } : {}), ...(roleFilter ? { role: roleFilter } : {}), page: String(pageNum + 1), limit: String(limit) }).toString()}`} className="px-3 py-1 rounded-xl bg-white/5">Next</Link>
+          ) : (
+            <span className="px-3 py-1 rounded-xl bg-white/5 text-white/30">Next</span>
+          )}
+        </div>
       </div>
     </div>
   )

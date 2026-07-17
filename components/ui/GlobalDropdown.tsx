@@ -25,6 +25,7 @@ export type GlobalDropdownProps = {
   icon?: ReactNode
   zIndex?: number
   id?: string
+  renderOption?: (option: any, selected: boolean, active: boolean) => ReactNode
 }
 
 function normalize(s: string) {
@@ -62,6 +63,7 @@ export default function GlobalDropdown({
   icon,
   zIndex = 10,
   id: idProp,
+  renderOption,
 }: GlobalDropdownProps) {
   const generatedId = useId()
   const id = idProp || generatedId
@@ -103,14 +105,15 @@ export default function GlobalDropdown({
 
   const resolvedOptions = useMemo(() => {
     const seen = new Set<string>()
-    const out: GlobalDropdownOption[] = []
+    const out: any[] = []
     for (const o of sourceOptions) {
       const v = typeof o?.value === 'string' ? o.value : String(o?.value ?? '')
-      if (v === '' && !o?.label) continue
+      const label = o?.label ?? v
+      if (v === '' && !label) continue
       const k = v === '' ? '__empty__' : normalize(v)
       if (seen.has(k)) continue
       seen.add(k)
-      out.push({ value: v, label: o.label ?? v })
+      out.push({ ...o, value: v, label })
     }
     return out
   }, [sourceOptions])
@@ -418,20 +421,26 @@ export default function GlobalDropdown({
                     }}
                     className={itemClass}
                   >
-                    <span className="truncate">{o.label ?? o.value}</span>
-                    {selected ? (
-                      <span className="shrink-0">
-                        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                          <path
-                            d="M16.5 5.5l-8 8-4-4"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </span>
-                    ) : null}
+                    {typeof renderOption === 'function' ? (
+                      <div className="w-full text-left">{renderOption(o, selected, active)}</div>
+                    ) : (
+                      <>
+                        <span className="truncate">{o.label ?? o.value}</span>
+                        {selected ? (
+                          <span className="shrink-0">
+                            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                              <path
+                                d="M16.5 5.5l-8 8-4-4"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </span>
+                        ) : null}
+                      </>
+                    )}
                   </button>
                 )
               })
