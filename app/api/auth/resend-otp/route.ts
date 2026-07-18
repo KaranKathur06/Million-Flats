@@ -76,7 +76,12 @@ export async function POST(req: Request) {
       react: OTPEmail({ otp }),
     }).catch(() => null)
 
-    return NextResponse.json({ success: true, message: 'Verification code sent to your email.' }, { status: 200 })
+    // In non-production or when DEBUG_RESEND_OTP=1, include the numeric OTP in the JSON response
+    const includeOtp = process.env.NODE_ENV !== 'production' || process.env.DEBUG_RESEND_OTP === '1'
+    const responseBody: any = { success: true, message: 'Verification code sent to your email.' }
+    if (includeOtp) responseBody.otp = otp
+
+    return NextResponse.json(responseBody, { status: 200 })
   } catch (error) {
     console.error('[resend-otp] error', error)
     return NextResponse.json({ success: false, message: 'Internal server error.' }, { status: 500 })
