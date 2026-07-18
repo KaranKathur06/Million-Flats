@@ -226,11 +226,22 @@ export default function AgentAuthClient({ defaultTab }: { defaultTab: Tab }) {
         {tab === 'login' ? (
           <form className="space-y-5" onSubmit={handleLoginSubmit}>
             {loginError ? (
-              <div className="rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-red-50 px-4 py-4 text-sm text-red-700 flex items-start gap-3 shadow-sm">
-                <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                <span>{loginError}</span>
+              <div className="rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-red-50 px-4 py-4 text-sm text-red-700 flex flex-col items-start gap-3 shadow-sm">
+                <div className="flex items-start gap-3 w-full">
+                  <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <span className="flex-1">{loginError}</span>
+                </div>
+
+                {loginError === 'Please verify your email before signing in.' && (
+                  <Link
+                    href={`/agent/verify?email=${encodeURIComponent(loginData.email)}`}
+                    className="w-full rounded-xl bg-blue-600 text-white px-4 py-3 text-center text-sm font-semibold hover:bg-blue-700 transition"
+                  >
+                    Verify Email
+                  </Link>
+                )}
               </div>
             ) : null}
 
