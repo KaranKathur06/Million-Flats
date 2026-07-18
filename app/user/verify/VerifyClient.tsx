@@ -13,10 +13,12 @@ export default function VerifyClient() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [sentLink, setSentLink] = useState(false)
+  const [sentChannel, setSentChannel] = useState<'email' | 'whatsapp'>('email')
   const [sendingLink, setSendingLink] = useState(false)
   const [requireCaptcha, setRequireCaptcha] = useState(false)
   const [captchaToken, setCaptchaToken] = useState('')
   const [captchaError, setCaptchaError] = useState('')
+  const [deliveryChannel, setDeliveryChannel] = useState<'email' | 'whatsapp'>('email')
 
   const turnstileKey = process.env.NEXT_PUBLIC_TURNSTILE_SITEKEY || ''
 
@@ -41,7 +43,7 @@ export default function VerifyClient() {
               body: JSON.stringify({ email, type: 'user' }),
             })
             if (r.ok) {
-              setSentLink(true)
+              setSentChannel('email')
             }
           } catch {
             // ignore
@@ -90,7 +92,7 @@ export default function VerifyClient() {
     setSendingLink(true)
     setError('')
     try {
-      const body: any = { email, type: 'user' }
+      const body: any = { email, type: 'user', deliveryChannel }
       if (requireCaptcha) body.captchaResponse = captchaToken
 
       // Resend a fresh numeric OTP
@@ -100,6 +102,7 @@ export default function VerifyClient() {
         body: JSON.stringify(body),
       })
       if (res.ok) {
+        setSentChannel(deliveryChannel)
         setSentLink(true)
       } else {
         const d = await res.json().catch(() => ({}))
@@ -118,9 +121,9 @@ export default function VerifyClient() {
       <div className="w-full max-w-lg rounded-[2rem] border border-slate-200 bg-white/95 shadow-2xl shadow-slate-200/60 p-8 backdrop-blur-sm">
         <div className="text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Secure verification</p>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">Verify your email</h1>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">Verify your account</h1>
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            Enter the 6-digit code sent to <span className="font-semibold text-slate-900">{email}</span>.
+            Enter the 6-digit verification code for <span className="font-semibold text-slate-900">{email}</span>.
           </p>
         </div>
 
@@ -147,15 +150,22 @@ export default function VerifyClient() {
           </button>
 
           <p className="text-center text-sm text-slate-500">
-            Didn&apos;t receive a code? Please check your spam folder or try again.
+            Didn&apos;t receive a code? Choose a delivery method and try again.
           </p>
 
           {sentLink ? (
             <div className="mt-4 rounded-xl bg-green-50 border border-green-200 text-green-700 px-4 py-2 text-sm text-center">
-              ✓ Verification link sent! Check your email.
+              ✓ Verification code sent by {sentChannel === 'whatsapp' ? 'WhatsApp.' : 'email.'}
             </div>
           ) : (
             <div className="mt-4 space-y-3">
+              <fieldset>
+                <legend className="mb-2 text-sm font-medium text-slate-700">Send the next code by</legend>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setDeliveryChannel('email')} className={`h-10 rounded-xl border text-sm font-medium ${deliveryChannel === 'email' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}>Email</button>
+                  <button type="button" onClick={() => setDeliveryChannel('whatsapp')} className={`h-10 rounded-xl border text-sm font-medium ${deliveryChannel === 'whatsapp' ? 'border-emerald-700 bg-emerald-700 text-white' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}>WhatsApp</button>
+                </div>
+              </fieldset>
               {requireCaptcha && (
                 <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-sm font-medium text-slate-800 mb-3">Please verify you are not a robot</p>
@@ -177,11 +187,11 @@ export default function VerifyClient() {
                 disabled={sendingLink}
                 className="w-full h-11 bg-transparent border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 disabled:opacity-60"
               >
-                {sendingLink ? 'Sending...' : 'Resend verification link'}
+                {sendingLink ? 'Sending...' : `Send code by ${deliveryChannel === 'whatsapp' ? 'WhatsApp' : 'email'}`}
               </button>
 
               {requireCaptcha && (
-                <p className="text-xs text-slate-500">For your safety we require a captcha challenge before sending another verification email.</p>
+                <p className="text-xs text-slate-500">For your safety we require a captcha challenge before sending another verification code.</p>
               )}
             </div>
           )}
