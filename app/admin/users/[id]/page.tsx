@@ -27,7 +27,7 @@ export default async function UserDetailPage({ params }: { params: { id: string 
       status: true,
       phone: true,
       image: true,
-      country: true,
+      country: { select: { name: true } },
       profileCompletion: true,
       emailVerified: true,
       createdAt: true,
@@ -80,19 +80,19 @@ export default async function UserDetailPage({ params }: { params: { id: string 
   }
 
   return (
-    <div className="mx-auto max-w-[1500px] space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
+    <div className="mx-auto max-w-[1500px] space-y-6 px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex-1">
           <div className="flex items-center gap-2">
             <span className="inline-flex h-6 items-center rounded-md bg-amber-400/10 px-2 text-[11px] font-bold uppercase tracking-wider text-amber-400">Admin</span>
           </div>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">User detail</h1>
-          <p className="text-sm text-white/50">Manage user identity, profile completion, and CRM linkage.</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">User detail</h1>
+          <p className="mt-1 text-sm text-white/50">Manage user identity, profile completion, and CRM linkage.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 justify-start sm:justify-end">
           <Link
             href="/admin/users"
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-white/80 hover:bg-white/10 transition"
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-white/80 hover:bg-white/10 transition whitespace-nowrap"
           >
             Back to users
           </Link>
@@ -161,27 +161,27 @@ export default async function UserDetailPage({ params }: { params: { id: string 
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl border border-white/[0.06] bg-black/20 p-4">
-                <p className="text-xs uppercase tracking-wider text-white/50">Country</p>
-                <p className="mt-2 text-sm text-white/90">{user.country || 'Unknown'}</p>
+                <div className="text-xs uppercase tracking-wider text-white/50">Country</div>
+                <div className="mt-2 text-lg font-semibold text-white/90">{user.country?.name || 'Unknown'}</div>
               </div>
               <div className="rounded-2xl border border-white/[0.06] bg-black/20 p-4">
-                <p className="text-xs uppercase tracking-wider text-white/50">Last login</p>
-                <p className="mt-2 text-sm text-white/90">{user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}</p>
+                <div className="text-xs uppercase tracking-wider text-white/50">Last login</div>
+                <div className="mt-2 text-lg font-semibold text-white/90">{user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}</div>
               </div>
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-              <h3 className="text-sm font-semibold text-white mb-3">Contact Information</h3>
-              <div className="space-y-3 text-sm text-white/70">
-                <div className="flex justify-between gap-3 border-b border-white/[0.08] pb-3">
-                  <span>Email</span>
-                  <span className="text-white/90">{user.email || '—'}</span>
+              <h3 className="text-sm font-semibold text-white mb-4">Contact Information</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center gap-3 rounded-xl border border-white/[0.06] bg-black/20 p-4">
+                  <span className="text-xs uppercase tracking-wider text-white/50">Email</span>
+                  <span className="text-sm font-semibold text-white/90 text-right">{user.email || '—'}</span>
                 </div>
-                <div className="flex justify-between gap-3">
-                  <span>Phone</span>
-                  <span className="text-white/90">{user.phone || '—'}</span>
+                <div className="flex justify-between items-center gap-3 rounded-xl border border-white/[0.06] bg-black/20 p-4">
+                  <span className="text-xs uppercase tracking-wider text-white/50">Phone</span>
+                  <span className="text-sm font-semibold text-white/90 text-right">{user.phone || '—'}</span>
                 </div>
               </div>
             </div>
