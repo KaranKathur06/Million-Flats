@@ -74,11 +74,20 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         select: { ...baseSelect, isDeleted: true },
       })
     } catch {
-      // isDeleted column not migrated yet — select without it
-      developer = await (prisma as any).developer.findUnique({
-        where: { id: params.id },
-        select: baseSelect,
-      })
+      try {
+        developer = await (prisma as any).developer.findUnique({
+          where: { id: params.id },
+          select: baseSelect,
+        })
+      } catch {
+        developer = await (prisma as any).developer.findUnique({
+          where: { id: params.id },
+          select: {
+            ...baseSelect,
+            AIScore: undefined,
+          },
+        })
+      }
     }
 
     if (!developer) {

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { requireAgentProfileSession } from '@/lib/agentAuth'
 
 /**
  * GET  /api/agent/documents — list all documents for the authenticated agent
@@ -21,24 +20,17 @@ const VALID_DOC_TYPES = [
 const REQUIRED_DOC_TYPES = ['GOVERNMENT_ID', 'REAL_ESTATE_LICENSE']
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireAgentProfileSession()
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.message }, { status: auth.status })
   }
 
-  const user: any = await (prisma as any).user.findUnique({
-    where: { email: session.user.email },
-    select: { agent: { select: { id: true } } },
-  })
-
-  if (!user?.agent) {
-    return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
-  }
+  const agentId = auth.agentId
 
   // Fetch from both AgentDocument (new) and AgentVerification (legacy) for backward compatibility
   const [newDocs, legacyDocs] = await Promise.all([
     (prisma as any).agentDocument.findMany({
-      where: { agentId: user.agent.id },
+      where: { agentId },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -56,7 +48,7 @@ export async function GET() {
       },
     }),
     (prisma as any).agentVerification.findMany({
-      where: { agentId: user.agent.id },
+      where: { agentId },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -111,9 +103,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireAgentProfileSession()
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.message }, { status: auth.status })
   }
 
   const body = await req.json()
@@ -130,20 +122,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'fileUrl is required' }, { status: 400 })
   }
 
-  const user: any = await (prisma as any).user.findUnique({
-    where: { email: session.user.email },
-    select: {
-      agent: {
-        select: { id: true, status: true },
-      },
-    },
-  })
-
-  if (!user?.agent) {
-    return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
-  }
-
-  const agentId = user.agent.id
+  const agentId = auth.agentId
 
   // Use upsert with unique constraint on agentId + type
   // This will create or update the document for this type
@@ -201,7 +180,7 @@ export async function POST(req: Request) {
     (requiredDocs as any[]).some((d: any) => d.type === t)
   )
 
-  if (hasAllRequired && user.agent.status !== 'APPROVED' && user.agent.status !== 'UNDER_REVIEW') {
+  if (hasAllRequired) {
     await (prisma as any).agent.update({
       where: { id: agentId },
       data: { status: 'DOCUMENTS_UPLOADED' as any },

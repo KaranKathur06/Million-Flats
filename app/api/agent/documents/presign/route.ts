@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { requireAgentSession } from '@/lib/agentAuth'
+import { requireAgentProfileSession } from '@/lib/agentAuth'
 import { buildAgentDocumentKey, createSignedPutUrlForKey } from '@/lib/s3'
 import { buildAssetUrl } from '@/lib/assetUrl'
 
@@ -55,7 +55,7 @@ function getExtensionFromFilename(filename: string): string {
  */
 export async function POST(req: Request) {
   try {
-    const auth = await requireAgentSession()
+    const auth = await requireAgentProfileSession()
     if (!auth.ok) {
       return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
     }

@@ -88,6 +88,30 @@ function normalizeDevData(data: z.infer<typeof developerSchema>) {
   }
 }
 
+function getDeveloperSelect({ includeDeleteColumns = false, includeAiScore = true } = {}) {
+  const select: any = {
+    id: true, name: true, slug: true, logo: true, banner: true,
+    countryCode: true, countryIso2: true, city: true,
+    shortDescription: true, description: true, website: true, foundedYear: true,
+    isFeatured: true, featuredRank: true, status: true,
+    headquarters: true, email: true, phone: true, address: true,
+    facebookUrl: true, instagramUrl: true, linkedinUrl: true, youtubeUrl: true,
+    customerRating: true, projectsDelivered: true, countriesPresent: true,
+    brochureUrl: true,
+    metaTitle: true, metaDescription: true, metaKeywords: true,
+    createdAt: true, updatedAt: true,
+    _count: { select: { projects: true, properties: true } },
+  }
+
+  if (includeAiScore) select.AIScore = true
+  if (includeDeleteColumns) {
+    select.isDeleted = true
+    select.deletedAt = true
+  }
+
+  return select
+}
+
 // ─── GET all developers (admin) ────────────────────────────
 export async function GET(req: Request) {
   const auth = await requireAdminSession()
@@ -116,7 +140,7 @@ export async function GET(req: Request) {
       _count: { select: { projects: true, properties: true } },
     }
 
-    const runQuery = async (withIsDeletedFilter: boolean, includeDeleteColumns: boolean) => {
+    const runQuery = async (withIsDeletedFilter: boolean, includeDeleteColumns: boolean, includeAiScore = true) => {
       const where: any = {}
       const deletedMode =
         deletedParam === 'true' || status === 'DELETED'
@@ -135,23 +159,19 @@ export async function GET(req: Request) {
       if (status === 'ACTIVE' || status === 'INACTIVE') where.status = status
       if (country === 'UAE' || country === 'INDIA') where.countryCode = country
 
-      const select = includeDeleteColumns
-        ? { ...baseSelect, isDeleted: true, deletedAt: true }
-        : baseSelect
-
       return (prisma as any).developer.findMany({
         where,
         orderBy: [{ isFeatured: 'desc' }, { name: 'asc' }],
         take: 500,
-        select,
+        select: getDeveloperSelect({ includeDeleteColumns, includeAiScore }),
       })
     }
 
     let items: any[]
     let counts: { total: number; active: number; inactive: number; deleted: number }
     try {
-      // Try with isDeleted filter (requires migration to have run)
-      items = await runQuery(true, true)
+      // Try with isDeleted filter and AIScore
+      items = await runQuery(true, true, true)
       const [total, active, inactive, deleted] = await Promise.all([
         (prisma as any).developer.count(),
         (prisma as any).developer.count({ where: { isDeleted: { not: true }, status: 'ACTIVE' } }),
@@ -160,14 +180,25 @@ export async function GET(req: Request) {
       ])
       counts = { total, active, inactive, deleted }
     } catch {
-      // Column doesn't exist yet — fall back to no filter
-      items = await runQuery(false, false)
-      const [total, active, inactive] = await Promise.all([
-        (prisma as any).developer.count(),
-        (prisma as any).developer.count({ where: { status: 'ACTIVE' } }),
-        (prisma as any).developer.count({ where: { status: 'INACTIVE' } }),
-      ])
-      counts = { total, active, inactive, deleted: 0 }
+      try {
+        // If isDeleted column isn't present, retry without deleted filters
+        items = await runQuery(false, false, true)
+        const [total, active, inactive] = await Promise.all([
+          (prisma as any).developer.count(),
+          (prisma as any).developer.count({ where: { status: 'ACTIVE' } }),
+          (prisma as any).developer.count({ where: { status: 'INACTIVE' } }),
+        ])
+        counts = { total, active, inactive, deleted: 0 }
+      } catch {
+        // If AIScore isn't present either, retry without it
+        items = await runQuery(false, false, false)
+        const [total, active, inactive] = await Promise.all([
+          (prisma as any).developer.count(),
+          (prisma as any).developer.count({ where: { status: 'ACTIVE' } }),
+          (prisma as any).developer.count({ where: { status: 'INACTIVE' } }),
+        ])
+        counts = { total, active, inactive, deleted: 0 }
+      }
     }
 
     return NextResponse.json({ success: true, items, counts })
