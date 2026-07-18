@@ -28,7 +28,25 @@ export default function VerifyClient() {
         const res = await fetch(`/api/auth/resend/captcha-status?email=${encodeURIComponent(email)}`)
         const d = await res.json().catch(() => ({}))
         if (!mounted) return
-        setRequireCaptcha(Boolean(d?.requireCaptcha))
+        const needs = Boolean(d?.requireCaptcha)
+        setRequireCaptcha(needs)
+
+        // If captcha not required, automatically send a fresh OTP when arriving via verify link
+        if (!needs) {
+          // attempt to resend OTP once
+          try {
+            const r = await fetch('/api/auth/resend-otp', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, type: 'user' }),
+            })
+            if (r.ok) {
+              setSentLink(true)
+            }
+          } catch {
+            // ignore
+          }
+        }
       } catch {
         // ignore
       }
@@ -75,7 +93,8 @@ export default function VerifyClient() {
       const body: any = { email, type: 'user' }
       if (requireCaptcha) body.captchaResponse = captchaToken
 
-      const res = await fetch('/api/auth/resend-verification', {
+      // Resend a fresh numeric OTP
+      const res = await fetch('/api/auth/resend-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
