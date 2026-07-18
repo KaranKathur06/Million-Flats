@@ -413,30 +413,21 @@ export default function AgentAuthClient({ defaultTab }: { defaultTab: Tab }) {
 
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2.5">Phone Number</label>
-                  <div className="phone-input-wrapper">
+                  <div>
                     <PhoneInput
                       international
                       defaultCountry="AE"
                       value={registerData.phone}
                       onChange={(value) => setRegisterData((prev) => ({ ...prev, phone: value || '' }))}
-                      className="w-full"
                       inputComponent="input"
-                      countrySelectProps={{ className: 'text-sm' }}
+                      countrySelectProps={{ className: 'rounded-l-xl border-2 border-r-0 border-slate-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none' }}
                       numberInputProps={{
                         required: true,
                         placeholder: '+971 XX XXX XXXX',
-                        className: 'w-full bg-transparent text-sm text-slate-900 focus:outline-none',
+                        className: 'w-full rounded-r-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20',
                       }}
                     />
                   </div>
-                  <style jsx>{`
-                    :global(.phone-input-wrapper .PhoneInputInput) {
-                      @apply rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20;
-                    }
-                    :global(.phone-input-wrapper .PhoneInputCountrySelect) {
-                      @apply rounded-l-xl border-2 border-r-0 border-slate-200 bg-white px-2 py-3 text-sm transition focus:border-blue-500 focus:outline-none;
-                    }
-                  `}</style>
                 </div>
               </div>
             </div>
