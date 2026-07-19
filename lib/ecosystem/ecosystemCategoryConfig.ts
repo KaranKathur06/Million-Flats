@@ -215,6 +215,19 @@ export const ECOSYSTEM_REGISTRATION_CONFIG: Record<EcosystemCategorySlug, Ecosys
       { type: 'select', name: 'amcAvailable', label: 'AMC Available?', required: false, options: ['Yes', 'No'] },
     ],
   },
+  'technology-partners': {
+    slug: 'technology-partners',
+    title: 'Register as a Technology Partner',
+    description: 'Join MillionFlats to build integrations and digital products for the next generation of real estate experiences.',
+    submitLabel: 'Submit Registration',
+    requiresLicense: false,
+    requiresDocumentUpload: false,
+    baseFields: BASE_FIELDS,
+    extraFields: [
+      { type: 'multiselect', name: 'solutions', label: 'Solutions', required: true, options: ['CRM', 'Automation', 'Analytics', 'AI', 'Marketplace', 'Property Tech'] },
+      { type: 'text', name: 'integrationType', label: 'Integration or Product Type', required: false },
+    ],
+  },
 }
 
 export function getEcosystemRegistrationConfig(slug: string) {

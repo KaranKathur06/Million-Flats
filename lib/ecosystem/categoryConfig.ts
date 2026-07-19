@@ -287,6 +287,28 @@ export const ECOSYSTEM_CATEGORY_CONFIG: Record<EcosystemCategorySlug, EcosystemC
     faqs: [{ question: 'Can I automate an existing home?', answer: 'Yes—partners can recommend retrofit-friendly options based on your wiring and requirements.' }],
     tool: null,
   },
+  'technology-partners': {
+    slug: 'technology-partners',
+    title: 'Technology Partners',
+    subtitle:
+      'Collaborate with innovators building the next generation of property discovery, CRM, automation, and intelligence experiences.',
+    heroImage: { src: '/images/ecosystem/technology.jpg', alt: 'Technology partners' },
+    meta: {
+      title: 'Technology Partners | Ecosystem Partners | MillionFlats',
+      description:
+        'Connect with technology innovators building CRM, automation, analytics, and digital property experiences with MillionFlats.',
+      ogImage: '/images/ecosystem/technology.jpg',
+    },
+    primaryCta: { label: 'Request Consultation' },
+    secondaryCta: { label: 'Explore Partners' },
+    benefits: [
+      { title: 'Built for Scale', description: 'Partners shape the systems that power discovery, workflow, automation, and intelligence.' },
+      { title: 'Product Alignment', description: 'Collaborate on integrations and product experiences that serve real estate customers better.' },
+      { title: 'Shared Growth', description: 'Create joint value through high-impact deployment across the MillionFlats ecosystem.' },
+    ],
+    faqs: [{ question: 'Who should apply?', answer: 'Technology companies building property platforms, CRM tools, automation, analytics, or digital infrastructure can apply.' }],
+    tool: null,
+  },
 }
 
 export function getEcosystemCategoryConfig(slug: string) {

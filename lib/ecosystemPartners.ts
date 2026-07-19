@@ -10,6 +10,7 @@ export type EcosystemCategorySlug =
   | 'hardware-architectural-fittings'
   | 'cement-structural'
   | 'smart-home-automation'
+  | 'technology-partners'
 
 export type EcosystemCategory = {
   slug: EcosystemCategorySlug
@@ -23,8 +24,9 @@ export type EcosystemCategory = {
     | 'Vastu / Feng Shui Consultants'
     | 'Tiles & Surface Finishing'
     | 'Hardware & Architectural Fittings'
-    | 'Cement & Structural'
+    | 'Cement & Structural Solutions'
     | 'Smart Home & Automation'
+    | 'Technology Partners'
   description: string
 }
 
@@ -85,7 +87,7 @@ export const ECOSYSTEM_CATEGORIES: EcosystemCategory[] = [
   },
   {
     slug: 'cement-structural',
-    name: 'Cement & Structural',
+    name: 'Cement & Structural Solutions',
     description:
       'Connect with verified suppliers for cement and structural materials—transparent pricing, reliable delivery, and project-ready guidance.',
   },
@@ -94,6 +96,12 @@ export const ECOSYSTEM_CATEGORIES: EcosystemCategory[] = [
     name: 'Smart Home & Automation',
     description:
       'Upgrade your home with verified automation partners—supported brands, clean installation, and ongoing AMC/service options.',
+  },
+  {
+    slug: 'technology-partners',
+    name: 'Technology Partners',
+    description:
+      'Collaborate with innovators building the next generation of property discovery, CRM, automation, and intelligence experiences.',
   },
 ]
 

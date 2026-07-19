@@ -91,6 +91,11 @@ const CategorySchema = z.enum([
   'packers-movers',
   'property-management',
   'vastu-feng-shui',
+  'tiles-surface-finishing',
+  'hardware-architectural-fittings',
+  'cement-structural',
+  'smart-home-automation',
+  'technology-partners',
 ])
 
 type ParsedPayload = {
@@ -253,6 +258,10 @@ export async function POST(req: Request) {
 
     const { createLead, ecosystemSlugToCategory } = await import('@/lib/leads/createLead')
     const ecosystemCategory = ecosystemSlugToCategory(payload.category) || payload.category
+    const businessType = safeString(payload.companyDetails.companyType) || safeString(payload.companyDetails.firmType) || 'Business'
+    const city = safeString(payload.contactInfo.city) || safeString(payload.contactInfo.cityOfOperation) || safeString(payload.contactInfo.headquartersCity) || null
+    const state = safeString(payload.contactInfo.serviceCity) || safeString(payload.contactInfo.registeredOfficeCity) || safeString(payload.contactInfo.headOfficeCity) || null
+
     await createLead({
       leadType: 'ECOSYSTEM',
       name: contactName,
@@ -282,6 +291,16 @@ export async function POST(req: Request) {
         businessIntent: payload.businessIntent,
         logoUrl,
         certificateUrl,
+        partnerCategory: payload.category,
+        businessType,
+        country: 'INDIA',
+        state,
+        city,
+        verificationStatus: 'PENDING',
+        leadStatus: 'NEW',
+        applicationDate: new Date().toISOString(),
+        adminNotes: 'Application submitted via partnership form',
+        approvalStatus: 'PENDING',
       } as import('@prisma/client').Prisma.InputJsonValue,
     }).catch((e) => console.error('Lead create (ecosystem apply):', e))
 

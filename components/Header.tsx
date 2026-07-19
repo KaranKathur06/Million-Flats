@@ -48,7 +48,6 @@ export default function Header() {
     { href: "/rent", label: "Rent" },
     { href: "/projects", label: "Projects" },
     { href: "/agents", label: "Find an Agent" },
-    { href: "/agents/pricing", label: "Pricing" },
     ...(showVerfix
       ? [
           {
@@ -69,7 +68,6 @@ export default function Header() {
     { href: "/rent", label: "Rent" },
     { href: "/projects", label: "Projects" },
     { href: "/agents", label: "Find an Agent" },
-    { href: "/agents/pricing", label: "Pricing" },
     ...(showVerfix
       ? [
           {

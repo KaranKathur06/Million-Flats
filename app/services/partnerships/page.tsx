@@ -1,216 +1,283 @@
+import Link from 'next/link'
+import { ECOSYSTEM_CATEGORIES, categoryHref, partnerRegistrationHref } from '@/lib/ecosystemPartners'
+
 export const metadata = {
   title: 'Partnerships - MillionFlats',
 }
 
-function CheckIcon({ className = "w-5 h-5", glow = false }) {
-  return (
-    <svg className={`${className} ${glow ? 'drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-    </svg>
-  );
-}
+const benefits = [
+  {
+    title: 'Qualified Business Leads',
+    description: 'Receive inquiries from people actively buying, selling, or investing in property.',
+    icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z',
+  },
+  {
+    title: 'Verified Marketplace',
+    description: 'Build trust through the MillionFlats Verified Partner badge and premium placement.',
+    icon: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z',
+  },
+  {
+    title: 'National Exposure',
+    description: 'Showcase your business across India and UAE through a premium ecosystem of listing pages, landing pages, and campaigns.',
+    icon: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.055A9.001 9.001 0 0114.945 7M8 3.055V5m6.945 2A9.001 9.001 0 0116 14.945M16 3.055V5m0 14v2.945M12 7v2m0 6v2',
+  },
+  {
+    title: 'Performance-Based Growth',
+    description: 'We grow when your business grows, which is why our partnership model is built around outcomes rather than upfront fees.',
+    icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6',
+  },
+  {
+    title: 'Long-Term Partnership',
+    description: 'No listing fees, no hidden charges, and no lock-ins—just a transparent operating model for long-term collaboration.',
+    icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+  },
+]
+
+const workflowSteps = [
+  { title: 'Submit Application', description: 'Share your business profile and the services you want to offer.' },
+  { title: 'Business Verification', description: 'Our team confirms credentials, coverage, and business quality.' },
+  { title: 'Partnership Approval', description: 'Your profile is reviewed and approved for the MillionFlats network.' },
+  { title: 'Profile Published', description: 'Your business goes live in the ecosystem partner directory.' },
+  { title: 'Receive Qualified Leads', description: 'Leads flow into the MillionFlats CRM for your team to follow up.' },
+  { title: 'Grow Together', description: 'Scale with us through referral opportunities and long-term collaboration.' },
+]
+
+const faqItems = [
+  {
+    question: 'Is listing free?',
+    answer: 'Yes. Listing your business with MillionFlats is completely free, and revenue is shared only after successful engagement or transaction.',
+  },
+  {
+    question: 'How do I receive leads?',
+    answer: 'Qualified leads are routed through the MillionFlats CRM so every partner can manage opportunities, follow-up, and conversion tracking.',
+  },
+  {
+    question: 'When do I pay?',
+    answer: 'You only pay when the partnership generates successful business through the platform.',
+  },
+  {
+    question: 'Can anyone join?',
+    answer: 'Businesses must be verified before approval so the ecosystem remains trusted, relevant, and high quality.',
+  },
+  {
+    question: 'How long does approval take?',
+    answer: 'Most applications are reviewed within 3–5 business days depending on the category and document readiness.',
+  },
+]
 
 export default function ServicePartnershipsPage() {
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans selection:bg-emerald-200 selection:text-emerald-900 flex flex-col relative overflow-hidden">
+      <div className="pointer-events-none absolute top-[-5%] -left-32 w-[700px] h-[700px] rounded-full bg-gradient-to-br from-emerald-200/40 to-teal-200/20 blur-[140px] mix-blend-multiply" />
+      <div className="pointer-events-none absolute top-40 -right-32 w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-cyan-100/40 to-blue-100/30 blur-[140px] mix-blend-multiply" />
 
-      {/* Background Orbs */}
-      <div className="pointer-events-none absolute top-[-5%] -left-32 w-[700px] h-[700px] rounded-full bg-gradient-to-br from-emerald-200/40 to-teal-200/20 blur-[120px] mix-blend-multiply" />
-      <div className="pointer-events-none absolute top-40 -right-32 w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-cyan-100/40 to-blue-100/30 blur-[120px] mix-blend-multiply" />
-
-      {/* Hero Section */}
-      <section className="relative pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-[1240px] mx-auto w-full z-10 text-center flex flex-col items-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 backdrop-blur-md px-5 py-2 text-sm font-extrabold text-emerald-700 shadow-sm mb-10 transition-transform hover:scale-105 duration-300">
+      <section className="relative pt-24 pb-20 px-4 sm:px-6 lg:px-8 max-w-[1240px] mx-auto w-full z-10 text-center flex flex-col items-center">
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-5 py-2 text-sm font-extrabold text-emerald-700 shadow-sm mb-8">
           <span className="relative flex h-2.5 w-2.5 mr-1">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
           </span>
-          Exclusive Corporate & Vendor Partnerships
+          Trusted ecosystem partnership network
         </div>
 
-        <h1 className="text-5xl sm:text-6xl md:text-7xl font-serif font-extrabold text-dark-blue tracking-tight leading-[1.05] max-w-4xl mx-auto">
-          Partner with MillionFlats <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">
-            Grow Your Business
+        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-extrabold text-dark-blue tracking-tight leading-[1.05] max-w-4xl mx-auto">
+          Partner with MillionFlats
+          <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 mt-3">
+            Grow your business through India&apos;s intelligent real estate ecosystem
           </span>
         </h1>
 
-        <p className="mt-8 text-xl text-slate-600 leading-relaxed font-medium max-w-2xl mx-auto">
-          Join India’s most strictly verified real estate ecosystem. Connect dynamically with thousands of active buyers, elite sellers, and deep-pocketed investors the exact moment they need your services.
+        <p className="mt-8 text-lg sm:text-xl text-slate-600 leading-relaxed font-medium max-w-3xl mx-auto">
+          Join a verified ecosystem of trusted service providers and connect with genuine buyers, sellers, investors, and developers at the precise moment they need your expertise.
         </p>
 
-        <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-5 w-full sm:w-auto">
-          <a href="#pricing" className="group relative inline-flex items-center justify-center h-16 px-10 rounded-2xl bg-gradient-to-r from-dark-blue to-emerald-900 text-white font-extrabold text-lg overflow-hidden shadow-[0_10px_40px_rgba(6,95,70,0.3)] hover:shadow-[0_15px_50px_rgba(6,95,70,0.5)] hover:-translate-y-1 transition-all duration-300 w-full sm:w-auto">
-            <span className="relative z-10 flex items-center gap-3">
-              Become a Paid Partner
-              <svg className="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-            </span>
-          </a>
-          <a href="#benefits" className="inline-flex items-center justify-center h-16 px-10 rounded-2xl border-2 border-slate-200 bg-white/60 backdrop-blur-md text-slate-800 font-extrabold text-lg hover:border-emerald-300 hover:bg-emerald-50 transition-all duration-300 w-full sm:w-auto">
-            How It Works
+        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
+          <a href="#categories" className="group relative inline-flex items-center justify-center h-14 px-8 rounded-2xl bg-gradient-to-r from-dark-blue to-emerald-900 text-white font-extrabold text-base overflow-hidden shadow-[0_10px_40px_rgba(6,95,70,0.2)] hover:-translate-y-1 transition-all duration-300 w-full sm:w-auto">
+            Become a Partner
           </a>
         </div>
       </section>
 
-      {/* Grid Features */}
       <section id="benefits" className="relative px-4 sm:px-6 lg:px-8 max-w-[1240px] mx-auto w-full z-10 py-16">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-serif font-extrabold text-dark-blue tracking-tight">Ecosystem Privileges</h2>
-          <p className="mt-4 text-slate-600 max-w-2xl mx-auto text-lg font-medium">As a verified MillionFlats partner, you unlock unprecedented access to high-intent traffic securely.</p>
+        <div className="text-center mb-12">
+          <h2 className="text-3xl sm:text-4xl font-serif font-extrabold text-dark-blue tracking-tight">Why Partner with MillionFlats</h2>
+          <p className="mt-4 text-slate-600 max-w-2xl mx-auto text-lg font-medium">A partnership built around trust, qualified demand, and long-term growth.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[
-            { t: 'Qualified Lead Flow', d: 'Receive purely pre-screened customers actively transacting in real-time. No dead ends.', ic: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
-            { t: 'Exclusive Verified Badge', d: 'Build irrefutable instant credibility locally with our trademarked digital trust mark.', ic: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z' },
-            { t: 'High-Visibility Profiling', d: 'Get featured dynamically natively in our strictly curated vendor partner directory.', ic: 'M10 21h7a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v11m0 5l4.879-4.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242z' },
-            { t: 'Data-Rich Partner Panel', d: 'Track leads, analyze conversion performance mathematically, and manage payments natively.', ic: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-            { t: 'Co-Marketing Power', d: 'Unlock joint webinars, physical events, and extensive content syndication collaborations.', ic: 'M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
-            { t: 'First Access Engineering', d: 'Beta test our newest strictly proprietary API/AI tools before absolute public market launch.', ic: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4' },
-          ].map((b, i) => (
-            <div key={i} className="group bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 hover:shadow-[0_20px_40px_rgba(16,185,129,0.06)] hover:-translate-y-2 hover:border-emerald-200 transition-all duration-300 relative overflow-hidden">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-6 border border-emerald-100 group-hover:bg-emerald-500 group-hover:text-white transition-colors duration-300">
-                <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d={b.ic} /></svg>
+          {benefits.map((item, index) => (
+            <div key={index} className="group rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-[0_18px_40px_rgba(16,185,129,0.08)]">
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+                </svg>
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">{b.t}</h3>
-              <p className="text-[15px] font-medium text-slate-600 leading-relaxed">{b.d}</p>
+              <h3 className="text-xl font-bold text-slate-900">{item.title}</h3>
+              <p className="mt-3 text-sm leading-6 text-slate-600">{item.description}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Target Audience Categories */}
-      <section className="bg-dark-blue relative overflow-hidden text-center py-20 px-4 sm:px-6 lg:px-8 shadow-inner my-10">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9InJnYmEoMjU1LCAyNTUsIDI1NSwgMC4wNykiLz48L3N2Zz4=')] mix-blend-screen pointer-events-none opacity-50"></div>
+      <section id="categories" className="bg-dark-blue relative overflow-hidden py-20 px-4 sm:px-6 lg:px-8 shadow-inner my-8">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.16),_transparent_45%)]" />
         <div className="max-w-[1240px] mx-auto relative z-10">
-          <h2 className="text-3xl lg:text-4xl font-serif font-extrabold text-white mb-12">Who Should Apply For Partnerships?</h2>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            {[
-              ['Home Loans & Finance', 'Banks, NBFCs, Housing Finance'],
-              ['Legal & Documentation', 'Law Firms, Notaries, Specialists'],
-              ['Property Insurance', 'Insurance Providers, Top Brokers'],
-              ['Interior Design', 'Design Firms, Contractors, Kitchen Brands'],
-              ['Packers & Movers', 'Relocation Logistics Providers'],
-              ['Property Management', 'End-to-end Rental Operations'],
-              ['Vastu / Feng Shui', 'Consultants & Senior Practitioners']
-            ].map((c, i) => (
-              <div key={i} className="bg-white/10 border border-white/20 backdrop-blur-md px-6 py-4 rounded-2xl hover:bg-white/20 transition-colors text-left group">
-                <div className="font-extrabold text-white text-[15px] group-hover:text-emerald-300 transition-colors mb-1">{c[0]}</div>
-                <div className="font-medium text-emerald-100 text-[13px]">{c[1]}</div>
+          <div className="text-center mb-10">
+            <h2 className="text-3xl lg:text-4xl font-serif font-extrabold text-white">Who Should Apply?</h2>
+            <p className="mt-4 text-slate-200 max-w-2xl mx-auto text-lg font-medium">Our ecosystem supports 12 partner categories across property, finance, legal, interiors, operations, and technology.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {ECOSYSTEM_CATEGORIES.map((category) => (
+              <div key={category.slug} className="rounded-[1.75rem] border border-white/15 bg-white/10 p-6 backdrop-blur-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-lg font-semibold text-white">{category.name}</h3>
+                  <span className="rounded-full border border-emerald-300/40 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-200">
+                    Verified
+                  </span>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-200">{category.description}</p>
+                <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                  <Link href={categoryHref(category.slug)} className="inline-flex items-center justify-center rounded-xl border border-white/20 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10">
+                    Learn More
+                  </Link>
+                  <Link href={partnerRegistrationHref(category.slug)} className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-dark-blue transition hover:shadow-lg">
+                    Become Partner
+                  </Link>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Onboarding */}
       <section className="px-4 sm:px-6 lg:px-8 max-w-[1240px] mx-auto w-full py-16 z-10">
-        <div className="bg-white rounded-[3rem] p-10 lg:p-16 border border-slate-200 shadow-[0_20px_60px_rgba(0,0,0,0.03)] text-center relative overflow-hidden">
-          <div className="absolute top-0 right-1/2 w-64 h-64 bg-teal-100 rounded-full blur-[80px]" />
+        <div className="rounded-[2.5rem] border border-slate-200 bg-white p-8 lg:p-12 shadow-[0_20px_60px_rgba(0,0,0,0.03)]">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl sm:text-4xl font-serif font-extrabold text-dark-blue">How Partnership Works</h2>
+            <p className="mt-4 text-slate-600 max-w-2xl mx-auto text-lg font-medium">A clear path from application to growth, designed for speed and trust.</p>
+          </div>
 
-          <h2 className="text-3xl md:text-4xl font-serif font-extrabold text-dark-blue relative z-10">Strict Verification Workflow</h2>
-          <p className="mt-4 text-slate-600 max-w-2xl mx-auto text-[17px] font-medium mb-12 relative z-10">We strictly limit partnerships to ensure extreme high quality.</p>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative z-10">
-            {[
-              { s: '1', t: 'Apply Directly', d: 'Fill out the secure partner application framework.' },
-              { s: '2', t: 'Verification', d: 'Our compliance team heavily reviews credentials.' },
-              { s: '3', t: 'Agreement', d: 'Sign SLA mapping exact deliverables securely.' },
-              { s: '4', t: 'Onboarding', d: 'Unlock dashboard & start fielding leads natively.' },
-            ].map((st, i) => (
-              <div key={i} className="bg-slate-50 border border-slate-100 rounded-2xl p-6 text-center hover:bg-teal-50 hover:border-teal-200 transition-colors hover:-translate-y-1">
-                <div className="mx-auto w-12 h-12 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center font-extrabold text-xl mb-4">
-                  {st.s}
+          <div className="grid gap-4 lg:grid-cols-6">
+            {workflowSteps.map((step, index) => (
+              <div key={step.title} className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 text-left">
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700">
+                  {index + 1}
                 </div>
-                <h4 className="text-[17px] font-bold text-slate-900 mb-2">{st.t}</h4>
-                <p className="text-slate-600 text-sm font-medium leading-relaxed">{st.d}</p>
+                <h3 className="text-base font-semibold text-slate-900">{step.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{step.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Pricing Module */}
-      <section id="pricing" className="bg-slate-50 border-t border-slate-200">
-        <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8 py-24">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-serif font-extrabold text-dark-blue tracking-tight">India Licensing - Partnerships</h2>
-            <p className="mt-4 text-slate-600 max-w-2xl mx-auto text-[17px] font-medium">Clear flat-fee thresholds delivering extreme ROI efficiency.</p>
+      <section className="bg-slate-50 border-y border-slate-200 py-16 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1240px]">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-serif font-extrabold text-dark-blue">Revenue Sharing Model</h2>
+            <p className="mt-4 text-slate-600 max-w-2xl mx-auto text-lg font-medium">We only earn after you earn.</p>
           </div>
 
-          <div className="rounded-[2.5rem] border border-slate-200 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.05)] overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-base">
-                <thead className="bg-[#f8fafc] border-b border-slate-200">
-                  <tr>
-                    <th className="text-left font-bold px-8 py-6 text-slate-800 uppercase tracking-widest text-sm">Partner Tier</th>
-                    <th className="text-left font-bold px-8 py-6 text-slate-800 uppercase tracking-widest text-sm border-l border-slate-200 bg-emerald-50/50">Annual Fee (₹)</th>
-                    <th className="text-left font-bold px-8 py-6 text-slate-800 uppercase tracking-widest text-sm border-l border-slate-200">Lead Allocation</th>
-                    <th className="text-left font-bold px-8 py-6 text-slate-800 uppercase tracking-widest text-sm border-l border-slate-200">Best For</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {[
-                    ['Basic Partner Protocol', '₹9,999', 'Up to 50 leads/year directly', 'Individual professionals, freelancers'],
-                    ['Preferred Partner', '₹24,999', 'Up to 200 leads/year heavily driven', 'Small firms, hyper-growing business'],
-                    ['Strategic Alliance', '₹49,999', 'Unlimited uncapped algorithm leads', 'Large enterprises, tier-1 banks'],
-                    ['Enterprise Deployment', 'Custom', 'Customized national allocation', 'National chains, multiple locations'],
-                  ].map((r, i) => (
-                    <tr key={i} className={`bg-white hover:bg-emerald-50/20 transition-colors group ${i === 2 ? 'bg-emerald-50/10' : ''}`}>
-                      <td className="px-8 py-6 text-slate-900 font-extrabold text-[15px]">{r[0]}</td>
-                      <td className="px-8 py-6 border-l border-slate-100 font-extrabold text-emerald-700 text-xl bg-emerald-50/10">{r[1]}</td>
-                      <td className="px-8 py-6 border-l border-slate-100 font-bold text-slate-700">{r[2]}</td>
-                      <td className="px-8 py-6 border-l border-slate-100 text-slate-600 font-medium">{r[3]}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="mt-12 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-3xl p-[2px] shadow-xl hover:shadow-2xl transition-shadow duration-300 max-w-4xl mx-auto transform hover:-translate-y-1">
-            <div className="bg-slate-900 rounded-[calc(1.5rem-2px)] p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-8 text-white relative overflow-hidden">
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500 rounded-full blur-[40px] opacity-20 pointer-events-none"></div>
-              <div className="flex items-center gap-6 relative z-10 w-full mb-6 md:mb-0">
-                <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-white flex-shrink-0 border border-white/20">
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                </div>
-                <div>
-                  <h4 className="text-2xl font-extrabold text-white tracking-wide">Strict Revenue Share Alternative</h4>
-                  <p className="text-emerald-100 font-medium mt-2 leading-relaxed">For high-volume partners demanding zero initial capital, we legally offer a 10–20% direct revenue extraction on purely closed transactions directly bypassing annual fees entirely.</p>
-                </div>
+          <div className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+              <div className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">Performance-first ecosystem</div>
+              <h3 className="mt-5 text-2xl font-bold text-slate-900">No listing fees. No joining charges. No annual subscriptions.</h3>
+              <p className="mt-4 text-slate-600 leading-7">MillionFlats is designed to align our success with yours. Partners share revenue only after successful business is generated through the platform.</p>
+              <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                {['Performance Driven', 'Transparent', 'Win-Win', 'Partner First'].map((badge) => (
+                  <div key={badge} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                    {badge}
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
 
-          <div className="mt-16 flex flex-col sm:flex-row justify-center gap-5">
-            <a href="/partnerships" className="inline-flex items-center justify-center h-16 px-12 rounded-2xl bg-dark-blue text-white font-extrabold text-lg shadow-lg hover:shadow-[0_10px_40px_rgba(30,58,138,0.3)] hover:-translate-y-1 transition-all duration-300">
-              Apply For Partnership
-            </a>
-            <a href="/agents/pricing" className="inline-flex items-center justify-center h-16 px-12 rounded-2xl border-2 border-slate-200 bg-white text-dark-blue font-extrabold text-lg hover:bg-slate-50 transition-all duration-300">
-              Agent Access (30-Day Free Trial)
-            </a>
+            <div className="grid gap-4">
+              {[
+                ['List Your Business', 'Free'],
+                ['Receive Qualified Leads', 'Free'],
+                ['Convert Customer', 'You Earn'],
+                ['Revenue Share', 'Only after successful transaction'],
+              ].map(([title, value]) => (
+                <div key={title} className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{title}</div>
+                  <div className="mt-2 text-2xl font-bold text-dark-blue">{value}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="bg-dark-blue py-24 px-4 sm:px-6 lg:px-8 text-center relative overflow-hidden mt-auto border-t border-slate-200">
-        <div className="absolute inset-0 bg-gradient-to-tr from-emerald-900/40 to-dark-blue/80 pointer-events-none mix-blend-screen opacity-90"></div>
-        <div className="absolute right-0 top-0 w-[500px] h-[500px] bg-emerald-500 rounded-full blur-[150px] mix-blend-multiply opacity-20 pointer-events-none"></div>
+      <section className="px-4 sm:px-6 lg:px-8 max-w-[1240px] mx-auto w-full py-16 z-10">
+        <div className="rounded-[2.5rem] border border-slate-200 bg-white p-8 lg:p-10 shadow-[0_20px_60px_rgba(0,0,0,0.03)]">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl sm:text-4xl font-serif font-extrabold text-dark-blue">Comparison</h2>
+            <p className="mt-3 text-slate-600 max-w-2xl mx-auto text-lg font-medium">A simpler, more effective model than traditional directories.</p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse rounded-2xl overflow-hidden">
+              <thead className="bg-slate-50 text-left">
+                <tr>
+                  <th className="px-4 py-4 text-sm font-semibold text-slate-700">Model</th>
+                  <th className="px-4 py-4 text-sm font-semibold text-slate-700">Listing Fee</th>
+                  <th className="px-4 py-4 text-sm font-semibold text-slate-700">Lead Quality</th>
+                  <th className="px-4 py-4 text-sm font-semibold text-slate-700">Revenue Model</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-t border-slate-200">
+                  <td className="px-4 py-4 font-semibold text-slate-900">Traditional Directories</td>
+                  <td className="px-4 py-4 text-slate-600">Annual fee</td>
+                  <td className="px-4 py-4 text-slate-600">Cold leads</td>
+                  <td className="px-4 py-4 text-slate-600">Subscription</td>
+                </tr>
+                <tr className="border-t border-slate-200 bg-emerald-50/40">
+                  <td className="px-4 py-4 font-semibold text-slate-900">MillionFlats</td>
+                  <td className="px-4 py-4 text-emerald-700">Free listing</td>
+                  <td className="px-4 py-4 text-emerald-700">Qualified leads</td>
+                  <td className="px-4 py-4 text-emerald-700">Performance revenue share</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section className="px-4 sm:px-6 lg:px-8 max-w-[1240px] mx-auto w-full pb-16 z-10">
+        <div className="rounded-[2.5rem] border border-slate-200 bg-white p-8 lg:p-10 shadow-[0_20px_60px_rgba(0,0,0,0.03)]">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl sm:text-4xl font-serif font-extrabold text-dark-blue">FAQ</h2>
+          </div>
+          <div className="space-y-4">
+            {faqItems.map((item) => (
+              <div key={item.question} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                <h3 className="text-lg font-semibold text-slate-900">{item.question}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{item.answer}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-dark-blue py-20 px-4 sm:px-6 lg:px-8 text-center relative overflow-hidden mt-auto border-t border-slate-200">
+        <div className="absolute inset-0 bg-gradient-to-tr from-emerald-900/40 to-dark-blue/80 pointer-events-none opacity-90" />
         <div className="max-w-4xl mx-auto relative z-10">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 text-sm font-bold tracking-widest uppercase mb-6 border border-emerald-400/30">Network Expanding Rapidly</span>
-          <h2 className="text-white font-serif font-extrabold text-5xl sm:text-6xl tracking-tight leading-tight">Become an Exclusive <br className="hidden sm:block" />Trusted Partner</h2>
-          <p className="text-emerald-100/90 mt-6 text-xl font-medium max-w-2xl mx-auto leading-relaxed">Embed your services directly inside MillionFlats workflows precisely exactly when property buyers and sellers aggressively need them.</p>
+          <h2 className="text-white font-serif font-extrabold text-4xl sm:text-5xl tracking-tight leading-tight">Ready to Grow With MillionFlats?</h2>
+          <p className="text-emerald-100/90 mt-6 text-lg sm:text-xl font-medium max-w-2xl mx-auto leading-relaxed">Join our trusted ecosystem of verified partners and reach genuine customers across India and UAE.</p>
 
-          <div className="mt-12 flex justify-center">
-            <a href="/partnerships" className="inline-flex items-center justify-center h-16 px-14 rounded-2xl bg-white text-dark-blue font-extrabold text-lg shadow-[0_0_40px_rgba(255,255,255,0.4)] hover:scale-105 transition-all duration-300">
-              Apply Officially Now
+          <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+            <a href="#categories" className="inline-flex items-center justify-center h-14 px-8 rounded-2xl bg-white text-dark-blue font-extrabold text-base shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-[1.01] transition-all duration-300">
+              Become a Partner
+            </a>
+            <a href="/contact" className="inline-flex items-center justify-center h-14 px-8 rounded-2xl border border-white/20 bg-white/10 text-white font-extrabold text-base hover:bg-white/20 transition-all duration-300">
+              Contact Partnership Team
             </a>
           </div>
         </div>
       </section>
-
     </div>
   )
 }
