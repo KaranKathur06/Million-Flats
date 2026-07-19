@@ -117,7 +117,7 @@ export async function POST(req: Request) {
         .catch(() => null)
     }
 
-    return NextResponse.json({ success: true, message: 'Email verified successfully.' }, { status: 200 })
+    return NextResponse.json({ success: true, message: 'Account verified successfully.' }, { status: 200 })
   } catch (error) {
     console.error('[verify] error', error)
     return NextResponse.json({ success: false, message: 'Internal server error.' }, { status: 500 })

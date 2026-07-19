@@ -44,7 +44,7 @@ export const teamSections: TeamSection[] = [
     members: [
 
       {
-        name: 'Dharami Shanmugam',
+        name: 'Dharani Shanmugam',
         role: 'Full Stack Developer',
         bio: 'Specialist in React.js, TypeScript, Node.js, and blockchain platforms, building scalable, data-driven applications.',
         image: '/team/dharani.jpg',

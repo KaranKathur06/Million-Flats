@@ -13,6 +13,7 @@ export default function UserRegisterPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
   })
@@ -226,6 +227,23 @@ export default function UserRegisterPage() {
             className="w-full h-10 px-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
             placeholder="Enter your full name"
           />
+        </div>
+
+        <div>
+          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+            Mobile / WhatsApp number <span className="text-gray-400">(optional)</span>
+          </label>
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            autoComplete="tel"
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            className="w-full h-10 px-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
+            placeholder="+91 98765 43210"
+          />
+          <p className="mt-1 text-xs text-gray-500">Add this to receive verification codes on WhatsApp as an alternative to email.</p>
         </div>
 
         {/* Email */}
