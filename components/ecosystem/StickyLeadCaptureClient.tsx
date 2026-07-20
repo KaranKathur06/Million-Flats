@@ -20,6 +20,8 @@ export default function StickyLeadCaptureClient({
   categorySlug: string
   defaultMessage: string
 }) {
+  // Feature flag: only render if NEXT_PUBLIC_ENABLE_STICKY_LEAD_CTA is set to 'true'
+  if (process.env.NEXT_PUBLIC_ENABLE_STICKY_LEAD_CTA !== 'true') return null
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')

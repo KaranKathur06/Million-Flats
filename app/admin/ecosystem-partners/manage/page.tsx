@@ -5,7 +5,7 @@ import Link from 'next/link'
 import SelectDropdown from '@/components/SelectDropdown'
 import { partnerProfileUrl } from '@/lib/ecosystem/partnerProfile'
 
-type Category = { id: string; slug: string; title: string }
+type Category = { id: string; slug: string; title: string; heroImage: string }
 
 type Partner = {
   id: string
@@ -28,6 +28,8 @@ export default function AdminEcosystemPartnersManagePage() {
   const [categoryFilter, setCategoryFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [search, setSearch] = useState('')
+  const [bannerSavingId, setBannerSavingId] = useState('')
+  const [bannerMessage, setBannerMessage] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -54,6 +56,32 @@ export default function AdminEcosystemPartnersManagePage() {
     load()
   }, [load])
 
+  const updateCategoryBanner = async (categoryId: string, heroImage: string) => {
+    setBannerSavingId(categoryId)
+    setBannerMessage('')
+
+    try {
+      const res = await fetch('/api/admin/ecosystem-partners/categories', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: categoryId, heroImage }),
+      })
+      const json = await res.json().catch(() => null)
+
+      if (!res.ok || !json?.success) {
+        setBannerMessage(json?.message || 'Could not update banner image.')
+        return
+      }
+
+      setCategories((current) =>
+        current.map((category) => (category.id === categoryId ? { ...category, heroImage: json.data.heroImage || '' } : category)),
+      )
+      setBannerMessage('Banner image updated.')
+    } finally {
+      setBannerSavingId('')
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -74,6 +102,55 @@ export default function AdminEcosystemPartnersManagePage() {
           >
             Add Partner
           </Link>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-white">Ecosystem Hero Banners</h2>
+            <p className="mt-1 text-sm text-white/55">Update the full-width star partner banner shown below the navigation on every ecosystem page.</p>
+          </div>
+          {bannerMessage ? <p className="text-sm font-semibold text-accent-yellow">{bannerMessage}</p> : null}
+        </div>
+
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {categories.map((category) => (
+            <form
+              key={category.id}
+              className="rounded-2xl border border-white/10 bg-[#0b1220] p-4"
+              onSubmit={(event) => {
+                event.preventDefault()
+                const formData = new FormData(event.currentTarget)
+                updateCategoryBanner(category.id, String(formData.get('heroImage') || ''))
+              }}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-semibold text-white">{category.title}</div>
+                  <div className="mt-1 text-xs text-white/40">/ecosystem-partners/{category.slug}</div>
+                </div>
+                <span className="rounded-full border border-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">
+                  Banner
+                </span>
+              </div>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <input
+                  name="heroImage"
+                  defaultValue={category.heroImage || ''}
+                  placeholder="Paste image URL or public path, for example /uploads/star-partner.jpg"
+                  className="h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-accent-yellow/50"
+                />
+                <button
+                  type="submit"
+                  disabled={bannerSavingId === category.id}
+                  className="h-11 rounded-xl bg-accent-yellow px-4 text-sm font-bold text-dark-blue transition hover:-translate-y-0.5 hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {bannerSavingId === category.id ? 'Saving...' : 'Save Banner'}
+                </button>
+              </div>
+            </form>
+          ))}
         </div>
       </div>
 

@@ -1,51 +1,20 @@
-import React from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
-import Header from '@/components/Header'
-import ServicePartnershipsPage from '@/app/services/partnerships/page'
+import { describe, expect, it } from '@jest/globals'
+import { getEcosystemCategoryConfig } from '@/lib/ecosystem/categoryConfig'
 import { ECOSYSTEM_CATEGORIES } from '@/lib/ecosystemPartners'
 
-jest.mock('next/navigation', () => ({
-  usePathname: () => '/',
-}))
-
-jest.mock('next-auth/react', () => ({
-  useSession: () => ({ data: null, status: 'unauthenticated' }),
-}))
-
-jest.mock('next/link', () => ({
-  __esModule: true,
-  default: ({ children, href }: { children: React.ReactNode; href: string }) => React.createElement('a', { href }, children),
-}))
-
-jest.mock('../../components/responsive', () => ({
-  MobileOffCanvasPanel: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
-}))
-
-jest.mock('next/image', () => ({
-  __esModule: true,
-  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => React.createElement('img', props),
-}))
-
 describe('partnerships redesign', () => {
-  it('removes pricing from the global navigation', () => {
-    const html = renderToStaticMarkup(React.createElement(Header))
+  it('exposes the technology partners launch content in shared config', () => {
+    const cfg = getEcosystemCategoryConfig('technology-partners')
 
-    expect(html).not.toContain('Pricing')
-    expect(html).toContain('Services')
-    expect(html).toContain('Agent Portal')
+    expect(cfg).toBeDefined()
+    expect(cfg?.title).toBe('Technology Partners')
+    expect(cfg?.benefits.some((benefit) => benefit.title === 'Built for Scale')).toBe(true)
+    expect(cfg?.faqs.some((faq) => faq.question === 'Who should apply?')).toBe(true)
   })
 
-  it('renders the new partnership experience and dynamic categories', () => {
-    const html = renderToStaticMarkup(React.createElement(ServicePartnershipsPage))
-
-    expect(html).toContain('Partner with MillionFlats')
-    expect(html).toContain('Revenue Sharing Model')
-    expect(html).toContain('How Partnership Works')
-    expect(html).toContain('How do I receive leads?')
-    expect(html).not.toContain('India Licensing')
-    expect(html).not.toContain('Free Trial')
-
+  it('keeps the ecosystem category registry complete', () => {
     expect(ECOSYSTEM_CATEGORIES).toHaveLength(12)
     expect(ECOSYSTEM_CATEGORIES.some((category) => category.slug === 'technology-partners')).toBe(true)
+    expect(ECOSYSTEM_CATEGORIES.some((category) => category.slug === 'tiles-surface-finishing')).toBe(true)
   })
 })

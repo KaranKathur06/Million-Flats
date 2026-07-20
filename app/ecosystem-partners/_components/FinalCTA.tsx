@@ -1,7 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { trackEvent } from '@/lib/tracking'
+import MillionFlatsButton from '@/components/ui/MillionFlatsButton'
 
 export default function FinalCTA({
   headline,
@@ -13,26 +13,44 @@ export default function FinalCTA({
   secondary: { label: string; href: string }
 }) {
   return (
-    <div className="rounded-3xl border border-gray-200 bg-white p-8">
-      <div className="max-w-3xl">
-        <div className="text-2xl md:text-3xl font-serif font-bold text-dark-blue">{headline}</div>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Link
+    <div className="rounded-[32px] border border-slate-200 bg-white px-6 py-12 shadow-[0_28px_90px_rgba(15,23,42,0.10)] sm:px-10 lg:px-16 lg:py-16">
+      <div className="mx-auto max-w-4xl text-center">
+        <h3 className="text-[34px] font-extrabold leading-tight tracking-tight text-slate-950 sm:text-[42px]">{headline}</h3>
+        <p className="mx-auto mt-5 max-w-2xl text-[18px] leading-8 text-slate-600">
+          Join our network or request a consultation. MillionFlats connects vetted partners with real project demand through one premium ecosystem experience.
+        </p>
+
+        <div className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <MillionFlatsButton
             href={primary.href}
-            onClick={() => trackEvent('ecosystem_cta_click', { type: 'primary', label: primary.label, href: primary.href })}
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-dark-blue px-6 font-semibold text-white hover:bg-dark-blue/90"
+            variant="primary"
+            size="lg"
+            className="w-full sm:w-auto"
+            onClick={() =>
+              trackEvent('ecosystem_cta_click', {
+                type: 'primary',
+                label: primary.label,
+                href: primary.href,
+              })
+            }
           >
             {primary.label}
-          </Link>
-          <Link
+          </MillionFlatsButton>
+          <MillionFlatsButton
             href={secondary.href}
+            variant="secondary"
+            size="lg"
+            className="w-full sm:w-auto"
             onClick={() =>
-              trackEvent('ecosystem_cta_click', { type: 'secondary', label: secondary.label, href: secondary.href })
+              trackEvent('ecosystem_cta_click', {
+                type: 'secondary',
+                label: secondary.label,
+                href: secondary.href,
+              })
             }
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-6 font-semibold text-dark-blue hover:bg-gray-50"
           >
             {secondary.label}
-          </Link>
+          </MillionFlatsButton>
         </div>
       </div>
     </div>

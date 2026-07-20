@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import MillionFlatsButton from '@/components/ui/MillionFlatsButton'
 
 type BreadcrumbItem = {
   label: string
@@ -68,18 +69,18 @@ export default function InternalPageBanner({
 
                 {ctas && ctas.length ? (
                   <div className="mt-6 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
-                    {ctas.map((c) => {
-                      const cls =
-                        c.variant === 'primary'
-                          ? 'inline-flex h-11 w-full sm:w-auto items-center justify-center rounded-xl bg-white px-6 font-semibold text-dark-blue hover:bg-white/95'
-                          : 'inline-flex h-11 w-full sm:w-auto items-center justify-center rounded-xl border border-white/35 bg-white/10 px-6 font-semibold text-white hover:bg-white/15'
-
-                      return (
-                        <Link key={`${c.href}-${c.label}`} href={c.href} onClick={c.onClick} className={cls}>
-                          {c.label}
-                        </Link>
-                      )
-                    })}
+                    {ctas.map((c) => (
+                      <MillionFlatsButton
+                        key={`${c.href}-${c.label}`}
+                        href={c.href}
+                        variant={c.variant}
+                        size="md"
+                        className="w-full sm:w-auto"
+                        onClick={c.onClick}
+                      >
+                        {c.label}
+                      </MillionFlatsButton>
+                    ))}
                   </div>
                 ) : null}
               </div>

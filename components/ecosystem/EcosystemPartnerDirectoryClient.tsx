@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import GlobalDropdown from '@/components/ui/GlobalDropdown'
+import MillionFlatsButton from '@/components/ui/MillionFlatsButton'
 import { trackEvent } from '@/lib/tracking'
 import { partnerProfileUrl } from '@/lib/ecosystem/partnerProfile'
 
@@ -134,27 +135,28 @@ export default function EcosystemPartnerDirectoryClient({
   }, [items, featuredOnly, minRating, search, locationFilter, budgetFilter])
 
   return (
-    <section className="py-12 sm:py-16" id="partners">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+    <section className="bg-white py-24" id="partners">
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
+        <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
-            <h2 className="font-serif text-2xl font-bold text-dark-blue md:text-3xl">
+            <p className="text-sm font-bold uppercase tracking-[0.24em] text-slate-500">Directory</p>
+            <h2 className="mt-4 text-[38px] font-extrabold leading-tight text-slate-950 sm:text-[42px]">
               {categoryTitle} Directory
             </h2>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-4 text-[18px] leading-8 text-slate-600">
               Browse verified partners. All inquiries route through MillionFlats — no direct contact details shown.
             </p>
           </div>
         </div>
 
-        <div className="mb-8 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="mb-10 rounded-[28px] border border-slate-200 bg-slate-50 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.05)] sm:p-5">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search partners..."
-              className="h-11 rounded-xl border border-gray-200 px-4 text-sm outline-none focus:border-dark-blue lg:col-span-2"
+              className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-[15px] font-medium text-slate-900 outline-none transition focus:border-dark-blue focus:ring-2 focus:ring-dark-blue/15 lg:col-span-2"
             />
             <GlobalDropdown
               label="Location"
@@ -164,7 +166,6 @@ export default function EcosystemPartnerDirectoryClient({
               placeholder="All Locations"
               options={[{ value: '', label: 'All Locations' }, ...locationOptions.map((loc) => ({ value: loc, label: loc }))]}
               appearance="admin-light"
-              dense
             />
             <GlobalDropdown
               label="Budget"
@@ -179,7 +180,6 @@ export default function EcosystemPartnerDirectoryClient({
                 { value: '₹50L', label: '₹50L+' },
               ]}
               appearance="admin-light"
-              dense
             />
             <GlobalDropdown
               label="Rating"
@@ -194,7 +194,6 @@ export default function EcosystemPartnerDirectoryClient({
                 { value: '4.5', label: '4.5+ stars' },
               ]}
               appearance="admin-light"
-              dense
             />
             <button
               type="button"
@@ -203,10 +202,10 @@ export default function EcosystemPartnerDirectoryClient({
                 setFeaturedOnly(next)
                 fetchPage(1, 'replace')
               }}
-              className={`h-11 rounded-xl border text-sm font-semibold transition-colors ${
+              className={`h-12 rounded-xl border text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 ${
                 featuredOnly
                   ? 'border-dark-blue bg-dark-blue text-white'
-                  : 'border-gray-200 bg-white text-dark-blue hover:bg-gray-50'
+                  : 'border-gray-200 bg-white text-dark-blue hover:bg-slate-100 hover:border-dark-blue/30'
               }`}
             >
               Featured
@@ -215,11 +214,16 @@ export default function EcosystemPartnerDirectoryClient({
         </div>
 
         {filtered.length === 0 ? (
-          <div className="rounded-2xl border border-gray-200 bg-white p-8">
-            <div className="text-sm font-semibold text-gray-900">
+          <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-10 text-center shadow-[0_18px_60px_rgba(15,23,42,0.05)]">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[24px] border border-slate-200 bg-white text-dark-blue shadow-sm">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M10.5 18a7.5 7.5 0 117.5-7.5M16 16l5 5M7.5 9h6M7.5 12h3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div className="text-lg font-extrabold text-slate-950">
               {items.length === 0 ? 'No verified partners listed yet' : 'No partners match your filters'}
             </div>
-            <div className="mt-2 text-sm text-gray-600">
+            <div className="mx-auto mt-3 max-w-xl text-[16px] leading-7 text-slate-600">
               {items.length === 0
                 ? 'We are onboarding partners for this category. Request a consultation and our team will connect you with the right expert.'
                 : "Try adjusting filters or request a consultation and we'll connect you."}
@@ -227,7 +231,7 @@ export default function EcosystemPartnerDirectoryClient({
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filtered.map((p) => {
                 const rating = typeof p.rating === 'number' ? p.rating : 0
                 const s = stars(rating)
@@ -237,7 +241,7 @@ export default function EcosystemPartnerDirectoryClient({
                 return (
                   <article
                     key={p.id}
-                    className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-dark-blue/20 hover:shadow-lg"
+                    className="group overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.05)] transition-all duration-300 hover:-translate-y-1.5 hover:border-dark-blue/20 hover:shadow-[0_26px_80px_rgba(15,23,42,0.10)]"
                   >
                     <div className="relative aspect-[16/10] bg-gray-100">
                       {image ? (
@@ -257,7 +261,7 @@ export default function EcosystemPartnerDirectoryClient({
                         </div>
                       )}
                       {p.isFeatured && (
-                        <div className="absolute right-3 top-3 rounded-full bg-accent-yellow px-3 py-1 text-xs font-semibold text-dark-blue">
+                        <div className="absolute right-3 top-3 rounded-full border border-white/60 bg-white/90 px-3 py-1 text-xs font-semibold text-dark-blue">
                           Featured
                         </div>
                       )}
@@ -268,8 +272,8 @@ export default function EcosystemPartnerDirectoryClient({
                       )}
                     </div>
 
-                    <div className="p-5">
-                      <h3 className="text-lg font-bold text-dark-blue">{p.name}</h3>
+                    <div className="p-6">
+                      <h3 className="text-xl font-extrabold text-slate-950">{p.name}</h3>
                       {p.shortDescription && (
                         <p className="mt-1 line-clamp-2 text-sm text-gray-600">{p.shortDescription}</p>
                       )}
@@ -289,8 +293,11 @@ export default function EcosystemPartnerDirectoryClient({
                       </div>
 
                       <div className="mt-5 flex gap-2">
-                        <Link
+                          <MillionFlatsButton
                           href={profileHref}
+                          variant="primary"
+                          size="md"
+                          className="flex-1"
                           onClick={() =>
                             trackEvent('ecosystem_partner_view_profile_click', {
                               slug,
@@ -298,19 +305,20 @@ export default function EcosystemPartnerDirectoryClient({
                               partner: p.name,
                             })
                           }
-                          className="inline-flex h-10 flex-1 items-center justify-center rounded-xl bg-dark-blue text-sm font-semibold text-white hover:bg-dark-blue/90"
                         >
                           View Profile
-                        </Link>
-                        <Link
+                        </MillionFlatsButton>
+                        <MillionFlatsButton
                           href={p.slug ? `${profileHref}#partner-contact` : `#lead`}
+                          variant="secondary"
+                          size="md"
+                          className="flex-1"
                           onClick={() =>
                             trackEvent('ecosystem_partner_contact_click', { slug, partnerId: p.id, partner: p.name })
                           }
-                          className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue hover:bg-gray-50"
                         >
                           Consult
-                        </Link>
+                        </MillionFlatsButton>
                       </div>
                     </div>
                   </article>
@@ -320,14 +328,16 @@ export default function EcosystemPartnerDirectoryClient({
 
             <div className="mt-8 flex items-center justify-center">
               {hasMoreState ? (
-                <button
+                <MillionFlatsButton
                   type="button"
-                  disabled={busy}
                   onClick={() => fetchPage(page + 1, 'append')}
-                  className="inline-flex h-11 items-center justify-center rounded-xl bg-dark-blue px-6 font-semibold text-white hover:bg-dark-blue/90 disabled:opacity-60"
+                  variant="primary"
+                  size="md"
+                  className="inline-flex h-11 px-6 disabled:opacity-60"
+                  disabled={busy}
                 >
-                  {busy ? 'Loading…' : 'Load More Partners'}
-                </button>
+                  {busy ? 'Loading...' : 'Load More Partners'}
+                </MillionFlatsButton>
               ) : (
                 <div className="text-sm text-gray-600">
                   Showing {filtered.length} of {totalState}
