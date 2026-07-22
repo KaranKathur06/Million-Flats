@@ -481,6 +481,101 @@ export async function POST(req: Request) {
       )
     }
 
+    if (type === 'agency') {
+      if (!password) {
+        return NextResponse.json({ success: false, message: 'Password required' }, { status: 400 })
+      }
+
+      if (!isStrongPassword(password)) {
+        return NextResponse.json(
+          { success: false, message: 'Password must be at least 8 characters and include letters and numbers.' },
+          { status: 400 }
+        )
+      }
+
+      const existingUser = await prisma.user.findUnique({ where: { email }, include: { agencyProfile: true } }).catch(() => null)
+      if (existingUser) {
+        const existingRole = String(existingUser.role || '').toUpperCase()
+        if (existingRole !== 'AGENCY' && existingRole !== 'ADMIN') {
+          return NextResponse.json(
+            { success: false, message: `This email is already registered as a ${roleLabel(existingRole)}. Please use a different email.` },
+            { status: 400 }
+          )
+        }
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10)
+
+      const user = existingUser
+        ? await prisma.user.update({ where: { id: existingUser.id }, data: { name: existingUser.name || name, password: existingUser.password || hashedPassword, role: 'AGENCY' } })
+        : await prisma.user.create({ data: { name, email, password: hashedPassword, role: 'AGENCY', verified: false } })
+
+      // create agency profile if not exists
+      try {
+        await prisma.agencyProfile.create({ data: { userId: user.id, agencyName: name, email: user.email, phone: phone || null, country: body?.country || null, city: body?.city || null, website: body?.website || null, licenseNumber: body?.licenseNumber || null, reraNumber: body?.reraNumber || null, agencySize: body?.agencySize || undefined, specializations: Array.isArray(body?.specializations) ? body.specializations : [] } })
+      } catch (e: any) {
+        // ignore duplicate profile
+      }
+
+      const otp = generateOtp()
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
+      const codeHash = signToken(otp)
+
+      await (prisma as any).loginOtp.updateMany({ where: { email: user.email, role: 'AGENCY', consumed: false, usedAt: null }, data: { consumed: true } }).catch(() => null)
+      await (prisma as any).loginOtp.create({ data: { id: crypto.randomUUID(), email: user.email, role: 'AGENCY', codeHash, attempts: 0, expiresAt, consumed: false, ipAddress: ip } }).catch(() => null)
+
+      await sendEmail({ to: email, subject: 'Your MillionFlats verification code', react: OTPEmail({ otp }) }).catch(() => null)
+
+      return NextResponse.json({ success: true, message: 'Registration successful. Please verify your email.', requiresVerification: true, redirectTo: `/agency/verify?email=${encodeURIComponent(email)}` }, { status: 200 })
+    }
+
+    if (type === 'developer') {
+      if (!password) {
+        return NextResponse.json({ success: false, message: 'Password required' }, { status: 400 })
+      }
+
+      if (!isStrongPassword(password)) {
+        return NextResponse.json(
+          { success: false, message: 'Password must be at least 8 characters and include letters and numbers.' },
+          { status: 400 }
+        )
+      }
+
+      const existingUser = await prisma.user.findUnique({ where: { email }, include: { developerProfile: true } }).catch(() => null)
+      if (existingUser) {
+        const existingRole = String(existingUser.role || '').toUpperCase()
+        if (existingRole !== 'DEVELOPER' && existingRole !== 'ADMIN') {
+          return NextResponse.json(
+            { success: false, message: `This email is already registered as a ${roleLabel(existingRole)}. Please use a different email.` },
+            { status: 400 }
+          )
+        }
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10)
+
+      const user = existingUser
+        ? await prisma.user.update({ where: { id: existingUser.id }, data: { name: existingUser.name || name, password: existingUser.password || hashedPassword, role: 'DEVELOPER' } })
+        : await prisma.user.create({ data: { name, email, password: hashedPassword, role: 'DEVELOPER', verified: false } })
+
+      try {
+        await prisma.developerProfile.create({ data: { userId: user.id, companyName: name, email: user.email, phone: phone || null, country: body?.country || null, city: body?.city || null, website: body?.website || null } })
+      } catch (e: any) {
+        // ignore duplicate
+      }
+
+      const otp = generateOtp()
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
+      const codeHash = signToken(otp)
+
+      await (prisma as any).loginOtp.updateMany({ where: { email: user.email, role: 'DEVELOPER', consumed: false, usedAt: null }, data: { consumed: true } }).catch(() => null)
+      await (prisma as any).loginOtp.create({ data: { id: crypto.randomUUID(), email: user.email, role: 'DEVELOPER', codeHash, attempts: 0, expiresAt, consumed: false, ipAddress: ip } }).catch(() => null)
+
+      await sendEmail({ to: email, subject: 'Your MillionFlats verification code', react: OTPEmail({ otp }) }).catch(() => null)
+
+      return NextResponse.json({ success: true, message: 'Registration successful. Please verify your email.', requiresVerification: true, redirectTo: `/developer/verify?email=${encodeURIComponent(email)}` }, { status: 200 })
+    }
+
     return NextResponse.json({ success: false, message: 'Invalid user type' }, { status: 400 })
   } catch (error) {
     console.error('Registration error:', error)

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { signIn } from "next-auth/react";
-import OtpCodeInput from '@/components/OtpCodeInput'
+
 
 type Tab = "login" | "register";
 type Step = "form" | "otp";
@@ -229,168 +229,87 @@ function ErrorBanner({ message }: { message: string }) {
   );
 }
 
-/* ─────────────────────────────────────────────
-   OTP Step
-   ───────────────────────────────────────────── */
-function OtpStep({
-  phone, onSuccess, onBack,
-}: {
-  phone: string;
-  onSuccess: () => void;
-  onBack: () => void;
-}) {
-  const [otp, setOtp] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [resendTimer, setResendTimer] = useState(30);
-
-  useEffect(() => {
-    const t = setInterval(() => setResendTimer((p) => Math.max(0, p - 1)), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  const verify = async (otpVal: string) => {
-    if (otpVal.length < 6) return;
-    setLoading(true);
-    setError("");
-    const res = await signIn("credentials", {
-      phone,
-      otp: otpVal,
-      intent: "developer",
-      redirect: false,
-    });
-    if (res?.error) {
-      setError("Invalid OTP. Please try again.");
-      setLoading(false);
-      return;
-    }
-    onSuccess();
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center mx-auto mb-4">
-          <svg className="w-7 h-7 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-        </div>
-        <h3 className="font-bold text-dark-blue text-lg">Verify your number</h3>
-        <p className="text-sm text-gray-400 mt-1">
-          OTP sent to <span className="font-semibold text-gray-700">{phone}</span>
-        </p>
-      </div>
-
-      {error && <ErrorBanner message={error} />}
-
-      <div className="flex justify-center">
-        <OtpCodeInput value={otp} onChange={setOtp} className="max-w-xl w-full" />
-      </div>
-
-      <button
-        onClick={() => verify(otp)}
-        disabled={otp.length < 6 || loading}
-        className="w-full h-12 bg-dark-blue text-white rounded-xl font-semibold disabled:opacity-40 hover:bg-dark-blue/90 transition-all shadow-lg shadow-dark-blue/20 flex items-center justify-center gap-2"
-      >
-        {loading ? (
-          <>
-            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            Verifying...
-          </>
-        ) : "Verify & Continue →"}
-      </button>
-
-      <div className="text-center space-y-2">
-        {resendTimer > 0 ? (
-          <p className="text-sm text-gray-400">Resend in <span className="font-semibold text-gray-600">{resendTimer}s</span></p>
-        ) : (
-          <button onClick={() => setResendTimer(30)} className="text-sm font-semibold text-dark-blue hover:underline">
-            Resend OTP
-          </button>
-        )}
-        <button onClick={onBack} className="block w-full text-sm text-gray-400 hover:text-gray-600 transition-colors">
-          ← Change number
-        </button>
-      </div>
-    </div>
-  );
-}
-
+/* OTP flow removed — using email/password for developer auth */
 /* ─────────────────────────────────────────────
    Login Tab
    ───────────────────────────────────────────── */
 function LoginTab() {
   const router = useRouter();
-  const [countryCode, setCountryCode] = useState("+971");
-  const [phone, setPhone] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
-  const fullPhone = `${countryCode}${phone}`;
-
-  const sendOtp = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone.trim()) return;
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/auth/otp/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: fullPhone, intent: "developer" }),
+      const res = await signIn("credentials", {
+        email,
+        password,
+        intent: "developer",
+        redirect: false,
       });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        setError(data?.error || "Failed to send OTP. Please try again.");
+      if ((res as any)?.ok && (res as any).url) {
+        router.push((res as any).url);
         return;
       }
-      setOtpSent(true);
+      const raw = (res as any)?.error || "Login failed";
+      if (raw === "EMAIL_NOT_VERIFIED") setError("Please verify your email before signing in.");
+      else if (raw === "INVALID_PASSWORD") setError("Invalid email or password.");
+      else setError(raw);
     } catch {
-      setError("Failed to send OTP. Please try again.");
+      setError("An error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  if (otpSent)
-    return (
-      <OtpStep
-        phone={fullPhone}
-        onSuccess={() => router.push("/developer/dashboard")}
-        onBack={() => setOtpSent(false)}
-      />
-    );
-
   return (
-    <form onSubmit={sendOtp} className="space-y-5">
+    <form className="space-y-5" onSubmit={handleSubmit}>
       {error && <ErrorBanner message={error} />}
+
       <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-          WhatsApp Number
-        </label>
-        <div className="flex gap-2">
-          <CountrySelector value={countryCode} onChange={setCountryCode} />
+        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Business Email</label>
+        <input
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@company.com"
+          className="w-full h-12 px-4 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-dark-blue/15 focus:border-dark-blue focus:bg-white transition-all outline-none"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Password</label>
+        <div className="relative">
           <input
-            type="tel"
+            type={showPassword ? "text" : "password"}
             required
-            value={phone}
-            onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-            placeholder="Enter phone number"
-            className="flex-1 h-12 px-4 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-dark-blue/15 focus:border-dark-blue focus:bg-white transition-all outline-none"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            className="w-full h-12 px-4 pr-12 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-dark-blue/15 focus:border-dark-blue focus:bg-white transition-all outline-none"
           />
+          <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-dark-blue">
+            {showPassword ? 'Hide' : 'Show'}
+          </button>
         </div>
+      </div>
+
+      <div className="text-right pt-2">
+        <Link href="/developer/forgot-password" className="text-sm font-semibold text-dark-blue hover:underline">Forgot password?</Link>
       </div>
 
       <button
         type="submit"
-        disabled={!phone || loading}
+        disabled={loading}
         className="w-full h-12 bg-dark-blue text-white rounded-xl font-semibold disabled:opacity-40 hover:bg-dark-blue/90 transition-all shadow-lg shadow-dark-blue/20 flex items-center justify-center gap-2"
       >
-        {loading ? <><Spinner />Sending OTP...</> : "Send OTP →"}
+        {loading ? <><Spinner />Signing in...</> : 'Sign In'}
       </button>
 
       <div className="flex items-center gap-3 py-1">
@@ -398,13 +317,6 @@ function LoginTab() {
         <span className="text-xs text-gray-400">or</span>
         <div className="flex-1 h-px bg-gray-100" />
       </div>
-
-      <p className="text-center text-xs text-gray-400">
-        Forgot access?{" "}
-        <Link href="/developer/forgot-password" className="text-dark-blue font-semibold hover:underline">
-          Recover account
-        </Link>
-      </p>
     </form>
   );
 }
@@ -414,22 +326,18 @@ function LoginTab() {
    ───────────────────────────────────────────── */
 function RegisterTab() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("form");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
     companyName: "",
     email: "",
-    countryCode: "+971",
+    password: "",
+    confirmPassword: "",
     phone: "",
     country: "UAE",
-    reraNumber: "",
-    companyRegistration: "",
     website: "",
     operatingCities: [] as string[],
   });
-
-  const fullPhone = `${form.countryCode}${form.phone}`;
 
   const toggleCity = (city: string) =>
     setForm((f) => ({
@@ -447,38 +355,39 @@ function RegisterTab() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const res = await fetch("/api/developer/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, phone: fullPhone }),
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.companyName,
+          email: form.email,
+          password: form.password,
+          phone: form.phone || undefined,
+          country: form.country,
+          website: form.website || undefined,
+          type: 'developer',
+        }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setError(data?.error || "Registration failed. Please try again.");
+        setError(data?.message || 'Registration failed');
+        setLoading(false);
         return;
       }
-      await fetch("/api/auth/otp/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: fullPhone, intent: "developer" }),
-      });
-      setStep("otp");
+      router.push('/developer/auth?tab=login');
     } catch {
-      setError("Registration failed. Please try again.");
+      setError('Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
-
-  if (step === "otp")
-    return (
-      <OtpStep
-        phone={fullPhone}
-        onSuccess={() => router.push("/developer/onboarding")}
-        onBack={() => setStep("form")}
-      />
-    );
 
   const inputCls =
     "w-full h-12 px-4 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-dark-blue/15 focus:border-dark-blue focus:bg-white transition-all outline-none";
@@ -490,64 +399,29 @@ function RegisterTab() {
 
       <div>
         <label className={labelCls}>Company Name</label>
-        <input required value={form.companyName} onChange={field("companyName")}
+        <input required value={form.companyName} onChange={field('companyName')}
           placeholder="e.g. Emaar Properties, DLF Ltd."
           className={inputCls} />
       </div>
 
       <div>
         <label className={labelCls}>Business Email</label>
-        <input type="email" required value={form.email} onChange={field("email")}
+        <input type="email" required value={form.email} onChange={field('email')}
           placeholder="contact@yourcompany.com"
           className={inputCls} />
       </div>
 
       <div>
-        <label className={labelCls}>WhatsApp Number</label>
-        <div className="flex gap-2">
-          <CountrySelector
-            value={form.countryCode}
-            onChange={(code) => setForm((f) => ({ ...f, countryCode: code }))}
-          />
-          <input
-            type="tel"
-            required
-            value={form.phone}
-            onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value.replace(/\D/g, "") }))}
-            placeholder="Phone number"
-            className="flex-1 h-12 px-4 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-dark-blue/15 focus:border-dark-blue focus:bg-white transition-all outline-none"
-          />
-        </div>
+        <label className={labelCls}>Password</label>
+        <input type="password" required value={form.password} onChange={field('password')}
+          placeholder="Create a strong password"
+          className={inputCls} />
       </div>
 
       <div>
-        <label className={labelCls}>Country</label>
-        <select value={form.country} onChange={field("country")} className={inputCls}>
-          {["UAE", "India", "Saudi Arabia", "Singapore", "United Kingdom", "United States", "Australia"].map((c) => (
-            <option key={c}>{c}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={labelCls}>RERA Number <span className="text-gray-300 font-normal normal-case">(if applicable)</span></label>
-          <input value={form.reraNumber} onChange={field("reraNumber")}
-            placeholder="RERA reg. no."
-            className={inputCls} />
-        </div>
-        <div>
-          <label className={labelCls}>Company Reg.</label>
-          <input value={form.companyRegistration} onChange={field("companyRegistration")}
-            placeholder="CIN / Company no."
-            className={inputCls} />
-        </div>
-      </div>
-
-      <div>
-        <label className={labelCls}>Website <span className="text-gray-300 font-normal normal-case">(optional)</span></label>
-        <input type="url" value={form.website} onChange={field("website")}
-          placeholder="https://yourcompany.com"
+        <label className={labelCls}>Confirm Password</label>
+        <input type="password" required value={form.confirmPassword} onChange={field('confirmPassword')}
+          placeholder="Confirm your password"
           className={inputCls} />
       </div>
 
@@ -573,7 +447,7 @@ function RegisterTab() {
 
       <button
         type="submit"
-        disabled={loading || !form.companyName || !form.email || !form.phone}
+        disabled={loading || !form.companyName || !form.email || !form.password}
         className="w-full h-12 bg-dark-blue text-white rounded-xl font-semibold disabled:opacity-40 hover:bg-dark-blue/90 transition-all shadow-lg shadow-dark-blue/20 flex items-center justify-center gap-2"
       >
         {loading ? <><Spinner />Creating account...</> : "Create Developer Account →"}

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { signIn } from "next-auth/react";
-import OtpCodeInput from '@/components/OtpCodeInput'
+// OTP removed; agency auth uses email+password now
 
 type Tab = "login" | "register";
 type Step = "form" | "otp";
@@ -250,149 +250,47 @@ function CountrySelector({
   );
 }
 
-/* ─────────────────────────────────────────────
-   OTP Step
-   ───────────────────────────────────────────── */
-function OtpStep({
-  phone,
-  onSuccess,
-  onBack,
-}: {
-  phone: string;
-  onSuccess: () => void;
-  onBack: () => void;
-}) {
-  const [otp, setOtp] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [timer, setTimer] = useState(30);
-
-  useEffect(() => {
-    const t = setInterval(() => setTimer((p) => Math.max(0, p - 1)), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  const verify = async (otpVal: string) => {
-    if (otpVal.length < 6) return;
-    setLoading(true);
-    setError("");
-    const res = await signIn("credentials", {
-      phone,
-      otp: otpVal,
-      intent: "agency",
-      redirect: false,
-    });
-    if (res?.error) {
-      setError("Invalid OTP. Please try again.");
-      setLoading(false);
-      return;
-    }
-    onSuccess();
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <div className="w-14 h-14 rounded-2xl bg-dark-blue/8 flex items-center justify-center mx-auto mb-4 border border-dark-blue/10">
-          <svg className="w-7 h-7 text-dark-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-        </div>
-        <h3 className="font-bold text-dark-blue text-lg">Verify your number</h3>
-        <p className="text-sm text-gray-400 mt-1">
-          OTP sent to <span className="font-semibold text-gray-700">{phone}</span>
-        </p>
-      </div>
-
-      {error && (
-        <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm">
-          <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          {error}
-        </div>
-      )}
-
-      <div className="flex justify-center">
-        <OtpCodeInput value={otp} onChange={setOtp} className="max-w-xl w-full" />
-      </div>
-
-      <button
-        onClick={() => verify(otp)}
-        disabled={otp.length < 6 || loading}
-        className="w-full h-12 bg-dark-blue text-white rounded-xl font-semibold disabled:opacity-40 hover:bg-dark-blue/90 transition-all shadow-lg shadow-dark-blue/20 flex items-center justify-center gap-2"
-      >
-        {loading ? (
-          <>
-            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            Verifying...
-          </>
-        ) : "Verify & Continue →"}
-      </button>
-
-      <div className="text-center space-y-2">
-        {timer > 0 ? (
-          <p className="text-sm text-gray-400">Resend in <span className="font-semibold text-gray-600">{timer}s</span></p>
-        ) : (
-          <button onClick={() => setTimer(30)} className="text-sm font-semibold text-dark-blue hover:underline">
-            Resend OTP
-          </button>
-        )}
-        <button onClick={onBack} className="block w-full text-sm text-gray-400 hover:text-gray-600 transition-colors">
-          ← Change number
-        </button>
-      </div>
-    </div>
-  );
-}
+/* OTP removed — agency auth uses email+password */
 
 /* ─────────────────────────────────────────────
    Login Tab
    ───────────────────────────────────────────── */
 function LoginTab() {
   const router = useRouter();
-  const [cc, setCc] = useState("+971");
-  const [phone, setPhone] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
-  const fullPhone = `${cc}${phone}`;
-
-  const sendOtp = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone) return;
     setLoading(true);
     setError("");
-    const res = await fetch("/api/auth/otp/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone: fullPhone, intent: "agency" }),
-    });
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      setError(data?.error || "Failed to send OTP. Please try again.");
+    try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        intent: "agency",
+        redirect: false,
+      });
+      if ((res as any)?.ok && (res as any).url) {
+        router.push((res as any).url);
+        return;
+      }
+      const raw = (res as any)?.error || "Login failed";
+      if (raw === "EMAIL_NOT_VERIFIED") setError("Please verify your email before signing in.");
+      else if (raw === "INVALID_PASSWORD") setError("Invalid email or password.");
+      else setError(raw);
+    } catch {
+      setError("An error occurred. Please try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-    setOtpSent(true);
-    setLoading(false);
   };
 
-  if (otpSent)
-    return (
-      <OtpStep
-        phone={fullPhone}
-        onSuccess={() => router.push("/agency/dashboard")}
-        onBack={() => setOtpSent(false)}
-      />
-    );
-
   return (
-    <form onSubmit={sendOtp} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
         <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm">
           <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -403,25 +301,41 @@ function LoginTab() {
       )}
 
       <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-          WhatsApp Number
-        </label>
-        <div className="flex gap-2">
-          <CountrySelector value={cc} onChange={setCc} />
+        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Business Email</label>
+        <input
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@agency.com"
+          className="w-full h-12 px-4 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-dark-blue/15 focus:border-dark-blue focus:bg-white transition-all outline-none"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Password</label>
+        <div className="relative">
           <input
-            type="tel"
+            type={showPassword ? 'text' : 'password'}
             required
-            value={phone}
-            onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-            placeholder="Enter phone number"
-            className="flex-1 h-12 px-4 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-dark-blue/15 focus:border-dark-blue focus:bg-white transition-all outline-none"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            className="w-full h-12 px-4 pr-12 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-dark-blue/15 focus:border-dark-blue focus:bg-white transition-all outline-none"
           />
+          <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-dark-blue">
+            {showPassword ? 'Hide' : 'Show'}
+          </button>
         </div>
+      </div>
+
+      <div className="text-right pt-2">
+        <Link href="/agency/forgot-password" className="text-sm font-semibold text-dark-blue hover:underline">Forgot password?</Link>
       </div>
 
       <button
         type="submit"
-        disabled={!phone || loading}
+        disabled={loading}
         className="w-full h-12 bg-dark-blue text-white rounded-xl font-semibold disabled:opacity-40 hover:bg-dark-blue/90 transition-all shadow-lg shadow-dark-blue/20 flex items-center justify-center gap-2"
       >
         {loading ? (
@@ -430,14 +344,14 @@ function LoginTab() {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            Sending OTP...
+            Signing in...
           </>
-        ) : "Send OTP →"}
+        ) : 'Sign In'}
       </button>
 
       <p className="text-center text-xs text-gray-400">
-        Don&apos;t have an account?{" "}
-        <button type="button" className="text-dark-blue font-semibold hover:underline">
+        Don&apos;t have an account?{' '}
+        <button type="button" onClick={() => { /* tab switch handled by parent */ }} className="text-dark-blue font-semibold hover:underline">
           Register your agency
         </button>
       </p>
@@ -456,6 +370,8 @@ function RegisterTab() {
   const [form, setForm] = useState({
     agencyName: "",
     email: "",
+    password: "",
+    confirmPassword: "",
     cc: "+971",
     phone: "",
     country: "UAE",
@@ -486,34 +402,43 @@ function RegisterTab() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const res = await fetch("/api/agency/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, phone: fullPhone }),
-    });
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      setError(data?.error || "Registration failed. Please try again.");
+    if ((form as any).password && (form as any).password !== (form as any).confirmPassword) {
+      setError('Passwords do not match');
       setLoading(false);
       return;
     }
-    await fetch("/api/auth/otp/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone: fullPhone, intent: "agency" }),
-    });
-    setStep("otp");
-    setLoading(false);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.agencyName,
+          email: form.email,
+          password: (form as any).password || undefined,
+          phone: fullPhone || undefined,
+          country: form.country,
+          city: form.city,
+          agencySize: form.agencySize,
+          licenseNumber: form.licenseNumber || undefined,
+          reraNumber: form.reraNumber || undefined,
+          website: form.website || undefined,
+          specializations: form.specializations,
+          type: 'agency',
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(data?.message || 'Registration failed. Please try again.');
+        setLoading(false);
+        return;
+      }
+      router.push('/agency/auth?tab=login');
+    } catch (err) {
+      setError('Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
-
-  if (step === "otp")
-    return (
-      <OtpStep
-        phone={fullPhone}
-        onSuccess={() => router.push("/agency/onboarding")}
-        onBack={() => setStep("form")}
-      />
-    );
 
   const inputCls =
     "w-full h-12 px-4 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-dark-blue/15 focus:border-dark-blue focus:bg-white transition-all outline-none";
@@ -541,6 +466,20 @@ function RegisterTab() {
         <label className={labelCls}>Business Email</label>
         <input type="email" required value={form.email} onChange={field("email")}
           placeholder="contact@youragency.com"
+          className={inputCls} />
+      </div>
+
+      <div>
+        <label className={labelCls}>Password</label>
+        <input type="password" required value={(form as any).password} onChange={field("password")}
+          placeholder="Create a strong password"
+          className={inputCls} />
+      </div>
+
+      <div>
+        <label className={labelCls}>Confirm Password</label>
+        <input type="password" required value={(form as any).confirmPassword} onChange={field("confirmPassword")}
+          placeholder="Confirm your password"
           className={inputCls} />
       </div>
 
