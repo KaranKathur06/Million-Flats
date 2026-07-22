@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, message: 'Email already verified.' }, { status: 200 })
     }
 
-    const role = normalizeRole(user.role || requestedRole)
+    const role = normalizeRole(requestedRole || user.role)
     const otp = generateOtp()
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
     const codeHash = signToken(otp)

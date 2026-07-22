@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { signIn } from "next-auth/react";
@@ -235,31 +235,41 @@ function ErrorBanner({ message }: { message: string }) {
    ───────────────────────────────────────────── */
 function LoginTab() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showLoginResetCta, setShowLoginResetCta] = useState(false);
+
+  const next = searchParams?.get('next')
+  const safeNext = typeof next === 'string' && next.startsWith('/') ? next : ''
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setShowLoginResetCta(false);
     try {
+      const callbackUrl = safeNext ? `/auth/redirect?next=${encodeURIComponent(safeNext)}` : '/auth/redirect'
       const res = await signIn("credentials", {
         email,
         password,
         intent: "developer",
         redirect: false,
+        callbackUrl,
       });
       if ((res as any)?.ok && (res as any).url) {
         router.push((res as any).url);
         return;
       }
-      const raw = (res as any)?.error || "Login failed";
-      if (raw === "EMAIL_NOT_VERIFIED") setError("Please verify your email before signing in.");
-      else if (raw === "INVALID_PASSWORD") setError("Invalid email or password.");
-      else setError(raw);
+
+      const raw = (res as any)?.error || 'Login failed'
+      if (raw === 'EMAIL_NOT_VERIFIED') setError('Please verify your email before signing in.')
+      else if (raw === 'INVALID_PASSWORD') setError('Invalid email or password.')
+      else if (raw === 'PASSWORD_NOT_SET') { setError('Password is not set. Please reset your password.'); setShowLoginResetCta(true) }
+      else setError(raw)
     } catch {
       setError("An error occurred. Please try again.");
     } finally {
@@ -269,7 +279,24 @@ function LoginTab() {
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
-      {error && <ErrorBanner message={error} />}
+      {error && (
+        <div>
+          <ErrorBanner message={error} />
+          {error === 'Please verify your email before signing in.' && (
+            <div className="mt-3">
+              <Link href={`/developer/verify?email=${encodeURIComponent(email)}`} className="w-full inline-block text-center rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-sm font-semibold text-white hover:shadow-lg">
+                Verify Email
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
+
+      {showLoginResetCta ? (
+        <Link href={`/user/forgot-password?email=${encodeURIComponent(email)}`} className="block w-full rounded-xl bg-amber-400 text-white px-4 py-3 text-center text-sm font-semibold hover:shadow-lg">
+          Reset Password
+        </Link>
+      ) : null}
 
       <div>
         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Business Email</label>
@@ -294,8 +321,11 @@ function LoginTab() {
             placeholder="••••••••"
             className="w-full h-12 px-4 pr-12 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-dark-blue/15 focus:border-dark-blue focus:bg-white transition-all outline-none"
           />
-          <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-dark-blue">
-            {showPassword ? 'Hide' : 'Show'}
+          <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-dark-blue transition-transform duration-200">
+            <svg className={`w-5 h-5 ${showPassword ? 'rotate-90' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 4.5C7 4.5 3 8 1.5 12c1.5 4 5.5 7.5 10.5 7.5s9-3.5 10.5-7.5C21 8 17 4.5 12 4.5z" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="12" cy="12" r="3" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
         </div>
       </div>

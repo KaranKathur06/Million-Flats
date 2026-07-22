@@ -14,7 +14,8 @@ function safeString(value: unknown) {
 
 function normalizeRole(input: unknown) {
   const role = typeof input === 'string' ? input.trim().toUpperCase() : ''
-  return role === 'AGENT' ? 'AGENT' : 'USER'
+  if (['SUPERADMIN', 'ADMIN', 'VERIFIER', 'MODERATOR', 'AGENT', 'DEVELOPER', 'AGENCY'].includes(role)) return role
+  return 'USER'
 }
 
 export async function POST(req: Request) {
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
     }
 
     const now = new Date()
-    const otpRow = await (prisma as any).loginOtp
+    let otpRow = await (prisma as any).loginOtp
       .findFirst({
         where: {
           email,
@@ -52,6 +53,23 @@ export async function POST(req: Request) {
         orderBy: { createdAt: 'desc' },
       })
       .catch(() => null)
+
+    // Fallback: role-agnostic lookup if no match found for the expected role.
+    // This handles edge cases where the OTP was stored with a different role
+    // (e.g. user.role in DB differs from the frontend's type param).
+    if (!otpRow) {
+      otpRow = await (prisma as any).loginOtp
+        .findFirst({
+          where: {
+            email,
+            consumed: false,
+            usedAt: null,
+            expiresAt: { gt: now },
+          },
+          orderBy: { createdAt: 'desc' },
+        })
+        .catch(() => null)
+    }
 
     if (!otpRow) {
       return NextResponse.json(

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { signIn } from "next-auth/react";
@@ -257,31 +257,30 @@ function CountrySelector({
    ───────────────────────────────────────────── */
 function LoginTab() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showLoginResetCta, setShowLoginResetCta] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setShowLoginResetCta(false);
     try {
-      const res = await signIn("credentials", {
-        email,
-        password,
-        intent: "agency",
-        redirect: false,
-      });
-      if ((res as any)?.ok && (res as any).url) {
-        router.push((res as any).url);
-        return;
-      }
-      const raw = (res as any)?.error || "Login failed";
-      if (raw === "EMAIL_NOT_VERIFIED") setError("Please verify your email before signing in.");
-      else if (raw === "INVALID_PASSWORD") setError("Invalid email or password.");
-      else setError(raw);
+      const next = searchParams?.get('next')
+      const safeNext = typeof next === 'string' && next.startsWith('/') ? next : ''
+      const callbackUrl = safeNext ? `/auth/redirect?next=${encodeURIComponent(safeNext)}` : '/auth/redirect'
+      const res = await signIn('credentials', { email, password, intent: 'agency', redirect: false, callbackUrl })
+      if ((res as any)?.ok && (res as any).url) { router.push((res as any).url); return }
+      const raw = (res as any)?.error || 'Login failed'
+      if (raw === 'EMAIL_NOT_VERIFIED') setError('Please verify your email before signing in.')
+      else if (raw === 'INVALID_PASSWORD') setError('Invalid email or password.')
+      else if (raw === 'PASSWORD_NOT_SET') { setError('Password is not set. Please reset your password.'); setShowLoginResetCta(true) }
+      else setError(raw)
     } catch {
       setError("An error occurred. Please try again.");
     } finally {
@@ -299,6 +298,20 @@ function LoginTab() {
           {error}
         </div>
       )}
+
+      {error === 'Please verify your email before signing in.' && (
+        <div className="mt-3">
+          <Link href={`/agency/verify?email=${encodeURIComponent(email)}`} className="w-full inline-block text-center rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 px-4 py-3 text-sm font-semibold text-white hover:shadow-lg">
+            Verify Email
+          </Link>
+        </div>
+      )}
+
+      {showLoginResetCta ? (
+        <Link href={`/user/forgot-password?email=${encodeURIComponent(email)}`} className="block w-full rounded-xl bg-amber-400 text-white px-4 py-3 text-center text-sm font-semibold hover:shadow-lg">
+          Reset Password
+        </Link>
+      ) : null}
 
       <div>
         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Business Email</label>
