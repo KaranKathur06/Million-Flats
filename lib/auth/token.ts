@@ -23,11 +23,19 @@ export function signToken(token: string): string {
 /**
  * Constant-time token verification using crypto.timingSafeEqual.
  * Iterates all peppers to support pepper rotation.
+ * When no peppers are configured, falls back to empty-string key
+ * (matching signToken behavior to avoid silent verification failures).
  */
 export function verifyToken(token: string, expectedHash: string): boolean {
-  const peppers = getPeppers()
-  if (peppers.length === 0) return false
+  let peppers = getPeppers()
+  if (peppers.length === 0) {
+    // IMPORTANT: signToken uses '' when no pepper is set.
+    // We must do the same here so verification doesn't silently fail.
+    console.warn('[verifyToken] TOKEN_PEPPER/TOKEN_PEPPERS not configured — using empty fallback. Set TOKEN_PEPPER in env for production security.')
+    peppers = ['']
+  }
   const expectedBuf = Buffer.from(expectedHash, 'hex')
+  if (expectedBuf.length === 0) return false
   for (const p of peppers) {
     const h = crypto.createHmac('sha256', p).update(token).digest('hex')
     const candidateBuf = Buffer.from(h, 'hex')

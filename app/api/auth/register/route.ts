@@ -385,7 +385,15 @@ export async function POST(req: Request) {
         )
       }
 
-      const existingUser = await prisma.user.findUnique({ where: { email }, include: { agencyProfile: true } }).catch(() => null)
+      // Don't include agencyProfile in the join — it may reference columns
+      // that haven't been migrated yet (e.g., AI_agency_score), which causes
+      // the query to fail silently and triggers a P2002 on the fallback create.
+      const existingUser = await prisma.user.findUnique({ where: { email } }).catch((err: any) => {
+        console.error('[register/agency] findUnique error:', err?.message)
+        return null
+      })
+
+      // Check if user has a different role
       if (existingUser) {
         const existingRole = String(existingUser.role || '').toUpperCase()
         if (existingRole !== 'AGENCY' && existingRole !== 'ADMIN') {
@@ -396,20 +404,74 @@ export async function POST(req: Request) {
         }
       }
 
+      // Check if agency profile exists separately (safe query)
+      const existingAgencyProfile = existingUser
+        ? await prisma.agencyProfile.findUnique({ where: { userId: existingUser.id }, select: { id: true } }).catch(() => null)
+        : null
+
       const hashedPassword = await bcrypt.hash(password, 10)
 
-      const user = existingUser
-        ? await prisma.user.update({ where: { id: existingUser.id }, data: { name: existingUser.name || name, password: existingUser.password || hashedPassword, role: 'AGENCY' } })
-        : await prisma.user.create({ data: { name, email, password: hashedPassword, role: 'AGENCY', verified: false } })
-
-      // create agency profile if not exists
-      try {
-        await prisma.agencyProfile.create({ data: { userId: user.id, agencyName: name, email: user.email, phone: phone || null, country: body?.country || null, city: body?.city || null, website: body?.website || null, licenseNumber: body?.licenseNumber || null, reraNumber: body?.reraNumber || null, agencySize: body?.agencySize || undefined, specializations: Array.isArray(body?.specializations) ? body.specializations : [] } })
-      } catch (e: any) {
-        // ignore duplicate profile
+      let user = existingUser
+      if (existingUser) {
+        user = await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            name: existingUser.name || name,
+            password: existingUser.password || hashedPassword,
+            role: 'AGENCY',
+          },
+        })
+      } else {
+        try {
+          user = await prisma.user.create({
+            data: { name, email, password: hashedPassword, role: 'AGENCY', verified: false },
+          })
+        } catch (createErr: any) {
+          // P2002 = unique constraint (email already exists but findUnique failed)
+          if (createErr?.code === 'P2002') {
+            // Recover: fetch the user and update instead
+            const recovered = await prisma.user.findUnique({ where: { email } }).catch(() => null)
+            if (recovered) {
+              user = await prisma.user.update({
+                where: { id: recovered.id },
+                data: { name: recovered.name || name, password: recovered.password || hashedPassword, role: 'AGENCY' },
+              })
+            } else {
+              return NextResponse.json({ success: false, message: 'Registration failed. Please try again.' }, { status: 500 })
+            }
+          } else {
+            throw createErr
+          }
+        }
       }
 
-      await VerificationService.sendRegistrationOtp(email, 'agency', user.name, ip)
+      // create agency profile if not exists
+      if (!existingAgencyProfile && user) {
+        try {
+          await prisma.agencyProfile.create({
+            data: {
+              userId: user.id,
+              agencyName: name,
+              email: user.email,
+              phone: phone || null,
+              country: body?.country || null,
+              city: body?.city || null,
+              website: body?.website || null,
+              licenseNumber: body?.licenseNumber || null,
+              reraNumber: body?.reraNumber || null,
+              agencySize: body?.agencySize || undefined,
+              specializations: Array.isArray(body?.specializations) ? body.specializations : [],
+            },
+          })
+        } catch (e: any) {
+          // Ignore duplicate profile (P2002) — profile already exists
+          if (e?.code !== 'P2002') {
+            console.error('[register/agency] agencyProfile.create error:', e?.message)
+          }
+        }
+      }
+
+      await VerificationService.sendRegistrationOtp(email, 'agency', user!.name, ip)
 
       return NextResponse.json({ success: true, message: 'Registration successful. Please verify your email.', requiresVerification: true, redirectTo: `/agency/verify-otp?email=${encodeURIComponent(email)}` }, { status: 200 })
     }
@@ -426,7 +488,11 @@ export async function POST(req: Request) {
         )
       }
 
-      const existingUser = await prisma.user.findUnique({ where: { email }, include: { developerProfile: true } }).catch(() => null)
+      // Don't include developerProfile — may trigger schema mismatch errors
+      const existingUser = await prisma.user.findUnique({ where: { email } }).catch((err: any) => {
+        console.error('[register/developer] findUnique error:', err?.message)
+        return null
+      })
       if (existingUser) {
         const existingRole = String(existingUser.role || '').toUpperCase()
         if (existingRole !== 'DEVELOPER' && existingRole !== 'ADMIN') {
@@ -439,17 +505,43 @@ export async function POST(req: Request) {
 
       const hashedPassword = await bcrypt.hash(password, 10)
 
-      const user = existingUser
-        ? await prisma.user.update({ where: { id: existingUser.id }, data: { name: existingUser.name || name, password: existingUser.password || hashedPassword, role: 'DEVELOPER' } })
-        : await prisma.user.create({ data: { name, email, password: hashedPassword, role: 'DEVELOPER', verified: false } })
-
-      try {
-        await prisma.developerProfile.create({ data: { userId: user.id, companyName: name, phone: phone || null, website: body?.website || null } })
-      } catch (e: any) {
-        // ignore duplicate
+      let user = existingUser
+      if (existingUser) {
+        user = await prisma.user.update({
+          where: { id: existingUser.id },
+          data: { name: existingUser.name || name, password: existingUser.password || hashedPassword, role: 'DEVELOPER' },
+        })
+      } else {
+        try {
+          user = await prisma.user.create({
+            data: { name, email, password: hashedPassword, role: 'DEVELOPER', verified: false },
+          })
+        } catch (createErr: any) {
+          if (createErr?.code === 'P2002') {
+            const recovered = await prisma.user.findUnique({ where: { email } }).catch(() => null)
+            if (recovered) {
+              user = await prisma.user.update({
+                where: { id: recovered.id },
+                data: { name: recovered.name || name, password: recovered.password || hashedPassword, role: 'DEVELOPER' },
+              })
+            } else {
+              return NextResponse.json({ success: false, message: 'Registration failed. Please try again.' }, { status: 500 })
+            }
+          } else {
+            throw createErr
+          }
+        }
       }
 
-      await VerificationService.sendRegistrationOtp(email, 'developer', user.name, ip)
+      try {
+        await prisma.developerProfile.create({ data: { userId: user!.id, companyName: name, phone: phone || null, website: body?.website || null } })
+      } catch (e: any) {
+        if (e?.code !== 'P2002') {
+          console.error('[register/developer] developerProfile.create error:', e?.message)
+        }
+      }
+
+      await VerificationService.sendRegistrationOtp(email, 'developer', user!.name, ip)
 
       return NextResponse.json({ success: true, message: 'Registration successful. Please verify your email.', requiresVerification: true, redirectTo: `/developer/verify-otp?email=${encodeURIComponent(email)}` }, { status: 200 })
     }

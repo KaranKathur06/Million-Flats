@@ -245,9 +245,17 @@ export const VerificationService = {
           },
           orderBy: { createdAt: 'desc' },
         })
-        .catch(() => null)
+        .catch((err: any) => { console.error('[verifyOtp] role-specific lookup error:', err?.message); return null })
+
+      console.log('[verifyOtp] lookup', {
+        email: normalizedEmail,
+        role: expectedRole,
+        foundWithRole: !!otpRow,
+        otpRowId: otpRow?.id?.slice?.(0, 8) || null,
+      })
 
       if (!otpRow) {
+        // Fallback: role-agnostic lookup
         otpRow = await (prisma as any).loginOtp
           .findFirst({
             where: {
@@ -258,7 +266,13 @@ export const VerificationService = {
             },
             orderBy: { createdAt: 'desc' },
           })
-          .catch(() => null)
+          .catch((err: any) => { console.error('[verifyOtp] fallback lookup error:', err?.message); return null })
+
+        console.log('[verifyOtp] fallback lookup', {
+          foundWithoutRole: !!otpRow,
+          otpRowRole: otpRow?.role || null,
+          otpRowId: otpRow?.id?.slice?.(0, 8) || null,
+        })
       }
 
       if (!otpRow) {
@@ -274,6 +288,24 @@ export const VerificationService = {
             orderBy: { createdAt: 'desc' },
           })
           .catch(() => null)
+
+        // Also check for consumed OTPs to diagnose invalidation
+        const consumedOtp = await (prisma as any).loginOtp
+          .findFirst({
+            where: {
+              email: normalizedEmail,
+              consumed: true,
+            },
+            orderBy: { createdAt: 'desc' },
+          })
+          .catch(() => null)
+
+        console.log('[verifyOtp] no active OTP found', {
+          hasExpired: !!expiredOtp,
+          hasConsumed: !!consumedOtp,
+          consumedRole: consumedOtp?.role || null,
+          consumedAt: consumedOtp?.usedAt || consumedOtp?.createdAt || null,
+        })
 
         if (expiredOtp) {
           return {
@@ -292,6 +324,13 @@ export const VerificationService = {
 
       // Verify the OTP hash (constant-time comparison)
       const isValid = verifyToken(otp, String(otpRow.codeHash))
+      console.log('[verifyOtp] hash comparison', {
+        otpRowId: otpRow.id?.slice?.(0, 8),
+        isValid,
+        otpRole: otpRow.role,
+        attempts: otpRow.attempts,
+        codeHashPrefix: String(otpRow.codeHash).slice(0, 8),
+      })
       if (!isValid) {
         const attempts = Number(otpRow.attempts || 0) + 1
         const consumed = attempts >= OTP_CONFIG.maxAttempts

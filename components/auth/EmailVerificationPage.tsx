@@ -137,32 +137,13 @@ export default function EmailVerificationPage({
   // Resend cooldown (30 seconds)
   const resendCooldown = useCountdown(0)
 
-  // Auto-send OTP on mount
+  // Start expiry timer on mount — DO NOT auto-resend.
+  // Registration already sent the OTP. Auto-resending would invalidate it,
+  // causing the user's code to be rejected as "incorrect".
   useEffect(() => {
     if (!email || initialSendDone) return
-    let mounted = true
-
-    async function autoSend() {
-      try {
-        const res = await fetch('/api/auth/resend-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, type: portalType }),
-        })
-        if (!mounted) return
-        if (res.ok) {
-          setResent(true)
-          expiryTimer.restart(600) // 10 minutes
-          resendCooldown.restart(30)
-        }
-      } catch {
-        // ignore
-      } finally {
-        if (mounted) setInitialSendDone(true)
-      }
-    }
-    autoSend()
-    return () => { mounted = false }
+    expiryTimer.restart(600) // 10 minutes from page load
+    setInitialSendDone(true)
   }, [email, portalType]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-submit when 6 digits entered
