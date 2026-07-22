@@ -293,7 +293,7 @@ function LoginTab() {
           <ErrorBanner message={error} />
           {error === 'Please verify your email before signing in.' && (
             <div className="mt-3">
-              <Link href={`/developer/verify?email=${encodeURIComponent(email)}`} className="w-full inline-block text-center rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-sm font-semibold text-white hover:shadow-lg">
+              <Link href={`/developer/verify-otp?email=${encodeURIComponent(email)}`} className="w-full inline-block text-center rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-sm font-semibold text-white hover:shadow-lg">
                 Verify Email
               </Link>
             </div>
@@ -423,7 +423,8 @@ function RegisterTab() {
         setLoading(false);
         return;
       }
-      router.push('/developer/auth?tab=login');
+      // Follow the API's redirect (to OTP page) instead of hardcoding login
+      router.push(data?.redirectTo || '/developer/auth?tab=login');
     } catch {
       setError('Registration failed. Please try again.');
     } finally {

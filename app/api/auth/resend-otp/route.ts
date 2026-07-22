@@ -1,9 +1,5 @@
 import { NextResponse } from 'next/server'
-import crypto from 'crypto'
-import { signToken } from '@/lib/auth/token'
-import { prisma } from '@/lib/prisma'
-import { sendEmail } from '@/lib/email/sendEmail'
-import OTPEmail from '@/lib/email/templates/otpEmail'
+import { VerificationService, normalizeRole } from '@/lib/auth/verification-service'
 
 export const runtime = 'nodejs'
 
@@ -11,77 +7,22 @@ function safeString(value: unknown) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-
-function normalizeRole(input: unknown) {
-  const role = typeof input === 'string' ? input.trim().toUpperCase() : ''
-  if (['SUPERADMIN', 'ADMIN', 'VERIFIER', 'MODERATOR', 'AGENT', 'DEVELOPER'].includes(role)) return role
-  return 'USER'
-}
-
-function generateOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString()
-}
-
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null)
     const email = safeString(body?.email).toLowerCase()
     const requestedType = safeString(body?.type)
-    const requestedRole = normalizeRole(requestedType)
 
     if (!email) {
       return NextResponse.json({ success: false, message: 'Email address is required.' }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({ where: { email } }).catch(() => null)
-    if (!user) {
-      return NextResponse.json(
-        { success: true, message: 'If an account exists, a verification code will be sent.' },
-        { status: 200 }
-      )
-    }
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown'
 
-    const alreadyVerified = Boolean(user.verified) || Boolean(user.emailVerified)
-    if (alreadyVerified) {
-      return NextResponse.json({ success: true, message: 'Email already verified.' }, { status: 200 })
-    }
+    const result = await VerificationService.resendOtp(email, requestedType, ip)
 
-    const role = normalizeRole(requestedRole || user.role)
-    const otp = generateOtp()
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
-    const codeHash = signToken(otp)
-
-    await (prisma as any).loginOtp
-      .updateMany({ where: { email: user.email, role, consumed: false, usedAt: null }, data: { consumed: true } })
-      .catch(() => null)
-
-    await (prisma as any).loginOtp
-      .create({
-        data: {
-          id: crypto.randomUUID(),
-          email: user.email,
-          role,
-          codeHash,
-          attempts: 0,
-          expiresAt,
-          consumed: false,
-          ipAddress: null,
-        },
-      })
-      .catch(() => null)
-
-    await sendEmail({
-      to: user.email,
-      subject: 'Your MillionFlats verification code',
-      react: OTPEmail({ otp }),
-    }).catch(() => null)
-
-    // In non-production or when DEBUG_RESEND_OTP=1, include the numeric OTP in the JSON response
-    const includeOtp = process.env.NODE_ENV !== 'production' || process.env.DEBUG_RESEND_OTP === '1'
-    const responseBody: any = { success: true, message: 'Verification code sent to your email.' }
-    if (includeOtp) responseBody.otp = otp
-
-    return NextResponse.json(responseBody, { status: 200 })
+    const status = result.success ? 200 : result.code === 'RATE_LIMITED' ? 429 : 400
+    return NextResponse.json(result, { status })
   } catch (error) {
     console.error('[resend-otp] error', error)
     return NextResponse.json({ success: false, message: 'Internal server error.' }, { status: 500 })

@@ -77,7 +77,7 @@ export default function DeveloperLoginClient() {
 
             {error === 'Please verify your email before signing in.' && (
               <Link
-                href={`/developer/verify?email=${encodeURIComponent(formData.email)}`}
+                href={`/developer/verify-otp?email=${encodeURIComponent(formData.email)}`}
                 className="block w-full text-center h-12 leading-[3rem] rounded-xl font-medium bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 mt-3"
               >
                 Verify Email

@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
-import { sendEmail } from '@/lib/email/sendEmail'
-import OTPEmail from '@/lib/email/templates/otpEmail'
 import { parsePhoneNumberFromString } from 'libphonenumber-js'
 import crypto from 'crypto'
-import { signToken } from '@/lib/auth/token'
+import { VerificationService } from '@/lib/auth/verification-service'
 
 export const runtime = 'nodejs'
 
@@ -35,9 +33,7 @@ function getRoleScopedLoginRedirect(type: string, email?: string) {
   return `${base}?email=${encodeURIComponent(safeEmail)}`
 }
 
-function generateOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString()
-}
+// OTP generation now handled by VerificationService.sendRegistrationOtp()
 
 function normalizePhone(input: string) {
   return String(input || '')
@@ -175,33 +171,7 @@ export async function POST(req: Request) {
           })
 
           if (!updated.verified) {
-            const otp = generateOtp()
-            const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
-            const codeHash = signToken(otp)
-
-            await (prisma as any).loginOtp.updateMany({
-              where: { email: updated.email, role: 'USER', consumed: false, usedAt: null },
-              data: { consumed: true },
-            }).catch(() => null)
-
-            await (prisma as any).loginOtp.create({
-              data: {
-                id: crypto.randomUUID(),
-                email: updated.email,
-                role: 'USER',
-                codeHash,
-                attempts: 0,
-                expiresAt,
-                consumed: false,
-                ipAddress: ip,
-              },
-            }).catch(() => null)
-
-            await sendEmail({
-              to: email,
-              subject: 'Your MillionFlats verification code',
-              react: OTPEmail({ otp }),
-            }).catch(() => null)
+            await VerificationService.sendRegistrationOtp(email, 'user', updated.name, ip)
 
             return NextResponse.json(
               {
@@ -226,33 +196,7 @@ export async function POST(req: Request) {
         }
 
         if (!existingUser.verified) {
-          const otp = generateOtp()
-          const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
-          const codeHash = signToken(otp)
-
-          await (prisma as any).loginOtp.updateMany({
-            where: { email: existingUser.email, role: 'USER', consumed: false, usedAt: null },
-            data: { consumed: true },
-          }).catch(() => null)
-
-          await (prisma as any).loginOtp.create({
-            data: {
-              id: crypto.randomUUID(),
-              email: existingUser.email,
-              role: 'USER',
-              codeHash,
-              attempts: 0,
-              expiresAt,
-              consumed: false,
-              ipAddress: ip,
-            },
-          }).catch(() => null)
-
-          await sendEmail({
-            to: email,
-            subject: 'Your MillionFlats verification code',
-            react: OTPEmail({ otp }),
-          }).catch(() => null)
+          await VerificationService.sendRegistrationOtp(email, 'user', existingUser.name, ip)
 
           return NextResponse.json(
             {
@@ -301,33 +245,7 @@ export async function POST(req: Request) {
         },
       })
 
-      const otp = generateOtp()
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
-      const codeHash = signToken(otp)
-
-      await (prisma as any).loginOtp.updateMany({
-        where: { email: user.email, role: 'USER', consumed: false, usedAt: null },
-        data: { consumed: true },
-      }).catch(() => null)
-
-      await (prisma as any).loginOtp.create({
-        data: {
-          id: crypto.randomUUID(),
-          email: user.email,
-          role: 'USER',
-          codeHash,
-          attempts: 0,
-          expiresAt,
-          consumed: false,
-          ipAddress: ip,
-        },
-      }).catch(() => null)
-
-      await sendEmail({
-        to: email,
-        subject: 'Your MillionFlats verification code',
-        react: OTPEmail({ otp }),
-      }).catch(() => null)
+      await VerificationService.sendRegistrationOtp(email, 'user', user.name, ip)
 
       return NextResponse.json(
         {
@@ -442,33 +360,7 @@ export async function POST(req: Request) {
         }
       }
 
-      const otp = generateOtp()
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
-      const codeHash = signToken(otp)
-
-      await (prisma as any).loginOtp.updateMany({
-        where: { email: user.email, role: 'AGENT', consumed: false, usedAt: null },
-        data: { consumed: true },
-      }).catch(() => null)
-
-      await (prisma as any).loginOtp.create({
-        data: {
-          id: crypto.randomUUID(),
-          email: user.email,
-          role: 'AGENT',
-          codeHash,
-          attempts: 0,
-          expiresAt,
-          consumed: false,
-          ipAddress: ip,
-        },
-      }).catch(() => null)
-
-      await sendEmail({
-        to: email,
-        subject: 'Your MillionFlats verification code',
-        react: OTPEmail({ otp }),
-      }).catch(() => null)
+      await VerificationService.sendRegistrationOtp(email, 'agent', user.name, ip)
 
       return NextResponse.json(
         {
@@ -517,16 +409,9 @@ export async function POST(req: Request) {
         // ignore duplicate profile
       }
 
-      const otp = generateOtp()
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
-      const codeHash = signToken(otp)
+      await VerificationService.sendRegistrationOtp(email, 'agency', user.name, ip)
 
-      await (prisma as any).loginOtp.updateMany({ where: { email: user.email, role: 'AGENCY', consumed: false, usedAt: null }, data: { consumed: true } }).catch(() => null)
-      await (prisma as any).loginOtp.create({ data: { id: crypto.randomUUID(), email: user.email, role: 'AGENCY', codeHash, attempts: 0, expiresAt, consumed: false, ipAddress: ip } }).catch(() => null)
-
-      await sendEmail({ to: email, subject: 'Your MillionFlats verification code', react: OTPEmail({ otp }) }).catch(() => null)
-
-      return NextResponse.json({ success: true, message: 'Registration successful. Please verify your email.', requiresVerification: true, redirectTo: `/agency/verify?email=${encodeURIComponent(email)}` }, { status: 200 })
+      return NextResponse.json({ success: true, message: 'Registration successful. Please verify your email.', requiresVerification: true, redirectTo: `/agency/verify-otp?email=${encodeURIComponent(email)}` }, { status: 200 })
     }
 
     if (type === 'developer') {
@@ -564,16 +449,9 @@ export async function POST(req: Request) {
         // ignore duplicate
       }
 
-      const otp = generateOtp()
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
-      const codeHash = signToken(otp)
+      await VerificationService.sendRegistrationOtp(email, 'developer', user.name, ip)
 
-      await (prisma as any).loginOtp.updateMany({ where: { email: user.email, role: 'DEVELOPER', consumed: false, usedAt: null }, data: { consumed: true } }).catch(() => null)
-      await (prisma as any).loginOtp.create({ data: { id: crypto.randomUUID(), email: user.email, role: 'DEVELOPER', codeHash, attempts: 0, expiresAt, consumed: false, ipAddress: ip } }).catch(() => null)
-
-      await sendEmail({ to: email, subject: 'Your MillionFlats verification code', react: OTPEmail({ otp }) }).catch(() => null)
-
-      return NextResponse.json({ success: true, message: 'Registration successful. Please verify your email.', requiresVerification: true, redirectTo: `/developer/verify?email=${encodeURIComponent(email)}` }, { status: 200 })
+      return NextResponse.json({ success: true, message: 'Registration successful. Please verify your email.', requiresVerification: true, redirectTo: `/developer/verify-otp?email=${encodeURIComponent(email)}` }, { status: 200 })
     }
 
     return NextResponse.json({ success: false, message: 'Invalid user type' }, { status: 400 })

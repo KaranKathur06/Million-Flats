@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { signToken } from '@/lib/auth/token'
+import { VerificationService } from '@/lib/auth/verification-service'
 import crypto from 'crypto'
 import {
   validateAndNormalizeEmail,
@@ -152,22 +153,15 @@ export async function POST(req: Request) {
         },
       })
 
-      // Generate email verification token (24h validity)
-      const tokenRaw = crypto.randomBytes(32).toString('hex')
-      const tokenHash = signToken(tokenRaw)
-      await tx.emailVerificationToken.create({
-        data: {
-          userId: user.id,
-          tokenHash,
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-        },
-      })
-
-      return { user, agencyProfile, verificationToken: tokenRaw }
+      return { user, agencyProfile }
     })
 
-    // TODO: Send verification email
-    // await sendAgencyVerificationEmail(normalizedEmail, result.verificationToken)
+    // Send OTP via VerificationService
+    const otpResult = await VerificationService.sendRegistrationOtp(normalizedEmail, 'AGENCY')
+    if (!otpResult.success) {
+      // Log warning but don't fail registration - user can resend OTP
+      console.warn('[agency/register] Failed to send OTP:', otpResult.message)
+    }
 
     return NextResponse.json(
       {

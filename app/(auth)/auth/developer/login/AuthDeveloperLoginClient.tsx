@@ -79,7 +79,7 @@ export default function AuthDeveloperLoginClient() {
 
         {error === 'Please verify your email before signing in.' && (
           <Link
-            href={`/developer/verify?email=${encodeURIComponent(email)}`}
+            href={`/developer/verify-otp?email=${encodeURIComponent(email)}`}
             className="block w-full text-center h-10 leading-10 rounded-xl font-medium bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200"
           >
             Verify Email

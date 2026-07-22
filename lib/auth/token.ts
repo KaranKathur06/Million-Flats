@@ -16,12 +16,30 @@ export function signToken(token: string): string {
   return crypto.createHmac('sha256', pepper).update(token).digest('hex')
 }
 
+/**
+ * Constant-time token verification using crypto.timingSafeEqual.
+ * Iterates all peppers to support pepper rotation.
+ */
 export function verifyToken(token: string, expectedHash: string): boolean {
   const peppers = getPeppers()
   if (peppers.length === 0) return false
+  const expectedBuf = Buffer.from(expectedHash, 'hex')
   for (const p of peppers) {
     const h = crypto.createHmac('sha256', p).update(token).digest('hex')
-    if (h === expectedHash) return true
+    const candidateBuf = Buffer.from(h, 'hex')
+    if (candidateBuf.length === expectedBuf.length && crypto.timingSafeEqual(candidateBuf, expectedBuf)) {
+      return true
+    }
   }
   return false
+}
+
+/**
+ * Generate a cryptographically secure 6-digit OTP using crypto.randomInt.
+ * Never use Math.random() for security-sensitive code generation.
+ */
+export function generateSecureOtp(length = 6): string {
+  const max = Math.pow(10, length)
+  const min = Math.pow(10, length - 1)
+  return crypto.randomInt(min, max).toString()
 }

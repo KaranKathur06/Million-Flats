@@ -28,14 +28,15 @@ export default function OTPEmail({ otp, userName }: OTPEmailProps) {
                 </div>
             </Section>
 
-            <Text style={styles.heading}>Verify Your Login</Text>
+            <Text style={styles.heading}>Verify Your Email</Text>
 
             <Text style={styles.greeting}>
                 {userName ? `Hi ${userName},` : "Hi there,"}
             </Text>
 
             <Text style={styles.body}>
-                Use the verification code below to complete your login to MillionFlats.
+                Use the verification code below to verify your email address on MillionFlats.
+                This code is valid for <strong>10 minutes</strong> and can only be used once.
             </Text>
 
             {/* OTP Code Box */}
@@ -47,9 +48,14 @@ export default function OTPEmail({ otp, userName }: OTPEmailProps) {
                 ⏱ This code expires in <strong>10 minutes</strong>
             </Text>
 
+            <Text style={styles.securityNotice}>
+                🔒 <strong>Never share this code.</strong> MillionFlats will never ask for your verification code by phone or message.
+            </Text>
+
             <Text style={styles.disclaimer}>
-                If you did not request this code, please ignore this email or contact
-                our support team.
+                If you did not request this code, you can safely ignore this email.
+                If you&apos;re concerned about your account security, please contact our support team
+                at support@millionflats.com.
             </Text>
         </EmailLayout>
     );
@@ -102,6 +108,18 @@ const styles = {
         color: brandColors.textSecondary,
         textAlign: "center" as const,
         margin: "0 0 24px",
+    } as React.CSSProperties,
+
+    securityNotice: {
+        fontSize: "13px",
+        color: "#b45309",
+        backgroundColor: "#fffbeb",
+        border: "1px solid #fde68a",
+        borderRadius: "8px",
+        padding: "12px 16px",
+        margin: "0 0 20px",
+        lineHeight: "1.5",
+        textAlign: "center" as const,
     } as React.CSSProperties,
 
     disclaimer: {
