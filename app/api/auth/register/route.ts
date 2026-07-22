@@ -559,7 +559,7 @@ export async function POST(req: Request) {
         : await prisma.user.create({ data: { name, email, password: hashedPassword, role: 'DEVELOPER', verified: false } })
 
       try {
-        await prisma.developerProfile.create({ data: { userId: user.id, companyName: name, email: user.email, phone: phone || null, country: body?.country || null, city: body?.city || null, website: body?.website || null } })
+        await prisma.developerProfile.create({ data: { userId: user.id, companyName: name, phone: phone || null, website: body?.website || null } })
       } catch (e: any) {
         // ignore duplicate
       }
