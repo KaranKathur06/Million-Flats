@@ -55,10 +55,37 @@ const BASE_SELECT = {
   AIScore: true,
 } as const
 
+function normalizeCountryCode(country?: string) {
+  const value = String(country || '').trim().toUpperCase().replace(/\s+/g, '_')
+  if (!value) return undefined
+
+  switch (value) {
+    case 'UAE':
+    case 'UNITED_ARAB_EMIRATES':
+      return 'UAE'
+    case 'INDIA':
+      return 'INDIA'
+    case 'USA':
+    case 'UNITED_STATES':
+    case 'UNITED_STATES_OF_AMERICA':
+      return 'USA'
+    case 'UK':
+    case 'UNITED_KINGDOM':
+      return 'UK'
+    case 'AUSTRALIA':
+      return 'AUSTRALIA'
+    case 'SAUDI_ARABIA':
+    case 'SAUDI_ARAB':
+      return 'SAUDI_ARABIA'
+    default:
+      return value
+  }
+}
+
 function buildWhere(params: GetPublicDevelopersParams) {
   const where: Record<string, unknown> = { status: 'ACTIVE', isDeleted: false }
-  const country = (params.country || '').toUpperCase()
-  if (country === 'UAE' || country === 'INDIA') where.countryCode = country
+  const countryCode = normalizeCountryCode(params.country)
+  if (countryCode) where.countryCode = countryCode
   if (params.featured) where.isFeatured = true
   const search = (params.search || '').trim()
   if (search) where.name = { contains: search, mode: 'insensitive' }
@@ -181,15 +208,25 @@ export async function getPublicDeveloperStats() {
   }
 
   try {
-    const [projectCount, propertyCount] = await Promise.all([
+    const [projectCount, propertyCount, countryRows] = await Promise.all([
       (prisma as any).project.count({ where: { status: 'PUBLISHED', isDeleted: false } }),
       (prisma as any).manualProperty.count({ where: { status: 'APPROVED' } }),
+      (prisma as any).developer.findMany({
+        where: { status: 'ACTIVE', isDeleted: false },
+        distinct: ['countryCode'],
+        select: { countryCode: true },
+      }),
     ])
+
+    const countryCount = new Set(
+      countryRows.map((row: any) => String(row.countryCode || '').trim()).filter(Boolean)
+    ).size
+
     return {
       developers: developerCount || 0,
       projects: projectCount || 0,
       properties: propertyCount || 0,
-      countries: 2,
+      countries: countryCount || 1,
     }
   } catch {
     return { developers: developerCount || 0, projects: 0, properties: 0, countries: 2 }

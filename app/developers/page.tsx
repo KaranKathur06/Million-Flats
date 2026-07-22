@@ -122,7 +122,46 @@ export default async function DeveloperDirectoryPage() {
               '@type': 'Organization',
               name: 'MillionFlats',
               url: getMetadataBase() || undefined,
+              logo: 'https://millionflats.com/logo.png',
             },
+            mainEntity: {
+              '@type': 'ItemList',
+              numberOfItems: stats.developers,
+              itemListElement: initialDevelopers.slice(0, 10).map((developer: any, index: number) => ({
+                '@type': 'ListItem',
+                position: index + 1,
+                item: {
+                  '@type': 'Organization',
+                  name: developer.name,
+                  url: `${getMetadataBase()}/developers/${developer.slug}`,
+                  image: developer.logo,
+                  areaServed: developer.country,
+                },
+              })),
+            },
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              {
+                '@type': 'ListItem',
+                position: 1,
+                name: 'Home',
+                item: getMetadataBase() || undefined,
+              },
+              {
+                '@type': 'ListItem',
+                position: 2,
+                name: 'Developers',
+                item: `${getMetadataBase()}/developers`,
+              },
+            ],
           }),
         }}
       />

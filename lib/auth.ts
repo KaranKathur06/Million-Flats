@@ -129,7 +129,11 @@ export const authOptions: NextAuthOptions = {
         if (!email) return null
 
         const intent =
-          intentRaw === 'agent' || intentRaw === 'user' || intentRaw === 'developer' || intentRaw === 'admin'
+          intentRaw === 'agent' || 
+          intentRaw === 'user' || 
+          intentRaw === 'developer' || 
+          intentRaw === 'agency' ||
+          intentRaw === 'admin'
             ? intentRaw
             : ''
 
@@ -140,6 +144,8 @@ export const authOptions: NextAuthOptions = {
               ? 'AGENT'
               : intent === 'developer'
               ? 'DEVELOPER'
+              : intent === 'agency'
+              ? 'AGENCY'
               : intent === 'admin'
               ? 'ADMIN'
               : 'USER'
@@ -236,6 +242,11 @@ export const authOptions: NextAuthOptions = {
           if (intent === 'developer') {
             const role = String((user as any)?.role || '').toUpperCase()
             if (role !== 'DEVELOPER') throw new Error('DEVELOPER_NOT_REGISTERED')
+          }
+
+          if (intent === 'agency') {
+            const role = String((user as any)?.role || '').toUpperCase()
+            if (role !== 'AGENCY') throw new Error('AGENCY_NOT_REGISTERED')
           }
 
           // Update last login timestamp

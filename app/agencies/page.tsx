@@ -117,7 +117,46 @@ export default async function AgenciesDirectoryPage() {
               '@type': 'Organization',
               name: 'MillionFlats',
               url: getMetadataBase() || undefined,
+              logo: 'https://millionflats.com/logo.png',
             },
+            mainEntity: {
+              '@type': 'ItemList',
+              numberOfItems: stats.total,
+              itemListElement: initialAgencies.slice(0, 10).map((agency: any, index: number) => ({
+                '@type': 'ListItem',
+                position: index + 1,
+                item: {
+                  '@type': 'RealEstateAgent',
+                  name: agency.agencyName,
+                  url: `${getMetadataBase()}/agencies/${agency.slug}`,
+                  image: agency.logo,
+                  areaServed: agency.country,
+                },
+              })),
+            },
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              {
+                '@type': 'ListItem',
+                position: 1,
+                name: 'Home',
+                item: getMetadataBase() || undefined,
+              },
+              {
+                '@type': 'ListItem',
+                position: 2,
+                name: 'Agencies',
+                item: `${getMetadataBase()}/agencies`,
+              },
+            ],
           }),
         }}
       />

@@ -45,6 +45,8 @@ const navEntries: NavEntry[] = [
       </svg>
     ),
   },
+
+  /* ---- LEADS SECTION ---- */
   {
     href: "/admin/leads",
     label: "Leads",
@@ -64,6 +66,8 @@ const navEntries: NavEntry[] = [
       </svg>
     ),
   },
+
+  /* ---- GOVERNANCE SECTION ---- */
   {
     href: "/admin/governance",
     label: "Governance",
@@ -83,6 +87,8 @@ const navEntries: NavEntry[] = [
       </svg>
     ),
   },
+
+  /* ---- LISTINGS SECTION ---- */
   {
     href: "/admin/listings",
     label: "Listings",
@@ -102,6 +108,8 @@ const navEntries: NavEntry[] = [
       </svg>
     ),
   },
+
+  /* ---- DRAFTS SECTION ---- */
   {
     href: "/admin/drafts",
     label: "Drafts",
@@ -150,6 +158,29 @@ const navEntries: NavEntry[] = [
     ],
   },
 
+  /* ---- USERS SECTION ---- */
+  {
+    href: "/admin/users",
+    label: "Users",
+    icon: (
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+        />
+      </svg>
+    ),
+  },
+
+
+  /* ---- AGENTS SECTION ---- */
   {
     href: "/admin/agents",
     label: "Agents",
@@ -169,6 +200,7 @@ const navEntries: NavEntry[] = [
       </svg>
     ),
   },
+
 
   /* ---- BLOGS GROUP ---- */
   {
@@ -197,6 +229,7 @@ const navEntries: NavEntry[] = [
     ],
   },
 
+
   /* ---- ECOSYSTEM PARTNERS GROUP ---- */
   {
     label: "Ecosystem",
@@ -223,6 +256,33 @@ const navEntries: NavEntry[] = [
     ],
   },
 
+
+  /* ---- AGENCIES GROUP ---- */
+  {
+    label: "Agencies",
+    basePath: "/admin/agencies",
+    icon: (
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+        />
+      </svg>
+    ),
+    children: [
+      { href: "/admin/agencies", label: "All Agencies" },
+      { href: "/admin/agencies?status=UNDER_REVIEW", label: "Pending Approval" },
+    ],
+  },
+
+
   /* ---- DEVELOPERS GROUP ---- */
   {
     label: "Developers",
@@ -248,6 +308,9 @@ const navEntries: NavEntry[] = [
       { href: "/admin/developer-profiles", label: "Developer Applications" },
     ],
   },
+  
+  
+  /* ---- PROJECTS SECTION ---- */
   {
     href: "/admin/projects",
     label: "Projects",
@@ -267,6 +330,9 @@ const navEntries: NavEntry[] = [
       </svg>
     ),
   },
+  
+
+  /* ---- AI SECTION ---- */
   {
     href: "/admin/ai-shield",
     label: "AI Shield",
@@ -286,6 +352,9 @@ const navEntries: NavEntry[] = [
       </svg>
     ),
   },
+
+
+  /* ---- REPORTS SECTION ---- */ 
   {
     href: "/admin/reports",
     label: "Reports",
@@ -305,25 +374,8 @@ const navEntries: NavEntry[] = [
       </svg>
     ),
   },
-  {
-    href: "/admin/users",
-    label: "Users",
-    icon: (
-      <svg
-        className="h-4 w-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.8}
-          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-        />
-      </svg>
-    ),
-  },
+  
+  /* ---- AUDIT LOGS SECTION ---- */
   {
     href: "/admin/audit-logs",
     label: "Audit Logs",
@@ -343,6 +395,8 @@ const navEntries: NavEntry[] = [
       </svg>
     ),
   },
+
+  
   /* ---- SEO GROUP ---- */
   {
     label: "SEO",
@@ -366,6 +420,9 @@ const navEntries: NavEntry[] = [
       { href: "/admin/seo/sitemap-dashboard", label: "Sitemap Dashboard" },
     ],
   },
+
+  
+  /* ---- SETTING ---- */
   {
     label: "Settings",
     basePath: "/admin/settings",

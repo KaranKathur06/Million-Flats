@@ -27,6 +27,41 @@ const SORT_OPTIONS: { key: SortOption; label: string }[] = [
   { key: "alphabetical", label: "A–Z" },
 ];
 
+const COUNTRY_OPTIONS = [
+  { value: "", label: "All" },
+  { value: "UAE", label: "🇦🇪 UAE" },
+  { value: "INDIA", label: "🇮🇳 India" },
+  { value: "SAUDI_ARABIA", label: "🇸🇦 Saudi Arabia" },
+  { value: "USA", label: "🇺🇸 USA" },
+  { value: "UK", label: "🇬🇧 UK" },
+  { value: "AUSTRALIA", label: "🇦🇺 Australia" },
+];
+
+function getCountryLabel(country?: string | null) {
+  const normalized = String(country || "").trim().toUpperCase().replace(/\s+/g, "_");
+  switch (normalized) {
+    case "UAE":
+    case "UNITED_ARAB_EMIRATES":
+      return "🇦🇪 UAE";
+    case "INDIA":
+      return "🇮🇳 India";
+    case "SAUDI_ARABIA":
+    case "SAUDI_ARAB":
+      return "🇸🇦 Saudi Arabia";
+    case "UK":
+    case "UNITED_KINGDOM":
+      return "🇬🇧 UK";
+    case "USA":
+    case "UNITED_STATES":
+    case "UNITED_STATES_OF_AMERICA":
+      return "🇺🇸 USA";
+    case "AUSTRALIA":
+      return "🇦🇺 Australia";
+    default:
+      return String(country || "").trim() || "International";
+  }
+}
+
 function StarRating({ rating }: { rating: number }) {
   const full = Math.floor(rating);
   const hasHalf = rating - full >= 0.3;
@@ -141,7 +176,7 @@ export default function DeveloperDirectoryClient({
       {/* ═══════ ALL DEVELOPERS HEADER ═══════ */}
       <div className="mb-6">
         <h2 className="text-xl font-bold text-dark-blue sm:text-2xl">
-          {`Developers${country ? ` — ${country}` : ""}`}
+          {`Developers${country ? ` — ${getCountryLabel(country)}` : ""}`}
         </h2>
         <p className="mt-1 text-sm text-gray-500">
           {loading
@@ -359,12 +394,9 @@ function DeveloperCard({ developer: d }: { developer: DeveloperItem }) {
         {d.city && (
           <p className="mt-1 text-xs text-gray-400 font-medium">
             {d.city}
-            {d.countryCode
-              ? `, ${d.countryCode === "UAE" ? "UAE" : "India"}`
-              : ""}
+            {d.countryCode ? `, ${getCountryLabel(d.countryCode)}` : ""}
           </p>
         )}
-
         {d.shortDescription && (
           <p className="mt-2 text-sm text-gray-500 leading-relaxed line-clamp-2 min-h-[2.5rem]">
             {d.shortDescription}

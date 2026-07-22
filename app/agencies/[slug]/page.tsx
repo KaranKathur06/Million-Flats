@@ -46,7 +46,36 @@ export default async function AgencyProfilePage({ params }: AgencyPageProps) {
     where: { slug: params.slug },
     include: {
       user: { select: { email: true, phone: true, createdAt: true } },
-      linkedAgency: { select: { id: true, name: true, countryIso2: true } },
+      linkedAgency: {
+        select: {
+          id: true,
+          name: true,
+          countryIso2: true,
+          agents: {
+            select: {
+              id: true,
+              userId: true,
+              profilePhoto: true,
+              company: true,
+              yearsExperience: true,
+              totalListings: true,
+              user: { select: { name: true, email: true } },
+              listings: {
+                take: 6,
+                select: {
+                  id: true,
+                  title: true,
+                  image: true,
+                  price: true,
+                  bedrooms: true,
+                  location: true,
+                },
+              },
+            },
+            take: 8,
+          },
+        },
+      },
     },
   })
 
@@ -106,6 +135,36 @@ export default async function AgencyProfilePage({ params }: AgencyPageProps) {
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-medium">
                   ✓ Approved
                 </span>
+              )}
+            </div>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap gap-3">
+              {agency.email && (
+                <a
+                  href={`mailto:${agency.email}`}
+                  className="inline-flex items-center justify-center px-6 py-2.5 rounded-lg bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition shadow-md hover:shadow-lg"
+                >
+                  📧 Send Email
+                </a>
+              )}
+              {agency.phone && (
+                <a
+                  href={`tel:${agency.phone}`}
+                  className="inline-flex items-center justify-center px-6 py-2.5 rounded-lg border-2 border-blue-600 text-blue-600 font-medium text-sm hover:bg-blue-50 transition"
+                >
+                  📞 Call Now
+                </a>
+              )}
+              {agency.whatsapp && (
+                <a
+                  href={`https://wa.me/${agency.whatsapp.replace(/[^\d]/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center px-6 py-2.5 rounded-lg bg-emerald-600 text-white font-medium text-sm hover:bg-emerald-700 transition shadow-md hover:shadow-lg"
+                >
+                  💬 WhatsApp
+                </a>
               )}
             </div>
           </div>
@@ -200,6 +259,67 @@ export default async function AgencyProfilePage({ params }: AgencyPageProps) {
           </div>
         )}
 
+        {/* Team Members Section */}
+        {agency.linkedAgency && agency.linkedAgency.agents && agency.linkedAgency.agents.length > 0 && (
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Our Team</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {agency.linkedAgency.agents.map((agent: any) => (
+                <div key={agent.id} className="rounded-xl border border-gray-200 bg-white overflow-hidden hover:shadow-lg transition">
+                  {agent.profilePhoto && (
+                    <div className="aspect-square overflow-hidden bg-gray-100">
+                      <img src={agent.profilePhoto} alt={agent.user?.name || 'Agent'} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className="p-4">
+                    <h3 className="font-semibold text-gray-900 text-sm mb-1">{agent.user?.name || agent.company || 'Agent'}</h3>
+                    {agent.yearsExperience && (
+                      <p className="text-xs text-gray-500 mb-2">{agent.yearsExperience} years experience</p>
+                    )}
+                    <div className="text-xs text-gray-600 mb-3">
+                      <span className="font-medium">{agent.totalListings || 0}</span> listings
+                    </div>
+                    <a href={`/agent/${agent.userId}`} className="inline-block text-xs font-medium text-blue-600 hover:text-blue-700">
+                      View Profile →
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Featured Projects/Properties Section */}
+        {agency.linkedAgency && agency.linkedAgency.agents && agency.linkedAgency.agents.some((a: any) => a.listings?.length > 0) && (
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Featured Properties</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {agency.linkedAgency.agents.flatMap((agent: any) => agent.listings || []).slice(0, 6).map((listing: any) => (
+                <div key={listing.id} className="rounded-xl border border-gray-200 bg-white overflow-hidden hover:shadow-lg transition">
+                  {listing.image && (
+                    <div className="aspect-video overflow-hidden bg-gray-100">
+                      <img src={listing.image} alt={listing.title} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className="p-4">
+                    <h3 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">{listing.title}</h3>
+                    {listing.price && (
+                      <p className="text-sm font-bold text-emerald-600 mb-2">₹{(listing.price / 10000000).toFixed(1)}Cr</p>
+                    )}
+                    <div className="flex gap-2 text-xs text-gray-600 mb-3">
+                      {listing.bedrooms && <span>{listing.bedrooms} BHK</span>}
+                      {listing.location && <span>{listing.location}</span>}
+                    </div>
+                    <a href={`/properties/${listing.id}`} className="inline-block text-xs font-medium text-blue-600 hover:text-blue-700">
+                      View Details →
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Contact Section */}
         <div className="mb-12 rounded-2xl border border-gray-200 bg-gray-50 p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Get in Touch</h2>
@@ -282,28 +402,68 @@ export default async function AgencyProfilePage({ params }: AgencyPageProps) {
 
       {/* JSON-LD Schema */}
       {canonical && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'RealEstateAgent',
-              name: agency.agencyName,
-              url: canonical,
-              logo: agency.logo || undefined,
-              image: agency.banner || undefined,
-              description: agency.description || agency.shortDescription,
-              address: {
-                '@type': 'PostalAddress',
-                streetAddress: agency.address || undefined,
-                addressLocality: agency.city || undefined,
-                addressCountry: agency.country || undefined,
-              },
-              telephone: agency.phone || undefined,
-              email: agency.email || undefined,
-            }),
-          }}
-        />
+        <>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'RealEstateAgent',
+                name: agency.agencyName,
+                url: canonical,
+                logo: agency.logo || undefined,
+                image: agency.banner || undefined,
+                description: agency.description || agency.shortDescription,
+                address: {
+                  '@type': 'PostalAddress',
+                  streetAddress: agency.address || undefined,
+                  addressLocality: agency.city || undefined,
+                  addressRegion: agency.state || undefined,
+                  addressCountry: agency.country || undefined,
+                },
+                telephone: agency.phone || undefined,
+                email: agency.email || undefined,
+                sameAs: [
+                  agency.linkedinUrl,
+                  agency.instagramUrl,
+                  agency.facebookUrl,
+                ].filter(Boolean) as string[],
+                areaServed: agency.operatingAreas || agency.countriesServed || undefined,
+                knowsAbout: agency.specializations || undefined,
+                numberOfEmployees: agency.totalAgents || undefined,
+              }),
+            }}
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'BreadcrumbList',
+                itemListElement: [
+                  {
+                    '@type': 'ListItem',
+                    position: 1,
+                    name: 'Home',
+                    item: getMetadataBase() || undefined,
+                  },
+                  {
+                    '@type': 'ListItem',
+                    position: 2,
+                    name: 'Agencies',
+                    item: getMetadataBase() ? `${getMetadataBase()}/agencies` : undefined,
+                  },
+                  {
+                    '@type': 'ListItem',
+                    position: 3,
+                    name: agency.agencyName,
+                    item: canonical || undefined,
+                  },
+                ],
+              }),
+            }}
+          />
+        </>
       )}
     </div>
   )
