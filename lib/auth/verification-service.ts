@@ -13,9 +13,8 @@
 
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
-import { signToken, verifyToken, generateSecureOtp } from '@/lib/auth/token'
+import { signToken, verifyToken, generateSecureOtp, getSigningKeyId } from '@/lib/auth/token'
 import { sendEmail } from '@/lib/email/sendEmail'
-import OTPEmail from '@/lib/email/templates/otpEmail'
 import { getRedis, setWithExpiry, getValue, incrWithExpiry } from '@/lib/redis'
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -133,35 +132,47 @@ export const VerificationService = {
       const normalizedEmail = email.trim().toLowerCase()
       const normalizedRole = normalizeRole(role)
 
-      // Invalidate all previous OTPs for this email+role
-      await (prisma as any).loginOtp
-        .updateMany({
+      const now = new Date()
+      const otp = generateSecureOtp(OTP_CONFIG.length)
+
+      // Invalidate all previous OTPs for this email+role in a single transaction.
+      await prisma.$transaction(async (tx: any) => {
+        await tx.loginOtp.updateMany({
           where: {
             email: normalizedEmail,
             role: normalizedRole,
             consumed: false,
             usedAt: null,
           },
-          data: { consumed: true },
+          data: {
+            consumed: true,
+            usedAt: now,
+          },
+        }).catch(() => null)
+
+        // Generate new OTP
+        const expiresAt = new Date(Date.now() + OTP_CONFIG.expiryMs)
+        const codeHash = signToken(otp)
+        const keyId = getSigningKeyId()
+
+        await tx.loginOtp.create({
+          data: {
+            id: crypto.randomUUID(),
+            email: normalizedEmail,
+            role: normalizedRole,
+            codeHash,
+            attempts: 0,
+            expiresAt,
+            consumed: false,
+            ipAddress: ipAddress || null,
+            createdAt: now,
+            usedAt: null,
+            loginTokenHash: null,
+            loginTokenExpiresAt: null,
+            // keyId is optional for the current schema; if column exists it will be used.
+            ...(process.env.PRISMA_GENERATED_WITH_KEYID === '1' ? { keyId } : {}),
+          },
         })
-        .catch(() => null)
-
-      // Generate new OTP
-      const otp = generateSecureOtp(OTP_CONFIG.length)
-      const expiresAt = new Date(Date.now() + OTP_CONFIG.expiryMs)
-      const codeHash = signToken(otp)
-
-      await (prisma as any).loginOtp.create({
-        data: {
-          id: crypto.randomUUID(),
-          email: normalizedEmail,
-          role: normalizedRole,
-          codeHash,
-          attempts: 0,
-          expiresAt,
-          consumed: false,
-          ipAddress: ipAddress || null,
-        },
       })
 
       return { success: true, otp, message: 'OTP generated successfully' }
@@ -222,7 +233,7 @@ export const VerificationService = {
         }
       }
 
-      // Find active OTP — first try role-specific, then role-agnostic fallback
+      // Find the most recent active OTP for this email, preferring the role-specific one.
       let otpRow = await (prisma as any).loginOtp
         .findFirst({
           where: {
@@ -236,7 +247,6 @@ export const VerificationService = {
         })
         .catch(() => null)
 
-      // Fallback: role-agnostic lookup
       if (!otpRow) {
         otpRow = await (prisma as any).loginOtp
           .findFirst({
@@ -499,11 +509,16 @@ export const VerificationService = {
       }
 
       // Send email
-      await sendEmail({
-        to: user.email,
-        subject: 'Your MillionFlats verification code',
-        react: OTPEmail({ otp: result.otp, userName: user.name || undefined }),
-      }).catch(() => null)
+      try {
+        const { default: OTPEmail } = await import('@/lib/email/templates/otpEmail')
+        await sendEmail({
+          to: user.email,
+          subject: 'Your MillionFlats verification code',
+          react: OTPEmail({ otp: result.otp, userName: user.name || undefined }),
+        }).catch(() => null)
+      } catch (emailError) {
+        console.warn('[VerificationService.resendOtp] failed to send email', emailError)
+      }
 
       // Set cooldown
       if (redis) {
@@ -550,11 +565,16 @@ export const VerificationService = {
 
     if (!result.success || !result.otp) return result
 
-    await sendEmail({
-      to: normalizedEmail,
-      subject: 'Your MillionFlats verification code',
-      react: OTPEmail({ otp: result.otp, userName: userName || undefined }),
-    }).catch(() => null)
+    try {
+      const { default: OTPEmail } = await import('@/lib/email/templates/otpEmail')
+      await sendEmail({
+        to: normalizedEmail,
+        subject: 'Your MillionFlats verification code',
+        react: OTPEmail({ otp: result.otp, userName: userName || undefined }),
+      }).catch(() => null)
+    } catch (emailError) {
+      console.warn('[VerificationService.sendRegistrationOtp] failed to send email', emailError)
+    }
 
     return result
   },

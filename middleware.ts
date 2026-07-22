@@ -29,11 +29,16 @@ const PUBLIC_AUTH_PREFIXES = [
   '/developer/forgot-password',
   '/developer/verify-email',
   '/developer/verify',
+  '/developer/verify-otp',
   // Agency auth pages
   '/agency/auth',
   '/agency/verify-email',
+  '/agency/verify-otp',
   // Admin auth page
   '/admin/login',
+  // One-off OTP entry pages used by clients
+  '/agent/verify-otp',
+  '/user/verify-otp',
 ]
 
 function isPublicAuth(pathname: string) {

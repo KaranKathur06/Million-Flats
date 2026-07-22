@@ -10,6 +10,10 @@ function getPeppers(): string[] {
   return list.split(',').map(s => s.trim()).filter(Boolean)
 }
 
+export function getSigningKeyId(): string {
+  return process.env.TOKEN_KEY_ID || 'default'
+}
+
 export function signToken(token: string): string {
   const peppers = getPeppers()
   const pepper = peppers[0] || ''
