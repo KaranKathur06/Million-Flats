@@ -10,6 +10,15 @@ import { signIn } from "next-auth/react";
 type Tab = "login" | "register";
 type Step = "form" | "otp";
 
+type PasswordStrength = 'weak' | 'medium' | 'strong'
+
+const getPasswordStrength = (password: string): PasswordStrength => {
+  if (!password) return 'weak'
+  if (password.length < 8) return 'weak'
+  if (password.length < 12 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) return 'medium'
+  return 'strong'
+}
+
 /* ─────────────────────────────────────────────
    Country Codes — Searchable
    ───────────────────────────────────────────── */
@@ -336,8 +345,11 @@ function LoginTab() {
             placeholder="••••••••"
             className="w-full h-12 px-4 pr-12 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-dark-blue/15 focus:border-dark-blue focus:bg-white transition-all outline-none"
           />
-          <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-dark-blue">
-            {showPassword ? 'Hide' : 'Show'}
+          <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-dark-blue transition-transform duration-200" aria-label={showPassword ? 'Hide password' : 'Show password'}>
+            <svg className={`w-5 h-5 ${showPassword ? 'rotate-90' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 4.5C7 4.5 3 8 1.5 12c1.5 4 5.5 7.5 10.5 7.5s9-3.5 10.5-7.5C21 8 17 4.5 12 4.5z" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="12" cy="12" r="3" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
         </div>
       </div>
@@ -396,6 +408,9 @@ function RegisterTab() {
     website: "",
     specializations: [] as string[],
   });
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>('weak')
 
   const fullPhone = `${form.cc}${form.phone}`;
 
@@ -484,16 +499,55 @@ function RegisterTab() {
 
       <div>
         <label className={labelCls}>Password</label>
-        <input type="password" required value={(form as any).password} onChange={field("password")}
-          placeholder="Create a strong password"
-          className={inputCls} />
+        <div className="relative">
+          <input
+            type={showRegisterPassword ? 'text' : 'password'}
+            required
+            value={(form as any).password}
+            onChange={(e) => { field('password')(e as any); setPasswordStrength(getPasswordStrength((e.target as HTMLInputElement).value)) }}
+            placeholder="Create a strong password"
+            className={inputCls}
+          />
+          <button type="button" onClick={() => setShowRegisterPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-dark-blue transition" aria-label={showRegisterPassword ? 'Hide password' : 'Show password'}>
+            {showRegisterPassword ? (
+              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/></svg>
+            ) : (
+              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd"/><path d="M15.171 13.576l1.472 1.473a1 1 0 001.414-1.414l-14-14a1 1 0 00-1.414 1.414l1.473 1.473A10.014 10.014 0 00.458 10c1.274 4.057 5.065 7 9.542 7 2.412 0 4.7-.597 6.689-1.654z"/></svg>
+            )}
+          </button>
+        </div>
+        {(form as any).password && (
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden">
+                <div className={`h-full transition-all ${passwordStrength === 'strong' ? 'w-full bg-gradient-to-r from-green-400 to-green-500' : passwordStrength === 'medium' ? 'w-2/3 bg-gradient-to-r from-yellow-400 to-yellow-500' : 'w-1/3 bg-gradient-to-r from-red-400 to-red-500'}`} />
+              </div>
+              <span className="text-xs font-semibold text-slate-600 capitalize">{passwordStrength}</span>
+            </div>
+            <p className="text-xs text-slate-500">
+              {passwordStrength === 'weak' && 'Use at least 8 characters with uppercase and numbers'}
+              {passwordStrength === 'medium' && 'Good! Add more complexity for stronger security'}
+              {passwordStrength === 'strong' && 'Excellent! Your password is strong'}
+            </p>
+          </div>
+        )}
       </div>
 
       <div>
         <label className={labelCls}>Confirm Password</label>
-        <input type="password" required value={(form as any).confirmPassword} onChange={field("confirmPassword")}
-          placeholder="Confirm your password"
-          className={inputCls} />
+        <div className="relative">
+          <input type={showConfirmPassword ? 'text' : 'password'} required value={(form as any).confirmPassword} onChange={field('confirmPassword')} placeholder="Confirm your password" className={`${inputCls} ${(form as any).confirmPassword && (form as any).password !== (form as any).confirmPassword ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' : ''}`} />
+          <button type="button" onClick={() => setShowConfirmPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-dark-blue transition" aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}>
+            {showConfirmPassword ? (
+              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/></svg>
+            ) : (
+              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd"/><path d="M15.171 13.576l1.472 1.473a1 1 0 001.414-1.414l-14-14a1 1 0 00-1.414 1.414l1.473 1.473A10.014 10.014 0 00.458 10c1.274 4.057 5.065 7 9.542 7 2.412 0 4.7-.597 6.689-1.654z"/></svg>
+            )}
+          </button>
+        </div>
+        {(form as any).confirmPassword && (form as any).password !== (form as any).confirmPassword && (
+          <p className="mt-2 text-xs text-red-600 flex items-center gap-1.5">Passwords don't match</p>
+        )}
       </div>
 
       <div>
