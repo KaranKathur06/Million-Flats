@@ -122,57 +122,25 @@ export default function AgentVerificationCenter({
     if (!file) return
     setUploading(docType)
     try {
-      // 1. Get presigned URL from new agent documents presign endpoint
-      const presignRes = await fetch('/api/agent/documents/presign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          documentType: docType,
-          filename: file.name,
-          contentType: file.type || 'application/octet-stream',
-          sizeBytes: file.size,
-        }),
+      const presign = await (await import('@/lib/upload-client')).requestPresign('/api/agent/documents/presign', {
+        documentType: docType,
+        filename: file.name,
+        contentType: file.type || 'application/octet-stream',
+        sizeBytes: file.size,
       })
 
-      if (!presignRes.ok) {
-        const errData = await presignRes.json().catch(() => null)
-        throw new Error(errData?.error?.message || errData?.message || 'Failed to get upload URL')
-      }
+      if (!presign || !presign.uploadUrl) throw new Error('Presign response missing uploadUrl')
 
-      const presignData = await presignRes.json().catch(() => null)
-      if (!presignData?.success) {
-        throw new Error(presignData?.error?.message || presignData?.message || 'Failed to get upload URL')
-      }
+      await (await import('@/lib/upload-client')).uploadToSignedUrl(presign.uploadUrl, file)
 
-      // 2. Upload to S3 using presigned URL
-      const uploadRes = await fetch(presignData.uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type || 'application/octet-stream' },
-        body: file,
+      await (await import('@/lib/upload-client')).saveDocumentRecord('/api/agent/documents', {
+        documentType: docType,
+        fileUrl: presign.objectUrl || presign.objectUrl,
+        s3Key: presign.key,
+        fileName: file.name,
+        mimeType: file.type,
+        sizeBytes: file.size,
       })
-
-      if (!uploadRes.ok) {
-        throw new Error('Upload to storage failed')
-      }
-
-      // 3. Save document metadata to database
-      const saveRes = await fetch('/api/agent/documents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          documentType: docType,
-          fileUrl: presignData.objectUrl,
-          s3Key: presignData.key,
-          fileName: file.name,
-          mimeType: file.type,
-          sizeBytes: file.size,
-        }),
-      })
-
-      if (!saveRes.ok) {
-        const errData = await saveRes.json().catch(() => null)
-        throw new Error(errData?.error?.message || errData?.message || errData?.error || 'Failed to save document')
-      }
 
       await fetchDocuments()
     } catch (err) {

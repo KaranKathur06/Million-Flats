@@ -965,6 +965,7 @@ enum AuditEntityType {
   ECOSYSTEM_PARTNER_APPLICATION
   PROJECT
   DEVELOPER_PROFILE
+  AGENCY_PROFILE
 }
 
 enum AuditAction {
@@ -1018,6 +1019,14 @@ enum AuditAction {
   ADMIN_DEVELOPER_DOCUMENT_APPROVED
   ADMIN_DEVELOPER_DOCUMENT_REJECTED
   ADMIN_DEVELOPER_LINKED
+  AGENCY_PROFILE_SUBMITTED
+  ADMIN_AGENCY_APPROVED
+  ADMIN_AGENCY_REJECTED
+  ADMIN_AGENCY_VERIFIED
+  ADMIN_AGENCY_SUSPENDED
+  ADMIN_AGENCY_UNSUSPENDED
+  ADMIN_AGENCY_FEATURED
+  ADMIN_AGENCY_LINKED
 }
 
 model AuditLog {
@@ -2844,9 +2853,11 @@ model DeveloperProfile {
   // ── Admin Fields ───────────────────────────────────────────────────────────
   approvedBy             String?                   @map("approved_by")
   approvedAt             DateTime?                 @map("approved_at")
+  verifiedAt             DateTime?                 @map("verified_at")
   rejectionReason        String?                   @db.Text @map("rejection_reason")
   suspendedAt            DateTime?                 @map("suspended_at")
   suspendedBy            String?                   @map("suspended_by")
+  adminNotes             String?                   @db.Text @map("admin_notes")
 
   // Admin-provided match suggestion during verification
   // Stores suggested existing developer IDs from fuzzy name matching

@@ -28,28 +28,28 @@ export default function DeveloperVerificationPage() {
   const handleFileChange = async (docType: string, file: File) => {
     setUpload(docType, { uploading: true, done: false, error: undefined })
     try {
-      // 1. Get presigned S3 URL
-      const presignRes = await fetch('/api/developer/documents/presign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ documentType: docType, fileName: file.name, mimeType: file.type }),
+      const uploadClient = await import('@/lib/upload-client')
+      const presign = await uploadClient.requestPresign('/api/developer/documents/presign', {
+        documentType: docType,
+        fileName: file.name,
+        mimeType: file.type,
+        sizeBytes: file.size,
       })
-      if (!presignRes.ok) throw new Error('Failed to get upload URL')
-      const { uploadUrl, fileUrl, s3Key } = await presignRes.json()
 
-      // 2. Upload to S3
-      const s3Res = await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
-      if (!s3Res.ok) throw new Error('Upload failed')
+      if (!presign || !presign.uploadUrl) throw new Error('Presign response missing uploadUrl')
 
-      // 3. Save document record
-      const saveRes = await fetch('/api/developer/documents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ documentType: docType, fileUrl, s3Key, fileName: file.name, mimeType: file.type, sizeBytes: file.size }),
+      await uploadClient.uploadToSignedUrl(presign.uploadUrl, file)
+
+      await uploadClient.saveDocumentRecord('/api/developer/documents', {
+        documentType: docType,
+        fileUrl: presign.fileUrl || presign.objectUrl || presign.fileUrl,
+        s3Key: presign.s3Key || presign.key,
+        fileName: file.name,
+        mimeType: file.type,
+        sizeBytes: file.size,
       })
-      if (!saveRes.ok) throw new Error('Failed to save document')
 
-      setUpload(docType, { uploading: false, done: true, url: fileUrl })
+      setUpload(docType, { uploading: false, done: true, url: presign.fileUrl || presign.objectUrl })
     } catch (e: any) {
       setUpload(docType, { uploading: false, done: false, error: e.message || 'Upload failed' })
     }

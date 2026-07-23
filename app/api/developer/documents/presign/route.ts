@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { buildApiSuccessEnvelope, buildApiErrorEnvelope } from '@/lib/api-response'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
@@ -70,5 +71,5 @@ export async function POST(req: NextRequest) {
 
   const fileUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'ap-south-1'}.amazonaws.com/${s3Key}`
 
-  return NextResponse.json({ uploadUrl, fileUrl, s3Key })
+  return NextResponse.json(buildApiSuccessEnvelope({ uploadUrl, fileUrl, s3Key }, 'Upload ready'))
 }

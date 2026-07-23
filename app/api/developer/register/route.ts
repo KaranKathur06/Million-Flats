@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
-import { signToken } from '@/lib/auth/token'
 import { VerificationService } from '@/lib/auth/verification-service'
+import { createDeveloperLifecycle } from '@/lib/lifecycle/partnerLifecycle'
 import {
   validateAndNormalizeEmail,
   validatePasswordStrength,
@@ -52,6 +51,9 @@ export async function POST(req: NextRequest) {
     const companyName = typeof body?.companyName === 'string' ? body.companyName.trim() : ''
     const phone = typeof body?.phone === 'string' ? body.phone.trim() : ''
     const phoneCountryCode = typeof body?.phoneCountryCode === 'string' ? body.phoneCountryCode.trim() : ''
+    const website = typeof body?.website === 'string' ? body.website.trim() : ''
+    const countryIso2 = typeof body?.countryIso2 === 'string' ? body.countryIso2.trim().toUpperCase() : ''
+    const city = typeof body?.city === 'string' ? body.city.trim() : ''
 
     // ──── Email Validation ────
     const emailValidation = validateAndNormalizeEmail(email)
@@ -109,9 +111,8 @@ export async function POST(req: NextRequest) {
     // ──── Hash Password ────
     const passwordHash = await hashPassword(password)
 
-    // ──── Create User + DeveloperProfile in Transaction ────
+    // ──── Create User + DeveloperProfile + Developer in Transaction ────
     const result = await prisma.$transaction(async (tx) => {
-      // Create User
       const user = await tx.user.create({
         data: {
           email: normalizedEmail,
@@ -124,21 +125,19 @@ export async function POST(req: NextRequest) {
         } as any,
       })
 
-      // Create DeveloperProfile
-      const profile = await (tx as any).developerProfile.create({
-        data: {
-          userId: user.id,
-          companyName,
-          phone: phone || null,
-          phoneCountryCode: phoneCountryCode || null,
-          onboardingStatus: 'REGISTERED',
-          kycStatus: 'PENDING',
-          isVerified: false,
-          profileCompletion: 0,
-        },
+      const lifecycle = await createDeveloperLifecycle(tx as any, {
+        userId: user.id,
+        email: normalizedEmail,
+        companyName,
+        phone: phone || null,
+        phoneCountryCode: phoneCountryCode || null,
+        website: website || null,
+        countryIso2: countryIso2 || null,
+        city: city || null,
+        source: 'SELF_REGISTRATION',
       })
 
-      return { user, profile }
+      return { user, profile: lifecycle.profile, developer: lifecycle.developer }
     })
 
     // Send OTP via VerificationService
@@ -153,6 +152,7 @@ export async function POST(req: NextRequest) {
         success: true,
         userId: result.user.id,
         profileId: result.profile.id,
+        developerId: result.developer.id,
         message: 'Account created. Please verify your email to continue.',
       },
       { status: 201 }
