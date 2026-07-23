@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { CitySelector, CountrySelector } from '@/components/location/CountryCitySelector'
 
 const PROPERTY_TYPES = ['RESIDENTIAL', 'COMMERCIAL', 'VILLA', 'TOWNSHIP', 'MIXED_USE', 'OFFICE', 'RETAIL', 'LUXURY', 'AFFORDABLE']
 const CURRENCIES = ['AED', 'INR', 'USD', 'GBP', 'EUR']
@@ -16,7 +17,7 @@ export default function ProjectCreatePage() {
 
   const [form, setForm] = useState({
     // Basic
-    name: '', description: '', city: '', locality: '', country: 'UAE', propertyType: '',
+    name: '', description: '', city: '', locality: '', country: 'AE', propertyType: '',
     // Pricing
     startPrice: '', maxPrice: '', currency: 'AED', bookingAmount: '',
     // Details
@@ -28,6 +29,7 @@ export default function ProjectCreatePage() {
   })
 
   const set = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }))
+  const setCountry = (code: string) => setForm(p => ({ ...p, country: code, city: '' }))
 
   const tf = (id: string, label: string, key: keyof typeof form, type = 'text', placeholder = '', required = false) => (
     <div>
@@ -104,18 +106,21 @@ export default function ProjectCreatePage() {
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all text-sm resize-none"
                 placeholder="Describe your project — location highlights, unique features, lifestyle..." />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              {tf('pc-city', 'City', 'city', 'text', 'e.g. Dubai')}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <CitySelector
+                countryCode={form.country}
+                value={form.city}
+                onChange={({ name }) => set('city', name)}
+                appearance="premium-light"
+              />
               {tf('pc-locality', 'Locality / Area', 'locality', 'text', 'e.g. Damac Lagoons')}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Country</label>
-                <select value={form.country} onChange={e => set('country', e.target.value)} className="w-full h-11 px-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-dark-blue transition-all text-sm bg-white">
-                  <option value="UAE">UAE</option>
-                  <option value="INDIA">India</option>
-                </select>
-              </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <CountrySelector
+                value={form.country}
+                onChange={({ code }) => setCountry(code)}
+                appearance="premium-light"
+              />
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Property Type</label>
                 <select value={form.propertyType} onChange={e => set('propertyType', e.target.value)} className="w-full h-11 px-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-dark-blue transition-all text-sm bg-white">

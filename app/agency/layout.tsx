@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import AgencyShellClient from './_components/AgencyShellClient'
 
 export default async function AgencyLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
@@ -12,7 +13,7 @@ export default async function AgencyLayout({ children }: { children: React.React
   
   if (session?.user && role === 'AGENCY') {
     // User is authenticated and authorized
-    return <>{children}</>
+    return <AgencyShellClient session={session}>{children}</AgencyShellClient>
   }
   
   // Not authenticated or wrong role - just render children

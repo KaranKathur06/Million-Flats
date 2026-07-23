@@ -104,8 +104,14 @@ export default function AgentVerificationCenter({
   const fetchDocuments = async () => {
     try {
       const res = await fetch('/api/agent/documents')
-      const data = await res.json()
-      if (res.ok) setDocuments(data.documents || [])
+      const data = await res.json().catch(() => null)
+      if (res.ok && data?.success) {
+        setDocuments(data.data?.documents || [])
+      } else {
+        setDocuments([])
+      }
+    } catch {
+      setDocuments([])
     } finally {
       setLoading(false)
     }
@@ -130,12 +136,12 @@ export default function AgentVerificationCenter({
 
       if (!presignRes.ok) {
         const errData = await presignRes.json().catch(() => null)
-        throw new Error(errData?.message || 'Failed to get upload URL')
+        throw new Error(errData?.error?.message || errData?.message || 'Failed to get upload URL')
       }
 
-      const presignData = await presignRes.json()
-      if (!presignData.success) {
-        throw new Error(presignData.message || 'Failed to get upload URL')
+      const presignData = await presignRes.json().catch(() => null)
+      if (!presignData?.success) {
+        throw new Error(presignData?.error?.message || presignData?.message || 'Failed to get upload URL')
       }
 
       // 2. Upload to S3 using presigned URL
@@ -165,7 +171,7 @@ export default function AgentVerificationCenter({
 
       if (!saveRes.ok) {
         const errData = await saveRes.json().catch(() => null)
-        throw new Error(errData?.error || 'Failed to save document')
+        throw new Error(errData?.error?.message || errData?.message || errData?.error || 'Failed to save document')
       }
 
       await fetchDocuments()

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 import OtpCodeInput from '@/components/OtpCodeInput'
 import Link from 'next/link'
 
@@ -171,8 +172,19 @@ export default function EmailVerificationPage({
         setSuccess(true)
         // Brief success animation before redirect
         setTimeout(() => {
-          router.push(redirectOnSuccess)
-        }, 1500)
+          void (async () => {
+            if (data?.loginToken && data?.email) {
+              await signIn('credentials', {
+                email: data.email,
+                loginToken: data.loginToken,
+                intent: portalType,
+                redirect: false,
+              })
+            }
+            router.refresh()
+            router.push(redirectOnSuccess)
+          })()
+        }, 900)
       } else {
         setError(getErrorMessage(data))
         // If already verified, redirect after a delay

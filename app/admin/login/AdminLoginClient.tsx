@@ -149,7 +149,7 @@ export default function AdminLoginClient() {
 
         <div className="flex items-center justify-end">
           <Link
-            href="/user/forgot-password"
+            href="/admin/forgot-password"
             className="text-sm font-medium text-dark-blue hover:text-dark-blue/80 transition-colors"
           >
             Forgot password?

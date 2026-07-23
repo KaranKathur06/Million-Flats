@@ -88,7 +88,7 @@ export default function AuthAgencyLoginClient() {
 
         {error === 'Password is not set for this account. Please reset your password.' && (
           <Link
-            href={`/auth/agency/forgot-password?email=${encodeURIComponent(email)}`}
+            href={`/agency/forgot-password?email=${encodeURIComponent(email)}`}
             className="block w-full text-center h-10 leading-10 rounded-xl font-medium bg-gray-900 text-white hover:bg-gray-800 transition-all duration-200"
           >
             Reset Password

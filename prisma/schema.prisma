@@ -2852,7 +2852,7 @@ model DeveloperProfile {
   // Stores suggested existing developer IDs from fuzzy name matching
   adminMatchSuggestions  Json?                     @map("admin_match_suggestions")
 
-  // ── AIDeveloper™ Score ──────────────────────────────────────────────────
+  // ── AI Developer Score (optional, feature-flagged) ─────────────────────
   AIDeveloperScore    Int?                      @map("AI_developer_score")
   AIScoreBreakdown    Json?                     @map("AI_score_breakdown")
   AIScoredAt          DateTime?                 @map("AI_scored_at")
@@ -3065,7 +3065,7 @@ model AgencyProfile {
   totalListings         Int                     @default(0) @map("total_listings")
   totalClosedDeals      Int                     @default(0) @map("total_closed_deals")
 
-  // AIAgency™ score
+  // AIAgency™ score (optional, feature-flagged)
   AIAgencyScore      Int?                    @map("AI_agency_score")
   AIScoreBreakdown   Json?                   @map("AI_score_breakdown")
   AIScoredAt         DateTime?               @map("AI_scored_at")

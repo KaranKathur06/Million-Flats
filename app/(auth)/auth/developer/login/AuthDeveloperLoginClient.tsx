@@ -88,7 +88,7 @@ export default function AuthDeveloperLoginClient() {
 
         {error === 'Password is not set for this account. Please reset your password.' && (
           <Link
-            href={`/auth/developer/forgot-password?email=${encodeURIComponent(email)}`}
+            href={`/developer/forgot-password?email=${encodeURIComponent(email)}`}
             className="block w-full text-center h-10 leading-10 rounded-xl font-medium bg-gray-900 text-white hover:bg-gray-800 transition-all duration-200"
           >
             Reset Password
@@ -119,7 +119,7 @@ export default function AuthDeveloperLoginClient() {
               Password
             </label>
             <Link
-              href={`/auth/developer/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+              href={`/developer/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
               className="text-xs text-blue-600 hover:text-blue-700"
             >
               Forgot password?

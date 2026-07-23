@@ -6,8 +6,15 @@ import { prisma } from '@/lib/prisma'
 async function getDeveloperProfile(userId: string) {
   return (prisma as any).developerProfile.findUnique({
     where: { userId },
-    select: { id: true, onboardingStatus: true },
+    select: { id: true, onboardingStatus: true, linkedDeveloperId: true },
   })
+}
+
+function normalizeProjectCountry(value: unknown) {
+  const raw = typeof value === 'string' ? value.trim().toUpperCase() : ''
+  if (raw === 'AE' || raw === 'UAE') return 'UAE'
+  if (raw === 'IN' || raw === 'INDIA') return 'INDIA'
+  return 'UAE'
 }
 
 /**
@@ -93,7 +100,7 @@ export async function POST(req: NextRequest) {
       description: body.description || null,
       city: body.city || null,
       locality: body.locality || null,
-      country: body.country || 'UAE',
+      country: normalizeProjectCountry(body.country),
       propertyType: body.propertyType || null,
       startPrice: body.startPrice ? parseFloat(body.startPrice) : null,
       maxPrice: body.maxPrice ? parseFloat(body.maxPrice) : null,

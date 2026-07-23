@@ -38,6 +38,7 @@ function normalizeRole(input: unknown) {
     r === 'MODERATOR' ||
     r === 'AGENT' ||
     r === 'DEVELOPER' ||
+    r === 'AGENCY' ||
     r === 'BUYER' ||
     r === 'USER'
   )
@@ -337,19 +338,25 @@ export const authOptions: NextAuthOptions = {
         const email = String(tokenEmailRaw).trim().toLowerCase()
         if (email) {
           const shouldBackfillIdentity = !hasId || !hasRole
+          const tokenRole = normalizeRole((token as any)?.role)
+          const shouldRefreshPortalState =
+            tokenRole === 'AGENT' ||
+            tokenRole === 'DEVELOPER' ||
+            tokenRole === 'AGENCY'
+
           const shouldRefreshAgentStatus =
-            normalizeRole((token as any)?.role) === 'AGENT' &&
+            tokenRole === 'AGENT' &&
             normalizeStatus((token as any)?.status) === 'ACTIVE'
 
           const shouldRefreshAgentAuthz =
-            normalizeRole((token as any)?.role) === 'AGENT' &&
+            tokenRole === 'AGENT' &&
             normalizeStatus((token as any)?.status) === 'ACTIVE' &&
             (typeof (token as any)?.agentApproved !== 'boolean' || !String((token as any)?.agentVerificationStatus || ''))
 
-          if (shouldBackfillIdentity || shouldRefreshAgentStatus || shouldRefreshAgentAuthz) {
-            const dbUser = await prisma.user.findUnique({ where: { email }, include: { agent: true, developerProfile: true } }).catch(() => null)
+          if (shouldBackfillIdentity || shouldRefreshPortalState || shouldRefreshAgentStatus || shouldRefreshAgentAuthz) {
+            const dbUser = await prisma.user.findUnique({ where: { email }, include: { agent: true, developerProfile: true, agencyProfile: true } }).catch(() => null)
             if (dbUser) {
-              ; (token as any).id = (token as any).id || dbUser.id
+              ; (token as any).id = dbUser.id
                 ; (token as any).role = normalizeRole((dbUser as any).role)
                 ; (token as any).status = normalizeStatus((dbUser as any).status)
                 ; (token as any).emailVerified = Boolean((dbUser as any).emailVerified) || Boolean((dbUser as any).verified)
@@ -369,6 +376,15 @@ export const authOptions: NextAuthOptions = {
                 ; (token as any).developerKycStatus = String(dp.kycStatus || 'PENDING')
                 ; (token as any).developerProfileCompletion = Number(dp.profileCompletion || 0)
                 ; (token as any).developerIsVerified = Boolean(dp.isVerified)
+              }
+
+              if (normalizeRole((dbUser as any).role) === 'AGENCY' && (dbUser as any).agencyProfile) {
+                const ap = (dbUser as any).agencyProfile
+                ; (token as any).agencyProfileId = ap.id
+                ; (token as any).agencyOnboardingStatus = String(ap.onboardingStatus || 'REGISTERED')
+                ; (token as any).agencyKycStatus = String(ap.kycStatus || 'PENDING')
+                ; (token as any).agencyProfileCompletion = Number(ap.profileCompletion || 0)
+                ; (token as any).agencyIsVerified = Boolean(ap.isVerified)
               }
 
               if (!(dbUser as any).role) {
@@ -431,6 +447,13 @@ export const authOptions: NextAuthOptions = {
           ; (session.user as any).developerKycStatus = (token as any).developerKycStatus || 'PENDING'
           ; (session.user as any).developerProfileCompletion = (token as any).developerProfileCompletion || 0
           ; (session.user as any).developerIsVerified = Boolean((token as any).developerIsVerified)
+        }
+        if ((token as any)?.agencyProfileId) {
+          ; (session.user as any).agencyProfileId = (token as any).agencyProfileId
+          ; (session.user as any).agencyOnboardingStatus = (token as any).agencyOnboardingStatus || 'REGISTERED'
+          ; (session.user as any).agencyKycStatus = (token as any).agencyKycStatus || 'PENDING'
+          ; (session.user as any).agencyProfileCompletion = (token as any).agencyProfileCompletion || 0
+          ; (session.user as any).agencyIsVerified = Boolean((token as any).agencyIsVerified)
         }
       }
       return session

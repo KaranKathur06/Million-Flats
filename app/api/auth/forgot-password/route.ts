@@ -33,6 +33,29 @@ function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
 }
 
+function normalizePortal(v: unknown) {
+  const portal = safeString(v).toLowerCase()
+  if (portal === 'developer' || portal === 'agency' || portal === 'agent' || portal === 'admin' || portal === 'user' || portal === 'buyer') {
+    return portal
+  }
+  return 'user'
+}
+
+function resetPathForPortal(portal: string) {
+  if (portal === 'developer') return '/developer/reset-password'
+  if (portal === 'agency') return '/agency/reset-password'
+  if (portal === 'agent') return '/agent/reset-password'
+  if (portal === 'admin') return '/admin/reset-password'
+  return '/user/reset-password'
+}
+
+function verifyPathForPortal(portal: string, email: string) {
+  if (portal === 'developer') return `/developer/verify-otp?email=${encodeURIComponent(email)}`
+  if (portal === 'agency') return `/agency/verify-otp?email=${encodeURIComponent(email)}`
+  if (portal === 'agent') return `/agent/verify-email?email=${encodeURIComponent(email)}`
+  return `/user/verify?email=${encodeURIComponent(email)}`
+}
+
 function hashToken(token: string) {
   return crypto.createHash('sha256').update(token).digest('hex')
 }
@@ -47,6 +70,7 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => null)
   const emailRaw = safeString(body?.email).toLowerCase()
+  const portal = normalizePortal(body?.portal || body?.role || body?.type)
 
   if (!emailRaw) {
     return NextResponse.json({ success: false, code: 'MISSING_EMAIL', message: 'Email is required.' }, { status: 400 })
@@ -64,6 +88,18 @@ export async function POST(req: Request) {
         success: false,
         code: 'EMAIL_NOT_REGISTERED',
         message: 'No account found with this email. Please register first.',
+      },
+      { status: 404 }
+    )
+  }
+
+  const expectedRole = portal === 'buyer' ? 'BUYER' : portal.toUpperCase()
+  if (portal !== 'user' && portal !== 'buyer' && String((user as any).role || '').toUpperCase() !== expectedRole) {
+    return NextResponse.json(
+      {
+        success: false,
+        code: `${expectedRole}_NOT_REGISTERED`,
+        message: `No ${portal} account found with this email.`,
       },
       { status: 404 }
     )
@@ -90,6 +126,7 @@ export async function POST(req: Request) {
         success: false,
         code: 'EMAIL_NOT_VERIFIED',
         message: 'Please verify your email first. Then you can reset your password.',
+        verifyUrl: verifyPathForPortal(portal, emailRaw),
       },
       { status: 403 }
     )
@@ -113,7 +150,7 @@ export async function POST(req: Request) {
     })
     .catch(() => null)
 
-  const resetUrl = buildAbsoluteUrl(`/user/reset-password?token=${encodeURIComponent(token)}`)
+  const resetUrl = buildAbsoluteUrl(`${resetPathForPortal(portal)}?token=${encodeURIComponent(token)}`)
 
   await sendEmail({
     to: user.email,

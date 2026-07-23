@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { CitySelector, CountrySelector } from "@/components/location/CountryCitySelector";
 
 interface FormState {
   agencyName: string;
@@ -68,7 +69,20 @@ const COUNTRIES = [
   "UK",
   "USA",
 ];
-const AGENCY_SIZES = ["1-10", "11-50", "51-200", "200+", "Enterprise"];
+const AGENCY_SIZES = [
+  { value: "MICRO", label: "1-10" },
+  { value: "SMALL", label: "11-50" },
+  { value: "MEDIUM", label: "51-200" },
+  { value: "LARGE", label: "200+" },
+  { value: "ENTERPRISE", label: "Enterprise" },
+];
+const COUNTRY_ALIASES: Record<string, string> = {
+  UAE: "AE",
+  "United Arab Emirates": "AE",
+  India: "IN",
+  USA: "US",
+  UK: "GB",
+};
 
 const STEPS = [
   { id: 1, label: "Agency Identity", weight: 25 },
@@ -90,7 +104,7 @@ export default function AgencyOnboardingClient() {
     website: "",
     yearEstablished: "",
     headquarters: "",
-    country: "UAE",
+    country: "AE",
     city: "",
     address: "",
     agencySize: "",
@@ -127,7 +141,7 @@ export default function AgencyOnboardingClient() {
             website: p.website || "",
             yearEstablished: p.yearEstablished ? String(p.yearEstablished) : "",
             headquarters: p.headquarters || "",
-            country: p.country || "UAE",
+            country: COUNTRY_ALIASES[p.country] || p.country || "AE",
             city: p.city || "",
             address: p.address || "",
             agencySize: p.agencySize || "",
@@ -156,6 +170,9 @@ export default function AgencyOnboardingClient() {
 
   const set = (key: keyof FormState, value: any) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  const setCountry = (code: string) =>
+    setForm((f) => ({ ...f, country: code, city: "" }));
 
   const toggleArr = (key: keyof FormState, val: string) => {
     const arr = form[key] as string[];
@@ -204,6 +221,7 @@ export default function AgencyOnboardingClient() {
   const handleSubmit = async () => {
     const ok = await saveStep();
     if (!ok) return;
+    router.refresh();
     router.push("/agency/dashboard");
   };
 
@@ -408,7 +426,7 @@ export default function AgencyOnboardingClient() {
                   >
                     <option value="">Select size</option>
                     {AGENCY_SIZES.map((s) => (
-                      <option key={s}>{s}</option>
+                      <option key={s.value} value={s.value}>{s.label}</option>
                     ))}
                   </select>
                 </div>
@@ -451,22 +469,18 @@ export default function AgencyOnboardingClient() {
                   Location and operational coverage.
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                    Country
-                  </label>
-                  <select
-                    value={form.country}
-                    onChange={(e) => set("country", e.target.value)}
-                    className="w-full h-11 px-4 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
-                  >
-                    {COUNTRIES.map((c) => (
-                      <option key={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-                {tf("City", "city", "text", "Dubai")}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <CountrySelector
+                  value={form.country}
+                  onChange={({ code }) => setCountry(code)}
+                  appearance="premium-light"
+                />
+                <CitySelector
+                  countryCode={form.country}
+                  value={form.city}
+                  onChange={({ name }) => set("city", name)}
+                  appearance="premium-light"
+                />
               </div>
               {tf(
                 "Headquarters",

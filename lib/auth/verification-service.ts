@@ -99,6 +99,9 @@ export interface VerificationResult {
   success: boolean
   code?: VerificationErrorCodeType
   message: string
+  email?: string
+  role?: string
+  loginToken?: string
 }
 
 export interface GenerateOtpResult {
@@ -363,11 +366,15 @@ export const VerificationService = {
         }
       }
 
-      // OTP is valid — mark consumed
+      const loginToken = crypto.randomBytes(32).toString('hex')
+      const loginTokenHash = crypto.createHash('sha256').update(loginToken).digest('hex')
+      const loginTokenExpiresAt = new Date(Date.now() + 5 * 60 * 1000)
+
+      // OTP is valid - mark consumed and attach a one-time login token.
       await (prisma as any).loginOtp
         .update({
           where: { id: otpRow.id },
-          data: { consumed: true, usedAt: now } as any,
+          data: { consumed: true, usedAt: null, loginTokenHash, loginTokenExpiresAt } as any,
         })
         .catch(() => null)
 
@@ -442,6 +449,9 @@ export const VerificationService = {
       return {
         success: true,
         message: 'Email verified successfully.',
+        email: normalizedEmail,
+        role: actualRole,
+        loginToken,
       }
     } catch (error) {
       console.error('[VerificationService.verifyOtp] error', error)

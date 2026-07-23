@@ -302,7 +302,7 @@ function LoginTab() {
       )}
 
       {showLoginResetCta ? (
-        <Link href={`/user/forgot-password?email=${encodeURIComponent(email)}`} className="block w-full rounded-xl bg-amber-400 text-white px-4 py-3 text-center text-sm font-semibold hover:shadow-lg">
+        <Link href={`/developer/forgot-password?email=${encodeURIComponent(email)}`} className="block w-full rounded-xl bg-amber-400 text-white px-4 py-3 text-center text-sm font-semibold hover:shadow-lg">
           Reset Password
         </Link>
       ) : null}

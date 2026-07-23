@@ -5,7 +5,11 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 
-export default function ResetPasswordClient() {
+export default function ResetPasswordClient({
+  loginHref = '/user/login',
+}: {
+  loginHref?: string
+}) {
   const searchParams = useSearchParams()
   const token = useMemo(() => searchParams?.get('token') || '', [searchParams])
 
@@ -55,7 +59,7 @@ export default function ResetPasswordClient() {
             Password updated successfully. You can now sign in.
           </div>
           <Link
-            href="/user/login"
+            href={loginHref}
             className="w-full h-12 inline-flex items-center justify-center bg-dark-blue text-white px-4 rounded-xl font-semibold hover:bg-dark-blue/90 transition-all"
           >
             Go to login
@@ -120,7 +124,7 @@ export default function ResetPasswordClient() {
           </button>
 
           <div className="text-center text-sm text-gray-600">
-            <Link href="/user/login" className="font-medium text-dark-blue hover:text-dark-blue/80 transition-colors">
+            <Link href={loginHref} className="font-medium text-dark-blue hover:text-dark-blue/80 transition-colors">
               Back to login
             </Link>
           </div>

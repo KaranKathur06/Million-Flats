@@ -31,7 +31,16 @@ export async function POST(req: Request) {
     const result = await VerificationService.verifyOtp(email, otp, type)
 
     if (result.success) {
-      return NextResponse.json({ success: true, message: result.message }, { status: 200 })
+      return NextResponse.json(
+        {
+          success: true,
+          message: result.message,
+          email: result.email,
+          role: result.role,
+          loginToken: result.loginToken,
+        },
+        { status: 200 }
+      )
     }
 
     const status =

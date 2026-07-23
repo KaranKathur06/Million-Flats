@@ -12,7 +12,7 @@ export default function AgencyVerifyOtpClient() {
       portalType="agency"
       portalLabel="Agency Verification"
       email={email}
-      redirectOnSuccess={`/agency/auth?tab=login&verified=1`}
+      redirectOnSuccess="/agency/dashboard"
     />
   )
 }

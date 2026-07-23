@@ -26,23 +26,34 @@ export default async function AdminAgenciesPage({
   if (status) where.onboardingStatus = status
   if (q) where.agencyName = { contains: q, mode: 'insensitive' }
 
-  const [profiles, total, statusCounts] = await Promise.all([
-    (prisma as any).agencyProfile.findMany({
-      where,
-      include: {
-        user: { select: { email: true, createdAt: true } },
-        linkedAgency: { select: { name: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-      skip: (pageNum - 1) * limit,
-      take: limit,
-    }),
-    (prisma as any).agencyProfile.count({ where }),
-    (prisma as any).agencyProfile.groupBy({
-      by: ['onboardingStatus'],
-      _count: { _all: true },
-    }),
-  ])
+  let profiles: any[] = []
+  let total = 0
+  let statusCounts: any[] = []
+
+  try {
+    ;[profiles, total, statusCounts] = await Promise.all([
+      (prisma as any).agencyProfile.findMany({
+        where,
+        include: {
+          user: { select: { email: true, createdAt: true } },
+          linkedAgency: { select: { name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (pageNum - 1) * limit,
+        take: limit,
+      }),
+      (prisma as any).agencyProfile.count({ where }),
+      (prisma as any).agencyProfile.groupBy({
+        by: ['onboardingStatus'],
+        _count: { _all: true },
+      }),
+    ])
+  } catch (error) {
+    console.error('Failed to load admin agencies page:', error)
+    profiles = []
+    total = 0
+    statusCounts = []
+  }
 
   const countMap: Record<string, number> = {}
   for (const s of statusCounts) countMap[s.onboardingStatus] = s._count._all

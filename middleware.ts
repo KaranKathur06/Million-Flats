@@ -20,6 +20,7 @@ const PUBLIC_AUTH_PREFIXES = [
   '/agent/register',
   '/agent/auth',
   '/agent/forgot-password',
+  '/agent/reset-password',
   '/agent/verify-email',
   '/agent/verify',
   // Developer auth pages
@@ -27,15 +28,24 @@ const PUBLIC_AUTH_PREFIXES = [
   '/developer/login',
   '/developer/register',
   '/developer/forgot-password',
+  '/developer/reset-password',
   '/developer/verify-email',
   '/developer/verify',
   '/developer/verify-otp',
   // Agency auth pages
   '/agency/auth',
+  '/agency/login',
+  '/agency/register',
+  '/agency/forgot-password',
+  '/agency/reset-password',
   '/agency/verify-email',
   '/agency/verify-otp',
+  '/auth/developer/forgot-password',
+  '/auth/agency/forgot-password',
   // Admin auth page
   '/admin/login',
+  '/admin/forgot-password',
+  '/admin/reset-password',
   // One-off OTP entry pages used by clients
   '/agent/verify-otp',
   '/user/verify-otp',

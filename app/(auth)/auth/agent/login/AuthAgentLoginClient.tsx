@@ -95,7 +95,7 @@ export default function AuthAgentLoginClient() {
 
         {showResetCta && (
           <Link
-            href={`/user/forgot-password?email=${encodeURIComponent(formData.email)}`}
+            href={`/agent/forgot-password?email=${encodeURIComponent(formData.email)}`}
             className="block w-full text-center h-10 leading-10 rounded-xl font-medium bg-gray-900 text-white hover:bg-gray-800 transition-all duration-200"
           >
             Reset Password

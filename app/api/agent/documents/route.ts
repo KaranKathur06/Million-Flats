@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAgentProfileSession } from '@/lib/agentAuth'
+import { buildApiErrorEnvelope, buildApiSuccessEnvelope } from '@/lib/api-response'
 
 /**
  * GET  /api/agent/documents — list all documents for the authenticated agent
@@ -22,7 +23,7 @@ const REQUIRED_DOC_TYPES = ['GOVERNMENT_ID', 'REAL_ESTATE_LICENSE']
 export async function GET() {
   const auth = await requireAgentProfileSession()
   if (!auth.ok) {
-    return NextResponse.json({ error: auth.message }, { status: auth.status })
+    return NextResponse.json(buildApiErrorEnvelope(auth.message, 'UNAUTHORIZED'), { status: auth.status })
   }
 
   const agentId = auth.agentId
@@ -55,7 +56,6 @@ export async function GET() {
         documentType: true,
         documentUrl: true,
         status: true,
-        rejectionReason: true,
         reviewedAt: true,
         createdAt: true,
       },
@@ -72,7 +72,7 @@ export async function GET() {
     mimeType: null,
     sizeBytes: null,
     status: d.status,
-    rejectionReason: d.rejectionReason,
+    rejectionReason: null,
     reviewedAt: d.reviewedAt,
     createdAt: d.createdAt,
     updatedAt: null,
@@ -99,43 +99,36 @@ export async function GET() {
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   )
 
-  return NextResponse.json({ documents })
+  return NextResponse.json(buildApiSuccessEnvelope({ documents }))
 }
 
 export async function POST(req: Request) {
   const auth = await requireAgentProfileSession()
   if (!auth.ok) {
-    return NextResponse.json({ error: auth.message }, { status: auth.status })
+    return NextResponse.json(buildApiErrorEnvelope(auth.message, 'UNAUTHORIZED'), { status: auth.status })
   }
 
   const body = await req.json()
   const { documentType, fileUrl, s3Key, fileName, mimeType, sizeBytes } = body
 
   if (!documentType || !VALID_DOC_TYPES.includes(documentType)) {
-    return NextResponse.json(
-      { error: `Invalid documentType. Must be one of: ${VALID_DOC_TYPES.join(', ')}` },
-      { status: 400 }
-    )
+    return NextResponse.json(buildApiErrorEnvelope(`Invalid documentType. Must be one of: ${VALID_DOC_TYPES.join(', ')}`, 'INVALID_DOCUMENT_TYPE'), { status: 400 })
   }
 
   if (!fileUrl || typeof fileUrl !== 'string') {
-    return NextResponse.json({ error: 'fileUrl is required' }, { status: 400 })
+    return NextResponse.json(buildApiErrorEnvelope('fileUrl is required', 'MISSING_FILE_URL'), { status: 400 })
   }
 
   const agentId = auth.agentId
 
-  // Use upsert with unique constraint on agentId + type
-  // This will create or update the document for this type
   let document
   try {
-    // First try to find existing
     const existing = await (prisma as any).agentDocument.findFirst({
       where: { agentId, type: documentType },
       select: { id: true },
     })
 
     if (existing) {
-      // Update existing document, reset status to PENDING
       document = await (prisma as any).agentDocument.update({
         where: { id: existing.id },
         data: {
@@ -151,7 +144,6 @@ export async function POST(req: Request) {
         },
       })
     } else {
-      // Create new document
       document = await (prisma as any).agentDocument.create({
         data: {
           agentId,
@@ -167,14 +159,14 @@ export async function POST(req: Request) {
     }
   } catch (err) {
     console.error('Failed to save agent document:', err)
-    return NextResponse.json({ error: 'Failed to save document' }, { status: 500 })
+    return NextResponse.json(buildApiErrorEnvelope('Failed to save document', 'DOCUMENT_SAVE_FAILED'), { status: 500 })
   }
 
   // Auto-advance agent status when required docs uploaded
   const requiredDocs = await (prisma as any).agentDocument.findMany({
     where: { agentId, type: { in: REQUIRED_DOC_TYPES } },
     select: { type: true },
-  })
+  }).catch(() => [])
 
   const hasAllRequired = REQUIRED_DOC_TYPES.every((t) =>
     (requiredDocs as any[]).some((d: any) => d.type === t)
@@ -184,8 +176,8 @@ export async function POST(req: Request) {
     await (prisma as any).agent.update({
       where: { id: agentId },
       data: { status: 'DOCUMENTS_UPLOADED' as any },
-    })
+    }).catch(() => null)
   }
 
-  return NextResponse.json({ document }, { status: 201 })
+  return NextResponse.json(buildApiSuccessEnvelope({ document }), { status: 201 })
 }

@@ -12,7 +12,7 @@ export default function DeveloperVerifyOtpClient() {
       portalType="developer"
       portalLabel="Developer Verification"
       email={email}
-      redirectOnSuccess={`/developer/auth?tab=login&verified=1`}
+      redirectOnSuccess="/developer/dashboard"
     />
   )
 }

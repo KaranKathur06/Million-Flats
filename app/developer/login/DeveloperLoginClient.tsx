@@ -88,7 +88,7 @@ export default function DeveloperLoginClient() {
 
         {showResetCta && (
           <Link
-            href={`/user/forgot-password?email=${encodeURIComponent(formData.email)}`}
+            href={`/developer/forgot-password?email=${encodeURIComponent(formData.email)}`}
             className="block w-full text-center h-12 leading-[3rem] rounded-xl font-medium bg-gray-900 text-white hover:bg-gray-800 transition-all duration-200"
           >
             Reset Password
