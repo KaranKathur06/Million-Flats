@@ -34,6 +34,20 @@ function sameColumns(a: string[], b: string[]) {
   return a.length === b.length && a.every((value, index) => value === b[index])
 }
 
+function normalizeCatalogIdentifier(identifier: string | null): string | null {
+  if (!identifier) return identifier
+
+  const withoutSchema = identifier.startsWith('public.')
+    ? identifier.slice('public.'.length)
+    : identifier
+
+  if (withoutSchema.startsWith('"') && withoutSchema.endsWith('"')) {
+    return withoutSchema.slice(1, -1).replace(/""/g, '"')
+  }
+
+  return withoutSchema
+}
+
 export async function verifySchemaCompatibility(
   prisma: PrismaClient,
   options: { schemaPath?: string } = {},
@@ -187,8 +201,8 @@ export async function verifySchemaCompatibility(
     for (const fk of expected.foreignKeys) {
       const hasFk = dbConstraints.some((actual) => {
         if (actual.constraint_type !== 'f') return false
-        if (actual.table_name !== fk.table) return false
-        if (actual.foreign_table_name !== fk.referencedTable) return false
+        if (normalizeCatalogIdentifier(actual.table_name) !== fk.table) return false
+        if (normalizeCatalogIdentifier(actual.foreign_table_name) !== fk.referencedTable) return false
         return sameColumns(actual.columns, fk.columns) && sameColumns(actual.foreign_columns || [], fk.referencedColumns)
       })
       if (!hasFk) {
