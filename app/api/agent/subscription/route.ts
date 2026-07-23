@@ -25,7 +25,7 @@ export async function GET() {
         cancelledAt: true,
         listingsLimit: true,
         leadLimit: true,
-        AIAccessLevel: true,
+        aiAccessLevel: true,
         provider: true,
         providerSubscriptionId: true,
         createdAt: true,

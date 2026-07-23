@@ -42,7 +42,7 @@ const developerSchema = z.object({
   customerRating: z.number().min(0).max(5).optional().nullable(),
   projectsDelivered: z.number().int().min(0).optional().nullable(),
   countriesPresent: z.number().int().min(0).optional().nullable(),
-  AIScore: z.number().int().min(0).max(100).optional().nullable(),
+  aiScore: z.number().int().min(0).max(100).optional().nullable(),
   brochureUrl: z.string().max(2000).optional().nullable(),
   metaTitle: z.string().max(300).optional().nullable(),
   metaDescription: z.string().optional().nullable(),
@@ -80,7 +80,7 @@ function normalizeDevData(data: z.infer<typeof developerSchema>) {
     customerRating: data.customerRating ?? null,
     projectsDelivered: data.projectsDelivered ?? null,
     countriesPresent: data.countriesPresent ?? null,
-    AIScore: data.AIScore ?? null,
+    aiScore: data.aiScore ?? null,
     brochureUrl: data.brochureUrl?.trim() || null,
     metaTitle: data.metaTitle?.trim() || null,
     metaDescription: data.metaDescription?.trim() || null,
@@ -103,7 +103,7 @@ function getDeveloperSelect({ includeDeleteColumns = false, includeAiScore = tru
     _count: { select: { projects: true, properties: true } },
   }
 
-  if (includeAiScore) select.AIScore = true
+  if (includeAiScore) select.aiScore = true
   if (includeDeleteColumns) {
     select.isDeleted = true
     select.deletedAt = true
@@ -134,7 +134,7 @@ export async function GET(req: Request) {
       headquarters: true, email: true, phone: true, address: true,
       facebookUrl: true, instagramUrl: true, linkedinUrl: true, youtubeUrl: true,
       customerRating: true, projectsDelivered: true, countriesPresent: true,
-      AIScore: true, brochureUrl: true,
+      aiScore: true, brochureUrl: true,
       metaTitle: true, metaDescription: true, metaKeywords: true,
       createdAt: true, updatedAt: true,
       _count: { select: { projects: true, properties: true } },
@@ -170,7 +170,7 @@ export async function GET(req: Request) {
     let items: any[]
     let counts: { total: number; active: number; inactive: number; deleted: number }
     try {
-      // Try with isDeleted filter and AIScore
+      // Try with isDeleted filter and aiScore
       items = await runQuery(true, true, true)
       const [total, active, inactive, deleted] = await Promise.all([
         (prisma as any).developer.count(),
@@ -190,7 +190,7 @@ export async function GET(req: Request) {
         ])
         counts = { total, active, inactive, deleted: 0 }
       } catch {
-        // If AIScore isn't present either, retry without it
+        // If aiScore isn't present either, retry without it
         items = await runQuery(false, false, false)
         const [total, active, inactive] = await Promise.all([
           (prisma as any).developer.count(),

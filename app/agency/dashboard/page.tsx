@@ -11,7 +11,7 @@ const STAT_CARDS = [
   { key: 'totalListings', label: 'Active Listings', sub: 'Marketplace inventory', color: 'from-emerald-50 to-white' },
   { key: 'totalClosedDeals', label: 'Closed Deals', sub: 'Completed transactions', color: 'from-violet-50 to-white' },
   { key: 'profileCompletion', label: 'Profile Health', sub: 'Workspace readiness', color: 'from-amber-50 to-white', suffix: '%' },
-  { key: 'AIAgencyScore', label: 'AI Score', sub: 'Agency trust signal', color: 'from-rose-50 to-white' },
+  { key: 'aiAgencyScore', label: 'AI Score', sub: 'Agency trust signal', color: 'from-rose-50 to-white' },
 ]
 
 export default async function AgencyDashboardPage() {

@@ -4,7 +4,7 @@
  * AIDeveloper™ Score Engine
  *
  * Computes a trust & quality score (0–100) for a developer profile.
- * The score is stored on DeveloperProfile.AIDeveloperScore and displayed
+ * The score is stored on DeveloperProfile.aiDeveloperScore and displayed
  * as a badge on both the developer portal and the public developer page.
  *
  * Score dimensions:
@@ -32,7 +32,7 @@ export interface AIDeveloperBreakdown {
  * Compute and persist the AIDeveloper™ score for a given developerProfileId.
  * Returns the breakdown and persists total to DB.
  */
-export async function computeAndSaveAIDeveloperScore(
+export async function computeAndSaveAiDeveloperScore(
   developerProfileId: string,
   persist = true
 ): Promise<AIDeveloperBreakdown> {
@@ -142,7 +142,7 @@ export async function computeAndSaveAIDeveloperScore(
   if (persist) {
     await (prisma as any).developerProfile.update({
       where: { id: developerProfileId },
-      data: { AIDeveloperScore: total },
+      data: { aiDeveloperScore: total },
     })
   }
 
@@ -162,7 +162,7 @@ export async function computeAndSaveAIDeveloperScore(
  * Batch-refresh AI scores for all approved developer profiles.
  * Intended for a nightly cron job.
  */
-export async function batchRefreshAIScores(): Promise<{
+export async function batchRefreshAiScores(): Promise<{
   processed: number
   errors: number
 }> {
@@ -176,7 +176,7 @@ export async function batchRefreshAIScores(): Promise<{
 
   for (const p of profiles) {
     try {
-      await computeAndSaveAIDeveloperScore(p.id, true)
+      await computeAndSaveAiDeveloperScore(p.id, true)
       processed++
     } catch {
       errors++

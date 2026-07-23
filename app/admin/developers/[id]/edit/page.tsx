@@ -55,7 +55,7 @@ export default function AdminEditDeveloperPage({ params }: Props) {
       customerRating: developer.customerRating ? String(developer.customerRating) : '',
       projectsDelivered: developer.projectsDelivered ? String(developer.projectsDelivered) : '',
       countriesPresent: developer.countriesPresent ? String(developer.countriesPresent) : '',
-      AIScore: developer.AIScore ? String(developer.AIScore) : '',
+      aiScore: developer.aiScore ? String(developer.aiScore) : '',
       brochureUrl: developer.brochureUrl || '',
       metaTitle: developer.metaTitle || '',
       metaDescription: developer.metaDescription || '',

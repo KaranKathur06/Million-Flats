@@ -51,9 +51,9 @@ export default function DeveloperHero({ developer }: DeveloperHeroProps) {
                 Verified Developer
               </span>
             )}
-            {developer.AIScore && developer.AIScore > 0 && (
+            {developer.aiScore && developer.aiScore > 0 && (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/20 px-3 py-1 text-xs font-bold text-amber-200 backdrop-blur">
-                AI Score: {developer.AIScore}/100
+                AI Score: {developer.aiScore}/100
               </span>
             )}
           </div>

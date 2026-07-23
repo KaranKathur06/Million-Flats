@@ -35,7 +35,7 @@ export async function POST() {
         endDate: trialEndsAt,
         listingsLimit: 50,
         leadLimit: 500,
-        AIAccessLevel: 2,
+        aiAccessLevel: 2,
       },
       update: {
         // idempotent: do not extend trial if it already exists
@@ -50,7 +50,7 @@ export async function POST() {
         cancelledAt: true,
         listingsLimit: true,
         leadLimit: true,
-        AIAccessLevel: true,
+        aiAccessLevel: true,
       },
     })
     .catch((e: any) => {

@@ -32,7 +32,7 @@ export type PublicDeveloperListItem = {
   customerRating: number | null
   projectsDelivered: number | null
   countriesPresent: number | null
-  AIScore: number | null
+  aiScore: number | null
   _count: { projects: number; properties: number }
 }
 
@@ -52,7 +52,7 @@ const BASE_SELECT = {
   customerRating: true,
   projectsDelivered: true,
   countriesPresent: true,
-  AIScore: true,
+  aiScore: true,
 } as const
 
 function normalizeCountryCode(country?: string) {

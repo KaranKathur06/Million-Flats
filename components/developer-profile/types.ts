@@ -68,7 +68,7 @@ export type DeveloperProfileData = {
   customerRating: number | null
   projectsDelivered: number | null
   countriesPresent: number | null
-  AIScore: number | null
+  aiScore: number | null
 
   stats: {
     projects: number

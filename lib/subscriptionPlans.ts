@@ -14,7 +14,6 @@ export interface PlanLimits {
   featuredLimit: number | null
   leadPriority: LeadPriority
   analyticsAccess: boolean
-  AIAccessLevel: number // 0=none, 1=basic, 2=full — @deprecated use aiAccessLevel
   aiAccessLevel: number // 0=none, 1=basic, 2=full
 }
 
@@ -26,7 +25,6 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanLimits> = {
     featuredLimit: 0,
     leadPriority: 'LOW',
     analyticsAccess: false,
-    AIAccessLevel: 0,
     aiAccessLevel: 0,
   },
   PROFESSIONAL: {
@@ -36,7 +34,6 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanLimits> = {
     featuredLimit: 10,
     leadPriority: 'MEDIUM',
     analyticsAccess: true,
-    AIAccessLevel: 1,
     aiAccessLevel: 1,
   },
   PREMIUM: {
@@ -46,7 +43,6 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanLimits> = {
     featuredLimit: null, // unlimited
     leadPriority: 'HIGH',
     analyticsAccess: true,
-    AIAccessLevel: 2,
     aiAccessLevel: 2,
   },
 }

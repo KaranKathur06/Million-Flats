@@ -386,7 +386,7 @@ export async function POST(req: Request) {
       }
 
       // Don't include agencyProfile in the join — it may reference columns
-      // that haven't been migrated yet (e.g., AI_agency_score), which causes
+      // that haven't been migrated yet (e.g., ai_agency_score), which causes
       // the query to fail silently and triggers a P2002 on the fallback create.
       const existingUser = await prisma.user.findUnique({ where: { email } }).catch((err: any) => {
         console.error('[register/agency] findUnique error:', err?.message)

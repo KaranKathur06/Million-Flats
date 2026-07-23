@@ -46,7 +46,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
  *  REACTIVATE       — Restore to APPROVED
  *  SAVE_NOTES       — Save adminNotes
  *  LINK_DEVELOPER   — Link/unlink to a developers row
- *  SET_AI_SCORE  — Override AIDeveloperScore
+ *  SET_AI_SCORE  — Override aiDeveloperScore
  *  TOGGLE_FEATURED  — Toggle isFeatured
  */
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -192,10 +192,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     case 'SET_AI_SCORE': {
-      const score = body?.AIDeveloperScore
+      const score = body?.aiDeveloperScore
       const updated = await (prisma as any).developerProfile.update({
         where: { id: params.id },
-        data: { AIDeveloperScore: score !== null && score !== undefined ? parseInt(score) : null },
+        data: { aiDeveloperScore: score !== null && score !== undefined ? parseInt(score) : null },
       })
       return NextResponse.json({ message: 'AI score updated.', profile: updated })
     }

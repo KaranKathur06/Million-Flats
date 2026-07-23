@@ -41,7 +41,7 @@ export interface DeveloperFormData {
   customerRating: string
   projectsDelivered: string
   countriesPresent: string
-  AIScore: string
+  aiScore: string
   brochureUrl: string
   metaTitle: string
   metaDescription: string
@@ -74,7 +74,7 @@ export const emptyDeveloperForm: DeveloperFormData = {
   customerRating: '',
   projectsDelivered: '',
   countriesPresent: '',
-  AIScore: '',
+  aiScore: '',
   brochureUrl: '',
   metaTitle: '',
   metaDescription: '',
@@ -211,7 +211,7 @@ export default function DeveloperForm({ isEditMode = false, developerId, initial
       customerRating: form.customerRating ? parseFloat(form.customerRating) : null,
       projectsDelivered: form.projectsDelivered ? parseInt(form.projectsDelivered) : null,
       countriesPresent: form.countriesPresent ? parseInt(form.countriesPresent) : null,
-      AIScore: form.AIScore ? parseInt(form.AIScore) : null,
+      aiScore: form.aiScore ? parseInt(form.aiScore) : null,
       brochureUrl: form.brochureUrl.trim() || null,
       metaTitle: form.metaTitle.trim() || null,
       metaDescription: form.metaDescription.trim() || null,
@@ -479,7 +479,7 @@ export default function DeveloperForm({ isEditMode = false, developerId, initial
           <FormInput label="Customer Rating (0-5)" value={form.customerRating} onChange={(v) => update('customerRating', v)} placeholder="e.g. 4.8" type="number" hint="Decimal rating out of 5" />
           <FormInput label="Projects Delivered" value={form.projectsDelivered} onChange={(v) => update('projectsDelivered', v)} placeholder="e.g. 120" type="number" />
           <FormInput label="Countries Present" value={form.countriesPresent} onChange={(v) => update('countriesPresent', v)} placeholder="e.g. 2" type="number" />
-          <FormInput label="AI Score (0-100)" value={form.AIScore} onChange={(v) => update('AIScore', v)} placeholder="e.g. 92" type="number" hint="AI Developer Score™ — set by admin" />
+          <FormInput label="AI Score (0-100)" value={form.aiScore} onChange={(v) => update('aiScore', v)} placeholder="e.g. 92" type="number" hint="AI Developer Score™ — set by admin" />
           <FormInput label="Brochure URL" value={form.brochureUrl} onChange={(v) => update('brochureUrl', v)} placeholder="https://cdn.example.com/brochure.pdf" hint="Link to developer brochure PDF" />
         </div>
       </div>

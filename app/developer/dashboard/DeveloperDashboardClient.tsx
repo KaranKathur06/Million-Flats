@@ -90,7 +90,7 @@ interface DashboardData {
     isVerified: boolean
     isFeatured: boolean
     subscriptionPlan: string
-    AIDeveloperScore: number | null
+    aiDeveloperScore: number | null
     totalLeadsReceived: number
     totalProjectViews: number
     totalProjectsPublished: number
@@ -219,7 +219,7 @@ export default function DeveloperDashboardClient({ data }: { data: DashboardData
         />
         <StatCard
           label="AI™ Score"
-          value={profile.AIDeveloperScore !== null ? `${profile.AIDeveloperScore}/100` : '—'}
+          value={profile.aiDeveloperScore !== null ? `${profile.aiDeveloperScore}/100` : '—'}
           sub="Developer Trust Score"
           color="bg-amber-50"
           href="/developer/AI"

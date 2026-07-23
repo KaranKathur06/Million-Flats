@@ -41,7 +41,7 @@ interface Profile {
   isVerified: boolean
   isFeatured: boolean
   subscriptionPlan: string
-  AIDeveloperScore: number | null
+  aiDeveloperScore: number | null
   rejectionReason: string | null
   adminNotes: string | null
   linkedDeveloperId: string | null
@@ -76,7 +76,7 @@ export default function AdminDeveloperProfileReviewClient({ profile, allDevelope
   const [adminNotes, setAdminNotes] = useState(profile.adminNotes || '')
   const [rejectionReason, setRejectionReason] = useState(profile.rejectionReason || '')
   const [selectedDevId, setSelectedDevId] = useState(profile.linkedDeveloperId || '')
-  const [AIScore, setAIScore] = useState(profile.AIDeveloperScore?.toString() || '')
+  const [aiScore, setaiScore] = useState(profile.aiDeveloperScore?.toString() || '')
   const [showRejectModal, setShowRejectModal] = useState(false)
 
   const showMsg = (msg: string) => {
@@ -341,13 +341,13 @@ export default function AdminDeveloperProfileReviewClient({ profile, allDevelope
             <p className="text-xs text-gray-400 mb-3">Override the auto-calculated score (0–100).</p>
             <input
               type="number" min="0" max="100"
-              value={AIScore}
-              onChange={e => setAIScore(e.target.value)}
+              value={aiScore}
+              onChange={e => setaiScore(e.target.value)}
               className="w-full h-10 px-4 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-dark-blue mb-3"
               placeholder="e.g. 78"
             />
             <button
-              onClick={() => callApi('SET_AI_SCORE', { AIDeveloperScore: parseInt(AIScore) || null })}
+              onClick={() => callApi('SET_AI_SCORE', { aiDeveloperScore: parseInt(aiScore) || null })}
               disabled={!!saving}
               className="w-full h-10 bg-amber-500 text-white rounded-xl text-sm font-semibold hover:bg-amber-600 disabled:opacity-50 transition-all"
             >

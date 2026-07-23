@@ -19,7 +19,7 @@ export interface SubscriptionCheck {
   canCreateListing: boolean
   canFeatureListing: boolean
   hasAnalyticsAccess: boolean
-  AIAccessLevel: number
+  aiAccessLevel: number
   daysRemaining: number | null
   endDate: Date | null
 }
@@ -42,7 +42,7 @@ export async function getSubscriptionStatus(agentId: string): Promise<Subscripti
         endDate: true,
         listingsLimit: true,
         featuredLimit: true,
-        AIAccessLevel: true,
+        aiAccessLevel: true,
       },
     }),
     (prisma as any).manualProperty.count({
@@ -98,7 +98,7 @@ export async function getSubscriptionStatus(agentId: string): Promise<Subscripti
     canCreateListing,
     canFeatureListing,
     hasAnalyticsAccess: planLimits.analyticsAccess,
-    AIAccessLevel: subscription?.AIAccessLevel ?? planLimits.AIAccessLevel,
+    aiAccessLevel: subscription?.aiAccessLevel ?? planLimits.aiAccessLevel,
     daysRemaining,
     endDate: subscription?.endDate || null,
   }
@@ -180,7 +180,7 @@ export async function hasAnalyticsAccess(agentId: string): Promise<boolean> {
  */
 export async function hasAIAccess(agentId: string, requiredLevel: number): Promise<boolean> {
   const status = await getSubscriptionStatus(agentId)
-  return status.hasActiveSubscription && status.AIAccessLevel >= requiredLevel
+  return status.hasActiveSubscription && status.aiAccessLevel >= requiredLevel
 }
 
 /**
@@ -197,7 +197,7 @@ export async function getSubscriptionSummary(agentId: string): Promise<{
   daysRemaining: number | null
   features: {
     analytics: boolean
-    AILevel: number
+    aiLevel: number
     leadPriority: string
   }
 }> {
@@ -218,7 +218,7 @@ export async function getSubscriptionSummary(agentId: string): Promise<{
     daysRemaining: status.daysRemaining,
     features: {
       analytics: status.hasAnalyticsAccess,
-      AILevel: status.AIAccessLevel,
+      aiLevel: status.aiAccessLevel,
       leadPriority: planLimits.leadPriority,
     },
   }

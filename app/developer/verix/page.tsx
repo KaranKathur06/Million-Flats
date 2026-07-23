@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { computeAndSaveAIDeveloperScore } from '@/lib/verix/verixDeveloper'
+import { computeAndSaveAiDeveloperScore } from '@/lib/verix/verixDeveloper'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -60,14 +60,14 @@ export default async function DeveloperAIPage() {
   const userId = (session.user as any)?.id
   const profile = await (prisma as any).developerProfile.findUnique({
     where: { userId },
-    select: { id: true, onboardingStatus: true, AIDeveloperScore: true },
+    select: { id: true, onboardingStatus: true, aiDeveloperScore: true },
   })
   if (!profile) redirect('/developer/onboarding')
 
   // Compute fresh score (don't persist on every page load — just compute for display)
   let breakdown
   try {
-    breakdown = await computeAndSaveAIDeveloperScore(profile.id, false)
+    breakdown = await computeAndSaveAiDeveloperScore(profile.id, false)
   } catch {
     breakdown = { total: 0, profileQuality: 0, legalVerification: 0, trackRecord: 0, marketActivity: 0, trustSignals: 0, grade: 'F' as const, label: 'Unrated' }
   }

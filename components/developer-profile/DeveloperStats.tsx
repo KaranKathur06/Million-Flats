@@ -113,15 +113,15 @@ export default function DeveloperStats({ developer }: DeveloperStatsProps) {
           )}
 
           {/* AI Score if available */}
-          {developer.AIScore && developer.AIScore > 0 && (
+          {developer.aiScore && developer.aiScore > 0 && (
             <div className="mt-4 rounded-xl bg-gradient-to-r from-primary-50 to-blue-50 border border-primary-100 px-4 py-3 flex items-center gap-4">
               <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-primary-600 to-blue-600 flex items-center justify-center">
-                <span className="text-sm font-bold text-white">{developer.AIScore}</span>
+                <span className="text-sm font-bold text-white">{developer.aiScore}</span>
               </div>
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-primary-600">AI Developer Score™</p>
                 <p className="text-sm text-gray-600">
-                  {developer.AIScore >= 90 ? 'Excellent Developer' : developer.AIScore >= 75 ? 'Very Good Developer' : developer.AIScore >= 60 ? 'Good Developer' : 'Emerging Developer'}
+                  {developer.aiScore >= 90 ? 'Excellent Developer' : developer.aiScore >= 75 ? 'Very Good Developer' : developer.aiScore >= 60 ? 'Good Developer' : 'Emerging Developer'}
                 </p>
               </div>
             </div>

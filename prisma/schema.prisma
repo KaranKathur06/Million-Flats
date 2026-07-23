@@ -580,7 +580,7 @@ model AgentSubscription {
   featuredLimit Int? @map("featured_limit")
   leadLimit     Int? @map("lead_limit")
   leadPriority  String? @map("lead_priority")
-  AIAccessLevel Int? @map("AI_access_level")
+  aiAccessLevel Int? @map("ai_access_level")
 
   provider String? @map("provider")
   providerSubscriptionId String? @map("provider_subscription_id")
@@ -665,7 +665,7 @@ model Developer {
   customerRating    Float?     @map("customer_rating")
   projectsDelivered Int?       @map("projects_delivered")
   countriesPresent  Int?       @map("countries_present")
-  AIScore        Int?       @map("AI_score")
+  aiScore        Int?       @map("ai_score")
 
   // SEO fields
   metaTitle       String?      @map("meta_title")
@@ -788,7 +788,7 @@ model AgentMetric {
   saleToListRatio  Float? @map("sale_to_list_ratio")
   responseRate     Float? @map("response_rate")
   repeatClientRate Float? @map("repeat_client_rate")
-  AIproScore    Int @default(0) @map("AIpro_score")
+  aiProScore    Int @default(0) @map("ai_pro_score")
   lastCalculatedAt DateTime? @map("last_calculated_at")
 
   agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
@@ -796,7 +796,7 @@ model AgentMetric {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@index([AIproScore])
+  @@index([aiProScore])
   @@map("agent_metrics")
 }
 
@@ -2853,9 +2853,9 @@ model DeveloperProfile {
   adminMatchSuggestions  Json?                     @map("admin_match_suggestions")
 
   // ── AI Developer Score (optional, feature-flagged) ─────────────────────
-  AIDeveloperScore    Int?                      @map("AI_developer_score")
-  AIScoreBreakdown    Json?                     @map("AI_score_breakdown")
-  AIScoredAt          DateTime?                 @map("AI_scored_at")
+  aiDeveloperScore    Int?                      @map("ai_developer_score")
+  aiScoreBreakdown    Json?                     @map("ai_score_breakdown")
+  aiScoredAt          DateTime?                 @map("ai_scored_at")
 
   // ── Relations ──────────────────────────────────────────────────────────────
   documents              DeveloperDocument[]
@@ -2882,25 +2882,26 @@ model DeveloperDocument {
   developerProfileId   String                  @map("developer_profile_id")
   developerProfile     DeveloperProfile        @relation(fields: [developerProfileId], references: [id], onDelete: Cascade)
 
-  type                 DeveloperDocumentType   @map("document_type")
+  documentType         DeveloperDocumentType   @map("document_type")
   fileUrl              String                  @map("file_url")   // CloudFront URL
   s3Key                String?                 @map("s3_key")
   fileName             String?                 @map("file_name")
   mimeType             String?                 @map("mime_type")
   sizeBytes            Int?                    @map("size_bytes")
 
-  status               DocumentStatus          @default(PENDING)
+  verificationStatus   String                  @default("PENDING") @map("verification_status")
   reviewedBy           String?                 @map("reviewed_by")
   reviewedAt           DateTime?               @map("reviewed_at")
   rejectionReason      String?                 @db.Text @map("rejection_reason")
+  uploadedAt           DateTime                @default(now()) @map("uploaded_at")
 
   createdAt            DateTime                @default(now()) @map("created_at")
   updatedAt            DateTime                @updatedAt @map("updated_at")
 
-  @@unique([developerProfileId, type])
+  @@unique([developerProfileId, documentType])
   @@index([developerProfileId])
-  @@index([status])
-  @@index([type])
+  @@index([verificationStatus])
+  @@index([documentType])
   @@map("developer_documents")
 }
 
@@ -3066,9 +3067,9 @@ model AgencyProfile {
   totalClosedDeals      Int                     @default(0) @map("total_closed_deals")
 
   // AIAgency™ score (optional, feature-flagged)
-  AIAgencyScore      Int?                    @map("AI_agency_score")
-  AIScoreBreakdown   Json?                   @map("AI_score_breakdown")
-  AIScoredAt         DateTime?               @map("AI_scored_at")
+  aiAgencyScore      Int?                    @map("ai_agency_score")
+  aiScoreBreakdown   Json?                   @map("ai_score_breakdown")
+  aiScoredAt         DateTime?               @map("ai_scored_at")
 
   // Admin
   approvedBy            String?                 @map("approved_by")
