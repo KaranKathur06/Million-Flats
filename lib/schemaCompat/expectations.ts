@@ -49,8 +49,18 @@ function parseFieldLines(block: string) {
     .filter((line) => line && !line.startsWith('//') && !line.startsWith('@@'))
 }
 
+function stripLineComments(schema: string) {
+  return schema
+    .split(/\r?\n/)
+    .map((line) => {
+      const commentIndex = line.indexOf('//')
+      return commentIndex >= 0 ? line.slice(0, commentIndex) : line
+    })
+    .join('\n')
+}
+
 export function loadSchemaExpectations(schemaPath = path.join(process.cwd(), 'prisma', 'schema.prisma')): SchemaExpectations {
-  const schema = fs.readFileSync(schemaPath, 'utf8')
+  const schema = stripLineComments(fs.readFileSync(schemaPath, 'utf8'))
   const modelNames = new Set<string>()
   const enumNames = new Set<string>()
   const enums: SchemaEnumExpectation[] = []

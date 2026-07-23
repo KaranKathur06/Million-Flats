@@ -64,4 +64,30 @@ describe('schema compatibility expectations', () => {
       ]),
     )
   })
+
+  it('keeps mapped table names for models with inline comment braces', () => {
+    expect(expectations.tables).toEqual(
+      expect.arrayContaining([
+        'developer_notifications',
+        'market_snapshots',
+        'property_valuation_history',
+        'property_similarity_index',
+        'media_intelligence',
+        'legal_document_intelligence',
+        'agent_ai_intelligence',
+      ]),
+    )
+
+    expect(expectations.tables).not.toEqual(
+      expect.arrayContaining([
+        'DeveloperNotification',
+        'MarketSnapshot',
+        'PropertyValuationHistory',
+        'PropertySimilarityIndex',
+        'MediaIntelligence',
+        'LegalDocumentIntelligence',
+        'AgentAIIntelligence',
+      ]),
+    )
+  })
 })
