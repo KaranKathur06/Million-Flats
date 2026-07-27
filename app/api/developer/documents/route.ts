@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { s3ObjectExists } from '@/lib/s3'
 
 /**
  * POST /api/developer/documents
@@ -33,47 +34,55 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid document type' }, { status: 400 })
   }
   if (!fileUrl) return NextResponse.json({ error: 'fileUrl is required' }, { status: 400 })
+  if (!s3Key) return NextResponse.json({ error: 's3Key is required' }, { status: 400 })
 
-  // Upsert — replace if same type already uploaded
+  const objectExists = await s3ObjectExists({ key: s3Key })
+  if (!objectExists) {
+    return NextResponse.json({ error: 'Uploaded object not found in storage' }, { status: 500 })
+  }
+
   const existing = await (prisma as any).developerDocument.findFirst({
     where: { developerProfileId: profile.id, documentType },
     select: { id: true },
   })
 
-  const document = existing
-    ? await (prisma as any).developerDocument.update({
-        where: { id: existing.id },
-        data: {
-          fileUrl,
-          s3Key: s3Key || null,
-          fileName: fileName || null,
-          mimeType: mimeType || null,
-          sizeBytes: sizeBytes ? parseInt(sizeBytes) : null,
-          verificationStatus: 'PENDING',
-          rejectionReason: null,
-          uploadedAt: new Date(),
-        },
-      })
-    : await (prisma as any).developerDocument.create({
-        data: {
-          developerProfileId: profile.id,
-          documentType,
-          fileUrl,
-          s3Key: s3Key || null,
-          fileName: fileName || null,
-          mimeType: mimeType || null,
-          sizeBytes: sizeBytes ? parseInt(sizeBytes) : null,
-          verificationStatus: 'PENDING',
-        },
-      })
+  const document = await prisma.$transaction(async (tx: any) => {
+    const nextDocument = existing
+      ? await tx.developerDocument.update({
+          where: { id: existing.id },
+          data: {
+            fileUrl,
+            s3Key: s3Key || null,
+            fileName: fileName || null,
+            mimeType: mimeType || null,
+            sizeBytes: sizeBytes ? parseInt(sizeBytes) : null,
+            verificationStatus: 'PENDING',
+            rejectionReason: null,
+            uploadedAt: new Date(),
+          },
+        })
+      : await tx.developerDocument.create({
+          data: {
+            developerProfileId: profile.id,
+            documentType,
+            fileUrl,
+            s3Key: s3Key || null,
+            fileName: fileName || null,
+            mimeType: mimeType || null,
+            sizeBytes: sizeBytes ? parseInt(sizeBytes) : null,
+            verificationStatus: 'PENDING',
+          },
+        })
 
-  // Advance onboarding status if still PROFILE_COMPLETED
-  if (profile.onboardingStatus === 'PROFILE_COMPLETED') {
-    await (prisma as any).developerProfile.update({
-      where: { id: profile.id },
-      data: { onboardingStatus: 'DOCUMENTS_UPLOADED' },
-    })
-  }
+    if (profile.onboardingStatus === 'PROFILE_COMPLETED') {
+      await tx.developerProfile.update({
+        where: { id: profile.id },
+        data: { onboardingStatus: 'DOCUMENTS_UPLOADED' },
+      })
+    }
+
+    return nextDocument
+  })
 
   return NextResponse.json({ document }, { status: existing ? 200 : 201 })
 }

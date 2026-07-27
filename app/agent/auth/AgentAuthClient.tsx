@@ -52,8 +52,11 @@ export default function AgentAuthClient({ defaultTab }: { defaultTab: Tab }) {
   }, [searchParams]);
 
   useEffect(() => {
-    router.replace(`/agent/auth?tab=${tab}`, { scroll: false });
-  }, [router, tab]);
+    const currentTab = searchParams?.get('tab');
+    if (currentTab !== tab) {
+      router.replace(`/agent/auth?tab=${tab}`, { scroll: false });
+    }
+  }, [router, searchParams, tab]);
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">

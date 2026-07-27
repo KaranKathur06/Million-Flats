@@ -5,17 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import AgentNavbar from '@/app/_components/agent/AgentNavbar'
 import { AgentStatus } from '@/lib/agentLifecycle'
-
-const EXCLUDED_PATHS_FROM_LAYOUT = [
-  '/agent/auth',
-  '/agent/register',
-  '/agent/verify-email',
-  '/agent/verify',
-  '/agent/onboarding',
-  '/agent/on-hold',
-  '/agent/rejected',
-  '/agent/suspended',
-]
+import { isAgentPublicRoute } from '@/lib/agentPublicRoutes'
 
 interface AgentData {
   status: AgentStatus
@@ -31,9 +21,7 @@ export default function AgentLayout({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   // Pages that don't get the navbar layout
-  const isExcluded = EXCLUDED_PATHS_FROM_LAYOUT.some(
-    (p) => pathname === p || pathname.startsWith(p + '/')
-  )
+  const isExcluded = isAgentPublicRoute(pathname)
 
   if (isExcluded) {
     return <>{children}</>
@@ -79,8 +67,8 @@ export default function AgentLayout({ children }: { children: ReactNode }) {
 
   if (isExcluded) return <>{children}</>
 
-  const agentName = String((session.user as any)?.name || 'Agent')
-  const agentEmail = String((session.user as any)?.email || '')
+  const agentName = String((session?.user as any)?.name || 'Agent')
+  const agentEmail = String((session?.user as any)?.email || '')
 
   return (
     <div className="min-h-screen bg-gray-50">

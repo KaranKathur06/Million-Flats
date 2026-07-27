@@ -1,6 +1,7 @@
 export type PresignResponse = {
   uploadUrl: string
   objectUrl?: string
+  publicUrl?: string
   key?: string
   bucket?: string
   region?: string
@@ -17,6 +18,10 @@ async function parseEnvelope(response: Response): Promise<any> {
   }
 }
 
+function logUploadIssue(context: string, details: Record<string, unknown>) {
+  console.error(`[upload-client] ${context}`, details)
+}
+
 export async function requestPresign(endpoint: string, body: any) {
   const res = await fetch(endpoint, {
     method: 'POST',
@@ -31,6 +36,7 @@ export async function requestPresign(endpoint: string, body: any) {
 
   if (!res.ok) {
     const msg = json?.error?.message || json?.message || 'Failed to obtain upload URL'
+    logUploadIssue('presign_failed', { endpoint, status: res.status, message: msg })
     throw new Error(String(msg))
   }
 
@@ -56,6 +62,7 @@ export async function uploadToSignedUrl(uploadUrl: string, file: File) {
     try {
       body = await res.text()
     } catch {}
+    logUploadIssue('upload_failed', { uploadUrl, status: res.status, body })
     throw new Error('Upload to storage failed: ' + (body || res.statusText || res.status))
   }
 

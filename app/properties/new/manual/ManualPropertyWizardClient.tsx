@@ -598,33 +598,16 @@ export default function ManualPropertyWizardClient() {
         const title = (propertyRef.current as any)?.title || 'Property'
         const altGuess = `${title} - ${category.toLowerCase().replace(/_/g, ' ')}`
 
-        const presignRes = await fetch('/api/manual-properties/upload/presign', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            propertyId,
-            category,
-            filename: file.name,
-            contentType: file.type || 'application/octet-stream',
-            sizeBytes: file.size,
-            altText: altGuess,
-          }),
+        const presignJson = await (await import('@/lib/upload-client')).requestPresign('/api/manual-properties/upload/presign', {
+          propertyId,
+          category,
+          filename: file.name,
+          contentType: file.type || 'application/octet-stream',
+          sizeBytes: file.size,
+          altText: altGuess,
         })
 
-        const presignJson = (await safeJson(presignRes)) as any
-        if (!presignJson || !presignRes.ok || !presignJson?.success) {
-          throw new Error(presignJson?.message || presignJson?.error || 'Failed to prepare upload')
-        }
-
-        const uploadRes = await fetch(String(presignJson.uploadUrl), {
-          method: 'PUT',
-          headers: { 'Content-Type': String(file.type || 'application/octet-stream') },
-          body: file,
-        })
-
-        if (!uploadRes.ok) {
-          throw new Error('Upload failed')
-        }
+        await (await import('@/lib/upload-client')).uploadToSignedUrl(String(presignJson.uploadUrl), file)
 
         const completeRes = await fetch('/api/manual-properties/upload/complete', {
           method: 'POST',

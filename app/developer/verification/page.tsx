@@ -42,14 +42,14 @@ export default function DeveloperVerificationPage() {
 
       await uploadClient.saveDocumentRecord('/api/developer/documents', {
         documentType: docType,
-        fileUrl: presign.fileUrl || presign.objectUrl || presign.fileUrl,
-        s3Key: presign.s3Key || presign.key,
+        fileUrl: presign.objectUrl || presign.key,
+        s3Key: presign.key,
         fileName: file.name,
         mimeType: file.type,
         sizeBytes: file.size,
       })
 
-      setUpload(docType, { uploading: false, done: true, url: presign.fileUrl || presign.objectUrl })
+      setUpload(docType, { uploading: false, done: true, url: presign.objectUrl || presign.key })
     } catch (e: any) {
       setUpload(docType, { uploading: false, done: false, error: e.message || 'Upload failed' })
     }

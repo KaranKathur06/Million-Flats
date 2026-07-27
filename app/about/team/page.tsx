@@ -1,97 +1,10 @@
 import TeamMemberAvatar from '@/components/TeamMemberAvatar'
+import { leadershipSections } from '@/lib/leadership'
 
 export const metadata = {
   title: 'Our Leadership & Core Team - millionflats',
   description: 'Meet the leadership and core team driving innovation across global real estate, technology, and intelligence.',
 }
-
-type TeamMember = {
-  name: string
-  role: string
-  bio: string
-  image: string
-}
-
-type TeamSection = {
-  title: string
-  members: TeamMember[]
-}
-
-const sections: TeamSection[] = [
-  {
-    title: 'Leadership',
-    members: [
-      {
-        name: 'Tarique Mansuri',
-        role: 'CEO',
-        bio: 'With over 20 years of experience in Business Development and 10+ years in blockchain, AI, and global markets, Tarique drives MillionFlats’ strategic vision and growth.',
-        image: '/team/tarique.jpeg',
-      },
-      {
-        name: 'Ms. Neelam',
-        role: 'Managing Director',
-        bio: "She provides strategic oversight and governance. She represents the interests of our investors and guides the company's long-term vision and financial stewardship.",
-        image: '/team/neelam.jpeg',
-      },
-    ],
-  },
-  {
-    title: 'Strategy & Advisory',
-    members: [
-      {
-        name: 'Carel de Wet',
-        role: 'Advisor – UAE',
-        bio: 'Provides strong regional market expertise to accelerate launch strategy and secure anchor clients in the UAE.',
-        image: '/team/carel.jpeg',
-      },
-    ],
-  },
-  {
-    title: 'Technology & Innovation',
-    members: [
-
-      {
-        name: 'Dharami Shanmugam',
-        role: 'Full Stack Developer',
-        bio: 'Specialist in React.js, TypeScript, Node.js, and blockchain platforms, building scalable, data-driven applications.',
-        image: '/team/dharani.jpg',
-      },
-      {
-        name: 'Karan Kathur',
-        role: 'AI Lead',
-        bio: 'Strong foundation in Python, PostgreSQL, and task orchestration, contributing to real-time analytics and intelligent dashboards.',
-        image: '/team/karan%20.jpeg',
-      },
-    ],
-  },
-
-  {
-    title: 'Marketing Team',
-    members: [
-      {
-        name: 'Divesh More',
-        role: 'Sales Development Manager',
-        bio: 'Driving strategic growth through enterprise partnerships, market expansion, and high-value business relationships across the MillionFlats ecosystem.',
-        image: '/team/pratik.jpeg',
-      },
-
-      {
-        name: 'Pratik Bachchhe',
-        role: 'Sales Development Representative',
-        bio: 'Dedicated to growing the MillionFlats verified ecosystem by onboarding India’s top RERA-registered agents and developers.',
-        image: '/team/pratik.jpeg',
-      },
-
-
-      {
-        name: 'Bharat Tank',
-        role: 'Sales Development Representative',
-        bio: 'Supporting business growth by engaging prospective clients, nurturing qualified leads, and building lasting customer relationships across the real estate marketplace.',
-        image: '/team/pratik.jpeg',
-      },
-    ],
-  },
-]
 
 export default function TeamPage() {
   return (
@@ -115,7 +28,7 @@ export default function TeamPage() {
       <section className="section-spacing bg-gray-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="space-y-16">
-            {sections.map((section) => (
+            {leadershipSections.map((section) => (
               <div key={section.title}>
                 <div className="flex items-center justify-between gap-6 mb-8">
                   <h2 className="text-2xl md:text-3xl font-serif font-bold text-dark-blue">
@@ -127,13 +40,16 @@ export default function TeamPage() {
                 <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
                   {section.members.map((member) => (
                     <div
-                      key={member.name}
+                      key={member.id}
                       className="bg-white rounded-2xl border border-gray-200 shadow-sm p-7 text-center transition-transform duration-200 hover:-translate-y-1 hover:shadow-md"
                     >
                       <TeamMemberAvatar src={member.image} alt={member.name} />
 
                       <h3 className="text-xl font-semibold text-dark-blue">{member.name}</h3>
-                      <p className="text-accent-orange font-medium mt-1 mb-3">{member.role}</p>
+                      <p className="text-accent-orange font-medium mt-1 mb-3">{member.title}</p>
+                      {member.location ? (
+                        <p className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-3">{member.location}</p>
+                      ) : null}
                       <p className="text-sm text-gray-600 leading-relaxed">{member.bio}</p>
                     </div>
                   ))}

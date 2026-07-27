@@ -61,6 +61,12 @@ export default function ForgotPasswordForm({ portal = 'user' }: { portal?: Porta
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const trimmedEmail = email.trim()
+    if (!trimmedEmail) {
+      setError('Please enter your email address.')
+      return
+    }
+
     setLoading(true)
     setError('')
     setErrorCode('')
@@ -71,18 +77,22 @@ export default function ForgotPasswordForm({ portal = 'user' }: { portal?: Porta
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, portal }),
+        body: JSON.stringify({ email: trimmedEmail, portal }),
       })
 
       const data = await res.json().catch(() => null)
+      const message = typeof data?.message === 'string' ? data.message : ''
+      const code = typeof data?.code === 'string' ? data.code : ''
+      const verifyUrl = typeof data?.verifyUrl === 'string' ? data.verifyUrl : ''
+
       if (!res.ok) {
-        setErrorCode((data && data.code) || '')
-        setVerifyUrl((data && data.verifyUrl) || '')
-        setError((data && data.message) || 'Something went wrong. Please try again.')
+        setErrorCode(code)
+        setVerifyUrl(verifyUrl)
+        setError(message || 'Something went wrong. Please try again.')
         return
       }
 
-      setSuccess((data && data.message) || 'Reset link sent to your email.')
+      setSuccess(message || 'Reset link sent to your email.')
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {
@@ -90,7 +100,7 @@ export default function ForgotPasswordForm({ portal = 'user' }: { portal?: Porta
     }
   }
 
-  const encodedEmail = encodeURIComponent(email)
+  const encodedEmail = encodeURIComponent(email.trim())
   const fallbackVerifyUrl = `${copy.verifyBase}?email=${encodedEmail}`
 
   return (

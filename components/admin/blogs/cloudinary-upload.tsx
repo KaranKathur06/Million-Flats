@@ -34,32 +34,16 @@ export const CloudinaryUpload: React.FC<CloudinaryUploadProps> = ({ onUpload, ti
       setIsUploading(true)
       setUploadError(null)
 
-      const prepRes = await fetch('/api/admin/blogs/upload/presign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type,
-          sizeBytes: file.size,
-          title: titleOrSlug || undefined,
-          slug: titleOrSlug || undefined,
-        }),
+      const uploadClient = await import('@/lib/upload-client')
+      const prepJson = await uploadClient.requestPresign('/api/admin/blogs/upload/presign', {
+        filename: file.name,
+        contentType: file.type,
+        sizeBytes: file.size,
+        title: titleOrSlug || undefined,
+        slug: titleOrSlug || undefined,
       })
 
-      const prepJson = await prepRes.json().catch(() => null)
-      if (!prepRes.ok || !prepJson?.success) {
-        throw new Error(prepJson?.message || 'Failed to prepare upload')
-      }
-
-      const uploadRes = await fetch(String(prepJson.uploadUrl), {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type || 'application/octet-stream' },
-        body: file,
-      })
-
-      if (!uploadRes.ok) {
-        throw new Error('Failed to upload file to storage')
-      }
+      await uploadClient.uploadToSignedUrl(String(prepJson.uploadUrl), file)
 
       const url = String(prepJson.publicUrl || prepJson.objectUrl || '').trim()
       if (!url) {

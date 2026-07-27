@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAgentSession } from '@/lib/agentAuth'
-import { deleteFromS3 } from '@/lib/s3'
+import { deleteFromS3, s3ObjectExists } from '@/lib/s3'
 
 export const runtime = 'nodejs'
 
@@ -38,6 +38,11 @@ export async function POST(req: Request) {
 
     if (property.status !== 'DRAFT' && property.status !== 'REJECTED') {
       return NextResponse.json({ success: false, message: 'Cannot upload after submission' }, { status: 400 })
+    }
+
+    const objectExists = await s3ObjectExists({ key: s3Key }).catch(() => false)
+    if (!objectExists) {
+      return NextResponse.json({ success: false, message: 'Uploaded object not found in storage' }, { status: 404 })
     }
 
     if (category === 'COVER') {

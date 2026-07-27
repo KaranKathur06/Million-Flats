@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAgentProfileSession } from '@/lib/agentAuth'
 import { buildApiErrorEnvelope, buildApiSuccessEnvelope } from '@/lib/api-response'
+import { s3ObjectExists } from '@/lib/s3'
 
 /**
  * GET  /api/agent/documents — list all documents for the authenticated agent
@@ -123,60 +124,74 @@ export async function POST(req: Request) {
 
   let document
   try {
+    if (!s3Key) {
+      throw new Error('s3Key is required for storage verification')
+    }
+
+    const objectExists = await s3ObjectExists({ key: s3Key })
+    if (!objectExists) {
+      return NextResponse.json(buildApiErrorEnvelope('Uploaded object not found in storage', 'STORAGE_OBJECT_NOT_FOUND'), { status: 500 })
+    }
+
     const existing = await (prisma as any).agentDocument.findFirst({
       where: { agentId, type: documentType },
       select: { id: true },
     })
 
-    if (existing) {
-      document = await (prisma as any).agentDocument.update({
-        where: { id: existing.id },
-        data: {
-          fileUrl,
-          s3Key: s3Key || null,
-          fileName: fileName || null,
-          mimeType: mimeType || null,
-          sizeBytes: sizeBytes || null,
-          status: 'PENDING',
-          reviewedBy: null,
-          reviewedAt: null,
-          rejectionReason: null,
-        },
+    const result = await prisma.$transaction(async (tx: any) => {
+      if (existing) {
+        document = await tx.agentDocument.update({
+          where: { id: existing.id },
+          data: {
+            fileUrl,
+            s3Key: s3Key || null,
+            fileName: fileName || null,
+            mimeType: mimeType || null,
+            sizeBytes: sizeBytes || null,
+            status: 'PENDING',
+            reviewedBy: null,
+            reviewedAt: null,
+            rejectionReason: null,
+          },
+        })
+      } else {
+        document = await tx.agentDocument.create({
+          data: {
+            agentId,
+            type: documentType,
+            fileUrl,
+            s3Key: s3Key || null,
+            fileName: fileName || null,
+            mimeType: mimeType || null,
+            sizeBytes: sizeBytes || null,
+            status: 'PENDING',
+          },
+        })
+      }
+
+      const requiredDocs = await tx.agentDocument.findMany({
+        where: { agentId, type: { in: REQUIRED_DOC_TYPES } },
+        select: { type: true },
       })
-    } else {
-      document = await (prisma as any).agentDocument.create({
-        data: {
-          agentId,
-          type: documentType,
-          fileUrl,
-          s3Key: s3Key || null,
-          fileName: fileName || null,
-          mimeType: mimeType || null,
-          sizeBytes: sizeBytes || null,
-          status: 'PENDING',
-        },
-      })
-    }
+
+      const hasAllRequired = REQUIRED_DOC_TYPES.every((t) =>
+        (requiredDocs as any[]).some((d: any) => d.type === t)
+      )
+
+      if (hasAllRequired) {
+        await tx.agent.update({
+          where: { id: agentId },
+          data: { status: 'DOCUMENTS_UPLOADED' as any },
+        })
+      }
+
+      return document
+    })
+
+    document = result
   } catch (err) {
     console.error('Failed to save agent document:', err)
     return NextResponse.json(buildApiErrorEnvelope('Failed to save document', 'DOCUMENT_SAVE_FAILED'), { status: 500 })
-  }
-
-  // Auto-advance agent status when required docs uploaded
-  const requiredDocs = await (prisma as any).agentDocument.findMany({
-    where: { agentId, type: { in: REQUIRED_DOC_TYPES } },
-    select: { type: true },
-  }).catch(() => [])
-
-  const hasAllRequired = REQUIRED_DOC_TYPES.every((t) =>
-    (requiredDocs as any[]).some((d: any) => d.type === t)
-  )
-
-  if (hasAllRequired) {
-    await (prisma as any).agent.update({
-      where: { id: agentId },
-      data: { status: 'DOCUMENTS_UPLOADED' as any },
-    }).catch(() => null)
   }
 
   return NextResponse.json(buildApiSuccessEnvelope({ document }), { status: 201 })

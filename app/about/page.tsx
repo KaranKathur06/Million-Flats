@@ -2,7 +2,7 @@ import Image from 'next/image'
 import MissionVision from '@/components/MissionVision'
 import WhatSetsUsApart from '@/components/WhatSetsUsApart'
 import CoreValues from '@/components/CoreValues'
-import { teamSections } from '@/lib/teamData'
+import { leadershipSections } from '@/lib/leadership'
 
 export const metadata = {
   title: 'About Us - millionflats | UAE Luxury Real Estate',
@@ -80,7 +80,7 @@ export default function AboutPage() {
           </div>
 
           <div className="space-y-12">
-            {teamSections.map((section) => (
+            {leadershipSections.map((section) => (
               <div key={section.title}>
                 <div className="flex items-center gap-6 mb-6">
                   <h3 className="text-xl md:text-2xl font-serif font-bold text-dark-blue">{section.title}</h3>
@@ -89,16 +89,19 @@ export default function AboutPage() {
 
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {section.members.map((member) => (
-                    <div key={member.name} className="bg-gray-50 rounded-2xl border border-gray-200 p-6">
+                    <div key={member.id} className="bg-gray-50 rounded-2xl border border-gray-200 p-6">
                       <div className="flex items-start gap-4">
                         <div className="shrink-0 h-14 w-14 rounded-full bg-white border border-gray-200 overflow-hidden">
                           <Image src={member.image} alt={member.name} width={56} height={56} className="h-14 w-14 object-cover" />
                         </div>
                         <div>
                           <h4 className="text-lg font-semibold text-dark-blue">{member.name}</h4>
-                          <p className="text-sm text-gray-600 mt-1">{member.role}</p>
+                          <p className="text-sm text-gray-600 mt-1">{member.title}</p>
                         </div>
                       </div>
+                      {member.location ? (
+                        <p className="text-xs uppercase tracking-[0.2em] text-accent-orange mt-3">{member.location}</p>
+                      ) : null}
                       <p className="text-sm text-gray-700 mt-4 leading-relaxed">{member.bio}</p>
                     </div>
                   ))}

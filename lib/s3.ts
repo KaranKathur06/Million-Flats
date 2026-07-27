@@ -19,6 +19,16 @@ function requireS3Env(): S3Env {
   return { region, bucket }
 }
 
+export function getS3StorageConfig() {
+  const { region, bucket } = requireS3Env()
+  return {
+    region,
+    bucket,
+    endpoint: String(process.env.AWS_S3_ENDPOINT || '').trim() || undefined,
+    forcePathStyle: String(process.env.AWS_S3_FORCE_PATH_STYLE || '').trim().toLowerCase() === 'true',
+  }
+}
+
 let cachedClient: S3Client | null = null
 
 export function getS3Client() {
@@ -32,8 +42,12 @@ export function getS3Client() {
   if (!secretAccessKey) throw new Error('Missing AWS_SECRET_ACCESS_KEY')
   if (!region) throw new Error('Missing AWS_REGION')
 
+  const endpoint = String(process.env.AWS_S3_ENDPOINT || '').trim()
+
   cachedClient = new S3Client({
     region,
+    endpoint: endpoint || undefined,
+    forcePathStyle: String(process.env.AWS_S3_FORCE_PATH_STYLE || '').trim().toLowerCase() === 'true',
     credentials: {
       accessKeyId,
       secretAccessKey,
@@ -499,6 +513,10 @@ export async function createSignedPutUrlForKey(params: {
     }),
     { expiresIn }
   )
+
+  if (!uploadUrl || !uploadUrl.startsWith('http')) {
+    throw new Error('Failed to generate signed upload URL')
+  }
 
   const objectUrl = `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key).replace(/%2F/g, '/')}`
 
