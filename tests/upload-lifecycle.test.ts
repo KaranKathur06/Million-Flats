@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals'
 
-const mockRequireAgentSession = jest.fn<Promise<{ ok: boolean; agentId: string }>, [unknown?]>()
-const mockS3ObjectExists = jest.fn<Promise<boolean>, [string]>()
-const mockDeleteFromS3 = jest.fn<Promise<void>, [string]>()
-const mockCreate = jest.fn<Promise<{ id: string }>, [any]>()
-const mockFindMany = jest.fn<Promise<any[]>, [unknown?]>()
-const mockFindFirst = jest.fn<Promise<any | null>, [unknown?]>()
+const mockRequireAgentSession = jest.fn() as jest.MockedFunction<() => Promise<{ ok: boolean; agentId: string }>>
+const mockS3ObjectExists = jest.fn() as jest.MockedFunction<(key: string) => Promise<boolean>>
+const mockDeleteFromS3 = jest.fn() as jest.MockedFunction<(key: string) => Promise<void>>
+const mockCreate = jest.fn() as jest.MockedFunction<(data: any) => Promise<{ id: string }>>
+const mockFindMany = jest.fn() as jest.MockedFunction<(args?: unknown) => Promise<any[]>>
+const mockFindFirst = jest.fn() as jest.MockedFunction<(args?: unknown) => Promise<any | null>>
 
 jest.mock('next/server', () => {
   class MockNextResponse {
