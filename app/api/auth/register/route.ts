@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { parsePhoneNumberFromString } from 'libphonenumber-js'
 import crypto from 'crypto'
 import { VerificationService } from '@/lib/auth/verification-service'
+import { normalizeReferralSource } from '@/lib/referrals'
 
 export const runtime = 'nodejs'
 
@@ -139,6 +140,9 @@ export async function POST(req: Request) {
     const phoneNationalNumber = normalizeNationalNumber(body?.phoneNationalNumber)
     const type = safeString(body?.type)
     const acceptedTerms = Boolean(body?.acceptedTerms)
+    const referenceSource = safeString(body?.referenceSource)
+    const referenceDetails = safeString(body?.referenceDetails)
+    const normalizedReferenceSource = normalizeReferralSource(referenceSource)
 
     if (!name || !email || !type) {
       return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 })
@@ -322,6 +326,8 @@ export async function POST(req: Request) {
             phoneCountryIso2: (existingUser as any).phoneCountryIso2 || phoneNormalized.phoneCountryIso2ForFk || null,
             phoneNationalNumber: (existingUser as any).phoneNationalNumber || phoneNormalized.phoneNationalNumber || null,
             role: 'AGENT',
+            referralSource: normalizedReferenceSource || (existingUser as any).referralSource || null,
+            referralDetails: referenceDetails || (existingUser as any).referralDetails || null,
           },
         })
         : await (prisma as any).user.create({
@@ -334,6 +340,8 @@ export async function POST(req: Request) {
             phoneNationalNumber: phoneNormalized.phoneNationalNumber || null,
             role: 'AGENT',
             verified: false,
+            referralSource: normalizedReferenceSource || null,
+            referralDetails: referenceDetails || null,
           },
         })
 
@@ -419,12 +427,14 @@ export async function POST(req: Request) {
             name: existingUser.name || name,
             password: existingUser.password || hashedPassword,
             role: 'AGENCY',
+            referralSource: normalizedReferenceSource || (existingUser as any).referralSource || null,
+            referralDetails: referenceDetails || (existingUser as any).referralDetails || null,
           },
         })
       } else {
         try {
           user = await prisma.user.create({
-            data: { name, email, password: hashedPassword, role: 'AGENCY', verified: false },
+            data: { name, email, password: hashedPassword, role: 'AGENCY', verified: false, referralSource: normalizedReferenceSource || null, referralDetails: referenceDetails || null },
           })
         } catch (createErr: any) {
           // P2002 = unique constraint (email already exists but findUnique failed)
@@ -434,7 +444,7 @@ export async function POST(req: Request) {
             if (recovered) {
               user = await prisma.user.update({
                 where: { id: recovered.id },
-                data: { name: recovered.name || name, password: recovered.password || hashedPassword, role: 'AGENCY' },
+                data: { name: recovered.name || name, password: recovered.password || hashedPassword, role: 'AGENCY', referralSource: normalizedReferenceSource || (recovered as any).referralSource || null, referralDetails: referenceDetails || (recovered as any).referralDetails || null },
               })
             } else {
               return NextResponse.json({ success: false, message: 'Registration failed. Please try again.' }, { status: 500 })
@@ -509,12 +519,18 @@ export async function POST(req: Request) {
       if (existingUser) {
         user = await prisma.user.update({
           where: { id: existingUser.id },
-          data: { name: existingUser.name || name, password: existingUser.password || hashedPassword, role: 'DEVELOPER' },
+          data: {
+            name: existingUser.name || name,
+            password: existingUser.password || hashedPassword,
+            role: 'DEVELOPER',
+            referralSource: normalizedReferenceSource || (existingUser as any).referralSource || null,
+            referralDetails: referenceDetails || (existingUser as any).referralDetails || null,
+          },
         })
       } else {
         try {
           user = await prisma.user.create({
-            data: { name, email, password: hashedPassword, role: 'DEVELOPER', verified: false },
+            data: { name, email, password: hashedPassword, role: 'DEVELOPER', verified: false, referralSource: normalizedReferenceSource || null, referralDetails: referenceDetails || null },
           })
         } catch (createErr: any) {
           if (createErr?.code === 'P2002') {
@@ -522,7 +538,7 @@ export async function POST(req: Request) {
             if (recovered) {
               user = await prisma.user.update({
                 where: { id: recovered.id },
-                data: { name: recovered.name || name, password: recovered.password || hashedPassword, role: 'DEVELOPER' },
+                data: { name: recovered.name || name, password: recovered.password || hashedPassword, role: 'DEVELOPER', referralSource: normalizedReferenceSource || (recovered as any).referralSource || null, referralDetails: referenceDetails || (recovered as any).referralDetails || null },
               })
             } else {
               return NextResponse.json({ success: false, message: 'Registration failed. Please try again.' }, { status: 500 })

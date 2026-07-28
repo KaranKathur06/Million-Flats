@@ -345,12 +345,14 @@ function RegisterTab({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
     password: '',
     confirmPassword: '',
     acceptedTerms: false,
+    referenceSource: '',
+    referenceDetails: '',
   });
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>('weak');
 
-  const field = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const field = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((prev) => ({
       ...prev,
       [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value,
@@ -384,6 +386,8 @@ function RegisterTab({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
           phone: form.phone || undefined,
           acceptedTerms: form.acceptedTerms,
           type: 'agent',
+          referenceSource: form.referenceSource || undefined,
+          referenceDetails: form.referenceDetails || undefined,
         }),
       });
 
@@ -436,6 +440,36 @@ function RegisterTab({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
           value={form.phone}
           onChange={field('phone')}
           placeholder="Optional phone number"
+          className="w-full h-12 px-4 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-dark-blue/15 focus:border-dark-blue focus:bg-white transition-all outline-none"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">How did you hear about us?</label>
+        <select
+          value={form.referenceSource}
+          onChange={field('referenceSource')}
+          className="w-full h-12 px-4 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-dark-blue/15 focus:border-dark-blue focus:bg-white transition-all outline-none"
+        >
+          <option value="">Select an option</option>
+          <option value="google-search">Google Search</option>
+          <option value="linkedin">LinkedIn</option>
+          <option value="instagram">Instagram</option>
+          <option value="facebook">Facebook</option>
+          <option value="whatsapp">WhatsApp</option>
+          <option value="referral">Referral</option>
+          <option value="partner">Partner / Agency</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Reference details</label>
+        <input
+          type="text"
+          value={form.referenceDetails}
+          onChange={field('referenceDetails')}
+          placeholder="Name, company, or campaign"
           className="w-full h-12 px-4 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-dark-blue/15 focus:border-dark-blue focus:bg-white transition-all outline-none"
         />
       </div>

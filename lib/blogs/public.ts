@@ -4,7 +4,7 @@ import { normalizeBlogAssets, normalizeBlogListAssets } from '@/lib/blogs/normal
 
 export const BLOGS_REVALIDATE_SECONDS = 60
 export const BLOGS_CACHE_TAG = 'blogs-public'
-const DEFAULT_LIMIT = 10
+const DEFAULT_LIMIT = 9
 
 export type PublicBlogCard = {
   id: string

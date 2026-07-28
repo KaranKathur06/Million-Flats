@@ -86,7 +86,6 @@ export default function Header() {
   const servicesLinks: NavItem[] = showServices
     ? [
         { href: "/services/3d-tours", label: "3D Tours" },
-        { href: "/services/ai-analytics", label: "AI Analytics" },
         { href: "/services/featured-listings", label: "Featured Listings" },
         { href: "/services/advertising", label: "Premium Ads" },
         { href: "/services/partnerships", label: "Partnerships" },

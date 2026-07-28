@@ -207,6 +207,8 @@ model User {
   phone     String?
   phoneCountryIso2   String?  @db.Char(2) @map("phone_country_iso2")
   phoneNationalNumber String? @map("phone_national_number")
+  referralSource      String?   @map("referral_source")
+  referralDetails     String?   @map("referral_details")
 
   phoneCountry Country? @relation("UserPhoneCountry", fields: [phoneCountryIso2], references: [iso2])
 

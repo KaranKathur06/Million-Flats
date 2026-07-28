@@ -20,7 +20,7 @@ type BlogPageProps = {
   }
 }
 
-const LIMIT = 10
+const LIMIT = 9
 
 function withParams(params: { search?: string; category?: string; page?: number }) {
   const q = new URLSearchParams()

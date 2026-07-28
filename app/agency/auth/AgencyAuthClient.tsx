@@ -407,6 +407,8 @@ function RegisterTab() {
     reraNumber: "",
     website: "",
     specializations: [] as string[],
+    referenceSource: "",
+    referenceDetails: "",
   });
   const [showRegisterPassword, setShowRegisterPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -452,6 +454,8 @@ function RegisterTab() {
           website: form.website || undefined,
           specializations: form.specializations,
           type: 'agency',
+          referenceSource: form.referenceSource || undefined,
+          referenceDetails: form.referenceDetails || undefined,
         }),
       });
       const data = await res.json().catch(() => null);
@@ -549,6 +553,35 @@ function RegisterTab() {
         {(form as any).confirmPassword && (form as any).password !== (form as any).confirmPassword && (
           <p className="mt-2 text-xs text-red-600 flex items-center gap-1.5">Passwords don't match</p>
         )}
+      </div>
+
+      <div>
+        <label className={labelCls}>How did you hear about us?</label>
+        <select
+          value={form.referenceSource}
+          onChange={(e) => setForm((f) => ({ ...f, referenceSource: e.target.value }))}
+          className={inputCls}
+        >
+          <option value="">Select an option</option>
+          <option value="google-search">Google Search</option>
+          <option value="linkedin">LinkedIn</option>
+          <option value="instagram">Instagram</option>
+          <option value="facebook">Facebook</option>
+          <option value="whatsapp">WhatsApp</option>
+          <option value="referral">Referral</option>
+          <option value="partner">Partner / Agency</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div>
+        <label className={labelCls}>Reference details</label>
+        <input
+          value={form.referenceDetails}
+          onChange={(e) => setForm((f) => ({ ...f, referenceDetails: e.target.value }))}
+          placeholder="Name, company, or campaign"
+          className={inputCls}
+        />
       </div>
 
       <div>

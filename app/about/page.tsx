@@ -103,6 +103,19 @@ export default function AboutPage() {
                         <p className="text-xs uppercase tracking-[0.2em] text-accent-orange mt-3">{member.location}</p>
                       ) : null}
                       <p className="text-sm text-gray-700 mt-4 leading-relaxed">{member.bio}</p>
+                      {member.linkedinUrl ? (
+                        <a
+                          href={member.linkedinUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-dark-blue hover:text-accent-orange"
+                        >
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6.94 8.5A1.56 1.56 0 1 0 6.94 5.38a1.56 1.56 0 0 0 0 3.12ZM5.5 9.75h2.88V18H5.5zM10.6 9.75h2.76v1.13h.04c.38-.72 1.32-1.48 2.71-1.48 2.9 0 3.43 1.91 3.43 4.39V18h-2.88v-7.3c0-1.74-.03-3.98-2.42-3.98-2.43 0-2.8 1.9-2.8 3.85V18H10.6z" />
+                          </svg>
+                          View LinkedIn
+                        </a>
+                      ) : null}
                     </div>
                   ))}
                 </div>

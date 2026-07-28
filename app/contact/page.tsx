@@ -41,9 +41,22 @@ export default function ContactPage() {
         </div>
 
         {/* Contact Form and Info */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
-          <ContactForm />
-          <ContactInfo />
+        <div className="mb-16">
+          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8 lg:p-10">
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-dark-blue/60">Need a tailored response?</p>
+                <h2 className="mt-3 text-2xl font-serif font-bold text-dark-blue">Tell us about your goals and we’ll guide you forward</h2>
+                <p className="mt-3 text-gray-600">Whether you’re discovering a property, joining our network, or exploring a partnership, our team will respond with the right next step.</p>
+              </div>
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
+                <ContactInfo />
+              </div>
+            </div>
+            <div className="mt-8">
+              <ContactForm />
+            </div>
+          </div>
         </div>
 
         <section className="mb-16 rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
