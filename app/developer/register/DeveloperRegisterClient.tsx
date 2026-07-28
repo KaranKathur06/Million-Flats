@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AuthLayout from '@/components/AuthLayout'
+import PasswordInput from '@/components/forms/PasswordInput'
 
 export default function DeveloperRegisterClient() {
   const router = useRouter()
@@ -14,7 +15,6 @@ export default function DeveloperRegisterClient() {
     confirmPassword: '',
     phone: '',
   })
-  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -93,30 +93,23 @@ export default function DeveloperRegisterClient() {
         {field('dev-reg-email', 'Business Email *', 'email', 'email', 'Enter your business email')}
         {field('dev-phone', 'Phone Number', 'tel', 'phone', '+91 9876543210', false)}
 
-        {/* Password with toggle */}
-        <div>
-          <label htmlFor="dev-reg-password" className="block text-sm font-medium text-gray-700 mb-2">Password *</label>
-          <div className="relative">
-            <input
-              id="dev-reg-password"
-              type={showPassword ? 'text' : 'password'}
-              required
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all pr-12"
-              placeholder="Min. 8 characters"
-            />
-            <button type="button" onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl text-gray-400 hover:text-gray-600 inline-flex items-center justify-center">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-            </button>
-          </div>
-        </div>
+        <PasswordInput
+          id="dev-reg-password"
+          label="Password *"
+          value={formData.password}
+          onChange={(value) => setFormData({ ...formData, password: value })}
+          placeholder="Min. 8 characters"
+          confirmValue={formData.confirmPassword}
+        />
 
-        {field('dev-reg-confirm', 'Confirm Password *', 'password', 'confirmPassword', 'Re-enter your password')}
+        <PasswordInput
+          id="dev-reg-confirm"
+          label="Confirm Password *"
+          value={formData.confirmPassword}
+          onChange={(value) => setFormData({ ...formData, confirmPassword: value })}
+          placeholder="Re-enter your password"
+          confirmValue={formData.password}
+        />
 
         <p className="text-xs text-gray-500">
           By registering, you agree to our{' '}

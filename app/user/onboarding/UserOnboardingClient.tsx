@@ -102,13 +102,24 @@ export default function UserOnboardingClient({ initialData }: { initialData?: an
 
   const handleFinish = async () => {
     setIsSaving(true)
-    await fetch('/api/user/onboarding', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...formData, currentOnboardingStep: 7 })
-    })
-    setIsSaving(false)
-    router.push('/dashboard')
+    try {
+      const res = await fetch('/api/user/onboarding', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, currentOnboardingStep: 7 })
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.message || 'Unable to complete onboarding')
+      }
+      router.refresh()
+      router.replace('/dashboard')
+    } catch (error) {
+      console.error('Onboarding completion failed', error)
+      router.replace('/dashboard')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const ProgressBar = () => (

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
+import { validatePasswordStrength } from '@/lib/auth/shared'
 
 export const runtime = 'nodejs'
 
@@ -46,12 +47,17 @@ export async function POST(req: Request) {
   const password = safeString(body?.password)
   const confirmPassword = safeString(body?.confirmPassword)
 
-  if (!token || !password || password.length < 8) {
-    return NextResponse.json({ success: false, message: 'Invalid request' }, { status: 400 })
+  if (!token) {
+    return NextResponse.json({ success: false, message: 'Missing reset token.' }, { status: 400 })
+  }
+
+  const passwordValidation = validatePasswordStrength(password)
+  if (!passwordValidation.isValid) {
+    return NextResponse.json({ success: false, message: passwordValidation.errors.join(' • ') }, { status: 400 })
   }
 
   if (password !== confirmPassword) {
-    return NextResponse.json({ success: false, message: 'Passwords do not match' }, { status: 400 })
+    return NextResponse.json({ success: false, message: 'Passwords do not match.' }, { status: 400 })
   }
 
   const tokenHash = hashToken(token)

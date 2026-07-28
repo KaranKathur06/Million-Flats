@@ -9,6 +9,10 @@ type AgentDocument = {
   id: string
   type: string
   fileUrl: string
+  s3Key?: string | null
+  fileName?: string | null
+  mimeType?: string | null
+  sizeBytes?: number | null
   status: DocumentStatus
   rejectionReason: string | null
 }
@@ -91,6 +95,10 @@ export default function AgentVerificationCenter({
   const [documents, setDocuments] = useState<AgentDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState<string | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewingId, setPreviewingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitMessage, setSubmitMessage] = useState('')
   const [submitSuccess, setSubmitSuccess] = useState(false)
@@ -120,6 +128,7 @@ export default function AgentVerificationCenter({
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, docType: string) => {
     const file = e.target.files?.[0]
     if (!file) return
+    setActionError(null)
     setUploading(docType)
     try {
       const presign = await (await import('@/lib/upload-client')).requestPresign('/api/agent/documents/presign', {
@@ -144,9 +153,52 @@ export default function AgentVerificationCenter({
 
       await fetchDocuments()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Upload failed. Please try again.')
+      setActionError(err instanceof Error ? err.message : 'Upload failed. Please try again.')
     } finally {
       setUploading(null)
+    }
+  }
+
+  const handlePreview = async (doc: AgentDocument) => {
+    if (!doc?.fileUrl) return
+    setActionError(null)
+    setPreviewingId(doc.id)
+    try {
+      const res = await fetch('/api/agent/documents/signed-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: doc.id, s3Key: doc.s3Key, fileUrl: doc.fileUrl }),
+      })
+      const data = await res.json().catch(() => null)
+      const url = data?.data?.url || data?.url
+      if (!res.ok || !url) {
+        throw new Error(data?.error?.message || data?.message || 'Unable to preview document')
+      }
+      setPreviewUrl(url)
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Preview failed. Please try again.')
+    } finally {
+      setPreviewingId(null)
+    }
+  }
+
+  const handleDelete = async (doc: AgentDocument) => {
+    if (!doc?.id) return
+    const confirmed = window.confirm('Delete this uploaded document? This cannot be undone.')
+    if (!confirmed) return
+    setActionError(null)
+    setDeletingId(doc.id)
+    try {
+      const res = await fetch(`/api/agent/documents/${encodeURIComponent(doc.id)}`, { method: 'DELETE' })
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error?.message || data?.message || 'Failed to delete document')
+      }
+      await fetchDocuments()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to delete document. Please try again.')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -238,6 +290,8 @@ export default function AgentVerificationCenter({
     const doc = getDocForType(def.type)
     const isUploading = uploading === def.type
     const isApproved = doc?.status === 'APPROVED'
+    const isPreviewing = previewingId === doc?.id
+    const isDeleting = deletingId === doc?.id
 
     return (
       <div
@@ -269,6 +323,9 @@ export default function AgentVerificationCenter({
                 )}
               </div>
               <p className="text-sm text-gray-500 mt-0.5">{def.desc}</p>
+              {doc?.fileName && (
+                <p className="text-xs text-slate-500 mt-1">File: {doc.fileName}</p>
+              )}
               {doc?.status === 'REJECTED' && doc.rejectionReason && (
                 <p className="text-xs text-red-600 mt-1.5 font-medium">
                   Reason: {doc.rejectionReason}
@@ -279,42 +336,61 @@ export default function AgentVerificationCenter({
 
           <div className="flex flex-col items-end gap-2 flex-shrink-0">
             {renderStatusBadge(doc?.status)}
-            <label className="cursor-pointer">
-              <input
-                type="file"
-                accept="image/*,.pdf"
-                onChange={(e) => handleUpload(e, def.type)}
-                className="sr-only"
-                disabled={isUploading || isApproved}
-              />
-              <div
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  isUploading
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : isApproved
-                    ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
-                    : doc
-                    ? 'bg-white text-[#1e3a5f] border border-gray-200 hover:bg-gray-50'
-                    : 'bg-[#1e3a5f] text-white hover:bg-[#1e3a5f]/90'
-                }`}
-              >
-                {isUploading ? (
-                  <span className="flex items-center gap-1.5">
-                    <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Uploading…
-                  </span>
-                ) : isApproved ? (
-                  'Approved'
-                ) : doc ? (
-                  'Replace'
-                ) : (
-                  'Upload'
-                )}
-              </div>
-            </label>
+            <div className="flex flex-col items-end gap-2">
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={(e) => handleUpload(e, def.type)}
+                  className="sr-only"
+                  disabled={isUploading}
+                />
+                <div
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    isUploading
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : doc
+                      ? 'bg-white text-[#1e3a5f] border border-gray-200 hover:bg-gray-50'
+                      : 'bg-[#1e3a5f] text-white hover:bg-[#1e3a5f]/90'
+                  }`}
+                >
+                  {isUploading ? (
+                    <span className="flex items-center gap-1.5">
+                      <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Uploading…
+                    </span>
+                  ) : doc ? (
+                    'Replace'
+                  ) : (
+                    'Upload'
+                  )}
+                </div>
+              </label>
+
+              {doc && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handlePreview(doc)}
+                    disabled={isPreviewing}
+                    className="h-8 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-[11px] font-semibold text-[#1e3a5f] hover:bg-white/[0.08] transition-all disabled:opacity-50"
+                  >
+                    {isPreviewing ? 'Previewing…' : 'Preview'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(doc)}
+                    disabled={isDeleting}
+                    className="h-8 rounded-lg border border-red-200 bg-red-50 px-3 text-[11px] font-semibold text-red-600 hover:bg-red-100 transition-all disabled:opacity-50"
+                  >
+                    {isDeleting ? 'Deleting…' : 'Delete'}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -484,6 +560,11 @@ export default function AgentVerificationCenter({
               )}
 
               {/* Already submitted banner */}
+              {actionError && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 mb-4">
+                  {actionError}
+                </div>
+              )}
               {alreadySubmitted && (
                 <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
                   <div className="flex items-start gap-3">
@@ -659,6 +740,35 @@ export default function AgentVerificationCenter({
           </div>
         )}
       </div>
+
+      {previewUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setPreviewUrl(null)}>
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          <div
+            className="relative w-full max-w-4xl max-h-[90vh] rounded-3xl overflow-hidden border border-white/10 bg-slate-950 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 px-4 py-3 bg-slate-900/95 border-b border-white/10">
+              <span className="text-sm font-semibold text-slate-100">Document Preview</span>
+              <button
+                onClick={() => setPreviewUrl(null)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-800 text-slate-200 hover:bg-slate-700"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 bg-slate-950">
+              {previewUrl.match(/\.(pdf)(\?|$)/i) ? (
+                <iframe src={previewUrl} className="w-full h-[72vh] rounded-2xl border border-white/10 bg-black" />
+              ) : (
+                <img src={previewUrl} alt="Document preview" className="w-full h-[72vh] rounded-2xl object-contain bg-white/5" />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

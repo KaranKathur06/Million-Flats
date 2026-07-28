@@ -646,7 +646,7 @@ export async function middleware(req: NextRequest) {
             }
           } catch (e) { }
         }
-        url.pathname = '/';
+        url.pathname = '/dashboard';
         return NextResponse.redirect(url);
       }
     }

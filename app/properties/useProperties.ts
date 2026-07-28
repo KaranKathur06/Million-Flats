@@ -40,6 +40,9 @@ export default function useProperties(forcedPurpose?: Purpose) {
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
   const [apiError, setApiError] = useState('')
+  const [page, setPage] = useState<number>(1)
+  const [limit, setLimit] = useState<number>(24)
+  const [totalCount, setTotalCount] = useState<number | null>(null)
 
   const [purposeState, setPurposeState] = useState<Purpose>(() => {
     if (forcedPurpose) return forcedPurpose
@@ -158,6 +161,8 @@ export default function useProperties(forcedPurpose?: Purpose) {
       if (filters.bedrooms) params.set('bedrooms', filters.bedrooms)
       if (filters.bathrooms) params.set('bathrooms', filters.bathrooms)
       params.set('purpose', purpose)
+      params.set('page', String(page))
+      params.set('limit', String(limit))
 
       const res = await fetch(`/api/properties?${params.toString()}`)
       const text = await res.text().catch(() => '')
@@ -170,6 +175,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
       }
 
       const items = Array.isArray(json?.items) ? (json.items as any[]) : []
+      const total = typeof json?.totalCount === 'number' ? Number(json.totalCount) : null
 
       const mapped = items
         .map((item: any) => {
@@ -216,7 +222,8 @@ export default function useProperties(forcedPurpose?: Purpose) {
         })
         .filter(Boolean) as Property[]
 
-      setProperties(mapped)
+      setProperties((prev) => (page > 1 ? [...prev, ...mapped] : mapped))
+      setTotalCount(total)
       if (mapped.length === 0) setApiError('No properties found matching your filters')
     } catch (e) {
       setProperties([])
@@ -224,11 +231,16 @@ export default function useProperties(forcedPurpose?: Purpose) {
     } finally {
       setLoading(false)
     }
-  }, [filters.bathrooms, filters.bedrooms, filters.community, filters.country, filters.location, filters.maxPrice, filters.minPrice, filters.type, purpose])
+  }, [filters.bathrooms, filters.bedrooms, filters.community, filters.country, filters.location, filters.maxPrice, filters.minPrice, filters.type, purpose, page, limit])
 
   useEffect(() => {
     fetchProperties()
   }, [fetchProperties])
+
+  useEffect(() => {
+    // when filters or purpose change, reset pagination
+    setPage(1)
+  }, [filters.country, filters.location, filters.community, filters.type, filters.minPrice, filters.maxPrice, filters.bedrooms, filters.bathrooms, filters.sortBy, purpose])
 
   const handleFilterChange = (newFilters: Partial<Filters>) => {
     if (newFilters.country && newFilters.country !== country && isCountryCode(newFilters.country)) {
@@ -264,6 +276,11 @@ export default function useProperties(forcedPurpose?: Purpose) {
 
   const applyDraft = () => {
     handleFilterChange(draftFilters)
+  }
+
+  const loadMore = () => {
+    if (totalCount !== null && properties.length >= totalCount) return
+    setPage((p) => p + 1)
   }
 
   const resetFilters = () => {
@@ -312,6 +329,11 @@ export default function useProperties(forcedPurpose?: Purpose) {
     properties,
     loading,
     apiError,
+    page,
+    limit,
+    totalCount,
+    setPage,
+    setLimit,
     filters,
     setFilters,
     draftFilters,
@@ -321,6 +343,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
     applyDraft,
     resetFilters,
     fetchProperties,
+    loadMore,
     priceOptions,
     minPriceDropdownOptions,
     maxPriceDropdownOptions,

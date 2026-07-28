@@ -58,6 +58,7 @@ const QuerySchema = z.object({
   maxPrice: z.coerce.number().finite().nonnegative().optional(),
   featured: z.enum(['true', 'false']).optional(),
   limit: z.coerce.number().int().min(1).max(250).optional(),
+  page: z.coerce.number().int().min(1).optional(),
 })
 
 function safeString(v: unknown) {
@@ -123,12 +124,20 @@ export async function GET(req: Request) {
       where.price = { ...(where.price || {}), lte: q.maxPrice }
     }
 
-    const rows = await (prisma as any).manualProperty.findMany({
-      where,
-      orderBy: { updatedAt: 'desc' },
-      include: { media: true, agent: { include: { user: true } } },
-      take: typeof q.limit === 'number' && Number.isFinite(q.limit) ? Math.min(q.limit, 250) : 200,
-    })
+    const take = typeof q.limit === 'number' && Number.isFinite(q.limit) ? Math.min(q.limit, 250) : 24
+    const page = typeof q.page === 'number' && Number.isFinite(q.page) ? Math.max(1, q.page) : 1
+    const skip = (page - 1) * take
+
+    const [totalCount, rows] = await Promise.all([
+      (prisma as any).manualProperty.count({ where }),
+      (prisma as any).manualProperty.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        include: { media: true, agent: { include: { user: true } } },
+        skip,
+        take,
+      }),
+    ])
 
     const items = (rows as any[]).map((p) => {
       const images: string[] = Array.isArray(p?.media)
@@ -171,7 +180,7 @@ export async function GET(req: Request) {
       }
     })
 
-    return NextResponse.json({ success: true, items })
+    return NextResponse.json({ success: true, items, totalCount })
   } catch (e) {
     console.error('Properties feed: failed', e)
     return NextResponse.json({ success: false, message: 'Unable to load properties. Please try again later.' }, { status: 500 })

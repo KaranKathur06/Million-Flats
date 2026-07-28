@@ -204,6 +204,11 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
     properties,
     loading,
     apiError,
+    page,
+    limit,
+    totalCount,
+    setPage,
+    setLimit,
     filters,
     setFilters,
     draftFilters,
@@ -823,6 +828,76 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
           error={apiError}
           variant="grid"
         />
+
+        {totalCount !== null && totalCount > 0 && (
+          <div className="mt-6 flex justify-center items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600">Per page</label>
+              <select
+                value={limit}
+                onChange={(e) => {
+                  const v = Number(e.target.value) || 24
+                  setLimit(v)
+                  setPage(1)
+                }}
+                className="h-9 px-3 rounded-lg border bg-white text-sm"
+              >
+                <option value={12}>12</option>
+                <option value={24}>24</option>
+                <option value={48}>48</option>
+                <option value={96}>96</option>
+              </select>
+            </div>
+
+            <nav className="inline-flex items-center gap-2" aria-label="Pagination">
+              <button
+                type="button"
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page <= 1 || loading}
+                className="px-3 py-2 rounded-lg border bg-white text-sm disabled:opacity-50"
+              >
+                Prev
+              </button>
+
+              {(() => {
+                const totalPages = Math.max(1, Math.ceil((totalCount || 0) / limit))
+                const pages: number[] = []
+                const start = Math.max(1, page - 2)
+                const end = Math.min(totalPages, page + 2)
+                if (start > 1) pages.push(1)
+                if (start > 2) pages.push(-1)
+                for (let i = start; i <= end; i++) pages.push(i)
+                if (end < totalPages - 1) pages.push(-1)
+                if (end < totalPages) pages.push(totalPages)
+
+                return pages.map((p) =>
+                  p === -1 ? (
+                    <span key={Math.random()} className="px-2 text-sm text-gray-500">…</span>
+                  ) : (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPage(p)}
+                      disabled={p === page || loading}
+                      className={`px-3 py-2 rounded-lg border text-sm ${p === page ? 'bg-dark-blue text-white' : 'bg-white'}`}
+                    >
+                      {p}
+                    </button>
+                  )
+                )
+              })()}
+
+              <button
+                type="button"
+                onClick={() => setPage(page + 1)}
+                disabled={page >= Math.ceil((totalCount || 0) / limit) || loading}
+                className="px-3 py-2 rounded-lg border bg-white text-sm disabled:opacity-50"
+              >
+                Next
+              </button>
+            </nav>
+          </div>
+        )}
       </div>
     </div>
   )

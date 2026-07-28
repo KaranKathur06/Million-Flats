@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
+import PasswordInput from '@/components/forms/PasswordInput'
 
 export default function ResetPasswordClient({
   loginHref = '/user/login',
@@ -11,6 +12,7 @@ export default function ResetPasswordClient({
   loginHref?: string
 }) {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const token = useMemo(() => searchParams?.get('token') || '', [searchParams])
 
   const [password, setPassword] = useState('')
@@ -44,6 +46,7 @@ export default function ResetPasswordClient({
       }
 
       setSuccess(true)
+      setTimeout(() => router.push('/auth/login?reset=success'), 900)
     } catch {
       setError('Reset failed. Please try again.')
     } finally {
@@ -77,43 +80,27 @@ export default function ResetPasswordClient({
             </div>
           ) : null}
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              New password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
-              placeholder="Enter a new password"
-              disabled={!token}
-            />
-          </div>
+          <PasswordInput
+            id="password"
+            label="New password"
+            value={password}
+            onChange={setPassword}
+            placeholder="Enter a new password"
+            autoComplete="new-password"
+            disabled={!token}
+            confirmValue={confirmPassword}
+          />
 
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-              Confirm password
-            </label>
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={8}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
-              placeholder="Re-enter your new password"
-              disabled={!token}
-            />
-          </div>
+          <PasswordInput
+            id="confirmPassword"
+            label="Confirm password"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            placeholder="Re-enter your new password"
+            autoComplete="new-password"
+            disabled={!token}
+            confirmValue={password}
+          />
 
           <button
             type="submit"

@@ -68,13 +68,17 @@ export async function PATCH(req: Request) {
 
     const updatedUser = await prisma.user.update({
       where: { email },
-      data: dataToUpdate
+      data: {
+        ...dataToUpdate,
+        profileCompletedAt: completion === 100 ? new Date() : undefined,
+      }
     });
 
     return NextResponse.json({
       success: true,
       profileCompletion: completion,
       currentStep: updatedUser.currentOnboardingStep,
+      completed: completion === 100,
     });
   } catch (error) {
     console.error('[Onboarding PATCH Error]:', error);

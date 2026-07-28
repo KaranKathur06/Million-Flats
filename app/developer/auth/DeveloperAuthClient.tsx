@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -376,7 +377,6 @@ function RegisterTab() {
     country: "UAE",
     website: "",
     operatingCities: [] as string[],
-    referenceSource: "",
     referenceDetails: "",
   });
   const [showRegisterPassword, setShowRegisterPassword] = useState(false)
@@ -417,7 +417,7 @@ function RegisterTab() {
           country: form.country,
           website: form.website || undefined,
           type: 'developer',
-          referenceSource: form.referenceSource || undefined,
+          referenceSource: 'executive',
           referenceDetails: form.referenceDetails || undefined,
         }),
       });
@@ -512,31 +512,21 @@ function RegisterTab() {
       </div>
 
       <div>
-        <label className={labelCls}>How did you hear about us?</label>
-        <select
-          value={form.referenceSource}
-          onChange={(e) => setForm((f) => ({ ...f, referenceSource: e.target.value }))}
-          className={inputCls}
-        >
-          <option value="">Select an option</option>
-          <option value="google-search">Google Search</option>
-          <option value="linkedin">LinkedIn</option>
-          <option value="instagram">Instagram</option>
-          <option value="facebook">Facebook</option>
-          <option value="whatsapp">WhatsApp</option>
-          <option value="referral">Referral</option>
-          <option value="partner">Partner / Agency</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
-
-      <div>
-        <label className={labelCls}>Reference details</label>
-        <input
+        <GlobalDropdown
+          label={"Referred By"}
           value={form.referenceDetails}
-          onChange={(e) => setForm((f) => ({ ...f, referenceDetails: e.target.value }))}
-          placeholder="Name, company, or campaign"
-          className={inputCls}
+          onChange={(v) => {
+            const val = Array.isArray(v) ? (v[0] ?? '') : (typeof v === 'string' ? v : '')
+            setForm((f) => ({ ...f, referenceDetails: val }))
+          }}
+          options={[
+            { value: 'Divesh More', label: 'Divesh More' },
+            { value: 'Paresh Dubariya', label: 'Paresh Dubariya' },
+            { value: 'Pratik Bachchhe', label: 'Pratik Bachchhe' },
+            { value: 'Tarique Mansuri', label: 'Tarique Mansuri' },
+            { value: 'Neelam Mamnani', label: 'Neelam Mamnani' },
+          ]}
+          placeholder="Select an executive"
         />
       </div>
 
