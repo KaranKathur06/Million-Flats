@@ -1,14 +1,17 @@
-'use client'
+ 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import PropertyListCard from '@/components/PropertyListCard'
 import { useCountry } from '@/components/CountryProvider'
 import { CITIES_BY_COUNTRY, COUNTRY_META, DEFAULT_COUNTRY, isCountryCode, uiPriceToAed, type CountryCode } from '@/lib/country'
-import InternalPageBanner from '@/components/InternalPageBanner'
+import useProperties from '@/app/properties/useProperties'
+import PropertiesHero from '@/components/properties/PropertiesHero'
+import SmartSearch from '@/components/properties/SmartSearch'
 import GlobalDropdown from '@/components/ui/GlobalDropdown'
 import { singleDropdownValue } from '@/components/ui/dropdownUtils'
+import FiltersPanel from '@/components/properties/FiltersPanel'
+import PropertiesGrid from '@/components/properties/PropertiesGrid'
 import {
   BATHROOM_PLUS_FILTER_OPTIONS,
   BEDROOM_PLUS_FILTER_OPTIONS,
@@ -180,15 +183,10 @@ function buildPriceOptions(country: CountryCode) {
 }
 
 export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Purpose }) {
-  const searchParams = useSearchParams()
-  const { country, setCountry } = useCountry()
-  const [properties, setProperties] = useState<Property[]>([])
-  const [loading, setLoading] = useState(true)
-  const [apiError, setApiError] = useState<string>('')
-  const [cityOpen, setCityOpen] = useState(false)
-  const [cityQuery, setCityQuery] = useState('')
   const cityRefMobile = useRef<HTMLDivElement>(null)
   const cityRefDesktop = useRef<HTMLDivElement>(null)
+  const [cityOpen, setCityOpen] = useState(false)
+  const [cityQuery, setCityQuery] = useState('')
 
   const [communityOpen, setCommunityOpen] = useState(false)
   const [communityQuery, setCommunityQuery] = useState('')
@@ -202,107 +200,28 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
 
   const [mobileFiltersEl, setMobileFiltersEl] = useState<HTMLDivElement | null>(null)
 
-  const [purposeState, setPurposeState] = useState<Purpose>(() => {
-    if (forcedPurpose) return forcedPurpose
-    const fromUrl = searchParams?.get('purpose')
-    return safePurpose(fromUrl)
-  })
+  const {
+    properties,
+    loading,
+    apiError,
+    filters,
+    setFilters,
+    draftFilters,
+    setDraftFilters,
+    purpose,
+    setPurpose,
+    applyDraft,
+    resetFilters,
+    fetchProperties,
+    priceOptions,
+    minPriceDropdownOptions,
+    maxPriceDropdownOptions,
+    minPriceDrawerOptions,
+    maxPriceDrawerOptions,
+    cities,
+  } = useProperties(forcedPurpose)
 
-  const purpose = forcedPurpose ?? purposeState
-
-  const setPurpose = (next: Purpose) => {
-    if (forcedPurpose) return
-    setPurposeState(next)
-  }
-
-  const getParam = useCallback((key: string) => searchParams?.get(key) ?? '', [searchParams])
-
-  const initialCountry = useMemo(() => {
-    const fromUrl = getParam('country')
-    if (fromUrl && isCountryCode(fromUrl)) return fromUrl
-    return country || DEFAULT_COUNTRY
-  }, [country, getParam])
-
-  const [filters, setFilters] = useState<Filters>({
-    country: initialCountry,
-    search: getParam('q'),
-    location: getParam('location'),
-    community: getParam('community'),
-    type: getParam('type'),
-    minPrice: getParam('minPrice') || COUNTRY_META[initialCountry].minPrice.toString(),
-    maxPrice: getParam('maxPrice') || COUNTRY_META[initialCountry].maxPrice.toString(),
-    bedrooms: getParam('bedrooms'),
-    bathrooms: getParam('bathrooms'),
-    sortBy: 'featured',
-    offPlanOnly: false,
-    readyHomesOnly: false,
-    soldOnly: false,
-    features: [],
-  })
-
-  const [draftFilters, setDraftFilters] = useState<Filters>(filters)
-
-  const syncUrl = useCallback((nextFilters: Filters, nextPurpose: 'buy' | 'rent') => {
-    const params = new URLSearchParams(window.location.search)
-    params.set('purpose', nextPurpose)
-
-    params.set('country', nextFilters.country)
-    if (nextFilters.search) params.set('q', nextFilters.search)
-    else params.delete('q')
-    if (nextFilters.location) params.set('location', nextFilters.location)
-    else params.delete('location')
-    if (nextFilters.community) params.set('community', nextFilters.community)
-    else params.delete('community')
-    if (nextFilters.type) params.set('type', nextFilters.type)
-    else params.delete('type')
-
-    if (nextFilters.minPrice) params.set('minPrice', nextFilters.minPrice)
-    else params.delete('minPrice')
-    if (nextFilters.maxPrice) params.set('maxPrice', nextFilters.maxPrice)
-    else params.delete('maxPrice')
-    if (nextFilters.bedrooms) params.set('bedrooms', nextFilters.bedrooms)
-    else params.delete('bedrooms')
-    if (nextFilters.bathrooms) params.set('bathrooms', nextFilters.bathrooms)
-    else params.delete('bathrooms')
-    if (nextFilters.sortBy) params.set('sortBy', nextFilters.sortBy)
-    else params.delete('sortBy')
-
-    window.history.replaceState(null, '', `?${params.toString()}`)
-  }, [])
-
-  useEffect(() => {
-    syncUrl(filters, purpose)
-  }, [filters, purpose, syncUrl])
-
-  useEffect(() => {
-    if (!forcedPurpose) return
-    setPurposeState(forcedPurpose)
-  }, [forcedPurpose])
-
-  useEffect(() => {
-    const fromUrl = getParam('country')
-    if (fromUrl && isCountryCode(fromUrl) && fromUrl !== country) {
-      setCountry(fromUrl)
-    }
-  }, [country, getParam, setCountry])
-
-  useEffect(() => {
-    if (filters.country !== country) {
-      setFilters((prev) => ({
-        ...prev,
-        country,
-        search: '',
-        location: '',
-        community: '',
-        minPrice: COUNTRY_META[country].minPrice.toString(),
-        maxPrice: COUNTRY_META[country].maxPrice.toString(),
-      }))
-    }
-  }, [country, filters.country])
-
-  useEffect(() => {
-    setDraftFilters(filters)
-  }, [filters])
+  // Data and URL sync handled by `useProperties` hook
 
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
@@ -390,169 +309,15 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
     }
   }, [mobileFiltersEl, mobileFiltersOpen])
 
-  const fetchProperties = useCallback(async () => {
-    setLoading(true)
-    setApiError('')
-    try {
-      const params = new URLSearchParams()
-
-      params.set('country', filters.country)
-      if (filters.location) params.set('city', filters.location)
-      if (filters.community) params.set('community', filters.community)
-      if (filters.type) params.set('type', filters.type)
-      if (filters.minPrice) params.set('minPrice', filters.minPrice)
-      if (filters.maxPrice) params.set('maxPrice', filters.maxPrice)
-      if (filters.bedrooms) params.set('bedrooms', filters.bedrooms)
-      if (filters.bathrooms) params.set('bathrooms', filters.bathrooms)
-      params.set('purpose', purpose)
-
-      const res = await fetch(`/api/properties?${params.toString()}`)
-      const text = await res.text().catch(() => '')
-      const json = text ? (JSON.parse(text) as any) : null
-
-      if (!res.ok || !json?.success) {
-        setProperties([])
-        setApiError('Unable to load properties. Please try again later.')
-        return
-      }
-
-      const items = Array.isArray(json?.items) ? (json.items as any[]) : []
-
-      const mapped = items
-        .map((item: any) => {
-          const id = String(item?.id || '').trim()
-          if (!id) return null
-
-          const title = typeof item?.title === 'string' ? item.title : 'Property'
-          const countryLabel: 'UAE' | 'INDIA' = item?.country === 'INDIA' ? 'INDIA' : 'UAE'
-          const city = typeof item?.city === 'string' ? item.city : ''
-          const community = typeof item?.community === 'string' ? item.community : ''
-          const location = community ? `${city} · ${community}` : city
-
-          const intentRaw = String(item?.intent || '').toUpperCase()
-          const intent: 'BUY' | 'RENT' = intentRaw === 'RENT' ? 'RENT' : 'BUY'
-
-          const images: string[] = Array.isArray(item?.images) ? item.images.map((v: any) => String(v || '')).filter(Boolean) : []
-
-          const agentRaw = item?.agent
-          const agent = agentRaw
-            ? {
-                id: String(agentRaw?.id || ''),
-                name: String(agentRaw?.name || ''),
-                email: String(agentRaw?.email || ''),
-                phone: String(agentRaw?.phone || ''),
-                avatar: typeof agentRaw?.avatar === 'string' ? agentRaw.avatar : undefined,
-              }
-            : undefined
-
-          return {
-            id,
-            country: countryLabel,
-            title,
-            location,
-            price: Number(item?.price || 0),
-            intent,
-            bedrooms: Number(item?.bedrooms || 0),
-            bathrooms: Number(item?.bathrooms || 0),
-            squareFeet: Number(item?.squareFeet || 0),
-            images,
-            featured: Boolean(item?.featured),
-            propertyType: String(item?.propertyType || 'Property'),
-            agent,
-          } satisfies Property
-        })
-        .filter(Boolean) as Property[]
-
-      setProperties(mapped)
-      if (mapped.length === 0) setApiError('No properties found matching your filters')
-    } catch (e) {
-      setProperties([])
-      setApiError('Unable to load properties. Please try again later.')
-    } finally {
-      setLoading(false)
-    }
-  }, [filters.bathrooms, filters.bedrooms, filters.community, filters.country, filters.location, filters.maxPrice, filters.minPrice, filters.type, purpose])
-
-  useEffect(() => {
-    fetchProperties()
-  }, [fetchProperties])
-
-  const handleFilterChange = (newFilters: Partial<Filters>) => {
-    if (newFilters.country && newFilters.country !== country && isCountryCode(newFilters.country)) {
-      const nextCountry = newFilters.country
-      setCountry(nextCountry)
-      setFilters({
-        ...filters,
-        ...newFilters,
-        search: '',
-        location: '',
-        community: '',
-        minPrice: COUNTRY_META[nextCountry].minPrice.toString(),
-        maxPrice: COUNTRY_META[nextCountry].maxPrice.toString(),
-      })
-      return
-    }
-
-    const nextLocation = newFilters.location
-    const didLocationChange = nextLocation !== undefined && nextLocation !== filters.location
-    const next: Filters = {
-      ...filters,
-      ...newFilters,
-      community: didLocationChange ? '' : filters.community,
-      search: didLocationChange ? '' : filters.search,
-    }
-    setFilters(next)
-  }
-
-  const cities = useMemo(() => CITIES_BY_COUNTRY[draftFilters.country], [draftFilters.country])
-
+  // Data fetching and filter handlers are provided by the hook
   const communityOptions = useMemo(() => {
     return COMMUNITIES_BY_CITY[draftFilters.location] || []
   }, [draftFilters.location])
 
-  const applyDraft = () => {
-    handleFilterChange(draftFilters)
-  }
-
-  const resetFilters = () => {
-    const nextCountry = country || DEFAULT_COUNTRY
-    const next: Filters = {
-      country: nextCountry,
-      search: '',
-      location: '',
-      community: '',
-      type: '',
-      minPrice: COUNTRY_META[nextCountry].minPrice.toString(),
-      maxPrice: COUNTRY_META[nextCountry].maxPrice.toString(),
-      bedrooms: '',
-      bathrooms: '',
-      sortBy: 'featured',
-      offPlanOnly: false,
-      readyHomesOnly: false,
-      soldOnly: false,
-      features: [],
-    }
-
-    setPurpose('buy')
-    if (nextCountry !== country) setCountry(nextCountry)
-    setFilters(next)
-    setDraftFilters(next)
-
-    setCityQuery('')
-    setCommunityQuery('')
-    setCityOpen(false)
-    setCommunityOpen(false)
-
-    setMoreFiltersVisible(false)
-    setMoreFiltersOpen(false)
-    setMobileFiltersVisible(false)
-    setMobileFiltersOpen(false)
-  }
-
   const filteredCities = useMemo(() => {
     const q = cityQuery.trim().toLowerCase()
     if (!q) return cities
-    return cities.filter((c) => c.toLowerCase().includes(q))
+    return (cities as string[]).filter((c: string) => c.toLowerCase().includes(q))
   }, [cities, cityQuery])
 
   const filteredCommunities = useMemo(() => {
@@ -669,23 +434,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
     return filtered.map((p) => ({ ...p, price: effectivePrice(p) }))
   }, [filters, properties, purpose])
 
-  const priceOptions = useMemo(() => buildPriceOptions(draftFilters.country), [draftFilters.country])
-  const minPriceDropdownOptions = useMemo(
-    () => priceFilterOptions(priceOptions, COUNTRY_META[draftFilters.country].currencyLabel, 'Min Price'),
-    [priceOptions, draftFilters.country]
-  )
-  const maxPriceDropdownOptions = useMemo(
-    () => priceFilterOptions(priceOptions, COUNTRY_META[draftFilters.country].currencyLabel, 'Max Price'),
-    [priceOptions, draftFilters.country]
-  )
-  const minPriceDrawerOptions = useMemo(
-    () => priceFilterOptions(priceOptions, COUNTRY_META[draftFilters.country].currencyLabel, 'Min'),
-    [priceOptions, draftFilters.country]
-  )
-  const maxPriceDrawerOptions = useMemo(
-    () => priceFilterOptions(priceOptions, COUNTRY_META[draftFilters.country].currencyLabel, 'Max'),
-    [priceOptions, draftFilters.country]
-  )
+  // Price options provided by `useProperties` hook
 
   const heroTitle = forcedPurpose === 'rent' ? 'Properties for Rent' : 'Properties for Sale'
   const heroSubtitle =
@@ -698,9 +447,9 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <InternalPageBanner
+      <PropertiesHero
         title={heroTitle}
-        description={heroSubtitle}
+        subtitle={heroSubtitle}
         image={{ src: '/HOMEPAGE.jpg', alt: heroTitle }}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: breadcrumbLabel, href: breadcrumbHref }]}
       />
@@ -714,29 +463,9 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
           <div className="space-y-3">
             <div className="relative z-20 bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl shadow-sm p-3">
               <div className="flex flex-col md:flex-row md:items-center gap-3">
-                <GlobalDropdown
-                  label="Country"
-                  showLabel={false}
-                  value={draftFilters.country}
-                  onChange={(v) => {
-                    const next = singleDropdownValue(v)
-                    if (!isCountryCode(next)) return
-                    setDraftFilters((prev) => ({
-                      ...prev,
-                      country: next,
-                      location: '',
-                      community: '',
-                    }))
-                    setCityQuery('')
-                    setCommunityQuery('')
-                    setCityOpen(false)
-                    setCommunityOpen(false)
-                  }}
-                  options={COUNTRY_FILTER_OPTIONS}
-                  appearance="admin-light"
-                  dense
-                  className="w-full md:w-[150px]"
-                />
+                <div className="w-full md:w-[320px]">
+                  <SmartSearch draftFilters={draftFilters} setDraftFilters={setDraftFilters} onSearch={applyDraft} />
+                </div>
 
                 <div className="relative w-full md:w-[240px]" ref={cityRefDesktop}>
                   <input
@@ -1067,182 +796,33 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
           </div>
         )}
 
-        {mobileFiltersOpen && (
-          <div className="fixed inset-0 z-[90] md:hidden">
-            <div
-              className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ${
-                mobileFiltersVisible ? 'opacity-100' : 'opacity-0'
-              }`}
-              onClick={closeMobileFilters}
-            />
-            <div
-              className={`absolute inset-x-0 bottom-0 bg-white rounded-t-3xl border border-gray-200 transition-transform duration-200 ${
-                mobileFiltersVisible ? 'translate-y-0' : 'translate-y-6'
-              }`}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Property Filters"
-              ref={setMobileFiltersEl}
-            >
-            <div className="px-4 pt-4 pb-24 space-y-4 overflow-auto max-h-[75vh]">
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold text-dark-blue">Property Filters</h2>
-                <button
-                  type="button"
-                  onClick={closeMobileFilters}
-                  className="h-10 w-10 rounded-xl border border-gray-200 inline-flex items-center justify-center"
-                  aria-label="Close"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
+        <FiltersPanel
+          open={mobileFiltersOpen}
+          visible={mobileFiltersVisible}
+          close={closeMobileFilters}
+          forcedPurpose={forcedPurpose}
+          purpose={purpose}
+          setPurpose={setPurpose}
+          draftFilters={draftFilters}
+          setDraftFilters={setDraftFilters}
+          minPriceDrawerOptions={minPriceDrawerOptions}
+          maxPriceDrawerOptions={maxPriceDrawerOptions}
+          BEDROOM_PLUS_FILTER_OPTIONS={BEDROOM_PLUS_FILTER_OPTIONS}
+          BATHROOM_PLUS_FILTER_OPTIONS={BATHROOM_PLUS_FILTER_OPTIONS}
+          PROPERTY_TYPE_FILTER_OPTIONS={PROPERTY_TYPE_FILTER_OPTIONS}
+          LISTING_SORT_COMPACT_OPTIONS={LISTING_SORT_COMPACT_OPTIONS}
+          resetFilters={resetFilters}
+          applyDraft={applyDraft}
+          openMoreFilters={openMoreFilters}
+          setRef={setMobileFiltersEl}
+        />
 
-              {!forcedPurpose ? (
-                <div className="inline-flex items-center rounded-xl border border-gray-200 bg-white p-1 w-fit">
-                  <button
-                    type="button"
-                    onClick={() => setPurpose('buy')}
-                    className={`h-10 px-4 rounded-lg text-sm font-semibold transition-colors ${
-                      purpose === 'buy' ? 'bg-dark-blue text-white' : 'text-dark-blue hover:bg-gray-50'
-                    }`}
-                  >
-                    Buy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPurpose('rent')}
-                    className={`h-10 px-4 rounded-lg text-sm font-semibold transition-colors ${
-                      purpose === 'rent' ? 'bg-dark-blue text-white' : 'text-dark-blue hover:bg-gray-50'
-                    }`}
-                  >
-                    Rent
-                  </button>
-                </div>
-              ) : null}
-
-              <GlobalDropdown
-                label="Property Type"
-                value={draftFilters.type}
-                onChange={(v) => setDraftFilters((prev) => ({ ...prev, type: singleDropdownValue(v) }))}
-                options={PROPERTY_TYPE_FILTER_OPTIONS}
-                appearance="admin-light"
-              />
-
-              <div className="grid grid-cols-2 gap-3">
-                <GlobalDropdown
-                  label="Min Price"
-                  value={draftFilters.minPrice}
-                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, minPrice: singleDropdownValue(v) }))}
-                  options={minPriceDrawerOptions}
-                  appearance="admin-light"
-                  dense
-                />
-                <GlobalDropdown
-                  label="Max Price"
-                  value={draftFilters.maxPrice}
-                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, maxPrice: singleDropdownValue(v) }))}
-                  options={maxPriceDrawerOptions}
-                  appearance="admin-light"
-                  dense
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <GlobalDropdown
-                  label="Beds"
-                  value={draftFilters.bedrooms}
-                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, bedrooms: singleDropdownValue(v) }))}
-                  options={[
-                    { value: '', label: 'Any' },
-                    ...BEDROOM_PLUS_FILTER_OPTIONS.filter((o) => o.value !== ''),
-                  ]}
-                  appearance="admin-light"
-                  dense
-                />
-                <GlobalDropdown
-                  label="Baths"
-                  value={draftFilters.bathrooms}
-                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, bathrooms: singleDropdownValue(v) }))}
-                  options={[
-                    { value: '', label: 'Any' },
-                    ...BATHROOM_PLUS_FILTER_OPTIONS.filter((o) => o.value !== ''),
-                  ]}
-                  appearance="admin-light"
-                  dense
-                />
-              </div>
-
-              <GlobalDropdown
-                label="Sort By"
-                value={draftFilters.sortBy}
-                onChange={(v) => setDraftFilters((prev) => ({ ...prev, sortBy: singleDropdownValue(v) }))}
-                options={LISTING_SORT_COMPACT_OPTIONS}
-                appearance="admin-light"
-              />
-
-              <button
-                type="button"
-                onClick={() => {
-                  closeMobileFilters()
-                  openMoreFilters()
-                }}
-                className="h-12 w-full rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue"
-              >
-                More Filters
-              </button>
-            </div>
-
-            <div className="fixed left-0 right-0 bottom-0 p-4 bg-white border-t border-gray-200">
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={resetFilters}
-                  className="h-12 w-full rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue"
-                >
-                  Reset
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    closeMobileFilters()
-                    applyDraft()
-                  }}
-                  className="h-12 w-full rounded-xl bg-dark-blue text-white text-sm font-semibold"
-                >
-                  Apply Filters
-                </button>
-              </div>
-            </div>
-            </div>
-          </div>
-        )}
-
-        {apiError ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600">{apiError}</p>
-          </div>
-        ) : loading ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600">Loading properties...</p>
-          </div>
-        ) : displayedProperties.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600">No properties found matching your criteria.</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {displayedProperties.map((property) => (
-              <PropertyListCard key={property.id} property={property} />
-            ))}
-          </div>
-        )}
+        <PropertiesGrid
+          properties={displayedProperties}
+          loading={loading}
+          error={apiError}
+          variant="grid"
+        />
       </div>
     </div>
   )
