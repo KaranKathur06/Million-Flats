@@ -1,0 +1,302 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import type { Session } from 'next-auth'
+import { signOut } from 'next-auth/react'
+import { ReactNode } from 'react'
+
+export type WorkspaceRole = 'developer' | 'agency'
+
+export type WorkspaceNavItem = {
+  label: string
+  href: string
+  icon: string
+  badge?: string
+}
+
+type WorkspaceShellProps = {
+  role: WorkspaceRole
+  session: Session
+  children: ReactNode
+  navItems: WorkspaceNavItem[]
+  workspaceName: string
+  workspaceLabel: string
+  statusLabel: string
+  completion: number
+  initials: string
+  accentClass: string
+  heroTitle: string
+  heroSubtitle: string
+  heroActions?: ReactNode[]
+}
+
+function Icon({ name }: { name: string }) {
+  switch (name) {
+    case 'dashboard':
+      return <path d="M4 13h7V4H4v9Zm9 7h7V4h-7v16ZM4 21h7v-6H4v6Z" />
+    case 'projects':
+      return <path d="M4 5h16v14H4zM8 9h8M8 13h8" />
+    case 'inventory':
+      return <path d="M4 7l8-4 8 4-8 4-8-4Zm0 4 8 4 8-4M4 15l8 4 8-4" />
+    case 'analytics':
+      return <path d="M4 19V5m0 14h16M8 17V9m4 8V7m4 10v-5" />
+    case 'leads':
+      return <path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0Zm-12 9a8 8 0 1 1 16 0" />
+    case 'crm':
+      return <path d="M7 8h10M7 12h6M5 19V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14l-4-3H7l-2 3Z" />
+    case 'documents':
+      return <path d="M7 3h7l5 5v13H7V3Zm7 0v5h5" />
+    case 'verification':
+      return <path d="M12 3 19 7v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4Zm-2 9 2 2 4-5" />
+    case 'billing':
+      return <path d="M4 7h16M6 11h12M7 15h4M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z" />
+    case 'settings':
+      return <path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm8 4h2m-20 0h2m14.1-6.1 1.4-1.4M4.5 19.5l1.4-1.4m0-12.2L4.5 4.5m15 15-1.4-1.4" />
+    case 'notifications':
+      return <path d="M15 17h5l-1.5-2V11a6.5 6.5 0 1 0-13 0v4L4 17h5m6 0a3 3 0 1 1-6 0" />
+    case 'agents':
+      return <path d="M17 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2m14-10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+    case 'listings':
+      return <path d="M4 7h16M4 12h16M4 17h10" />
+    case 'marketing':
+      return <path d="M5 19V9m0 10 7-7 4 4 5-8" />
+    case 'spark':
+      return <path d="m12 3 1.8 5.5H19l-4.6 3.4 1.8 5.6L12 14l-4.7 3.5 1.8-5.6L5 8.5h5.2L12 3Z" />
+    default:
+      return <path d="M4 7h16M4 12h16M4 17h16" />
+  }
+}
+
+export function WorkspaceHeader({
+  workspaceName,
+  workspaceLabel,
+  statusLabel,
+  completion,
+  initials,
+  accentClass,
+}: {
+  workspaceName: string
+  workspaceLabel: string
+  statusLabel: string
+  completion: number
+  initials: string
+  accentClass: string
+}) {
+  return (
+    <header className={`sticky top-0 z-30 border-b border-slate-200/80 ${accentClass} backdrop-blur-xl`}>
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-lg shadow-slate-950/20">
+            MF
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-slate-950">{workspaceName}</p>
+            <p className="truncate text-xs text-slate-500">{workspaceLabel}</p>
+          </div>
+        </div>
+
+        <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-2 shadow-sm sm:flex">
+          <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700">
+            {statusLabel}
+          </span>
+          <span className="text-xs font-medium text-slate-500">{completion}% ready</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="hidden rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm sm:block">
+            Search workspace
+          </div>
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
+            {initials}
+          </div>
+        </div>
+      </div>
+    </header>
+  )
+}
+
+export function WorkspaceHero({
+  title,
+  subtitle,
+  actions,
+  completion,
+  badgeText,
+}: {
+  title: string
+  subtitle: string
+  actions?: ReactNode[]
+  completion: number
+  badgeText?: string
+}) {
+  return (
+    <section className="rounded-[2rem] border border-slate-200/80 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6 text-white shadow-[0_24px_90px_rgba(15,23,42,0.18)] sm:p-8">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-2xl">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-200">
+              Premium workspace
+            </span>
+            {badgeText ? (
+              <span className="rounded-full border border-emerald-400/30 bg-emerald-500/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-300">
+                {badgeText}
+              </span>
+            ) : null}
+          </div>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">{subtitle}</p>
+        </div>
+
+        <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">Profile readiness</p>
+              <p className="mt-1 text-2xl font-semibold text-white">{completion}%</p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/10 text-sm font-semibold">
+              {completion}%
+            </div>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-white/10">
+            <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all" style={{ width: `${Math.max(0, Math.min(100, completion))}%` }} />
+          </div>
+        </div>
+      </div>
+
+      {actions && actions.length > 0 ? (
+        <div className="mt-6 flex flex-wrap gap-3">{actions.map((action, index) => <div key={index}>{action}</div>)}</div>
+      ) : null}
+    </section>
+  )
+}
+
+export function WorkspaceTabs({ items, pathname }: { items: WorkspaceNavItem[]; pathname: string }) {
+  return (
+    <nav className="-mt-6 flex gap-2 overflow-x-auto pb-2">
+      {items.map((item) => {
+        const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-all ${active ? 'border-slate-950 bg-slate-950 text-white shadow-lg shadow-slate-950/10' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
+          >
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-current/10">
+              <svg className={`h-3.5 w-3.5 ${active ? 'text-white' : 'text-slate-500'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <Icon name={item.icon} />
+              </svg>
+            </span>
+            {item.label}
+          </Link>
+        )
+      })}
+    </nav>
+  )
+}
+
+export function WorkspaceStatCard({
+  label,
+  value,
+  detail,
+  href,
+  icon,
+}: {
+  label: string
+  value: string | number
+  detail?: string
+  href?: string
+  icon: string
+}) {
+  const card = (
+    <div className="rounded-[1.5rem] border border-slate-200/80 bg-white p-5 shadow-[0_16px_45px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-slate-500">{label}</p>
+          <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{value}</p>
+          {detail ? <p className="mt-1 text-xs text-slate-400">{detail}</p> : null}
+        </div>
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950/5 text-slate-700">
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <Icon name={icon} />
+          </svg>
+        </div>
+      </div>
+    </div>
+  )
+
+  if (!href) return card
+  return <Link href={href}>{card}</Link>
+}
+
+export function WorkspacePanel({
+  title,
+  subtitle,
+  children,
+  className,
+}: {
+  title: string
+  subtitle?: string
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <section className={`rounded-[1.5rem] border border-slate-200/80 bg-white/90 p-5 shadow-[0_16px_45px_rgba(15,23,42,0.05)] backdrop-blur ${className || ''}`}>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-slate-950">{title}</h2>
+          {subtitle ? <p className="mt-1 text-sm text-slate-500">{subtitle}</p> : null}
+        </div>
+      </div>
+      {children}
+    </section>
+  )
+}
+
+export default function WorkspaceShell({
+  role,
+  session,
+  children,
+  navItems,
+  workspaceName,
+  workspaceLabel,
+  statusLabel,
+  completion,
+  initials,
+  accentClass,
+  heroTitle,
+  heroSubtitle,
+  heroActions,
+}: WorkspaceShellProps) {
+  const pathname = usePathname() || ''
+  const user = session.user as any
+  const displayName = user?.name || user?.email || workspaceName
+
+  return (
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.9),_rgba(248,250,252,1)_40%,_rgba(241,245,249,1)_100%)] text-slate-950">
+      <WorkspaceHeader
+        workspaceName={workspaceName}
+        workspaceLabel={workspaceLabel}
+        statusLabel={statusLabel}
+        completion={completion}
+        initials={initials}
+        accentClass={accentClass}
+      />
+
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <WorkspaceHero
+          title={heroTitle}
+          subtitle={heroSubtitle}
+          completion={completion}
+          badgeText={displayName}
+          actions={heroActions}
+        />
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <WorkspaceTabs items={navItems} pathname={pathname} />
+        </div>
+
+        <div className="mt-6">{children}</div>
+      </main>
+    </div>
+  )
+}

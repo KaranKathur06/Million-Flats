@@ -2,7 +2,8 @@
 
 import { usePathname } from 'next/navigation'
 import type { Session } from 'next-auth'
-import AuthenticatedLayout from '@/components/dashboard/AuthenticatedLayout'
+import WorkspaceShell, { type WorkspaceNavItem } from '@/components/dashboard/WorkspaceShell'
+import Link from 'next/link'
 
 const AUTH_PATHS = [
   '/developer/auth',
@@ -21,9 +22,47 @@ export default function DeveloperShellClient({ session, children }: { session: S
     return <>{children}</>
   }
 
+  const navItems: WorkspaceNavItem[] = [
+    { label: 'Dashboard', href: '/developer/dashboard', icon: 'dashboard' },
+    { label: 'Projects', href: '/developer/projects', icon: 'projects' },
+    { label: 'Inventory', href: '/developer/inventory', icon: 'inventory' },
+    { label: 'Leads', href: '/developer/leads', icon: 'leads' },
+    { label: 'CRM', href: '/developer/crm', icon: 'crm' },
+    { label: 'Analytics', href: '/developer/analytics', icon: 'analytics' },
+    { label: 'Documents', href: '/developer/documents', icon: 'documents' },
+    { label: 'Verification', href: '/developer/verification', icon: 'verification' },
+    { label: 'Billing', href: '/developer/subscription', icon: 'billing' },
+    { label: 'Settings', href: '/developer/settings', icon: 'settings' },
+  ]
+
+  const user = session.user as any
+  const displayName = user?.name || user?.email || 'Developer'
+  const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((p: string) => p[0]).join('').toUpperCase() || 'D'
+  const completion = Number(user?.developerProfileCompletion || user?.profileCompletion || 0)
+
   return (
-    <AuthenticatedLayout role="developer" session={session}>
+    <WorkspaceShell
+      role="developer"
+      session={session}
+      navItems={navItems}
+      workspaceName="MillionFlats"
+      workspaceLabel="Developer Workspace"
+      statusLabel="Verified"
+      completion={completion}
+      initials={initials}
+      accentClass="bg-white"
+      heroTitle={displayName}
+      heroSubtitle="Coordinate projects, lead health, inventory readiness, and verification status from a premium workspace designed for modern developers."
+      heroActions={[
+        <Link key="profile" href="/developer/projects" className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20">
+          View Projects
+        </Link>,
+        <Link key="onboarding" href="/developer/onboarding" className="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-slate-100">
+          Continue Setup
+        </Link>,
+      ]}
+    >
       {children}
-    </AuthenticatedLayout>
+    </WorkspaceShell>
   )
 }

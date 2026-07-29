@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { WorkspacePanel, WorkspaceStatCard } from '@/components/dashboard/WorkspaceShell'
 
 interface StatCardProps {
   label: string
@@ -123,163 +124,96 @@ export default function DeveloperDashboardClient({ data }: { data: DashboardData
     profile.onboardingStatus === 'REGISTERED'
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{profile.companyName}</h1>
-          <div className="flex items-center gap-3 mt-1">
-            <StatusBadge status={profile.onboardingStatus} />
-            {profile.isVerified && (
-              <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-semibold">
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                Verified Developer
-              </span>
-            )}
-            {profile.isFeatured && (
-              <span className="inline-flex items-center gap-1 text-xs text-amber-600 font-semibold">
-                ⭐ Featured
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="flex gap-3">
-          {profile.linkedDeveloper && (
-            <Link
-              href={`/developers/${profile.linkedDeveloper.slug}`}
-              target="_blank"
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-              View Public Profile
-            </Link>
-          )}
-          <Link
-            href="/developer/projects/create"
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-dark-blue rounded-xl hover:bg-dark-blue/90 transition-all shadow-lg shadow-dark-blue/20"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            New Project
-          </Link>
-        </div>
-      </div>
-
-      {/* Profile Completion CTA */}
+    <div className="space-y-6">
       {needsAction && (
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-5 text-white flex items-center gap-5">
-          <div className="relative flex-shrink-0">
-            <CompletionRing value={completion} />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-sm font-bold text-white">{completion}%</span>
+        <div className="rounded-[2rem] border border-amber-200/80 bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-white shadow-[0_20px_70px_rgba(245,158,11,0.24)]">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-white/30 bg-white/15">
+                <CompletionRing value={completion} />
+                <span className="absolute text-sm font-semibold">{completion}%</span>
+              </div>
+              <div>
+                <p className="text-lg font-semibold">Complete your workspace setup</p>
+                <p className="mt-1 text-sm text-amber-50">Finish verification and profile completion to unlock full visibility and premium developer tools.</p>
+              </div>
             </div>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-lg">Complete your profile to go live</p>
-            <p className="text-blue-100 text-sm mt-1">Your projects won&apos;t be visible to buyers until your profile reaches 100% and gets verified by our team.</p>
-            <Link
-              href="/developer/onboarding"
-              className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-white text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-50 transition-all"
-            >
-              Continue Setup →
+            <Link href="/developer/onboarding" className="inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-50">
+              Continue setup
             </Link>
           </div>
         </div>
       )}
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Total Projects"
-          value={stats.totalProjects}
-          sub={`${stats.publishedProjects} published`}
-          color="bg-blue-50"
-          href="/developer/projects"
-          icon={<svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" /></svg>}
-        />
-        <StatCard
-          label="Leads Received"
-          value={stats.totalLeads}
-          sub={`${stats.newLeadsThisMonth} this month`}
-          color="bg-emerald-50"
-          href="/developer/leads"
-          icon={<svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
-        />
-        <StatCard
-          label="Project Views"
-          value={profile.totalProjectViews.toLocaleString()}
-          color="bg-purple-50"
-          icon={<svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>}
-        />
-        <StatCard
-          label="AI™ Score"
-          value={profile.aiDeveloperScore !== null ? `${profile.aiDeveloperScore}/100` : '—'}
-          sub="Developer Trust Score"
-          color="bg-amber-50"
-          href="/developer/AI"
-          icon={<svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>}
-        />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <WorkspaceStatCard label="Projects" value={stats.totalProjects} detail={`${stats.publishedProjects} live`} href="/developer/projects" icon="projects" />
+        <WorkspaceStatCard label="Leads" value={stats.totalLeads} detail={`${stats.newLeadsThisMonth} this month`} href="/developer/leads" icon="leads" />
+        <WorkspaceStatCard label="Views" value={profile.totalProjectViews.toLocaleString()} detail="Marketplace engagement" href="/developer/analytics" icon="analytics" />
+        <WorkspaceStatCard label="AI Score" value={profile.aiDeveloperScore !== null ? `${profile.aiDeveloperScore}/100` : '—'} detail="Trust signal" href="/developer/verification" icon="spark" />
       </div>
 
-      {/* Projects Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Recent Projects</h2>
-          <Link href="/developer/projects" className="text-sm text-dark-blue font-medium hover:underline">View all</Link>
-        </div>
-
-        {recentProjects.length === 0 ? (
-          <div className="py-16 text-center">
-            <svg className="w-12 h-12 text-gray-200 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" />
-            </svg>
-            <p className="text-gray-500 font-medium">No projects yet</p>
-            <p className="text-gray-400 text-sm mt-1">Create your first project to get started.</p>
-            <Link
-              href="/developer/projects/create"
-              className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-dark-blue text-white rounded-xl text-sm font-semibold hover:bg-dark-blue/90 transition-all"
-            >
-              + Create Project
-            </Link>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide px-6 py-3">Project</th>
-                <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3">Status</th>
-                <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3">Leads</th>
-                <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {recentProjects.map((p: any) => (
-                <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-3 font-medium text-gray-900">{p.name}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${p.status === 'PUBLISHED' ? 'bg-emerald-100 text-emerald-700' :
-                        p.status === 'DRAFT' ? 'bg-gray-100 text-gray-600' :
-                          p.status === 'UNDER_REVIEW' ? 'bg-amber-100 text-amber-700' :
-                            'bg-gray-100 text-gray-500'
-                      }`}>
-                      {p.status.replace('_', ' ')}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{p._count?.leads || 0}</td>
-                  <td className="px-4 py-3">
-                    <Link href={`/developer/projects/${p.id}`} className="text-dark-blue hover:underline text-xs font-medium">Manage →</Link>
-                  </td>
-                </tr>
+      <div className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
+        <WorkspacePanel title="Recent projects" subtitle="Track launches, approvals, and lead momentum from one view">
+          {recentProjects.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+              <p className="text-sm font-semibold text-slate-700">No projects yet</p>
+              <p className="mt-1 text-sm text-slate-500">Create your first project to start shaping your workspace.</p>
+              <Link href="/developer/projects/create" className="mt-4 inline-flex items-center rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
+                Create project
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentProjects.map((project: any) => (
+                <div key={project.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-slate-900">{project.name}</p>
+                    <p className="mt-1 text-sm text-slate-500">{project._count?.leads || 0} leads • {project.status.replace('_', ' ')}</p>
+                  </div>
+                  <Link href={`/developer/projects/${project.id}`} className="text-sm font-semibold text-slate-950 transition hover:text-slate-700">
+                    Manage →
+                  </Link>
+                </div>
               ))}
-            </tbody>
-          </table>
-        )}
+            </div>
+          )}
+        </WorkspacePanel>
+
+        <div className="space-y-6">
+          <WorkspacePanel title="Workspace health" subtitle="Stay ahead of setup, trust, and activation goals">
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-slate-800">Verification progress</span>
+                  <span className="text-sm font-semibold text-slate-950">{Math.max(0, Math.min(100, completion))}%</span>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+                  <div className="h-full rounded-full bg-gradient-to-r from-slate-950 to-cyan-500" style={{ width: `${Math.max(0, Math.min(100, completion))}%` }} />
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Status</p>
+                  <div className="mt-2">
+                    <StatusBadge status={profile.onboardingStatus} />
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Public profile</p>
+                  <p className="mt-2 text-sm font-semibold text-slate-900">{profile.linkedDeveloper ? 'Connected' : 'Pending'}</p>
+                </div>
+              </div>
+            </div>
+          </WorkspacePanel>
+
+          <WorkspacePanel title="Quick actions" subtitle="Jump into the most common tasks">
+            <div className="grid gap-3">
+              <Link href="/developer/projects/create" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-300 hover:bg-white">Create a new project</Link>
+              <Link href="/developer/verification" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-300 hover:bg-white">Upload verification documents</Link>
+              <Link href="/developer/analytics" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-300 hover:bg-white">Open analytics view</Link>
+            </div>
+          </WorkspacePanel>
+        </div>
       </div>
     </div>
   )

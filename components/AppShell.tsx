@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { isAdminPanelRole } from '@/lib/roleHomeRoute'
+import { shouldUseWorkspaceShell } from '@/lib/workspaceShell'
 
 const AUTH_PREFIXES = [
   '/auth',
@@ -41,8 +42,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isAuthRoute = AUTH_PREFIXES.some((p) => pathname?.startsWith(p))
   const isAdminRoute = pathname === '/admin' || pathname?.startsWith('/admin/')
   const isAgentRoute = pathname === '/agent' || pathname?.startsWith('/agent/')
+  const isWorkspaceRoute = shouldUseWorkspaceShell(pathname || '/')
 
-  if (isAuthRoute || isAdminRoute || isAgentRoute) {
+  if (isAuthRoute || isAdminRoute || isAgentRoute || isWorkspaceRoute) {
     return <main className="min-h-screen">{children}</main>
   }
 
