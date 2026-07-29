@@ -29,6 +29,7 @@ type WorkspaceShellProps = {
   headerTitle: string
   headerSubtitle: string
   headerActions?: ReactNode[]
+  signOutTo: string
 }
 
 function Icon({ name }: { name: string }) {
@@ -75,6 +76,8 @@ export function WorkspaceHeader({
   completion,
   initials,
   accentClass,
+  actions,
+  onSignOut,
 }: {
   workspaceName: string
   workspaceLabel: string
@@ -82,33 +85,58 @@ export function WorkspaceHeader({
   completion: number
   initials: string
   accentClass: string
+  actions?: ReactNode[]
+  onSignOut: () => void
 }) {
   return (
     <header className={`sticky top-0 z-30 border-b border-slate-200/80 ${accentClass} backdrop-blur-xl`}>
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-lg shadow-slate-950/20">
-            MF
+      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-lg shadow-slate-950/20">
+              MF
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-slate-950">{workspaceName}</p>
+              <p className="truncate text-xs text-slate-500">{workspaceLabel}</p>
+            </div>
           </div>
+
+          <div className="flex items-center gap-2">
+            <div className="hidden rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm sm:flex">
+              Search workspace
+            </div>
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="hidden rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:inline-flex"
+            >
+              Sign out
+            </button>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
+              {initials}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white/95 p-3 shadow-sm shadow-slate-200/30 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-slate-950">{workspaceName}</p>
-            <p className="truncate text-xs text-slate-500">{workspaceLabel}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{workspaceName}</p>
+            <h1 className="mt-2 text-xl font-semibold text-slate-950 truncate">{workspaceLabel}</h1>
           </div>
-        </div>
 
-        <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-2 shadow-sm sm:flex">
-          <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700">
-            {statusLabel}
-          </span>
-          <span className="text-xs font-medium text-slate-500">{completion}% ready</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="hidden rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm sm:block">
-            Search workspace
-          </div>
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
-            {initials}
+          <div className="flex flex-wrap gap-2">
+            <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
+              <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+              {statusLabel}
+            </div>
+            <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
+              <span className="font-semibold">Ready</span>
+              <span>{completion}%</span>
+            </div>
+            {actions && actions.length > 0 ? (
+              <div className="flex flex-wrap gap-2">{actions.map((action, index) => <div key={index}>{action}</div>)}</div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -119,12 +147,10 @@ export function WorkspaceHeader({
 export function WorkspaceHeaderBlock({
   title,
   subtitle,
-  actions,
   completion,
 }: {
   title: string
   subtitle: string
-  actions?: ReactNode[]
   completion: number
 }) {
   return (
@@ -135,7 +161,7 @@ export function WorkspaceHeaderBlock({
           <h1 className="mt-2 text-2xl font-semibold text-slate-950 truncate">{subtitle}</h1>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-wrap gap-2">
           <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
             <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
             Verified
@@ -144,9 +170,6 @@ export function WorkspaceHeaderBlock({
             <span className="font-semibold">Profile</span>
             <span>{completion}%</span>
           </div>
-          {actions && actions.length > 0 ? (
-            <div className="flex flex-wrap gap-2">{actions.map((action, index) => <div key={index}>{action}</div>)}</div>
-          ) : null}
         </div>
       </div>
     </section>
@@ -249,6 +272,7 @@ export default function WorkspaceShell({
   headerTitle,
   headerSubtitle,
   headerActions,
+  signOutTo,
 }: WorkspaceShellProps) {
   const pathname = usePathname() || ''
   const user = session.user as any
@@ -263,6 +287,8 @@ export default function WorkspaceShell({
         completion={completion}
         initials={initials}
         accentClass={accentClass}
+        actions={headerActions}
+        onSignOut={() => signOut({ callbackUrl: signOutTo })}
       />
 
       <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
@@ -271,7 +297,6 @@ export default function WorkspaceShell({
             title={headerTitle}
             subtitle={headerSubtitle}
             completion={completion}
-            actions={headerActions}
           />
 
           <WorkspaceTabs items={navItems} pathname={pathname} />

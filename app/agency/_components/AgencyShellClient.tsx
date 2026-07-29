@@ -30,16 +30,10 @@ export default function AgencyShellClient({
 
   const navItems: WorkspaceNavItem[] = [
     { label: 'Dashboard', href: '/agency/dashboard', icon: 'dashboard' },
-    { label: 'Agents', href: '/agency/agents', icon: 'agents' },
-    { label: 'Projects', href: '/agency/projects', icon: 'projects' },
     { label: 'Listings', href: '/agency/listings', icon: 'listings' },
     { label: 'Leads', href: '/agency/leads', icon: 'leads' },
-    { label: 'CRM', href: '/agency/crm', icon: 'crm' },
-    { label: 'Marketing', href: '/agency/marketing', icon: 'marketing' },
-    { label: 'Documents', href: '/agency/documents', icon: 'documents' },
+    { label: 'Agents', href: '/agency/agents', icon: 'agents' },
     { label: 'Verification', href: '/agency/verification', icon: 'verification' },
-    { label: 'Billing', href: '/agency/subscription', icon: 'billing' },
-    { label: 'Settings', href: '/agency/settings', icon: 'settings' },
   ]
 
   const user = session.user as any
@@ -61,13 +55,14 @@ export default function AgencyShellClient({
       headerTitle={displayName}
       headerSubtitle="Run agents, listings, projects, and performance signals from a premium operating workspace built for growth-focused agencies."
       headerActions={[
-        <Link key="listings" href="/agency/listings" className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20">
-          View Listings
+        <Link key="listings" href="/agency/listings" className="inline-flex items-center rounded-full border border-slate-200 bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
+          Listings
         </Link>,
-        <Link key="onboarding" href="/agency/onboarding" className="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-slate-100">
-          Continue Setup
+        <Link key="verification" href="/agency/verification" className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-slate-50">
+          Verification
         </Link>,
       ]}
+      signOutTo="/agency/auth"
     >
       {children}
     </WorkspaceShell>
