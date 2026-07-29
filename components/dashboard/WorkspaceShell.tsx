@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { Session } from 'next-auth'
 import { signOut } from 'next-auth/react'
-import { ReactNode } from 'react'
+import { ReactNode, useState } from 'react'
 
 export type WorkspaceRole = 'developer' | 'agency'
 
@@ -28,7 +28,6 @@ type WorkspaceShellProps = {
   accentClass: string
   headerTitle: string
   headerSubtitle: string
-  headerActions?: ReactNode[]
   signOutTo: string
 }
 
@@ -76,7 +75,8 @@ export function WorkspaceHeader({
   completion,
   initials,
   accentClass,
-  actions,
+  navItems,
+  pathname,
   onSignOut,
 }: {
   workspaceName: string
@@ -85,12 +85,13 @@ export function WorkspaceHeader({
   completion: number
   initials: string
   accentClass: string
-  actions?: ReactNode[]
+  navItems: WorkspaceNavItem[]
+  pathname: string
   onSignOut: () => void
 }) {
   return (
-    <header className={`sticky top-0 z-30 border-b border-slate-200/80 ${accentClass} backdrop-blur-xl`}>
-      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:px-6 lg:px-8">
+    <header className={`sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl`}> 
+      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-lg shadow-slate-950/20">
@@ -103,48 +104,36 @@ export function WorkspaceHeader({
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="hidden rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm sm:flex">
-              Search workspace
-            </div>
+            <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50" aria-label="Search workspace">
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M21 21 15 15m0-6a6 6 0 1 0-12 0 6 6 0 0 0 12 0Z" />
+              </svg>
+            </button>
+            <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50" aria-label="Notifications">
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M15 17h5l-1.5-2V11a6.5 6.5 0 1 0-13 0v4L4 17h5m6 0a3 3 0 1 1-6 0" />
+              </svg>
+            </button>
+            <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white" aria-label="Open profile menu">
+              {initials}
+            </button>
             <button
               type="button"
               onClick={onSignOut}
               className="hidden rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:inline-flex"
             >
-              Sign out
+              Logout
             </button>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
-              {initials}
-            </div>
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white/95 p-3 shadow-sm shadow-slate-200/30 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{workspaceName}</p>
-            <h1 className="mt-2 text-xl font-semibold text-slate-950 truncate">{workspaceLabel}</h1>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
-              <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
-              {statusLabel}
-            </div>
-            <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
-              <span className="font-semibold">Ready</span>
-              <span>{completion}%</span>
-            </div>
-            {actions && actions.length > 0 ? (
-              <div className="flex flex-wrap gap-2">{actions.map((action, index) => <div key={index}>{action}</div>)}</div>
-            ) : null}
-          </div>
-        </div>
+        <WorkspaceNavigation items={navItems} pathname={pathname} />
       </div>
     </header>
   )
 }
 
-export function WorkspaceHeaderBlock({
+export function WorkspaceSummary({
   title,
   subtitle,
   completion,
@@ -159,6 +148,7 @@ export function WorkspaceHeaderBlock({
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{title}</p>
           <h1 className="mt-2 text-2xl font-semibold text-slate-950 truncate">{subtitle}</h1>
+          <p className="mt-2 text-sm text-slate-500">Key workspace health and profile readiness information for your team.</p>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -176,27 +166,59 @@ export function WorkspaceHeaderBlock({
   )
 }
 
-export function WorkspaceTabs({ items, pathname }: { items: WorkspaceNavItem[]; pathname: string }) {
+export function WorkspaceNavigation({ items, pathname }: { items: WorkspaceNavItem[]; pathname: string }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+
   return (
-    <nav className="-mt-6 flex gap-2 overflow-x-auto pb-2">
-      {items.map((item) => {
-        const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-all ${active ? 'border-slate-950 bg-slate-950 text-white shadow-lg shadow-slate-950/10' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
-          >
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-current/10">
-              <svg className={`h-3.5 w-3.5 ${active ? 'text-white' : 'text-slate-500'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <Icon name={item.icon} />
-              </svg>
-            </span>
-            {item.label}
-          </Link>
-        )
-      })}
-    </nav>
+    <div className="space-y-2">
+      <div className="hidden overflow-x-auto sm:block">
+        <nav className="flex gap-1 whitespace-nowrap" aria-label="Primary workspace navigation">
+          {items.map((item) => {
+            const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? 'page' : undefined}
+                className={`inline-flex items-center border-b-2 px-3 py-2 text-sm font-medium transition ${active ? 'border-slate-950 text-slate-950' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-900'}`}
+              >
+                {item.label}
+              </Link>
+            )
+          })}
+        </nav>
+      </div>
+
+      <div className="sm:hidden">
+        <button
+          type="button"
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="inline-flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+          aria-expanded={menuOpen}
+          aria-label="Toggle workspace navigation"
+        >
+          Modules
+          <span>{menuOpen ? 'Close' : 'Open'}</span>
+        </button>
+        {menuOpen ? (
+          <div className="mt-2 space-y-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+            {items.map((item) => {
+              const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={`block rounded-2xl px-4 py-3 text-sm font-medium transition ${active ? 'bg-slate-100 text-slate-950' : 'text-slate-600 hover:bg-slate-50'}`}
+                >
+                  {item.label}
+                </Link>
+              )
+            })}
+          </div>
+        ) : null}
+      </div>
+    </div>
   )
 }
 
@@ -271,7 +293,6 @@ export default function WorkspaceShell({
   accentClass,
   headerTitle,
   headerSubtitle,
-  headerActions,
   signOutTo,
 }: WorkspaceShellProps) {
   const pathname = usePathname() || ''
@@ -287,19 +308,18 @@ export default function WorkspaceShell({
         completion={completion}
         initials={initials}
         accentClass={accentClass}
-        actions={headerActions}
+        navItems={navItems}
+        pathname={pathname}
         onSignOut={() => signOut({ callbackUrl: signOutTo })}
       />
 
       <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
         <div className="space-y-4">
-          <WorkspaceHeaderBlock
+          <WorkspaceSummary
             title={headerTitle}
             subtitle={headerSubtitle}
             completion={completion}
           />
-
-          <WorkspaceTabs items={navItems} pathname={pathname} />
         </div>
 
         <div className="mt-5">{children}</div>

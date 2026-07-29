@@ -25,9 +25,14 @@ export default function DeveloperShellClient({ session, children }: { session: S
   const navItems: WorkspaceNavItem[] = [
     { label: 'Dashboard', href: '/developer/dashboard', icon: 'dashboard' },
     { label: 'Projects', href: '/developer/projects', icon: 'projects' },
+    { label: 'Inventory', href: '/developer/inventory', icon: 'inventory' },
     { label: 'Leads', href: '/developer/leads', icon: 'leads' },
+    { label: 'CRM', href: '/developer/crm', icon: 'crm' },
+    { label: 'Analytics', href: '/developer/analytics', icon: 'analytics' },
+    { label: 'Documents', href: '/developer/documents', icon: 'documents' },
     { label: 'Verification', href: '/developer/verification', icon: 'verification' },
     { label: 'Billing', href: '/developer/subscription', icon: 'billing' },
+    { label: 'Settings', href: '/developer/settings', icon: 'settings' },
   ]
 
   const user = session.user as any
@@ -48,14 +53,6 @@ export default function DeveloperShellClient({ session, children }: { session: S
       accentClass="bg-white"
       headerTitle={displayName}
       headerSubtitle="Coordinate projects, lead health, inventory readiness, and verification status from a premium workspace designed for modern developers."
-      headerActions={[
-        <Link key="projects" href="/developer/projects" className="inline-flex items-center rounded-full border border-slate-200 bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
-          Projects
-        </Link>,
-        <Link key="verification" href="/developer/verification" className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-slate-50">
-          Verification
-        </Link>,
-      ]}
       signOutTo="/developer/login"
     >
       {children}
