@@ -58,9 +58,9 @@ export default function AgencyShellClient({
       completion={completion}
       initials={initials}
       accentClass="bg-white"
-      heroTitle={displayName}
-      heroSubtitle="Run agents, listings, projects, and performance signals from a premium operating workspace built for growth-focused agencies."
-      heroActions={[
+      headerTitle={displayName}
+      headerSubtitle="Run agents, listings, projects, and performance signals from a premium operating workspace built for growth-focused agencies."
+      headerActions={[
         <Link key="listings" href="/agency/listings" className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20">
           View Listings
         </Link>,

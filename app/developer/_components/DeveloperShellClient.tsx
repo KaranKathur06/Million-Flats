@@ -51,9 +51,9 @@ export default function DeveloperShellClient({ session, children }: { session: S
       completion={completion}
       initials={initials}
       accentClass="bg-white"
-      heroTitle={displayName}
-      heroSubtitle="Coordinate projects, lead health, inventory readiness, and verification status from a premium workspace designed for modern developers."
-      heroActions={[
+      headerTitle={displayName}
+      headerSubtitle="Coordinate projects, lead health, inventory readiness, and verification status from a premium workspace designed for modern developers."
+      headerActions={[
         <Link key="profile" href="/developer/projects" className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20">
           View Projects
         </Link>,

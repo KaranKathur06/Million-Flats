@@ -26,9 +26,9 @@ type WorkspaceShellProps = {
   completion: number
   initials: string
   accentClass: string
-  heroTitle: string
-  heroSubtitle: string
-  heroActions?: ReactNode[]
+  headerTitle: string
+  headerSubtitle: string
+  headerActions?: ReactNode[]
 }
 
 function Icon({ name }: { name: string }) {
@@ -116,56 +116,39 @@ export function WorkspaceHeader({
   )
 }
 
-export function WorkspaceHero({
+export function WorkspaceHeaderBlock({
   title,
   subtitle,
   actions,
   completion,
-  badgeText,
 }: {
   title: string
   subtitle: string
   actions?: ReactNode[]
   completion: number
-  badgeText?: string
 }) {
   return (
-    <section className="rounded-[2rem] border border-slate-200/80 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6 text-white shadow-[0_24px_90px_rgba(15,23,42,0.18)] sm:p-8">
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-2xl">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-200">
-              Premium workspace
-            </span>
-            {badgeText ? (
-              <span className="rounded-full border border-emerald-400/30 bg-emerald-500/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-300">
-                {badgeText}
-              </span>
-            ) : null}
-          </div>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">{subtitle}</p>
+    <section className="rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-sm shadow-slate-200/30">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{title}</p>
+          <h1 className="mt-2 text-2xl font-semibold text-slate-950 truncate">{subtitle}</h1>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">Profile readiness</p>
-              <p className="mt-1 text-2xl font-semibold text-white">{completion}%</p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/10 text-sm font-semibold">
-              {completion}%
-            </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
+            <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            Verified
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-white/10">
-            <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all" style={{ width: `${Math.max(0, Math.min(100, completion))}%` }} />
+          <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
+            <span className="font-semibold">Profile</span>
+            <span>{completion}%</span>
           </div>
+          {actions && actions.length > 0 ? (
+            <div className="flex flex-wrap gap-2">{actions.map((action, index) => <div key={index}>{action}</div>)}</div>
+          ) : null}
         </div>
       </div>
-
-      {actions && actions.length > 0 ? (
-        <div className="mt-6 flex flex-wrap gap-3">{actions.map((action, index) => <div key={index}>{action}</div>)}</div>
-      ) : null}
     </section>
   )
 }
@@ -263,16 +246,16 @@ export default function WorkspaceShell({
   completion,
   initials,
   accentClass,
-  heroTitle,
-  heroSubtitle,
-  heroActions,
+  headerTitle,
+  headerSubtitle,
+  headerActions,
 }: WorkspaceShellProps) {
   const pathname = usePathname() || ''
   const user = session.user as any
   const displayName = user?.name || user?.email || workspaceName
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.9),_rgba(248,250,252,1)_40%,_rgba(241,245,249,1)_100%)] text-slate-950">
+    <div className="min-h-screen bg-slate-50 text-slate-950">
       <WorkspaceHeader
         workspaceName={workspaceName}
         workspaceLabel={workspaceLabel}
@@ -282,20 +265,19 @@ export default function WorkspaceShell({
         accentClass={accentClass}
       />
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <WorkspaceHero
-          title={heroTitle}
-          subtitle={heroSubtitle}
-          completion={completion}
-          badgeText={displayName}
-          actions={heroActions}
-        />
+      <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+        <div className="space-y-4">
+          <WorkspaceHeaderBlock
+            title={headerTitle}
+            subtitle={headerSubtitle}
+            completion={completion}
+            actions={headerActions}
+          />
 
-        <div className="mt-4 flex flex-wrap gap-2">
           <WorkspaceTabs items={navItems} pathname={pathname} />
         </div>
 
-        <div className="mt-6">{children}</div>
+        <div className="mt-5">{children}</div>
       </main>
     </div>
   )

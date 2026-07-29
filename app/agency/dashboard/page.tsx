@@ -17,30 +17,35 @@ export default async function AgencyDashboardPage() {
 
   return (
     <div className="space-y-6">
-      {profile && profile.onboardingStatus !== 'APPROVED' ? (
-        <div className="rounded-[2rem] border border-amber-200/80 bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-white shadow-[0_20px_70px_rgba(245,158,11,0.24)]">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-100">Workspace readiness</p>
-              <h2 className="mt-2 text-2xl font-semibold">Complete your agency profile</h2>
-              <p className="mt-2 max-w-2xl text-sm text-amber-50">You are {profile.profileCompletion}% complete. Finish setup to unlock verification, higher trust, and premium agency features.</p>
-            </div>
-            <Link href="/agency/onboarding" className="inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-50">
-              Continue onboarding
-            </Link>
-          </div>
-        </div>
-      ) : null}
-
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <WorkspaceStatCard label="Leads" value={(profile as any)?.totalLeadsReceived ?? 0} detail="Qualified buyer inquiries" href="/agency/leads" icon="leads" />
-        <WorkspaceStatCard label="Listings" value={(profile as any)?.totalListings ?? 0} detail="Marketplace inventory" href="/agency/listings" icon="listings" />
-        <WorkspaceStatCard label="Closed deals" value={(profile as any)?.totalClosedDeals ?? 0} detail="Completed transactions" href="/agency/finance" icon="crm" />
-        <WorkspaceStatCard label="AI Score" value={(profile as any)?.aiAgencyScore ?? 0} detail="Agency trust signal" href="/agency/verification" icon="spark" />
+        <WorkspaceStatCard label="Leads" value={profile?.totalLeadsReceived ?? 0} detail="Qualified buyer inquiries" href="/agency/leads" icon="leads" />
+        <WorkspaceStatCard label="Listings" value={profile?.totalListings ?? 0} detail="Total active offers" href="/agency/listings" icon="listings" />
+        <WorkspaceStatCard label="Closed deals" value={profile?.totalClosedDeals ?? 0} detail="Transactions closed" href="/agency/finance" icon="crm" />
+        <WorkspaceStatCard label="AI score" value={profile?.aiAgencyScore ?? 0} detail="Trust signal" href="/agency/verification" icon="spark" />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <WorkspacePanel title="Lead funnel" subtitle="Monitor conversion quality across active campaigns">
+      {profile && profile.onboardingStatus !== 'APPROVED' ? (
+        <WorkspacePanel title="Workspace readiness" subtitle="Keep your agency verified and market-ready">
+          <div className="grid gap-4 md:grid-cols-2 items-center">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Profile completion</p>
+              <p className="mt-2 text-3xl font-semibold text-slate-950">{profile.profileCompletion}%</p>
+              <p className="mt-2 text-sm text-slate-500">Finish setup to unlock premium listing exposure and verification benefits.</p>
+            </div>
+            <div className="space-y-3">
+              <Link href="/agency/onboarding" className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+                Continue onboarding
+              </Link>
+              <Link href="/agency/verification" className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-50">
+                Review verification
+              </Link>
+            </div>
+          </div>
+        </WorkspacePanel>
+      ) : null}
+
+      <div className="grid gap-6 xl:grid-cols-[1.25fr_0.85fr]">
+        <WorkspacePanel title="Lead funnel" subtitle="Monitor conversion quality across active pipelines">
           <div className="space-y-4">
             {['New leads', 'Contacted', 'Viewing scheduled', 'Negotiation'].map((label, index) => (
               <div key={label} className="flex items-center gap-3">
@@ -63,10 +68,15 @@ export default async function AgencyDashboardPage() {
             </div>
           </WorkspacePanel>
 
-          <WorkspacePanel title="Workspace status" subtitle="Trust and readiness indicators">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-900">{profile?.agencyName || 'Your agency'} </p>
-              <p className="mt-2 text-sm text-slate-500">Operational status {profile?.onboardingStatus?.replace(/_/g, ' ') || 'REGISTERED'}</p>
+          <WorkspacePanel title="Workspace status" subtitle="Trusted agency indicators">
+            <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-slate-900">{profile?.agencyName || 'Agency profile'}</p>
+                <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                  {profile?.onboardingStatus?.replace(/_/g, ' ') || 'REGISTERED'}
+                </span>
+              </div>
+              <p className="text-sm text-slate-500">Current readiness score and verification state for your agency workspace.</p>
             </div>
           </WorkspacePanel>
         </div>
