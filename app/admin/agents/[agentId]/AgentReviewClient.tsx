@@ -112,6 +112,7 @@ type AgentDetail = {
         id: string
         type: string
         fileUrl: string
+        s3Key: string | null
         status: string
         reviewedBy: string | null
         reviewedAt: string | null
@@ -369,18 +370,16 @@ export default function AgentReviewClient({
                                     <div className="flex items-center gap-2 flex-shrink-0">
                                         <button
                                             onClick={async () => {
-                                                // Fetch signed URL for private documents
                                                 try {
                                                     const res = await fetch('/api/admin/agent-documents/signed-url', {
                                                         method: 'POST',
                                                         headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({ documentId: doc.id, fileUrl: doc.fileUrl }),
+                                                        body: JSON.stringify({ documentId: doc.id, s3Key: doc.s3Key, fileUrl: doc.fileUrl }),
                                                     })
                                                     const data = await res.json()
                                                     if (res.ok && data.success && data.url) {
                                                         setPreviewUrl(data.url)
                                                     } else {
-                                                        // Fallback to direct URL (for public/legacy docs)
                                                         setPreviewUrl(doc.fileUrl)
                                                     }
                                                 } catch {

@@ -3,6 +3,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import crypto from 'crypto'
 import { buildS3Key as buildStructuredS3Key, buildS3KeyFromFolder } from '@/utils/s3PathBuilder'
 import { buildCdnUrl, isCloudFrontEnabled } from '@/lib/cloudfront'
+import { extractRelativeKey } from '@/lib/assetUrl'
 
 type S3Env = {
   region: string
@@ -524,19 +525,11 @@ export async function createSignedPutUrlForKey(params: {
 }
 
 export function extractS3KeyFromUrl(objectUrl: string) {
-  const { region, bucket } = requireS3Env()
   const normalized = String(objectUrl || '').trim()
-  const directPrefix = `https://${bucket}.s3.${region}.amazonaws.com/`
-  if (normalized.startsWith(directPrefix)) {
-    const keyPart = normalized.slice(directPrefix.length)
-    return decodeURIComponent(keyPart)
-  }
+  if (!normalized) return null
 
-  const publicBase = String(process.env.NEXT_PUBLIC_S3_PUBLIC_BASE_URL || '').trim().replace(/\/$/, '')
-  if (publicBase && normalized.startsWith(`${publicBase}/`)) {
-    const keyPart = normalized.slice(publicBase.length + 1)
-    return decodeURIComponent(keyPart.replace(/^\/+/, ''))
-  }
+  const key = extractRelativeKey(normalized)
+  if (!key) return null
 
-  return null
+  return key
 }

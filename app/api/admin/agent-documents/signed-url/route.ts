@@ -42,11 +42,26 @@ export async function POST(req: Request) {
       select: { s3Key: true, fileUrl: true },
     })
 
-    if (doc?.s3Key) {
-      finalKey = doc.s3Key
-    } else if (doc?.fileUrl) {
-      // Try to extract key from fileUrl if s3Key not stored
-      finalKey = extractS3KeyFromUrl(doc.fileUrl)
+    if (doc) {
+      finalKey = doc.s3Key || extractS3KeyFromUrl(doc.fileUrl)
+    } else {
+      const legacyDoc = await (prisma as any).agentVerification.findFirst({
+        where: { id: documentId },
+        select: { documentUrl: true },
+      })
+
+      if (legacyDoc?.documentUrl) {
+        const legacyKey = extractS3KeyFromUrl(legacyDoc.documentUrl)
+        if (legacyKey) {
+          finalKey = legacyKey
+        } else {
+          return NextResponse.json({
+            success: true,
+            url: legacyDoc.documentUrl,
+            isPublic: true,
+          })
+        }
+      }
     }
   }
 
