@@ -227,12 +227,14 @@ export default function AgentReviewClient({
     }
 
     const REQUIRED_AGENT_DOC_TYPES = ['GOVERNMENT_ID', 'REAL_ESTATE_LICENSE']
-    const vs = agent.verificationStatus.toUpperCase()
+    const verificationStatus = agent.verificationStatus.toUpperCase()
+    const profileStatus = agent.profileStatus.toUpperCase()
     const requiredDocsApproved = REQUIRED_AGENT_DOC_TYPES.every((type) =>
         agent.allDocuments.some((d) => d.type === type && d.status.toUpperCase() === 'APPROVED')
     )
     const canFinalApprove =
-        (vs === 'UNDER_REVIEW' || vs === 'SUBMITTED') && requiredDocsApproved
+        (profileStatus === 'SUBMITTED' || verificationStatus === 'UNDER_REVIEW' || verificationStatus === 'SUBMITTED') &&
+        requiredDocsApproved
 
     return (
         <div className="mx-auto max-w-[1200px] space-y-6">
@@ -248,8 +250,8 @@ export default function AgentReviewClient({
                     <h1 className="text-2xl font-bold tracking-tight">Agent Review</h1>
                     <p className="mt-1 text-sm text-white/40">{agent.user.email}</p>
                 </div>
-                <span className={`rounded-full border px-4 py-1.5 text-xs font-bold uppercase tracking-wider ${getStatusBadge(vs)}`}>
-                    {vs.replace('_', ' ')}
+                <span className={`rounded-full border px-4 py-1.5 text-xs font-bold uppercase tracking-wider ${getStatusBadge(verificationStatus)}`}>
+                    {verificationStatus.replace('_', ' ')}
                 </span>
             </div>
 
@@ -528,24 +530,24 @@ export default function AgentReviewClient({
                     Final Decision
                 </h2>
 
-                {vs === 'APPROVED' && (
+                {verificationStatus === 'APPROVED' && (
                     <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-5 py-4">
                         <p className="text-emerald-300 font-semibold">✓ This agent has been approved</p>
                         {agent.approvedAt && <p className="text-xs text-emerald-300/60 mt-1">Approved on {formatDate(agent.approvedAt)}</p>}
                     </div>
                 )}
 
-                {vs === 'REJECTED' && (
+                {verificationStatus === 'REJECTED' && (
                     <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-5 py-4">
                         <p className="text-red-300 font-semibold">✗ This agent has been rejected</p>
                         {agent.rejectionReason && <p className="text-xs text-red-300/60 mt-1">Reason: {agent.rejectionReason}</p>}
                     </div>
                 )}
 
-                {vs !== 'APPROVED' && vs !== 'REJECTED' && (
+                {verificationStatus !== 'APPROVED' && verificationStatus !== 'REJECTED' && (
                     <div className="space-y-4">
                         {/* Move to Under Review (if PENDING or SUBMITTED) */}
-                        {(vs === 'PENDING' || vs === 'SUBMITTED') && (
+                        {(verificationStatus === 'PENDING' || verificationStatus === 'SUBMITTED') && (
                             <button
                                 disabled={actionBusy}
                                 onClick={async () => {
@@ -582,7 +584,7 @@ export default function AgentReviewClient({
                                 }}
                                 title={
                                     !canFinalApprove
-                                        ? 'All documents must be approved before approving the agent'
+                                        ? 'Agent profile must be submitted and required documents approved before final approval'
                                         : !finalComment.trim()
                                             ? 'Admin comment is required'
                                             : ''
