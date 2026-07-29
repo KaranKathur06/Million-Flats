@@ -113,6 +113,7 @@ type AgentDetail = {
         type: string
         fileUrl: string
         s3Key: string | null
+        mimeType: string | null
         status: string
         reviewedBy: string | null
         reviewedAt: string | null
@@ -150,6 +151,7 @@ export default function AgentReviewClient({
 
     // Modal states
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+    const [previewMimeType, setPreviewMimeType] = useState<string | null>(null)
     const [rejectModalOpen, setRejectModalOpen] = useState(false)
     const [rejectReason, setRejectReason] = useState('')
     const [docRejectId, setDocRejectId] = useState<string | null>(null)
@@ -379,11 +381,14 @@ export default function AgentReviewClient({
                                                     const data = await res.json()
                                                     if (res.ok && data.success && data.url) {
                                                         setPreviewUrl(data.url)
+                                                        setPreviewMimeType(doc.mimeType || null)
                                                     } else {
                                                         setPreviewUrl(doc.fileUrl)
+                                                        setPreviewMimeType(doc.mimeType || null)
                                                     }
                                                 } catch {
                                                     setPreviewUrl(doc.fileUrl)
+                                                    setPreviewMimeType(doc.mimeType || null)
                                                 }
                                             }}
                                             className="h-8 rounded-lg border border-white/10 bg-white/[0.02] px-3 text-[11px] font-semibold text-white/70 hover:bg-white/[0.06] hover:text-white transition-all"
@@ -625,7 +630,7 @@ export default function AgentReviewClient({
                             </button>
                         </div>
                         <div className="p-4 flex items-center justify-center max-h-[80vh] overflow-auto">
-                            {previewUrl.match(/\.(pdf)$/i) ? (
+                            {((previewMimeType || '').toLowerCase().includes('pdf') || /\.(pdf)(?:[?#]|$)/i.test(previewUrl)) ? (
                                 <iframe src={previewUrl} className="w-full h-[70vh] rounded-lg" />
                             ) : (
                                 <img src={previewUrl} alt="Document" className="max-w-full max-h-[70vh] rounded-lg object-contain" />
