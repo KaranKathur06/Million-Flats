@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { Session } from 'next-auth'
 import { signOut } from 'next-auth/react'
-import { ReactNode, useState } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 
 export type WorkspaceRole = 'developer' | 'agency'
 
@@ -78,6 +78,7 @@ export function WorkspaceHeader({
   navItems,
   pathname,
   onSignOut,
+  homeHref,
 }: {
   workspaceName: string
   workspaceLabel: string
@@ -88,46 +89,120 @@ export function WorkspaceHeader({
   navItems: WorkspaceNavItem[]
   pathname: string
   onSignOut: () => void
+  homeHref: string
 }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+
+  useEffect(() => {
+    const handleClickOutside = () => setProfileMenuOpen(false)
+    if (profileMenuOpen) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [profileMenuOpen])
+
+  const completionLabel = completion < 100 ? `${completion}% Complete` : 'Complete'
+
   return (
-    <header className={`sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl`}> 
+    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-lg shadow-slate-950/20">
+          <Link href={homeHref} className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-lg shadow-slate-950/20">
               MF
             </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-950">{workspaceName}</p>
-              <p className="truncate text-xs text-slate-500">{workspaceLabel}</p>
+            <div className="hidden min-w-0 items-center gap-1 sm:flex">
+              <div>
+                <p className="text-sm font-semibold text-slate-950">{workspaceName}</p>
+                <p className="text-xs text-slate-500">{workspaceLabel}</p>
+              </div>
             </div>
+          </Link>
+
+          <div className="hidden flex-1 justify-center md:flex">
+            <WorkspaceNavigation items={navItems} pathname={pathname} />
           </div>
 
           <div className="flex items-center gap-2">
-            <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50" aria-label="Search workspace">
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path d="M21 21 15 15m0-6a6 6 0 1 0-12 0 6 6 0 0 0 12 0Z" />
-              </svg>
-            </button>
-            <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50" aria-label="Notifications">
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path d="M15 17h5l-1.5-2V11a6.5 6.5 0 1 0-13 0v4L4 17h5m6 0a3 3 0 1 1-6 0" />
-              </svg>
-            </button>
-            <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white" aria-label="Open profile menu">
-              {initials}
-            </button>
+            <div className="hidden lg:flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700">
+              <span className="font-semibold">{completionLabel}</span>
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            </div>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setProfileMenuOpen(!profileMenuOpen)
+                }}
+                className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700">
+                  {initials}
+                </div>
+                <span className="hidden sm:inline">{workspaceName}</span>
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+
+              {profileMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
+                  <div className="px-4 py-3 border-b border-slate-100">
+                    <p className="text-sm font-semibold text-slate-950">{workspaceName}</p>
+                    <p className="text-xs text-slate-500 truncate">{workspaceLabel}</p>
+                  </div>
+                  <div className="py-1">
+                    <button
+                      type="button"
+                      onClick={onSignOut}
+                      className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                    >
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button
               type="button"
-              onClick={onSignOut}
-              className="hidden rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:inline-flex"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 md:hidden"
+              aria-expanded={mobileMenuOpen}
+              aria-label="Toggle workspace menu"
             >
-              Logout
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                {mobileMenuOpen ? (
+                  <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+                ) : (
+                  <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" strokeLinejoin="round" />
+                )}
+              </svg>
             </button>
           </div>
         </div>
 
-        <WorkspaceNavigation items={navItems} pathname={pathname} />
+        {mobileMenuOpen && (
+          <div className="md:hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <WorkspaceNavigation items={navItems} pathname={pathname} />
+            <div className="mt-4 flex flex-col gap-2">
+              <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                <span>Status</span>
+                <span className="font-semibold">{statusLabel}</span>
+              </div>
+              <button
+                type="button"
+                onClick={onSignOut}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </header>
   )
@@ -136,29 +211,36 @@ export function WorkspaceHeader({
 export function WorkspaceSummary({
   title,
   subtitle,
+  workspaceLabel,
+  statusLabel,
   completion,
 }: {
   title: string
   subtitle: string
+  workspaceLabel: string
+  statusLabel: string
   completion: number
 }) {
   return (
     <section className="rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-sm shadow-slate-200/30">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{title}</p>
-          <h1 className="mt-2 text-2xl font-semibold text-slate-950 truncate">{subtitle}</h1>
-          <p className="mt-2 text-sm text-slate-500">Key workspace health and profile readiness information for your team.</p>
+          <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">{workspaceLabel}</span>
+            <span className="rounded-full border border-slate-200 bg-emerald-50 px-3 py-1 text-emerald-700">{statusLabel}</span>
+          </div>
+          <h1 className="mt-4 text-3xl font-semibold text-slate-950 sm:text-4xl">{title}</h1>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">{subtitle}</p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
-            <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
-            Verified
+        <div className="flex flex-wrap gap-3">
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Profile Completion</p>
+            <p className="mt-2 text-xl font-semibold text-slate-950">{completion}%</p>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
-            <span className="font-semibold">Profile</span>
-            <span>{completion}%</span>
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Workspace</p>
+            <p className="mt-2 text-xl font-semibold text-slate-950">{workspaceLabel}</p>
           </div>
         </div>
       </div>
@@ -311,6 +393,7 @@ export default function WorkspaceShell({
         navItems={navItems}
         pathname={pathname}
         onSignOut={() => signOut({ callbackUrl: signOutTo })}
+        homeHref={role === 'agency' ? '/agency/dashboard' : '/developer/dashboard'}
       />
 
       <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
@@ -318,6 +401,8 @@ export default function WorkspaceShell({
           <WorkspaceSummary
             title={headerTitle}
             subtitle={headerSubtitle}
+            workspaceLabel={workspaceLabel}
+            statusLabel={statusLabel}
             completion={completion}
           />
         </div>
