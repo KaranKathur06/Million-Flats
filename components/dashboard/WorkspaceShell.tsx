@@ -137,12 +137,12 @@ export function WorkspaceHeader({
                   e.stopPropagation()
                   setProfileMenuOpen(!profileMenuOpen)
                 }}
-                className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white p-2 text-slate-700 shadow-sm transition hover:bg-slate-50"
+                aria-label="Open profile menu"
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700">
                   {initials}
                 </div>
-                <span className="hidden sm:inline">{workspaceName}</span>
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -158,9 +158,12 @@ export function WorkspaceHeader({
                     <button
                       type="button"
                       onClick={onSignOut}
-                      className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      className="flex w-full items-center justify-between gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
                     >
                       <span>Sign Out</span>
+                      <svg className="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                     </button>
                   </div>
                 </div>
