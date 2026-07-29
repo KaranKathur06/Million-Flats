@@ -226,9 +226,13 @@ export default function AgentReviewClient({
         )
     }
 
+    const REQUIRED_AGENT_DOC_TYPES = ['GOVERNMENT_ID', 'REAL_ESTATE_LICENSE']
     const vs = agent.verificationStatus.toUpperCase()
-    const allDocsApproved = agent.allDocuments.length > 0 && agent.allDocuments.every((d) => d.status.toUpperCase() === 'APPROVED')
-    const canFinalApprove = (vs === 'UNDER_REVIEW' || vs === 'SUBMITTED') && allDocsApproved
+    const requiredDocsApproved = REQUIRED_AGENT_DOC_TYPES.every((type) =>
+        agent.allDocuments.some((d) => d.type === type && d.status.toUpperCase() === 'APPROVED')
+    )
+    const canFinalApprove =
+        (vs === 'UNDER_REVIEW' || vs === 'SUBMITTED') && requiredDocsApproved
 
     return (
         <div className="mx-auto max-w-[1200px] space-y-6">
@@ -606,7 +610,7 @@ export default function AgentReviewClient({
 
                         {!canFinalApprove && agent.allDocuments.length > 0 && (
                             <p className="text-xs text-amber-300/70 mt-1">
-                                ⚠ All documents must be approved before you can approve this agent.
+                                ⚠ Only Government ID and Real Estate License approvals are required for final agent verification.
                             </p>
                         )}
                     </div>
