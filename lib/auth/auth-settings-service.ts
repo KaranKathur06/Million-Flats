@@ -165,10 +165,12 @@ async function fetchFromDatabase(): Promise<AuthSettingsData> {
       where: { id: 'singleton' },
     })
 
-    // Auto-seed if not exists
+    // Auto-seed if not exists, but avoid duplicate-create races.
     if (!settings) {
-      settings = await (prisma as any).authSettings.create({
-        data: { id: 'singleton' },
+      settings = await (prisma as any).authSettings.upsert({
+        where: { id: 'singleton' },
+        update: {},
+        create: { id: 'singleton' },
       })
     }
 
