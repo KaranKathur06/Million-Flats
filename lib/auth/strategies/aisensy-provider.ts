@@ -367,14 +367,12 @@ function mapAiSensyError(httpStatus: number, responseData: any): { code: AiSensy
  * Builds the complete AiSensy payload for the approved OTP template.
  *
  * The current approved template expects:
- *   - templateParams[0] = OTP code
- *   - templateParams[1] = user name
- *   - paramsFallbackValue.OTP = fallback OTP value
+ *   - templateParams[0] = user name
  *   - paramsFallbackValue.FirstName = fallback user name
  *
- * The OTP itself is still kept in the URL button parameter so the click-through
+ * The OTP itself is kept in the URL button parameter so the click-through
  * can carry the verification code while the chat body renders the human-readable
- * message with the OTP and name substituted correctly.
+ * message with the name substituted correctly.
  */
 export function buildOtpPayload(input: OtpPayloadInput): AiSensyPayload {
   const normalizedPhone = normalizePhoneForAiSensy(input.phone)
@@ -390,7 +388,7 @@ export function buildOtpPayload(input: OtpPayloadInput): AiSensyPayload {
     campaignName: AISENSY_CONFIG.otpCampaignName,
     destination: normalizedPhone,
     userName: AISENSY_CONFIG.userName,
-    templateParams: [otp, firstName],
+    templateParams: [firstName],
     source: AISENSY_CONFIG.source,
     media: {},
     buttons: [
@@ -410,8 +408,8 @@ export function buildOtpPayload(input: OtpPayloadInput): AiSensyPayload {
     location: {},
     attributes: {},
     paramsFallbackValue: {
-      OTP: otp,
       FirstName: firstName,
+      OTP: otp,
     },
   }
 }

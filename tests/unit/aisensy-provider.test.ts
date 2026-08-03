@@ -8,17 +8,17 @@ describe('buildOtpPayload', () => {
     process.env.AISENSY_SOURCE = 'millionflats-test'
   })
 
-  it('includes the generated OTP in the template body parameters and preserves the fallback name', () => {
+  it('includes the user name in template params and sets the OTP in the button parameter', () => {
     const payload = buildOtpPayload({
       phone: '+919876543210',
       otp: '482913',
       firstName: 'Karan',
     })
 
-    expect(payload.templateParams).toEqual(['482913', 'Karan'])
+    expect(payload.templateParams).toEqual(['Karan'])
     expect(payload.paramsFallbackValue).toMatchObject({
-      OTP: '482913',
       FirstName: 'Karan',
+      OTP: '482913',
     })
     expect(payload.buttons[0]?.parameters?.[0]?.text).toBe('482913')
   })
