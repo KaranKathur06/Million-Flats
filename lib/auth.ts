@@ -113,7 +113,66 @@ export const authOptions: NextAuthOptions = {
         }),
       ]
       : []),
+    // ── WhatsApp OTP Provider ──────────────────────────────────────────────
+    // Validates the short-lived verification token issued after OTP verification.
+    // Frontend calls: signIn('whatsapp-otp', { verificationToken, redirect: false })
     CredentialsProvider({
+      id: 'whatsapp-otp',
+      name: 'WhatsApp OTP',
+      credentials: {
+        verificationToken: { label: 'Verification Token', type: 'text' },
+      },
+      async authorize(credentials: Record<string, unknown> | undefined) {
+        const token = typeof credentials?.verificationToken === 'string' ? credentials.verificationToken.trim() : ''
+        if (!token) return null
+
+        try {
+          const jwt = require('jsonwebtoken')
+          const secret = process.env.OTP_VERIFICATION_SECRET || process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET
+          if (!secret) return null
+
+          const decoded = jwt.verify(token, secret) as { sub: string; phone: string; purpose: string }
+
+          // Validate token purpose (prevent token reuse from other flows)
+          if (decoded.purpose !== 'whatsapp-otp-verified') return null
+          if (!decoded.sub) return null
+
+          // Find user by ID
+          const user = await prisma.user.findUnique({
+            where: { id: decoded.sub },
+            include: { agent: true },
+          })
+          if (!user) return null
+
+          const status = String((user as any).status || 'ACTIVE')
+          if (status === 'BANNED') throw new Error('ACCOUNT_BANNED')
+          if (status === 'SUSPENDED') throw new Error('ACCOUNT_DISABLED')
+
+          // Update last login
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { lastLogin: new Date() } as any,
+          }).catch(() => null)
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name ?? undefined,
+            role: user.role,
+            status: (user as any).status || 'ACTIVE',
+          } as any
+        } catch (error: any) {
+          if (error?.message === 'ACCOUNT_BANNED' || error?.message === 'ACCOUNT_DISABLED') {
+            throw error
+          }
+          console.error('[auth] WhatsApp OTP verification token error:', error?.message)
+          return null
+        }
+      },
+    }),
+    // ── Email/Password Provider ────────────────────────────────────────────
+    CredentialsProvider({
+
       name: 'Credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
