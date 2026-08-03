@@ -54,8 +54,8 @@ export default async function AuthRedirectPage({
   const dbRole = String(user?.role || '').toUpperCase()
   const profileCompletion = Number(user?.profileCompletion || 0)
   const effectiveRole = dbRole || sessionRole || legacyRole
-
-  if (effectiveRole === 'USER' && profileCompletion < 100) {
+  const ENFORCE_ONBOARDING = String(process.env.ENFORCE_ONBOARDING || 'false').toLowerCase() === 'true'
+  if (ENFORCE_ONBOARDING && effectiveRole === 'USER' && profileCompletion < 100) {
     redirect('/user/onboarding')
   }
 
