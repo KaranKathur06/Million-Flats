@@ -383,12 +383,17 @@ export function buildOtpPayload(input: OtpPayloadInput): AiSensyPayload {
   const otp = sanitizeTemplateParam(input.otp, '000000')
   const firstName = sanitizeTemplateParam(input.firstName, 'user')
 
+  // If a real first name isn't available, use the OTP as the first template
+  // parameter so templates that expect a single body variable still show
+  // the numeric verification code to the recipient.
+  const templateFirstParam = (input.firstName && input.firstName.trim().length > 0) ? firstName : otp
+
   return {
     apiKey: AISENSY_CONFIG.apiKey,
     campaignName: AISENSY_CONFIG.otpCampaignName,
     destination: normalizedPhone,
     userName: AISENSY_CONFIG.userName,
-    templateParams: [firstName],
+    templateParams: [templateFirstParam],
     source: AISENSY_CONFIG.source,
     media: {},
     buttons: [

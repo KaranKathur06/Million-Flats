@@ -22,4 +22,19 @@ describe('buildOtpPayload', () => {
     })
     expect(payload.buttons[0]?.parameters?.[0]?.text).toBe('482913')
   })
+
+  it('falls back to showing the OTP in the body when firstName is missing', () => {
+    const payload = buildOtpPayload({
+      phone: '+919876543210',
+      otp: '731901',
+      firstName: undefined,
+    })
+
+    expect(payload.templateParams).toEqual(['731901'])
+    expect(payload.paramsFallbackValue).toMatchObject({
+      FirstName: 'user',
+      OTP: '731901',
+    })
+    expect(payload.buttons[0]?.parameters?.[0]?.text).toBe('731901')
+  })
 })
