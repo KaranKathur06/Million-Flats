@@ -20,7 +20,7 @@ import jwt from 'jsonwebtoken'
 import { prisma } from '@/lib/prisma'
 import { hashPhone, encryptPhone, decryptPhone, normalizePhone, isValidE164, maskPhone } from '@/lib/auth/phone-crypto'
 import { checkOtpSendRateLimit, checkOtpVerifyRateLimit } from '@/lib/auth/otp-rate-limiter'
-import { sendOtpViaAiSensy } from '@/lib/auth/strategies/aisensy-provider'
+import { sendOtpViaAiSensy, extractFirstName } from '@/lib/auth/strategies/aisensy-provider'
 import { isWhatsappEnabled } from '@/lib/auth/auth-settings-service'
 
 // ─── Configuration ───────────────────────────────────────────────────────────
@@ -117,13 +117,15 @@ export async function sendWhatsappOtp(input: {
     }
   }
 
-  // 4. Check if user is blocked
+  // 4. Check if user is blocked + retrieve name for template personalization
+  let existingUserName: string | null = null
   try {
     const existingUser = await prisma.user.findFirst({
       where: { phoneHash: phoneH },
-      select: { id: true, status: true },
+      select: { id: true, status: true, name: true },
     })
     if (existingUser) {
+      existingUserName = (existingUser as any).name || null
       const status = String((existingUser as any).status || 'ACTIVE').toUpperCase()
       if (status === 'BANNED') {
         return { success: false, error: 'This phone number has been blocked.', errorCode: 'PHONE_BLOCKED' }
@@ -171,8 +173,9 @@ export async function sendWhatsappOtp(input: {
     return { success: false, error: 'Failed to create verification request.', errorCode: 'DB_ERROR' }
   }
 
-  // 8. Dispatch via AiSensy
-  const sendResult = await sendOtpViaAiSensy(phone, otp)
+  // 8. Dispatch via AiSensy (with firstName for template personalization)
+  const firstName = extractFirstName(existingUserName)
+  const sendResult = await sendOtpViaAiSensy({ phone, otp, firstName })
 
   if (!sendResult.success) {
     // Mark as failed
