@@ -3,6 +3,7 @@
 // Handles caching, error recovery, data quality gating, and audit logging
 
 import { prisma } from '@/lib/prisma'
+import { findAiShieldResult, upsertAiShieldResult } from '@/lib/aishield/repository'
 
 // ── v1 engines (carried forward) ──
 import { runComparablesEngine } from '../comparables-engine'
@@ -443,9 +444,7 @@ async function loadPropertyInput(id: string, entityType: EntityType): Promise<Pr
 
 async function getCachedResult(entityId: string, entityType: EntityType): Promise<any | null> {
   try {
-    const result = await (prisma as any).AIShieldResult.findUnique({
-      where: { entityType_entityId: { entityType, entityId } },
-    })
+    const result = await findAiShieldResult(entityType, entityId)
     if (!result) return null
     if (new Date(result.expiresAt) < new Date()) return null
     return result
@@ -518,60 +517,30 @@ function formatCachedResponse(cached: any, input: PropertyInput): AIShieldRespon
 
 async function cacheResult(input: PropertyInput, response: AIShieldResponseV2, expiresAt: Date): Promise<void> {
   try {
-    await (prisma as any).AIShieldResult.upsert({
-      where: { entityType_entityId: { entityType: input.entityType, entityId: input.id } },
-      update: {
-        estimatedMin: response.valuation.low,
-        estimatedMax: response.valuation.high,
-        estimatedMedian: response.valuation.fair,
-        confidence: response.valuation.confidence,
-        confidenceReasons: response.valuation.confidenceFactors.map(f => f.reason),
-        askingPrice: response.askingPrice,
-        deviation: response.deviation,
-        status: response.status === 'ABOVE_MARKET' ? 'OVERPRICED' : response.status === 'HIGH_RISK' ? 'SUSPICIOUS' : response.status,
-        pricePosition: response.pricePosition,
-        comparablesCount: response.comparablesStats.count,
-        avgPricePerSqft: response.comparablesStats.avgPricePerSqft,
-        medianPrice: response.comparablesStats.medianPrice,
-        demandScore: response.signals.demandScore,
-        listingVelocity: response.signals.listingVelocity,
-        avgDaysOnMarket: response.signals.avgDaysOnMarket,
-        estimatedRentalMin: response.rental.estimatedRentalMin,
-        estimatedRentalMax: response.rental.estimatedRentalMax,
-        rentalYield: response.rental.rentalYield,
-        suggestedMinPrice: response.negotiation.suggestedMin,
-        suggestedMaxPrice: response.negotiation.suggestedMax,
-        modelVersion: MODEL_VERSION,
-        computedAt: new Date(),
-        expiresAt,
-      },
-      create: {
-        entityType: input.entityType,
-        entityId: input.id,
-        estimatedMin: response.valuation.low,
-        estimatedMax: response.valuation.high,
-        estimatedMedian: response.valuation.fair,
-        confidence: response.valuation.confidence,
-        confidenceReasons: response.valuation.confidenceFactors.map(f => f.reason),
-        askingPrice: response.askingPrice,
-        deviation: response.deviation,
-        status: response.status === 'ABOVE_MARKET' ? 'OVERPRICED' : response.status === 'HIGH_RISK' ? 'SUSPICIOUS' : response.status,
-        pricePosition: response.pricePosition,
-        comparablesCount: response.comparablesStats.count,
-        avgPricePerSqft: response.comparablesStats.avgPricePerSqft,
-        medianPrice: response.comparablesStats.medianPrice,
-        demandScore: response.signals.demandScore,
-        listingVelocity: response.signals.listingVelocity,
-        avgDaysOnMarket: response.signals.avgDaysOnMarket,
-        estimatedRentalMin: response.rental.estimatedRentalMin,
-        estimatedRentalMax: response.rental.estimatedRentalMax,
-        rentalYield: response.rental.rentalYield,
-        suggestedMinPrice: response.negotiation.suggestedMin,
-        suggestedMaxPrice: response.negotiation.suggestedMax,
-        modelVersion: MODEL_VERSION,
-        computedAt: new Date(),
-        expiresAt,
-      },
+    await upsertAiShieldResult(input.entityType, input.id, {
+      estimatedMin: response.valuation.low,
+      estimatedMax: response.valuation.high,
+      estimatedMedian: response.valuation.fair,
+      confidence: response.valuation.confidence,
+      confidenceReasons: response.valuation.confidenceFactors.map(f => f.reason),
+      askingPrice: response.askingPrice,
+      deviation: response.deviation,
+      status: response.status === 'ABOVE_MARKET' ? 'OVERPRICED' : response.status === 'HIGH_RISK' ? 'SUSPICIOUS' : response.status,
+      pricePosition: response.pricePosition,
+      comparablesCount: response.comparablesStats.count,
+      avgPricePerSqft: response.comparablesStats.avgPricePerSqft,
+      medianPrice: response.comparablesStats.medianPrice,
+      demandScore: response.signals.demandScore,
+      listingVelocity: response.signals.listingVelocity,
+      avgDaysOnMarket: response.signals.avgDaysOnMarket,
+      estimatedRentalMin: response.rental.estimatedRentalMin,
+      estimatedRentalMax: response.rental.estimatedRentalMax,
+      rentalYield: response.rental.rentalYield,
+      suggestedMinPrice: response.negotiation.suggestedMin,
+      suggestedMaxPrice: response.negotiation.suggestedMax,
+      modelVersion: MODEL_VERSION,
+      computedAt: new Date(),
+      expiresAt,
     })
   } catch (error) {
     console.error('[AIShield:v2.1] Cache error:', error)

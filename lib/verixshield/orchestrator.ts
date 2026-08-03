@@ -3,6 +3,7 @@
 // Handles caching, error recovery, and unified response assembly
 
 import { prisma } from '@/lib/prisma'
+import { findAiShieldResult, upsertAiShieldResult } from '@/lib/aishield/repository'
 import { runValuationEngine } from './valuation-engine'
 import { runComparablesEngine } from './comparables-engine'
 import { runTrendEngine } from './trend-engine'
@@ -281,11 +282,7 @@ async function loadPropertyInput(id: string, entityType: EntityType): Promise<Pr
 
 async function getCachedResult(entityId: string, entityType: EntityType): Promise<any | null> {
   try {
-    const result = await (prisma as any).AIShieldResult.findUnique({
-      where: {
-        entityType_entityId: { entityType, entityId },
-      },
-    })
+    const result = await findAiShieldResult(entityType, entityId)
 
     if (!result) return null
 
@@ -363,65 +360,30 @@ function formatCachedResponse(cached: any, input: PropertyInput): AIShieldRespon
 
 async function cacheResult(input: PropertyInput, response: AIShieldResponse, expiresAt: Date): Promise<void> {
   try {
-    await (prisma as any).AIShieldResult.upsert({
-      where: {
-        entityType_entityId: {
-          entityType: input.entityType,
-          entityId: input.id,
-        },
-      },
-      update: {
-        estimatedMin: response.valuation.min,
-        estimatedMax: response.valuation.max,
-        estimatedMedian: response.valuation.median,
-        confidence: response.valuation.confidence,
-        confidenceReasons: response.valuation.confidenceReasons,
-        askingPrice: response.askingPrice,
-        deviation: response.deviation,
-        status: response.status,
-        pricePosition: response.pricePosition,
-        comparablesCount: response.comparablesStats.count,
-        avgPricePerSqft: response.comparablesStats.avgPricePerSqft,
-        medianPrice: response.comparablesStats.medianPrice,
-        demandScore: response.signals.demandScore,
-        listingVelocity: response.signals.listingVelocity,
-        avgDaysOnMarket: response.signals.avgDaysOnMarket,
-        estimatedRentalMin: response.rental.estimatedRentalMin,
-        estimatedRentalMax: response.rental.estimatedRentalMax,
-        rentalYield: response.rental.rentalYield,
-        suggestedMinPrice: response.negotiation.suggestedMin,
-        suggestedMaxPrice: response.negotiation.suggestedMax,
-        modelVersion: MODEL_VERSION,
-        computedAt: new Date(),
-        expiresAt,
-      },
-      create: {
-        entityType: input.entityType,
-        entityId: input.id,
-        estimatedMin: response.valuation.min,
-        estimatedMax: response.valuation.max,
-        estimatedMedian: response.valuation.median,
-        confidence: response.valuation.confidence,
-        confidenceReasons: response.valuation.confidenceReasons,
-        askingPrice: response.askingPrice,
-        deviation: response.deviation,
-        status: response.status,
-        pricePosition: response.pricePosition,
-        comparablesCount: response.comparablesStats.count,
-        avgPricePerSqft: response.comparablesStats.avgPricePerSqft,
-        medianPrice: response.comparablesStats.medianPrice,
-        demandScore: response.signals.demandScore,
-        listingVelocity: response.signals.listingVelocity,
-        avgDaysOnMarket: response.signals.avgDaysOnMarket,
-        estimatedRentalMin: response.rental.estimatedRentalMin,
-        estimatedRentalMax: response.rental.estimatedRentalMax,
-        rentalYield: response.rental.rentalYield,
-        suggestedMinPrice: response.negotiation.suggestedMin,
-        suggestedMaxPrice: response.negotiation.suggestedMax,
-        modelVersion: MODEL_VERSION,
-        computedAt: new Date(),
-        expiresAt,
-      },
+    await upsertAiShieldResult(input.entityType, input.id, {
+      estimatedMin: response.valuation.min,
+      estimatedMax: response.valuation.max,
+      estimatedMedian: response.valuation.median,
+      confidence: response.valuation.confidence,
+      confidenceReasons: response.valuation.confidenceReasons,
+      askingPrice: response.askingPrice,
+      deviation: response.deviation,
+      status: response.status,
+      pricePosition: response.pricePosition,
+      comparablesCount: response.comparablesStats.count,
+      avgPricePerSqft: response.comparablesStats.avgPricePerSqft,
+      medianPrice: response.comparablesStats.medianPrice,
+      demandScore: response.signals.demandScore,
+      listingVelocity: response.signals.listingVelocity,
+      avgDaysOnMarket: response.signals.avgDaysOnMarket,
+      estimatedRentalMin: response.rental.estimatedRentalMin,
+      estimatedRentalMax: response.rental.estimatedRentalMax,
+      rentalYield: response.rental.rentalYield,
+      suggestedMinPrice: response.negotiation.suggestedMin,
+      suggestedMaxPrice: response.negotiation.suggestedMax,
+      modelVersion: MODEL_VERSION,
+      computedAt: new Date(),
+      expiresAt,
     })
   } catch (error) {
     console.error('[AIShield:Cache] Error storing result:', error)

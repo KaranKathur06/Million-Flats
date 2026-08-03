@@ -12,6 +12,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { prisma } from '@/lib/prisma'
+import { findAiShieldResult, upsertAiShieldResult } from '@/lib/aishield/repository'
 import { computeConfidence } from '../confidence'
 import type { FeatureVector } from '../feature-store'
 import type {
@@ -798,9 +799,7 @@ async function getCachedValuation(
 ): Promise<ValuationReport | null> {
   try {
     const entityTypeEnum = entityType === 'MANUAL_PROPERTY' ? 'MANUAL_PROPERTY' : 'PROJECT'
-    const cached = await (prisma as any).AIShieldResult.findUnique({
-      where: { entityType_entityId: { entityType: entityTypeEnum, entityId } },
-    })
+    const cached = await findAiShieldResult(entityTypeEnum as any, entityId)
 
     if (!cached) return null
 
@@ -877,11 +876,7 @@ async function persistValuation(
       computedAt: new Date(),
       expiresAt,
     }
-    await (prisma as any).AIShieldResult.upsert({
-      where: { entityType_entityId: { entityType, entityId } },
-      create: { entityType, entityId, ...data },
-      update: data,
-    })
+    await upsertAiShieldResult(entityType as any, entityId, data)
   } catch {
     // Non-fatal
   }

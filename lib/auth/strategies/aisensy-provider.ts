@@ -364,15 +364,17 @@ function mapAiSensyError(httpStatus: number, responseData: any): { code: AiSensy
 // ─── OTP Payload Builder ─────────────────────────────────────────────────────
 
 /**
- * Builds the complete AiSensy payload for the `millionflats_auth_otp` template.
+ * Builds the complete AiSensy payload for the approved OTP template.
  *
- * The approved template structure requires:
- *   - templateParams[0] = user's first name (body variable $FirstName)
- *   - buttons[0].parameters[0].text = OTP code (dynamic URL button suffix)
- *   - paramsFallbackValue.FirstName = fallback if name is unavailable
+ * The current approved template expects:
+ *   - templateParams[0] = OTP code
+ *   - templateParams[1] = user name
+ *   - paramsFallbackValue.OTP = fallback OTP value
+ *   - paramsFallbackValue.FirstName = fallback user name
  *
- * This is the ONLY place OTP payloads are constructed. All callers use this
- * function to ensure consistency with the approved template.
+ * The OTP itself is still kept in the URL button parameter so the click-through
+ * can carry the verification code while the chat body renders the human-readable
+ * message with the OTP and name substituted correctly.
  */
 export function buildOtpPayload(input: OtpPayloadInput): AiSensyPayload {
   const normalizedPhone = normalizePhoneForAiSensy(input.phone)
@@ -380,7 +382,7 @@ export function buildOtpPayload(input: OtpPayloadInput): AiSensyPayload {
     throw new Error(`Cannot normalize phone for AiSensy: ${input.phone.slice(0, 4)}****`)
   }
 
-  // Extract first name — never allow null, undefined, or empty string
+  const otp = sanitizeTemplateParam(input.otp, '000000')
   const firstName = sanitizeTemplateParam(input.firstName, 'user')
 
   return {
@@ -388,7 +390,7 @@ export function buildOtpPayload(input: OtpPayloadInput): AiSensyPayload {
     campaignName: AISENSY_CONFIG.otpCampaignName,
     destination: normalizedPhone,
     userName: AISENSY_CONFIG.userName,
-    templateParams: [firstName],
+    templateParams: [otp, firstName],
     source: AISENSY_CONFIG.source,
     media: {},
     buttons: [
@@ -399,7 +401,7 @@ export function buildOtpPayload(input: OtpPayloadInput): AiSensyPayload {
         parameters: [
           {
             type: 'text',
-            text: input.otp,
+            text: otp,
           },
         ],
       },
@@ -408,6 +410,7 @@ export function buildOtpPayload(input: OtpPayloadInput): AiSensyPayload {
     location: {},
     attributes: {},
     paramsFallbackValue: {
+      OTP: otp,
       FirstName: firstName,
     },
   }
