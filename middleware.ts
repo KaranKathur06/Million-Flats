@@ -580,7 +580,7 @@ export async function middleware(req: NextRequest) {
   const ENFORCE_ONBOARDING = String(process.env.ENFORCE_ONBOARDING || 'false').toLowerCase() === 'true';
 
   if (ENFORCE_ONBOARDING) {
-    if (roleRaw && !isPublicAuth(pathname) && !pathname.startsWith('/api') && !pathname.startsWith('/_next') && !pathname.includes('.')) {
+    if (roleRaw && !isPublicAuthPath(pathname) && !pathname.startsWith('/api') && !pathname.startsWith('/_next') && !pathname.includes('.')) {
       const isProfileIncomplete = profileCompletion < 100 || onboardingVersion < CURRENT_ONBOARDING_VERSION;
       const isOnboardingRoute = pathname === '/user/onboarding' || pathname.startsWith('/user/onboarding/');
 
