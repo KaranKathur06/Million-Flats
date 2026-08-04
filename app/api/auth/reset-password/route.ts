@@ -63,16 +63,10 @@ export async function POST(req: Request) {
   const tokenHash = hashToken(token)
 
   const row = await (prisma as any).passwordResetToken
-    .findFirst({ where: { tokenHash } })
+    .findFirst({ where: { tokenHash, usedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: 'desc' } })
     .catch(() => null)
 
-  if (!row || row.usedAt) {
-    return NextResponse.json({ success: false, message: 'Reset link is invalid or expired.' }, { status: 400 })
-  }
-
-  const expiresAt = row?.expiresAt ? new Date(row.expiresAt) : new Date(0)
-  if (expiresAt.getTime() < Date.now()) {
-    await (prisma as any).passwordResetToken.delete({ where: { id: row.id } }).catch(() => null)
+  if (!row) {
     return NextResponse.json({ success: false, message: 'Reset link is invalid or expired.' }, { status: 400 })
   }
 
@@ -88,8 +82,11 @@ export async function POST(req: Request) {
 
   const hashed = await bcrypt.hash(password, 10)
 
-  await prisma.user.update({ where: { id: user.id }, data: { password: hashed } as any }).catch(() => null)
-  await (prisma as any).passwordResetToken.update({ where: { id: row.id }, data: { usedAt: new Date() } }).catch(() => null)
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({ where: { id: user.id }, data: { password: hashed } as any }).catch(() => null)
+    await (tx as any).passwordResetToken.update({ where: { id: row.id }, data: { usedAt: new Date() } }).catch(() => null)
+    await (tx as any).passwordResetToken.deleteMany({ where: { userId: user.id, id: { not: row.id } } }).catch(() => null)
+  }).catch(() => null)
 
   return NextResponse.json({ success: true }, { status: 200 })
 }

@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
       resetToken = await prisma.passwordResetToken.findFirst({
         where: {
           tokenHash,
+          usedAt: null,
           expiresAt: { gt: new Date() },
         },
         include: { user: true },

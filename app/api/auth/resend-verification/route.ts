@@ -5,6 +5,7 @@ import { sendEmail } from '@/lib/email/sendEmail'
 import VerificationLinkEmail from '@/lib/email/templates/verificationLinkEmail'
 import { signToken } from '@/lib/auth/token'
 import { getRedis, incrWithExpiry, setWithExpiry, getValue } from '@/lib/redis'
+import { buildAbsoluteUrl } from '@/lib/auth/routes'
 
 export const runtime = 'nodejs'
 
@@ -106,8 +107,7 @@ export async function POST(req: Request) {
       } as any,
     }).catch(() => null)
 
-    const base = process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL || 'https://millionflats.com'
-    const link = `${base.replace(/\/$/, '')}/api/auth/verify-link?token=${encodeURIComponent(token)}`
+    const link = buildAbsoluteUrl(`/api/auth/verify-link?token=${encodeURIComponent(token)}`)
 
     await sendEmail({
       to: user.email,

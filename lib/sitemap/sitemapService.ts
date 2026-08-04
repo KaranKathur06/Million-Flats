@@ -21,6 +21,7 @@ import { prisma } from '@/lib/prisma'
 import { PUBLIC_PARTNER_VISIBILITY } from '@/lib/ecosystem/partnerVisibility'
 import fs from 'fs'
 import path from 'path'
+import { getBaseUrl } from '@/lib/auth/routes'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 export interface SitemapUrl {
@@ -56,7 +57,7 @@ interface CachedSitemap {
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
-const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || 'https://millionflats.com').replace(/\/$/, '')
+const BASE_URL = getBaseUrl()
 const CACHE_DIR = path.join(process.cwd(), '.sitemap-cache')
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
 const MAX_URLS_PER_SITEMAP = 50000 // Google's limit

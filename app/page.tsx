@@ -9,6 +9,7 @@ import { DEFAULT_COUNTRY, isCountryCode, type CountryCode } from '@/lib/country'
 import { authOptions } from '@/lib/auth'
 import { isAdminPanelRole } from '@/lib/roleHomeRoute'
 import MetaDologyVideoSection from '@/components/MetaDologyVideoSection'
+import { getBaseUrl } from '@/lib/auth/routes'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,7 +69,7 @@ function resolveMarket(searchParams?: { [key: string]: string | string[] | undef
 }
 
 function buildProjectDiscoveryJsonLd() {
-  const siteUrl = String(process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || 'https://millionflats.com').replace(/\/$/, '')
+  const siteUrl = getBaseUrl()
   return {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',

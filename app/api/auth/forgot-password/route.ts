@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
-import { buildAbsoluteUrl, sendEmail } from '@/lib/email/sendEmail'
+import { sendEmail } from '@/lib/email/sendEmail'
 import PasswordReset from '@/lib/email/templates/passwordReset'
-import { getPortalForRole, isRoleAllowedForPortal, normalizeRole } from '@/lib/rbac'
+import { isRoleAllowedForPortal, normalizeRole } from '@/lib/rbac'
+import { buildAbsoluteUrl } from '@/lib/auth/routes'
 
 export const runtime = 'nodejs'
 

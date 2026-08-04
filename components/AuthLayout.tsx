@@ -47,7 +47,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
       </div>
 
       {/* Right Section - Auth Card */}
-      <div className="w-full lg:w-[40%] flex flex-col bg-white lg:bg-gradient-to-br lg:from-white lg:via-[#F5F8FF] lg:to-white -mt-10 lg:mt-0 rounded-t-[28px] lg:rounded-none shadow-[0_-18px_45px_rgba(10,25,60,0.10)] lg:shadow-none relative z-10 min-h-0">
+      <div className="w-full lg:w-[40%] flex flex-col bg-white lg:bg-gradient-to-br lg:from-white lg:via-[#F5F8FF] lg:to-white -mt-10 lg:mt-0 rounded-t-[28px] lg:rounded-none shadow-[0_-18px_45px_rgba(10,25,60,0.10)] lg:shadow-none relative z-10 min-h-0 text-slate-900">
         <div className="flex items-center justify-between px-6 sm:px-8 py-5 lg:py-4">
           <Link href="/" className="inline-flex items-center gap-3">
             <span className="relative w-8 h-8">

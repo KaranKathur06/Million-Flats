@@ -3,59 +3,9 @@ import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import { getPortalForRole, isRoleAllowedForPortal, normalizeRole } from '@/lib/rbac'
+import { isProtectedRoutePath, isPublicAuthPath } from '@/lib/auth/routes'
 
 // ─── Auth page passthrough ────────────────────────────────────────────────────
-
-const PUBLIC_AUTH_PREFIXES = [
-  '/auth/login',
-  '/auth/register',
-  '/auth/user/login',
-  '/auth/user/register',
-  '/auth/agent/register',
-  '/user/login',
-  '/user/register',
-  '/user/onboarding',
-  '/user/forgot-password',
-  '/user/reset-password',
-  '/agent/register',
-  '/agent/auth',
-  '/agent/forgot-password',
-  '/agent/reset-password',
-  '/agent/verify-email',
-  '/agent/verify',
-  // Developer auth pages
-  '/developer/auth',
-  '/developer/login',
-  '/developer/register',
-  '/developer/forgot-password',
-  '/developer/reset-password',
-  '/developer/verify-email',
-  '/developer/verify',
-  '/developer/verify-otp',
-  // Agency auth pages
-  '/agency/auth',
-  '/agency/login',
-  '/agency/register',
-  '/agency/forgot-password',
-  '/agency/reset-password',
-  '/agency/verify-email',
-  '/agency/verify-otp',
-  '/auth/developer/forgot-password',
-  '/auth/agency/forgot-password',
-  // Admin auth page
-  '/admin/login',
-  '/admin/forgot-password',
-  '/admin/reset-password',
-  // One-off OTP entry pages used by clients
-  '/agent/verify-otp',
-  '/user/verify-otp',
-]
-
-function isPublicAuth(pathname: string) {
-  return PUBLIC_AUTH_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(p + '/')
-  )
-}
 
 // ─── JWT helpers ──────────────────────────────────────────────────────────────
 
@@ -111,7 +61,7 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   // Pass public auth pages through (including all gateway routes)
-  if (isPublicAuth(pathname)) return NextResponse.next()
+  if (isPublicAuthPath(pathname)) return NextResponse.next()
 
   // ── Route classification ──
   const isAdminProtected = pathname === '/admin' || pathname.startsWith('/admin/')
@@ -133,7 +83,8 @@ export async function middleware(req: NextRequest) {
     isEcosystemAdminProtected ||
     isEcosystemDashProtected ||
     isEcosystemManageProtected ||
-    isAIProtected
+    isAIProtected ||
+    isProtectedRoutePath(pathname)
 
   // ── Token extraction ──
   const secret = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET
@@ -670,8 +621,15 @@ export const config = {
     '/agent/:path*',
     '/developer/:path*',
     '/agency/:path*',
-    '/user/dashboard/:path*',
-    '/user/profile/:path*',
+    '/auth/:path*',
+    '/user/:path*',
+    '/settings/:path*',
+    '/users/:path*',
+    '/agents/:path*',
+    '/projects/:path*',
+    '/leads/:path*',
+    '/blogs/:path*',
+    '/financial/:path*',
     '/ecosystem/admin/:path*',
     '/ecosystem/dashboard/:path*',
     '/ecosystem/manage/:path*',
