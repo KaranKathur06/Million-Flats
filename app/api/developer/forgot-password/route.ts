@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { signToken } from '@/lib/auth/token'
 import { validateAndNormalizeEmail, AUTH_ERRORS } from '@/lib/auth/shared'
+import { normalizeRole, isRoleAllowedForPortal } from '@/lib/rbac'
 
 /**
  * POST /api/developer/forgot-password
@@ -56,7 +57,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Security: Return generic success even if email not found
-    if (!user || (user as any).role !== 'DEVELOPER') {
+    const userRole = normalizeRole((user as any)?.role)
+    if (!user || !isRoleAllowedForPortal(userRole, 'DEVELOPER')) {
       return NextResponse.json(
         { success: true, message: 'Password reset link sent to your email. Check your inbox.' },
         { status: 200 }

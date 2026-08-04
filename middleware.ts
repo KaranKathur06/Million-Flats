@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
-import { normalizeRole } from '@/lib/rbac'
+import { getPortalForRole, isRoleAllowedForPortal, normalizeRole } from '@/lib/rbac'
 
 // ─── Auth page passthrough ────────────────────────────────────────────────────
 
@@ -177,7 +177,8 @@ export async function middleware(req: NextRequest) {
   // ── Unauthenticated redirect ──
   if (isProtected && !roleRaw) {
     const url = req.nextUrl.clone()
-    url.pathname = isAdminProtected ? '/admin/login' : '/auth/login'
+    const loginRoute = isAdminProtected ? '/admin/login' : isAgentProtected ? '/agent/auth' : '/auth/login'
+    url.pathname = loginRoute
     const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`
     url.search = `next=${encodeURIComponent(next)}`
     return NextResponse.redirect(url)
@@ -187,7 +188,7 @@ export async function middleware(req: NextRequest) {
   // ADMIN guard
   // ─────────────────────────────────────────────────────────────────────────────
   if (isAdminProtected || isEcosystemAdminProtected) {
-    if (role !== 'VERIFIER' && role !== 'MODERATOR' && role !== 'ADMIN' && role !== 'SUPERADMIN') {
+    if (!isRoleAllowedForPortal(role, 'ADMIN')) {
       const url = req.nextUrl.clone()
       url.pathname = '/unauthorized'
       url.search = 'reason=admin_only'
@@ -199,7 +200,7 @@ export async function middleware(req: NextRequest) {
   // ECOSYSTEM guard (admin only)
   // ─────────────────────────────────────────────────────────────────────────────
   if (isEcosystemDashProtected || isEcosystemManageProtected) {
-    if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
+    if (!isRoleAllowedForPortal(role, 'ADMIN') || role === 'VERIFIER' || role === 'MODERATOR') {
       const url = req.nextUrl.clone()
       url.pathname = '/unauthorized'
       url.search = 'reason=admin_only'
@@ -211,7 +212,7 @@ export async function middleware(req: NextRequest) {
   // AGENT portal guard — enforces the AgentStatus state machine
   // ─────────────────────────────────────────────────────────────────────────────
   if (isAgentProtected) {
-    if (role !== 'AGENT') {
+    if (!isRoleAllowedForPortal(role, 'AGENT')) {
       const url = req.nextUrl.clone()
       url.pathname = '/agent/auth'
       const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`

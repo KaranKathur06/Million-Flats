@@ -10,7 +10,7 @@ interface AuthLayoutProps {
 
 export default function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-gradient-to-br from-white via-[#F5F8FF] to-white">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-gradient-to-br from-white via-[#F5F8FF] to-white font-sans">
       <div className="lg:hidden relative h-[28vh] min-h-[220px]">
         <Image
           src="/auth-bg.jpg"
@@ -64,7 +64,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
           <div className="w-full max-w-[440px] mx-auto py-6">
             <div className="rounded-2xl border border-gray-200 bg-white shadow-[0_18px_50px_rgba(10,25,60,0.10)] p-6 space-y-4">
               <div>
-                <h2 className="text-[clamp(24px,4.6vw,32px)] font-serif font-bold text-dark-blue mb-2">{title}</h2>
+                <h2 className="text-[clamp(24px,4.6vw,32px)] font-sans font-bold text-dark-blue mb-2">{title}</h2>
                 {subtitle ? <p className="text-gray-600 mb-4">{subtitle}</p> : null}
                 <p className="text-xs text-gray-500">Secure • Encrypted • Verified Access</p>
               </div>

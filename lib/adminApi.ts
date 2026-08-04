@@ -3,6 +3,11 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { cookies } from 'next/headers'
+import { hasPermission, normalizeRole, type AppRole } from '@/lib/rbac'
+
+function normalizeSessionRole(role: unknown) {
+  return normalizeRole(role) as AppRole
+}
 
 export async function requireAdminSession() {
   const session = await getServerSession()
@@ -11,11 +16,8 @@ export async function requireAdminSession() {
     return { ok: false, status: 401, message: 'Unauthorized' }
   }
 
-  // Check if user has admin, editor, or author role
-  const userRole = session.user.role as string
-  const allowedRoles = ['ADMIN', 'EDITOR', 'AUTHOR']
-
-  if (!allowedRoles.includes(userRole)) {
+  const userRole = normalizeSessionRole(session.user.role)
+  if (!hasPermission(userRole, 'canManageUsers') && !hasPermission(userRole, 'canManageContent')) {
     return { ok: false, status: 403, message: 'Forbidden - Insufficient permissions' }
   }
 
@@ -29,10 +31,8 @@ export async function requireAdminOrEditor() {
     return { ok: false, status: 401, message: 'Unauthorized' }
   }
 
-  const userRole = session.user.role as string
-  const allowedRoles = ['ADMIN', 'EDITOR']
-
-  if (!allowedRoles.includes(userRole)) {
+  const userRole = normalizeSessionRole(session.user.role)
+  if (!hasPermission(userRole, 'canManageUsers') && !hasPermission(userRole, 'canManageContent')) {
     return { ok: false, status: 403, message: 'Forbidden - Admin or Editor only' }
   }
 
@@ -46,7 +46,8 @@ export async function requireSuperAdmin() {
     return { ok: false, status: 401, message: 'Unauthorized' }
   }
 
-  if (session.user.role !== 'ADMIN') {
+  const userRole = normalizeSessionRole(session.user.role)
+  if (!hasPermission(userRole, 'canManageAdmins')) {
     return { ok: false, status: 403, message: 'Forbidden - SuperAdmin only' }
   }
 

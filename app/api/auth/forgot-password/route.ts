@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { buildAbsoluteUrl, sendEmail } from '@/lib/email/sendEmail'
 import PasswordReset from '@/lib/email/templates/passwordReset'
+import { getPortalForRole, isRoleAllowedForPortal, normalizeRole } from '@/lib/rbac'
 
 export const runtime = 'nodejs'
 
@@ -93,12 +94,14 @@ export async function POST(req: Request) {
     )
   }
 
-  const expectedRole = portal === 'buyer' ? 'BUYER' : portal.toUpperCase()
-  if (portal !== 'user' && portal !== 'buyer' && String((user as any).role || '').toUpperCase() !== expectedRole) {
+  const userRole = normalizeRole((user as any).role)
+  const expectedPortal = portal === 'buyer' ? 'USER' : portal.toUpperCase()
+  const allowedPortal = expectedPortal === 'USER' ? 'USER' : expectedPortal
+  if (portal !== 'user' && portal !== 'buyer' && !isRoleAllowedForPortal(userRole, allowedPortal)) {
     return NextResponse.json(
       {
         success: false,
-        code: `${expectedRole}_NOT_REGISTERED`,
+        code: `${allowedPortal}_NOT_REGISTERED`,
         message: `No ${portal} account found with this email.`,
       },
       { status: 404 }
