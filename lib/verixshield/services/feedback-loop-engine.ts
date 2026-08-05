@@ -3,6 +3,7 @@
 // Computes error rates and triggers model retraining when accuracy degrades
 
 import { prisma } from '@/lib/prisma'
+import { findAiShieldResult } from '@/lib/aishield/repository'
 
 export interface FeedbackInput {
   propertyId: string
@@ -26,14 +27,7 @@ export async function recordFeedback(input: FeedbackInput): Promise<FeedbackResu
   // Step 1: Find the most recent prediction for this property
   let prediction: any = null
   try {
-    prediction = await (prisma as any).AIShieldResult.findUnique({
-      where: {
-        entityType_entityId: {
-          entityType: input.entityType,
-          entityId: input.propertyId,
-        },
-      },
-    })
+    prediction = await findAiShieldResult(input.entityType, input.propertyId)
   } catch { }
 
   const predictedPrice = prediction?.estimatedMedian || null

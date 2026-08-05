@@ -450,6 +450,7 @@ const navEntries: NavEntry[] = [
     children: [
       { href: "/admin/settings", label: "Overview" },
       { href: "/admin/settings/general", label: "General" },
+      { href: "/admin/settings/authentication", label: "Authentication" },
       { href: "/admin/settings/analytics", label: "Analytics" },
       { href: "/admin/settings/integrations", label: "Integrations" },
       { href: "/admin/settings/lead-magnets", label: "Lead Magnets" },

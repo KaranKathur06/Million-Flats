@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/system/sitemap/generate",
-      "schedule": "0 3 * * *"
-    }
-  ]
-}

@@ -2,6 +2,7 @@ import { sendEmail } from '@/lib/email/sendEmail'
 import type { LeadType } from '@prisma/client'
 import { LEAD_TYPE_LABELS } from '@/lib/leads/constants'
 import { budgetRangeLabel, inquiryTypeLabel } from '@/lib/leads/threeDTour'
+import { getBaseUrl } from '@/lib/auth/routes'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
@@ -18,7 +19,7 @@ export function getLeadsNotifyEmail() {
 }
 
 function baseUrl() {
-  return safeString(process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL)
+  return getBaseUrl()
 }
 
 export async function notifyAdminNewLead(params: {

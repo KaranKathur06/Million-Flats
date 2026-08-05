@@ -7,6 +7,27 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum AuthMode {
+  EMAIL_ONLY
+  WHATSAPP_ONLY
+  EMAIL_AND_WHATSAPP
+  DISABLED
+}
+
+enum OtpStatus {
+  PENDING
+  VERIFIED
+  EXPIRED
+  BLOCKED
+}
+
+enum AuthProviderType {
+  EMAIL
+  WHATSAPP
+  GOOGLE
+  APPLE
+}
+
 enum Role {
   USER
   BUYER
@@ -204,9 +225,16 @@ model User {
   image     String?
   password  String?  @map("password_hash")
   googleId  String?   @unique @map("google_id")
-  phone     String?
-  phoneCountryIso2   String?  @db.Char(2) @map("phone_country_iso2")
-  phoneNationalNumber String? @map("phone_national_number")
+  // Phone fields — raw phone NOT stored in plaintext; use phoneHash for lookup, phoneEncrypted for display
+  phone               String?                                         // Legacy: kept for backward compat, migrate to encrypted form
+  phoneHash           String?   @unique @map("phone_hash")             // SHA-256(E164) for indexed lookup
+  phoneEncrypted      String?   @db.Text @map("phone_encrypted")       // AES-256-GCM encrypted E.164 phone
+  phoneVerified       Boolean   @default(false) @map("phone_verified")
+  phoneVerifiedAt     DateTime? @map("phone_verified_at")
+  primaryAuthProvider AuthProviderType? @map("primary_auth_provider")
+  whatsappOptIn       Boolean   @default(false) @map("whatsapp_opt_in")
+  phoneCountryIso2    String?   @db.Char(2) @map("phone_country_iso2")
+  phoneNationalNumber String?   @map("phone_national_number")
   referralSource      String?   @map("referral_source")
   referralDetails     String?   @map("referral_details")
 
@@ -490,6 +518,85 @@ model LoginOtp {
   @@index([usedAt])
   @@map("login_otps")
 }
+
+// ─── WhatsApp OTP Authentication ──────────────────────────────────────────────
+
+/// WhatsApp OTP verification requests.
+/// Phone is never stored in plaintext; phoneHash used for indexed lookup.
+model WhatsappOtpRequest {
+  id           String    @id @default(uuid())
+  phoneHash    String    @map("phone_hash")         // SHA-256 of E.164 phone for lookup
+  phoneEncrypted String  @db.Text @map("phone_encrypted") // AES-256-GCM encrypted E.164 phone
+  otpHash      String    @map("otp_hash")            // bcrypt hash of 6-digit OTP
+  status       OtpStatus @default(PENDING)
+  expiresAt    DateTime  @map("expires_at")
+  attempts     Int       @default(0)
+  maxAttempts  Int       @default(5) @map("max_attempts")
+  ipAddress    String?   @map("ip_address")
+  userAgent    String?   @db.Text @map("user_agent")
+  deviceId     String?   @map("device_id")
+  country      String?
+  city         String?
+  provider     String    @default("AISENSY")
+  messageId    String?   @map("message_id")         // AiSensy message ID for tracking
+  sentAt       DateTime? @map("sent_at")
+  verifiedAt   DateTime? @map("verified_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([phoneHash])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@map("whatsapp_otp_requests")
+}
+
+/// Admin-driven authentication configuration.
+/// Singleton record (id = 'singleton'). No restart needed to change auth mode.
+model AuthSettings {
+  id                    String   @id @default("singleton")
+  activeMode            AuthMode @default(WHATSAPP_ONLY) @map("active_mode")
+  allowEmail            Boolean  @default(true)  @map("allow_email")
+  allowWhatsapp         Boolean  @default(true)  @map("allow_whatsapp")
+  allowGoogle           Boolean  @default(false) @map("allow_google")
+  allowApple            Boolean  @default(false) @map("allow_apple")
+  allowPasskeys         Boolean  @default(false) @map("allow_passkeys")
+  allowRegistration     Boolean  @default(true)  @map("allow_registration")
+  allowForgotPassword   Boolean  @default(true)  @map("allow_forgot_password")
+  requireEmailVerification Boolean @default(true) @map("require_email_verification")
+  allowMultipleSessions Boolean  @default(true)  @map("allow_multiple_sessions")
+  requireMfa            Boolean  @default(false) @map("require_mfa")
+  maintenanceMessage    String?  @db.Text @map("maintenance_message")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  updatedByUserId       String?  @map("updated_by_user_id")
+
+  @@map("auth_settings")
+}
+
+/// Comprehensive login audit trail — every login attempt, success, or failure.
+model LoginAudit {
+  id         String          @id @default(uuid())
+  userId     String?         @map("user_id")
+  phoneHash  String?         @map("phone_hash")  // hashed for privacy
+  email      String?
+  provider   AuthProviderType
+  success    Boolean
+  failReason String?         @map("fail_reason")
+  ipAddress  String?         @map("ip_address")
+  userAgent  String?         @db.Text @map("user_agent")
+  country    String?
+  city       String?
+  deviceId   String?         @map("device_id")
+  sessionId  String?         @map("session_id")
+  createdAt  DateTime        @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([phoneHash])
+  @@index([provider])
+  @@index([success])
+  @@index([createdAt])
+  @@map("login_audits")
+}
+
 
 model Agent {
   id       String  @id @default(uuid())

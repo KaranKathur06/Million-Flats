@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import * as React from "react";
 import { render } from "@react-email/render";
+import { getBaseUrl as getAppBaseUrl } from '@/lib/auth/routes'
 
 // ---------- Resend client (lazy singleton — avoid throwing during `next build`) ----------
 let resendClient: Resend | null | undefined
@@ -29,10 +30,7 @@ function safeString(v: unknown) {
 }
 
 function getBaseUrl() {
-    const base = safeString(
-        process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL
-    );
-    return base ? base.replace(/\/$/, "") : "http://localhost:3000";
+    return getAppBaseUrl();
 }
 
 /** Build a full URL from a relative pathname */

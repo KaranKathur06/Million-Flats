@@ -42,6 +42,9 @@ export type AuditAction =
   | 'PROJECT_RESTORED'
   | 'PROJECT_HARD_DELETED'
   | 'PROJECT_ARCHIVED'
+  | 'AUTH_SETTINGS_UPDATED'
+  | 'AUTH_MODE_CHANGED'
+  | 'AUTH_FORCE_LOGOUT_ALL'
 
 
 export async function writeAuditLog(input: {

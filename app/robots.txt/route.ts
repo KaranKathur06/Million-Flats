@@ -6,10 +6,11 @@
  */
 
 import { NextResponse } from 'next/server'
+import { getBaseUrl } from '@/lib/auth/routes'
 
 export const dynamic = 'force-static'
 
-const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://millionflats.com').replace(/\/$/, '')
+const BASE_URL = getBaseUrl()
 
 export async function GET() {
   const robotsTxt = `# MillionFlats — robots.txt

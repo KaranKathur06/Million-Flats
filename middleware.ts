@@ -2,60 +2,10 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
-import { normalizeRole } from '@/lib/rbac'
+import { getPortalForRole, isRoleAllowedForPortal, normalizeRole } from '@/lib/rbac'
+import { isProtectedRoutePath, isPublicAuthPath } from '@/lib/auth/routes'
 
 // ─── Auth page passthrough ────────────────────────────────────────────────────
-
-const PUBLIC_AUTH_PREFIXES = [
-  '/auth/login',
-  '/auth/register',
-  '/auth/user/login',
-  '/auth/user/register',
-  '/auth/agent/register',
-  '/user/login',
-  '/user/register',
-  '/user/onboarding',
-  '/user/forgot-password',
-  '/user/reset-password',
-  '/agent/register',
-  '/agent/auth',
-  '/agent/forgot-password',
-  '/agent/reset-password',
-  '/agent/verify-email',
-  '/agent/verify',
-  // Developer auth pages
-  '/developer/auth',
-  '/developer/login',
-  '/developer/register',
-  '/developer/forgot-password',
-  '/developer/reset-password',
-  '/developer/verify-email',
-  '/developer/verify',
-  '/developer/verify-otp',
-  // Agency auth pages
-  '/agency/auth',
-  '/agency/login',
-  '/agency/register',
-  '/agency/forgot-password',
-  '/agency/reset-password',
-  '/agency/verify-email',
-  '/agency/verify-otp',
-  '/auth/developer/forgot-password',
-  '/auth/agency/forgot-password',
-  // Admin auth page
-  '/admin/login',
-  '/admin/forgot-password',
-  '/admin/reset-password',
-  // One-off OTP entry pages used by clients
-  '/agent/verify-otp',
-  '/user/verify-otp',
-]
-
-function isPublicAuth(pathname: string) {
-  return PUBLIC_AUTH_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(p + '/')
-  )
-}
 
 // ─── JWT helpers ──────────────────────────────────────────────────────────────
 
@@ -111,7 +61,7 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   // Pass public auth pages through (including all gateway routes)
-  if (isPublicAuth(pathname)) return NextResponse.next()
+  if (isPublicAuthPath(pathname)) return NextResponse.next()
 
   // ── Route classification ──
   const isAdminProtected = pathname === '/admin' || pathname.startsWith('/admin/')
@@ -133,7 +83,8 @@ export async function middleware(req: NextRequest) {
     isEcosystemAdminProtected ||
     isEcosystemDashProtected ||
     isEcosystemManageProtected ||
-    isAIProtected
+    isAIProtected ||
+    isProtectedRoutePath(pathname)
 
   // ── Token extraction ──
   const secret = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET
@@ -177,7 +128,8 @@ export async function middleware(req: NextRequest) {
   // ── Unauthenticated redirect ──
   if (isProtected && !roleRaw) {
     const url = req.nextUrl.clone()
-    url.pathname = isAdminProtected ? '/admin/login' : '/auth/login'
+    const loginRoute = isAdminProtected ? '/admin/login' : isAgentProtected ? '/agent/auth' : '/auth/login'
+    url.pathname = loginRoute
     const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`
     url.search = `next=${encodeURIComponent(next)}`
     return NextResponse.redirect(url)
@@ -187,7 +139,7 @@ export async function middleware(req: NextRequest) {
   // ADMIN guard
   // ─────────────────────────────────────────────────────────────────────────────
   if (isAdminProtected || isEcosystemAdminProtected) {
-    if (role !== 'VERIFIER' && role !== 'MODERATOR' && role !== 'ADMIN' && role !== 'SUPERADMIN') {
+    if (!isRoleAllowedForPortal(role, 'ADMIN')) {
       const url = req.nextUrl.clone()
       url.pathname = '/unauthorized'
       url.search = 'reason=admin_only'
@@ -199,7 +151,7 @@ export async function middleware(req: NextRequest) {
   // ECOSYSTEM guard (admin only)
   // ─────────────────────────────────────────────────────────────────────────────
   if (isEcosystemDashProtected || isEcosystemManageProtected) {
-    if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
+    if (!isRoleAllowedForPortal(role, 'ADMIN') || role === 'VERIFIER' || role === 'MODERATOR') {
       const url = req.nextUrl.clone()
       url.pathname = '/unauthorized'
       url.search = 'reason=admin_only'
@@ -211,7 +163,7 @@ export async function middleware(req: NextRequest) {
   // AGENT portal guard — enforces the AgentStatus state machine
   // ─────────────────────────────────────────────────────────────────────────────
   if (isAgentProtected) {
-    if (role !== 'AGENT') {
+    if (!isRoleAllowedForPortal(role, 'AGENT')) {
       const url = req.nextUrl.clone()
       url.pathname = '/agent/auth'
       const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`
@@ -618,36 +570,42 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // ── Onboarding Guard for ALL Authenticated Users ──
+  // ── Onboarding Guard for ALL Authenticated Users (optional) ──
   const profileCompletion = Number((nextAuthToken as any)?.profileCompletion || 0);
   const onboardingVersion = Number((nextAuthToken as any)?.onboardingVersion || 0);
   const CURRENT_ONBOARDING_VERSION = 1;
 
-  if (roleRaw && !isPublicAuth(pathname) && !pathname.startsWith('/api') && !pathname.startsWith('/_next') && !pathname.includes('.')) {
-    const isProfileIncomplete = profileCompletion < 100 || onboardingVersion < CURRENT_ONBOARDING_VERSION;
-    const isOnboardingRoute = pathname === '/user/onboarding' || pathname.startsWith('/user/onboarding/');
+  // Make onboarding enforcement optional via env var `ENFORCE_ONBOARDING`.
+  // Default: disabled (users are NOT blocked). Set to 'true' to re-enable.
+  const ENFORCE_ONBOARDING = String(process.env.ENFORCE_ONBOARDING || 'false').toLowerCase() === 'true';
 
-    if ((role === 'USER' || role === 'BUYER') && !isAdminPanelRole) {
-      if (isProfileIncomplete && !isOnboardingRoute) {
-        const url = req.nextUrl.clone();
-        url.pathname = '/user/onboarding';
-        return NextResponse.redirect(url);
-      }
+  if (ENFORCE_ONBOARDING) {
+    if (roleRaw && !isPublicAuthPath(pathname) && !pathname.startsWith('/api') && !pathname.startsWith('/_next') && !pathname.includes('.')) {
+      const isProfileIncomplete = profileCompletion < 100 || onboardingVersion < CURRENT_ONBOARDING_VERSION;
+      const isOnboardingRoute = pathname === '/user/onboarding' || pathname.startsWith('/user/onboarding/');
 
-      if (!isProfileIncomplete && isOnboardingRoute) {
-        const url = req.nextUrl.clone();
-        const returnUrlCookie = req.cookies.get('mf_return_context')?.value;
-        if (returnUrlCookie) {
-          try {
-            const context = JSON.parse(returnUrlCookie);
-            if (context.url) {
-              url.pathname = context.url;
-              return NextResponse.redirect(url);
-            }
-          } catch (e) { }
+      if ((role === 'USER' || role === 'BUYER') && !isAdminPanelRole) {
+        if (isProfileIncomplete && !isOnboardingRoute) {
+          const url = req.nextUrl.clone();
+          url.pathname = '/user/onboarding';
+          return NextResponse.redirect(url);
         }
-        url.pathname = '/dashboard';
-        return NextResponse.redirect(url);
+
+        if (!isProfileIncomplete && isOnboardingRoute) {
+          const url = req.nextUrl.clone();
+          const returnUrlCookie = req.cookies.get('mf_return_context')?.value;
+          if (returnUrlCookie) {
+            try {
+              const context = JSON.parse(returnUrlCookie);
+              if (context.url) {
+                url.pathname = context.url;
+                return NextResponse.redirect(url);
+              }
+            } catch (e) { }
+          }
+          url.pathname = '/dashboard';
+          return NextResponse.redirect(url);
+        }
       }
     }
   }
@@ -663,8 +621,15 @@ export const config = {
     '/agent/:path*',
     '/developer/:path*',
     '/agency/:path*',
-    '/user/dashboard/:path*',
-    '/user/profile/:path*',
+    '/auth/:path*',
+    '/user/:path*',
+    '/settings/:path*',
+    '/users/:path*',
+    '/agents/:path*',
+    '/projects/:path*',
+    '/leads/:path*',
+    '/blogs/:path*',
+    '/financial/:path*',
     '/ecosystem/admin/:path*',
     '/ecosystem/dashboard/:path*',
     '/ecosystem/manage/:path*',

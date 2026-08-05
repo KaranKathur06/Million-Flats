@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { getBaseUrl } from '@/lib/auth/routes'
 
 export const runtime = 'nodejs'
 
@@ -42,8 +43,7 @@ export async function GET(req: Request) {
     }).catch(() => null)
 
     // Redirect to success page
-    const frontendBase = process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL || 'https://millionflats.com'
-    return NextResponse.redirect(`${frontendBase.replace(/\/$/, '')}/auth/verified`)
+    return NextResponse.redirect(`${getBaseUrl()}/auth/verified`)
   } catch (err) {
     console.error('[verify-link] error', err)
     return NextResponse.json({ success: false, message: 'Internal error' }, { status: 500 })

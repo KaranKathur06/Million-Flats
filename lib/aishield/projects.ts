@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { listAiShieldResults, findAiShieldResult, upsertAiShieldResult } from '@/lib/aishield/repository'
 import type { AIShieldStatus } from '@prisma/client'
 
 const COUNTRY_ISO_MAP: Record<string, string> = {
@@ -67,13 +68,10 @@ export async function bootstrapAiShieldRegistry() {
 /** Auto-enable projects that already have AIShield valuation cache */
 export async function syncAutoEnabledFromValuations() {
   try {
-    const results = await prisma.aIShieldResult.findMany({
-      where: { entityType: 'PROJECT' },
-      select: { entityId: true },
-    })
+    const results = await listAiShieldResults('PROJECT')
     if (results.length === 0) return
 
-    const ids = results.map((r) => r.entityId)
+    const ids = results.map((r: any) => r.entityId)
     await bootstrapAiShieldRegistry()
 
     await prisma.aiShieldProject.updateMany({
@@ -207,10 +205,11 @@ export async function getAiShieldPlatformStats() {
     const [enabledCount, publishedCount, valuationRows, totalStartingPrice] = await Promise.all([
       prisma.aiShieldProject.count({ where: { isAiEnabled: true } }),
       prisma.project.count({ where: { status: 'PUBLISHED', isDeleted: false } }),
-      prisma.aIShieldResult.findMany({
-        where: { entityType: 'PROJECT' },
-        select: { confidence: true, estimatedMedian: true, askingPrice: true },
-      }).catch(() => []), // Handle missing table gracefully
+      listAiShieldResults('PROJECT').then((rows) => rows.map((row: any) => ({
+        confidence: row.confidence,
+        estimatedMedian: row.estimatedMedian,
+        askingPrice: row.askingPrice,
+      }))),
       prisma.project.aggregate({
         where: { status: 'PUBLISHED', isDeleted: false, startingPrice: { not: null } },
         _sum: { startingPrice: true },
@@ -221,7 +220,7 @@ export async function getAiShieldPlatformStats() {
     const assetsCovered = totalStartingPrice._sum.startingPrice ?? 0
     const avgConfidence =
       valuationRows.length > 0
-        ? valuationRows.reduce((s, r) => s + (r.confidence || 0), 0) / valuationRows.length
+        ? valuationRows.reduce((sum: number, row: { confidence?: number | null }) => sum + (row.confidence || 0), 0) / valuationRows.length
         : 0
 
     return {
@@ -383,11 +382,7 @@ export async function getAiShieldProjectBySlug(slug: string) {
   }
 
   try {
-    const hasValuation = await prisma.aIShieldResult.findUnique({
-      where: {
-        entityType_entityId: { entityType: 'PROJECT', entityId: project.id },
-      },
-    })
+    const hasValuation = await findAiShieldResult('PROJECT', project.id)
 
     if (hasValuation) {
       if (!shield?.isAiEnabled) {
@@ -416,9 +411,7 @@ export async function getAiShieldSnapshot(projectId: string) {
 
     const [shield, valuation, project] = await Promise.all([
       prisma.aiShieldProject.findUnique({ where: { projectId } }),
-      prisma.aIShieldResult.findUnique({
-        where: { entityType_entityId: { entityType: 'PROJECT', entityId: projectId } },
-      }).catch(() => null), // Handle missing table
+      findAiShieldResult('PROJECT', projectId),
       prisma.project.findUnique({
         where: { id: projectId },
         select: { slug: true, name: true, status: true, isDeleted: true },
@@ -451,14 +444,7 @@ export async function getAiShieldSnapshot(projectId: string) {
 /** Sync cached snapshot from AIShieldResult after computation */
 export async function syncAiShieldSnapshot(projectId: string) {
   try {
-    const result = await prisma.aIShieldResult.findUnique({
-      where: {
-        entityType_entityId: {
-          entityType: 'PROJECT',
-          entityId: projectId,
-        },
-      },
-    })
+    const result = await findAiShieldResult('PROJECT', projectId)
 
     const shield = await prisma.aiShieldProject.findUnique({
       where: { projectId },

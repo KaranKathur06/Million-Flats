@@ -41,8 +41,8 @@ export default async function AuthErrorPage({
 
           <div className="mt-8 text-xs text-gray-500 leading-relaxed">
             <p>
-              If this happens only with Google sign-in, verify your production environment has:
-              NEXTAUTH_URL, NEXTAUTH_SECRET (or JWT_SECRET), GOOGLE_CLIENT_ID, and GOOGLE_CLIENT_SECRET.
+              If this happens only with Google sign-in, verify your environment has:
+              NEXT_PUBLIC_APP_URL (or NEXT_PUBLIC_BASE_URL), NEXTAUTH_SECRET (or JWT_SECRET), GOOGLE_CLIENT_ID, and GOOGLE_CLIENT_SECRET.
             </p>
           </div>
         </div>

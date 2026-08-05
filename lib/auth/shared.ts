@@ -13,6 +13,7 @@
 
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
+import { normalizeRole, type AppRole } from '@/lib/rbac'
 
 // ──────────────────────────────────────────────────────────────────────────
 // PASSWORD VALIDATION & STRENGTH

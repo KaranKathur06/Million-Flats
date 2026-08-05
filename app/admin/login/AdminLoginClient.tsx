@@ -107,7 +107,7 @@ export default function AdminLoginClient() {
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all"
+            className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all mf-input"
             placeholder="admin@example.com"
           />
         </div>
@@ -125,7 +125,7 @@ export default function AdminLoginClient() {
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all pr-12"
+              className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all pr-12 mf-input"
               placeholder="Enter your password"
             />
             <button

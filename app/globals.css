@@ -300,3 +300,31 @@ a {
   background-size: 400% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }
+
+/* Standardized input styling for high contrast across themes and browsers */
+.mf-input {
+  color: rgb(17 24 39); /* text-gray-900 */
+  caret-color: rgb(30 58 95); /* dark-blue */
+}
+.mf-input::placeholder {
+  color: rgb(107 114 128); /* placeholder-gray-400 */
+  opacity: 1;
+}
+.mf-input::selection {
+  background: rgba(30,58,95,0.95);
+  color: white;
+}
+/* Webkit autofill: ensure text color and background are controlled */
+input.mf-input:-webkit-autofill,
+textarea.mf-input:-webkit-autofill,
+select.mf-input:-webkit-autofill {
+  -webkit-text-fill-color: rgb(17 24 39) !important;
+  box-shadow: 0 0 0px 1000px white inset !important;
+}
+/* Firefox autofill (uses appearance) */
+input.mf-input:-moz-autofill,
+textarea.mf-input:-moz-autofill,
+select.mf-input:-moz-autofill {
+  box-shadow: 0 0 0px 1000px white inset !important;
+  color: rgb(17 24 39) !important;
+}
