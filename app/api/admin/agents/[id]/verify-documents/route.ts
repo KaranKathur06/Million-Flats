@@ -45,12 +45,11 @@ export async function POST(
     },
   })
 
-  // If agent has all required docs APPROVED → advance to UNDER_REVIEW
-  const REQUIRED_TYPES = ['GOVERNMENT_ID', 'REAL_ESTATE_LICENSE']
+  // If agent has at least one government identity document approved → advance to UNDER_REVIEW
+  const REQUIRED_TYPES = ['GOVERNMENT_ID']
   const requiredDocs = await (prisma as any).agentVerification.findMany({
     where: { agentId, documentType: { in: REQUIRED_TYPES as any[] } },
   })
-
   const allApproved = REQUIRED_TYPES.every((t) =>
     (requiredDocs as any[]).some((d: any) => d.documentType === t && d.status === 'APPROVED')
   )

@@ -28,6 +28,11 @@ enum AuthProviderType {
   APPLE
 }
 
+enum PrimaryIdentity {
+  EMAIL
+  PHONE
+}
+
 enum Role {
   USER
   BUYER
@@ -232,6 +237,8 @@ model User {
   phoneVerified       Boolean   @default(false) @map("phone_verified")
   phoneVerifiedAt     DateTime? @map("phone_verified_at")
   primaryAuthProvider AuthProviderType? @map("primary_auth_provider")
+  identityProvider    AuthProviderType? @map("identity_provider")
+  primaryIdentity     PrimaryIdentity?   @map("primary_identity")
   whatsappOptIn       Boolean   @default(false) @map("whatsapp_opt_in")
   phoneCountryIso2    String?   @db.Char(2) @map("phone_country_iso2")
   phoneNationalNumber String?   @map("phone_national_number")

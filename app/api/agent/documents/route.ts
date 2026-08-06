@@ -19,7 +19,7 @@ const VALID_DOC_TYPES = [
   'AGENCY_CERTIFICATE',
 ] as const
 
-const REQUIRED_DOC_TYPES = ['GOVERNMENT_ID', 'REAL_ESTATE_LICENSE']
+const REQUIRED_DOC_TYPES = ['GOVERNMENT_ID']
 
 export async function GET() {
   const auth = await requireAgentProfileSession()

@@ -4,7 +4,8 @@ import { writeAuditLog } from '@/lib/audit'
 import { checkAdminRateLimit } from '@/lib/adminRateLimit'
 import { prisma } from '@/lib/prisma'
 
-const REQUIRED_DOC_TYPES = ['GOVERNMENT_ID', 'REAL_ESTATE_LICENSE']
+// Minimum required documents for approval: only a government identity proof
+const REQUIRED_DOC_TYPES = ['GOVERNMENT_ID']
 
 function bad(msg: string, status = 400) {
     return NextResponse.json({ success: false, message: msg }, { status })
@@ -17,7 +18,7 @@ function getIp(req: Request) {
 }
 
 async function checkAndUpdateAgentStatus(agentId: string) {
-    // Check if all required documents are approved
+    // Check if at least one identity document (government ID) is approved
     const requiredDocs = await (prisma as any).agentDocument.findMany({
         where: {
             agentId,
@@ -27,11 +28,9 @@ async function checkAndUpdateAgentStatus(agentId: string) {
         select: { type: true },
     })
 
-    const allRequiredApproved = REQUIRED_DOC_TYPES.every((t) =>
-        requiredDocs.some((d: any) => d.type === t)
-    )
+    const identityApproved = requiredDocs.length > 0
 
-    if (allRequiredApproved) {
+    if (identityApproved) {
         // Get current agent status
         const agent = await (prisma as any).agent.findFirst({
             where: { id: agentId },

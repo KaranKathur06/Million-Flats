@@ -89,6 +89,7 @@ export default function AdminUsersTableClient({
 
   const getDisplayName = (user: UserRow) => {
     if (safeString(user.name)) return user.name
+    if (safeString((user as any).primaryIdentifier)) return (user as any).primaryIdentifier
     if (user.email) return user.email
     if (user.phone) return 'Unnamed User'
     return 'Anonymous'
@@ -113,7 +114,7 @@ export default function AdminUsersTableClient({
       .split(' ')
       .filter(Boolean)
       .slice(0, 2)
-      .map((part) => part[0].toUpperCase())
+      .map((part: string) => (part && part[0] ? part[0].toUpperCase() : ''))
       .join('')
 
     return (
@@ -121,6 +122,21 @@ export default function AdminUsersTableClient({
         {initials || 'U'}
       </div>
     )
+  }
+
+  const renderProviderBadge = (provider?: string) => {
+    const p = String(provider || '').toUpperCase()
+    const base = 'inline-flex h-6 items-center rounded-full px-2 text-[11px] font-bold '
+    switch (p) {
+      case 'WHATSAPP':
+        return <span className={base + 'bg-emerald-800/20 text-emerald-300 border border-emerald-600/20'}>WHATSAPP</span>
+      case 'GOOGLE':
+        return <span className={base + 'bg-sky-800/20 text-sky-300 border border-sky-600/20'}>GOOGLE</span>
+      case 'APPLE':
+        return <span className={base + 'bg-gray-800/20 text-gray-300 border border-white/10'}>APPLE</span>
+      default:
+        return <span className={base + 'bg-white/5 text-white/80 border border-white/10'}>EMAIL</span>
+    }
   }
 
   // Role change modal state
@@ -306,8 +322,11 @@ export default function AdminUsersTableClient({
                             {getDisplayName(u)}
                           </Link>
                         </div>
-                        <div className="text-xs text-white/50 truncate">{u.primaryIdentifier}</div>
-                        <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-white/40">{u.identityStatus}</div>
+                        <div className="text-xs text-white/50 truncate">{(u as any).primaryIdentifier || u.email || u.phone || '—'}</div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <div className="text-[11px] uppercase tracking-[0.18em] text-white/40">{u.identityStatus}</div>
+                          <div>{renderProviderBadge((u as any).identityProvider)}</div>
+                        </div>
                       </div>
                     </div>
                   </td>

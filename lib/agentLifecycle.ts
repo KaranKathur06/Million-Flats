@@ -87,7 +87,7 @@ export function getAgentLifecycleUx(input: { status: unknown }): AgentLifecycleU
         ...BASE,
         canAccessDashboard: true,
         title: 'Upload verification documents',
-        message: 'Upload your Government ID and real estate license to get approved.',
+        message: 'Upload at least one valid Government Identity Proof to begin verification. Professional licenses (RERA, broker licenses) are optional and increase trust.',
         ctaLabel: 'Go to Verification Center',
         ctaHref: '/agent/verification',
         progress: 55,

@@ -544,7 +544,7 @@ export default function AgentProfileClient({
                 <p className="text-blue-600 text-xs font-semibold uppercase tracking-wider mb-1">Next Step</p>
                 <h3 className="text-gray-900 text-base font-semibold">Complete your verification to activate your account</h3>
                 <p className="text-gray-600 text-sm mt-1">
-                  Upload your Government ID and Real Estate License to unlock all platform features.
+                  Upload at least one valid Government Identity Proof to activate your account. Professional documents (RERA, licenses) are optional and increase your VerixPro™ trust score.
                 </p>
               </div>
               <Link

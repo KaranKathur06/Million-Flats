@@ -71,18 +71,17 @@ export default async function AgentOnboardingPage() {
           <form action="/agent/onboarding/submit" method="post" className="space-y-5">
             <div>
               <label htmlFor="license" className="block text-sm font-semibold text-gray-700 mb-2">
-                Real Estate License Number <span className="text-red-500">*</span>
+                Real Estate / Professional License <span className="text-gray-400 font-normal">(Optional)</span>
               </label>
               <input
                 id="license"
                 name="license"
                 type="text"
-                required
                 className="w-full h-12 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-dark-blue focus:border-dark-blue transition-all bg-white placeholder-gray-400"
                 placeholder="e.g. DLD-12345 or RERA-67890"
                 defaultValue={dbUser.agent?.license || ''}
               />
-              <p className="mt-1.5 text-xs text-gray-500">Your official broker or agent license number from the relevant authority.</p>
+              <p className="mt-1.5 text-xs text-gray-500">Optional. Professional license numbers (RERA, Broker License) increase trust but are not required.</p>
             </div>
 
             <div>

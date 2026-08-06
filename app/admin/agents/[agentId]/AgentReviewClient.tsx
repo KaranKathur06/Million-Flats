@@ -226,12 +226,14 @@ export default function AgentReviewClient({
         )
     }
 
-    const REQUIRED_AGENT_DOC_TYPES = ['GOVERNMENT_ID', 'REAL_ESTATE_LICENSE']
+    // Minimum required for approval: government identity proof. Professional docs are optional.
+    const REQUIRED_AGENT_DOC_TYPES = ['GOVERNMENT_ID']
     const verificationStatus = agent.verificationStatus.toUpperCase()
     const profileStatus = agent.profileStatus.toUpperCase()
     const requiredDocsApproved = REQUIRED_AGENT_DOC_TYPES.every((type) =>
         agent.allDocuments.some((d) => d.type === type && d.status.toUpperCase() === 'APPROVED')
     )
+    // Allow final approval once identity is verified; professional docs do not block approval
     const canFinalApprove =
         (profileStatus === 'SUBMITTED' || verificationStatus === 'UNDER_REVIEW' || verificationStatus === 'SUBMITTED') &&
         requiredDocsApproved
@@ -248,7 +250,9 @@ export default function AgentReviewClient({
                         Back to Queue
                     </Link>
                     <h1 className="text-2xl font-bold tracking-tight">Agent Review</h1>
-                    <p className="mt-1 text-sm text-white/40">{agent.user.email}</p>
+                    <p className="mt-1 text-sm text-white/40">
+                        {agent.user.phone ? agent.user.phone : agent.user.email}
+                    </p>
                 </div>
                 <span className={`rounded-full border px-4 py-1.5 text-xs font-bold uppercase tracking-wider ${getStatusBadge(verificationStatus)}`}>
                     {verificationStatus.replace('_', ' ')}
@@ -612,7 +616,7 @@ export default function AgentReviewClient({
 
                         {!canFinalApprove && agent.allDocuments.length > 0 && (
                             <p className="text-xs text-amber-300/70 mt-1">
-                                ⚠ Only Government ID and Real Estate License approvals are required for final agent verification.
+                                ⚠ Minimum approval requirement: at least one Government Identity Proof must be approved. Professional documents (RERA, licenses) are optional.
                             </p>
                         )}
                     </div>

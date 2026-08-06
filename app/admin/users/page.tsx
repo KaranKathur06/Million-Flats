@@ -30,6 +30,7 @@ export default async function AdminUsersPage({
   }
 
   const roleFilter = safeString(searchParams?.role) || ''
+  const providerFilter = safeString(searchParams?.provider) || ''
   const qFilter = safeString(searchParams?.q) || ''
   const pageNum = Number(Array.isArray(searchParams?.page) ? searchParams?.page[0] : (searchParams?.page || '1')) || 1
   const limit = Math.min(Number(Array.isArray(searchParams?.limit) ? searchParams?.limit[0] : (searchParams?.limit || '50')) || 50, 500)
@@ -37,6 +38,7 @@ export default async function AdminUsersPage({
 
   const where: any = {}
   if (roleFilter) where.role = roleFilter.toUpperCase()
+  if (providerFilter) where.primaryAuthProvider = providerFilter.toUpperCase()
   if (qFilter) {
     where.OR = [
       { email: { contains: qFilter, mode: 'insensitive' } },
@@ -64,6 +66,8 @@ export default async function AdminUsersPage({
       lastLogin: true,
       createdAt: true,
       country: { select: { name: true, iso2: true } },
+      primaryAuthProvider: true,
+      phoneNationalNumber: true,
       buyer: { select: { propertyType: true, budgetRange: true } },
       _count: { select: { savedProperties: true, propertyLeads: true } },
     },
@@ -120,7 +124,12 @@ export default async function AdminUsersPage({
         savedPropertiesCount: Number(u._count.savedProperties || 0),
         propertyLeadsCount: Number(u._count.propertyLeads || 0),
       }),
-      primaryIdentifier: safeString(u.email) || safeString(u.phone) || 'Unknown',
+      identityProvider: safeString(u.primaryAuthProvider) || 'EMAIL',
+      // Prefer a readable phone display for WhatsApp users
+      primaryIdentifier:
+        (String(u.primaryAuthProvider || '').toUpperCase() === 'WHATSAPP'
+          ? safeString(u.phoneNationalNumber) || safeString(u.phone)
+          : safeString(u.email) || safeString(u.phone) || 'Unknown'),
     }
   })
 
@@ -162,6 +171,16 @@ export default async function AdminUsersPage({
 
           <div className="space-y-1.5">
             <RoleSelect />
+            <div>
+              <label className="sr-only">Identity Provider</label>
+              <select name="provider" defaultValue={providerFilter} className="h-10 rounded-xl border border-white/[0.06] bg-transparent px-3 text-white/90">
+                <option value="">All Providers</option>
+                <option value="EMAIL">Email</option>
+                <option value="WHATSAPP">WhatsApp</option>
+                <option value="GOOGLE">Google</option>
+                <option value="APPLE">Apple</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>

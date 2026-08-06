@@ -14,8 +14,8 @@ export default function UserDetailClient({ initialUser }: { initialUser: any }) 
             <div className="flex items-center gap-4">
               <img src={initialUser.image || '/avatar-placeholder.png'} className="w-20 h-20 rounded-full object-cover" />
               <div>
-                <h2 className="text-2xl font-bold text-white">{initialUser.name || initialUser.email}</h2>
-                <div className="text-sm text-white/60">{initialUser.email}</div>
+                <h2 className="text-2xl font-bold text-white">{initialUser.name || initialUser.phone || initialUser.email}</h2>
+                <div className="text-sm text-white/60">{initialUser.phone || initialUser.email}</div>
                 <div className="text-sm text-white/60">Role: {initialUser.role}</div>
               </div>
             </div>
