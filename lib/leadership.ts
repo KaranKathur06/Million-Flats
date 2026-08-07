@@ -118,6 +118,16 @@ export const leadershipSections: LeadershipSection[] = [
         location: 'India',
         linkedinUrl: 'https://www.linkedin.com',
       },
+
+       {
+        id: 'nitin-mohite',
+        name: 'Nitin Mohite',
+        title: 'Channel Partnership Manager',
+        bio: 'Leveraging 7 years of real estate expertise to aggressively hunt, onboard, and scale our elite B2B ecosystem of CAs, wealth managers, and boutique brokers.',
+        image: '/team/nitin.jpeg',
+        location: 'India',
+        linkedinUrl: 'https://www.linkedin.com',
+      },
     ],
   },
 ]
