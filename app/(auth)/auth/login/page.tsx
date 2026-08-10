@@ -1,15 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getHomeRouteForRole } from "@/lib/roleHomeRoute";
 import AuthLayout from "@/components/AuthLayout";
+import WhatsAppLoginModal from "@/components/auth/WhatsAppLoginModal";
+import { useAuthConfig } from "@/components/auth/AuthConfigProvider";
 
 export default function AuthLoginPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const authConfig = useAuthConfig();
+  const [waModalOpen, setWaModalOpen] = useState(false);
+
+  const authMethod = searchParams?.get("auth") || "";
+  const rawRedirect = searchParams?.get("redirect") || "";
+  const redirectTo = useMemo(() => {
+    if (typeof rawRedirect !== "string") return "/";
+    return rawRedirect.startsWith("/") ? rawRedirect : "/";
+  }, [rawRedirect]);
 
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
@@ -18,11 +30,27 @@ export default function AuthLoginPage() {
     }
   }, [status, session, router]);
 
+  useEffect(() => {
+    if (!authConfig) return;
+    if (authMethod === "whatsapp" && authConfig.allowWhatsapp) {
+      setWaModalOpen(true);
+    }
+  }, [authConfig, authMethod]);
+
+  const handleModalClose = () => {
+    setWaModalOpen(false);
+    const params = new URLSearchParams(searchParams?.toString() || "");
+    params.delete("auth");
+    const nextUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+    router.replace(nextUrl);
+  };
+
   if (status === "loading") return null;
 
   return (
-    <AuthLayout title="Welcome Back" subtitle="Choose your access type">
-      <div className="space-y-4">
+    <>
+      <AuthLayout title="Welcome Back" subtitle="Choose your access type">
+        <div className="space-y-4">
         {/* Buyer / User — Email + Password */}
         <Link
           href="/auth/user/login"
@@ -97,6 +125,12 @@ export default function AuthLoginPage() {
           </div>
         </Link>
       </div>
-    </AuthLayout>
+      </AuthLayout>
+      <WhatsAppLoginModal
+        open={waModalOpen}
+        onClose={handleModalClose}
+        redirectTo={redirectTo}
+      />
+    </>
   );
 }

@@ -77,8 +77,10 @@ const updateProjectSchema = z.object({
     })).optional(),
     paymentPlans: z.array(z.object({
         id: z.string().optional(),
-        stage: z.string().min(1).max(200),
-        percentage: z.number().min(0).max(100),
+        itemType: z.enum(['BASE_PRICE', 'FEE']),
+        label: z.string().min(1).max(200),
+        amount: z.number().min(0).or(z.string().min(1)).optional().nullable(),
+        currency: z.string().max(10).optional().nullable(),
         milestone: z.string().max(200).optional().nullable(),
         sortOrder: z.number().int().min(0).optional().nullable(),
     })).optional(),
@@ -96,6 +98,15 @@ const updateProjectSchema = z.object({
         sortOrder: z.number().int().min(0).optional().nullable(),
     })).optional(),
 })
+
+type ProjectPaymentPlanItem = {
+    itemType?: 'BASE_PRICE' | 'FEE'
+    label: string
+    amount?: string | number | null
+    currency?: string | null
+    milestone?: string | null
+    sortOrder?: number | null
+}
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
     const auth = await requireAdminSession()
@@ -196,7 +207,10 @@ function normalizeBody(body: any): any {
     if (Array.isArray(b.paymentPlans)) {
         b.paymentPlans = b.paymentPlans.map((pp: any) => ({
             ...pp,
-            percentage: safeFloat(pp.percentage) ?? 0,
+            itemType: String(pp.itemType || 'BASE_PRICE').toUpperCase(),
+            label: String(pp.label || '').trim(),
+            amount: pp.amount === null || pp.amount === undefined ? null : String(pp.amount).trim(),
+            currency: pp.currency ? String(pp.currency).trim().toUpperCase() : 'AED',
         }))
     }
     // Normalize location
@@ -416,16 +430,27 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
         // Handle payment plans: delete all then recreate
         if (data.paymentPlans !== undefined) {
+            const paymentPlans = data.paymentPlans as ProjectPaymentPlanItem[]
             await (prisma as any).projectPaymentPlan.deleteMany({ where: { projectId: params.id } })
-            if (data.paymentPlans.length > 0) {
+            if (Array.isArray(paymentPlans) && paymentPlans.length > 0) {
                 await (prisma as any).projectPaymentPlan.createMany({
-                    data: data.paymentPlans.map((pp, idx) => ({
-                        projectId: params.id,
-                        stage: pp.stage.trim(),
-                        percentage: pp.percentage,
-                        milestone: pp.milestone?.trim() || null,
-                        sortOrder: pp.sortOrder ?? idx,
-                    })),
+                    data: paymentPlans.map((pp, idx) => {
+                        const label = String(pp.label || '').trim()
+                        const amountRaw = pp.amount
+                        const amountParsed = parseAEDInput(amountRaw)
+                        const amount = amountParsed ?? (typeof amountRaw === 'number' && Number.isFinite(amountRaw) ? amountRaw : parseFloat(String(amountRaw || '0')))
+                        const currency = String(pp.currency || 'AED').trim().toUpperCase() || 'AED'
+                        const milestone = String(pp.milestone || '').trim() || null
+                        return {
+                            projectId: params.id,
+                            itemType: pp.itemType === 'FEE' ? 'FEE' : 'BASE_PRICE',
+                            label,
+                            amount,
+                            currency,
+                            milestone,
+                            sortOrder: pp.sortOrder ?? idx,
+                        }
+                    }),
                 })
             }
         }

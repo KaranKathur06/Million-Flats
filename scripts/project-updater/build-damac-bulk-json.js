@@ -88,11 +88,13 @@ function buildPaymentPlansFromLegacy(paymentPlan) {
     if (!paymentPlan || typeof paymentPlan !== 'object') return []
     return Object.entries(paymentPlan)
         .map(([stage, pct], idx) => {
-            const percentage = parsePriceToNumber(pct)
-            if (percentage === null) return null
+            const amount = parsePriceToNumber(pct)
+            if (amount === null) return null
             return {
-                stage: stage.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()).trim(),
-                percentage,
+                itemType: 'BASE_PRICE',
+                label: stage.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()).trim(),
+                amount,
+                currency: 'AED',
                 milestone: null,
                 sortOrder: idx,
             }

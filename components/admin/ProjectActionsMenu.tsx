@@ -16,7 +16,7 @@ type Props = {
   archiving: boolean
   onPublishToggle: () => void
   onArchive: () => void
-  onDelete: () => void
+  onDelete: (permanent?: boolean) => void
   onRestore: () => void
 }
 

@@ -93,18 +93,44 @@ async function main() {
                 })
             }
 
-            // Update payment plans
+            // Update payment plans (support legacy {stage,percentage} and modern {label,amount})
             if (proj.paymentPlans && proj.paymentPlans.length > 0) {
-                await prisma.projectPaymentPlan.deleteMany({ where: { projectId: existing.id } })
-                await prisma.projectPaymentPlan.createMany({
-                    data: proj.paymentPlans.map((pp, idx) => ({
-                        projectId: existing.id,
-                        stage: pp.stage || `Stage ${idx + 1}`,
-                        percentage: pp.percentage || 0,
-                        milestone: pp.milestone || null,
-                        sortOrder: pp.sortOrder ?? idx,
-                    })),
-                })
+                function normalizePP(pp, idx) {
+                    if (!pp || typeof pp !== 'object') return null
+                    // Legacy shape: { stage, percentage }
+                    if ('stage' in pp && ('percentage' in pp || 'pct' in pp)) {
+                        const amt = pp.percentage ?? pp.pct ?? 0
+                        return {
+                            projectId: existing.id,
+                            itemType: 'BASE_PRICE',
+                            label: String(pp.stage || `Stage ${idx + 1}`).trim(),
+                            amount: typeof amt === 'number' ? amt : parseFloat(String(amt).replace(/[^0-9.]/g, '')) || 0,
+                            currency: 'AED',
+                            milestone: pp.milestone || null,
+                            sortOrder: pp.sortOrder ?? idx,
+                        }
+                    }
+                    // Modern shape: { label, amount }
+                    if ('label' in pp && ('amount' in pp || 'value' in pp)) {
+                        const amt = pp.amount ?? pp.value
+                        return {
+                            projectId: existing.id,
+                            itemType: pp.itemType === 'FEE' ? 'FEE' : 'BASE_PRICE',
+                            label: String(pp.label || `Item ${idx + 1}`).trim(),
+                            amount: typeof amt === 'number' ? amt : parseFloat(String(amt).replace(/[^0-9.]/g, '')) || 0,
+                            currency: pp.currency || 'AED',
+                            milestone: pp.milestone || null,
+                            sortOrder: pp.sortOrder ?? idx,
+                        }
+                    }
+                    return null
+                }
+
+                const rows = proj.paymentPlans.map((pp, idx) => normalizePP(pp, idx)).filter(Boolean)
+                if (rows.length > 0) {
+                    await prisma.projectPaymentPlan.deleteMany({ where: { projectId: existing.id } })
+                    await prisma.projectPaymentPlan.createMany({ data: rows })
+                }
             }
 
             // Update location
@@ -178,17 +204,41 @@ async function main() {
             }
         }
 
-        // Create payment plans
+        // Create payment plans (support legacy and modern shapes)
         if (proj.paymentPlans && proj.paymentPlans.length > 0) {
-            await prisma.projectPaymentPlan.createMany({
-                data: proj.paymentPlans.map((pp, idx) => ({
-                    projectId: newProject.id,
-                    stage: pp.stage || `Stage ${idx + 1}`,
-                    percentage: pp.percentage || 0,
-                    milestone: pp.milestone || null,
-                    sortOrder: pp.sortOrder ?? idx,
-                })),
-            })
+            function normalizePP(pp, idx) {
+                if (!pp || typeof pp !== 'object') return null
+                if ('stage' in pp && ('percentage' in pp || 'pct' in pp)) {
+                    const amt = pp.percentage ?? pp.pct ?? 0
+                    return {
+                        projectId: newProject.id,
+                        itemType: 'BASE_PRICE',
+                        label: String(pp.stage || `Stage ${idx + 1}`).trim(),
+                        amount: typeof amt === 'number' ? amt : parseFloat(String(amt).replace(/[^0-9.]/g, '')) || 0,
+                        currency: 'AED',
+                        milestone: pp.milestone || null,
+                        sortOrder: pp.sortOrder ?? idx,
+                    }
+                }
+                if ('label' in pp && ('amount' in pp || 'value' in pp)) {
+                    const amt = pp.amount ?? pp.value
+                    return {
+                        projectId: newProject.id,
+                        itemType: pp.itemType === 'FEE' ? 'FEE' : 'BASE_PRICE',
+                        label: String(pp.label || `Item ${idx + 1}`).trim(),
+                        amount: typeof amt === 'number' ? amt : parseFloat(String(amt).replace(/[^0-9.]/g, '')) || 0,
+                        currency: pp.currency || 'AED',
+                        milestone: pp.milestone || null,
+                        sortOrder: pp.sortOrder ?? idx,
+                    }
+                }
+                return null
+            }
+
+            const rows = proj.paymentPlans.map((pp, idx) => normalizePP(pp, idx)).filter(Boolean)
+            if (rows.length > 0) {
+                await prisma.projectPaymentPlan.createMany({ data: rows })
+            }
         }
 
         // Create nearby places

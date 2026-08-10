@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { useAuthConfig } from '@/components/auth/AuthConfigProvider'
 import Link from 'next/link'
 import Image from 'next/image'
 import { formatAEDCompact } from '@/lib/pricing'
+import { calculateProjectPricingSummary } from '@/lib/projectPricing'
 import dynamic from 'next/dynamic'
 import { LocationSkeleton, SimilarProjectsSkeleton, VideosSkeleton } from '@/components/skeletons/ProjectPageSkeletons'
 import { AIShieldCTA } from '@/components/aishield/AIShieldCTA'
@@ -92,7 +94,7 @@ interface ProjectData {
         }[]
     }[]
     amenities: { id: string; name: string; icon: string | null; category: string | null }[]
-    paymentPlans: { id: string; stage: string; percentage: number; milestone: string | null; sortOrder: number | null }[]
+    paymentPlans: { id: string; itemType: 'BASE_PRICE' | 'FEE'; label: string; amount: number; currency: string; milestone: string | null; sortOrder: number | null }[]
     floorPlans: { id: string; unitType: string; bedrooms: number | null; bathrooms: number | null; size: string | null; price: string | null; imageUrl: string | null }[]
     videos: { id: string; videoUrl: string; title: string | null; thumbnail: string | null; sortOrder: number | null }[]
     location: { id: string; latitude: number | null; longitude: number | null; address: string | null; mapUrl: string | null } | null
@@ -203,6 +205,7 @@ export default function ProjectDetailClient({
     const router = useRouter()
     const searchParams = useSearchParams()
     const { data: session } = useSession()
+    const authConfig = useAuthConfig()
     const fallbackImage = '/images/default-property.jpg'
     const [selectedImg, setSelectedImg] = useState(0)
     const [formData, setFormData] = useState({ name: '', email: '', phone: '', message: '' })
@@ -218,6 +221,12 @@ export default function ProjectDetailClient({
     const [galleryModalOpen, setGalleryModalOpen] = useState(false)
     const [modalImgIndex, setModalImgIndex] = useState(0)
     const [modalSource, setModalSource] = useState<'featured' | 'tab'>('tab')
+
+    const pricingSummary = useMemo(() => calculateProjectPricingSummary({
+        basePrice: project.startingPrice ?? 0,
+        paymentPlans: project.paymentPlans,
+        additionalCharges: [],
+    }), [project.startingPrice, project.paymentPlans])
 
     // Recognised gallery media types (tab-specific + legacy ones)
     const GALLERY_MEDIA_TYPES = useMemo(() => new Set(['gallery', 'cover', 'image', 'IMAGE', 'featured', 'exterior', 'amenities', 'interior', 'interiors', 'lifestyle']), [])
@@ -247,6 +256,10 @@ export default function ProjectDetailClient({
         if (!session?.user) {
             // Redirect to login with return url
             const currentPath = `/projects/${project.slug}`
+            if (authConfig?.allowWhatsapp) {
+                router.push(`/auth/login?auth=whatsapp&redirect=${encodeURIComponent(currentPath)}&download=brochure`)
+                return
+            }
             router.push(`/auth/login?redirect=${encodeURIComponent(currentPath)}&download=brochure`)
             return
         }
@@ -621,14 +634,16 @@ export default function ProjectDetailClient({
                         {project.highlights && project.highlights.length > 0 && (
                             <section>
                                 <SectionHeader title="Key Highlights" />
-                                <div className="space-y-3">
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                                     {project.highlights.map((h, idx) => (
-                                        <div key={idx} className="flex gap-3 p-4 rounded-xl bg-amber-50/60 border border-amber-100">
-                                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold mt-0.5">
-                                                {idx + 1}
+                                        <article key={idx} className="group h-full rounded-[24px] border border-amber-100/80 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus-within:ring-2 focus-within:ring-amber-200">
+                                            <div className="flex h-full items-start gap-4 p-5">
+                                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500 text-sm font-bold text-white shadow-sm">
+                                                    {idx + 1}
+                                                </div>
+                                                <p className="text-sm leading-6 text-gray-700">{h}</p>
                                             </div>
-                                            <p className="text-sm text-gray-700 leading-relaxed">{h}</p>
-                                        </div>
+                                        </article>
                                     ))}
                                 </div>
 
@@ -754,29 +769,39 @@ export default function ProjectDetailClient({
                         {/* PAYMENT PLAN */}
                         {project.paymentPlans.length > 0 && (
                             <section>
-                                <SectionHeader title="Payment Plan" />
+                                <SectionHeader title="Payment Schedule" />
+                                <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                                    <div className="grid gap-3 sm:grid-cols-3">
+                                        <div>
+                                            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-amber-700">Base price</p>
+                                            <p className="mt-2 text-lg font-bold text-gray-900">{formatPrice(pricingSummary.paymentScheduleTotal)}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-amber-700">Additional fees</p>
+                                            <p className="mt-2 text-lg font-bold text-gray-900">{formatPrice(pricingSummary.additionalChargesTotal)}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-amber-700">Total cost</p>
+                                            <p className="mt-2 text-lg font-bold text-amber-700">{formatPrice(pricingSummary.totalAcquisitionCost)}</p>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
-                                    <div className="flex items-stretch">
-                                        {project.paymentPlans.map((pp, idx) => (
-                                            <div key={pp.id} className={`flex-1 p-5 text-center ${idx > 0 ? 'border-l border-gray-200' : ''}`}>
-                                                <div className="text-3xl font-bold text-amber-600 mb-1">{pp.percentage}%</div>
-                                                <div className="text-sm font-semibold text-gray-900 mb-0.5">{pp.stage}</div>
-                                                {pp.milestone && <div className="text-xs text-gray-400">{pp.milestone}</div>}
+                                    <div className="grid gap-1 md:grid-cols-2">
+                                        {project.paymentPlans.map((pp) => (
+                                            <div key={pp.id} className="p-5 border-b border-gray-100 last:border-b-0">
+                                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                                    <div>
+                                                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-500">{pp.itemType === 'FEE' ? 'Fee' : 'Base price'}</p>
+                                                        <p className="text-lg font-semibold text-gray-900">{pp.label}</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-2xl font-bold text-amber-600">{pp.currency || 'AED'} {pp.amount?.toLocaleString()}</p>
+                                                        {pp.milestone && <p className="text-xs text-gray-500">{pp.milestone}</p>}
+                                                    </div>
+                                                </div>
                                             </div>
                                         ))}
-                                    </div>
-                                    {/* Progress bar showing proportions */}
-                                    <div className="flex h-2">
-                                        {project.paymentPlans.map((pp, idx) => {
-                                            const colors = ['bg-amber-500', 'bg-amber-400', 'bg-amber-300', 'bg-amber-200']
-                                            return (
-                                                <div
-                                                    key={pp.id}
-                                                    className={`${colors[idx % colors.length]} transition-all`}
-                                                    style={{ width: `${pp.percentage}%` }}
-                                                />
-                                            )
-                                        })}
                                     </div>
                                 </div>
                             </section>
@@ -1415,7 +1440,15 @@ export default function ProjectDetailClient({
                                         ]).length}</span></div>
                                     )}
                                     {project.paymentPlans.length > 0 && (
-                                        <div className="flex justify-between"><span className="text-gray-500">Payment Plan</span><span className="font-semibold text-amber-600">{project.paymentPlans.map(p => `${p.percentage}%`).join(' / ')}</span></div>
+                                        <div className="flex justify-between gap-3">
+                                            <span className="text-gray-500">Payment Schedule</span>
+                                            <span className="font-semibold text-amber-600 text-right">
+                                                {formatPrice(pricingSummary.paymentScheduleTotal)}
+                                                {pricingSummary.additionalChargesTotal > 0 && (
+                                                    <span className="block text-xs text-gray-500">+ {formatPrice(pricingSummary.additionalChargesTotal)} fees</span>
+                                                )}
+                                            </span>
+                                        </div>
                                     )}
                                 </div>
                             </div>

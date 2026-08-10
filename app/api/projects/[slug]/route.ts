@@ -121,7 +121,7 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
                 },
                 paymentPlans: {
                     orderBy: { sortOrder: 'asc' },
-                    select: { id: true, stage: true, percentage: true, milestone: true, sortOrder: true },
+                    select: { id: true, itemType: true, label: true, amount: true, currency: true, milestone: true, sortOrder: true },
                 },
                 floorPlans: {
                     select: { id: true, unitType: true, bedrooms: true, bathrooms: true, size: true, price: true, imageUrl: true },

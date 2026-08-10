@@ -31,6 +31,7 @@ interface WhatsAppLoginModalProps {
   open: boolean
   onClose: () => void
   onLoginSuccess?: () => void
+  redirectTo?: string
 }
 
 interface CountryOption {
@@ -67,7 +68,7 @@ type Phase = 'phone' | 'otp'
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function WhatsAppLoginModal({ open, onClose, onLoginSuccess }: WhatsAppLoginModalProps) {
+export default function WhatsAppLoginModal({ open, onClose, onLoginSuccess, redirectTo }: WhatsAppLoginModalProps) {
   const [phase, setPhase] = useState<Phase>('phone')
   const [selectedCountry, setSelectedCountry] = useState<CountryOption>(COUNTRIES[0])
   const [phoneNumber, setPhoneNumber] = useState('')
@@ -225,6 +226,8 @@ export default function WhatsAppLoginModal({ open, onClose, onLoginSuccess }: Wh
       onClose()
       if (onLoginSuccess) {
         onLoginSuccess()
+      } else if (redirectTo) {
+        window.location.href = redirectTo
       } else {
         // Reload to let NextAuth session propagate
         window.location.reload()

@@ -53,13 +53,33 @@ async function updateProject(data) {
 
     // Parse payment plans
     const paymentPlanRecords = [];
-    if (data.paymentPlan) {
+    if (Array.isArray(data.paymentPlans)) {
+        let sortOrder = 0;
+        for (const pp of data.paymentPlans) {
+            const amount = parseFloat(String(pp.amount || '').replace('%', ''))
+            if (Number.isFinite(amount)) {
+                paymentPlanRecords.push({
+                    itemType: pp.itemType === 'FEE' ? 'FEE' : 'BASE_PRICE',
+                    label: String(pp.label || '').trim(),
+                    amount,
+                    currency: String(pp.currency || 'AED').trim().toUpperCase(),
+                    milestone: pp.milestone || null,
+                    sortOrder: pp.sortOrder ?? sortOrder++,
+                });
+            }
+        }
+    } else if (data.paymentPlan) {
         let sortOrder = 0;
         for (const [key, val] of Object.entries(data.paymentPlan)) {
+            const amount = parseFloat(String(val || '').replace('%', ''))
+            if (!Number.isFinite(amount)) continue;
             paymentPlanRecords.push({
-                stage: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
-                percentage: parseFloat(val.replace('%', '')),
-                sortOrder: sortOrder++
+                itemType: 'BASE_PRICE',
+                label: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+                amount,
+                currency: 'AED',
+                milestone: null,
+                sortOrder: sortOrder++,
             });
         }
     }

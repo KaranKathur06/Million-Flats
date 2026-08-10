@@ -19,7 +19,7 @@ type Props = {
   archiving: boolean
   onPublishToggle: () => void
   onArchive: () => void
-  onDelete: () => void
+  onDelete: (permanent?: boolean) => void
   onRestore: () => void
 }
 
@@ -284,6 +284,18 @@ export default function ProjectActionsDrawer({
                 tone="emerald"
                 onClick={() => {
                   onRestore()
+                  onClose()
+                }}
+              />
+              <Divider />
+              <GroupLabel>Danger zone</GroupLabel>
+              <ActionRow
+                icon={icons.delete}
+                label="Permanent Delete"
+                description="Destroy project and owned records"
+                tone="danger"
+                onClick={() => {
+                  onDelete(true)
                   onClose()
                 }}
               />

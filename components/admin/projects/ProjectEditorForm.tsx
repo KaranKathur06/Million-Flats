@@ -44,7 +44,7 @@ interface FloorPlanRow {
 }
 interface AmenityRow { id?: string; name: string; icon: string; category: string }
 interface NearbyPlaceRow { id?: string; name: string; category: string; distance: string }
-interface PaymentPlanRow { id?: string; stage: string; percentage: string; milestone: string }
+interface PaymentPlanRow { id?: string; itemType: 'BASE_PRICE' | 'FEE'; label: string; amount: string; currency: string; milestone: string }
 interface LocationData { latitude: string; longitude: string; address: string; mapUrl: string }
 interface VideoRow { id?: string; videoUrl: string; title: string; thumbnail: string }
 interface ProjectEditorFormProps {
@@ -94,7 +94,7 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
   const [highlights, setHighlights] = useState<string[]>([''])
   const [amenities, setAmenities] = useState<AmenityRow[]>([{ name: '', icon: '', category: '' }])
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlaceRow[]>([{ name: '', category: '', distance: '' }])
-  const [paymentPlans, setPaymentPlans] = useState<PaymentPlanRow[]>([{ stage: '', percentage: '', milestone: '' }])
+  const [paymentPlans, setPaymentPlans] = useState<PaymentPlanRow[]>([{ itemType: 'BASE_PRICE', label: '', amount: '', currency: 'AED', milestone: '' }])
   const [location, setLocation] = useState<LocationData>({ latitude: '', longitude: '', address: '', mapUrl: '' })
   const [videos, setVideos] = useState<VideoRow[]>([{ videoUrl: '', title: '', thumbnail: '' }])
   const [brochureData, setBrochureData] = useState<{ id: string; fileUrl: string; fileName: string; fileSize: number | null } | null>(null)
@@ -103,9 +103,17 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
   const [galleryFiles, setGalleryFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
 
-  const paymentTotal = useMemo(() => {
-    return paymentPlans.reduce((sum, row) => sum + (Number(row.percentage) || 0), 0)
+  const basePriceScheduleTotal = useMemo(() => {
+    return paymentPlans.filter((row) => row.itemType !== 'FEE').reduce((sum, row) => sum + (parseFloat(row.amount) || 0), 0)
   }, [paymentPlans])
+
+  const additionalChargesTotal = useMemo(() => {
+    return paymentPlans.filter((row) => row.itemType === 'FEE').reduce((sum, row) => sum + (parseFloat(row.amount) || 0), 0)
+  }, [paymentPlans])
+
+  const totalAcquisitionCost = useMemo(() => {
+    return basePriceScheduleTotal + additionalChargesTotal
+  }, [additionalChargesTotal, basePriceScheduleTotal])
 
   const loadDevelopers = useCallback(async () => {
     try {
@@ -176,7 +184,7 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
       }
       setAmenities((p.amenities || []).map((a: any) => ({ id: a.id, name: a.name || '', icon: a.icon || '', category: a.category || '' })))
       setNearbyPlaces((p.nearbyPlaces || []).map((np: any) => ({ id: np.id, name: np.name || '', category: np.category || '', distance: np.distance || '' })))
-      setPaymentPlans((p.paymentPlans || []).map((pp: any) => ({ id: pp.id, stage: pp.stage || '', percentage: pp.percentage !== null && pp.percentage !== undefined ? String(pp.percentage) : '', milestone: pp.milestone || '' })))
+      setPaymentPlans((p.paymentPlans || []).map((pp: any) => ({ id: pp.id, itemType: pp.itemType === 'FEE' ? 'FEE' : 'BASE_PRICE', label: pp.label || '', amount: pp.amount !== null && pp.amount !== undefined ? String(pp.amount) : '', currency: pp.currency || 'AED', milestone: pp.milestone || '' })))
       if (p.location) {
         setLocation({ latitude: p.location.latitude != null ? String(p.location.latitude) : '', longitude: p.location.longitude != null ? String(p.location.longitude) : '', address: p.location.address || '', mapUrl: p.location.mapUrl || '' })
       }
@@ -218,7 +226,7 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
   const addNearbyPlace = () => setNearbyPlaces((prev) => [...prev, { name: '', category: '', distance: '' }])
   const updateNearbyPlace = (idx: number, field: keyof NearbyPlaceRow, value: string) => setNearbyPlaces((prev) => prev.map((row, i) => i === idx ? { ...row, [field]: value } : row))
   const removeNearbyPlace = (idx: number) => setNearbyPlaces((prev) => prev.filter((_, i) => i !== idx))
-  const addPaymentPlan = () => setPaymentPlans((prev) => [...prev, { stage: '', percentage: '', milestone: '' }])
+  const addPaymentPlan = () => setPaymentPlans((prev) => [...prev, { itemType: 'BASE_PRICE', label: '', amount: '', currency: 'AED', milestone: '' }])
   const updatePaymentPlan = (idx: number, field: keyof PaymentPlanRow, value: string) => setPaymentPlans((prev) => prev.map((row, i) => i === idx ? { ...row, [field]: value } : row))
   const removePaymentPlan = (idx: number) => setPaymentPlans((prev) => prev.filter((_, i) => i !== idx))
   const addVideo = () => setVideos((prev) => [...prev, { videoUrl: '', title: '', thumbnail: '' }])
@@ -239,8 +247,7 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
     const hasHero = Boolean(coverImage || coverFile)
     if (!hasHero) errors.push('Hero image')
     if (!unitTypes.some((ut) => ut.unitType.trim())) errors.push('At least one unit type')
-    if (!paymentPlans.some((pp) => pp.stage.trim())) errors.push('Payment plan')
-    if (paymentPlans.some((pp) => pp.stage.trim()) && Math.abs(paymentTotal - 100) > 0.001) errors.push('Payment totals must equal 100%')
+    if (!paymentPlans.some((pp) => pp.label.trim() && pp.amount.trim())) errors.push('Payment schedule')
     if (!location.address.trim() && !location.latitude && !location.longitude) errors.push('Location')
     return errors
   }
@@ -325,7 +332,7 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
         highlights: highlights.filter((h) => h.trim()),
         amenities: amenities.filter((a) => a.name.trim()).map((a) => ({ name: a.name.trim(), icon: a.icon.trim() || null, category: a.category.trim() || null })),
         nearbyPlaces: nearbyPlaces.filter((np) => np.name.trim()).map((np, idx) => ({ name: np.name.trim(), category: np.category.trim() || null, distance: np.distance.trim() || null, sortOrder: idx })),
-        paymentPlans: paymentPlans.filter((pp) => pp.stage.trim()).map((pp, idx) => ({ stage: pp.stage.trim(), percentage: Number(pp.percentage) || 0, milestone: pp.milestone.trim() || null, sortOrder: idx })),
+        paymentPlans: paymentPlans.filter((pp) => pp.label.trim() && pp.amount.trim()).map((pp, idx) => ({ itemType: pp.itemType, label: pp.label.trim(), amount: pp.amount.trim(), currency: pp.currency.trim() || 'AED', milestone: pp.milestone.trim() || null, sortOrder: idx })),
         location: location.address.trim() || location.latitude || location.longitude ? {
           latitude: location.latitude ? parseFloat(location.latitude) : null,
           longitude: location.longitude ? parseFloat(location.longitude) : null,
@@ -478,11 +485,11 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
             </div>
             <div className="sm:col-span-2">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/40">Overview</label>
-              <textarea value={overview} onChange={(e) => setOverview(e.target.value)} rows={6} className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/80 outline-none focus:border-amber-400/30" />
+              <textarea value={overview} onChange={(e) => setOverview(e.target.value)} rows={6} className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/80 outline-none focus:border-amber-400/30"></textarea>
             </div>
             <div className="sm:col-span-2">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/40">Description</label>
-              <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={8} className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/80 outline-none focus:border-amber-400/30" />
+              <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={8} className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/80 outline-none focus:border-amber-400/30"></textarea>
             </div>
             <div className="sm:col-span-2 flex items-center gap-3">
               <button type="button" onClick={() => setGoldenVisa(!goldenVisa)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${goldenVisa ? 'bg-amber-400' : 'bg-white/[0.1]'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${goldenVisa ? 'translate-x-6' : 'translate-x-1'}`} /></button>
@@ -618,21 +625,42 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
 
         <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-white/70">Payment Plans</h2>
-            <button type="button" onClick={addPaymentPlan} className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-300">+ Add Stage</button>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-white/70">Payment Schedule</h2>
+            <button type="button" onClick={addPaymentPlan} className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-300">+ Add Item</button>
           </div>
-          <div className="rounded-lg border border-white/[0.06] bg-black/10 p-3 text-sm text-white/60">Total: {paymentTotal.toFixed(1)}%</div>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <div className="rounded-lg border border-white/[0.06] bg-black/10 p-3 text-sm text-white/60">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-amber-300">Base schedule</div>
+              <div className="mt-1 font-semibold text-white">{basePriceScheduleTotal ? `${basePriceScheduleTotal.toLocaleString()} AED` : '0 AED'}</div>
+            </div>
+            <div className="rounded-lg border border-white/[0.06] bg-black/10 p-3 text-sm text-white/60">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-amber-300">Additional fees</div>
+              <div className="mt-1 font-semibold text-white">{additionalChargesTotal ? `${additionalChargesTotal.toLocaleString()} AED` : '0 AED'}</div>
+            </div>
+            <div className="rounded-lg border border-white/[0.06] bg-black/10 p-3 text-sm text-white/60">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-amber-300">Total cost</div>
+              <div className="mt-1 font-semibold text-amber-300">{totalAcquisitionCost ? `${totalAcquisitionCost.toLocaleString()} AED` : '0 AED'}</div>
+            </div>
+          </div>
           <div className="space-y-3">
             {paymentPlans.map((pp, idx) => (
-              <div key={`${pp.stage || idx}-${idx}`} className="grid gap-3 rounded-xl border border-white/[0.06] bg-black/10 p-4 md:grid-cols-4">
-                <input value={pp.stage} onChange={(e) => updatePaymentPlan(idx, 'stage', e.target.value)} placeholder="Stage" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
-                <input value={pp.percentage} onChange={(e) => updatePaymentPlan(idx, 'percentage', e.target.value)} placeholder="Percentage" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
-                <input value={pp.milestone} onChange={(e) => updatePaymentPlan(idx, 'milestone', e.target.value)} placeholder="Milestone" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
-                <button type="button" onClick={() => removePaymentPlan(idx)} className="text-xs text-red-400">Delete</button>
+              <div key={`${pp.label || idx}-${idx}`} className="grid gap-3 rounded-xl border border-white/[0.06] bg-black/10 p-4 md:grid-cols-5">
+                <select value={pp.itemType} onChange={(e) => updatePaymentPlan(idx, 'itemType', e.target.value)} className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70">
+                  <option value="BASE_PRICE" className="text-black">Base price</option>
+                  <option value="FEE" className="text-black">Additional fee</option>
+                </select>
+                <input value={pp.label} onChange={(e) => updatePaymentPlan(idx, 'label', e.target.value)} placeholder="Item label" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
+                <input value={pp.amount} onChange={(e) => updatePaymentPlan(idx, 'amount', e.target.value)} placeholder="Amount" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
+                <input value={pp.currency} onChange={(e) => updatePaymentPlan(idx, 'currency', e.target.value)} placeholder="Currency" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
+                <div className="flex items-center justify-between gap-2">
+                  <input value={pp.milestone} onChange={(e) => updatePaymentPlan(idx, 'milestone', e.target.value)} placeholder="Milestone" className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
+                  <button type="button" onClick={() => removePaymentPlan(idx)} className="text-xs text-red-400">Delete</button>
+                </div>
               </div>
             ))}
           </div>
         </div>
+        
 
         <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-5">
           <div className="flex items-center justify-between">

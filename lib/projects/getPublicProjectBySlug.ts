@@ -84,7 +84,7 @@ export const publicProjectDetailSelect = {
   },
   paymentPlans: {
     orderBy: { sortOrder: 'asc' as const },
-    select: { id: true, stage: true, percentage: true, milestone: true, sortOrder: true },
+    select: { id: true, itemType: true, label: true, amount: true, currency: true, milestone: true, sortOrder: true },
   },
   floorPlans: {
     select: {

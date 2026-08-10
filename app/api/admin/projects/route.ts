@@ -16,6 +16,15 @@ function slugify(text: string) {
         .slice(0, 120)
 }
 
+type ProjectPaymentPlanItem = {
+    itemType?: 'BASE_PRICE' | 'FEE'
+    label: string
+    amount?: string | number | null
+    currency?: string | null
+    milestone?: string | null
+    sortOrder?: number | null
+}
+
 const createProjectSchema = z.object({
     name: z.string().min(1).max(300),
     slug: z.string().min(1).max(200).optional(),
@@ -58,6 +67,14 @@ const createProjectSchema = z.object({
                 price: z.string().max(120).optional().nullable(),
             })).optional(),
         })).optional(),
+    })).optional(),
+    paymentPlans: z.array(z.object({
+        itemType: z.enum(['BASE_PRICE', 'FEE']),
+        label: z.string().min(1).max(200),
+        amount: z.union([z.number(), z.string()]).optional().nullable(),
+        currency: z.string().max(10).optional().nullable(),
+        milestone: z.string().max(200).optional().nullable(),
+        sortOrder: z.number().int().min(0).optional().nullable(),
     })).optional(),
 })
 
@@ -217,6 +234,29 @@ export async function POST(req: Request) {
             },
             select: { id: true, slug: true },
         })
+
+        if (data.paymentPlans?.length) {
+            const paymentPlans = data.paymentPlans as ProjectPaymentPlanItem[]
+            await (prisma as any).projectPaymentPlan.createMany({
+                data: paymentPlans.map((pp: ProjectPaymentPlanItem, idx: number) => {
+                    const label = `${pp.label || ''}`.trim()
+                    const amountRaw = pp.amount
+                    const amountParsed = parseAEDInput(amountRaw as string | number | null)
+                    const amount = amountParsed ?? (typeof amountRaw === 'number' && Number.isFinite(amountRaw) ? amountRaw : parseFloat(`${amountRaw || '0'}`))
+                    const currency = `${pp.currency || 'AED'}`.trim().toUpperCase() || 'AED'
+                    const milestone = `${pp.milestone || ''}`.trim() || null
+                    return {
+                        projectId: project.id,
+                        itemType: pp.itemType === 'FEE' ? 'FEE' : 'BASE_PRICE',
+                        label,
+                        amount,
+                        currency,
+                        milestone,
+                        sortOrder: pp.sortOrder ?? idx,
+                    }
+                }),
+            })
+        }
 
         if (data.unitTypes?.length) {
             for (let idx = 0; idx < data.unitTypes.length; idx++) {

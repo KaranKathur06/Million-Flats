@@ -13,13 +13,7 @@ jest.mock('@/lib/prisma', () => ({
 import { prisma } from '@/lib/prisma'
 import { findAiShieldResult, listAiShieldResults, upsertAiShieldResult } from '@/lib/aishield/repository'
 
-const mockedPrisma = prisma as unknown as {
-  aIShieldResult: {
-    findUnique: jest.Mock
-    findMany: jest.Mock
-    upsert: jest.Mock
-  }
-}
+const mockedPrisma = prisma as any
 
 describe('aishield repository', () => {
   beforeEach(() => {

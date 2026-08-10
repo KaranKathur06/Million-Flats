@@ -2,10 +2,12 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import { useAuthConfig } from '@/components/auth/AuthConfigProvider'
 
 export default function PremiumLock() {
     const router = useRouter()
     const pathname = usePathname()
+    const authConfig = useAuthConfig()
     const [isClient, setIsClient] = useState(false)
 
     useEffect(() => {
@@ -18,8 +20,14 @@ export default function PremiumLock() {
         // Save scroll position
         sessionStorage.setItem(`scroll_${pathname}`, window.scrollY.toString())
 
+        const redirectPath = encodeURIComponent(pathname || '')
+        if (authConfig?.allowWhatsapp) {
+            router.push(`/auth/login?auth=whatsapp&redirect=${redirectPath}`)
+            return
+        }
+
         // Redirect to login with redirect path
-        router.push(`/auth/login?redirect=${encodeURIComponent(pathname || '')}`)
+        router.push(`/auth/login?redirect=${redirectPath}`)
     }
 
     return (

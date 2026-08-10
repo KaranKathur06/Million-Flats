@@ -46,7 +46,7 @@ interface FloorPlanRow {
 }
 interface AmenityRow { id?: string; name: string; icon: string; category: string }
 interface NearbyPlaceRow { id?: string; name: string; category: string; distance: string }
-interface PaymentPlanRow { id?: string; stage: string; percentage: string; milestone: string }
+interface PaymentPlanRow { id?: string; itemType: 'BASE_PRICE' | 'FEE'; label: string; amount: string; currency: string; milestone: string }
 interface LocationData { latitude: string; longitude: string; address: string; mapUrl: string }
 interface VideoRow { id?: string; videoUrl: string; title: string; thumbnail: string }
 
@@ -200,7 +200,7 @@ export default function AdminEditProjectPage() {
             // Load nearby places
             setNearbyPlaces((p.nearbyPlaces || []).map((np: any) => ({ id: np.id, name: np.name || '', category: np.category || '', distance: np.distance || '' })))
             // Load payment plans
-            setPaymentPlans((p.paymentPlans || []).map((pp: any) => ({ id: pp.id, stage: pp.stage || '', percentage: pp.percentage !== null && pp.percentage !== undefined ? String(pp.percentage) : '', milestone: pp.milestone || '' })))
+            setPaymentPlans((p.paymentPlans || []).map((pp: any) => ({ id: pp.id, itemType: pp.itemType === 'FEE' ? 'FEE' : 'BASE_PRICE', label: pp.label || '', amount: pp.amount !== null && pp.amount !== undefined ? String(pp.amount) : '', currency: pp.currency || 'AED', milestone: pp.milestone || '' })))
             // Load location
             if (p.location) {
                 setLocation({
@@ -316,7 +316,7 @@ export default function AdminEditProjectPage() {
                 highlights: highlights.filter((h) => h.trim()),
                 amenities: amenities.filter((a) => a.name.trim()).map((a) => ({ name: a.name.trim(), icon: a.icon.trim() || null, category: a.category.trim() || null })),
                 nearbyPlaces: nearbyPlaces.filter((np) => np.name.trim()).map((np, idx) => ({ name: np.name.trim(), category: np.category.trim() || null, distance: np.distance.trim() || null, sortOrder: idx })),
-                paymentPlans: paymentPlans.filter((pp) => pp.stage.trim()).map((pp, idx) => ({ stage: pp.stage.trim(), percentage: pp.percentage ? parseFloat(pp.percentage) : 0, milestone: pp.milestone.trim() || null, sortOrder: idx })),
+                paymentPlans: paymentPlans.filter((pp) => pp.label.trim() && pp.amount.trim()).map((pp, idx) => ({ itemType: pp.itemType, label: pp.label.trim(), amount: pp.amount ? pp.amount.trim() : '0', currency: pp.currency ? pp.currency.trim().toUpperCase() : 'AED', milestone: pp.milestone.trim() || null, sortOrder: idx })),
                 location: location.address.trim() || location.latitude || location.longitude ? {
                     latitude: location.latitude ? parseFloat(location.latitude) : null,
                     longitude: location.longitude ? parseFloat(location.longitude) : null,
@@ -1095,23 +1095,30 @@ export default function AdminEditProjectPage() {
                 {/* Payment Plans */}
                 <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-4">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider">Payment Plans ({paymentPlans.length})</h2>
-                        <button type="button" onClick={() => setPaymentPlans((prev) => [...prev, { stage: '', percentage: '', milestone: '' }])}
+                        <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider">Payment Schedule ({paymentPlans.length})</h2>
+                        <button type="button" onClick={() => setPaymentPlans((prev) => [...prev, { itemType: 'BASE_PRICE', label: '', amount: '', currency: 'AED', milestone: '' }])}
                             className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/60 hover:bg-white/[0.08] transition-all">
                             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                            Add Stage
+                            Add Item
                         </button>
                     </div>
                     {paymentPlans.length > 0 ? (
                         <div className="space-y-2">
                             {paymentPlans.map((pp, idx) => (
                                 <div key={pp.id || idx} className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-                                    <input type="text" value={pp.stage} onChange={(e) => setPaymentPlans((prev) => prev.map((v, i) => i === idx ? { ...v, stage: e.target.value } : v))} placeholder="Stage (e.g. Down Payment)"
+                                    <select value={pp.itemType} onChange={(e) => setPaymentPlans((prev) => prev.map((v, i) => i === idx ? { ...v, itemType: e.target.value as 'BASE_PRICE' | 'FEE' } : v))}
+                                        className="sm:col-span-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/80 outline-none focus:border-amber-400/30 transition-all">
+                                        <option value="BASE_PRICE">Base price</option>
+                                        <option value="FEE">Additional fee</option>
+                                    </select>
+                                    <input type="text" value={pp.label} onChange={(e) => setPaymentPlans((prev) => prev.map((v, i) => i === idx ? { ...v, label: e.target.value } : v))} placeholder="Label"
                                         className="sm:col-span-4 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/80 outline-none focus:border-amber-400/30 transition-all" />
-                                    <input type="number" value={pp.percentage} onChange={(e) => setPaymentPlans((prev) => prev.map((v, i) => i === idx ? { ...v, percentage: e.target.value } : v))} placeholder="%"
+                                    <input type="text" value={pp.amount} onChange={(e) => setPaymentPlans((prev) => prev.map((v, i) => i === idx ? { ...v, amount: e.target.value } : v))} placeholder="Amount"
+                                        className="sm:col-span-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                    <input type="text" value={pp.currency} onChange={(e) => setPaymentPlans((prev) => prev.map((v, i) => i === idx ? { ...v, currency: e.target.value } : v))} placeholder="Currency"
                                         className="sm:col-span-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
                                     <input type="text" value={pp.milestone} onChange={(e) => setPaymentPlans((prev) => prev.map((v, i) => i === idx ? { ...v, milestone: e.target.value } : v))} placeholder="Milestone (optional)"
-                                        className="sm:col-span-5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
+                                        className="sm:col-span-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none focus:border-amber-400/30 transition-all" />
                                     <button type="button" onClick={() => setPaymentPlans((prev) => prev.filter((_, i) => i !== idx))}
                                         className="sm:col-span-1 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-2 text-[11px] font-medium text-red-300 hover:bg-red-500/20 transition-all">
                                         Remove
@@ -1120,7 +1127,7 @@ export default function AdminEditProjectPage() {
                             ))}
                         </div>
                     ) : (
-                        <p className="text-xs text-white/25 py-2">No payment plans.</p>
+                        <p className="text-xs text-white/25 py-2">No payment schedule items.</p>
                     )}
                 </div>
 

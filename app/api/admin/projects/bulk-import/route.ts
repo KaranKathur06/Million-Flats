@@ -60,9 +60,17 @@ const amenitySchema = z.object({
     category: z.string().optional().nullable(),
 })
 
-const paymentPlanSchema = z.object({
+const legacyPaymentPlanSchema = z.object({
     stage: z.string().min(1),
     percentage: z.number().min(0).max(100),
+    milestone: z.string().optional().nullable(),
+})
+
+const paymentPlanItemSchema = z.object({
+    itemType: z.enum(['BASE_PRICE', 'FEE']).optional(),
+    label: z.string().min(1),
+    amount: z.union([z.number().min(0), z.string().min(1)]).optional().nullable(),
+    currency: z.string().max(10).optional().nullable(),
     milestone: z.string().optional().nullable(),
 })
 
@@ -116,7 +124,7 @@ const projectItemSchema = z.object({
     coverImage: z.string().max(2000).optional().nullable(),
     sourceUrl: z.string().max(2000).optional().nullable(),
     amenities: z.array(z.union([amenitySchema, z.string().min(1)])).optional().nullable(),
-    paymentPlans: z.array(paymentPlanSchema).optional().nullable(),
+    paymentPlans: z.array(z.union([legacyPaymentPlanSchema, paymentPlanItemSchema])).optional().nullable(),
     paymentPlan: z.record(z.string(), z.string()).optional().nullable(),
     unitTypes: z.array(z.union([unitTypeSchema, z.string().min(1)])).optional().nullable(),
     startingPrices: z.record(z.string(), z.string()).optional().nullable(),
@@ -215,23 +223,42 @@ export async function POST(req: Request) {
                     }
                 }
 
-                const paymentRows: Array<{ stage: string; percentage: number; milestone: string | null; sortOrder: number }> = []
+                const paymentRows: Array<{ itemType: 'BASE_PRICE' | 'FEE'; label: string; amount: number; currency: string; milestone: string | null; sortOrder: number }> = []
                 if (item.paymentPlans && item.paymentPlans.length > 0) {
                     item.paymentPlans.forEach((pp, idx) => {
-                        paymentRows.push({
-                            stage: pp.stage,
-                            percentage: pp.percentage,
-                            milestone: pp.milestone || null,
-                            sortOrder: idx,
-                        })
+                        const isLegacy = pp && typeof pp === 'object' && 'stage' in pp && 'percentage' in pp
+                        if (isLegacy) {
+                            const legacy = pp as any
+                            paymentRows.push({
+                                itemType: 'BASE_PRICE',
+                                label: legacy.stage,
+                                amount: legacy.percentage,
+                                currency: 'AED',
+                                milestone: legacy.milestone || null,
+                                sortOrder: idx,
+                            })
+                        } else {
+                            const modern = pp as any
+                            const amountValue = parsePriceToNumber(modern.amount) ?? (typeof modern.amount === 'number' ? modern.amount : 0)
+                            paymentRows.push({
+                                itemType: modern.itemType === 'FEE' ? 'FEE' : 'BASE_PRICE',
+                                label: modern.label,
+                                amount: amountValue,
+                                currency: modern.currency ? modern.currency.trim().toUpperCase() : 'AED',
+                                milestone: modern.milestone || null,
+                                sortOrder: idx,
+                            })
+                        }
                     })
                 } else if (item.paymentPlan) {
                     Object.entries(item.paymentPlan).forEach(([stageRaw, percentageRaw], idx) => {
                         const pct = parsePriceToNumber(percentageRaw)
                         if (pct === null) return
                         paymentRows.push({
-                            stage: stageRaw.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()).trim(),
-                            percentage: pct,
+                            itemType: 'BASE_PRICE',
+                            label: stageRaw.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()).trim(),
+                            amount: pct,
+                            currency: 'AED',
                             milestone: null,
                             sortOrder: idx,
                         })
@@ -349,8 +376,10 @@ export async function POST(req: Request) {
                         await tx.projectPaymentPlan.createMany({
                             data: paymentRows.map((pp) => ({
                                 projectId: project.id,
-                                stage: pp.stage,
-                                percentage: pp.percentage,
+                                itemType: pp.itemType,
+                                label: pp.label,
+                                amount: pp.amount,
+                                currency: pp.currency,
                                 milestone: pp.milestone || null,
                                 sortOrder: pp.sortOrder,
                             })),
