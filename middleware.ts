@@ -626,7 +626,6 @@ export const config = {
     '/settings/:path*',
     '/users/:path*',
     '/agents/:path*',
-    '/projects/:path*',
     '/leads/:path*',
     '/blogs/:path*',
     '/financial/:path*',

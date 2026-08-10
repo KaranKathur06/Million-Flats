@@ -47,7 +47,6 @@ const PROTECTED_PREFIXES = [
   '/settings',
   '/users',
   '/agents',
-  '/projects',
   '/leads',
   '/blogs',
   '/financial',
