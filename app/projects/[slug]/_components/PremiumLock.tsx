@@ -20,14 +20,15 @@ export default function PremiumLock() {
         // Save scroll position
         sessionStorage.setItem(`scroll_${pathname}`, window.scrollY.toString())
 
-        const redirectPath = encodeURIComponent(pathname || '')
+        const redirectPath = pathname || ''
+        const query = `next=${encodeURIComponent(redirectPath)}`
         if (authConfig?.allowWhatsapp) {
-            router.push(`/auth/login?auth=whatsapp&redirect=${redirectPath}`)
+            router.push(`/auth/login?auth=whatsapp&${query}`)
             return
         }
 
-        // Redirect to login with redirect path
-        router.push(`/auth/login?redirect=${redirectPath}`)
+        // Redirect to login with return path
+        router.push(`/auth/login?${query}`)
     }
 
     return (

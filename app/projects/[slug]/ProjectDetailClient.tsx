@@ -255,12 +255,12 @@ export default function ProjectDetailClient({
     const handleBrochureDownload = useCallback(async () => {
         if (!session?.user) {
             // Redirect to login with return url
-            const currentPath = `/projects/${project.slug}`
+            const currentPath = `/projects/${project.slug}?download=brochure`
             if (authConfig?.allowWhatsapp) {
-                router.push(`/auth/login?auth=whatsapp&redirect=${encodeURIComponent(currentPath)}&download=brochure`)
+                router.push(`/auth/login?auth=whatsapp&next=${encodeURIComponent(currentPath)}`)
                 return
             }
-            router.push(`/auth/login?redirect=${encodeURIComponent(currentPath)}&download=brochure`)
+            router.push(`/auth/login?next=${encodeURIComponent(currentPath)}`)
             return
         }
         setBrochureDownloading(true)
@@ -271,8 +271,9 @@ export default function ProjectDetailClient({
             const json = await res.json()
             if (!res.ok || !json.success) {
                 if (json.loginRequired) {
-                    const currentPath = `/projects/${project.slug}`
-                    router.push(`/auth/login?redirect=${encodeURIComponent(currentPath)}&download=brochure`)
+                    const currentPath = `/projects/${project.slug}?download=brochure`
+                    const authQuery = authConfig?.allowWhatsapp ? 'auth=whatsapp&' : ''
+                    router.push(`/auth/login?${authQuery}next=${encodeURIComponent(currentPath)}`)
                     return
                 }
                 throw new Error(json.message || 'Download failed')

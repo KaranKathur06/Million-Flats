@@ -11,7 +11,7 @@ export default async function AuthRedirectPage({
 }: {
   searchParams?: Record<string, string | string[] | undefined>
 }) {
-  const nextRaw = searchParams?.next
+  const nextRaw = searchParams?.next || searchParams?.redirect
   const next = Array.isArray(nextRaw) ? nextRaw[0] : nextRaw
   const safeNext = typeof next === 'string' && next.startsWith('/') ? next : ''
 

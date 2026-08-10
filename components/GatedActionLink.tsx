@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { useAuthConfig } from '@/components/auth/AuthConfigProvider'
 
 type Props = {
   href: string;
@@ -28,12 +29,15 @@ export default function GatedActionLink({ href, className, children }: Props) {
     setSearch(raw.startsWith("?") ? raw.slice(1) : raw);
   }, []);
 
+  const authConfig = useAuthConfig()
+
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (isAuthed) return;
     e.preventDefault();
     // Redirect to login page with return URL
     const next = href.startsWith("/") ? href : buildNext(pathname, search);
-    window.location.href = `/auth/login?next=${encodeURIComponent(next)}`;
+    const authQuery = authConfig?.allowWhatsapp ? 'auth=whatsapp&' : ''
+    window.location.href = `/auth/login?${authQuery}next=${encodeURIComponent(next)}`;
   };
 
   const isInternal = href.startsWith("/");

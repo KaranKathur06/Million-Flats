@@ -17,18 +17,22 @@ export default function AuthLoginPage() {
   const [waModalOpen, setWaModalOpen] = useState(false);
 
   const authMethod = searchParams?.get("auth") || "";
-  const rawRedirect = searchParams?.get("redirect") || "";
+  const rawNext = searchParams?.get("next") || searchParams?.get("redirect") || "";
   const redirectTo = useMemo(() => {
-    if (typeof rawRedirect !== "string") return "/";
-    return rawRedirect.startsWith("/") ? rawRedirect : "/";
-  }, [rawRedirect]);
+    if (typeof rawNext !== "string") return "/";
+    return rawNext.startsWith("/") ? rawNext : "/";
+  }, [rawNext]);
 
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
+      if (redirectTo && redirectTo !== "/") {
+        router.replace(redirectTo);
+        return;
+      }
       const role = String((session.user as any)?.role || "").toUpperCase();
       router.replace(getHomeRouteForRole(role));
     }
-  }, [status, session, router]);
+  }, [status, session, router, redirectTo]);
 
   useEffect(() => {
     if (!authConfig) return;
@@ -53,7 +57,7 @@ export default function AuthLoginPage() {
         <div className="space-y-4">
         {/* Buyer / User — Email + Password */}
         <Link
-          href="/auth/user/login"
+          href={`/auth/user/login${redirectTo && redirectTo !== "/" ? `?next=${encodeURIComponent(redirectTo)}` : ""}`}
           className="group block rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-[#F5F8FF] p-5 transition-all hover:border-dark-blue/30 hover:shadow-[0_18px_45px_rgba(10,25,60,0.12)] active:scale-[0.99]"
         >
           <div className="flex items-center gap-4">
@@ -90,7 +94,7 @@ export default function AuthLoginPage() {
 
         {/* Agent — Email + Password */}
         <Link
-          href="/agent/auth"
+          href={`/agent/auth${redirectTo && redirectTo !== "/" ? `?next=${encodeURIComponent(redirectTo)}` : ""}`}
           className="group block rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-[#F5F8FF] p-5 transition-all hover:border-dark-blue/30 hover:shadow-[0_18px_45px_rgba(10,25,60,0.12)] active:scale-[0.99]"
         >
           <div className="flex items-center gap-4">
