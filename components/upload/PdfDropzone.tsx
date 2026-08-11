@@ -17,7 +17,6 @@ type PdfDropzoneProps = {
   loading?: boolean
 }
 
-const MAX_PDF_SIZE = 20 * 1024 * 1024
 
 export default function PdfDropzone({ value, onUpload, onDelete, loading = false }: PdfDropzoneProps) {
   const inputRef = useRef<HTMLInputElement | null>(null)
@@ -33,9 +32,6 @@ export default function PdfDropzone({ value, onUpload, onDelete, loading = false
   const validatePdf = (file: File) => {
     if (file.type !== 'application/pdf') {
       return 'Only PDF allowed'
-    }
-    if (file.size > MAX_PDF_SIZE) {
-      return 'Max file size is 20MB'
     }
     return ''
   }
@@ -113,7 +109,7 @@ export default function PdfDropzone({ value, onUpload, onDelete, loading = false
             >
               Select PDF File
             </button>
-            <p className="text-xs text-gray-500">Max size: 20MB • PDF only</p>
+            <p className="text-xs text-gray-500">PDF only</p>
             {loading && <p className="text-xs text-yellow-300">Uploading...</p>}
             {error && <p className="text-xs text-red-400">{error}</p>}
             {retryFile && !loading && (

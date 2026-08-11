@@ -33,11 +33,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ success: false, message: 'Only PDF files are allowed' }, { status: 400 })
     }
 
-    // Validate size (20MB max)
-    const MAX_SIZE = 20 * 1024 * 1024
-    if (file.size > MAX_SIZE) {
-      return NextResponse.json({ success: false, message: 'File size must be 20MB or smaller' }, { status: 400 })
-    }
+    // No file size limit enforced for brochure uploads
 
     // Delete existing brochure if any
     const existing = await (prisma as any).projectBrochure.findUnique({

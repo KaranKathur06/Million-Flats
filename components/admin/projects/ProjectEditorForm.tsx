@@ -184,7 +184,7 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
       }
       setAmenities((p.amenities || []).map((a: any) => ({ id: a.id, name: a.name || '', icon: a.icon || '', category: a.category || '' })))
       setNearbyPlaces((p.nearbyPlaces || []).map((np: any) => ({ id: np.id, name: np.name || '', category: np.category || '', distance: np.distance || '' })))
-      setPaymentPlans((p.paymentPlans || []).map((pp: any) => ({ id: pp.id, itemType: pp.itemType === 'FEE' ? 'FEE' : 'BASE_PRICE', label: pp.label || '', amount: pp.amount !== null && pp.amount !== undefined ? String(pp.amount) : '', currency: pp.currency || 'AED', milestone: pp.milestone || '' })))
+      setPaymentPlans((p.paymentPlans || []).map((pp: any) => ({ id: pp.id, itemType: String(pp.itemType || '').toUpperCase() === 'FEE' ? 'FEE' : 'BASE_PRICE', label: pp.label || '', amount: pp.amount !== null && pp.amount !== undefined ? String(pp.amount) : '', currency: pp.currency || 'AED', milestone: pp.milestone || '' })))
       if (p.location) {
         setLocation({ latitude: p.location.latitude != null ? String(p.location.latitude) : '', longitude: p.location.longitude != null ? String(p.location.longitude) : '', address: p.location.address || '', mapUrl: p.location.mapUrl || '' })
       }

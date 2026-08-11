@@ -376,7 +376,7 @@ export async function POST(req: Request) {
                         await tx.projectPaymentPlan.createMany({
                             data: paymentRows.map((pp) => ({
                                 projectId: project.id,
-                                itemType: pp.itemType,
+                                itemType: pp.itemType && String(pp.itemType).toLowerCase() === 'fee' ? 'fee' : 'base_price',
                                 label: pp.label,
                                 amount: pp.amount,
                                 currency: pp.currency,

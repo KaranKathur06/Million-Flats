@@ -443,7 +443,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
                         const milestone = String(pp.milestone || '').trim() || null
                         return {
                             projectId: params.id,
-                            itemType: pp.itemType === 'FEE' ? 'FEE' : 'BASE_PRICE',
+                            itemType: pp.itemType && String(pp.itemType).toLowerCase() === 'fee' ? 'fee' : 'base_price',
                             label,
                             amount,
                             currency,

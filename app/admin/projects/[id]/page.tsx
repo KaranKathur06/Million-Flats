@@ -200,7 +200,7 @@ export default function AdminEditProjectPage() {
             // Load nearby places
             setNearbyPlaces((p.nearbyPlaces || []).map((np: any) => ({ id: np.id, name: np.name || '', category: np.category || '', distance: np.distance || '' })))
             // Load payment plans
-            setPaymentPlans((p.paymentPlans || []).map((pp: any) => ({ id: pp.id, itemType: pp.itemType === 'FEE' ? 'FEE' : 'BASE_PRICE', label: pp.label || '', amount: pp.amount !== null && pp.amount !== undefined ? String(pp.amount) : '', currency: pp.currency || 'AED', milestone: pp.milestone || '' })))
+            setPaymentPlans((p.paymentPlans || []).map((pp: any) => ({ id: pp.id, itemType: String(pp.itemType || '').toUpperCase() === 'FEE' ? 'FEE' : 'BASE_PRICE', label: pp.label || '', amount: pp.amount !== null && pp.amount !== undefined ? String(pp.amount) : '', currency: pp.currency || 'AED', milestone: pp.milestone || '' })))
             // Load location
             if (p.location) {
                 setLocation({
@@ -542,10 +542,7 @@ export default function AdminEditProjectPage() {
             toast.error('Only PDF files are allowed for brochures')
             throw new Error('Only PDF files are allowed for brochures')
         }
-        if (file.size > 20 * 1024 * 1024) {
-            toast.error('Brochure file must be 20MB or smaller')
-            throw new Error('Brochure file must be 20MB or smaller')
-        }
+            // No size limit enforced
         setBrochureUploading(true)
         try {
             const formData = new FormData()
