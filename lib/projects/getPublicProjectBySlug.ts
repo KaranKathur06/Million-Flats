@@ -160,12 +160,42 @@ export async function getPublicProjectBySlug(rawSlug: string) {
   if (!slug) return null
 
   try {
-    const project = await (prisma as any).project.findFirst({
+    // Primary lookup: exact match
+    let project = await (prisma as any).project.findFirst({
       where: { slug, status: 'PUBLISHED', isDeleted: false },
       select: publicProjectDetailSelect,
     })
 
-    if (!project) return null
+    // Fallbacks: some DBs or legacy slugs may differ in case/encoding.
+    // Try a case-insensitive match where supported, otherwise try a contains match.
+    if (!project) {
+      try {
+        project = await (prisma as any).project.findFirst({
+          where: { slug: { equals: slug, mode: 'insensitive' }, status: 'PUBLISHED', isDeleted: false },
+          select: publicProjectDetailSelect,
+        })
+      } catch (err) {
+        // Prisma provider may not support `mode` on older versions; fall back to a broader contains lookup
+        try {
+          const candidates = await (prisma as any).project.findMany({
+            where: { status: 'PUBLISHED', isDeleted: false },
+            select: { id: true, slug: true },
+            take: 20,
+          })
+          const match = candidates.find((c: any) => String(c.slug || '').toLowerCase() === slug.toLowerCase())
+          if (match) {
+            project = await (prisma as any).project.findUnique({ where: { id: match.id }, select: publicProjectDetailSelect })
+          }
+        } catch (e) {
+          // ignore fallback errors
+        }
+      }
+    }
+
+    if (!project) {
+      console.warn('[getPublicProjectBySlug] project not found for slug:', slug)
+      return null
+    }
 
     const [brochure, publishedProjectCount, similarProjects] = await Promise.all([
       loadBrochure(project.id, project.brochureUrl),

@@ -52,7 +52,7 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
             return NextResponse.json({ success: false, message: 'Missing slug' }, { status: 400 })
         }
 
-        const project = await (prisma as any).project.findFirst({
+        let project = await (prisma as any).project.findFirst({
             where: { slug, status: 'PUBLISHED', isDeleted: false },
             select: {
                 id: true,
@@ -139,6 +139,176 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
                 },
             },
         })
+
+        // If primary lookup failed, attempt a case-insensitive lookup (if supported)
+        if (!project) {
+            try {
+                project = await (prisma as any).project.findFirst({
+                    where: { slug: { equals: slug, mode: 'insensitive' }, status: 'PUBLISHED', isDeleted: false },
+                    select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        city: true,
+                        community: true,
+                        countryIso2: true,
+                        description: true,
+                        highlights: true,
+                        completionYear: true,
+                        startingPrice: true,
+                        goldenVisa: true,
+                        coverImage: true,
+                        status: true,
+                        createdAt: true,
+                        developer: { select: { id: true, name: true, slug: true, logo: true } },
+                        media: {
+                            orderBy: { sortOrder: 'asc' },
+                            select: { id: true, mediaUrl: true, mediaType: true, category: true, label: true, sortOrder: true },
+                        },
+                        unitTypes: {
+                            orderBy: { sortOrder: 'asc' },
+                            select: {
+                                id: true,
+                                unitType: true,
+                                bedrooms: true,
+                                bathrooms: true,
+                                sizeFrom: true,
+                                sizeTo: true,
+                                priceFrom: true,
+                                variants: {
+                                    orderBy: { sortOrder: 'asc' },
+                                    select: {
+                                        id: true,
+                                        title: true,
+                                        size: true,
+                                        price: true,
+
+                                        availabilityStatus: true,
+                                        availableUnitsCount: true,
+                                        priceOnRequest: true,
+                                        floorPlans: {
+                                            orderBy: { createdAt: 'asc' },
+                                            select: {
+                                                id: true,
+                                                unitType: true,
+                                                bedrooms: true,
+                                                bathrooms: true,
+                                                size: true,
+                                                price: true,
+                                                imageUrl: true,
+                                            },
+                                        },
+                                        media: {
+                                            orderBy: { sortOrder: 'asc' },
+                                            select: { id: true, type: true, url: true, title: true, sortOrder: true },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                        amenities: {
+                            select: { id: true, name: true, icon: true, category: true },
+                        },
+                        paymentPlans: {
+                            orderBy: { sortOrder: 'asc' },
+                            select: { id: true, itemType: true, label: true, amount: true, currency: true, milestone: true, sortOrder: true },
+                        },
+                        floorPlans: {
+                            select: { id: true, unitType: true, bedrooms: true, bathrooms: true, size: true, price: true, imageUrl: true },
+                        },
+                        videos: {
+                            orderBy: { sortOrder: 'asc' },
+                            select: { id: true, videoUrl: true, title: true, thumbnail: true, sortOrder: true },
+                        },
+                        location: {
+                            select: { id: true, latitude: true, longitude: true, address: true, mapUrl: true },
+                        },
+                        nearbyPlaces: {
+                            orderBy: { sortOrder: 'asc' },
+                            select: { id: true, name: true, category: true, distance: true, sortOrder: true },
+                        },
+                    },
+                })
+            } catch (err) {
+                // If case-insensitive mode isn't supported, attempt a conservative server-side match
+                try {
+                    const candidates = await (prisma as any).project.findMany({ where: { status: 'PUBLISHED', isDeleted: false }, select: { id: true, slug: true }, take: 50 })
+                    const match = candidates.find((c: any) => String(c.slug || '').toLowerCase() === slug.toLowerCase())
+                    if (match) {
+                        project = await (prisma as any).project.findUnique({ where: { id: match.id }, select: {
+                            id: true,
+                            name: true,
+                            slug: true,
+                            city: true,
+                            community: true,
+                            countryIso2: true,
+                            description: true,
+                            highlights: true,
+                            completionYear: true,
+                            startingPrice: true,
+                            goldenVisa: true,
+                            coverImage: true,
+                            status: true,
+                            createdAt: true,
+                            developer: { select: { id: true, name: true, slug: true, logo: true } },
+                            media: {
+                                orderBy: { sortOrder: 'asc' },
+                                select: { id: true, mediaUrl: true, mediaType: true, category: true, label: true, sortOrder: true },
+                            },
+                            unitTypes: {
+                                orderBy: { sortOrder: 'asc' },
+                                select: {
+                                    id: true,
+                                    unitType: true,
+                                    bedrooms: true,
+                                    bathrooms: true,
+                                    sizeFrom: true,
+                                    sizeTo: true,
+                                    priceFrom: true,
+                                    variants: {
+                                        orderBy: { sortOrder: 'asc' },
+                                        select: {
+                                            id: true,
+                                            title: true,
+                                            size: true,
+                                            price: true,
+                                            pricePerSqft: true,
+                                            availabilityStatus: true,
+                                            availableUnitsCount: true,
+                                            priceOnRequest: true,
+                                            floorPlans: {
+                                                orderBy: { createdAt: 'asc' },
+                                                select: {
+                                                    id: true,
+                                                    unitType: true,
+                                                    bedrooms: true,
+                                                    bathrooms: true,
+                                                    size: true,
+                                                    price: true,
+                                                    imageUrl: true,
+                                                },
+                                            },
+                                            media: {
+                                                orderBy: { sortOrder: 'asc' },
+                                                select: { id: true, type: true, url: true, title: true, sortOrder: true },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                            amenities: { select: { id: true, name: true, icon: true, category: true } },
+                            paymentPlans: { orderBy: { sortOrder: 'asc' }, select: { id: true, itemType: true, label: true, amount: true, currency: true, milestone: true, sortOrder: true } },
+                            floorPlans: { select: { id: true, unitType: true, bedrooms: true, bathrooms: true, size: true, price: true, imageUrl: true } },
+                            videos: { orderBy: { sortOrder: 'asc' }, select: { id: true, videoUrl: true, title: true, thumbnail: true, sortOrder: true } },
+                            location: { select: { id: true, latitude: true, longitude: true, address: true, mapUrl: true } },
+                            nearbyPlaces: { orderBy: { sortOrder: 'asc' }, select: { id: true, name: true, category: true, distance: true, sortOrder: true } },
+                        } })
+                    }
+                } catch (e) {
+                    // ignore
+                }
+            }
+        }
 
         if (!project) {
             return NextResponse.json({ success: false, message: 'Project not found' }, { status: 404 })
