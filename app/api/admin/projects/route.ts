@@ -29,18 +29,19 @@ const createProjectSchema = z.object({
     name: z.string().min(1).max(300),
     slug: z.string().min(1).max(200).optional(),
     developerId: z.string().min(1),
-    countryIso2: z.string().max(2).optional(),
-    city: z.string().max(200).optional(),
-    community: z.string().max(200).optional(),
-    description: z.string().max(10000).optional(),
+    countryIso2: z.string().max(2).optional().nullable(),
+    city: z.string().max(200).optional().nullable(),
+    community: z.string().max(200).optional().nullable(),
+    description: z.string().max(10000).optional().nullable(),
     overview: z.string().max(20000).optional().nullable(),
     completionYear: z.number().int().min(2000).max(2100).optional().nullable(),
     startingPrice: z.union([z.number(), z.string()]).optional().nullable(),
     goldenVisa: z.boolean().optional(),
     isFeatured: z.boolean().optional(),
     featuredOrder: z.number().int().min(0).optional().nullable(),
-    coverImage: z.string().max(2000).optional(),
+    coverImage: z.string().max(2000).optional().nullable(),
     unitTypes: z.array(z.object({
+        id: z.string().optional(),
         name: z.string().min(1).max(120).optional(),
         unitType: z.string().min(1).max(120).optional(),
         bedrooms: z.number().int().min(0).max(20).optional().nullable(),
@@ -51,14 +52,15 @@ const createProjectSchema = z.object({
         sizeTo: z.number().int().min(0).optional().nullable(),
         priceFrom: z.union([z.number(), z.string()]).optional().nullable(),
         variants: z.array(z.object({
+            id: z.string().optional(),
             title: z.string().min(1).max(120),
             size: z.number().int().min(0).optional().nullable(),
             price: z.union([z.number(), z.string()]).optional().nullable(),
             priceOnRequest: z.boolean().optional(),
-
             availabilityStatus: z.enum(['AVAILABLE', 'SOLD_OUT']).optional(),
             availableUnitsCount: z.number().int().min(0).optional().nullable(),
             floorPlans: z.array(z.object({
+                id: z.string().optional(),
                 title: z.string().max(120).optional().nullable(),
                 imageUrl: z.string().max(2000).optional().nullable(),
                 size: z.string().max(120).optional().nullable(),
@@ -68,12 +70,49 @@ const createProjectSchema = z.object({
             })).optional(),
         })).optional(),
     })).optional(),
+    floorPlans: z.array(z.object({
+        id: z.string().optional(),
+        unitType: z.string().min(1).max(120).optional().nullable(),
+        bedrooms: z.number().int().min(0).max(20).optional().nullable(),
+        bathrooms: z.number().int().min(0).max(20).optional().nullable(),
+        size: z.string().max(120).optional().nullable(),
+        price: z.string().max(120).optional().nullable(),
+        imageUrl: z.string().max(2000).optional().nullable(),
+    })).optional(),
+    highlights: z.array(z.string().max(200)).optional(),
+    amenities: z.array(z.object({
+        id: z.string().optional(),
+        name: z.string().min(1).max(200),
+        icon: z.string().max(100).optional().nullable(),
+        category: z.string().max(100).optional().nullable(),
+    })).optional(),
+    nearbyPlaces: z.array(z.object({
+        id: z.string().optional(),
+        name: z.string().min(1).max(200),
+        category: z.string().max(100).optional().nullable(),
+        distance: z.string().max(100).optional().nullable(),
+        sortOrder: z.number().int().min(0).optional().nullable(),
+    })).optional(),
     paymentPlans: z.array(z.object({
+        id: z.string().optional(),
         itemType: z.enum(['BASE_PRICE', 'FEE']),
         label: z.string().min(1).max(200),
         amount: z.union([z.number(), z.string()]).optional().nullable(),
         currency: z.string().max(10).optional().nullable(),
         milestone: z.string().max(200).optional().nullable(),
+        sortOrder: z.number().int().min(0).optional().nullable(),
+    })).optional(),
+    location: z.object({
+        latitude: z.number().optional().nullable(),
+        longitude: z.number().optional().nullable(),
+        address: z.string().max(500).optional().nullable(),
+        mapUrl: z.string().max(2000).optional().nullable(),
+    }).optional().nullable(),
+    videos: z.array(z.object({
+        id: z.string().optional(),
+        videoUrl: z.string().min(1).max(2000),
+        title: z.string().max(200).optional().nullable(),
+        thumbnail: z.string().max(2000).optional().nullable(),
         sortOrder: z.number().int().min(0).optional().nullable(),
     })).optional(),
 })
@@ -258,6 +297,53 @@ export async function POST(req: Request) {
             })
         }
 
+        if (data.amenities?.length) {
+            await (prisma as any).projectAmenity.createMany({
+                data: data.amenities.map((a: any) => ({
+                    projectId: project.id,
+                    name: a.name?.trim() || '',
+                    icon: a.icon?.trim() || null,
+                    category: a.category?.trim() || null,
+                })),
+            })
+        }
+
+        if (data.nearbyPlaces?.length) {
+            await (prisma as any).projectNearbyPlace.createMany({
+                data: data.nearbyPlaces.map((np: any, idx: number) => ({
+                    projectId: project.id,
+                    name: np.name?.trim() || '',
+                    category: np.category?.trim() || null,
+                    distance: np.distance?.trim() || null,
+                    sortOrder: np.sortOrder ?? idx,
+                })),
+            })
+        }
+
+        if (data.location) {
+            await (prisma as any).projectLocation.create({
+                data: {
+                    projectId: project.id,
+                    latitude: data.location.latitude ?? null,
+                    longitude: data.location.longitude ?? null,
+                    address: data.location.address?.trim() || null,
+                    mapUrl: data.location.mapUrl?.trim() || null,
+                },
+            })
+        }
+
+        if (data.videos?.length) {
+            await (prisma as any).projectVideo.createMany({
+                data: data.videos.map((v: any, idx: number) => ({
+                    projectId: project.id,
+                    videoUrl: v.videoUrl?.trim() || '',
+                    title: v.title?.trim() || null,
+                    thumbnail: v.thumbnail?.trim() || null,
+                    sortOrder: v.sortOrder ?? idx,
+                })),
+            })
+        }
+
         if (data.unitTypes?.length) {
             for (let idx = 0; idx < data.unitTypes.length; idx++) {
                 const ut = data.unitTypes[idx]
@@ -314,6 +400,21 @@ export async function POST(req: Request) {
                     }
                 }
             }
+        }
+
+        if (data.floorPlans?.length) {
+            await (prisma as any).projectFloorPlan.createMany({
+                data: data.floorPlans.filter((fp: any) => String(fp.imageUrl || '').trim()).map((fp: any, idx: number) => ({
+                    projectId: project.id,
+                    unitVariantId: null,
+                    unitType: fp.unitType?.trim() || 'Floor Plan',
+                    bedrooms: fp.bedrooms ?? null,
+                    bathrooms: fp.bathrooms ?? null,
+                    size: fp.size?.trim() || null,
+                    price: fp.price?.trim() || null,
+                    imageUrl: fp.imageUrl?.trim() || null,
+                })),
+            })
         }
 
         return NextResponse.json({ success: true, project }, { status: 201 })

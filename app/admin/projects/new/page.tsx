@@ -1,6 +1,6 @@
 'use client'
 
-import ProjectEditorForm from '@/components/admin/projects/ProjectEditorForm'
+import ProjectForm from '@/components/admin/projects/ProjectForm/ProjectForm'
 
 export default function AdminAddProjectPage() {
     return (
@@ -9,7 +9,7 @@ export default function AdminAddProjectPage() {
                 <h1 className="text-2xl font-bold tracking-tight text-white/95">Add Project</h1>
                 <p className="mt-1 text-sm text-white/40">Create a new developer project (saved as Draft)</p>
             </div>
-            <ProjectEditorForm mode="create" />
+            <ProjectForm mode="create" />
         </div>
     )
 }

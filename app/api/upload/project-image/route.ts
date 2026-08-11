@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { buildProjectMediaTypeKey, normalizeProjectImageFilename, uploadToS3Key } from '@/lib/s3'
 import { buildAssetUrl } from '@/lib/assetUrl'
+import { PROJECT_FLOOR_PLAN_ALLOWED_TYPES, PROJECT_FLOOR_PLAN_MAX_SIZE } from '@/components/admin/projects/ProjectForm/ProjectFormSchema'
 
 const ALLOWED_IMAGE_PREFIX = 'image/'
+const ALLOWED_PDF_TYPE = 'application/pdf'
 
 function normalizeLabelFromFilename(filename: string) {
   const dot = filename.lastIndexOf('.')
@@ -34,11 +36,17 @@ export async function POST(req: Request) {
     if (!developerSlug || !projectSlug) {
       return NextResponse.json({ success: false, message: 'developerSlug and projectSlug are required' }, { status: 400 })
     }
-    if (!String(file.type || '').toLowerCase().startsWith(ALLOWED_IMAGE_PREFIX)) {
-      return NextResponse.json({ success: false, message: 'Only image uploads are allowed' }, { status: 400 })
+    const normalizedType = String(file.type || '').toLowerCase()
+    const isImage = normalizedType.startsWith(ALLOWED_IMAGE_PREFIX)
+    const isPdfFloorPlan = mediaType === 'floor_plan' && normalizedType === ALLOWED_PDF_TYPE
+    if (!isImage && !isPdfFloorPlan) {
+      return NextResponse.json({ success: false, message: 'Only image uploads or floor-plan PDFs are allowed' }, { status: 400 })
     }
-    if (file.size > 50 * 1024 * 1024) {
-      return NextResponse.json({ success: false, message: 'File too large (max 50MB)' }, { status: 400 })
+    if (mediaType === 'floor_plan' && !PROJECT_FLOOR_PLAN_ALLOWED_TYPES.includes(normalizedType)) {
+      return NextResponse.json({ success: false, message: 'Unsupported floor-plan file type' }, { status: 400 })
+    }
+    if (file.size > (mediaType === 'floor_plan' ? PROJECT_FLOOR_PLAN_MAX_SIZE : 50 * 1024 * 1024)) {
+      return NextResponse.json({ success: false, message: mediaType === 'floor_plan' ? 'Floor-plan file too large (max 5MB)' : 'File too large (max 50MB)' }, { status: 400 })
     }
 
     const normalizedFilename = normalizeProjectImageFilename({ originalName: file.name, contentType: file.type })
