@@ -247,7 +247,7 @@ export async function POST(req: Request) {
                     const milestone = `${pp.milestone || ''}`.trim() || null
                     return {
                         projectId: project.id,
-                        itemType: pp.itemType && String(pp.itemType).toLowerCase() === 'fee' ? 'fee' : 'base_price',
+                        itemType: pp.itemType && String(pp.itemType).toLowerCase() === 'fee' ? 'FEE' : 'BASE_PRICE',
                         label,
                         amount,
                         currency,
