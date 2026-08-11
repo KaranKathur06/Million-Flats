@@ -1979,8 +1979,8 @@ enum UnitMediaType {
 }
 
 enum ProjectPaymentPlanItemType {
-  BASE_PRICE @map("base_price")
-  FEE @map("fee")
+  BASE_PRICE
+  FEE
 }
 
 model Project {
