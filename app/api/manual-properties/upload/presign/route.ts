@@ -7,12 +7,17 @@ import { buildAssetUrl } from '@/lib/assetUrl'
 
 export const runtime = 'nodejs'
 
+// Server-side size limits (configurable via env, defaults shown)
+const BROCHURE_MAX_SIZE = Number(process.env.PROJECT_BROCHURE_MAX_SIZE_BYTES) || 300 * 1024 * 1024 // 300MB default
+const VIDEO_MAX_SIZE = Number(process.env.PROJECT_VIDEO_MAX_SIZE_BYTES) || 500 * 1024 * 1024 // 500MB default
+const IMAGE_MAX_SIZE = Number(process.env.PROJECT_IMAGE_MAX_SIZE_BYTES) || 60 * 1024 * 1024 // 60MB default (zod schema max)
+
 const BodySchema = z.object({
   propertyId: z.string().trim().min(1),
   category: z.enum(['COVER', 'EXTERIOR', 'INTERIOR', 'FLOOR_PLANS', 'AMENITIES', 'BROCHURE', 'VIDEO']),
   filename: z.string().trim().min(1).max(160),
   contentType: z.string().trim().min(1).max(100),
-  sizeBytes: z.number().int().min(1).max(60 * 1024 * 1024),
+  sizeBytes: z.number().int().min(1).max(IMAGE_MAX_SIZE),
   altText: z.string().trim().max(200).optional(),
 })
 
@@ -73,15 +78,17 @@ export async function POST(req: Request) {
       if (!isAllowedPdf(contentType)) {
         return NextResponse.json({ success: false, message: 'Only PDF brochures are allowed.' }, { status: 400 })
       }
-      if (sizeBytes > 15 * 1024 * 1024) {
-        return NextResponse.json({ success: false, message: 'PDF too large (max 15MB).' }, { status: 400 })
+      const maxMB = Math.floor(BROCHURE_MAX_SIZE / 1024 / 1024)
+      if (sizeBytes > BROCHURE_MAX_SIZE) {
+        return NextResponse.json({ success: false, message: `PDF too large (max ${maxMB}MB).` }, { status: 400 })
       }
     } else if (isVideo) {
       if (!isAllowedVideoType(contentType)) {
         return NextResponse.json({ success: false, message: 'Only MP4/WebM videos are allowed.' }, { status: 400 })
       }
-      if (sizeBytes > 50 * 1024 * 1024) {
-        return NextResponse.json({ success: false, message: 'Video too large (max 50MB).' }, { status: 400 })
+      const maxMB = Math.floor(VIDEO_MAX_SIZE / 1024 / 1024)
+      if (sizeBytes > VIDEO_MAX_SIZE) {
+        return NextResponse.json({ success: false, message: `Video too large (max ${maxMB}MB).` }, { status: 400 })
       }
     } else {
       if (!isAllowedImageType(contentType)) {

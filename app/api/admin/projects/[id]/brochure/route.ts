@@ -6,6 +6,9 @@ import { buildAssetUrl } from '@/lib/assetUrl'
 
 export const runtime = 'nodejs'
 
+// Server-side brochure size limit (300 MB by default, configurable via env)
+const BROCHURE_MAX_SIZE = Number(process.env.PROJECT_BROCHURE_MAX_SIZE_BYTES) || 300 * 1024 * 1024
+
 // POST — Upload brochure PDF
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const auth = await requireAdminSession()
@@ -33,7 +36,14 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ success: false, message: 'Only PDF files are allowed' }, { status: 400 })
     }
 
-    // No file size limit enforced for brochure uploads
+    // Validate file size against server limit
+    if (file.size > BROCHURE_MAX_SIZE) {
+      const maxMB = Math.floor(BROCHURE_MAX_SIZE / 1024 / 1024)
+      return NextResponse.json({ 
+        success: false, 
+        message: `Brochure exceeds maximum size of ${maxMB}MB` 
+      }, { status: 413 })
+    }
 
     // Delete existing brochure if any
     const existing = await (prisma as any).projectBrochure.findUnique({

@@ -59,6 +59,20 @@ export async function POST(req: Request, { params }: { params: { id: string } })
             }
 
             const data = parsed.data
+            
+            // Enforce HERO uniqueness: demote existing HERO to gallery if setting new one
+            if (data.category === 'hero') {
+                const existingHero = await (prisma as any).projectMedia.findFirst({
+                    where: { projectId: params.id, category: 'HERO' },
+                })
+                if (existingHero) {
+                    await (prisma as any).projectMedia.update({
+                        where: { id: existingHero.id },
+                        data: { category: 'GALLERY', mediaType: 'gallery' },
+                    })
+                }
+            }
+            
             const media = await (prisma as any).projectMedia.create({
                 data: {
                     projectId: params.id,
@@ -136,6 +150,19 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         const buffer = Buffer.from(await file.arrayBuffer())
         const { key: uploadedKey } = await uploadToS3Key({ buffer, key, contentType: file.type || 'image/jpeg' })
         const url = buildAssetUrl(uploadedKey) || uploadedKey
+
+        // Enforce HERO uniqueness: demote existing HERO to gallery if setting new one
+        if (category === 'hero') {
+            const existingHero = await (prisma as any).projectMedia.findFirst({
+                where: { projectId: params.id, category: 'HERO' },
+            })
+            if (existingHero) {
+                await (prisma as any).projectMedia.update({
+                    where: { id: existingHero.id },
+                    data: { category: 'GALLERY', mediaType: 'gallery' },
+                })
+            }
+        }
 
         const media = await (prisma as any).projectMedia.create({
             data: {

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
 import PdfDropzone, { type FileMeta } from '@/components/upload/PdfDropzone'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
 
 interface DevOption { id: string; name: string; slug: string | null }
 interface MediaItem {
@@ -455,17 +456,23 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
             </div>
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/40">Developer</label>
-              <select value={developerId} onChange={(e) => setDeveloperId(e.target.value)} className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-amber-400/30">
-                <option value="" className="text-black">Select…</option>
-                {developers.map((d) => <option key={d.id} value={d.id} className="text-black">{d.name}</option>)}
-              </select>
+              <GlobalDropdown
+                value={developerId}
+                onChange={(v) => setDeveloperId(v as string)}
+                options={[{ value: '', label: 'Select…' }, ...(developers || []).map((d) => ({ value: d.id, label: d.name }))]}
+                showLabel={false}
+                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-amber-400/30"
+              />
             </div>
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/40">Country</label>
-              <select value={countryIso2} onChange={(e) => setCountryIso2(e.target.value)} className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-amber-400/30">
-                <option value="AE" className="text-black">UAE</option>
-                <option value="IN" className="text-black">India</option>
-              </select>
+              <GlobalDropdown
+                value={countryIso2}
+                onChange={(v) => setCountryIso2(v as string)}
+                options={[{ value: 'AE', label: 'UAE' }, { value: 'IN', label: 'India' }]}
+                showLabel={false}
+                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-amber-400/30"
+              />
             </div>
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/40">City</label>
@@ -559,10 +566,13 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
                       <input value={variant.size} onChange={(e) => updateVariant(utIdx, variantIdx, 'size', e.target.value)} placeholder="Size" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
                       <input value={variant.price} onChange={(e) => updateVariant(utIdx, variantIdx, 'price', e.target.value)} placeholder="Price" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
                       <div className="flex items-center justify-end gap-2">
-                        <select value={variant.availabilityStatus} onChange={(e) => updateVariant(utIdx, variantIdx, 'availabilityStatus', e.target.value as 'AVAILABLE' | 'SOLD_OUT')} className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70">
-                          <option value="AVAILABLE" className="text-black">Available</option>
-                          <option value="SOLD_OUT" className="text-black">Sold Out</option>
-                        </select>
+                        <GlobalDropdown
+                          value={variant.availabilityStatus}
+                          onChange={(v) => updateVariant(utIdx, variantIdx, 'availabilityStatus', v as 'AVAILABLE' | 'SOLD_OUT')}
+                          options={[{ value: 'AVAILABLE', label: 'Available' }, { value: 'SOLD_OUT', label: 'Sold Out' }]}
+                          showLabel={false}
+                          className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70"
+                        />
                         <button type="button" onClick={() => removeVariant(utIdx, variantIdx)} className="text-xs text-red-400">Delete</button>
                       </div>
                     </div>
@@ -645,10 +655,13 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
           <div className="space-y-3">
             {paymentPlans.map((pp, idx) => (
               <div key={`${pp.label || idx}-${idx}`} className="grid gap-3 rounded-xl border border-white/[0.06] bg-black/10 p-4 md:grid-cols-5">
-                <select value={pp.itemType} onChange={(e) => updatePaymentPlan(idx, 'itemType', e.target.value)} className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70">
-                  <option value="BASE_PRICE" className="text-black">Base price</option>
-                  <option value="FEE" className="text-black">Additional fee</option>
-                </select>
+                <GlobalDropdown
+                  value={pp.itemType}
+                  onChange={(v) => updatePaymentPlan(idx, 'itemType', v as 'BASE_PRICE' | 'FEE')}
+                  options={[{ value: 'BASE_PRICE', label: 'Base price' }, { value: 'FEE', label: 'Additional fee' }]}
+                  showLabel={false}
+                  className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70"
+                />
                 <input value={pp.label} onChange={(e) => updatePaymentPlan(idx, 'label', e.target.value)} placeholder="Item label" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
                 <input value={pp.amount} onChange={(e) => updatePaymentPlan(idx, 'amount', e.target.value)} placeholder="Amount" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
                 <input value={pp.currency} onChange={(e) => updatePaymentPlan(idx, 'currency', e.target.value)} placeholder="Currency" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />

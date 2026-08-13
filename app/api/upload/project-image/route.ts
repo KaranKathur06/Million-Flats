@@ -4,6 +4,12 @@ import { buildProjectMediaTypeKey, normalizeProjectImageFilename, uploadToS3Key 
 import { buildAssetUrl } from '@/lib/assetUrl'
 import { PROJECT_FLOOR_PLAN_ALLOWED_TYPES, PROJECT_FLOOR_PLAN_MAX_SIZE } from '@/components/admin/projects/ProjectForm/ProjectFormSchema'
 
+export const runtime = 'nodejs'
+
+// Server-side image upload size limits (configurable via env)
+const IMAGE_MAX_SIZE = Number(process.env.PROJECT_IMAGE_MAX_SIZE_BYTES) || 50 * 1024 * 1024 // 50MB default
+const FLOOR_PLAN_MAX_SIZE = PROJECT_FLOOR_PLAN_MAX_SIZE // 5MB from client schema
+
 const ALLOWED_IMAGE_PREFIX = 'image/'
 const ALLOWED_PDF_TYPE = 'application/pdf'
 
@@ -45,8 +51,14 @@ export async function POST(req: Request) {
     if (mediaType === 'floor_plan' && !PROJECT_FLOOR_PLAN_ALLOWED_TYPES.includes(normalizedType)) {
       return NextResponse.json({ success: false, message: 'Unsupported floor-plan file type' }, { status: 400 })
     }
-    if (file.size > (mediaType === 'floor_plan' ? PROJECT_FLOOR_PLAN_MAX_SIZE : 50 * 1024 * 1024)) {
-      return NextResponse.json({ success: false, message: mediaType === 'floor_plan' ? 'Floor-plan file too large (max 5MB)' : 'File too large (max 50MB)' }, { status: 400 })
+    
+    const maxSizeForType = mediaType === 'floor_plan' ? FLOOR_PLAN_MAX_SIZE : IMAGE_MAX_SIZE
+    if (file.size > maxSizeForType) {
+      const maxMB = Math.floor(maxSizeForType / 1024 / 1024)
+      const errorMsg = mediaType === 'floor_plan' 
+        ? `Floor-plan file too large (max ${maxMB}MB)` 
+        : `File too large (max ${maxMB}MB)`
+      return NextResponse.json({ success: false, message: errorMsg }, { status: 413 })
     }
 
     const normalizedFilename = normalizeProjectImageFilename({ originalName: file.name, contentType: file.type })

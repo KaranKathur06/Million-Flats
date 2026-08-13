@@ -396,34 +396,67 @@ async function scrapePropertyFromHtml(url, html, cityMeta) {
     // ── Parse community/location ──
     let community = parseCommunityFromUrl(url)
 
-    // Try from breadcrumbs or meta
-    if (!community) {
-        const breadcrumbs = []
-        $('[class*="breadcrumb"] a, nav a').each((_, el) => {
-            breadcrumbs.push($(el).text().trim())
-        })
-        // Location is often the 2nd or 3rd breadcrumb item
-        if (breadcrumbs.length > 2) {
-            community = breadcrumbs[breadcrumbs.length - 2]
+    // Junk values to reject from community parsing
+    const COMMUNITY_JUNK = ['rent', 'buy', 'sale', 'home', 'property', 'properties', 'residential', 'commercial', 'more', 'search', 'login', 'sign', 'register', 'contact']
+    const isCommunityJunk = (val) => !val || val.length < 2 || COMMUNITY_JUNK.includes(val.toLowerCase().trim())
+
+    // Try from OG title first - "Project Name Location, City" — most reliable
+    if (!community && ogTitle) {
+        // Pattern: "K Raheja Jade City Juinagar, Navi Mumbai"
+        const locationMatch = ogTitle.match(/([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*?)\s*,\s*(?:Navi\s+Mumbai|Mumbai|Delhi|Bangalore|Bengaluru|Pune|Chennai|Hyderabad|Kolkata|Ahmedabad|Gurgaon|Gurugram|Noida|Thane|Dubai|Abu\s+Dhabi|Sharjah)/i)
+        if (locationMatch) {
+            // The location is the last word(s) before the city — extract it from the project title
+            const fullBeforeCity = locationMatch[1].trim()
+            // Split and take last 1-2 words as community (rest is project name)
+            const words = fullBeforeCity.split(/\s+/)
+            if (words.length >= 2) {
+                // Heuristic: last 1-2 words are likely the location
+                const candidate = words.slice(-1).join(' ')
+                if (!isCommunityJunk(candidate)) community = candidate
+                // Try last 2 words if single word is too short
+                if (!community || community.length < 4) {
+                    const candidate2 = words.slice(-2).join(' ')
+                    if (!isCommunityJunk(candidate2)) community = candidate2
+                }
+            }
         }
     }
 
-    // Try from OG title - "Project Name Location, City"
-    if (!community && ogTitle) {
-        const locationMatch = ogTitle.match(/\b(?:in\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s*(?:Navi\s+Mumbai|Mumbai|Delhi)/i)
-        if (locationMatch) community = locationMatch[1]
+    // Fallback: try from breadcrumbs
+    if (!community || isCommunityJunk(community)) {
+        const breadcrumbs = []
+        $('[class*="breadcrumb"] a, nav a').each((_, el) => {
+            const text = $(el).text().trim()
+            if (text && !isCommunityJunk(text)) breadcrumbs.push(text)
+        })
+        // Location is often the 2nd or 3rd breadcrumb item (skip Home, city)
+        if (breadcrumbs.length > 2) {
+            const candidate = breadcrumbs[breadcrumbs.length - 2]
+            if (!isCommunityJunk(candidate)) community = candidate
+        }
     }
+
+    // Final cleanup
+    if (isCommunityJunk(community)) community = null
 
     // Developer
     const developerName = extractDeveloperName(title)
 
     // ── Parse amenities from page ──
-    const amenities = []
+    const amenitiesRaw = []
     $('[class*="amenity"], [class*="amenities"] li, [class*="feature"] li').each((_, el) => {
-        const text = $(el).text().trim()
+        const text = $(el).text().trim().replace(/\s+/g, ' ')
         if (text && text.length > 2 && text.length < 50) {
-            amenities.push(text)
+            amenitiesRaw.push(text)
         }
+    })
+
+    // Deduplicate and filter junk entries
+    const AMENITY_JUNK = /^\+\d+|more$/i
+    const amenities = [...new Set(amenitiesRaw)].filter(a => {
+        if (AMENITY_JUNK.test(a.trim())) return false
+        if (a.includes('2D, 3D') || a.includes('Room-by-room') || a.includes('Vaastu compatibility') || a.includes('Interior Design Package')) return false
+        return true
     })
 
     return {
