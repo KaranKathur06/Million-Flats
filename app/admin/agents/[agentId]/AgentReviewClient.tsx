@@ -58,6 +58,11 @@ function getDocStatusBadge(status: string) {
     }
 }
 
+function toStatusValue(value: string | null | undefined, fallback: string) {
+    const normalized = String(value ?? '').trim()
+    return normalized ? normalized.toUpperCase() : fallback
+}
+
 const DOC_TYPE_LABELS: Record<string, string> = {
     PAN: 'PAN Card',
     AADHAR: 'Aadhar Card',
@@ -230,8 +235,8 @@ export default function AgentReviewClient({
 
     // Minimum required for approval: government identity proof. Professional docs are optional.
     const REQUIRED_AGENT_DOC_TYPES = ['GOVERNMENT_ID']
-    const verificationStatus = agent.verificationStatus.toUpperCase()
-    const profileStatus = agent.profileStatus.toUpperCase()
+    const verificationStatus = toStatusValue(agent.verificationStatus, 'PENDING')
+    const profileStatus = toStatusValue(agent.profileStatus, 'DRAFT')
     const requiredDocsApproved = REQUIRED_AGENT_DOC_TYPES.every((type) =>
         agent.allDocuments.some((d) => d.type === type && d.status.toUpperCase() === 'APPROVED')
     )
