@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
 
 const PROPERTY_TYPES = ['Apartment', 'Villa', 'Plot', 'Penthouse', 'Townhouse', 'Duplex', 'Studio', 'Commercial', 'Retail']
 const AMENITY_OPTIONS = [
@@ -183,16 +184,25 @@ export default function AdminAddPropertyPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className={labelClass}>Property Type</label>
-                                <select value={form.propertyType} onChange={e => update('propertyType', e.target.value)} className={inputClass}>
-                                    {PROPERTY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                                </select>
+                                <GlobalDropdown
+                                  value={form.propertyType}
+                                  onChange={(v) => update('propertyType', v as string)}
+                                  options={PROPERTY_TYPES.map(t => ({ value: t, label: t }))}
+                                  showLabel={false}
+                                  appearance="admin-dark"
+                                  className={inputClass}
+                                />
                             </div>
                             <div>
                                 <label className={labelClass}>Intent</label>
-                                <select value={form.intent} onChange={e => update('intent', e.target.value)} className={inputClass}>
-                                    <option value="SALE">Sale</option>
-                                    <option value="RENT">Rent</option>
-                                </select>
+                                <GlobalDropdown
+                                  value={form.intent}
+                                  onChange={(v) => update('intent', v as string)}
+                                  options={[{ value: 'SALE', label: 'Sale' }, { value: 'RENT', label: 'Rent' }]}
+                                  showLabel={false}
+                                  appearance="admin-dark"
+                                  className={inputClass}
+                                />
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
@@ -202,20 +212,26 @@ export default function AdminAddPropertyPage() {
                             </div>
                             <div>
                                 <label className={labelClass}>Currency</label>
-                                <select value={form.currency} onChange={e => update('currency', e.target.value)} className={inputClass}>
-                                    <option value="INR">INR (₹)</option>
-                                    <option value="AED">AED</option>
-                                    <option value="USD">USD ($)</option>
-                                </select>
+                                <GlobalDropdown
+                                  value={form.currency}
+                                  onChange={(v) => update('currency', v as string)}
+                                  options={[{ value: 'INR', label: 'INR (₹)' }, { value: 'AED', label: 'AED' }, { value: 'USD', label: 'USD ($)' }]}
+                                  showLabel={false}
+                                  appearance="admin-dark"
+                                  className={inputClass}
+                                />
                             </div>
                         </div>
                         <div>
                             <label className={labelClass}>Construction Status</label>
-                            <select value={form.constructionStatus} onChange={e => update('constructionStatus', e.target.value)} className={inputClass}>
-                                <option value="">Not specified</option>
-                                <option value="READY">Ready to Move</option>
-                                <option value="OFF_PLAN">Under Construction / Off Plan</option>
-                            </select>
+                            <GlobalDropdown
+                              value={form.constructionStatus}
+                              onChange={(v) => update('constructionStatus', v as string)}
+                              options={[{ value: '', label: 'Not specified' }, { value: 'READY', label: 'Ready to Move' }, { value: 'OFF_PLAN', label: 'Under Construction / Off Plan' }]}
+                              showLabel={false}
+                              appearance="admin-dark"
+                              className={inputClass}
+                            />
                         </div>
                     </div>
 
@@ -225,10 +241,19 @@ export default function AdminAddPropertyPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className={labelClass}>Country</label>
-                                <select value={form.countryCode} onChange={e => { update('countryCode', e.target.value); update('countryIso2', e.target.value === 'INDIA' ? 'IN' : 'AE'); update('currency', e.target.value === 'INDIA' ? 'INR' : 'AED') }} className={inputClass}>
-                                    <option value="INDIA">India</option>
-                                    <option value="UAE">UAE</option>
-                                </select>
+                                <GlobalDropdown
+                                  value={form.countryCode}
+                                  onChange={(v) => { 
+                                    const countryValue = v as string
+                                    update('countryCode', countryValue)
+                                    update('countryIso2', countryValue === 'INDIA' ? 'IN' : 'AE')
+                                    update('currency', countryValue === 'INDIA' ? 'INR' : 'AED')
+                                  }}
+                                  options={[{ value: 'INDIA', label: 'India' }, { value: 'UAE', label: 'UAE' }]}
+                                  showLabel={false}
+                                  appearance="admin-dark"
+                                  className={inputClass}
+                                />
                             </div>
                             <div>
                                 <label className={labelClass}>City</label>
@@ -330,13 +355,17 @@ export default function AdminAddPropertyPage() {
                             {form.imageUrls.map((url, idx) => (
                                 <div key={idx} className="flex items-center gap-2">
                                     <input value={url} onChange={e => updateImage(idx, e.target.value)} placeholder="Image URL" className={inputClass + ' flex-1'} />
-                                    <select value={form.imageCategories[idx] || 'EXTERIOR'} onChange={e => updateImageCategory(idx, e.target.value)} className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-2 py-2.5 text-[11px] text-white/60 outline-none w-28">
-                                        <option value="COVER">Cover</option>
-                                        <option value="EXTERIOR">Exterior</option>
-                                        <option value="INTERIOR">Interior</option>
-                                        <option value="FLOOR_PLANS">Floor Plans</option>
-                                        <option value="AMENITIES">Amenities</option>
-                                    </select>
+                                    <div className="w-28">
+                                      <GlobalDropdown
+                                        value={form.imageCategories[idx] || 'EXTERIOR'}
+                                        onChange={(v) => updateImageCategory(idx, v as string)}
+                                        options={[{ value: 'COVER', label: 'Cover' }, { value: 'EXTERIOR', label: 'Exterior' }, { value: 'INTERIOR', label: 'Interior' }, { value: 'FLOOR_PLANS', label: 'Floor Plans' }, { value: 'AMENITIES', label: 'Amenities' }]}
+                                        showLabel={false}
+                                        appearance="admin-dark"
+                                        dense
+                                        className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-2 py-2.5 text-[11px] text-white/60 outline-none"
+                                      />
+                                    </div>
                                     {form.imageUrls.length > 1 && (
                                         <button type="button" onClick={() => removeImage(idx)} className="text-red-400/50 hover:text-red-300 cursor-pointer p-1">
                                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>

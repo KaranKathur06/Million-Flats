@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
 import PdfDropzone, { type FileMeta } from '@/components/upload/PdfDropzone'
 import GlobalDropdown from '@/components/ui/GlobalDropdown'
+import { ProjectMediaManager } from './ProjectMediaManager'
+import { ProjectBrochureManager } from './ProjectBrochureManager'
 import type { ProjectFormMode, ProjectFormData, DevOption, MediaItem, UnitTypeRow, FloorPlanRow, AmenityRow, NearbyPlaceRow, PaymentPlanRow, LocationData, VideoRow, VariantRow } from './ProjectFormSchema'
 import { buildProjectPayload, DEFAULT_FORM_DATA, PROJECT_COUNTRY_OPTIONS, PROJECT_FLOOR_PLAN_ALLOWED_EXTENSIONS, PROJECT_FLOOR_PLAN_ALLOWED_TYPES, PROJECT_FLOOR_PLAN_MAX_SIZE, PROJECT_BROCHURE_ALLOWED_TYPE, PROJECT_BROCHURE_MAX_SIZE, slugify } from './ProjectFormSchema'
 
@@ -37,7 +39,7 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
   const [loading, setLoading] = useState(mode === 'edit')
   const [saving, setSaving] = useState(false)
   const [brochureUploading, setBrochureUploading] = useState(false)
-  const [brochureData, setBrochureData] = useState<{ id: string; fileUrl: string; fileName: string; fileSize: number | null } | null>(null)
+  const [brochureData, setBrochureData] = useState<{ id: string; fileUrl: string; fileName: string; fileSize?: number } | null>(null)
   const [pendingMedia, setPendingMedia] = useState<Record<string, File[]>>({})
   const [pendingBrochure, setPendingBrochure] = useState<File | null>(null)
   const [coverFile, setCoverFile] = useState<File | null>(null)
@@ -127,7 +129,7 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
       setStatus(p.status || 'DRAFT')
       setLeadCount(p._count?.leads || 0)
       if (p.brochure) {
-        setBrochureData({ id: p.brochure.id, fileUrl: p.brochure.fileUrl, fileName: p.brochure.fileName, fileSize: p.brochure.fileSize ?? null })
+        setBrochureData({ id: p.brochure.id, fileUrl: p.brochure.fileUrl, fileName: p.brochure.fileName, fileSize: p.brochure.fileSize || undefined })
       } else {
         setBrochureData(null)
       }
@@ -207,7 +209,7 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
     const res = await fetch(`/api/admin/projects/${projectIdValue}/brochure`, { method: 'POST', body: formDataBody })
     const json = await res.json()
     if (!res.ok || !json.success) throw new Error(json.message || 'Brochure upload failed')
-    setBrochureData({ id: json.brochure.id, fileUrl: json.brochure.fileUrl, fileName: json.brochure.fileName, fileSize: json.brochure.fileSize ?? null })
+    setBrochureData({ id: json.brochure.id, fileUrl: json.brochure.fileUrl, fileName: json.brochure.fileName, fileSize: json.brochure.fileSize || undefined })
   }
 
   const handleSave = async () => {
@@ -231,20 +233,8 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
       const json = await res.json()
       if (!res.ok || !json.success) throw new Error(json.message || 'Failed to save project')
 
-      const createdId = json.project?.id || projectId
-      if (createdId) {
-        if (coverFile) {
-          const heroFormData = new FormData()
-          heroFormData.append('file', coverFile)
-          heroFormData.append('category', 'hero')
-          heroFormData.append('sortOrder', '0')
-          const heroRes = await fetch(`/api/admin/projects/${createdId}/media`, { method: 'POST', body: heroFormData })
-          const heroJson = await heroRes.json()
-          if (!heroRes.ok || !heroJson.success) throw new Error(heroJson.message || 'Hero upload failed')
-        }
-        if (Object.keys(pendingMedia).length) await uploadProjectMedia(createdId)
-        if (pendingBrochure) await uploadBrochureForProject(createdId)
-      }
+      // Note: Media uploads are handled directly by ProjectMediaManager and ProjectBrochureManager components
+      // using presigned URLs, so no additional file upload logic is needed here
 
       toast.success(isEdit ? 'Project updated successfully' : 'Project created successfully')
       if (!isEdit) router.push('/admin/projects')
@@ -272,7 +262,7 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
         const res = await fetch(`/api/admin/projects/${projectId}/brochure`, { method: 'POST', body: formDataBody })
         const json = await res.json()
         if (!res.ok || !json.success) throw new Error(json.message || 'Brochure upload failed')
-        setBrochureData({ id: json.brochure.id, fileUrl: json.brochure.fileUrl, fileName: json.brochure.fileName, fileSize: json.brochure.fileSize ?? null })
+        setBrochureData({ id: json.brochure.id, fileUrl: json.brochure.fileUrl, fileName: json.brochure.fileName, fileSize: json.brochure.fileSize || undefined })
       }
       toast.success('Brochure prepared for save')
     } catch (err: any) {
@@ -391,36 +381,12 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-white/70">Media Gallery</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/40">Hero Image</label>
-              <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.1] bg-white/[0.03] p-6 text-center text-sm text-white/50 transition hover:border-amber-400/30 hover:bg-white/[0.05]">
-                <span>{coverFile ? coverFile.name : formData.coverImage ? 'Replace hero image' : 'Upload hero image'}</span>
-                <input type="file" accept="image/*" className="hidden" onChange={(e) => setCoverFile(e.target.files?.[0] || null)} />
-              </label>
-            </div>
-            <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/40">Gallery Images</label>
-              <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.1] bg-white/[0.03] p-6 text-center text-sm text-white/50 transition hover:border-amber-400/30 hover:bg-white/[0.05]">
-                <span>{Object.values(pendingMedia).flat().length ? `${Object.values(pendingMedia).flat().length} files selected` : 'Upload gallery files'}</span>
-                <input type="file" accept="image/*,.pdf" multiple className="hidden" onChange={(e) => {
-                  const files = Array.from(e.target.files || [])
-                  const next = files.reduce<Record<string, File[]>>((acc, file) => {
-                    acc.gallery = [...(acc.gallery || []), file]
-                    return acc
-                  }, {})
-                  setPendingMedia(next)
-                }} />
-              </label>
-            </div>
+        {projectId && (
+          <div className="space-y-6">
+            <ProjectMediaManager projectId={projectId} />
+            <ProjectBrochureManager projectId={projectId} initialBrochure={brochureData} />
           </div>
-          <div className="rounded-xl border border-white/[0.06] bg-black/20 p-4">
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/40">Brochure</h3>
-            <PdfDropzone value={brochureMeta} onUpload={handleBrochureUpload} onDelete={handleBrochureDelete} loading={brochureUploading} />
-          </div>
-        </div>
+        )}
 
         <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-5">
           <div className="flex items-center justify-between">
