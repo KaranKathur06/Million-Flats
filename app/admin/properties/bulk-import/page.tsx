@@ -32,7 +32,7 @@ const DEMO_JSON = JSON.stringify({
                 address: 'Kharghar, Navi Mumbai',
                 developerName: 'Lodha Group',
                 amenities: ['Swimming Pool', 'Gym', 'Clubhouse', 'Garden', 'Parking'],
-                status: 'APPROVED',
+                status: 'PUBLISHED',
             },
         },
     ],
@@ -203,7 +203,7 @@ export default function AdminPropertiesBulkImportPage() {
                                 <p><span className="text-white/50 font-mono">countryIso2</span> — IN | AE</p>
                                 <p><span className="text-white/50 font-mono">developerName</span> — Developer name</p>
                                 <p><span className="text-white/50 font-mono">amenities</span> — Array of amenity names</p>
-                                <p><span className="text-white/50 font-mono">status</span> — APPROVED | DRAFT</p>
+                                <p><span className="text-white/50 font-mono">status</span> - PUBLISHED | DRAFT</p>
                                 <p className="text-amber-300/80">No image URLs are accepted in the canonical property import payload. Use the Property Gallery upload flow after import.</p>
                             </div>
                         </div>

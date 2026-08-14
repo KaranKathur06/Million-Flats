@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { canonicalizePropertyImport } from '@/lib/propertyCanonical'
 import { CanonicalLocationError, validateCanonicalLocation } from '@/lib/canonicalLocation.server'
+import { MANUAL_PROPERTY_PUBLIC_STATUS, normalizeManualPropertyStatus } from '@/lib/manualPropertyLifecycle'
 
 type LifecycleFilter = 'all' | 'active' | 'pending' | 'rejected' | 'sold' | 'archived'
 
@@ -30,7 +31,7 @@ export async function GET(req: Request) {
         // Lifecycle mapping
         switch (lifecycle) {
             case 'active':
-                where.status = 'APPROVED'
+                where.status = MANUAL_PROPERTY_PUBLIC_STATUS
                 where.archivedAt = null
                 break
             case 'pending':
@@ -75,7 +76,7 @@ export async function GET(req: Request) {
                 take: 200,
             }),
             (prisma as any).manualProperty.count({}),
-            (prisma as any).manualProperty.count({ where: { status: 'APPROVED', archivedAt: null } }),
+            (prisma as any).manualProperty.count({ where: { status: MANUAL_PROPERTY_PUBLIC_STATUS, archivedAt: null } }),
             (prisma as any).manualProperty.count({ where: { status: { in: ['DRAFT', 'PENDING_REVIEW'] } } }),
             (prisma as any).manualProperty.count({ where: { status: 'REJECTED' } }),
             (prisma as any).manualProperty.count({ where: { status: 'SOLD' } }),
@@ -119,7 +120,7 @@ export async function POST(req: Request) {
                 data: {
                     agentId: systemAgent.id,
                     sourceType: 'MANUAL',
-                    status: body.status || 'APPROVED',
+                    status: normalizeManualPropertyStatus(body.status || MANUAL_PROPERTY_PUBLIC_STATUS),
                     title: normalized.title || 'New Property',
                     propertyType: normalized.propertyType || null,
                     intent: normalized.intent || 'SALE',

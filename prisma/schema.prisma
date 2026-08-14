@@ -348,7 +348,7 @@ enum PropertySourceType {
 enum ManualPropertyStatus {
   DRAFT
   PENDING_REVIEW
-  APPROVED
+  PUBLISHED
   REJECTED
   SOLD
   ARCHIVED

@@ -477,7 +477,7 @@ async function scrapePropertyFromHtml(url, html, cityMeta) {
         address: community ? `${community}, ${cityMeta.city}` : cityMeta.city,
         developerName,
         amenities: amenities.length > 0 ? amenities : null,
-        status: 'APPROVED',
+        status: 'PUBLISHED',
         sourceUrl: url,
         sourceProvider: 'SQUAREYARDS',
     }
@@ -623,7 +623,7 @@ async function scrapeWithPuppeteer(url, cityMeta) {
             address: data.locationText || cityMeta.city,
             developerName: extractDeveloperName(title),
             amenities: data.amenities.length > 0 ? data.amenities : null,
-            status: 'APPROVED',
+            status: 'PUBLISHED',
             sourceUrl: url,
             sourceProvider: 'SQUAREYARDS',
         }

@@ -7,6 +7,7 @@ import { hasMinRole, normalizeRole } from '@/lib/rbac'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import AdminListingsTableClient from './AdminListingsTableClient'
 import FormSelect from '@/components/FormSelect'
+import { normalizeManualPropertyStatus } from '@/lib/manualPropertyLifecycle'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
@@ -39,7 +40,8 @@ export default async function AdminListingsPage({
     redirect(`${getHomeRouteForRole(role)}?error=admin_only`)
   }
 
-  const status = safeString(searchParams?.status) || ''
+  const rawStatus = safeString(searchParams?.status) || ''
+  const status = rawStatus ? normalizeManualPropertyStatus(rawStatus) : ''
   const agent = safeString(searchParams?.agent)
   const city = safeString(searchParams?.city)
 
@@ -152,7 +154,7 @@ export default async function AdminListingsPage({
                 { value: '', label: 'All statuses' },
                 { value: 'DRAFT', label: 'Draft' },
                 { value: 'PENDING_REVIEW', label: 'Pending' },
-                { value: 'APPROVED', label: 'Published' },
+                { value: 'PUBLISHED', label: 'Published' },
                 { value: 'REJECTED', label: 'Rejected' },
                 { value: 'ARCHIVED', label: 'Archived' },
               ]}

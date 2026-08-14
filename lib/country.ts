@@ -99,3 +99,16 @@ export function formatCountryPrice(country: CountryCode, amountAed: number) {
     maximumFractionDigits: 0,
   }).format(amount)
 }
+
+export function formatCurrencyAmount(currency: string | null | undefined, amount: number) {
+  const normalized = String(currency || '').trim().toUpperCase()
+  const safeCurrency = normalized === 'INR' ? 'INR' : normalized === 'AED' ? 'AED' : normalized || 'AED'
+  const locale = safeCurrency === 'INR' ? 'en-IN' : safeCurrency === 'AED' ? 'en-AE' : 'en-US'
+
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: safeCurrency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Number.isFinite(amount) ? amount : 0)
+}

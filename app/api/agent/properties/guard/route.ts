@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { canCreateListing, normalizePlan, normalizeSubscriptionStatus } from '@/lib/subscriptionPlans'
+import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
 
 /**
  * POST /api/agent/properties/guard
@@ -34,7 +35,7 @@ export async function GET() {
           _count: {
             select: {
               manualProperties: {
-                where: { status: { in: ['DRAFT', 'PENDING_REVIEW', 'APPROVED'] as any[] } },
+                where: { status: { in: ['DRAFT', 'PENDING_REVIEW', MANUAL_PROPERTY_PUBLIC_STATUS] as any[] } },
               },
             },
           },

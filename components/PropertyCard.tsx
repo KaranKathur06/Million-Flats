@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { formatCountryPrice } from '@/lib/country'
+import { formatCurrencyAmount } from '@/lib/country'
 import { resolvePropertyImages } from '@/lib/propertyImages'
 import { buildPropertySlugPath } from '@/lib/seo'
 
@@ -19,6 +19,8 @@ interface Property {
   title: string
   location: string
   price: number
+  currency?: string
+  href?: string
   country: 'UAE' | 'INDIA'
   images: string[]
   featured: boolean
@@ -29,7 +31,8 @@ interface Property {
 }
 
 export default function PropertyCard({ property }: { property: Property }) {
-  const href = buildPropertySlugPath({ id: property.id, title: property.title }) || `/properties/${property.id}`
+  const href = property.href || buildPropertySlugPath({ id: property.id, title: property.title }) || `/properties/${property.id}`
+  const priceLabel = formatCurrencyAmount(property.currency || (property.country === 'INDIA' ? 'INR' : 'AED'), property.price)
 
   const images = resolvePropertyImages({
     propertyType: property.propertyType || 'Apartment',
@@ -69,7 +72,7 @@ export default function PropertyCard({ property }: { property: Property }) {
         </p>
 
         <p className="text-2xl font-bold text-dark-blue mt-4">
-          {formatCountryPrice(property.country, property.price)}
+          {priceLabel}
         </p>
 
         <div className="mt-4 flex items-center justify-between text-xs text-gray-600">

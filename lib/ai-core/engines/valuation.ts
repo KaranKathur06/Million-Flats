@@ -273,7 +273,7 @@ async function searchComparables(params: {
 
   const where: any = {
     id: { not: params.entityId },
-    status: 'APPROVED',
+    status: 'PUBLISHED',
     price: { not: null },
     squareFeet: { gt: 0 },
     countryIso2,

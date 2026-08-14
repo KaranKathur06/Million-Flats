@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { writeAuditLog } from '@/lib/audit'
 import { checkAdminRateLimit } from '@/lib/adminRateLimit'
+import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ success: false, message: msg }, { status })
@@ -46,13 +47,13 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const updated = await (prisma as any).manualProperty.update({
     where: { id },
     data: {
-      status: 'APPROVED',
+      status: MANUAL_PROPERTY_PUBLIC_STATUS,
       rejectionReason: null,
     } as any,
     select: { id: true, status: true },
   })
 
-  const afterState = { status: String(updated.status || 'APPROVED') }
+  const afterState = { status: String(updated.status || MANUAL_PROPERTY_PUBLIC_STATUS) }
 
   await writeAuditLog({
     entityType: 'MANUAL_PROPERTY',

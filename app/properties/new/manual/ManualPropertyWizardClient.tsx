@@ -33,7 +33,7 @@ type MediaItem = {
 
 type ManualProperty = {
   id: string
-  status: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'
+  status: 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'REJECTED'
   rejectionReason?: string | null
   title?: string | null
   propertyType?: string | null
@@ -208,10 +208,10 @@ export default function ManualPropertyWizardClient() {
 
   const statusBanner = useMemo(() => {
     if (!property) return null
-    if (property.status === 'APPROVED') {
+    if (property.status === 'PUBLISHED') {
       return (
         <div className="mb-6 rounded-2xl border border-green-200 bg-green-50 p-5">
-          <p className="text-sm font-semibold text-green-800">Your property has been approved and is now live.</p>
+          <p className="text-sm font-semibold text-green-800">Your property has been published and is now live.</p>
           <div className="mt-3">
             <Link
               href={buildPropertySlugPath({ id: property.id, title: String(property.title || 'Agent Listing') }) || `/properties/${encodeURIComponent(property.id)}`}

@@ -32,10 +32,10 @@ export async function getDBMetrics(): Promise<DBMetrics> {
       where: { approved: true },
     }),
 
-    // Distinct cities from approved manual properties
+    // Distinct cities from published manual properties
     prisma.manualProperty.findMany({
       where: {
-        status: 'APPROVED',
+        status: 'PUBLISHED',
         city: { not: null },
       },
       select: { city: true },
@@ -45,7 +45,7 @@ export async function getDBMetrics(): Promise<DBMetrics> {
     // Properties with 3D tours
     prisma.manualProperty.count({
       where: {
-        status: 'APPROVED',
+        status: 'PUBLISHED',
         tour3dUrl: { not: null },
       },
     }),

@@ -4,6 +4,7 @@ import { requireAdminSession } from '@/lib/adminAuth'
 import { canonicalizePropertyImport, normalizeLocationPair } from '@/lib/propertyCanonical'
 import { z } from 'zod'
 import { CanonicalLocationError, validateCanonicalLocation } from '@/lib/canonicalLocation.server'
+import { MANUAL_PROPERTY_PUBLIC_STATUS, normalizeManualPropertyStatus } from '@/lib/manualPropertyLifecycle'
 
 const propertyItemSchema = z.object({
     title: z.string().min(1).max(500),
@@ -28,7 +29,7 @@ const propertyItemSchema = z.object({
     paymentPlanText: z.string().max(2000).optional().nullable(),
     emiNote: z.string().max(1000).optional().nullable(),
     tour3dUrl: z.string().max(2000).optional().nullable(),
-    status: z.enum(['DRAFT', 'PENDING_REVIEW', 'APPROVED', 'REJECTED', 'SOLD', 'ARCHIVED']).optional().default('APPROVED'),
+    status: z.enum(['DRAFT', 'PENDING_REVIEW', 'PUBLISHED', 'APPROVED', 'REJECTED', 'SOLD', 'ARCHIVED']).optional().default(MANUAL_PROPERTY_PUBLIC_STATUS),
     sourceUrl: z.string().max(2000).optional().nullable(),
     sourceProvider: z.string().max(100).optional().nullable(),
     sourceListingId: z.string().max(300).optional().nullable(),
@@ -182,7 +183,7 @@ export async function POST(req: Request) {
                         data: {
                             agentId: systemAgent.id,
                             sourceType: 'MANUAL',
-                            status: canonicalItem.status || 'APPROVED',
+                            status: normalizeManualPropertyStatus(canonicalItem.status || MANUAL_PROPERTY_PUBLIC_STATUS),
                             title: canonicalItem.title,
                             propertyType: canonicalItem.propertyType || null,
                             intent: canonicalItem.intent || 'SALE',

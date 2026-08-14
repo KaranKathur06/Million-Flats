@@ -1,10 +1,7 @@
  'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import Image from 'next/image'
-import { useCountry } from '@/components/CountryProvider'
-import { CITIES_BY_COUNTRY, COUNTRY_META, DEFAULT_COUNTRY, isCountryCode, uiPriceToAed, type CountryCode } from '@/lib/country'
+import type { CountryCode } from '@/lib/country'
 import useProperties from '@/app/properties/useProperties'
 import PropertiesHero from '@/components/properties/PropertiesHero'
 import SmartSearch from '@/components/properties/SmartSearch'
@@ -28,6 +25,8 @@ interface Property {
   title: string
   location: string
   price: number
+  currency?: string
+  href?: string
   intent: 'BUY' | 'RENT'
   pricingFrequency?: string
   yearBuilt?: number
@@ -82,30 +81,6 @@ const MORE_FEATURES = [
 
 type MoreFeature = (typeof MORE_FEATURES)[number]
 
-const COMMUNITIES_BY_CITY: Record<string, readonly string[]> = {
-  Dubai: [
-    'Jumeirah Village Circle',
-    'Business Bay',
-    'Dubai Marina',
-    'Dubai South',
-    'Dubai Hills Estate',
-    'DAMAC Hills',
-    'Al Furjan',
-    'Wadi Al Safa 5',
-  ],
-  'Abu Dhabi': [
-    'Mohammed Bin Zayed City',
-    'Al Raha Beach',
-    'Khalifa City A & B',
-    'Al Maryah Island',
-    'Yas Island',
-    'Al Ghadeer',
-  ],
-  Sharjah: ['Al Nahda (Sharjah)', 'Muwaileh Commercial'],
-  Ajman: ['Al Nuaimiya', 'Ajman Downtown', 'Emirates City', 'Al Rawda'],
-  'Ras Al Khaimah': ['Al Hamra Village', 'Al Nakheel'],
-}
-
 function hashToIndex(input: string, length: number) {
   let h = 2166136261
   for (let i = 0; i < input.length; i++) {
@@ -115,51 +90,10 @@ function hashToIndex(input: string, length: number) {
   return length === 0 ? 0 : Math.abs(h) % length
 }
 
-function deriveCommunity(location: string, propertyId: string) {
-  const opts = COMMUNITIES_BY_CITY[location] || []
-  if (opts.length === 0) return ''
-  return opts[hashToIndex(`${location}:${propertyId}`, opts.length)]
-}
-
-function deriveAnnualRentAed(salePriceAed: number) {
-  return Math.max(1, Math.round(salePriceAed * 0.06))
-}
-
-function normalizeFrequency(v: unknown) {
-  if (typeof v !== 'string') return ''
-  return v.trim().toLowerCase()
-}
-
-function classifyIntent(input: { intentRaw: unknown; pricingFrequencyRaw: unknown }) {
-  const rawIntent = typeof input.intentRaw === 'string' ? input.intentRaw.trim().toUpperCase() : ''
-  if (rawIntent === 'BUY' || rawIntent === 'SALE' || rawIntent === 'SELL') return 'BUY'
-  if (rawIntent === 'RENT' || rawIntent === 'RENTAL' || rawIntent === 'LEASE' || rawIntent === 'LET') return 'RENT'
-
-  const freq = normalizeFrequency(input.pricingFrequencyRaw)
-  if (
-    freq.includes('month') ||
-    freq.includes('year') ||
-    freq.includes('annual') ||
-    freq.includes('annum') ||
-    freq.includes('week') ||
-    freq.includes('day')
-  )
-    return 'RENT'
-  return 'BUY'
-}
-
 type Purpose = 'buy' | 'rent'
 
 function safePurpose(v: unknown): Purpose {
   return v === 'rent' ? 'rent' : 'buy'
-}
-
-function deriveListingStatus(propertyId: string) {
-  const bucket = hashToIndex(`status:${propertyId}`, 12)
-  const sold = bucket === 0
-  const offPlan = !sold && bucket <= 4
-  const ready = !sold && !offPlan
-  return { sold, offPlan, ready }
 }
 
 function deriveFeatures(propertyId: string) {
@@ -169,17 +103,6 @@ function deriveFeatures(propertyId: string) {
     if (keep) picked.push(MORE_FEATURES[i])
   }
   return picked
-}
-
-function buildPriceOptions(country: CountryCode) {
-  const meta = COUNTRY_META[country]
-  const opts: number[] = []
-  const step = meta.priceStep * 5
-  for (let v = meta.minPrice; v <= meta.maxPrice && opts.length < 10; v += step) {
-    opts.push(v)
-  }
-  if (opts[opts.length - 1] !== meta.maxPrice) opts.push(meta.maxPrice)
-  return opts
 }
 
 export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Purpose }) {
@@ -224,6 +147,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
     minPriceDrawerOptions,
     maxPriceDrawerOptions,
     cities,
+    communities,
   } = useProperties(forcedPurpose)
 
   // Data and URL sync handled by `useProperties` hook
@@ -315,9 +239,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
   }, [mobileFiltersEl, mobileFiltersOpen])
 
   // Data fetching and filter handlers are provided by the hook
-  const communityOptions = useMemo(() => {
-    return COMMUNITIES_BY_CITY[draftFilters.location] || []
-  }, [draftFilters.location])
+  const communityOptions = communities
 
   const filteredCities = useMemo(() => {
     const q = cityQuery.trim().toLowerCase()
@@ -333,25 +255,17 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
 
   const displayedProperties = useMemo(() => {
     const countryForFilter = filters.country
-    const minUi = parseInt(filters.minPrice)
-    const maxUi = parseInt(filters.maxPrice)
-    const minAed = Number.isFinite(minUi) ? uiPriceToAed(countryForFilter, minUi) : undefined
-    const maxAed = Number.isFinite(maxUi) ? uiPriceToAed(countryForFilter, maxUi) : undefined
+    const minPrice = parseInt(filters.minPrice)
+    const maxPrice = parseInt(filters.maxPrice)
 
     let filtered = properties
 
     filtered = filtered.filter((p) => (purpose === 'rent' ? p.intent === 'RENT' : p.intent === 'BUY'))
 
-    const effectivePrice = (p: Property) => {
-      if (purpose !== 'rent') return p.price
-      if (p.intent === 'RENT') return p.price
-      return deriveAnnualRentAed(p.price)
-    }
-
     if (filters.search) {
       const q = filters.search.trim().toLowerCase()
       filtered = filtered.filter((p) => {
-        const comm = deriveCommunity(p.location, p.id)
+        const comm = p.community || ''
         return (
           p.title.toLowerCase().includes(q) ||
           p.location.toLowerCase().includes(q) ||
@@ -366,7 +280,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
     }
 
     if (filters.community) {
-      filtered = filtered.filter((p) => deriveCommunity(p.location, p.id) === filters.community)
+      filtered = filtered.filter((p) => (p.community || '').toLowerCase() === filters.community.toLowerCase())
     }
 
     if (filters.type) {
@@ -374,11 +288,11 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
       filtered = filtered.filter((p) => p.propertyType.toLowerCase() === t)
     }
 
-    if (minAed != null) {
-      filtered = filtered.filter((p) => effectivePrice(p) >= minAed)
+    if (Number.isFinite(minPrice)) {
+      filtered = filtered.filter((p) => p.price >= minPrice)
     }
-    if (maxAed != null) {
-      filtered = filtered.filter((p) => effectivePrice(p) <= maxAed)
+    if (Number.isFinite(maxPrice)) {
+      filtered = filtered.filter((p) => p.price <= maxPrice)
     }
 
     if (filters.bedrooms) {
@@ -393,11 +307,12 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
 
     if (filters.offPlanOnly || filters.readyHomesOnly || filters.soldOnly) {
       filtered = filtered.filter((p) => {
-        const st = deriveListingStatus(p.id)
+        const status = String((p as any).status || '').toUpperCase()
+        const construction = String((p as any).constructionStatus || '').toUpperCase()
         return (
-          (filters.offPlanOnly && st.offPlan) ||
-          (filters.readyHomesOnly && st.ready) ||
-          (filters.soldOnly && st.sold)
+          (filters.offPlanOnly && construction === 'OFF_PLAN') ||
+          (filters.readyHomesOnly && construction === 'READY') ||
+          (filters.soldOnly && status === 'SOLD')
         )
       })
     }
@@ -412,18 +327,10 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
     const sortBy = filters.sortBy || 'featured'
     switch (sortBy) {
       case 'price-low':
-        filtered = [...filtered].sort((a, b) => {
-          const ap = effectivePrice(a)
-          const bp = effectivePrice(b)
-          return ap - bp
-        })
+        filtered = [...filtered].sort((a, b) => a.price - b.price)
         break
       case 'price-high':
-        filtered = [...filtered].sort((a, b) => {
-          const ap = effectivePrice(a)
-          const bp = effectivePrice(b)
-          return bp - ap
-        })
+        filtered = [...filtered].sort((a, b) => b.price - a.price)
         break
       case 'newest':
         filtered = [...filtered].sort((a, b) => (b.yearBuilt || 0) - (a.yearBuilt || 0))
@@ -434,9 +341,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
         break
     }
 
-    if (purpose !== 'rent') return filtered
-
-    return filtered.map((p) => ({ ...p, price: effectivePrice(p) }))
+    return filtered
   }, [filters, properties, purpose])
 
   // Price options provided by `useProperties` hook

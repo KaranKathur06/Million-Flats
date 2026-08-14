@@ -160,7 +160,7 @@ async function buildSyntheticMarketReport(
       countryIso2,
       city: { contains: city, mode: 'insensitive' },
       ...(community ? { community: { contains: community, mode: 'insensitive' } } : {}),
-      status: 'APPROVED',
+      status: 'PUBLISHED',
       price: { not: null },
       squareFeet: { gt: 0 },
     },

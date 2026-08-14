@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { evaluateManualPropertyRisk } from '@/lib/services/riskEngine'
 import { ensureModerationCase, addModerationAction, setCaseRiskWithReasons, setModerationQueue } from '@/lib/services/moderation.service'
+import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
@@ -59,7 +60,7 @@ export async function approveManualProperty(input: { propertyId: string; actorUs
   const updated = await prisma.$transaction(async (tx: any) => {
     const updatedProperty = await (tx as any).manualProperty.update({
       where: { id: propertyId },
-      data: { status: 'APPROVED', rejectionReason: null } as any,
+      data: { status: MANUAL_PROPERTY_PUBLIC_STATUS, rejectionReason: null } as any,
       select: { id: true, status: true },
     })
 
@@ -98,7 +99,7 @@ export async function approveManualProperty(input: { propertyId: string; actorUs
     return updatedProperty
   })
 
-  const afterState = { status: String(updated.status || 'APPROVED') }
+  const afterState = { status: String(updated.status || MANUAL_PROPERTY_PUBLIC_STATUS) }
 
   return { ok: true as const, property: updated, beforeState, afterState }
 }

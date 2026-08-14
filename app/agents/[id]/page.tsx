@@ -281,7 +281,7 @@ export default async function AgentProfilePage({
   const manualAttributionRows: AttributionRow[] = manualRowsEnabled && agent?.id
     ? await (prisma as any).manualProperty
         .findMany({
-          where: { agentId: agent.id, status: 'APPROVED' },
+          where: { agentId: agent.id, status: 'PUBLISHED' },
           orderBy: { updatedAt: 'desc' },
           select: { id: true, updatedAt: true },
         })

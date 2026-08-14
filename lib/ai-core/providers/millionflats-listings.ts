@@ -78,7 +78,7 @@ export const millionflatsListingsProvider: IDataProvider<RawManualProperty, Cano
 
     try {
       const where: Record<string, unknown> = {
-        status: 'APPROVED',
+        status: 'PUBLISHED',
       }
 
       if (params.countryIso2) where.countryIso2 = params.countryIso2

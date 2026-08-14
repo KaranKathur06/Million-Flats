@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { writeAuditLog } from '@/lib/audit'
 import { checkAdminRateLimit } from '@/lib/adminRateLimit'
+import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
 
 function bad(message: string, status = 400) {
   return NextResponse.json({ success: false, message }, { status })
@@ -39,9 +40,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   })
 
   if (!existing) return bad('Not found', 404)
-  if (String(existing.status) !== 'APPROVED') return bad('Only published listings can be edited using draft copies.')
+  if (String(existing.status) !== MANUAL_PROPERTY_PUBLIC_STATUS) return bad('Only published listings can be edited using draft copies.')
 
-  const beforeState = { id: String(existing.id || id), status: String(existing.status || 'APPROVED') }
+  const beforeState = { id: String(existing.id || id), status: String(existing.status || MANUAL_PROPERTY_PUBLIC_STATUS) }
 
   const cloneData: any = {
     agentId: existing.agentId,

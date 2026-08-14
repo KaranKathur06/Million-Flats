@@ -3,7 +3,7 @@
 import { useMemo, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { formatCountryPrice } from '@/lib/country'
+import { formatCurrencyAmount } from '@/lib/country'
 import { resolvePropertyImages } from '@/lib/propertyImages'
 import { buildPropertySlugPath } from '@/lib/seo'
 
@@ -31,6 +31,8 @@ interface Property {
   title: string
   location: string
   price: number
+  currency?: string
+  href?: string
   bedrooms: number
   bathrooms: number
   squareFeet: number
@@ -70,7 +72,8 @@ function shuffleWithSeed<T>(items: T[], seed: string) {
 }
 
 export default function PropertyListCard({ property, variant = 'grid' }: PropertyListCardProps) {
-  const href = buildPropertySlugPath({ id: property.id, title: property.title }) || `/properties/${property.id}`
+  const href = property.href || buildPropertySlugPath({ id: property.id, title: property.title }) || `/properties/${property.id}`
+  const priceLabel = formatCurrencyAmount(property.currency || (property.country === 'INDIA' ? 'INR' : 'AED'), property.price)
   const baseImages = useMemo(
     () =>
       resolvePropertyImages({
@@ -117,7 +120,7 @@ export default function PropertyListCard({ property, variant = 'grid' }: Propert
         </div>
 
         <div className="p-4">
-          <p className="text-lg font-bold text-dark-blue">{formatCountryPrice(property.country, property.price)}</p>
+          <p className="text-lg font-bold text-dark-blue">{priceLabel}</p>
           <h3 className="mt-2 text-base font-semibold text-dark-blue leading-tight">{property.title}</h3>
           <p className="mt-1 text-sm text-gray-600">{property.location}, {property.country}</p>
 
@@ -165,7 +168,7 @@ export default function PropertyListCard({ property, variant = 'grid' }: Propert
           <div>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-3xl font-bold text-dark-blue">{formatCountryPrice(property.country, property.price)}</p>
+                <p className="text-3xl font-bold text-dark-blue">{priceLabel}</p>
                 <h3 className="mt-3 text-xl font-semibold text-dark-blue">{property.title}</h3>
                 <p className="mt-1 text-sm text-gray-600">{property.location}, {property.country}</p>
               </div>
@@ -227,7 +230,7 @@ export default function PropertyListCard({ property, variant = 'grid' }: Propert
 
         <div className="p-4">
           <p className="text-2xl font-bold text-dark-blue leading-tight">
-            {formatCountryPrice(property.country, property.price)}
+            {priceLabel}
           </p>
           <h3
             className="mt-2 text-base font-semibold text-dark-blue"
@@ -319,7 +322,7 @@ export default function PropertyListCard({ property, variant = 'grid' }: Propert
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="text-3xl font-bold text-dark-blue leading-tight">
-                  {formatCountryPrice(property.country, property.price)}
+                  {priceLabel}
                 </p>
                 <h3 className="mt-2 text-xl font-semibold text-dark-blue truncate">{property.title}</h3>
                 <p className="mt-1 text-sm text-gray-600">

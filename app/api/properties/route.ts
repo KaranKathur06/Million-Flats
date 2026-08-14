@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
+import { buildManualPropertyPath } from '@/lib/manualPropertyRoutes'
 
 type RateEntry = { count: number; resetAt: number }
 
@@ -92,6 +94,7 @@ export async function GET(req: Request) {
       maxPrice: searchParams.get('maxPrice') || undefined,
       featured: (searchParams.get('featured') || '').trim() || undefined,
       limit: searchParams.get('limit') || undefined,
+      page: searchParams.get('page') || undefined,
     })
 
     if (!parsed.success) {
@@ -100,7 +103,7 @@ export async function GET(req: Request) {
 
     const q = parsed.data
     const where: any = {
-      status: 'APPROVED',
+      status: MANUAL_PROPERTY_PUBLIC_STATUS,
       sourceType: 'MANUAL',
       agent: {
         approved: true,
@@ -154,6 +157,7 @@ export async function GET(req: Request) {
 
       return {
         id: String(p.id),
+        href: buildManualPropertyPath({ id: p.id, title: p.title, intent: p.intent }),
         title: safeString(p.title) || 'Agent Listing',
         price: typeof p.price === 'number' ? p.price : safeNumber(p.price),
         currency: safeString(p.currency) || 'AED',
@@ -162,6 +166,8 @@ export async function GET(req: Request) {
         community: safeString(p.community),
         propertyType: safeString(p.propertyType) || 'Property',
         intent: p.intent === 'RENT' ? 'RENT' : 'BUY',
+        constructionStatus: safeString(p.constructionStatus),
+        status: safeString(p.status),
         bedrooms: typeof p.bedrooms === 'number' ? p.bedrooms : safeNumber(p.bedrooms),
         bathrooms: typeof p.bathrooms === 'number' ? p.bathrooms : safeNumber(p.bathrooms),
         squareFeet: typeof p.squareFeet === 'number' ? p.squareFeet : safeNumber(p.squareFeet),

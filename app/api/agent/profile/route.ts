@@ -53,14 +53,14 @@ export async function PATCH(req: Request) {
       .catch(() => 0)
 
     const manualApprovedCount = await (prisma as any).manualProperty
-      .count({ where: { agentId: auth.agentId, status: 'APPROVED', sourceType: 'MANUAL' } })
+      .count({ where: { agentId: auth.agentId, status: 'PUBLISHED', sourceType: 'MANUAL' } })
       .catch(() => 0)
 
     const hasPublishedListing = agentListingCount > 0 || manualApprovedCount > 0
 
     const hasMedia = await (prisma as any).manualPropertyMedia
       .findFirst({
-        where: { property: { agentId: auth.agentId, status: 'APPROVED', sourceType: 'MANUAL' } },
+        where: { property: { agentId: auth.agentId, status: 'PUBLISHED', sourceType: 'MANUAL' } },
         select: { id: true },
       })
       .then((row: any) => Boolean(row?.id))

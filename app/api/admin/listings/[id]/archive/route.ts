@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { writeAuditLog } from '@/lib/audit'
 import { checkAdminRateLimit } from '@/lib/adminRateLimit'
+import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ success: false, message: msg }, { status })
@@ -39,9 +40,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   })
 
   if (!property) return bad('Not found', 404)
-  if (String(property.status) !== 'APPROVED') return bad('Only published listings can be archived.')
+  if (String(property.status) !== MANUAL_PROPERTY_PUBLIC_STATUS) return bad('Only published listings can be archived.')
 
-  const beforeState = { status: String(property.status || 'APPROVED') }
+  const beforeState = { status: String(property.status || MANUAL_PROPERTY_PUBLIC_STATUS) }
 
   const updated = await (prisma as any).manualProperty.update({
     where: { id },

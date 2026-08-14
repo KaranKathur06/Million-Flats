@@ -99,7 +99,7 @@ export async function getOperationsDashboardData(): Promise<OperationsDashboardD
     (prisma as any).manualProperty.count({ where: { sourceType: 'MANUAL' } }).catch(() => 0),
     (prisma as any).manualProperty.count({ where: { sourceType: 'MANUAL', status: 'DRAFT' } }).catch(() => 0),
     (prisma as any).manualProperty.count({ where: { sourceType: 'MANUAL', status: 'PENDING_REVIEW' } }).catch(() => 0),
-    (prisma as any).manualProperty.count({ where: { sourceType: 'MANUAL', status: 'APPROVED' } }).catch(() => 0),
+    (prisma as any).manualProperty.count({ where: { sourceType: 'MANUAL', status: 'PUBLISHED' } }).catch(() => 0),
     (prisma as any).manualProperty.count({ where: { sourceType: 'MANUAL', status: 'REJECTED' } }).catch(() => 0),
     (prisma as any).manualProperty.count({ where: { sourceType: 'MANUAL', status: 'ARCHIVED' } }).catch(() => 0),
     prisma.lead.count().catch(() => 0),

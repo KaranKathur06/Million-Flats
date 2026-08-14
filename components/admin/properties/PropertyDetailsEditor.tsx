@@ -65,7 +65,7 @@ export function PropertyDetailsEditor({ property }: { property: EditableProperty
     paymentPlanText: toText(property.paymentPlanText),
     emiNote: toText(property.emiNote),
     tour3dUrl: toText(property.tour3dUrl),
-    status: toText(property.status || 'APPROVED'),
+    status: toText(property.status || 'PUBLISHED'),
   })
   const [saving, setSaving] = useState(false)
 
@@ -119,7 +119,7 @@ export function PropertyDetailsEditor({ property }: { property: EditableProperty
         <label className="space-y-2"><span className={labelClass}>Price</span><input className={inputClass} inputMode="decimal" value={form.price} onChange={e => update('price', e.target.value)} /></label>
         <label className="space-y-2"><span className={labelClass}>Currency</span><select className={inputClass} value={form.currency} onChange={e => update('currency', e.target.value)}><option value="INR">INR</option><option value="AED">AED</option><option value="USD">USD</option></select></label>
         <label className="space-y-2"><span className={labelClass}>Construction</span><select className={inputClass} value={form.constructionStatus} onChange={e => update('constructionStatus', e.target.value)}><option value="">Not set</option><option value="READY">Ready</option><option value="OFF_PLAN">Off-plan</option></select></label>
-        <label className="space-y-2"><span className={labelClass}>Status</span><select className={inputClass} value={form.status} onChange={e => update('status', e.target.value)}><option value="DRAFT">Draft</option><option value="PENDING_REVIEW">Pending review</option><option value="APPROVED">Approved</option><option value="REJECTED">Rejected</option><option value="SOLD">Sold</option><option value="ARCHIVED">Archived</option></select></label>
+        <label className="space-y-2"><span className={labelClass}>Status</span><select className={inputClass} value={form.status} onChange={e => update('status', e.target.value)}><option value="DRAFT">Draft</option><option value="PENDING_REVIEW">Pending review</option><option value="PUBLISHED">Published</option><option value="REJECTED">Rejected</option><option value="SOLD">Sold</option><option value="ARCHIVED">Archived</option></select></label>
       </div>
 
       <CanonicalLocationFields

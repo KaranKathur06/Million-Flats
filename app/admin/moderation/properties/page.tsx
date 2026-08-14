@@ -111,7 +111,7 @@ export default async function AdminModerationQueuePage({
               className="w-[180px]"
               options={[
                 { value: 'PENDING_REVIEW', label: 'Pending Review' },
-                { value: 'APPROVED', label: 'Approved' },
+                { value: 'PUBLISHED', label: 'Published' },
                 { value: 'REJECTED', label: 'Rejected' },
                 { value: 'DRAFT', label: 'Draft' }
               ]}

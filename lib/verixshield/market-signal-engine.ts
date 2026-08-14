@@ -101,7 +101,7 @@ async function computeSignals(input: PropertyInput): Promise<MarketSignalResult>
   // Also count internal properties
   let internalCount = 0
   try {
-    const propFilter: any = { status: 'APPROVED' }
+    const propFilter: any = { status: 'PUBLISHED' }
     if (input.city) propFilter.city = { equals: input.city, mode: 'insensitive' }
 
     internalCount = await (prisma as any).manualProperty.count({ where: propFilter })

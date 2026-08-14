@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useCountry } from '@/components/CountryProvider'
-import { COUNTRY_META, DEFAULT_COUNTRY, isCountryCode, uiPriceToAed, type CountryCode } from '@/lib/country'
+import { COUNTRY_META, DEFAULT_COUNTRY, isCountryCode, type CountryCode } from '@/lib/country'
+import { getCityOptions, getCommunityOptions } from '@/lib/propertyCanonical'
 import {
   priceFilterOptions,
 } from '@/lib/filters/dropdownOptions'
@@ -206,11 +207,17 @@ export default function useProperties(forcedPurpose?: Purpose) {
 
           return {
             id,
+            href: typeof item?.href === 'string' ? item.href : '',
             country: countryLabel,
             title,
             location,
             price: Number(item?.price || 0),
+            currency: typeof item?.currency === 'string' ? item.currency : countryLabel === 'INDIA' ? 'INR' : 'AED',
             intent,
+            city,
+            community,
+            constructionStatus: String(item?.constructionStatus || ''),
+            status: String(item?.status || ''),
             bedrooms: Number(item?.bedrooms || 0),
             bathrooms: Number(item?.bathrooms || 0),
             squareFeet: Number(item?.squareFeet || 0),
@@ -270,9 +277,14 @@ export default function useProperties(forcedPurpose?: Purpose) {
   }
 
   const cities = useMemo(() => {
-    // CITIES_BY_COUNTRY used by UI; import on demand in client
-    return COUNTRY_META[filters.country] ? [] : []
+    const iso2 = filters.country === 'INDIA' ? 'IN' : 'AE'
+    return getCityOptions(iso2).map((item) => item.name)
   }, [filters.country])
+
+  const communities = useMemo(() => {
+    const iso2 = filters.country === 'INDIA' ? 'IN' : 'AE'
+    return getCommunityOptions(iso2, draftFilters.location || filters.location).map((item) => item.name)
+  }, [draftFilters.location, filters.country, filters.location])
 
   const applyDraft = () => {
     handleFilterChange(draftFilters)
@@ -350,5 +362,6 @@ export default function useProperties(forcedPurpose?: Purpose) {
     minPriceDrawerOptions,
     maxPriceDrawerOptions,
     cities,
+    communities,
   }
 }

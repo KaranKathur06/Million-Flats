@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
 import { evaluateAgentRisk, evaluateManualPropertyRisk, evaluateUserRisk } from '@/lib/services/riskEngine'
 import {
   addModerationAction,
@@ -96,7 +97,7 @@ export async function decideModerationCase(input: {
           if (decision === 'APPROVED') {
             await (tx as any).manualProperty.update({
               where: { id: entityId },
-              data: { status: 'APPROVED', rejectionReason: null } as any,
+              data: { status: MANUAL_PROPERTY_PUBLIC_STATUS, rejectionReason: null } as any,
               select: { id: true },
             })
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import toast, { Toaster } from 'react-hot-toast'
+import { buildManualPropertyPath } from '@/lib/manualPropertyRoutes'
 
 interface PropertyItem {
     id: string
@@ -33,7 +34,7 @@ type LifecycleFilter = 'all' | 'active' | 'pending' | 'rejected' | 'sold' | 'arc
 const STATUS_COLORS: Record<string, string> = {
     DRAFT: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/20',
     PENDING_REVIEW: 'bg-blue-500/15 text-blue-300 border-blue-500/20',
-    APPROVED: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/20',
+    PUBLISHED: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/20',
     REJECTED: 'bg-red-500/15 text-red-300 border-red-500/20',
     SOLD: 'bg-purple-500/15 text-purple-300 border-purple-500/20',
     ARCHIVED: 'bg-white/[0.10] text-white/60 border-white/[0.20]',
@@ -81,6 +82,7 @@ export default function AdminPropertiesPage() {
     const [permanentDeleteTarget, setPermanentDeleteTarget] = useState<PropertyItem | null>(null)
     const [permanentDeleteConfirmation, setPermanentDeleteConfirmation] = useState('')
     const [deleting, setDeleting] = useState<string | null>(null)
+    const [actionDrawerTarget, setActionDrawerTarget] = useState<PropertyItem | null>(null)
 
     const load = useCallback(async () => {
         setLoading(true)
@@ -117,7 +119,7 @@ export default function AdminPropertiesPage() {
             })
             const json = await res.json()
             if (!json.success) throw new Error(json.message || 'Bulk action failed')
-            toast.success(`${json.updated} properties ${action}d`)
+            toast.success(`${json.updated} properties ${action === 'approve' ? 'published' : `${action}d`}`)
             setSelectedIds([])
             load()
         } catch (err: any) {
@@ -127,17 +129,25 @@ export default function AdminPropertiesPage() {
         }
     }, [selectedIds, load])
 
-    // Single property status change
-    const changeStatus = useCallback(async (id: string, status: string) => {
+    // Single property lifecycle action
+    const runLifecycleAction = useCallback(async (id: string, action: string) => {
         try {
-            const res = await fetch(`/api/admin/properties/${id}`, {
-                method: 'PATCH',
+            const res = await fetch(`/api/admin/properties/${id}/lifecycle`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status }),
+                body: JSON.stringify({ action }),
             })
             const json = await res.json()
             if (!json.success) throw new Error(json.message)
-            toast.success(`Property ${status.toLowerCase()}`)
+            toast.success(
+                action === 'publish' || action === 'restore_published'
+                    ? 'Property published'
+                    : action === 'unpublish'
+                        ? 'Property unpublished'
+                        : action === 'archive'
+                            ? 'Property archived'
+                            : 'Property updated'
+            )
             load()
         } catch (err: any) {
             toast.error(err.message)
@@ -148,18 +158,14 @@ export default function AdminPropertiesPage() {
     const softDelete = useCallback(async (item: PropertyItem) => {
         setDeleting(item.id)
         try {
-            const res = await fetch(`/api/admin/properties/${item.id}`, { method: 'DELETE' })
-            const json = await res.json()
-            if (!json.success) throw new Error(json.message)
-            toast.success('Property archived')
+            await runLifecycleAction(item.id, 'archive')
             setDeleteTarget(null)
-            load()
         } catch (err: any) {
             toast.error(err.message)
         } finally {
             setDeleting(null)
         }
-    }, [load])
+    }, [runLifecycleAction])
 
     // Permanent delete
     const permanentDelete = useCallback(async () => {
@@ -208,6 +214,10 @@ export default function AdminPropertiesPage() {
         { key: 'archived', label: 'Archived', count: stats.archived },
         { key: 'all', label: 'All', count: stats.total },
     ]
+
+    const actionPreviewHref = actionDrawerTarget
+        ? buildManualPropertyPath({ id: actionDrawerTarget.id, title: actionDrawerTarget.title || 'property', intent: actionDrawerTarget.intent }) || `/properties/${actionDrawerTarget.id}`
+        : ''
 
     return (
         <div>
@@ -288,7 +298,7 @@ export default function AdminPropertiesPage() {
                     <div className="flex items-center gap-2 ml-auto">
                         {lifecycleFilter !== 'active' && (
                             <button onClick={() => runBulkAction('approve')} disabled={bulkActionLoading !== null} className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-50 cursor-pointer">
-                                {bulkActionLoading === 'approve' ? 'Approving...' : 'Approve'}
+                                {bulkActionLoading === 'approve' ? 'Publishing...' : 'Publish'}
                             </button>
                         )}
                         <button onClick={() => runBulkAction('reject')} disabled={bulkActionLoading !== null} className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-300 hover:bg-red-500/20 disabled:opacity-50 cursor-pointer">
@@ -375,16 +385,19 @@ export default function AdminPropertiesPage() {
                                     <p className="text-sm text-white/50 truncate">{p.agent?.user?.name || 'System'}</p>
                                 </div>
                                 <div className="col-span-1 flex items-center gap-1">
-                                    <Link href={`/properties/${p.id}`} target="_blank" className="rounded-lg p-1.5 text-white/30 hover:text-white/70 hover:bg-white/[0.06] transition-all" title="Preview">
+                                    <Link href={buildManualPropertyPath({ id: p.id, title: p.title || 'property', intent: p.intent }) || `/properties/${p.id}`} target="_blank" className="rounded-lg p-1.5 text-white/30 hover:text-white/70 hover:bg-white/[0.06] transition-all" title="Preview">
                                         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                                     </Link>
-                                    {p.status !== 'APPROVED' && (
-                                        <button onClick={() => changeStatus(p.id, 'APPROVED')} className="rounded-lg p-1.5 text-emerald-400/50 hover:text-emerald-300 hover:bg-emerald-500/10 transition-all cursor-pointer" title="Approve">
+                                    {p.status !== 'PUBLISHED' && (
+                                        <button onClick={() => runLifecycleAction(p.id, p.status === 'ARCHIVED' || p.status === 'SOLD' ? 'restore_published' : 'publish')} className="rounded-lg p-1.5 text-emerald-400/50 hover:text-emerald-300 hover:bg-emerald-500/10 transition-all cursor-pointer" title="Publish">
                                             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                                         </button>
                                     )}
                                     <button onClick={() => setDeleteTarget(p)} className="rounded-lg p-1.5 text-red-400/40 hover:text-red-300 hover:bg-red-500/10 transition-all cursor-pointer" title="Delete">
                                         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                    </button>
+                                    <button onClick={() => setActionDrawerTarget(p)} className="rounded-lg p-1.5 text-white/35 hover:text-white/75 hover:bg-white/[0.06] transition-all cursor-pointer" title="Actions">
+                                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6h.01M12 12h.01M12 18h.01" /></svg>
                                     </button>
                                 </div>
                             </div>
@@ -435,6 +448,135 @@ export default function AdminPropertiesPage() {
                             </button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {actionDrawerTarget && (
+                <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm">
+                    <button type="button" className="flex-1" aria-label="Close actions" onClick={() => setActionDrawerTarget(null)} />
+                    <aside className="h-full w-full max-w-md border-l border-white/[0.08] bg-[#071328] p-6 shadow-2xl overflow-y-auto">
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h2 className="text-lg font-semibold text-white">Property Actions</h2>
+                                <p className="mt-1 text-sm text-white/45">{actionDrawerTarget.title || 'Untitled property'}</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setActionDrawerTarget(null)}
+                                className="rounded-lg p-2 text-white/45 hover:bg-white/[0.06] hover:text-white"
+                                aria-label="Close"
+                            >
+                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+
+                        <div className="mt-5 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
+                            <div className="flex items-center justify-between gap-3 text-sm">
+                                <span className="text-white/45">Status</span>
+                                <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_COLORS[actionDrawerTarget.status] || STATUS_COLORS.DRAFT}`}>
+                                    {actionDrawerTarget.status.replace('_', ' ')}
+                                </span>
+                            </div>
+                            <div className="mt-3 flex items-center justify-between gap-3 text-sm">
+                                <span className="text-white/45">Location</span>
+                                <span className="text-white/75 text-right">{[actionDrawerTarget.community, actionDrawerTarget.city].filter(Boolean).join(', ') || '-'}</span>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 grid gap-3">
+                            <Link
+                                href={`/admin/properties/${encodeURIComponent(actionDrawerTarget.id)}/edit`}
+                                className="flex h-11 items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 text-sm font-semibold text-white/80 hover:bg-white/[0.08]"
+                            >
+                                Edit
+                                <span className="text-white/30">Open editor</span>
+                            </Link>
+                            <Link
+                                href={actionPreviewHref}
+                                target="_blank"
+                                className="flex h-11 items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 text-sm font-semibold text-white/80 hover:bg-white/[0.08]"
+                            >
+                                Preview
+                                <span className="text-white/30">Public URL</span>
+                            </Link>
+
+                            {actionDrawerTarget.status === 'PUBLISHED' ? (
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        await runLifecycleAction(actionDrawerTarget.id, 'unpublish')
+                                        setActionDrawerTarget(null)
+                                    }}
+                                    className="flex h-11 items-center justify-between rounded-xl border border-yellow-500/25 bg-yellow-500/10 px-4 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/15"
+                                >
+                                    Unpublish
+                                    <span className="text-yellow-100/45">Move to draft</span>
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        await runLifecycleAction(actionDrawerTarget.id, actionDrawerTarget.status === 'ARCHIVED' || actionDrawerTarget.status === 'SOLD' ? 'restore_published' : 'publish')
+                                        setActionDrawerTarget(null)
+                                    }}
+                                    className="flex h-11 items-center justify-between rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/15"
+                                >
+                                    Publish
+                                    <span className="text-emerald-100/45">Make public</span>
+                                </button>
+                            )}
+
+                            {actionDrawerTarget.status === 'ARCHIVED' ? (
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        await runLifecycleAction(actionDrawerTarget.id, 'restore_published')
+                                        setActionDrawerTarget(null)
+                                    }}
+                                    className="flex h-11 items-center justify-between rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/15"
+                                >
+                                    Restore
+                                    <span className="text-emerald-100/45">Publish again</span>
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        await softDelete(actionDrawerTarget)
+                                        setActionDrawerTarget(null)
+                                    }}
+                                    className="flex h-11 items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 text-sm font-semibold text-white/70 hover:bg-white/[0.08]"
+                                >
+                                    Archive
+                                    <span className="text-white/30">Hide from public</span>
+                                </button>
+                            )}
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setDeleteTarget(actionDrawerTarget)
+                                    setActionDrawerTarget(null)
+                                }}
+                                className="flex h-11 items-center justify-between rounded-xl border border-red-500/25 bg-red-500/10 px-4 text-sm font-semibold text-red-200 hover:bg-red-500/15"
+                            >
+                                Soft Delete
+                                <span className="text-red-100/45">Archive listing</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setPermanentDeleteTarget(actionDrawerTarget)
+                                    setPermanentDeleteConfirmation('')
+                                    setActionDrawerTarget(null)
+                                }}
+                                className="flex h-11 items-center justify-between rounded-xl border border-red-500/35 bg-red-500/15 px-4 text-sm font-semibold text-red-100 hover:bg-red-500/25"
+                            >
+                                Permanent Delete
+                                <span className="text-red-100/45">Requires DELETE</span>
+                            </button>
+                        </div>
+                    </aside>
                 </div>
             )}
         </div>

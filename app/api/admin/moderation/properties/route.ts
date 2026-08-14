@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
+import { normalizeManualPropertyStatus } from '@/lib/manualPropertyLifecycle'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v.trim() : ''
@@ -19,7 +20,8 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url)
 
-  const status = safeString(searchParams.get('status')) || 'PENDING_REVIEW'
+  const rawStatus = safeString(searchParams.get('status')) || 'PENDING_REVIEW'
+  const status = normalizeManualPropertyStatus(rawStatus)
   const agent = safeString(searchParams.get('agent'))
   const city = safeString(searchParams.get('city'))
 

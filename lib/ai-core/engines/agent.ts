@@ -96,7 +96,7 @@ async function loadAgentData(agentId: string) {
       subscription: true,
       listings: { take: 5 },
       manualProperties: {
-        where: { status: 'APPROVED' },
+        where: { status: 'PUBLISHED' },
         take: 50,
         select: {
           price: true, status: true, city: true, createdAt: true, updatedAt: true,

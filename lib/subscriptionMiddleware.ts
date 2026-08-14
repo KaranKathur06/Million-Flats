@@ -7,6 +7,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { PLAN_LIMITS, normalizePlan, normalizeSubscriptionStatus, SubscriptionPlan, SubscriptionStatus } from '@/lib/subscriptionPlans'
+import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
 
 export interface SubscriptionCheck {
   hasActiveSubscription: boolean
@@ -48,14 +49,14 @@ export async function getSubscriptionStatus(agentId: string): Promise<Subscripti
     (prisma as any).manualProperty.count({
       where: {
         agentId,
-        status: { in: ['DRAFT', 'PENDING_REVIEW', 'APPROVED'] },
+        status: { in: ['DRAFT', 'PENDING_REVIEW', MANUAL_PROPERTY_PUBLIC_STATUS] },
       },
     }),
     (prisma as any).manualProperty.count({
       where: {
         agentId,
         isFeatured: true,
-        status: 'APPROVED',
+        status: 'PUBLISHED',
       },
     }),
   ])

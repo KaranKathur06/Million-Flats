@@ -210,7 +210,7 @@ export async function getPublicDeveloperStats() {
   try {
     const [projectCount, propertyCount, countryRows] = await Promise.all([
       (prisma as any).project.count({ where: { status: 'PUBLISHED', isDeleted: false } }),
-      (prisma as any).manualProperty.count({ where: { status: 'APPROVED' } }),
+      (prisma as any).manualProperty.count({ where: { status: 'PUBLISHED' } }),
       (prisma as any).developer.findMany({
         where: { status: 'ACTIVE', isDeleted: false },
         distinct: ['countryCode'],

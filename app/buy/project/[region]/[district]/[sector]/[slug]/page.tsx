@@ -1,12 +1,21 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import type { Metadata } from 'next'
+import { prisma } from '@/lib/prisma'
 import { parseIdFromSlug } from '@/lib/seo'
-import PropertyDetailPage, { generateMetadata as generateMetadataById } from '@/app/properties/[id]/page'
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const id = parseIdFromSlug(params?.slug)
-  if (!id) return { title: 'Property' }
-  return generateMetadataById({ params: { id } } as any)
+  if (!id) return { title: 'Project' }
+
+  const project = await (prisma as any).project.findUnique({
+    where: { id },
+    select: { name: true, description: true },
+  }).catch(() => null)
+
+  return {
+    title: project?.name ? `${project.name} | millionflats` : 'Project | millionflats',
+    description: project?.description || undefined,
+  }
 }
 
 export default async function BuyProjectSeoPage({
@@ -16,5 +25,13 @@ export default async function BuyProjectSeoPage({
 }) {
   const id = parseIdFromSlug(params?.slug)
   if (!id) notFound()
-  return <PropertyDetailPage params={{ id }} />
+
+  const project = await (prisma as any).project.findUnique({
+    where: { id },
+    select: { slug: true },
+  }).catch(() => null)
+
+  if (!project?.slug) notFound()
+
+  redirect(`/projects/${encodeURIComponent(String(project.slug))}`)
 }

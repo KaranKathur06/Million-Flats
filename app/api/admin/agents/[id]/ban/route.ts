@@ -57,7 +57,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   await (prisma as any).manualProperty
     .updateMany({
-      where: { agentId, sourceType: 'MANUAL', status: 'APPROVED' },
+      where: { agentId, sourceType: 'MANUAL', status: 'PUBLISHED' },
       data: { status: 'ARCHIVED', archivedAt: new Date(), archivedBy: auth.userId } as any,
     })
     .catch(() => null)

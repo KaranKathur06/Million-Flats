@@ -88,7 +88,7 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
           by: ['agentId'],
           where: {
             agentId: { in: agentIds },
-            status: 'APPROVED',
+            status: 'PUBLISHED',
             sourceType: 'MANUAL',
             agent: { profileStatus: 'LIVE', user: { status: 'ACTIVE', emailVerified: true } },
           },

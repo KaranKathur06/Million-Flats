@@ -6,7 +6,7 @@ export async function recomputeAgentTotalListings(agentId: string) {
     .catch(() => 0)
 
   const manualApprovedCount = await (prisma as any).manualProperty
-    ?.count({ where: { agentId, status: 'APPROVED', sourceType: 'MANUAL' } })
+    ?.count({ where: { agentId, status: 'PUBLISHED', sourceType: 'MANUAL' } })
     .catch(() => 0)
 
   const totalListings = (typeof externalCount === 'number' ? externalCount : 0) +

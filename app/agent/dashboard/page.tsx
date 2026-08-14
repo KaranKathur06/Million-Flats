@@ -129,7 +129,7 @@ export default async function AgentDashboardPage() {
   const totalListings = agentListingCount > 0 ? agentListingCount : leadListingCount
 
   const manualApprovedCount = await (prisma as any).manualProperty
-    .count({ where: { agentId: agent.id, status: 'APPROVED', sourceType: 'MANUAL' } })
+    .count({ where: { agentId: agent.id, status: 'PUBLISHED', sourceType: 'MANUAL' } })
     .catch((error: unknown) => {
       console.error('Agent dashboard: failed to count manual approved listings', error)
       return 0
@@ -140,7 +140,7 @@ export default async function AgentDashboardPage() {
   const hasMedia = await (prisma as any).manualPropertyMedia
     .findFirst({
       where: {
-        property: { agentId: agent.id, status: 'APPROVED', sourceType: 'MANUAL' },
+        property: { agentId: agent.id, status: 'PUBLISHED', sourceType: 'MANUAL' },
       },
       select: { id: true },
     })
@@ -241,7 +241,7 @@ export default async function AgentDashboardPage() {
 
   const publishedManualListings = await (prisma as any).manualProperty
     .findMany({
-      where: { agentId: agent.id, sourceType: 'MANUAL', status: 'APPROVED' },
+      where: { agentId: agent.id, sourceType: 'MANUAL', status: 'PUBLISHED' },
       orderBy: { updatedAt: 'desc' },
       take: 50,
       include: { media: { orderBy: [{ category: 'asc' }, { position: 'asc' }] } },

@@ -91,9 +91,9 @@ export default function AdminListingsTableClient({
 
           const canApproveByState = it.status === 'PENDING_REVIEW'
           const canRejectByState = it.status === 'PENDING_REVIEW'
-          const canArchiveByState = it.status === 'APPROVED'
+          const canArchiveByState = it.status === 'PUBLISHED'
           const canRestoreByState = it.status === 'ARCHIVED'
-          const canEditByState = it.status === 'APPROVED'
+          const canEditByState = it.status === 'PUBLISHED'
 
           const canApprove = capabilities.listings.approve && canApproveByState
           const canReject = capabilities.listings.reject && canRejectByState
@@ -116,13 +116,13 @@ export default function AdminListingsTableClient({
           const editReason = !capabilities.listings.editSafely
             ? 'You do not have permission to edit listings.'
             : !canEditByState
-              ? 'Only approved listings can be edited safely.'
+              ? 'Only published listings can be edited safely.'
               : ''
 
           const archiveReason = !capabilities.listings.archive
             ? 'You do not have permission to archive listings.'
             : !canArchiveByState
-              ? 'Only approved listings can be archived.'
+              ? 'Only published listings can be archived.'
               : ''
 
           const restoreReason = !capabilities.listings.restore
@@ -179,7 +179,7 @@ export default function AdminListingsTableClient({
                     canApprove && !isBusy ? 'bg-amber-400 text-[#0b1220] hover:bg-amber-300' : 'bg-white/5 text-white/30 cursor-not-allowed'
                   }`}
                 >
-                  Approve
+                  Publish
                 </button>
 
                 <button
@@ -282,9 +282,9 @@ export default function AdminListingsTableClient({
 
               const canApproveByState = it.status === 'PENDING_REVIEW'
               const canRejectByState = it.status === 'PENDING_REVIEW'
-              const canArchiveByState = it.status === 'APPROVED'
+              const canArchiveByState = it.status === 'PUBLISHED'
               const canRestoreByState = it.status === 'ARCHIVED'
-              const canEditByState = it.status === 'APPROVED'
+              const canEditByState = it.status === 'PUBLISHED'
 
               const canApprove = capabilities.listings.approve && canApproveByState
               const canReject = capabilities.listings.reject && canRejectByState
@@ -307,13 +307,13 @@ export default function AdminListingsTableClient({
               const editReason = !capabilities.listings.editSafely
                 ? 'You do not have permission to edit listings.'
                 : !canEditByState
-                  ? 'Only approved listings can be edited safely.'
+                  ? 'Only published listings can be edited safely.'
                   : ''
 
               const archiveReason = !capabilities.listings.archive
                 ? 'You do not have permission to archive listings.'
                 : !canArchiveByState
-                  ? 'Only approved listings can be archived.'
+                  ? 'Only published listings can be archived.'
                   : ''
 
               const restoreReason = !capabilities.listings.restore
@@ -358,7 +358,7 @@ export default function AdminListingsTableClient({
                             : 'bg-white/5 text-white/30 cursor-not-allowed'
                         }`}
                       >
-                        Approve
+                        Publish
                       </button>
 
                       <button

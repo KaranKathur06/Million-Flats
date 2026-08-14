@@ -2,8 +2,34 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { CanonicalLocationError, validateCanonicalLocation } from '@/lib/canonicalLocation.server'
+import { MANUAL_PROPERTY_PUBLIC_STATUS, normalizeManualPropertyStatus } from '@/lib/manualPropertyLifecycle'
+import { applyManualPropertyAdminAction, revalidateManualPropertyPaths } from '@/lib/manualPropertyAdminLifecycle'
+import { writeAuditLog } from '@/lib/audit'
 
 const bannedMediaFields = ['images', 'imageUrl', 'imageUrls']
+
+function getIp(req: Request) {
+    const forwarded = req.headers.get('x-forwarded-for')
+    if (forwarded) return forwarded.split(',')[0]?.trim() || null
+    return req.headers.get('x-real-ip') || null
+}
+
+function lifecycleActionForTargetStatus(currentStatus: string, targetStatus: string) {
+    const current = normalizeManualPropertyStatus(currentStatus)
+    const target = normalizeManualPropertyStatus(targetStatus)
+    if (target === MANUAL_PROPERTY_PUBLIC_STATUS) {
+        return current === 'ARCHIVED' || current === 'SOLD' ? 'restore_published' : 'publish'
+    }
+    if (target === 'DRAFT') {
+        if (current === MANUAL_PROPERTY_PUBLIC_STATUS) return 'unpublish'
+        if (current === 'ARCHIVED' || current === 'REJECTED') return 'restore'
+        return 'draft'
+    }
+    if (target === 'ARCHIVED') return 'archive'
+    if (target === 'SOLD') return 'mark_sold'
+    if (target === 'REJECTED') return 'reject'
+    return null
+}
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
     const auth = await requireAdminSession()
@@ -65,7 +91,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         const data: any = {}
         for (const field of allowedFields) {
             if (body[field] !== undefined) {
-                data[field] = body[field]
+                data[field] = field === 'status' ? normalizeManualPropertyStatus(body[field]) : body[field]
             }
         }
 
@@ -81,32 +107,39 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             data.community = verifiedLocation.community
         }
 
-        // Status change side effects
-        if (data.status === 'APPROVED' && existing.status !== 'APPROVED') {
-            data.submittedAt = data.submittedAt || new Date()
-        }
-        if (data.status === 'ARCHIVED') {
-            data.archivedAt = new Date()
-            data.archivedBy = auth.userId
+        const targetStatus = data.status
+        const statusChanged = targetStatus !== undefined && targetStatus !== existing.status
+        if (statusChanged) delete data.status
+
+        let updated = existing
+        if (Object.keys(data).length > 0) {
+            updated = await (prisma as any).manualProperty.update({
+                where: { id: params.id },
+                data,
+            })
+            revalidateManualPropertyPaths(updated)
         }
 
-        const updated = await (prisma as any).manualProperty.update({
-            where: { id: params.id },
-            data,
-        })
-
-        // Log moderation action if status changed
-        if (data.status && data.status !== existing.status) {
-            const action = data.status === 'APPROVED' ? 'APPROVE' : 'REJECT'
-            if (action === 'APPROVE' || action === 'REJECT') {
-                await (prisma as any).manualPropertyModerationLog.create({
-                    data: {
-                        propertyId: params.id,
-                        adminId: auth.userId,
-                        action,
-                        reason: body.reason || null,
-                    },
-                }).catch(() => { /* non-critical */ })
+        if (statusChanged) {
+            const lifecycleAction = lifecycleActionForTargetStatus(String(existing.status || 'DRAFT'), String(targetStatus))
+            if (lifecycleAction) {
+                const result = await applyManualPropertyAdminAction({
+                    propertyId: params.id,
+                    action: lifecycleAction,
+                    actorUserId: auth.userId,
+                    ipAddress: getIp(req),
+                    reason: body.reason || null,
+                })
+                if (!result.ok) {
+                    return NextResponse.json({ success: false, message: result.message }, { status: result.status })
+                }
+                updated = result.property
+            } else {
+                updated = await (prisma as any).manualProperty.update({
+                    where: { id: params.id },
+                    data: { status: targetStatus },
+                })
+                revalidateManualPropertyPaths(updated)
             }
         }
 
@@ -136,7 +169,6 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
         }
 
         if (permanent) {
-            // Hard delete — remove media first, then property
             await (prisma as any).$transaction(async (tx: any) => {
                 await tx.manualPropertyMedia.deleteMany({ where: { propertyId: params.id } })
                 await tx.manualPropertyModerationLog.deleteMany({ where: { propertyId: params.id } })
@@ -144,15 +176,29 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
                 await tx.inquiry.deleteMany({ where: { propertyId: params.id } })
                 await tx.manualProperty.delete({ where: { id: params.id } })
             })
-            return NextResponse.json({ success: true, action: 'permanently_deleted' })
-        } else {
-            // Soft delete — archive
-            await (prisma as any).manualProperty.update({
-                where: { id: params.id },
-                data: { status: 'ARCHIVED', archivedAt: new Date(), archivedBy: auth.userId },
+            await writeAuditLog({
+                entityType: 'MANUAL_PROPERTY',
+                entityId: params.id,
+                action: 'DRAFT_DELETED',
+                performedByUserId: auth.userId,
+                ipAddress: getIp(req),
+                beforeState: existing,
+                meta: { actor: 'admin', permanent: true },
             })
-            return NextResponse.json({ success: true, action: 'archived' })
+            revalidateManualPropertyPaths(existing)
+            return NextResponse.json({ success: true, action: 'permanently_deleted' })
         }
+
+        const result = await applyManualPropertyAdminAction({
+            propertyId: params.id,
+            action: 'archive',
+            actorUserId: auth.userId,
+            ipAddress: getIp(req),
+        })
+        if (!result.ok) {
+            return NextResponse.json({ success: false, message: result.message }, { status: result.status })
+        }
+        return NextResponse.json({ success: true, action: 'archived' })
     } catch (err: any) {
         console.error('[DELETE /api/admin/properties/[id]]', err)
         return NextResponse.json({ success: false, message: err.message || 'Internal error' }, { status: 500 })

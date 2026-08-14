@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAgentSession } from '@/lib/agentAuth'
 import { writeAuditLog } from '@/lib/audit'
+import { isPublishedManualPropertyStatus } from '@/lib/manualPropertyLifecycle'
 
 function bad(message: string, status = 400) {
   return NextResponse.json({ success: false, message }, { status })
@@ -23,7 +24,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     })
 
     if (!existing) return bad('Not found', 404)
-    if (String(existing.status) !== 'APPROVED') return bad('Only published listings can be archived.')
+    if (!isPublishedManualPropertyStatus(existing.status)) return bad('Only published listings can be archived.')
 
     const updated = await (prisma as any).manualProperty.update({
       where: { id },

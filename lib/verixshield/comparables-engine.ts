@@ -219,7 +219,7 @@ async function fetchByLocation(input: PropertyInput, communityLevel: boolean): P
 async function fetchInternalComparables(input: PropertyInput): Promise<any[]> {
   try {
     const where: any = {
-      status: 'APPROVED',
+      status: 'PUBLISHED',
       price: { gt: 0 },
       squareFeet: { gt: 0 },
     }

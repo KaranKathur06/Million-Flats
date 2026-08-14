@@ -44,7 +44,7 @@ export default function AdminAddPropertyPage() {
         paymentPlanText: '',
         emiNote: '',
         tour3dUrl: '',
-        status: 'APPROVED',
+        status: 'PUBLISHED',
     })
 
     const update = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }))
@@ -92,7 +92,7 @@ export default function AdminAddPropertyPage() {
                 paymentPlanText: form.paymentPlanText.trim() || null,
                 emiNote: form.emiNote.trim() || null,
                 tour3dUrl: form.tour3dUrl.trim() || null,
-                status: asDraft ? 'DRAFT' : 'APPROVED',
+                status: asDraft ? 'DRAFT' : 'PUBLISHED',
             }
 
             const res = await fetch('/api/admin/properties', {
@@ -102,7 +102,7 @@ export default function AdminAddPropertyPage() {
             })
             const json = await res.json()
             if (!json.success) throw new Error(json.message || 'Failed to create property')
-            toast.success(asDraft ? 'Property saved as draft' : 'Property created & approved')
+            toast.success(asDraft ? 'Property saved as draft' : 'Property created & published')
             setCreatedPropertyId(String(json.property.id))
 
             // Reset form
@@ -111,7 +111,7 @@ export default function AdminAddPropertyPage() {
                 constructionStatus: '', shortDescription: '', bedrooms: '0', bathrooms: '0',
                 squareFeet: '0', countryCode: 'INDIA', countryIso2: 'IN', city: '', community: '',
                 address: '', latitude: '', longitude: '', developerName: '', amenities: [],
-                customAmenity: '', paymentPlanText: '', emiNote: '', tour3dUrl: '', status: 'APPROVED',
+                customAmenity: '', paymentPlanText: '', emiNote: '', tour3dUrl: '', status: 'PUBLISHED',
             })
         } catch (err: any) {
             toast.error(err.message)

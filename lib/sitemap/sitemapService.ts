@@ -22,6 +22,8 @@ import { PUBLIC_PARTNER_VISIBILITY } from '@/lib/ecosystem/partnerVisibility'
 import fs from 'fs'
 import path from 'path'
 import { getBaseUrl } from '@/lib/auth/routes'
+import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
+import { buildManualPropertyPath } from '@/lib/manualPropertyRoutes'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 export interface SitemapUrl {
@@ -300,6 +302,36 @@ async function fetchDeveloperUrls(): Promise<SitemapUrl[]> {
   }
 }
 
+async function fetchPropertyUrls(): Promise<SitemapUrl[]> {
+  try {
+    const properties = await (prisma as any).manualProperty.findMany({
+      where: {
+        status: MANUAL_PROPERTY_PUBLIC_STATUS,
+        sourceType: 'MANUAL',
+        agent: {
+          approved: true,
+          profileStatus: 'LIVE',
+          user: { status: 'ACTIVE' },
+        },
+      },
+      select: { id: true, title: true, intent: true, updatedAt: true },
+      orderBy: { updatedAt: 'desc' },
+    })
+
+    return properties
+      .map((p: any) => ({
+        loc: buildManualPropertyPath({ id: p.id, title: p.title, intent: p.intent }),
+        lastmod: p.updatedAt ? new Date(p.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        changefreq: 'weekly' as const,
+        priority: 0.8,
+      }))
+      .filter((p: SitemapUrl) => Boolean(p.loc))
+  } catch (err) {
+    console.error('[Sitemap] Error fetching property URLs:', err)
+    return []
+  }
+}
+
 // ─── Deduplication ──────────────────────────────────────────────────────────
 function deduplicateUrls(urls: SitemapUrl[]): SitemapUrl[] {
   const seen = new Set<string>()
@@ -320,9 +352,13 @@ export async function generateAllSitemaps(): Promise<SitemapGenerationResult> {
   console.log('[Sitemap] Starting full sitemap generation...')
 
   // Fetch all URL sets in parallel
-  const [projectUrls, blogUrls, developerUrls, ecosystemPartnerUrls] = await Promise.all([
+  const [projectUrls, propertyUrls, blogUrls, developerUrls, ecosystemPartnerUrls] = await Promise.all([
     fetchProjectUrls().catch((err) => {
       errors.push({ type: 'projects', message: String(err), timestamp: new Date().toISOString() })
+      return [] as SitemapUrl[]
+    }),
+    fetchPropertyUrls().catch((err) => {
+      errors.push({ type: 'properties', message: String(err), timestamp: new Date().toISOString() })
       return [] as SitemapUrl[]
     }),
     fetchBlogUrls().catch((err) => {
@@ -344,6 +380,7 @@ export async function generateAllSitemaps(): Promise<SitemapGenerationResult> {
 
   // Deduplicate per type
   const dedupedProjects = deduplicateUrls(projectUrls)
+  const dedupedProperties = deduplicateUrls(propertyUrls)
   const dedupedBlogs = deduplicateUrls(blogUrls)
   const dedupedDevelopers = deduplicateUrls(developerUrls)
   const dedupedEcosystemPartners = deduplicateUrls(ecosystemPartnerUrls)
@@ -352,6 +389,7 @@ export async function generateAllSitemaps(): Promise<SitemapGenerationResult> {
   const sitemapTypes: { type: string; urls: SitemapUrl[] }[] = [
     { type: 'pages', urls: staticUrls },
     { type: 'projects', urls: dedupedProjects },
+    { type: 'properties', urls: dedupedProperties },
     { type: 'blogs', urls: dedupedBlogs },
     { type: 'developers', urls: dedupedDevelopers },
     { type: 'ecosystem-partners', urls: dedupedEcosystemPartners },
@@ -437,7 +475,7 @@ export interface SitemapDashboardData {
 export async function getSitemapDashboardData(): Promise<SitemapDashboardData> {
   const meta = readMeta()
 
-  const cacheTypes = ['index', 'pages', 'projects', 'blogs', 'developers', 'ecosystem-partners']
+  const cacheTypes = ['index', 'pages', 'projects', 'properties', 'blogs', 'developers', 'ecosystem-partners']
   const cacheStatus = cacheTypes.map((type) => {
     const cachePath = getCachePath(type)
     let valid = false
