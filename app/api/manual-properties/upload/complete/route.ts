@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAgentSession } from '@/lib/agentAuth'
-import { deleteFromS3, s3ObjectExists } from '@/lib/s3'
+import { s3ObjectExists } from '@/lib/s3'
+import { PROPERTY_MEDIA_MAX_IMAGE_BYTES } from '@/lib/propertyMedia'
 
 export const runtime = 'nodejs'
 
@@ -12,7 +13,7 @@ const BodySchema = z.object({
   url: z.string().trim().min(1),
   s3Key: z.string().trim().min(1),
   mimeType: z.string().trim().min(1).max(100).optional().nullable(),
-  sizeBytes: z.number().int().min(1).max(60 * 1024 * 1024).optional().nullable(),
+  sizeBytes: z.number().int().min(1).max(Math.max(PROPERTY_MEDIA_MAX_IMAGE_BYTES, 500 * 1024 * 1024)).optional().nullable(),
   altText: z.string().trim().max(200).optional().nullable(),
 })
 
@@ -40,27 +41,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: 'Cannot upload after submission' }, { status: 400 })
     }
 
+    if (!s3Key.startsWith(`public/properties/${propertyId}/`) && !s3Key.startsWith(`private/properties/${propertyId}/`)) {
+      return NextResponse.json({ success: false, message: 'Storage key is not authorized for this property' }, { status: 403 })
+    }
+
     const objectExists = await s3ObjectExists({ key: s3Key }).catch(() => false)
     if (!objectExists) {
       return NextResponse.json({ success: false, message: 'Uploaded object not found in storage' }, { status: 404 })
     }
 
     if (category === 'COVER') {
-      const existingCovers = await (prisma as any).manualPropertyMedia.findMany({
-        where: { propertyId, category: 'COVER' },
-        select: { id: true, s3Key: true },
-      })
-
-      for (const row of existingCovers) {
-        if (row?.s3Key) {
-          await deleteFromS3(String(row.s3Key)).catch(() => null)
-        }
-      }
-
-      if (existingCovers.length > 0) {
-        await (prisma as any).manualPropertyMedia.deleteMany({ where: { propertyId, category: 'COVER' } })
-      }
+      await (prisma as any).manualPropertyMedia.updateMany({ where: { propertyId, category: 'COVER' }, data: { category: 'EXTERIOR' } })
     }
+
+    const last = await (prisma as any).manualPropertyMedia.aggregate({ where: { propertyId }, _max: { position: true } })
 
     await (prisma as any).manualPropertyMedia.create({
       data: {
@@ -71,7 +65,7 @@ export async function POST(req: Request) {
         mimeType: mimeType || null,
         sizeBytes: typeof sizeBytes === 'number' ? sizeBytes : null,
         altText: altText || null,
-        position: 0,
+        position: (last._max.position ?? -1) + 1,
       } as any,
     })
 

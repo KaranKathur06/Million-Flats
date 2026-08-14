@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
+import { CanonicalLocationError, validateCanonicalLocation } from '@/lib/canonicalLocation.server'
+
+const bannedMediaFields = ['images', 'imageUrl', 'imageUrls']
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
     const auth = await requireAdminSession()
@@ -43,6 +46,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             return NextResponse.json({ success: false, message: 'Property not found' }, { status: 404 })
         }
 
+        if (bannedMediaFields.some((field) => body[field] !== undefined)) {
+            return NextResponse.json({
+                success: false,
+                message: 'Image URLs are not accepted for properties. Use the categorized property gallery upload flow.',
+            }, { status: 422 })
+        }
+
         const allowedFields = [
             'title', 'propertyType', 'intent', 'price', 'currency',
             'constructionStatus', 'shortDescription', 'bedrooms', 'bathrooms',
@@ -57,6 +67,18 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             if (body[field] !== undefined) {
                 data[field] = body[field]
             }
+        }
+
+        if (body.countryIso2 !== undefined || body.countryCode !== undefined || body.city !== undefined || body.community !== undefined) {
+            const verifiedLocation = await validateCanonicalLocation({
+                countryIso2: body.countryIso2 ?? existing.countryIso2,
+                city: body.city ?? existing.city,
+                community: body.community ?? existing.community,
+            })
+            data.countryCode = verifiedLocation.countryCode
+            data.countryIso2 = verifiedLocation.countryIso2
+            data.city = verifiedLocation.city
+            data.community = verifiedLocation.community
         }
 
         // Status change side effects
@@ -90,6 +112,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
         return NextResponse.json({ success: true, property: updated })
     } catch (err: any) {
+        if (err instanceof CanonicalLocationError) {
+            return NextResponse.json({ success: false, message: err.message }, { status: 422 })
+        }
         console.error('[PATCH /api/admin/properties/[id]]', err)
         return NextResponse.json({ success: false, message: err.message || 'Internal error' }, { status: 500 })
     }

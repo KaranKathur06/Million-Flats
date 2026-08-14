@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
+import { canonicalizePropertyImport } from '@/lib/propertyCanonical'
+import { CanonicalLocationError, validateCanonicalLocation } from '@/lib/canonicalLocation.server'
 
 type LifecycleFilter = 'all' | 'active' | 'pending' | 'rejected' | 'sold' | 'archived'
 
@@ -99,6 +101,15 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json().catch(() => ({}))
+        const canonical = canonicalizePropertyImport({ property: body, schemaVersion: 'property-import-v1' })
+        if (!canonical.ok) {
+            return NextResponse.json({ success: false, message: canonical.errors.join(' ') }, { status: 400 })
+        }
+        if (body.images !== undefined || body.imageUrl !== undefined || body.imageUrls !== undefined) {
+            return NextResponse.json({ success: false, message: 'Property image URLs are not accepted. Upload media after the property is created.' }, { status: 400 })
+        }
+        const normalized = canonical.normalized
+        const location = await validateCanonicalLocation(normalized)
 
         // Find or create system agent
         const systemAgent = await findOrCreateSystemAgent()
@@ -109,9 +120,9 @@ export async function POST(req: Request) {
                     agentId: systemAgent.id,
                     sourceType: 'MANUAL',
                     status: body.status || 'APPROVED',
-                    title: body.title || 'New Property',
-                    propertyType: body.propertyType || null,
-                    intent: body.intent || 'SALE',
+                    title: normalized.title || 'New Property',
+                    propertyType: normalized.propertyType || null,
+                    intent: normalized.intent || 'SALE',
                     price: typeof body.price === 'number' ? body.price : null,
                     currency: body.currency || 'INR',
                     constructionStatus: body.constructionStatus || null,
@@ -119,10 +130,10 @@ export async function POST(req: Request) {
                     bedrooms: body.bedrooms || 0,
                     bathrooms: body.bathrooms || 0,
                     squareFeet: body.squareFeet || 0,
-                    countryCode: body.countryCode || 'INDIA',
-                    countryIso2: body.countryIso2 || 'IN',
-                    city: body.city || null,
-                    community: body.community || null,
+                    countryCode: location.countryCode,
+                    countryIso2: location.countryIso2,
+                    city: location.city,
+                    community: location.community,
                     address: body.address || null,
                     latitude: body.latitude || null,
                     longitude: body.longitude || null,
@@ -135,23 +146,12 @@ export async function POST(req: Request) {
                 },
             })
 
-            // Create media records
-            if (Array.isArray(body.images) && body.images.length > 0) {
-                await tx.manualPropertyMedia.createMany({
-                    data: body.images.map((img: any, idx: number) => ({
-                        propertyId: created.id,
-                        category: img.category || 'EXTERIOR',
-                        url: img.url,
-                        position: idx,
-                    })),
-                })
-            }
-
             return created
         })
 
         return NextResponse.json({ success: true, property })
     } catch (err: any) {
+        if (err instanceof CanonicalLocationError) return NextResponse.json({ success: false, message: err.message }, { status: 422 })
         console.error('[POST /api/admin/properties]', err)
         return NextResponse.json({ success: false, message: err.message || 'Internal error' }, { status: 500 })
     }

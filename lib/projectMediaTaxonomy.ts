@@ -1,15 +1,8 @@
-export const PROJECT_MEDIA_CATEGORIES = [
-  'hero',
-  'interior',
-  'exterior',
-  'amenities',
-  'lifestyle',
-] as const
+import { SHARED_MEDIA_CATEGORIES } from './propertyMedia'
 
-export const PROJECT_MEDIA_CATEGORY_VALUES = [
-  ...PROJECT_MEDIA_CATEGORIES,
-  'floor_plan',
-] as const
+export const PROJECT_MEDIA_CATEGORIES = SHARED_MEDIA_CATEGORIES.filter(category => category !== 'floor_plan')
+
+export const PROJECT_MEDIA_CATEGORY_VALUES = SHARED_MEDIA_CATEGORIES
 
 export type ProjectMediaCategory = (typeof PROJECT_MEDIA_CATEGORY_VALUES)[number]
 

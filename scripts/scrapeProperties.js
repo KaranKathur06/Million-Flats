@@ -479,7 +479,7 @@ async function scrapePropertyFromHtml(url, html, cityMeta) {
         amenities: amenities.length > 0 ? amenities : null,
         status: 'APPROVED',
         sourceUrl: url,
-        images,
+        sourceProvider: 'SQUAREYARDS',
     }
 }
 
@@ -625,7 +625,7 @@ async function scrapeWithPuppeteer(url, cityMeta) {
             amenities: data.amenities.length > 0 ? data.amenities : null,
             status: 'APPROVED',
             sourceUrl: url,
-            images,
+            sourceProvider: 'SQUAREYARDS',
         }
     } catch (err) {
         console.log(`  ❌ Puppeteer failed: ${err.message}`)
@@ -683,7 +683,7 @@ async function processFile(filePath) {
             let property = await scrapePropertyFromHtml(url, html, cityMeta)
 
             // Check if we got enough data from HTML
-            const hasGoodData = property.title && property.title !== 'Property' && property.images.length > 0
+            const hasGoodData = property.title && property.title !== 'Property'
 
             // Strategy 2: Puppeteer fallback if HTML data is insufficient
             if (!hasGoodData && usePuppeteer) {
@@ -703,7 +703,6 @@ async function processFile(filePath) {
                         amenities: puppeteerData.amenities || property.amenities,
                         shortDescription: puppeteerData.shortDescription || property.shortDescription,
                         constructionStatus: puppeteerData.constructionStatus || property.constructionStatus,
-                        images: puppeteerData.images.length > property.images.length ? puppeteerData.images : property.images,
                     }
                 }
             }
@@ -777,6 +776,7 @@ async function main() {
             const outputPath = path.join(OUTPUT_DIR, `${safeName}_properties.json`)
 
             const outputJson = {
+                schemaVersion: 'property-import-v1',
                 systemAgentEmail: 'admin@millionflats.com',
                 properties: result.properties,
             }

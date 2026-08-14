@@ -1,11 +1,12 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import GlobalDropdown from '@/components/ui/GlobalDropdown'
-import { CitySelector, CountrySelector } from '@/components/location/CountryCitySelector'
-import { getCommunityOptions, normalizeLocationPair } from '@/lib/propertyCanonical'
+import { normalizeLocationPair } from '@/lib/propertyCanonical'
+import { PropertyMediaManager } from '@/components/admin/properties/PropertyMediaManager'
+import { CanonicalLocationFields } from '@/components/admin/properties/CanonicalLocationFields'
 
 const PROPERTY_TYPES = ['Apartment', 'Villa', 'Plot', 'Penthouse', 'Townhouse', 'Duplex', 'Studio', 'Commercial', 'Retail']
 const AMENITY_OPTIONS = [
@@ -18,6 +19,7 @@ const AMENITY_OPTIONS = [
 
 export default function AdminAddPropertyPage() {
     const [saving, setSaving] = useState(false)
+    const [createdPropertyId, setCreatedPropertyId] = useState<string | null>(null)
     const [form, setForm] = useState({
         title: '',
         propertyType: 'Apartment',
@@ -44,8 +46,6 @@ export default function AdminAddPropertyPage() {
         tour3dUrl: '',
         status: 'APPROVED',
     })
-
-    const communityOptions = useMemo(() => getCommunityOptions(form.countryIso2 || 'IN', form.city || 'Navi Mumbai'), [form.city, form.countryIso2])
 
     const update = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }))
 
@@ -103,6 +103,7 @@ export default function AdminAddPropertyPage() {
             const json = await res.json()
             if (!json.success) throw new Error(json.message || 'Failed to create property')
             toast.success(asDraft ? 'Property saved as draft' : 'Property created & approved')
+            setCreatedPropertyId(String(json.property.id))
 
             // Reset form
             setForm({
@@ -147,46 +148,7 @@ export default function AdminAddPropertyPage() {
                             <label className={labelClass}>Title *</label>
                             <input value={form.title} onChange={e => update('title', e.target.value)} placeholder="e.g. Lodha Alibaug 3 BHK Apartment" className={inputClass} />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <CountrySelector
-                                    value={form.countryIso2 || 'IN'}
-                                    onChange={({ code }) => {
-                                        const nextCountryCode = code === 'AE' ? 'UAE' : 'INDIA'
-                                        update('countryIso2', code)
-                                        update('countryCode', nextCountryCode)
-                                        update('city', '')
-                                        update('community', '')
-                                    }}
-                                    appearance="admin-dark"
-                                />
-                            </div>
-                            <div>
-                                <CitySelector
-                                    countryCode={form.countryIso2 || 'IN'}
-                                    value={form.city}
-                                    onChange={({ name }) => {
-                                        update('city', name)
-                                        update('community', '')
-                                    }}
-                                    placeholder="Search city"
-                                    appearance="admin-dark"
-                                />
-                            </div>
-                        </div>
-                        {form.city && communityOptions.length > 0 ? (
-                            <div>
-                                <label className={labelClass}>Community / Area</label>
-                                <GlobalDropdown
-                                  value={form.community}
-                                  onChange={(v) => update('community', String(v || ''))}
-                                  options={communityOptions.map((community) => ({ value: community.value, label: community.label }))}
-                                  showLabel={false}
-                                  appearance="admin-dark"
-                                  className={inputClass}
-                                />
-                            </div>
-                        ) : null}
+                        <CanonicalLocationFields country={form.countryIso2} city={form.city} community={form.community} onChange={({ country, city, community }) => { update('countryIso2', country); update('countryCode', country === 'AE' ? 'UAE' : 'INDIA'); update('currency', country === 'AE' ? 'AED' : 'INR'); update('city', city); update('community', community) }} />
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className={labelClass}>Property Type</label>
@@ -241,36 +203,10 @@ export default function AdminAddPropertyPage() {
                         </div>
                     </div>
 
-                    {/* Location */}
+                    {/* Location details — canonical country, city, and community are selected once above. */}
                     <div className={sectionClass}>
-                        <h2 className="text-sm font-semibold text-white/80">Location</h2>
+                        <h2 className="text-sm font-semibold text-white/80">Address & Developer</h2>
                         <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className={labelClass}>Country</label>
-                                <GlobalDropdown
-                                  value={form.countryCode}
-                                  onChange={(v) => { 
-                                    const countryValue = v as string
-                                    update('countryCode', countryValue)
-                                    update('countryIso2', countryValue === 'INDIA' ? 'IN' : 'AE')
-                                    update('currency', countryValue === 'INDIA' ? 'INR' : 'AED')
-                                  }}
-                                  options={[{ value: 'INDIA', label: 'India' }, { value: 'UAE', label: 'UAE' }]}
-                                  showLabel={false}
-                                  appearance="admin-dark"
-                                  className={inputClass}
-                                />
-                            </div>
-                            <div>
-                                <label className={labelClass}>City</label>
-                                <input value={form.city} onChange={e => update('city', e.target.value)} placeholder="Navi Mumbai" className={inputClass} />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className={labelClass}>Community / Locality</label>
-                                <input value={form.community} onChange={e => update('community', e.target.value)} placeholder="Kharghar" className={inputClass} />
-                            </div>
                             <div>
                                 <label className={labelClass}>Developer</label>
                                 <input value={form.developerName} onChange={e => update('developerName', e.target.value)} placeholder="Lodha Group" className={inputClass} />
@@ -351,13 +287,10 @@ export default function AdminAddPropertyPage() {
                         )}
                     </div>
 
-                    {/* Media */}
-                    <div className={sectionClass}>
-                        <h2 className="text-sm font-semibold text-white/80">Media</h2>
-                        <p className="text-xs text-white/40">
-                            Property images and brochures are uploaded from the property gallery workflow after creation, not via URL arrays here.
-                        </p>
-                    </div>
+                    {createdPropertyId ? <PropertyMediaManager propertyId={createdPropertyId} /> : <div className={sectionClass}>
+                        <h2 className="text-sm font-semibold text-white/80">Property Gallery</h2>
+                        <p className="text-xs text-white/40">Save the property first, then upload categorized media through the Project-style gallery.</p>
+                    </div>}
 
                     {/* Additional */}
                     <div className={sectionClass}>

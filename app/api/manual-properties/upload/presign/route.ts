@@ -4,13 +4,14 @@ import { prisma } from '@/lib/prisma'
 import { requireAgentSession } from '@/lib/agentAuth'
 import { createSignedPutUrl } from '@/lib/s3'
 import { buildAssetUrl } from '@/lib/assetUrl'
+import { PROPERTY_MEDIA_ALLOWED_TYPES, PROPERTY_MEDIA_MAX_IMAGE_BYTES } from '@/lib/propertyMedia'
 
 export const runtime = 'nodejs'
 
 // Server-side size limits (configurable via env, defaults shown)
 const BROCHURE_MAX_SIZE = Number(process.env.PROJECT_BROCHURE_MAX_SIZE_BYTES) || 300 * 1024 * 1024 // 300MB default
 const VIDEO_MAX_SIZE = Number(process.env.PROJECT_VIDEO_MAX_SIZE_BYTES) || 500 * 1024 * 1024 // 500MB default
-const IMAGE_MAX_SIZE = Number(process.env.PROJECT_IMAGE_MAX_SIZE_BYTES) || 60 * 1024 * 1024 // 60MB default (zod schema max)
+const IMAGE_MAX_SIZE = Number(process.env.PROJECT_IMAGE_MAX_SIZE_BYTES) || PROPERTY_MEDIA_MAX_IMAGE_BYTES
 
 const BodySchema = z.object({
   propertyId: z.string().trim().min(1),
@@ -30,7 +31,7 @@ function safeFilename(name: string) {
 }
 
 function isAllowedImageType(mime: string) {
-  return mime === 'image/jpeg' || mime === 'image/png' || mime === 'image/webp'
+  return (PROPERTY_MEDIA_ALLOWED_TYPES as readonly string[]).includes(mime.toLowerCase())
 }
 
 function isAllowedPdf(mime: string) {
@@ -94,8 +95,9 @@ export async function POST(req: Request) {
       if (!isAllowedImageType(contentType)) {
         return NextResponse.json({ success: false, message: 'Only JPG/PNG/WebP images are allowed.' }, { status: 400 })
       }
-      if (sizeBytes > 10 * 1024 * 1024) {
-        return NextResponse.json({ success: false, message: 'Image too large (max 10MB).' }, { status: 400 })
+      if (sizeBytes > IMAGE_MAX_SIZE) {
+        const maxMB = Math.floor(IMAGE_MAX_SIZE / 1024 / 1024)
+        return NextResponse.json({ success: false, message: `Image too large (max ${maxMB}MB).` }, { status: 400 })
       }
     }
 

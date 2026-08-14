@@ -5,6 +5,8 @@ import ClientLazyMap from '@/components/ClientLazyMap'
 import AmenitiesListModal from '@/components/AmenitiesListModal'
 import { AIShieldCTA } from '@/components/aishield/AIShieldCTA'
 import EcosystemPartnerRecommendationsSection from '@/components/ecosystem/EcosystemPartnerRecommendationsSection'
+import { buildAssetUrl } from '@/lib/assetUrl'
+import { PROPERTY_MEDIA_CATEGORIES, propertyMediaCategory, type PropertyMediaCategory } from '@/lib/propertyMedia'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v : ''
@@ -26,15 +28,31 @@ export default function ManualPropertyPreview({ manual }: { manual: any }) {
       ? `${safeString(manual?.currency) || 'AED'} ${Math.round(manual.price).toLocaleString()}`
       : 'Price on request'
 
-  const images: string[] = Array.isArray(manual?.media)
+  const mediaItems = Array.isArray(manual?.media)
     ? manual.media
         .filter((m: any) => {
           const cat = safeString(m?.category)
           return cat !== 'BROCHURE' && cat !== 'VIDEO'
         })
-        .map((m: any) => safeString(m?.url))
-        .filter(Boolean)
+        .map((m: any) => ({
+          category: propertyMediaCategory(safeString(m?.category)),
+          url: buildAssetUrl(safeString(m?.s3Key) || safeString(m?.url)) || safeString(m?.url),
+          position: safeNumber(m?.position),
+        }))
+        .filter((m: any) => Boolean(m.url))
+        .sort((a: any, b: any) => {
+          if (a.category === 'hero' && b.category !== 'hero') return -1
+          if (a.category !== 'hero' && b.category === 'hero') return 1
+          return a.position - b.position
+        })
     : []
+
+  const images: string[] = mediaItems.map((m: any) => m.url)
+  const mediaByCategory = PROPERTY_MEDIA_CATEGORIES.reduce((acc, category) => {
+    const categoryImages = mediaItems.filter((m: any) => m.category === category).map((m: any) => m.url)
+    if (categoryImages.length) acc[category] = categoryImages
+    return acc
+  }, {} as Record<PropertyMediaCategory, string[]>)
 
   const videoUrl = Array.isArray(manual?.media)
     ? safeString(manual.media.find((m: any) => safeString(m?.category) === 'VIDEO')?.url)
@@ -127,10 +145,26 @@ export default function ManualPropertyPreview({ manual }: { manual: any }) {
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 pb-14">
         <div className="space-y-12">
           <section className="bg-white rounded-3xl p-5 md:p-7 shadow-sm">
-            <h2 className="text-xl md:text-2xl font-serif font-semibold text-dark-blue">Gallery</h2>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <h2 className="text-xl md:text-2xl font-serif font-semibold text-dark-blue">Gallery</h2>
+              {images.length > 0 ? <p className="text-xs uppercase tracking-widest text-gray-500">{images.length} photos</p> : null}
+            </div>
             <div className="mt-5 overflow-hidden rounded-2xl">
               <PropertyGallery images={images.length ? images : [cover]} title={title} heightClassName="relative h-[320px] sm:h-[420px] md:h-[520px]" />
             </div>
+            {Object.keys(mediaByCategory).length > 1 ? (
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                {PROPERTY_MEDIA_CATEGORIES.filter(category => category !== 'hero' && mediaByCategory[category]?.length).map(category => (
+                  <div key={category} className="rounded-2xl border border-gray-100 bg-gray-50/60 p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-500">{category.replace('_', ' ')}</h3>
+                      <span className="text-xs text-gray-400">{mediaByCategory[category].length}</span>
+                    </div>
+                    <PropertyGallery images={mediaByCategory[category]} title={`${title} ${category}`} heightClassName="relative h-[180px] sm:h-[220px]" />
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </section>
 
           {/* AIShield — links to AI Intelligence Platform */}

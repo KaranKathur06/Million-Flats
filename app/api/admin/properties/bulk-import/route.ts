@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { canonicalizePropertyImport, normalizeLocationPair } from '@/lib/propertyCanonical'
 import { z } from 'zod'
+import { CanonicalLocationError, validateCanonicalLocation } from '@/lib/canonicalLocation.server'
 
 const propertyItemSchema = z.object({
     title: z.string().min(1).max(500),
@@ -29,7 +30,9 @@ const propertyItemSchema = z.object({
     tour3dUrl: z.string().max(2000).optional().nullable(),
     status: z.enum(['DRAFT', 'PENDING_REVIEW', 'APPROVED', 'REJECTED', 'SOLD', 'ARCHIVED']).optional().default('APPROVED'),
     sourceUrl: z.string().max(2000).optional().nullable(),
-}).superRefine((item, ctx) => {
+    sourceProvider: z.string().max(100).optional().nullable(),
+    sourceListingId: z.string().max(300).optional().nullable(),
+}).passthrough().superRefine((item, ctx) => {
     const casted = item as any
     if (casted.images !== undefined || casted.imageUrl !== undefined || casted.imageUrls !== undefined) {
         ctx.addIssue({
@@ -51,9 +54,38 @@ const propertyItemSchema = z.object({
 })
 
 const bulkImportSchema = z.object({
+    schemaVersion: z.literal('property-import-v1').optional(),
     systemAgentEmail: z.string().email().optional().default('admin@millionflats.com'),
     properties: z.array(propertyItemSchema).min(1).max(500),
 })
+
+function normalizePropertyImportBody(body: any) {
+    const mergeEntry = (entry: any) => entry?.property
+        ? {
+            ...entry.property,
+            sourceProvider: entry.source?.provider || entry.property.sourceProvider,
+            sourceUrl: entry.source?.sourceUrl || entry.property.sourceUrl,
+            sourceListingId: entry.source?.sourceListingId || entry.property.sourceListingId,
+        }
+        : entry
+
+    if (body?.property) {
+        return {
+            schemaVersion: body.schemaVersion,
+            systemAgentEmail: body.systemAgentEmail,
+            properties: [mergeEntry(body)],
+        }
+    }
+
+    if (Array.isArray(body?.properties)) {
+        return {
+            ...body,
+            properties: body.properties.map(mergeEntry),
+        }
+    }
+
+    return body
+}
 
 /** Find or create the system agent used for admin-created properties */
 async function findOrCreateSystemAgent(email: string) {
@@ -95,7 +127,9 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json().catch(() => ({}))
-        const parsed = bulkImportSchema.safeParse(body)
+        // Accept the v1 single-property contract, v1 bulk entries, and legacy flat arrays.
+        const normalizedBody = normalizePropertyImportBody(body)
+        const parsed = bulkImportSchema.safeParse(normalizedBody)
         if (!parsed.success) {
             return NextResponse.json(
                 { success: false, message: 'Validation failed', errors: parsed.error.flatten().fieldErrors },
@@ -113,14 +147,23 @@ export async function POST(req: Request) {
         for (const item of properties) {
             try {
                 const location = normalizeLocationPair(item.countryCode || item.countryIso2 || 'India', item.city || 'Navi Mumbai', item.community || 'Kharghar')
+                const verifiedLocation = await validateCanonicalLocation({ countryIso2: location.countryCode, city: location.city, community: location.community })
                 const canonicalItem = {
                     ...item,
-                    countryCode: location.country === 'India' ? 'INDIA' : 'UAE',
-                    countryIso2: location.countryCode,
-                    city: location.city,
-                    community: location.community,
+                    countryCode: verifiedLocation.countryCode,
+                    countryIso2: verifiedLocation.countryIso2,
+                    city: verifiedLocation.city,
+                    community: verifiedLocation.community,
                 }
 
+                if (item.sourceProvider && item.sourceListingId) {
+                    const existing = await (prisma as any).manualProperty.findFirst({ where: { sourceProvider: item.sourceProvider, sourceListingId: item.sourceListingId } })
+                    if (existing) { results.push({ title: canonicalItem.title, status: 'skipped', reason: 'Duplicate source provider/listing ID' }); continue }
+                }
+                if (item.sourceUrl) {
+                    const existing = await (prisma as any).manualProperty.findFirst({ where: { sourceUrl: item.sourceUrl } })
+                    if (existing) { results.push({ title: canonicalItem.title, status: 'skipped', reason: 'Duplicate source URL' }); continue }
+                }
                 if (canonicalItem.title && canonicalItem.city) {
                     const existing = await (prisma as any).manualProperty.findFirst({
                         where: {
@@ -163,6 +206,9 @@ export async function POST(req: Request) {
                             emiNote: canonicalItem.emiNote || null,
                             tour3dUrl: canonicalItem.tour3dUrl || null,
                             submittedAt: new Date(),
+                            sourceProvider: item.sourceProvider || null,
+                            sourceUrl: item.sourceUrl || null,
+                            sourceListingId: item.sourceListingId || null,
                         },
                     })
                 })
@@ -179,6 +225,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
             success: true,
+            media: { status: 'manual_upload_required', message: 'Property data was imported. Upload gallery media manually after review.' },
             summary: { total: properties.length, created, skipped, errored },
             results,
         })

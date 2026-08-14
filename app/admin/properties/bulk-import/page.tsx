@@ -5,27 +5,35 @@ import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 
 const DEMO_JSON = JSON.stringify({
+    schemaVersion: 'property-import-v1',
     systemAgentEmail: 'admin@millionflats.com',
     properties: [
         {
-            title: 'Lodha Alibaug 3 BHK Apartment',
-            propertyType: 'Apartment',
-            intent: 'SALE',
-            price: 15000000,
-            currency: 'INR',
-            constructionStatus: 'OFF_PLAN',
-            shortDescription: 'Premium 3 BHK apartment in Alibaug by Lodha Group with modern amenities and sea views.',
-            bedrooms: 3,
-            bathrooms: 2,
-            squareFeet: 1200,
-            countryCode: 'INDIA',
-            countryIso2: 'IN',
-            city: 'Navi Mumbai',
-            community: 'Kharghar',
-            address: 'Kharghar, Navi Mumbai',
-            developerName: 'Lodha Group',
-            amenities: ['Swimming Pool', 'Gym', 'Clubhouse', 'Garden', 'Parking'],
-            status: 'APPROVED',
+            source: {
+                provider: 'SQUAREYARDS',
+                sourceUrl: 'https://www.squareyards.com/example-listing',
+                sourceListingId: 'sqy-12345',
+            },
+            property: {
+                title: 'Lodha Alibaug 3 BHK Apartment',
+                propertyType: 'Apartment',
+                intent: 'SALE',
+                price: 15000000,
+                currency: 'INR',
+                constructionStatus: 'OFF_PLAN',
+                shortDescription: 'Premium 3 BHK apartment in Alibaug by Lodha Group with modern amenities and sea views.',
+                bedrooms: 3,
+                bathrooms: 2,
+                squareFeet: 1200,
+                countryCode: 'INDIA',
+                countryIso2: 'IN',
+                city: 'Navi Mumbai',
+                community: 'Kharghar',
+                address: 'Kharghar, Navi Mumbai',
+                developerName: 'Lodha Group',
+                amenities: ['Swimming Pool', 'Gym', 'Clubhouse', 'Garden', 'Parking'],
+                status: 'APPROVED',
+            },
         },
     ],
 }, null, 2)
@@ -68,8 +76,8 @@ export default function AdminPropertiesBulkImportPage() {
             return
         }
 
-        if (!payload.properties || !Array.isArray(payload.properties) || payload.properties.length === 0) {
-            setParseError('JSON must contain a "properties" array with at least one item')
+        if ((!payload.properties || !Array.isArray(payload.properties) || payload.properties.length === 0) && !payload.property) {
+            setParseError('JSON must contain either a "properties" array or a single "property" object')
             return
         }
 

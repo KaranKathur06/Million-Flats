@@ -970,6 +970,9 @@ model ManualProperty {
   agentId     String @map("agent_id")
   developerId String? @map("developer_id") @db.Text
   sourceType  PropertySourceType @default(MANUAL) @map("source_type")
+  sourceProvider String? @map("source_provider")
+  sourceUrl String? @map("source_url") @db.Text
+  sourceListingId String? @map("source_listing_id")
   status      ManualPropertyStatus @default(DRAFT)
 
   lastCompletedStep String? @map("last_completed_step")
@@ -1038,6 +1041,8 @@ model ManualProperty {
   @@index([developerId])
   @@index([status])
   @@index([sourceType])
+  @@index([sourceProvider, sourceListingId])
+  @@index([sourceUrl])
   @@index([countryCode, city])
   @@index([countryIso2, city])
   @@map("manual_properties")
