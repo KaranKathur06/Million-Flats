@@ -1,4 +1,5 @@
 {
+  "schemaVersion": "property-import-v1",
   "systemAgentEmail": "admin@millionflats.com",
   "properties": [
     {
@@ -33,12 +34,7 @@
       ],
       "status": "APPROVED",
       "sourceUrl": "https://www.squareyards.com/lnt-crestoria-estate-bhokarpada-navi-mumbai-npd-343959",
-      "images": [
-        {
-          "url": "https://static.squareyards.com/resources/images/navi-mumbai/project-image/lnt-crestoria-estate-project-project-large-image1-7003-opt-e7cb8de3-dffc-466e-b073-1ce4832d5135.jpg",
-          "category": "COVER"
-        }
-      ]
+      "sourceProvider": "SQUAREYARDS"
     },
     {
       "title": "K Raheja Jade City Juinagar",
@@ -72,12 +68,7 @@
       ],
       "status": "APPROVED",
       "sourceUrl": "https://www.squareyards.com/navi-mumbai-residential-property/k-raheja-jade-city/339012/project",
-      "images": [
-        {
-          "url": "https://static.squareyards.com/resources/images/navi-mumbai/project-image/k-raheja-jade-city-project-project-large-image1-6818.jpg",
-          "category": "COVER"
-        }
-      ]
+      "sourceProvider": "SQUAREYARDS"
     },
     {
       "title": "Embassy Serenity Alibag",
@@ -111,12 +102,7 @@
       ],
       "status": "APPROVED",
       "sourceUrl": "https://www.squareyards.com/navi-mumbai-residential-property/embassy-serenity/343047/project",
-      "images": [
-        {
-          "url": "https://static.squareyards.com/resources/images/navi-mumbai/project-image/embassy-serenity-project-project-large-image1-4722-opt-212118.jpg",
-          "category": "COVER"
-        }
-      ]
+      "sourceProvider": "SQUAREYARDS"
     },
     {
       "title": "LnT The Villas At Seawoods Residences Seawoods",
@@ -150,12 +136,7 @@
       ],
       "status": "APPROVED",
       "sourceUrl": "https://www.squareyards.com/navi-mumbai-residential-property/lnt-the-villas-at-seawoods-residences/340299/project",
-      "images": [
-        {
-          "url": "https://static.squareyards.com/resources/images/navi-mumbai/project-image/lnt-the-villas-at-seawoods-residences-project-project-large-image1-6311.jpg",
-          "category": "COVER"
-        }
-      ]
+      "sourceProvider": "SQUAREYARDS"
     },
     {
       "title": "Lodha Alibaug Alibag",
@@ -189,12 +170,7 @@
       ],
       "status": "APPROVED",
       "sourceUrl": "https://www.squareyards.com/navi-mumbai-residential-property/lodha-alibaug/325516/project",
-      "images": [
-        {
-          "url": "https://static.squareyards.com/resources/images/navi-mumbai/project-image/lodha-alibaug-project-project-large-image1-1585-opt-091eb7cc-50a9-48e7-9ff6-3eca91697231.jpg",
-          "category": "COVER"
-        }
-      ]
+      "sourceProvider": "SQUAREYARDS"
     }
   ]
 }

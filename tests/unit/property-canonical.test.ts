@@ -21,6 +21,13 @@ describe('property canonical model', () => {
     expect(getCommunityOptions('IN', 'Navi Mumbai').some((community) => community.name === 'Kharghar')).toBe(true)
   })
 
+  it('includes fallback locations used by imported India property feeds', () => {
+    expect(getCityOptions('IN').some((city) => city.name === 'Alibaug')).toBe(true)
+    expect(getCommunityOptions('IN', 'Navi Mumbai').some((community) => community.name === 'Bhokarpada')).toBe(true)
+    expect(getCommunityOptions('IN', 'Navi Mumbai').some((community) => community.name === 'Juinagar')).toBe(true)
+    expect(getCommunityOptions('IN', 'Navi Mumbai').some((community) => community.name === 'Seawoods')).toBe(true)
+  })
+
   it('rejects image URL fields in the scraper/bulk-import contract', () => {
     const result = canonicalizePropertyImport({
       schemaVersion: 'property-import-v1',

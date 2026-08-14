@@ -39,11 +39,16 @@ const COUNTRY_NAME_TO_CODE: Record<string, CanonicalCountryCode> = {
 
 const CITY_COMMUNITIES: Record<CanonicalCountryCode, Record<string, string[]>> = {
   IN: {
-    'Navi Mumbai': ['Kharghar', 'Seawoods', 'Panvel', 'Airoli', 'Vashi', 'Belapur', 'Taloja', 'Kamothe', 'Ulwe', 'Nerul'],
-    Mumbai: ['Andheri', 'Bandra', 'Powai', 'Worli', 'Marine Lines', 'Lower Parel', 'BKC'],
-    Pune: ['Kharadi', 'Wagholi', 'Baner', 'Hinjawadi', 'Koregaon Park'],
-    Bengaluru: ['Whitefield', 'Indiranagar', 'Koramangala', 'Electronic City'],
-    Dubai: ['Jumeirah', 'Business Bay', 'Downtown Dubai', 'Dubai Marina'],
+    'Navi Mumbai': ['Kharghar', 'Seawoods', 'Seawoods Darave', 'Bhokarpada', 'Juinagar', 'Panvel', 'Airoli', 'Vashi', 'CBD Belapur', 'Belapur', 'Taloja', 'Kamothe', 'Ulwe', 'Nerul', 'Ghansoli', 'Kopar Khairane', 'Sanpada', 'Kalamboli', 'New Panvel', 'Karanjade', 'Dronagiri'],
+    Mumbai: ['Andheri', 'Bandra', 'Powai', 'Worli', 'Marine Lines', 'Lower Parel', 'BKC', 'Borivali', 'Dadar', 'Goregaon', 'Juhu', 'Malad', 'Mulund', 'Chembur', 'Ghatkopar', 'Kandivali', 'Parel', 'Prabhadevi', 'Wadala'],
+    Pune: ['Kharadi', 'Wagholi', 'Baner', 'Hinjawadi', 'Koregaon Park', 'Hadapsar', 'Wakad', 'Viman Nagar', 'Kalyani Nagar', 'Aundh', 'Balewadi', 'Mundhwa', 'Pimpri Chinchwad'],
+    Bengaluru: ['Whitefield', 'Indiranagar', 'Koramangala', 'Electronic City', 'Sarjapur Road', 'Hebbal', 'Yelahanka', 'Marathahalli', 'HSR Layout', 'Jayanagar'],
+    Hyderabad: ['Gachibowli', 'Kondapur', 'Madhapur', 'HITEC City', 'Kokapet', 'Manikonda', 'Jubilee Hills', 'Banjara Hills'],
+    Delhi: ['Dwarka', 'Rohini', 'Saket', 'Vasant Kunj', 'Greater Kailash', 'Karol Bagh', 'Connaught Place'],
+    Gurugram: ['Golf Course Road', 'Golf Course Extension Road', 'Sohna Road', 'Dwarka Expressway', 'Sector 56', 'Sector 57', 'DLF Phase 1', 'DLF Phase 2'],
+    Noida: ['Sector 62', 'Sector 75', 'Sector 76', 'Sector 78', 'Sector 137', 'Noida Extension'],
+    Alibag: ['Alibag', 'Varsoli', 'Nagaon', 'Kihim', 'Mandwa', 'Bhokarpada'],
+    Alibaug: ['Alibaug', 'Varsoli', 'Nagaon', 'Kihim', 'Mandwa', 'Bhokarpada'],
   },
   AE: {
     Dubai: ['Dubai Marina', 'Jumeirah', 'Business Bay', 'Downtown Dubai', 'Palm Jumeirah', 'JVC'],
@@ -53,8 +58,15 @@ const CITY_COMMUNITIES: Record<CanonicalCountryCode, Record<string, string[]>> =
 }
 
 const CITY_DATA: Record<CanonicalCountryCode, string[]> = {
-  IN: ['Navi Mumbai', 'Mumbai', 'Pune', 'Bengaluru', 'Hyderabad', 'Delhi', 'Gurugram', 'Noida', 'Ahmedabad', 'Chennai'],
-  AE: ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah'],
+  IN: [
+    'Mumbai', 'Navi Mumbai', 'Delhi', 'Bengaluru', 'Hyderabad', 'Ahmedabad', 'Chennai', 'Kolkata', 'Pune', 'Jaipur',
+    'Surat', 'Lucknow', 'Kanpur', 'Nagpur', 'Indore', 'Thane', 'Bhopal', 'Visakhapatnam', 'Patna', 'Vadodara',
+    'Ghaziabad', 'Ludhiana', 'Agra', 'Nashik', 'Faridabad', 'Meerut', 'Rajkot', 'Varanasi', 'Srinagar', 'Aurangabad',
+    'Dhanbad', 'Amritsar', 'Prayagraj', 'Ranchi', 'Howrah', 'Coimbatore', 'Jabalpur', 'Gwalior', 'Vijayawada',
+    'Jodhpur', 'Madurai', 'Raipur', 'Kota', 'Gurugram', 'Noida', 'Greater Noida', 'Chandigarh', 'Kochi', 'Goa',
+    'Alibag', 'Alibaug',
+  ],
+  AE: ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Fujairah', 'Umm Al Quwain', 'Al Ain'],
 }
 
 export function getCountryOptions(): CountryOption[] {
@@ -79,7 +91,7 @@ export function getCityOptions(countryCode: string): CityOption[] {
 
 export function getCommunityOptions(countryCode: string, city: string): CommunityOption[] {
   const code = normalizeCountryCode(countryCode)
-  const cleanCity = normalizeText(city)
+  const cleanCity = normalizeCanonicalCity(code, city)
   const map = CITY_COMMUNITIES[code] || {}
   const direct = map[cleanCity] || []
   return direct.map((name) => ({
@@ -89,6 +101,19 @@ export function getCommunityOptions(countryCode: string, city: string): Communit
     countryCode: code,
     city: normalizeTitleCase(cleanCity) || normalizeTitleCase(city),
   }))
+}
+
+export function normalizeCanonicalCity(countryCode: string, city: string | null | undefined) {
+  const code = normalizeCountryCode(countryCode)
+  const normalized = normalizeText(city).toLowerCase()
+  const known = (CITY_DATA[code] || []).find((name) => name.toLowerCase() === normalized)
+  return known || normalizeTitleCase(String(city || ''))
+}
+
+export function isSupportedCanonicalCity(countryCode: string, city: string | null | undefined) {
+  const code = normalizeCountryCode(countryCode)
+  const normalized = normalizeText(city).toLowerCase()
+  return (CITY_DATA[code] || []).some((name) => name.toLowerCase() === normalized)
 }
 
 export function normalizeText(value: string | null | undefined): string {
