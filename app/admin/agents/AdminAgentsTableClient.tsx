@@ -30,6 +30,8 @@ type AgentRow = {
   subscriptionStatus: string
   subscriptionEndDate: string | null
   subscriptionDaysRemaining: number | null
+  referralSource: string | null
+  referralDetails: string | null
 }
 
 function safeString(v: unknown) {
@@ -176,6 +178,7 @@ export default function AdminAgentsTableClient({
             <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-white/40 border-b border-white/[0.08]">
               <th className="py-3 pr-4">Agent</th>
               <th className="py-3 pr-4">Company</th>
+              <th className="py-3 pr-4">Referred By</th>
               <th className="py-3 pr-4">Documents</th>
               <th className="py-3 pr-4">Progress</th>
               <th className="py-3 pr-4">Risk</th>
@@ -199,6 +202,18 @@ export default function AdminAgentsTableClient({
                     <div className="text-xs text-white/50 mt-0.5">{it.email}</div>
                   </td>
                   <td className="py-4 pr-4 text-white/80">{it.company || '—'}</td>
+                  <td className="py-4 pr-4">
+                    {it.referralDetails ? (
+                      <div className="flex flex-col gap-1">
+                        <span className="inline-flex items-center px-2 py-1 rounded-lg bg-purple-500/10 border border-purple-400/20 text-[10px] font-semibold text-purple-300 w-fit">
+                          {it.referralDetails}
+                        </span>
+                        {it.referralSource && <span className="text-xs text-white/40">via {it.referralSource}</span>}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-white/40">—</span>
+                    )}
+                  </td>
                   <td className="py-4 pr-4">
                     <div className="flex items-center gap-2">
                       <span className="text-white/90 font-semibold">{it.approvedDocs}</span>

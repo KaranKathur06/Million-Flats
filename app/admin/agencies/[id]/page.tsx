@@ -21,7 +21,7 @@ export default async function AdminAgencyDetailPage({
   const profile = await (prisma as any).agencyProfile.findUnique({
     where: { id: params.id },
     include: {
-      user: { select: { id: true, email: true, name: true, createdAt: true } },
+      user: { select: { id: true, email: true, name: true, createdAt: true, referralSource: true, referralDetails: true } },
       linkedAgency: { select: { id: true, name: true } },
     },
   })

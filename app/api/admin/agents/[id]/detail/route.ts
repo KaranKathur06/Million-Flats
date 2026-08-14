@@ -52,6 +52,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
                     verified: true,
                     emailVerified: true,
                     createdAt: true,
+                    referralSource: true,
+                    referralDetails: true,
                 },
             },
             serviceAreas: {

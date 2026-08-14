@@ -106,6 +106,8 @@ type AgentDetail = {
         verified: boolean
         emailVerified: boolean
         createdAt: string
+        referralSource: string | null
+        referralDetails: string | null
     }
     serviceAreas: { id: string; city: string; locality: string | null }[]
     allDocuments: {
@@ -317,6 +319,19 @@ export default function AgentReviewClient({
                         <div className={`font-semibold ${agent.user.emailVerified ? 'text-emerald-400' : 'text-red-400'}`}>
                             {agent.user.emailVerified ? 'Yes' : 'No'}
                         </div>
+                    </div>
+                    <div>
+                        <div className="text-white/40 text-xs uppercase tracking-wider mb-1">Referred By</div>
+                        {agent.user.referralDetails ? (
+                            <div className="flex flex-col gap-1">
+                                <span className="inline-flex items-center px-2 py-1 rounded-lg bg-purple-500/10 border border-purple-400/20 text-[11px] font-semibold text-purple-300 w-fit">
+                                    {agent.user.referralDetails}
+                                </span>
+                                {agent.user.referralSource && <span className="text-xs text-white/60">via {agent.user.referralSource}</span>}
+                            </div>
+                        ) : (
+                            <div className="text-white/60">—</div>
+                        )}
                     </div>
                     <div>
                         <div className="text-white/40 text-xs uppercase tracking-wider mb-1">Profile Status</div>

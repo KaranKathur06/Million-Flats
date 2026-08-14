@@ -24,7 +24,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
   const profile = await (prisma as any).developerProfile.findUnique({
     where: { id: params.id },
     include: {
-      user: { select: { id: true, email: true, name: true, createdAt: true } },
+      user: { select: { id: true, email: true, name: true, createdAt: true, referralSource: true, referralDetails: true } },
       documents: { orderBy: { createdAt: 'desc' } },
       linkedDeveloper: { select: { id: true, name: true, slug: true, logo: true } },
     },

@@ -125,6 +125,9 @@ export default async function AdminAgentsPage({
       subscriptionStatus: safeString(subscription?.status),
       subscriptionEndDate: subscription?.endDate,
       subscriptionDaysRemaining: daysRemaining,
+      // Referral fields
+      referralSource: safeString(u.referralSource),
+      referralDetails: safeString(u.referralDetails),
     }
   })
 

@@ -55,7 +55,7 @@ interface Profile {
     rejectionReason: string | null
     createdAt: string
   }>
-  user: { id: string; email: string; name: string | null; createdAt: string }
+  user: { id: string; email: string; name: string | null; createdAt: string; referralSource: string | null; referralDetails: string | null }
 }
 
 interface AllDeveloper {
@@ -235,6 +235,24 @@ export default function AdminDeveloperProfileReviewClient({ profile, allDevelope
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <span className="text-gray-400 text-xs block mb-1">Description</span>
                 <p className="text-gray-700 text-sm leading-relaxed">{profile.description}</p>
+              </div>
+            )}
+            {/* Referral info */}
+            {(profile.user.referralDetails || profile.user.referralSource) && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <span className="text-gray-400 text-xs block mb-2">Referral Info</span>
+                <div className="flex flex-col gap-2">
+                  {profile.user.referralDetails && (
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-purple-50 border border-purple-200 text-[13px] font-semibold text-purple-700 w-fit">
+                      Referred by: {profile.user.referralDetails}
+                    </span>
+                  )}
+                  {profile.user.referralSource && (
+                    <span className="text-sm text-gray-600">
+                      Source: <span className="font-medium">{profile.user.referralSource}</span>
+                    </span>
+                  )}
+                </div>
               </div>
             )}
             {/* Profile completion */}

@@ -42,7 +42,7 @@ interface AgencyProfile {
   suspendedAt: string | null
   suspendedBy: string | null
   adminNotes: string | null
-  user: { id: string; email: string; name: string | null; createdAt: string }
+  user: { id: string; email: string; name: string | null; createdAt: string; referralSource: string | null; referralDetails: string | null }
   linkedAgency: { id: string; name: string } | null
 }
 
@@ -139,6 +139,29 @@ export default function AgencyDetailClient({ profile }: { profile: AgencyProfile
           <div className="text-lg font-bold text-gray-900">{profile.isVerified ? '✓ Yes' : 'No'}</div>
         </div>
       </div>
+
+      {/* Referral Info Card */}
+      {(profile.user.referralDetails || profile.user.referralSource) && (
+        <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 mb-8">
+          <h3 className="text-sm font-semibold text-purple-900 mb-3">Referral Information</h3>
+          <div className="flex flex-col gap-2">
+            {profile.user.referralDetails && (
+              <div>
+                <span className="text-xs font-semibold text-purple-600 uppercase">Referred By</span>
+                <span className="ml-2 inline-flex items-center px-3 py-1.5 rounded-lg bg-white border border-purple-200 text-sm font-semibold text-purple-700">
+                  {profile.user.referralDetails}
+                </span>
+              </div>
+            )}
+            {profile.user.referralSource && (
+              <div>
+                <span className="text-xs font-semibold text-purple-600 uppercase">Source</span>
+                <span className="ml-2 text-sm text-purple-700">{profile.user.referralSource}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Action Message */}
       {actionMessage && (
