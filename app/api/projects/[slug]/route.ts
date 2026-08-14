@@ -10,7 +10,6 @@ function normalizeMediaType(v: unknown) {
 function groupProjectMedia(rows: Array<{ mediaUrl?: string | null; mediaType?: string | null; category?: string | null; label?: string | null; sortOrder?: number | null }>) {
     const out = {
         hero: [] as any[],
-        gallery: [] as any[],
         interior: [] as any[],
         exterior: [] as any[],
         amenities: [] as any[],
@@ -27,18 +26,17 @@ function groupProjectMedia(rows: Array<{ mediaUrl?: string | null; mediaType?: s
         const cat = normalizeMediaType(m.category)
         const key = cat || mt
         const payload = { url: buildAssetUrl(m.mediaUrl) || m.mediaUrl, title: m.label || null, orderIndex: m.sortOrder ?? 0 }
+
         if (key === 'hero') out.hero.push(payload)
-        else if (key === 'gallery' || mt === 'featured') out.gallery.push(payload)
         else if (key === 'interior' || key === 'interiors') out.interior.push(payload)
         else if (key === 'exterior') out.exterior.push(payload)
         else if (key === 'amenities') out.amenities.push(payload)
         else if (key === 'lifestyle') out.lifestyle.push(payload)
         else if (key === 'floor_plan' || key === 'floor-plan' || key === 'floorplan') out.floor_plans.push(payload)
-        else out.gallery.push(payload)
     }
 
     if (out.hero.length === 0) {
-        const fallback = out.gallery[0] || out.exterior[0] || out.interior[0] || out.amenities[0] || out.lifestyle[0]
+        const fallback = out.exterior[0] || out.interior[0] || out.amenities[0] || out.lifestyle[0]
         out.hero.push(fallback || { url: FALLBACK_IMAGE, title: 'Default Property Image', orderIndex: 0 })
     }
 

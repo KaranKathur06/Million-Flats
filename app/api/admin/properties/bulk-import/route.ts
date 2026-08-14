@@ -1,12 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
+import { canonicalizePropertyImport, normalizeLocationPair } from '@/lib/propertyCanonical'
 import { z } from 'zod'
-
-const imageSchema = z.object({
-    url: z.string().min(1).max(2000),
-    category: z.enum(['COVER', 'EXTERIOR', 'INTERIOR', 'FLOOR_PLANS', 'AMENITIES', 'BROCHURE', 'VIDEO']).optional().default('EXTERIOR'),
-})
 
 const propertyItemSchema = z.object({
     title: z.string().min(1).max(500),
@@ -33,7 +29,25 @@ const propertyItemSchema = z.object({
     tour3dUrl: z.string().max(2000).optional().nullable(),
     status: z.enum(['DRAFT', 'PENDING_REVIEW', 'APPROVED', 'REJECTED', 'SOLD', 'ARCHIVED']).optional().default('APPROVED'),
     sourceUrl: z.string().max(2000).optional().nullable(),
-    images: z.array(imageSchema).optional().nullable(),
+}).superRefine((item, ctx) => {
+    const casted = item as any
+    if (casted.images !== undefined || casted.imageUrl !== undefined || casted.imageUrls !== undefined) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['images'],
+            message: 'Image URLs are not allowed in the canonical property import contract. Upload media through the property gallery workflow instead.',
+        })
+    }
+    const canonical = canonicalizePropertyImport({ property: item, schemaVersion: 'property-import-v1' })
+    if (!canonical.ok) {
+        canonical.errors.forEach((error) => {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['property'],
+                message: error,
+            })
+        })
+    }
 })
 
 const bulkImportSchema = z.object({
@@ -98,16 +112,24 @@ export async function POST(req: Request) {
 
         for (const item of properties) {
             try {
-                // Deduplication check: title + city
-                if (item.title && item.city) {
+                const location = normalizeLocationPair(item.countryCode || item.countryIso2 || 'India', item.city || 'Navi Mumbai', item.community || 'Kharghar')
+                const canonicalItem = {
+                    ...item,
+                    countryCode: location.country === 'India' ? 'INDIA' : 'UAE',
+                    countryIso2: location.countryCode,
+                    city: location.city,
+                    community: location.community,
+                }
+
+                if (canonicalItem.title && canonicalItem.city) {
                     const existing = await (prisma as any).manualProperty.findFirst({
                         where: {
-                            title: { equals: item.title, mode: 'insensitive' },
-                            city: { equals: item.city, mode: 'insensitive' },
+                            title: { equals: canonicalItem.title, mode: 'insensitive' },
+                            city: { equals: canonicalItem.city, mode: 'insensitive' },
                         },
                     })
                     if (existing) {
-                        results.push({ title: item.title, status: 'skipped', reason: `Duplicate: "${item.title}" in ${item.city} already exists` })
+                        results.push({ title: canonicalItem.title, status: 'skipped', reason: `Duplicate: "${canonicalItem.title}" in ${canonicalItem.city} already exists` })
                         continue
                     }
                 }
@@ -117,47 +139,35 @@ export async function POST(req: Request) {
                         data: {
                             agentId: systemAgent.id,
                             sourceType: 'MANUAL',
-                            status: item.status || 'APPROVED',
-                            title: item.title,
-                            propertyType: item.propertyType || null,
-                            intent: item.intent || 'SALE',
-                            price: item.price ?? null,
-                            currency: item.currency || 'INR',
-                            constructionStatus: item.constructionStatus || null,
-                            shortDescription: item.shortDescription || null,
-                            bedrooms: item.bedrooms || 0,
-                            bathrooms: item.bathrooms || 0,
-                            squareFeet: item.squareFeet || 0,
-                            countryCode: item.countryCode || 'INDIA',
-                            countryIso2: item.countryIso2 || 'IN',
-                            city: item.city || null,
-                            community: item.community || null,
-                            address: item.address || null,
-                            latitude: item.latitude ?? null,
-                            longitude: item.longitude ?? null,
-                            developerName: item.developerName || null,
-                            amenities: item.amenities || null,
-                            paymentPlanText: item.paymentPlanText || null,
-                            emiNote: item.emiNote || null,
-                            tour3dUrl: item.tour3dUrl || null,
+                            status: canonicalItem.status || 'APPROVED',
+                            title: canonicalItem.title,
+                            propertyType: canonicalItem.propertyType || null,
+                            intent: canonicalItem.intent || 'SALE',
+                            price: canonicalItem.price ?? null,
+                            currency: canonicalItem.currency || 'INR',
+                            constructionStatus: canonicalItem.constructionStatus || null,
+                            shortDescription: canonicalItem.shortDescription || null,
+                            bedrooms: canonicalItem.bedrooms || 0,
+                            bathrooms: canonicalItem.bathrooms || 0,
+                            squareFeet: canonicalItem.squareFeet || 0,
+                            countryCode: canonicalItem.countryCode || 'INDIA',
+                            countryIso2: canonicalItem.countryIso2 || 'IN',
+                            city: canonicalItem.city || null,
+                            community: canonicalItem.community || null,
+                            address: canonicalItem.address || null,
+                            latitude: canonicalItem.latitude ?? null,
+                            longitude: canonicalItem.longitude ?? null,
+                            developerName: canonicalItem.developerName || null,
+                            amenities: canonicalItem.amenities || null,
+                            paymentPlanText: canonicalItem.paymentPlanText || null,
+                            emiNote: canonicalItem.emiNote || null,
+                            tour3dUrl: canonicalItem.tour3dUrl || null,
                             submittedAt: new Date(),
                         },
                     })
-
-                    // Create media records
-                    if (Array.isArray(item.images) && item.images.length > 0) {
-                        await tx.manualPropertyMedia.createMany({
-                            data: item.images.map((img, idx) => ({
-                                propertyId: property.id,
-                                category: img.category || 'EXTERIOR',
-                                url: img.url,
-                                position: idx,
-                            })),
-                        })
-                    }
                 })
 
-                results.push({ title: item.title, status: 'created' })
+                results.push({ title: canonicalItem.title, status: 'created' })
             } catch (err: any) {
                 results.push({ title: item.title, status: 'error', reason: err.message || 'Unknown error' })
             }

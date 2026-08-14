@@ -27,15 +27,14 @@ function parsePriceToNumber(input: unknown): number | null {
     return numeric
 }
 
-function mediaTypeToCategory(mediaType: string): 'HERO' | 'GALLERY' | 'INTERIOR' | 'EXTERIOR' | 'AMENITIES' | 'LIFESTYLE' | 'FLOOR_PLAN' | null {
+function mediaTypeToCategory(mediaType: string): 'HERO' | 'INTERIOR' | 'EXTERIOR' | 'AMENITIES' | 'LIFESTYLE' | 'FLOOR_PLAN' | null {
     const mt = String(mediaType || '').toLowerCase()
     if (mt === 'hero') return 'HERO'
-    if (mt === 'gallery') return 'GALLERY'
     if (mt === 'exterior') return 'EXTERIOR'
     if (mt === 'amenities') return 'AMENITIES'
     if (mt === 'lifestyle') return 'LIFESTYLE'
     if (mt === 'floor_plan' || mt === 'floor-plan' || mt === 'floorplan') return 'FLOOR_PLAN'
-    if (mt === 'interior' || mt === 'interiors' || mt === 'featured') return 'INTERIOR'
+    if (mt === 'interior' || mt === 'interiors' || mt === 'featured' || mt === 'gallery') return 'INTERIOR'
     return null
 }
 
@@ -286,7 +285,7 @@ export async function POST(req: Request) {
                     })
                 }
 
-                const mediaRows: Array<{ mediaUrl: string; mediaType: string; category: 'HERO' | 'GALLERY' | 'INTERIOR' | 'EXTERIOR' | 'AMENITIES' | 'LIFESTYLE' | 'FLOOR_PLAN' | null; sortOrder: number }> = []
+                const mediaRows: Array<{ mediaUrl: string; mediaType: string; category: 'HERO' | 'INTERIOR' | 'EXTERIOR' | 'AMENITIES' | 'LIFESTYLE' | 'FLOOR_PLAN' | null; sortOrder: number }> = []
                 if (item.media) {
                     let order = 0
                     if (item.media.hero) mediaRows.push({ mediaUrl: item.media.hero, mediaType: 'hero', category: mediaTypeToCategory('hero'), sortOrder: order++ })

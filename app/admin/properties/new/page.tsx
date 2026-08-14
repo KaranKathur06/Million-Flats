@@ -1,9 +1,11 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import GlobalDropdown from '@/components/ui/GlobalDropdown'
+import { CitySelector, CountrySelector } from '@/components/location/CountryCitySelector'
+import { getCommunityOptions, normalizeLocationPair } from '@/lib/propertyCanonical'
 
 const PROPERTY_TYPES = ['Apartment', 'Villa', 'Plot', 'Penthouse', 'Townhouse', 'Duplex', 'Studio', 'Commercial', 'Retail']
 const AMENITY_OPTIONS = [
@@ -40,44 +42,12 @@ export default function AdminAddPropertyPage() {
         paymentPlanText: '',
         emiNote: '',
         tour3dUrl: '',
-        imageUrls: [''],
-        imageCategories: ['COVER'] as string[],
         status: 'APPROVED',
     })
 
+    const communityOptions = useMemo(() => getCommunityOptions(form.countryIso2 || 'IN', form.city || 'Navi Mumbai'), [form.city, form.countryIso2])
+
     const update = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }))
-
-    const addImageRow = () => {
-        setForm(prev => ({
-            ...prev,
-            imageUrls: [...prev.imageUrls, ''],
-            imageCategories: [...prev.imageCategories, 'EXTERIOR'],
-        }))
-    }
-
-    const updateImage = (idx: number, url: string) => {
-        setForm(prev => {
-            const urls = [...prev.imageUrls]
-            urls[idx] = url
-            return { ...prev, imageUrls: urls }
-        })
-    }
-
-    const updateImageCategory = (idx: number, cat: string) => {
-        setForm(prev => {
-            const cats = [...prev.imageCategories]
-            cats[idx] = cat
-            return { ...prev, imageCategories: cats }
-        })
-    }
-
-    const removeImage = (idx: number) => {
-        setForm(prev => ({
-            ...prev,
-            imageUrls: prev.imageUrls.filter((_, i) => i !== idx),
-            imageCategories: prev.imageCategories.filter((_, i) => i !== idx),
-        }))
-    }
 
     const toggleAmenity = (a: string) => {
         setForm(prev => ({
@@ -97,9 +67,7 @@ export default function AdminAddPropertyPage() {
 
         setSaving(true)
         try {
-            const images = form.imageUrls
-                .map((url, i) => ({ url: url.trim(), category: form.imageCategories[i] || 'EXTERIOR' }))
-                .filter(img => img.url)
+            const canonical = normalizeLocationPair(form.countryCode || form.countryIso2, form.city, form.community)
 
             const body: any = {
                 title: form.title.trim(),
@@ -112,10 +80,10 @@ export default function AdminAddPropertyPage() {
                 bedrooms: parseInt(form.bedrooms) || 0,
                 bathrooms: parseInt(form.bathrooms) || 0,
                 squareFeet: parseFloat(form.squareFeet) || 0,
-                countryCode: form.countryCode,
-                countryIso2: form.countryIso2,
-                city: form.city.trim() || null,
-                community: form.community.trim() || null,
+                countryCode: canonical.country === 'India' ? 'INDIA' : 'UAE',
+                countryIso2: canonical.countryCode,
+                city: canonical.city,
+                community: canonical.community,
                 address: form.address.trim() || null,
                 latitude: form.latitude ? parseFloat(form.latitude) : null,
                 longitude: form.longitude ? parseFloat(form.longitude) : null,
@@ -124,7 +92,6 @@ export default function AdminAddPropertyPage() {
                 paymentPlanText: form.paymentPlanText.trim() || null,
                 emiNote: form.emiNote.trim() || null,
                 tour3dUrl: form.tour3dUrl.trim() || null,
-                images: images.length > 0 ? images : null,
                 status: asDraft ? 'DRAFT' : 'APPROVED',
             }
 
@@ -143,8 +110,7 @@ export default function AdminAddPropertyPage() {
                 constructionStatus: '', shortDescription: '', bedrooms: '0', bathrooms: '0',
                 squareFeet: '0', countryCode: 'INDIA', countryIso2: 'IN', city: '', community: '',
                 address: '', latitude: '', longitude: '', developerName: '', amenities: [],
-                customAmenity: '', paymentPlanText: '', emiNote: '', tour3dUrl: '',
-                imageUrls: [''], imageCategories: ['COVER'], status: 'APPROVED',
+                customAmenity: '', paymentPlanText: '', emiNote: '', tour3dUrl: '', status: 'APPROVED',
             })
         } catch (err: any) {
             toast.error(err.message)
@@ -181,6 +147,46 @@ export default function AdminAddPropertyPage() {
                             <label className={labelClass}>Title *</label>
                             <input value={form.title} onChange={e => update('title', e.target.value)} placeholder="e.g. Lodha Alibaug 3 BHK Apartment" className={inputClass} />
                         </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <CountrySelector
+                                    value={form.countryIso2 || 'IN'}
+                                    onChange={({ code }) => {
+                                        const nextCountryCode = code === 'AE' ? 'UAE' : 'INDIA'
+                                        update('countryIso2', code)
+                                        update('countryCode', nextCountryCode)
+                                        update('city', '')
+                                        update('community', '')
+                                    }}
+                                    appearance="admin-dark"
+                                />
+                            </div>
+                            <div>
+                                <CitySelector
+                                    countryCode={form.countryIso2 || 'IN'}
+                                    value={form.city}
+                                    onChange={({ name }) => {
+                                        update('city', name)
+                                        update('community', '')
+                                    }}
+                                    placeholder="Search city"
+                                    appearance="admin-dark"
+                                />
+                            </div>
+                        </div>
+                        {form.city && communityOptions.length > 0 ? (
+                            <div>
+                                <label className={labelClass}>Community / Area</label>
+                                <GlobalDropdown
+                                  value={form.community}
+                                  onChange={(v) => update('community', String(v || ''))}
+                                  options={communityOptions.map((community) => ({ value: community.value, label: community.label }))}
+                                  showLabel={false}
+                                  appearance="admin-dark"
+                                  className={inputClass}
+                                />
+                            </div>
+                        ) : null}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className={labelClass}>Property Type</label>
@@ -347,33 +353,10 @@ export default function AdminAddPropertyPage() {
 
                     {/* Media */}
                     <div className={sectionClass}>
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-sm font-semibold text-white/80">Images</h2>
-                            <button type="button" onClick={addImageRow} className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-white/50 hover:bg-white/[0.08] cursor-pointer">+ Add Image</button>
-                        </div>
-                        <div className="space-y-3">
-                            {form.imageUrls.map((url, idx) => (
-                                <div key={idx} className="flex items-center gap-2">
-                                    <input value={url} onChange={e => updateImage(idx, e.target.value)} placeholder="Image URL" className={inputClass + ' flex-1'} />
-                                    <div className="w-28">
-                                      <GlobalDropdown
-                                        value={form.imageCategories[idx] || 'EXTERIOR'}
-                                        onChange={(v) => updateImageCategory(idx, v as string)}
-                                        options={[{ value: 'COVER', label: 'Cover' }, { value: 'EXTERIOR', label: 'Exterior' }, { value: 'INTERIOR', label: 'Interior' }, { value: 'FLOOR_PLANS', label: 'Floor Plans' }, { value: 'AMENITIES', label: 'Amenities' }]}
-                                        showLabel={false}
-                                        appearance="admin-dark"
-                                        dense
-                                        className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-2 py-2.5 text-[11px] text-white/60 outline-none"
-                                      />
-                                    </div>
-                                    {form.imageUrls.length > 1 && (
-                                        <button type="button" onClick={() => removeImage(idx)} className="text-red-400/50 hover:text-red-300 cursor-pointer p-1">
-                                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
+                        <h2 className="text-sm font-semibold text-white/80">Media</h2>
+                        <p className="text-xs text-white/40">
+                            Property images and brochures are uploaded from the property gallery workflow after creation, not via URL arrays here.
+                        </p>
                     </div>
 
                     {/* Additional */}

@@ -1959,7 +1959,6 @@ enum ProjectStatus {
 
 enum ProjectImageCategory {
   HERO      @map("hero")
-  GALLERY   @map("gallery")
   INTERIOR @map("interior")
   EXTERIOR @map("exterior")
   AMENITIES @map("amenities")

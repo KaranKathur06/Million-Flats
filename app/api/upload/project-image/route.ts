@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     const file = formData.get('file') as File | null
     const developerSlug = String(formData.get('developerSlug') || '').trim()
     const projectSlug = String(formData.get('projectSlug') || '').trim()
-    const mediaType = String(formData.get('mediaType') || formData.get('category') || 'gallery').trim().toLowerCase()
+    const mediaType = String(formData.get('mediaType') || formData.get('category') || 'hero').trim().toLowerCase()
 
     if (!file) {
       return NextResponse.json({ success: false, message: 'File is required' }, { status: 400 })

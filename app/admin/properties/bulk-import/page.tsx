@@ -21,15 +21,11 @@ const DEMO_JSON = JSON.stringify({
             countryCode: 'INDIA',
             countryIso2: 'IN',
             city: 'Navi Mumbai',
-            community: 'Alibag',
-            address: 'Alibag, Navi Mumbai',
+            community: 'Kharghar',
+            address: 'Kharghar, Navi Mumbai',
             developerName: 'Lodha Group',
             amenities: ['Swimming Pool', 'Gym', 'Clubhouse', 'Garden', 'Parking'],
             status: 'APPROVED',
-            images: [
-                { url: 'https://example.com/cover.jpg', category: 'COVER' },
-                { url: 'https://example.com/exterior1.jpg', category: 'EXTERIOR' },
-            ],
         },
     ],
 }, null, 2)
@@ -200,7 +196,7 @@ export default function AdminPropertiesBulkImportPage() {
                                 <p><span className="text-white/50 font-mono">developerName</span> — Developer name</p>
                                 <p><span className="text-white/50 font-mono">amenities</span> — Array of amenity names</p>
                                 <p><span className="text-white/50 font-mono">status</span> — APPROVED | DRAFT</p>
-                                <p><span className="text-white/50 font-mono">images</span> — Array of {'{url, category}'}</p>
+                                <p className="text-amber-300/80">No image URLs are accepted in the canonical property import payload. Use the Property Gallery upload flow after import.</p>
                             </div>
                         </div>
                     </div>

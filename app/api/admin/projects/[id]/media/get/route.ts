@@ -59,7 +59,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const counts = {
       total: allMedia.length,
       hero: allMedia.filter((m: any) => m.category === 'HERO').length,
-      gallery: allMedia.filter((m: any) => m.category === 'GALLERY').length,
       interior: allMedia.filter((m: any) => m.category === 'INTERIOR').length,
       exterior: allMedia.filter((m: any) => m.category === 'EXTERIOR').length,
       amenities: allMedia.filter((m: any) => m.category === 'AMENITIES').length,

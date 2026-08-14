@@ -4,8 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { buildProjectMediaTypeKey, normalizeProjectImageFilename, uploadToS3Key } from '@/lib/s3'
 import { buildAssetUrl } from '@/lib/assetUrl'
+import { PROJECT_MEDIA_CATEGORY_VALUES, projectMediaCategoryToEnum } from '@/lib/projectMediaTaxonomy'
 
-const CATEGORY_VALUES = ['hero', 'gallery', 'interior', 'exterior', 'amenities', 'lifestyle', 'floor_plan'] as const
+const CATEGORY_VALUES = PROJECT_MEDIA_CATEGORY_VALUES
 
 const saveMediaSchema = z.object({
     url: z.string().url(),
@@ -27,7 +28,7 @@ function labelFromFilename(filename: string) {
 }
 
 function toEnumCategory(category: (typeof CATEGORY_VALUES)[number]) {
-    return category === 'floor_plan' ? 'FLOOR_PLAN' : category.toUpperCase()
+    return projectMediaCategoryToEnum(category) || 'HERO'
 }
 
 async function getProject(id: string) {
@@ -75,7 +76,6 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         const counts = {
           total: allMedia.length,
           hero: allMedia.filter((m: any) => m.category === 'HERO').length,
-          gallery: allMedia.filter((m: any) => m.category === 'GALLERY').length,
           interior: allMedia.filter((m: any) => m.category === 'INTERIOR').length,
           exterior: allMedia.filter((m: any) => m.category === 'EXTERIOR').length,
           amenities: allMedia.filter((m: any) => m.category === 'AMENITIES').length,
@@ -135,7 +135,6 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
             const data = parsed.data
             
-            // Enforce HERO uniqueness: demote existing HERO to gallery if setting new one
             if (data.category === 'hero') {
                 const existingHero = await (prisma as any).projectMedia.findFirst({
                     where: { projectId: params.id, category: 'HERO' },
@@ -143,7 +142,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
                 if (existingHero) {
                     await (prisma as any).projectMedia.update({
                         where: { id: existingHero.id },
-                        data: { category: 'GALLERY', mediaType: 'gallery' },
+                        data: { category: null, mediaType: 'hero' },
                     })
                 }
             }
@@ -226,7 +225,6 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         const { key: uploadedKey } = await uploadToS3Key({ buffer, key, contentType: file.type || 'image/jpeg' })
         const url = buildAssetUrl(uploadedKey) || uploadedKey
 
-        // Enforce HERO uniqueness: demote existing HERO to gallery if setting new one
         if (category === 'hero') {
             const existingHero = await (prisma as any).projectMedia.findFirst({
                 where: { projectId: params.id, category: 'HERO' },
@@ -234,7 +232,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
             if (existingHero) {
                 await (prisma as any).projectMedia.update({
                     where: { id: existingHero.id },
-                    data: { category: 'GALLERY', mediaType: 'gallery' },
+                    data: { category: null, mediaType: 'hero' },
                 })
             }
         }

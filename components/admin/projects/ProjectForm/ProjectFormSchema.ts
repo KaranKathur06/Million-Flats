@@ -6,7 +6,7 @@ export interface MediaItem {
   id?: string
   mediaUrl: string
   mediaType: string
-  category?: 'hero' | 'gallery' | 'interior' | 'exterior' | 'amenities' | 'lifestyle' | 'floor_plan' | null
+  category?: 'hero' | 'interior' | 'exterior' | 'amenities' | 'lifestyle' | 'floor_plan' | null
   label?: string | null
   sortOrder: number | null
   s3Key?: string | null
@@ -85,7 +85,6 @@ export const PROJECT_COUNTRY_OPTIONS = [
 
 export const MEDIA_CATEGORY_OPTIONS = [
   { value: 'hero', label: 'Hero' },
-  { value: 'gallery', label: 'Gallery' },
   { value: 'interior', label: 'Interior' },
   { value: 'exterior', label: 'Exterior' },
   { value: 'amenities', label: 'Amenities' },

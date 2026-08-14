@@ -3,13 +3,12 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { deleteFromS3, buildCdnAssetUrl } from '@/lib/s3'
 
-// Valid media categories
-const VALID_CATEGORIES = ['hero', 'gallery', 'interior', 'exterior', 'amenities', 'lifestyle', 'floor_plan'] as const
+import { PROJECT_MEDIA_CATEGORY_VALUES, projectMediaCategoryToEnum } from '@/lib/projectMediaTaxonomy'
+
+const VALID_CATEGORIES = PROJECT_MEDIA_CATEGORY_VALUES
 
 function toCategoryEnum(category: string) {
-  const normalized = category.toLowerCase()
-  if (normalized === 'floor_plan' || normalized === 'floor-plan' || normalized === 'floorplan') return 'FLOOR_PLAN'
-  return normalized.toUpperCase()
+  return projectMediaCategoryToEnum(category) || 'HERO'
 }
 
 export async function PUT(
@@ -58,7 +57,7 @@ export async function PUT(
                 if (existingHero) {
                     await (prisma as any).projectMedia.update({
                         where: { id: existingHero.id },
-                        data: { category: 'GALLERY', mediaType: 'gallery' },
+                        data: { category: null, mediaType: 'hero' },
                     })
                 }
 

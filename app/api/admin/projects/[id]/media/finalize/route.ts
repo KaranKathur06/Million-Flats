@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { prisma } from '@/lib/prisma'
-import { deleteFromS3, buildCdnAssetUrl } from '@/lib/s3'
+import { buildCdnAssetUrl } from '@/lib/s3'
+import { PROJECT_MEDIA_CATEGORY_VALUES, projectMediaCategoryToEnum } from '@/lib/projectMediaTaxonomy'
 
 export const runtime = 'nodejs'
 
-// Valid media categories
-const VALID_CATEGORIES = ['hero', 'gallery', 'interior', 'exterior', 'amenities', 'lifestyle', 'floor_plan'] as const
+const VALID_CATEGORIES = PROJECT_MEDIA_CATEGORY_VALUES
 
-function toCategoryEnum(category: string) {
-  const normalized = category.toLowerCase()
-  if (normalized === 'floor_plan' || normalized === 'floor-plan' || normalized === 'floorplan') return 'FLOOR_PLAN'
-  return normalized.toUpperCase()
-}
 
 /**
  * POST /api/admin/projects/[id]/media/finalize
@@ -80,8 +75,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       )
     }
 
-    // If setting as HERO, demote existing HERO to GALLERY
-    const categoryEnum = toCategoryEnum(category)
+    const categoryEnum = projectMediaCategoryToEnum(category)
     if (categoryEnum === 'HERO') {
       const existingHero = await (prisma as any).projectMedia.findFirst({
         where: { projectId: params.id, category: 'HERO' },
@@ -89,7 +83,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       if (existingHero) {
         await (prisma as any).projectMedia.update({
           where: { id: existingHero.id },
-          data: { category: 'GALLERY', mediaType: 'gallery' },
+          data: { category: null, mediaType: 'hero' },
         })
       }
     }

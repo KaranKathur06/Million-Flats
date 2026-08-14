@@ -11,7 +11,7 @@ interface MediaUploadDialogProps {
 }
 
 const MEDIA_CATEGORIES = [
-  { value: 'gallery', label: 'Gallery', icon: '🖼️' },
+  { value: 'hero', label: 'Hero', icon: '👑' },
   { value: 'interior', label: 'Interior', icon: '🏠' },
   { value: 'exterior', label: 'Exterior', icon: '🏘️' },
   { value: 'amenities', label: 'Amenities', icon: '✨' },
@@ -19,7 +19,7 @@ const MEDIA_CATEGORIES = [
 ]
 
 export function MediaUploadDialog({ projectId, isOpen, onClose, onComplete }: MediaUploadDialogProps) {
-  const [selectedCategory, setSelectedCategory] = useState('gallery')
+  const [selectedCategory, setSelectedCategory] = useState('hero')
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   

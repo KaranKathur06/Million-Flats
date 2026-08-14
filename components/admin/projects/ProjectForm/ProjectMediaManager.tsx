@@ -16,7 +16,6 @@ interface Media {
 interface MediaCounts {
   total: number
   hero: number
-  gallery: number
   interior: number
   exterior: number
   amenities: number
@@ -30,7 +29,6 @@ interface ProjectMediaManagerProps {
 
 const CATEGORY_ICONS: Record<string, string> = {
   hero: '👑',
-  gallery: '🖼️',
   interior: '🏠',
   exterior: '🏘️',
   amenities: '✨',
@@ -110,7 +108,6 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
   const allCategories = [
     { value: null, label: 'All', icon: '📁', count: counts?.total },
     { value: 'hero', label: 'Hero', icon: '👑', count: counts?.hero },
-    { value: 'gallery', label: 'Gallery', icon: '🖼️', count: counts?.gallery },
     { value: 'interior', label: 'Interior', icon: '🏠', count: counts?.interior },
     { value: 'exterior', label: 'Exterior', icon: '🏘️', count: counts?.exterior },
     { value: 'amenities', label: 'Amenities', icon: '✨', count: counts?.amenities },

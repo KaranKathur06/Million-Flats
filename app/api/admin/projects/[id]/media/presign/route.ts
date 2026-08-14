@@ -4,17 +4,13 @@ import { buildProjectMediaTypeKey } from '@/lib/s3'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { prisma } from '@/lib/prisma'
+import { PROJECT_MEDIA_CATEGORY_VALUES } from '@/lib/projectMediaTaxonomy'
 
 export const runtime = 'nodejs'
 
-// Server-side image size limit (100 MB by default, configurable via env)
 const IMAGE_MAX_SIZE = Number(process.env.PROJECT_IMAGE_MAX_SIZE_BYTES) || 100 * 1024 * 1024
-
-// Allowed image MIME types
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/avif']
-
-// Valid media categories
-const VALID_CATEGORIES = ['hero', 'gallery', 'interior', 'exterior', 'amenities', 'lifestyle', 'floor_plan'] as const
+const VALID_CATEGORIES = PROJECT_MEDIA_CATEGORY_VALUES
 
 /**
  * POST /api/admin/projects/[id]/media/presign
@@ -28,7 +24,7 @@ const VALID_CATEGORIES = ['hero', 'gallery', 'interior', 'exterior', 'amenities'
  *   fileName: string,
  *   fileSizeBytes: number,
  *   contentType: string (e.g. "image/jpeg"),
- *   category: string (hero|gallery|interior|exterior|amenities|lifestyle|floor_plan)
+ *   category: string (hero|interior|exterior|amenities|lifestyle|floor_plan)
  * }
  */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {

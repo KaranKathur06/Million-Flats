@@ -265,14 +265,14 @@ export function buildProjectMediaKey(params: { developerSlug: string; projectSlu
 }
 
 export function buildProjectGalleryKey(params: { developerSlug: string; projectSlug: string; originalName: string; contentType?: string }) {
-  return buildProjectMediaTypeKey({ ...params, mediaType: 'gallery' })
+  return buildProjectMediaTypeKey({ ...params, mediaType: 'interior' })
 }
 
 export function buildProjectMediaTypeKey(params: { developerSlug: string; projectSlug: string; originalName: string; contentType?: string; mediaType?: string }) {
   const devSlug = normalizeSlugSegment(params.developerSlug || 'unknown')
   const projSlug = normalizeSlugSegment(params.projectSlug || 'unknown')
   const filename = normalizeProjectImageFilename({ originalName: params.originalName, contentType: params.contentType })
-  const mt = String(params.mediaType || 'gallery').toLowerCase()
+  const mt = String(params.mediaType || 'hero').toLowerCase()
   const folder =
     mt === 'hero' ? 'hero'
       : mt === 'interior' ? 'interior'
@@ -280,7 +280,7 @@ export function buildProjectMediaTypeKey(params: { developerSlug: string; projec
           : mt === 'amenities' ? 'amenities'
             : mt === 'lifestyle' ? 'lifestyle'
               : mt === 'floor_plan' || mt === 'floor-plan' || mt === 'floorplan' ? 'floor-plans'
-                : 'gallery'
+                : 'interior'
   return `public/projects/${devSlug}/${projSlug}/${folder}/${filename}`
 }
 
