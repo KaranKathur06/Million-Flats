@@ -16,12 +16,36 @@ const publicSans = Public_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'MillionFlats | AI Property Valuation & 3D Virtual Tours for Developers',
-  description: 'Premium luxury real estate in UAE for discerning investors and buyers. Explore properties in Dubai, Abu Dhabi, Sharjah, and across the Emirates.',
-  keywords: 'luxury real estate UAE, premium properties Dubai, Abu Dhabi properties, luxury villas UAE, penthouses Dubai, real estate UAE',
+  title: 'MillionFlats | Global Luxury Real Estate Marketplace',
+  description:
+    'Safely invest in premium ₹3Cr+ villas, penthouses, and off-plan projects across India and Dubai. Fully backed by institutional compliance, secure LRS/FEMA routing, and 3D digital twins.',
+  keywords:
+    'global luxury real estate, premium villas India, penthouses Dubai, off-plan projects, LRS FEMA routing, 3D digital twins',
   icons: {
     icon: '/FAVICON.jpeg',
     apple: '/LOGO.jpeg',
+  },
+  openGraph: {
+    title: 'MillionFlats | Global Luxury Real Estate Marketplace',
+    description:
+      'Safely invest in premium ₹3Cr+ villas, penthouses, and off-plan projects across India and Dubai. Fully backed by institutional compliance, secure LRS/FEMA routing, and 3D digital twins.',
+    type: 'website',
+    url: 'https://www.millionflats.com',
+    images: [
+      {
+        url: '/meta.jpeg',
+        width: 1200,
+        height: 630,
+        alt: 'MillionFlats | Global Luxury Real Estate Marketplace',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'MillionFlats | Global Luxury Real Estate Marketplace',
+    description:
+      'Safely invest in premium ₹3Cr+ villas, penthouses, and off-plan projects across India and Dubai. Fully backed by institutional compliance, secure LRS/FEMA routing, and 3D digital twins.',
+    images: ['/meta.jpeg'],
   },
   other: {
     'p:domain_verify': 'e6933b23e105c64206750c2e27779d48',

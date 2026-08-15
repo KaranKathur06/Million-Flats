@@ -649,6 +649,41 @@ function readUrlsFromFile(filePath) {
         .filter(l => l && l.startsWith('http'))
 }
 
+// ─── Scraper → Bulk Import Mapper ───────────────────────────────────────────
+
+function mapPropertyToBulkImportProject(property) {
+    // Transform scraper property output into bulk-import project format
+    const project = {
+        name: property.title || 'Untitled Project',
+        slug: null, // Admin will generate or we can use slugify()
+        city: property.city || null,
+        community: property.community || null,
+        countryIso2: property.countryIso2 || 'IN',
+        goldenVisa: false, // Not available from scraper
+        completionYear: null, // Not available from scraper
+        startingPrice: property.price || null,
+        status: property.status || 'PUBLISHED',
+        description: property.shortDescription || null,
+        highlights: property.amenities || null,
+        coverImage: null, // Images not captured by current scraper
+        sourceUrl: property.sourceUrl || null,
+    }
+    
+    return project
+}
+
+function extractDeveloperSlug(developerName) {
+    if (!developerName) return 'unknown-developer'
+    return developerName
+        .toLowerCase()
+        .replace(/\s+group\b|\s+ltd\b|\s+properties\b|\s+corp\b|\s+realty\b/i, '')
+        .replace(/\s+/g, '-')
+        .replace(/[&]/g, 'and')
+        .replace(/[^a-z0-9-]/g, '')
+        .replace(/-+/g, '-')
+        .replace(/(^-|-$)/g, '')
+}
+
 async function processFile(filePath) {
     const filename = path.basename(filePath)
     const cityMeta = detectCityFromFilename(filePath)
@@ -659,10 +694,11 @@ async function processFile(filePath) {
 
     if (isDryRun) {
         limited.forEach((url, i) => console.log(`  ${i + 1}. ${url}`))
-        return { city: cityMeta.city, properties: [], total: limited.length }
+        return { city: cityMeta.city, properties: [], total: limited.length, scraped: [] }
     }
 
     const properties = []
+    const scraped = []
     const errors = []
 
     for (let i = 0; i < limited.length; i++) {
@@ -771,18 +807,34 @@ async function main() {
         allResults.push(result)
 
         if (!isDryRun && result.properties.length > 0) {
-            // Write output JSON
-            const safeName = result.city.toLowerCase().replace(/\s+/g, '_')
-            const outputPath = path.join(OUTPUT_DIR, `${safeName}_properties.json`)
-
-            const outputJson = {
-                schemaVersion: 'property-import-v1',
-                systemAgentEmail: 'admin@millionflats.com',
-                properties: result.properties,
+            // Group properties by developer
+            const byDeveloper = {}
+            
+            for (const property of result.properties) {
+                const devName = property.developerName || 'Unnamed Developer'
+                if (!byDeveloper[devName]) {
+                    byDeveloper[devName] = []
+                }
+                byDeveloper[devName].push(property)
             }
 
-            fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2), 'utf8')
-            console.log(`  💾 Saved: ${outputPath}`)
+            // Write one JSON file per developer in bulk-import format
+            for (const [developerName, props] of Object.entries(byDeveloper)) {
+                const developerSlug = extractDeveloperSlug(developerName)
+                const projects = props.map(prop => mapPropertyToBulkImportProject(prop))
+                
+                const safeName = `${result.city.toLowerCase().replace(/\s+/g, '_')}_${developerSlug}`
+                const outputPath = path.join(OUTPUT_DIR, `${safeName}_bulk_import.json`)
+
+                const outputJson = {
+                    developerSlug,
+                    developerName,
+                    projects,
+                }
+
+                fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2), 'utf8')
+                console.log(`  💾 Saved: ${outputPath} (${projects.length} projects for ${developerName})`)
+            }
         }
     }
 
@@ -812,7 +864,8 @@ async function main() {
     if (!isDryRun) {
         console.log(`\n  Total: ${totalScraped} properties scraped, ${totalErrors} errors`)
         console.log(`  Output: ${OUTPUT_DIR}`)
-        console.log(`\n💡 Import the JSON files at /admin/properties/bulk-import`)
+        console.log(`\n💡 Bulk-import JSON files ready for import at /admin/projects/bulk-import`)
+        console.log(`   Each file contains: developerSlug, developerName, and projects[] array`)
     }
 
     // Cleanup
