@@ -16,6 +16,7 @@ const publicSans = Public_Sans({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.millionflats.com'),
   title: 'MillionFlats | Global Luxury Real Estate Marketplace',
   description:
     'Safely invest in premium ₹3Cr+ villas, penthouses, and off-plan projects across India and Dubai. Fully backed by institutional compliance, secure LRS/FEMA routing, and 3D digital twins.',
@@ -25,12 +26,16 @@ export const metadata: Metadata = {
     icon: '/FAVICON.jpeg',
     apple: '/LOGO.jpeg',
   },
+  alternates: {
+    canonical: 'https://www.millionflats.com/',
+  },
   openGraph: {
     title: 'MillionFlats | Global Luxury Real Estate Marketplace',
     description:
       'Safely invest in premium ₹3Cr+ villas, penthouses, and off-plan projects across India and Dubai. Fully backed by institutional compliance, secure LRS/FEMA routing, and 3D digital twins.',
+    siteName: 'MillionFlats',
     type: 'website',
-    url: 'https://www.millionflats.com',
+    url: 'https://www.millionflats.com/',
     images: [
       {
         url: '/meta.jpeg',
@@ -45,10 +50,15 @@ export const metadata: Metadata = {
     title: 'MillionFlats | Global Luxury Real Estate Marketplace',
     description:
       'Safely invest in premium ₹3Cr+ villas, penthouses, and off-plan projects across India and Dubai. Fully backed by institutional compliance, secure LRS/FEMA routing, and 3D digital twins.',
-    images: ['/meta.jpeg'],
+    images: ['https://www.millionflats.com/meta.jpeg'],
   },
   other: {
     'p:domain_verify': 'e6933b23e105c64206750c2e27779d48',
+    'og:image': 'https://www.millionflats.com/meta.jpeg',
+    'og:image:secure_url': 'https://www.millionflats.com/meta.jpeg',
+    'og:image:type': 'image/jpeg',
+    'og:image:width': '1200',
+    'og:image:height': '630',
   },
 }
 
