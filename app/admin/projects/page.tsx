@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import SelectDropdown from '@/components/SelectDropdown'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
 import ProjectActionsMenu from '@/components/admin/ProjectActionsMenu'
 import ProjectDetailsDrawer from '@/components/admin/ProjectDetailsDrawer'
 import { AdminBulkToolbar, AdminFilterChips } from '@/components/admin/workspace'
@@ -71,8 +72,8 @@ export default function AdminProjectsPage() {
   const [permanentDeleteConfirmation, setPermanentDeleteConfirmation] = useState('')
   const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false)
   const [bulkActionLoading, setBulkActionLoading] = useState<null | 'delete' | 'archive' | 'publish' | 'unpublish'>(null)
-  const [cityFilter, setCityFilter] = useState('')
-  const [developerFilter, setDeveloperFilter] = useState('')
+  const [cityFilter, setCityFilter] = useState<string[]>([])
+  const [developerFilter, setDeveloperFilter] = useState<string[]>([])
   const [detailsProject, setDetailsProject] = useState<ProjectItem | null>(null)
   const [stats, setStats] = useState({ total: 0, active: 0, archived: 0, deleted: 0 })
 
@@ -115,13 +116,13 @@ export default function AdminProjectsPage() {
     for (const p of projects) {
       names.set(p.developer.id, p.developer.name)
     }
-    return Array.from(names.entries()).sort((a, b) => a[1].localeCompare(b[1]))
+    return Array.from(names.entries()).map(([id, name]) => name).sort((a, b) => a.localeCompare(b))
   }, [projects])
 
   const filteredProjects = useMemo(() => {
     return projects.filter((p) => {
-      if (cityFilter && (p.city || '').trim() !== cityFilter) return false
-      if (developerFilter && p.developer.id !== developerFilter) return false
+      if (cityFilter.length > 0 && !cityFilter.includes((p.city || '').trim())) return false
+      if (developerFilter.length > 0 && !developerFilter.includes(p.developer.name)) return false
       return true
     })
   }, [projects, cityFilter, developerFilter])
@@ -369,6 +370,14 @@ export default function AdminProjectsPage() {
 
   const openDetails = (p: ProjectItem) => setDetailsProject(p)
 
+  const handleCityFilterChange = (value: string | string[]) => {
+    setCityFilter(Array.isArray(value) ? value : [])
+  }
+
+  const handleDeveloperFilterChange = (value: string | string[]) => {
+    setDeveloperFilter(Array.isArray(value) ? value : [])
+  }
+
   const renderRowActions = (p: ProjectItem) => (
     <ProjectActionsMenu
       projectId={p.id}
@@ -457,26 +466,37 @@ export default function AdminProjectsPage() {
           onChange={setStatusFilter}
         />
         {(cityOptions.length > 0 || developerOptions.length > 0) && (
-          <div className="flex flex-wrap gap-2">
-            {cityOptions.length > 0 ? (
-              <AdminFilterChips
-                size="sm"
-                chips={[{ value: '', label: 'All cities' }, ...cityOptions.map((c) => ({ value: c, label: c }))]}
-                value={cityFilter}
-                onChange={setCityFilter}
-              />
-            ) : null}
-            {developerOptions.length > 1 ? (
-              <AdminFilterChips
-                size="sm"
-                chips={[
-                  { value: '', label: 'All developers' },
-                  ...developerOptions.map(([id, name]) => ({ value: id, label: name })),
-                ]}
-                value={developerFilter}
-                onChange={setDeveloperFilter}
-              />
-            ) : null}
+          <div className="flex flex-wrap gap-3 sm:gap-4">
+            {cityOptions.length > 0 && (
+              <div className="w-full sm:w-64">
+                <GlobalDropdown
+                  label="Cities"
+                  value={cityFilter}
+                  onChange={handleCityFilterChange}
+                  options={cityOptions.map((c) => ({ value: c, label: c }))}
+                  mode="multi"
+                  searchable
+                  appearance="admin-dark"
+                  placeholder="Select cities"
+                  showLabel={true}
+                />
+              </div>
+            )}
+            {developerOptions.length > 1 && (
+              <div className="w-full sm:w-64">
+                <GlobalDropdown
+                  label="Developers"
+                  value={developerFilter}
+                  onChange={handleDeveloperFilterChange}
+                  options={developerOptions.map((d) => ({ value: d, label: d }))}
+                  mode="multi"
+                  searchable
+                  appearance="admin-dark"
+                  placeholder="Select developers"
+                  showLabel={true}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -671,8 +691,8 @@ export default function AdminProjectsPage() {
           <button
             type="button"
             onClick={() => {
-              setCityFilter('')
-              setDeveloperFilter('')
+              setCityFilter([])
+              setDeveloperFilter([])
             }}
             className="mt-3 text-xs font-semibold text-amber-300 hover:text-amber-200"
           >

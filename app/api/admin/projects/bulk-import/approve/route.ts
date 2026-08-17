@@ -79,17 +79,22 @@ export async function POST(req: Request) {
           continue
         }
 
-        const candidateSlug = item.slug || slugify(item.name)
-        const existing = await prisma.project.findUnique({ where: { slug: candidateSlug } })
-        if (existing) {
-          results.push({ name: item.name, slug: candidateSlug, status: 'skipped', reason: 'Slug already exists' })
-          continue
+        let candidateSlug = item.slug || slugify(item.name)
+        let counter = 0
+        let finalSlug = candidateSlug
+        while (await prisma.project.findUnique({ where: { slug: finalSlug } })) {
+          counter++
+          finalSlug = `${candidateSlug}-${counter}`
+          if (counter > 1000) {
+            results.push({ name: item.name, slug: candidateSlug, status: 'error', reason: 'Could not generate unique slug' })
+            continue
+          }
         }
 
         const project = await prisma.project.create({
           data: {
             name: item.name,
-            slug: candidateSlug,
+            slug: finalSlug,
             developerId: developer.id,
             countryIso2: item.countryIso2 || 'IN',
             city: item.city || null,
