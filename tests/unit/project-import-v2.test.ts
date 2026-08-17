@@ -135,4 +135,26 @@ describe('project import v2', () => {
     expect(result.projects[0].startingPrice).toBe(13362500)
     expect(result.projects[0].sourceMedia?.length).toBeGreaterThan(0)
   })
+
+  it('accepts large batches beyond the old 200-project cap', () => {
+    const projects = Array.from({ length: 250 }, (_, idx) => ({
+      name: `Project ${idx + 1}`,
+      developer: { slug: `dev-${idx + 1}`, name: `Developer ${idx + 1}` },
+      countryIso2: 'IN',
+      city: 'Bangalore',
+      community: 'Whitefield',
+      startingPrice: 5000000 + idx,
+      sourceMedia: [{ source: 'SQUAREYARDS', sourceUrl: `https://example.com/${idx + 1}.jpg`, category: 'GALLERY', status: 'REVIEW_REQUIRED' }],
+    }))
+
+    const result = buildProjectImportPreview({
+      schemaVersion: '2.0',
+      importType: 'PROJECTS',
+      source: { provider: 'SQUAREYARDS', sourceUrl: 'https://example.com', scrapedAt: '2026-08-16T00:00:00.000Z' },
+      projects,
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.summary.totalProjects).toBe(250)
+  })
 })

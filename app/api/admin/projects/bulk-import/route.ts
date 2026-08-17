@@ -54,7 +54,7 @@ const bulkImportPreviewSchema = z.object({
         sourceUrl: z.string().max(2000).optional().nullable(),
         scrapedAt: z.string().optional().nullable(),
     }).optional(),
-    projects: z.array(z.any()).min(1).max(200),
+    projects: z.array(z.any()).min(1).max(5000),
     approvedBy: z.string().max(200).optional().nullable(),
     reviewNote: z.string().max(5000).optional().nullable(),
     submitForApproval: z.boolean().optional(),
