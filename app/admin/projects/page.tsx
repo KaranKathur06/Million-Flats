@@ -583,7 +583,7 @@ export default function AdminProjectsPage() {
             )
           })}
           table={
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-x-auto">
           <table className="w-full min-w-[720px] text-sm">
             <thead className="sticky top-0 z-20 bg-[#0b1a2b]">
               <tr className="border-b border-white/[0.08]">
@@ -599,7 +599,7 @@ export default function AdminProjectsPage() {
                 <th className="hidden lg:table-cell px-3 py-3.5 text-center text-[11px] font-bold uppercase tracking-wider text-white/30">Media</th>
                 <th className="hidden lg:table-cell px-3 py-3.5 text-center text-[11px] font-bold uppercase tracking-wider text-white/30">Leads</th>
                 <th className="hidden xl:table-cell px-3 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-white/30">Created</th>
-                <th className="w-12 px-2 py-3.5 text-right text-[11px] font-bold uppercase tracking-wider text-white/30" />
+                <th className="sticky right-0 z-20 w-12 px-2 py-3.5 text-right text-[11px] font-bold uppercase tracking-wider text-white/30 bg-[#0b1a2b]" />
               </tr>
             </thead>
             <tbody>
@@ -647,7 +647,7 @@ export default function AdminProjectsPage() {
                     <td className="hidden xl:table-cell px-3 py-3 align-middle text-xs text-white/45 truncate">
                       {new Date(p.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </td>
-                    <td className="w-12 px-2 py-3 text-right align-middle">
+                    <td className="sticky right-0 z-10 w-12 px-2 py-3 text-right align-middle bg-white/[0.02]">
                       {renderRowActions(p)}
                     </td>
                   </tr>
