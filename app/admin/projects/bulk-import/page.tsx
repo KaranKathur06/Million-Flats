@@ -81,6 +81,7 @@ const DEMO_JSON = `{
 export default function BulkImportPage() {
     const [jsonInput, setJsonInput] = useState('')
     const [importing, setImporting] = useState(false)
+    const [approving, setApproving] = useState(false)
     const [response, setResponse] = useState<ImportResponse | null>(null)
     const [parseError, setParseError] = useState('')
 
@@ -162,6 +163,37 @@ export default function BulkImportPage() {
         setParseError('')
         setResponse(null)
     }, [])
+
+    const handleApprove = useCallback(async () => {
+        if (!response?.preview) return
+        
+        setApproving(true)
+        try {
+            const res = await fetch('/api/admin/projects/bulk-import/approve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(response.preview),
+            })
+            const json = await res.json()
+            if (res.ok) {
+                setResponse({
+                    success: true,
+                    message: `✅ ${json.summary?.createdCount || 0} projects successfully imported into the database.`,
+                    summary: json.summary,
+                })
+                setJsonInput('')
+            } else {
+                setResponse({
+                    success: false,
+                    message: json.message || 'Approval failed. Please check the errors.',
+                })
+            }
+        } catch (err: any) {
+            setResponse({ success: false, message: err.message || 'Network error during approval' })
+        } finally {
+            setApproving(false)
+        }
+    }, [response])
 
     return (
         <div>
@@ -276,7 +308,17 @@ export default function BulkImportPage() {
                 <div>
                     {response && (
                         <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-5">
-                            {response.success ? (
+                            {response.success && !response.preview ? (
+                                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <svg className="h-5 w-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <h3 className="text-sm font-bold text-emerald-300">Import Complete</h3>
+                                    </div>
+                                    <p className="text-xs text-emerald-300/80">{response.message}</p>
+                                </div>
+                            ) : response.success ? (
                                 <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
                                     <div className="flex items-center gap-2 mb-2">
                                         <svg className="h-5 w-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -286,13 +328,36 @@ export default function BulkImportPage() {
                                     </div>
                                     <p className="text-xs text-emerald-300/80 mb-3">{response.message}</p>
                                     {response.summary && (
-                                        <div className="grid grid-cols-2 gap-3 text-xs">
+                                        <div className="grid grid-cols-2 gap-3 text-xs mb-4">
                                             <span className="text-emerald-300"><span className="font-bold text-lg block">{response.summary.validProjects}</span> valid</span>
                                             <span className="text-yellow-300"><span className="font-bold text-lg block">{response.summary.warnings}</span> warnings</span>
                                             <span className="text-red-300"><span className="font-bold text-lg block">{response.summary.errors}</span> errors</span>
                                             <span className="text-sky-300"><span className="font-bold text-lg block">{response.summary.totalProjects}</span> total</span>
                                         </div>
                                     )}
+                                    <button
+                                        type="button"
+                                        onClick={handleApprove}
+                                        disabled={approving || (response.summary?.errors ?? 0) > 0}
+                                        className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-500/90 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                    >
+                                        {approving ? (
+                                            <>
+                                                <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                                </svg>
+                                                Approving…
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                                Approve Import
+                                            </>
+                                        )}
+                                    </button>
                                 </div>
                             ) : (
                                 <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
