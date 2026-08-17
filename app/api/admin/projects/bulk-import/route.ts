@@ -3,6 +3,49 @@ import { requireAdminSession } from '@/lib/adminAuth'
 import { buildProjectImportPreview } from '@/lib/projectImportV2'
 import { z } from 'zod'
 
+function normalizeBulkImportBody(body: unknown): any {
+    if (Array.isArray(body)) {
+        return {
+            schemaVersion: '2.0',
+            importType: 'PROJECTS',
+            source: {
+                provider: 'SQUAREYARDS',
+                sourceUrl: null,
+                scrapedAt: new Date().toISOString(),
+            },
+            projects: body,
+        }
+    }
+
+    if (body && typeof body === 'object' && 'name' in body && !('projects' in body)) {
+        return {
+            schemaVersion: '2.0',
+            importType: 'PROJECTS',
+            source: {
+                provider: 'SQUAREYARDS',
+                sourceUrl: (body as any).sourceUrl || null,
+                scrapedAt: (body as any).scrapedAt || new Date().toISOString(),
+            },
+            projects: [body],
+        }
+    }
+
+    if (body && typeof body === 'object' && 'projects' in body && Array.isArray((body as any).projects)) {
+        return {
+            ...body,
+            schemaVersion: body && typeof body === 'object' && 'schemaVersion' in body ? (body as any).schemaVersion : '2.0',
+            importType: body && typeof body === 'object' && 'importType' in body ? (body as any).importType : 'PROJECTS',
+            source: {
+                provider: (body as any)?.source?.provider || 'SQUAREYARDS',
+                sourceUrl: (body as any)?.source?.sourceUrl || null,
+                scrapedAt: (body as any)?.source?.scrapedAt || new Date().toISOString(),
+            },
+        }
+    }
+
+    return body
+}
+
 const bulkImportPreviewSchema = z.object({
     schemaVersion: z.string().optional(),
     importType: z.enum(['PROJECTS']).optional(),
@@ -25,7 +68,8 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json().catch(() => ({}))
-        const parsed = bulkImportPreviewSchema.safeParse(body)
+        const normalizedBody = normalizeBulkImportBody(body)
+        const parsed = bulkImportPreviewSchema.safeParse(normalizedBody)
 
         if (!parsed.success) {
             return NextResponse.json(
