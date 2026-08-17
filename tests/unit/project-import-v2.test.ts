@@ -106,4 +106,33 @@ describe('project import v2', () => {
     })
     expect(payload[0].startingPrice).toBe(9200000)
   })
+
+  it('accepts a raw SquareYards-style array of project records and normalizes them', () => {
+    const result = buildProjectImportPreview([
+      {
+        sourceUrl: 'https://www.squareyards.com/arvind-sylva-mullur-bangalore-npd-344456',
+        projectId: 344456,
+        name: 'Arvind Sylva, Mullur, Bangalore',
+        developer: 'Arvind',
+        price: 13362500,
+        priceCurrency: 'INR',
+        priceText: '1.34 Cr to 1.97 Cr',
+        priceRangeLow: 13362500,
+        priceRangeHigh: 19687500,
+        city: 'Bangalore',
+        subLocality: 'Mullur',
+        locality: 'East Bangalore',
+        images: ['https://example.com/image-1.jpg', 'https://example.com/image-2.jpg'],
+      },
+    ])
+
+    expect(result.ok).toBe(true)
+    expect(result.summary.totalProjects).toBe(1)
+    expect(result.projects[0].developer).toMatchObject({ name: 'Arvind', slug: 'arvind' })
+    expect(result.projects[0].countryIso2).toBe('IN')
+    expect(result.projects[0].city).toBe('Bangalore')
+    expect(result.projects[0].community).toBe('Mullur')
+    expect(result.projects[0].startingPrice).toBe(13362500)
+    expect(result.projects[0].sourceMedia?.length).toBeGreaterThan(0)
+  })
 })

@@ -114,12 +114,72 @@ function normalizeLegacyDeveloper(input: unknown): ProjectImportDeveloper | null
   return { slug: slug || normalizeSlug(name) || 'developer', name: name || slug || 'Developer' }
 }
 
+function normalizeSquareYardsProject(project: any, index: number): any {
+  const developerValue = project.developer ?? project.developerName ?? project.developerSlug ?? 'Unknown Developer'
+  const normalizedDeveloper = typeof developerValue === 'string'
+    ? { slug: normalizeSlug(developerValue) || `developer-${index + 1}`, name: developerValue.trim() || 'Unknown Developer' }
+    : normalizeLegacyDeveloper(developerValue)
+
+  const rawImages = Array.isArray(project.images) ? project.images : []
+  const fallbackImage = project.image ? [project.image] : []
+  const mediaRefs = [...rawImages, ...fallbackImage].filter((value: unknown) => typeof value === 'string' && value.trim())
+    .map((value: string) => ({
+      source: 'SQUAREYARDS',
+      sourceUrl: value.trim(),
+      category: 'GALLERY',
+      status: 'REVIEW_REQUIRED',
+    }))
+
+  const startingPrice = project.startingPrice ?? project.price ?? project.priceRangeLow ?? project.priceRangeHigh ?? null
+
+  return {
+    name: normalizeText(project.name || `Project ${index + 1}`),
+    developer: normalizedDeveloper,
+    countryIso2: normalizeText(project.countryIso2 || project.country || 'IN').toUpperCase() || 'IN',
+    city: normalizeText(project.city || 'Bangalore') || 'Bangalore',
+    community: normalizeText(project.community || project.subLocality || project.locality || 'Unknown') || 'Unknown',
+    startingPrice: parsePriceLike(startingPrice ?? project.priceText ?? project.priceRangeLow ?? project.priceRangeHigh) ?? null,
+    slug: normalizeSlug(project.slug || project.name || `project-${index + 1}`),
+    description: normalizeText(project.description || project.overview || ''),
+    overview: normalizeText(project.description || project.overview || ''),
+    completionYear: project.completionYear ?? null,
+    goldenVisa: Boolean(project.goldenVisa),
+    featured: Boolean(project.featured),
+    status: 'DRAFT',
+    sourceMedia: mediaRefs,
+    media: mediaRefs,
+    sourceUrl: normalizeText(project.sourceUrl || project.url || ''),
+    location: project.location || null,
+    highlights: Array.isArray(project.highlights) ? project.highlights : [],
+    amenities: Array.isArray(project.amenities) ? project.amenities : [],
+    paymentPlans: Array.isArray(project.paymentPlans) ? project.paymentPlans : [],
+    nearbyPlaces: Array.isArray(project.nearbyPlaces) ? project.nearbyPlaces : [],
+    videos: Array.isArray(project.videos) ? project.videos : [],
+    unitTypes: Array.isArray(project.unitTypes) ? project.unitTypes : [],
+    floorPlans: Array.isArray(project.floorPlans) ? project.floorPlans : [],
+  }
+}
+
 function normalizeLegacyEnvelope(payload: unknown): any {
   if (!payload || typeof payload !== 'object') {
     return { schemaVersion: '2.0', importType: 'PROJECTS', source: { provider: 'UNKNOWN' }, projects: [] }
   }
 
   const root = payload as Record<string, any>
+
+  if (Array.isArray(root)) {
+    return {
+      schemaVersion: '2.0',
+      importType: 'PROJECTS',
+      source: {
+        provider: 'SQUAREYARDS',
+        sourceUrl: null,
+        scrapedAt: new Date().toISOString(),
+      },
+      projects: root.map((project: any, index: number) => normalizeSquareYardsProject(project, index)),
+    }
+  }
+
   const rawProjects = Array.isArray(root.projects) ? root.projects : []
 
   if (root.developerSlug || root.developerName || rawProjects.length) {
@@ -136,6 +196,15 @@ function normalizeLegacyEnvelope(payload: unknown): any {
         ...project,
         developer: project.developer ?? developer,
       })),
+    }
+  }
+
+  if (Array.isArray(payload)) {
+    return {
+      schemaVersion: '2.0',
+      importType: 'PROJECTS',
+      source: { provider: 'SQUAREYARDS', sourceUrl: null, scrapedAt: new Date().toISOString() },
+      projects: payload.map((project: any, index: number) => normalizeSquareYardsProject(project, index)),
     }
   }
 
