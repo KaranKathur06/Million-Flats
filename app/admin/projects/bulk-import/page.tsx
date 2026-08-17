@@ -110,8 +110,34 @@ export default function BulkImportPage() {
             return
         }
 
-        if (!Array.isArray(parsed.projects) || parsed.projects.length === 0) {
-            setParseError('JSON must contain a non-empty "projects" array.')
+        const normalizedPayload = Array.isArray(parsed)
+            ? {
+                schemaVersion: '2.0',
+                importType: 'PROJECTS',
+                source: {
+                    provider: 'SQUAREYARDS',
+                    sourceUrl: null,
+                    scrapedAt: new Date().toISOString(),
+                },
+                projects: parsed,
+            }
+            : parsed && typeof parsed === 'object' && Array.isArray(parsed.projects)
+                ? parsed
+                : parsed && typeof parsed === 'object' && parsed.name
+                    ? {
+                        schemaVersion: '2.0',
+                        importType: 'PROJECTS',
+                        source: {
+                            provider: 'SQUAREYARDS',
+                            sourceUrl: parsed.sourceUrl || null,
+                            scrapedAt: parsed.scrapedAt || new Date().toISOString(),
+                        },
+                        projects: [parsed],
+                    }
+                    : null
+
+        if (!normalizedPayload || !Array.isArray(normalizedPayload.projects) || normalizedPayload.projects.length === 0) {
+            setParseError('JSON must be a valid V2 envelope, a raw project array, or a single project object.')
             return
         }
 
@@ -120,7 +146,7 @@ export default function BulkImportPage() {
             const res = await fetch('/api/admin/projects/bulk-import', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(parsed),
+                body: JSON.stringify(normalizedPayload),
             })
             const json = await res.json()
             setResponse(json)
