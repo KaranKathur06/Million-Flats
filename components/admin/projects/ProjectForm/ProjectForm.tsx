@@ -497,7 +497,7 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
           </div>
           <div className="space-y-3">
             {formData.amenities.map((amenity, idx) => (
-              <div key={`${amenity.name || idx}-${idx}`} className="grid gap-3 rounded-xl border border-white/[0.06] bg-black/10 p-4 md:grid-cols-3">
+              <div key={amenity.id ?? `amenity-${idx}`} className="grid gap-3 rounded-xl border border-white/[0.06] bg-black/10 p-4 md:grid-cols-3">
                 <input value={amenity.name} onChange={(e) => updateAmenity(idx, 'name', e.target.value)} placeholder="Amenity" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
                 <input value={amenity.icon} onChange={(e) => updateAmenity(idx, 'icon', e.target.value)} placeholder="Icon" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
                 <input value={amenity.category} onChange={(e) => updateAmenity(idx, 'category', e.target.value)} placeholder="Category" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
@@ -517,7 +517,7 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
           </div>
           <div className="space-y-3">
             {formData.paymentPlans.map((pp, idx) => (
-              <div key={`${pp.label || idx}-${idx}`} className="grid gap-3 rounded-xl border border-white/[0.06] bg-black/10 p-4 md:grid-cols-5">
+              <div key={pp.id ?? `payment-plan-${idx}`} className="grid gap-3 rounded-xl border border-white/[0.06] bg-black/10 p-4 md:grid-cols-5">
                 <GlobalDropdown
                   value={pp.itemType}
                   onChange={(v) => updatePaymentPlan(idx, 'itemType', v as 'BASE_PRICE' | 'FEE')}
@@ -544,7 +544,7 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
           </div>
           <div className="space-y-3">
             {formData.nearbyPlaces.map((np, idx) => (
-              <div key={`${np.name || idx}-${idx}`} className="grid gap-3 rounded-xl border border-white/[0.06] bg-black/10 p-4 md:grid-cols-4">
+              <div key={np.id ?? `nearby-place-${idx}`} className="grid gap-3 rounded-xl border border-white/[0.06] bg-black/10 p-4 md:grid-cols-4">
                 <input value={np.name} onChange={(e) => updateNearbyPlace(idx, 'name', e.target.value)} placeholder="Name" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
                 <input value={np.category} onChange={(e) => updateNearbyPlace(idx, 'category', e.target.value)} placeholder="Category" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
                 <input value={np.distance} onChange={(e) => updateNearbyPlace(idx, 'distance', e.target.value)} placeholder="Distance" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
