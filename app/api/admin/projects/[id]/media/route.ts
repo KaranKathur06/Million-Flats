@@ -15,6 +15,7 @@ const saveMediaSchema = z.object({
     sortOrder: z.number().int().min(0).optional().nullable(),
     s3Key: z.string().min(1).optional().nullable(),
     unitVariantId: z.string().optional().nullable(),
+    unitTypeId: z.string().optional().nullable(),
 })
 
 function labelFromFilename(filename: string) {
@@ -200,12 +201,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
                 : rawCategory
         const sortOrder = parseInt(String(formData.get('sortOrder') || '0'), 10) || 0
         const unitVariantId = String(formData.get('unitVariantId') || '').trim() || null
+        const unitTypeId = String(formData.get('unitTypeId') || '').trim() || null
 
         if (!file) {
             return NextResponse.json({ success: false, message: 'No file provided' }, { status: 400 })
         }
         if (!CATEGORY_VALUES.includes(category as any)) {
             return NextResponse.json({ success: false, message: 'Invalid category' }, { status: 400 })
+        }
+        if (category === 'floor_plan' && !unitTypeId) {
+            return NextResponse.json({ success: false, message: 'unitTypeId is required for floor plan uploads' }, { status: 400 })
         }
         if (file.size > 50 * 1024 * 1024) {
             return NextResponse.json({ success: false, message: 'File too large (max 50MB)' }, { status: 400 })

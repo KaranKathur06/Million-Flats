@@ -10,6 +10,7 @@ export const runtime = 'nodejs'
 
 const IMAGE_MAX_SIZE = Number(process.env.PROJECT_IMAGE_MAX_SIZE_BYTES) || 100 * 1024 * 1024
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/avif']
+const ALLOWED_FLOOR_PLAN_TYPES = [...ALLOWED_IMAGE_TYPES, 'application/pdf']
 const VALID_CATEGORIES = PROJECT_MEDIA_CATEGORY_VALUES
 
 /**
@@ -25,6 +26,7 @@ const VALID_CATEGORIES = PROJECT_MEDIA_CATEGORY_VALUES
  *   fileSizeBytes: number,
  *   contentType: string (e.g. "image/jpeg"),
  *   category: string (hero|interior|exterior|amenities|lifestyle|floor_plan)
+ *   unitTypeId?: string
  * }
  */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -34,7 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   try {
-    const { fileName, fileSizeBytes, contentType, category } = await req.json()
+    const { fileName, fileSizeBytes, contentType, category, unitTypeId } = await req.json()
 
     // Validate inputs
     if (!fileName || typeof fileName !== 'string' || fileName.trim() === '') {
@@ -51,11 +53,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       )
     }
 
-    if (!ALLOWED_IMAGE_TYPES.includes(contentType.toLowerCase())) {
+    const allowedTypes = String(category || '').toLowerCase() === 'floor_plan'
+      ? ALLOWED_FLOOR_PLAN_TYPES
+      : ALLOWED_IMAGE_TYPES
+
+    if (!allowedTypes.includes(contentType.toLowerCase())) {
       return NextResponse.json(
         {
           success: false,
-          message: `Only image files are allowed (${ALLOWED_IMAGE_TYPES.join(', ')})`,
+          message: `Unsupported file type for ${String(category).toLowerCase() || 'media'} (${allowedTypes.join(', ')})`,
         },
         { status: 400 }
       )
@@ -89,6 +95,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         },
         { status: 400 }
       )
+    }
+
+    if (String(category).toLowerCase() === 'floor_plan') {
+      const normalizedUnitTypeId = String(unitTypeId || '').trim()
+      if (!normalizedUnitTypeId) {
+        return NextResponse.json({ success: false, message: 'unitTypeId is required for floor plan uploads' }, { status: 400 })
+      }
+
+      const unitType = await (prisma as any).projectUnitType.findFirst({
+        where: { id: normalizedUnitTypeId, projectId: params.id },
+        select: { id: true },
+      })
+
+      if (!unitType) {
+        return NextResponse.json({ success: false, message: 'Unit type not found for this project' }, { status: 400 })
+      }
     }
 
     // Verify project exists and get developer/project info for S3 key
@@ -132,6 +154,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         'project-id': params.id,
         'original-name': fileName,
         'media-category': category.toLowerCase(),
+        ...(String(category).toLowerCase() === 'floor_plan' ? { 'unit-type-id': String(unitTypeId || '') } : {}),
       },
     })
 

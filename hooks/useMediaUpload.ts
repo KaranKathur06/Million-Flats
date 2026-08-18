@@ -18,6 +18,7 @@ export interface UploadFile {
 export interface UseMediaUploadOptions {
   projectId: string
   category: string
+  unitTypeId?: string
   onSuccess?: (mediaId: string, s3Key: string) => void
   onError?: (fileId: string, error: string) => void
 }
@@ -26,7 +27,7 @@ export interface UseMediaUploadOptions {
  * Hook for managing media file uploads with presigned URLs
  * Handles the complete state machine for each file
  */
-export function useMediaUpload({ projectId, category, onSuccess, onError }: UseMediaUploadOptions) {
+export function useMediaUpload({ projectId, category, unitTypeId, onSuccess, onError }: UseMediaUploadOptions) {
   const [files, setFiles] = useState<Map<string, UploadFile>>(new Map())
 
   const addFiles = useCallback(
@@ -99,6 +100,7 @@ export function useMediaUpload({ projectId, category, onSuccess, onError }: UseM
               fileSizeBytes: uploadFile.file.size,
               contentType: uploadFile.file.type,
               category,
+              unitTypeId,
             }),
           }
         )
@@ -139,6 +141,7 @@ export function useMediaUpload({ projectId, category, onSuccess, onError }: UseM
               fileName: uploadFile.file.name,
               fileSizeBytes: uploadFile.file.size,
               category,
+              unitTypeId,
             }),
           }
         )

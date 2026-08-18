@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   try {
-    const { s3Key, fileName, fileSizeBytes, category, label } = await req.json()
+    const { s3Key, fileName, fileSizeBytes, category, label, unitTypeId } = await req.json()
 
     // Validate inputs
     if (!s3Key || typeof s3Key !== 'string') {
@@ -62,6 +62,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       )
     }
 
+    if (String(category).toLowerCase() === 'floor_plan') {
+      const normalizedUnitTypeId = String(unitTypeId || '').trim()
+      if (!normalizedUnitTypeId) {
+        return NextResponse.json({ success: false, message: 'unitTypeId is required for floor plan uploads' }, { status: 400 })
+      }
+
+      const unitType = await (prisma as any).projectUnitType.findFirst({
+        where: { id: normalizedUnitTypeId, projectId: params.id },
+        select: { id: true, unitType: true, bedrooms: true, bathrooms: true },
+      })
+
+      if (!unitType) {
+        return NextResponse.json({ success: false, message: 'Unit type not found for this project' }, { status: 400 })
+      }
+    }
+
     // Verify project exists
     const project = await (prisma as any).project.findUnique({
       where: { id: params.id },
@@ -89,19 +105,69 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     // Create media record
-    const media = await (prisma as any).projectMedia.create({
-      data: {
-        projectId: params.id,
-        mediaUrl: s3Key,
-        mediaType: category.toLowerCase(),
-        category: categoryEnum,
-        label: label?.trim() || null,
-        s3Key,
-        sortOrder: 0,
-      },
-    })
+    let media: any = null
 
-    // Update project coverImage if this is HERO
+    if (String(category).toLowerCase() === 'floor_plan') {
+      const normalizedUnitTypeId = String(unitTypeId || '').trim()
+      const unitType = await (prisma as any).projectUnitType.findFirst({
+        where: { id: normalizedUnitTypeId, projectId: params.id },
+        select: { id: true, unitType: true, bedrooms: true, bathrooms: true },
+      })
+
+      const variant = await (prisma as any).projectUnitVariant.findFirst({
+        where: { projectId: params.id, unitTypeId: normalizedUnitTypeId },
+        orderBy: { createdAt: 'asc' },
+        select: { id: true },
+      })
+
+      const existingFloorPlan = await (prisma as any).projectFloorPlan.findFirst({
+        where: {
+          projectId: params.id,
+          ...(variant ? { unitVariantId: variant.id } : {}),
+        },
+        orderBy: { createdAt: 'asc' },
+        select: { id: true, projectId: true },
+      })
+
+      if (existingFloorPlan) {
+        media = await (prisma as any).projectFloorPlan.update({
+          where: { id: existingFloorPlan.id },
+          data: {
+            unitVariantId: variant?.id || null,
+            unitType: unitType?.unitType || 'Floor Plan',
+            bedrooms: unitType?.bedrooms ?? null,
+            bathrooms: unitType?.bathrooms ?? null,
+            imageUrl: buildCdnAssetUrl({ key: s3Key }) || s3Key,
+            s3Key,
+          },
+        })
+      } else {
+        media = await (prisma as any).projectFloorPlan.create({
+          data: {
+            projectId: params.id,
+            unitVariantId: variant?.id || null,
+            unitType: unitType?.unitType || 'Floor Plan',
+            bedrooms: unitType?.bedrooms ?? null,
+            bathrooms: unitType?.bathrooms ?? null,
+            imageUrl: buildCdnAssetUrl({ key: s3Key }) || s3Key,
+            s3Key,
+          },
+        })
+      }
+    } else {
+      media = await (prisma as any).projectMedia.create({
+        data: {
+          projectId: params.id,
+          mediaUrl: s3Key,
+          mediaType: category.toLowerCase(),
+          category: categoryEnum,
+          label: label?.trim() || null,
+          s3Key,
+          sortOrder: 0,
+        },
+      })
+    }
+
     if (categoryEnum === 'HERO') {
       const publicUrl = buildCdnAssetUrl({ key: s3Key }) || s3Key
       await (prisma as any).project.update({
@@ -114,10 +180,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       success: true,
       media: {
         id: media.id,
-        mediaUrl: media.mediaUrl,
-        category: media.category,
-        label: media.label,
-        sortOrder: media.sortOrder,
+        mediaUrl: media.mediaUrl || media.imageUrl || s3Key,
+        category: media.category || 'floor_plan',
+        label: media.label || null,
+        sortOrder: media.sortOrder ?? null,
       },
     })
   } catch (err: any) {

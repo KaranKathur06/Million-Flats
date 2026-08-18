@@ -511,28 +511,28 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
                         })),
                     })
                 } else {
-                    const columnNames = ['id', 'project_id']
-                    if (tableColumns.includes('item_type')) columnNames.push('item_type')
-                    if (tableColumns.includes('stage')) columnNames.push('stage')
-                    if (tableColumns.includes('label')) columnNames.push('label')
-                    if (tableColumns.includes('amount')) columnNames.push('amount')
-                    if (tableColumns.includes('currency')) columnNames.push('currency')
-                    if (tableColumns.includes('milestone')) columnNames.push('milestone')
-                    if (tableColumns.includes('sort_order')) columnNames.push('sort_order')
-                    if (tableColumns.includes('created_at')) columnNames.push('created_at')
+                    // Build column list and values by iterating over ALL actual DB columns
+                    // to prevent NOT NULL violations from columns the code doesn't explicitly know about.
+                    const columnNames = tableColumns.slice() // use all columns from the DB
 
                     const insertValues = rows.map((row, idx) => {
-                        const values: string[] = []
-                        values.push(`'${randomUUID()}'`)
-                        values.push(`'${escapeSqlString(params.id)}'`)
-                        if (tableColumns.includes('item_type')) values.push(`'${row.itemType}'`)
-                        if (tableColumns.includes('stage')) values.push(`'${escapeSqlString(row.label)}'`)
-                        if (tableColumns.includes('label')) values.push(`'${escapeSqlString(row.label)}'`)
-                        if (tableColumns.includes('amount')) values.push(String(Number(row.amount) || 0))
-                        if (tableColumns.includes('currency')) values.push(`'${escapeSqlString(row.currency)}'`)
-                        if (tableColumns.includes('milestone')) values.push(row.milestone ? `'${escapeSqlString(row.milestone)}'` : 'NULL')
-                        if (tableColumns.includes('sort_order')) values.push(String(row.sortOrder ?? idx))
-                        if (tableColumns.includes('created_at')) values.push('NOW()')
+                        const values: string[] = columnNames.map((col) => {
+                            switch (col) {
+                                case 'id': return `'${randomUUID()}'`
+                                case 'project_id': return `'${escapeSqlString(params.id)}'`
+                                case 'item_type': return `'${row.itemType}'`
+                                case 'stage': return `'${escapeSqlString(row.label)}'`
+                                case 'label': return `'${escapeSqlString(row.label)}'`
+                                case 'amount': return String(Number(row.amount) || 0)
+                                case 'currency': return `'${escapeSqlString(row.currency)}'`
+                                case 'milestone': return row.milestone ? `'${escapeSqlString(row.milestone)}'` : 'NULL'
+                                case 'sort_order': return String(row.sortOrder ?? idx)
+                                case 'created_at': return 'NOW()'
+                                case 'updated_at': return 'NOW()'
+                                // For any unknown column, use DEFAULT if available, otherwise empty string
+                                default: return 'DEFAULT'
+                            }
+                        })
                         return `(${values.join(', ')})`
                     }).join(', ')
 

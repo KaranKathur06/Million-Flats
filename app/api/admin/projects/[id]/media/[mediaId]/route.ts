@@ -117,32 +117,50 @@ export async function DELETE(
             select: { id: true, projectId: true, s3Key: true, mediaUrl: true, category: true, mediaType: true },
         })
 
-        if (!media || media.projectId !== params.id) {
+        const floorPlan = !media
+            ? await (prisma as any).projectFloorPlan.findUnique({
+                where: { id: params.mediaId },
+                select: { id: true, projectId: true, s3Key: true, imageUrl: true },
+            })
+            : null
+
+        if (!media && !floorPlan) {
             return NextResponse.json({ success: false, message: 'Media not found' }, { status: 404 })
         }
 
-        // Delete from S3 if key exists
-        if (media.s3Key) {
+        if (media && media.projectId !== params.id) {
+            return NextResponse.json({ success: false, message: 'Media not found' }, { status: 404 })
+        }
+        if (floorPlan && floorPlan.projectId !== params.id) {
+            return NextResponse.json({ success: false, message: 'Floor plan not found' }, { status: 404 })
+        }
+
+        const targetS3Key = media?.s3Key || floorPlan?.s3Key
+        if (targetS3Key) {
             try {
-                await deleteFromS3(media.s3Key)
+                await deleteFromS3(targetS3Key)
             } catch (s3Err) {
                 console.error('[DELETE media] S3 delete failed (non-blocking):', s3Err)
             }
         }
 
-        await (prisma as any).projectMedia.delete({ where: { id: params.mediaId } })
+        if (media) {
+            await (prisma as any).projectMedia.delete({ where: { id: params.mediaId } })
 
-        const category = String(media.category || media.mediaType || '').toLowerCase()
-        if (category === 'floor_plan' || category === 'floor-plan' || category === 'floorplan') {
-            const floorPlanOr: any[] = []
-            if (media.s3Key) floorPlanOr.push({ s3Key: media.s3Key })
-            if (media.mediaUrl) floorPlanOr.push({ imageUrl: media.mediaUrl })
-            await (prisma as any).projectFloorPlan.deleteMany({
-                where: {
-                    projectId: params.id,
-                    ...(floorPlanOr.length > 0 ? { OR: floorPlanOr } : {}),
-                },
-            })
+            const category = String(media.category || media.mediaType || '').toLowerCase()
+            if (category === 'floor_plan' || category === 'floor-plan' || category === 'floorplan') {
+                const floorPlanOr: any[] = []
+                if (media.s3Key) floorPlanOr.push({ s3Key: media.s3Key })
+                if (media.mediaUrl) floorPlanOr.push({ imageUrl: media.mediaUrl })
+                await (prisma as any).projectFloorPlan.deleteMany({
+                    where: {
+                        projectId: params.id,
+                        ...(floorPlanOr.length > 0 ? { OR: floorPlanOr } : {}),
+                    },
+                })
+            }
+        } else if (floorPlan) {
+            await (prisma as any).projectFloorPlan.delete({ where: { id: params.mediaId } })
         }
 
         return NextResponse.json({ success: true })
