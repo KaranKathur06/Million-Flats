@@ -1,3 +1,5 @@
+import { removeEditorialFields, getEditorialFields } from './projectEditGuards'
+
 export type ImportValidationState = 'READY' | 'NEEDS_REVIEW' | 'BLOCKED'
 export type ImportSourceProvider = 'SQUAREYARDS' | 'MANUAL' | 'EXTERNAL' | 'UNKNOWN'
 
@@ -439,6 +441,17 @@ export function buildCanonicalProjectCreatePayload(payload: unknown): any[] {
         sourceRef: project.sourceRef || sourceProject.sourceUrl || null,
       }
 
-      return canonicalProject
+      // CRITICAL: Remove editorial fields to prevent scrapers/imports from overwriting admin-set priorities
+      const safeProject = removeEditorialFields(canonicalProject)
+      
+      // Log if any editorial fields were unexpectedly present (for audit trail)
+      const editorialAttempted = getEditorialFields(canonicalProject)
+      if (Object.keys(editorialAttempted).length > 0) {
+        console.warn(
+          `[projectImportV2] Stripped editorial fields from project "${project.name}": ${Object.keys(editorialAttempted).join(', ')}`
+        )
+      }
+
+      return safeProject
     })
 }

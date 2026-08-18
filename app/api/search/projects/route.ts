@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { MEDIA_FALLBACKS, resolveDeveloperLogo, resolveProjectImage } from '@/lib/media/resolveMedia'
+import { getProjectListing } from '@/lib/services/ProjectListingService'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,6 +31,7 @@ export async function GET(req: Request) {
         const country = (searchParams.get('country') || '').trim().toLowerCase()
         const goldenVisa = searchParams.get('goldenVisa') === 'true'
         const featured = searchParams.get('featured') === 'true'
+        const sortBy = (searchParams.get('sortBy') || 'recommended').trim() as 'recommended' | 'newest' | 'price-asc' | 'price-desc'
         const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
         const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '24', 10) || 24))
 
@@ -92,34 +94,22 @@ export async function GET(req: Request) {
 
         const where = { AND: conditions }
 
-        // ── Order — match the working /api/projects pattern ────────────────
-        const orderBy = featured
-            ? [{ featuredOrder: 'asc' as const }, { createdAt: 'desc' as const }]
-            : [{ createdAt: 'desc' as const }]
+        // ── Determine if using recommended (market-aware) or other sorting ──
+        // For 'recommended' sort without query or featured filter, use market hierarchy
+        // Otherwise fall back to existing search ranking
+        const useProjectListingService = sortBy === 'recommended' && !q && !featured
 
-        // ── Query ──────────────────────────────────────────────────────────
-        const [items, total] = await Promise.all([
-            db.project.findMany({
+        let items: any[]
+        let total: number
+
+        if (useProjectListingService) {
+            // Use ProjectListingService for market-aware ordering
+            items = await getProjectListing({
                 where,
-                orderBy,
-                skip: (page - 1) * limit,
+                sortBy: 'recommended',
                 take: limit,
-                select: {
-                    id: true,
-                    name: true,
-                    slug: true,
-                    countryIso2: true,
-                    city: true,
-                    community: true,
-                    description: true,
-                    completionYear: true,
-                    startingPrice: true,
-                    goldenVisa: true,
-                    coverImage: true,
-                    isFeatured: true,
-                    featuredOrder: true,
-                    status: true,
-                    createdAt: true,
+                skip: (page - 1) * limit,
+                include: {
                     developer: { select: { id: true, name: true, slug: true, logo: true } },
                     media: {
                         orderBy: { sortOrder: 'asc' },
@@ -137,9 +127,61 @@ export async function GET(req: Request) {
                         },
                     },
                 },
-            }),
-            db.project.count({ where }),
-        ])
+            })
+            total = await prisma.project.count({ where })
+        } else {
+            // Use existing search-based ranking with weighted scores
+            // ── Order by featured first, then search ranking ─────────────────
+            const orderBy = featured
+                ? [{ featuredOrder: 'asc' as const }, { createdAt: 'desc' as const }]
+                : [{ createdAt: 'desc' as const }]
+
+            // Query with existing pagination
+            const [queryItems, count] = await Promise.all([
+                (prisma as any).project.findMany({
+                    where,
+                    orderBy,
+                    skip: (page - 1) * limit,
+                    take: limit,
+                    select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        countryIso2: true,
+                        city: true,
+                        community: true,
+                        description: true,
+                        completionYear: true,
+                        startingPrice: true,
+                        goldenVisa: true,
+                        coverImage: true,
+                        isFeatured: true,
+                        featuredOrder: true,
+                        status: true,
+                        createdAt: true,
+                        developer: { select: { id: true, name: true, slug: true, logo: true } },
+                        media: {
+                            orderBy: { sortOrder: 'asc' },
+                            take: 1,
+                            select: { mediaUrl: true, mediaType: true, category: true },
+                        },
+                        unitTypes: {
+                            select: {
+                                id: true,
+                                unitType: true,
+                                bedrooms: true,
+                                sizeFrom: true,
+                                sizeTo: true,
+                                priceFrom: true,
+                            },
+                        },
+                    },
+                }),
+                (prisma as any).project.count({ where }),
+            ])
+            items = queryItems
+            total = count
+        }
 
         // ── Normalize + Rank ───────────────────────────────────────────────
         const qLower = q.toLowerCase()
@@ -246,6 +288,7 @@ export async function GET(req: Request) {
                 country: country || undefined,
                 goldenVisa: goldenVisa || undefined,
                 featured: featured || undefined,
+                sortBy: sortBy || 'recommended',
             },
             suggestions,
         })

@@ -340,6 +340,35 @@ model Country {
   @@map("countries")
 }
 
+model MarketPriority {
+  id            String  @id @default(cuid())
+  countryIso2   String  @db.Char(2) @unique @map("country_iso2")
+  priority      Int     // 1 = first market (UAE), 2 = second (India), etc.
+  isActive      Boolean @default(true) @map("is_active")
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  @@index([priority, isActive])
+  @@map("market_priorities")
+}
+
+model CityPriority {
+  id            String  @id @default(cuid())
+  countryIso2   String  @db.Char(2) @map("country_iso2")
+  cityName      String  @map("city_name")
+  // cityName must match canonical city value in projects (e.g., "Dubai")
+  priority      Int     // 1 = first city in country, 2 = second, etc.
+  isActive      Boolean @default(true) @map("is_active")
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  @@unique([countryIso2, cityName])
+  @@index([countryIso2, priority, isActive])
+  @@map("city_priorities")
+}
+
 enum PropertySourceType {
   REELLY
   MANUAL
@@ -2017,6 +2046,15 @@ model Project {
   isFeatured      Boolean  @default(false) @map("is_featured")
   featuredOrder   Int?     @map("featured_order")
 
+  // Listing Priority — admin-curated order for default catalog (separate from Featured)
+  // null = use fallback ordering (createdAt DESC, id ASC)
+  // 1, 2, 3... = admin-curated position within city scope
+  listingPriority Int?     @map("listing_priority")
+
+  // Pinning — temporary top placement within city/market scope
+  isPinned        Boolean  @default(false) @map("is_pinned")
+  pinPriority     Int?     @map("pin_priority")
+
   // Link to authenticated developer user (null for admin-seeded projects)
   ownedByProfileId String?  @map("owned_by_profile_id")
   ownedByProfile   DeveloperProfile? @relation(fields: [ownedByProfileId], references: [id], onDelete: SetNull)
@@ -2054,6 +2092,9 @@ model Project {
   @@index([isFeatured, featuredOrder])
   @@index([name])
   @@index([countryIso2, city])
+  @@index([listingPriority])
+  @@index([isPinned, pinPriority])
+  @@index([countryIso2, city, listingPriority])
   @@map("projects")
 }
 

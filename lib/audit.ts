@@ -1,6 +1,14 @@
 import { prisma } from '@/lib/prisma'
 
-export type AuditEntityType = 'MANUAL_PROPERTY' | 'AGENT' | 'USER' | 'ECOSYSTEM_PARTNER' | 'ECOSYSTEM_PARTNER_APPLICATION' | 'PROJECT'
+export type AuditEntityType =
+  | 'MANUAL_PROPERTY'
+  | 'AGENT'
+  | 'USER'
+  | 'ECOSYSTEM_PARTNER'
+  | 'ECOSYSTEM_PARTNER_APPLICATION'
+  | 'PROJECT'
+  | 'PROJECT_LISTING'
+
 export type AuditAction =
   | 'DRAFT_DELETED'
   | 'PUBLISHED_ARCHIVED'
@@ -42,6 +50,7 @@ export type AuditAction =
   | 'PROJECT_RESTORED'
   | 'PROJECT_HARD_DELETED'
   | 'PROJECT_ARCHIVED'
+  | 'PROJECT_LISTING_REORDER'
   | 'AUTH_SETTINGS_UPDATED'
   | 'AUTH_MODE_CHANGED'
   | 'AUTH_FORCE_LOGOUT_ALL'

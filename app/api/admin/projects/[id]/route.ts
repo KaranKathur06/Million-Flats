@@ -6,6 +6,25 @@ import { parseAEDInput } from '@/lib/pricing'
 import { writeAuditLog } from '@/lib/audit'
 import { revalidatePath } from 'next/cache'
 
+/**
+ * IMPORTANT: Editorial Field Security
+ *
+ * This endpoint allows admins to modify editorial fields that control project discovery ranking:
+ * - listingPriority: Admin-curated order within city
+ * - isPinned: Temporary top placement flag
+ * - pinPriority: Order among pinned projects
+ * - isFeatured: Featured project status
+ * - featuredOrder: Order among featured projects
+ *
+ * These fields are PROTECTED from being overwritten by:
+ * - Scrapers (guarded in projectImportV2.ts::buildCanonicalProjectCreatePayload)
+ * - Bulk imports (use removeEditorialFields before database update)
+ * - Developer updates (developer endpoint uses explicit whitelist, doesn't include editorial fields)
+ *
+ * Only authenticated admins via this endpoint can modify these fields.
+ * See lib/projectEditGuards.ts for field protection utilities.
+ */
+
 const updateProjectSchema = z.object({
     name: z.string().min(1).max(300).optional(),
     slug: z.string().min(1).max(200).optional(),

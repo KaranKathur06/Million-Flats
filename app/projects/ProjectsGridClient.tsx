@@ -114,6 +114,7 @@ export default function ProjectsGridClient() {
     const [country, setCountry] = useState(searchParams?.get('country') || '')
     const [budgetMin, setBudgetMin] = useState(searchParams?.get('budget_min') || '')
     const [budgetMax, setBudgetMax] = useState(searchParams?.get('budget_max') || '')
+    const [sortBy, setSortBy] = useState(searchParams?.get('sortBy') || 'recommended')
     const [page, setPage] = useState(parseInt(searchParams?.get('page') || '1', 10) || 1)
 
     /* debounce search */
@@ -151,12 +152,13 @@ export default function ProjectsGridClient() {
         if (country) params.set('country', country)
         if (budgetMin) params.set('budget_min', budgetMin)
         if (budgetMax) params.set('budget_max', budgetMax)
+        if (sortBy && sortBy !== 'recommended') params.set('sortBy', sortBy)
         if (page > 1) params.set('page', String(page))
 
         const qs = params.toString()
         const newUrl = qs ? `/projects?${qs}` : '/projects'
         router.replace(newUrl, { scroll: false })
-    }, [debouncedSearch, city, developer, bhk, goldenVisa, country, budgetMin, budgetMax, page, router])
+    }, [debouncedSearch, city, developer, bhk, goldenVisa, country, budgetMin, budgetMax, sortBy, page, router])
 
     useEffect(() => {
         updateUrl()
@@ -179,6 +181,7 @@ export default function ProjectsGridClient() {
             if (country) params.set('country', country)
             if (budgetMin) params.set('budget_min', budgetMin)
             if (budgetMax) params.set('budget_max', budgetMax)
+            if (sortBy) params.set('sortBy', sortBy)
 
             const res = await fetch(`/api/search/projects?${params.toString()}`, { cache: 'no-store' })
             const json = await res.json()
@@ -210,7 +213,7 @@ export default function ProjectsGridClient() {
         } finally {
             setLoading(false)
         }
-    }, [page, city, developer, goldenVisa, debouncedSearch, bhk, country, budgetMin, budgetMax])
+    }, [page, city, developer, goldenVisa, debouncedSearch, bhk, country, budgetMin, budgetMax, sortBy])
 
     useEffect(() => {
         fetchProjects()
@@ -249,6 +252,7 @@ export default function ProjectsGridClient() {
         setCountry('')
         setBudgetMin('')
         setBudgetMax('')
+        setSortBy('recommended')
         setPage(1)
     }, [])
 
@@ -374,6 +378,21 @@ export default function ProjectsGridClient() {
 
                     {/* Project count + clear */}
                     <div className="sm:ml-auto flex items-center gap-3">
+                        {/* Sort Selector */}
+                        <PremiumDropdown
+                            id="sort-projects"
+                            value={sortBy}
+                            onChange={setSortBy}
+                            options={[
+                                { value: 'recommended', label: 'Recommended' },
+                                { value: 'newest', label: 'Newest' },
+                                { value: 'price-asc', label: 'Price ↑' },
+                                { value: 'price-desc', label: 'Price ↓' },
+                            ]}
+                            variant="light"
+                            className="min-w-[130px]"
+                        />
+
                         {hasActiveFilters && (
                             <button
                                 type="button"
