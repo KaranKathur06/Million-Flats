@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
@@ -134,18 +135,18 @@ function escapeSqlString(value: string | null | undefined): string {
     return (value ?? '').replace(/'/g, "''")
 }
 
-async function projectPaymentPlanNeedsLegacyStageColumn(): Promise<boolean> {
+async function getProjectPaymentPlanColumns(): Promise<string[]> {
     try {
         const rows = await (prisma as any).$queryRaw<Array<{ column_name: string }>>`
             SELECT column_name
             FROM information_schema.columns
             WHERE table_schema = current_schema()
               AND table_name = 'project_payment_plans'
-              AND column_name = 'stage'
+            ORDER BY ordinal_position
         `
-        return Array.isArray(rows) && rows.length > 0
+        return Array.isArray(rows) ? rows.map((row) => row.column_name) : []
     } catch {
-        return false
+        return []
     }
 }
 
@@ -477,7 +478,6 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
             const paymentPlans = data.paymentPlans as ProjectPaymentPlanItem[]
             await (prisma as any).projectPaymentPlan.deleteMany({ where: { projectId: params.id } })
             if (Array.isArray(paymentPlans) && paymentPlans.length > 0) {
-                const legacyStageColumn = await projectPaymentPlanNeedsLegacyStageColumn()
                 const rows = paymentPlans.map((pp, idx) => {
                     const label = String(pp.label || '').trim() || `Stage ${idx + 1}`
                     const amountRaw = pp.amount
@@ -490,28 +490,15 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
                         projectId: params.id,
                         itemType,
                         label,
-                        amount,
+                        amount: Number.isFinite(amount) ? amount : 0,
                         currency,
                         milestone,
                         sortOrder: pp.sortOrder ?? idx,
                     }
                 })
 
-                if (legacyStageColumn) {
-                    const insertValues = rows.map((row, idx) => {
-                        const stageValue = escapeSqlString(row.label)
-                        const labelValue = escapeSqlString(row.label)
-                        const milestoneValue = row.milestone ? escapeSqlString(row.milestone) : 'NULL'
-                        const currencyValue = escapeSqlString(row.currency)
-                        const itemTypeValue = row.itemType === 'FEE' ? 'FEE' : 'BASE_PRICE'
-                        return `('${params.id}', '${itemTypeValue}', '${labelValue}', '${stageValue}', ${Number(row.amount) || 0}, '${currencyValue}', ${milestoneValue === 'NULL' ? 'NULL' : `'${milestoneValue}'`}, ${row.sortOrder ?? idx})`
-                    }).join(', ')
-
-                    await (prisma as any).$executeRawUnsafe(`
-                        INSERT INTO "project_payment_plans" ("project_id", "item_type", "label", "stage", "amount", "currency", "milestone", "sort_order")
-                        VALUES ${insertValues}
-                    `)
-                } else {
+                const tableColumns = await getProjectPaymentPlanColumns()
+                if (tableColumns.length === 0) {
                     await (prisma as any).projectPaymentPlan.createMany({
                         data: rows.map((row) => ({
                             projectId: row.projectId,
@@ -523,6 +510,35 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
                             sortOrder: row.sortOrder,
                         })),
                     })
+                } else {
+                    const columnNames = ['id', 'project_id']
+                    if (tableColumns.includes('item_type')) columnNames.push('item_type')
+                    if (tableColumns.includes('stage')) columnNames.push('stage')
+                    if (tableColumns.includes('label')) columnNames.push('label')
+                    if (tableColumns.includes('amount')) columnNames.push('amount')
+                    if (tableColumns.includes('currency')) columnNames.push('currency')
+                    if (tableColumns.includes('milestone')) columnNames.push('milestone')
+                    if (tableColumns.includes('sort_order')) columnNames.push('sort_order')
+                    if (tableColumns.includes('created_at')) columnNames.push('created_at')
+
+                    const insertValues = rows.map((row, idx) => {
+                        const values: string[] = []
+                        values.push(`'${randomUUID()}'`)
+                        values.push(`'${escapeSqlString(params.id)}'`)
+                        if (tableColumns.includes('item_type')) values.push(`'${row.itemType}'`)
+                        if (tableColumns.includes('stage')) values.push(`'${escapeSqlString(row.label)}'`)
+                        if (tableColumns.includes('label')) values.push(`'${escapeSqlString(row.label)}'`)
+                        if (tableColumns.includes('amount')) values.push(String(Number(row.amount) || 0))
+                        if (tableColumns.includes('currency')) values.push(`'${escapeSqlString(row.currency)}'`)
+                        if (tableColumns.includes('milestone')) values.push(row.milestone ? `'${escapeSqlString(row.milestone)}'` : 'NULL')
+                        if (tableColumns.includes('sort_order')) values.push(String(row.sortOrder ?? idx))
+                        if (tableColumns.includes('created_at')) values.push('NOW()')
+                        return `(${values.join(', ')})`
+                    }).join(', ')
+
+                    await (prisma as any).$executeRawUnsafe(
+                        `INSERT INTO "project_payment_plans" (${columnNames.map((column) => `"${column}"`).join(', ')}) VALUES ${insertValues}`
+                    )
                 }
             }
         }
