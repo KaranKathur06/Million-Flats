@@ -39,6 +39,9 @@ const updateProjectSchema = z.object({
     goldenVisa: z.boolean().optional(),
     isFeatured: z.boolean().optional(),
     featuredOrder: z.number().int().min(0).optional().nullable(),
+    listingPriority: z.number().int().min(1).optional().nullable(),
+    isPinned: z.boolean().optional(),
+    pinPriority: z.number().int().min(1).optional().nullable(),
     coverImage: z.string().max(2000).optional().nullable(),
     unitTypes: z.array(z.object({
         id: z.string().optional(),
@@ -300,6 +303,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         if (data.goldenVisa !== undefined) updateData.goldenVisa = data.goldenVisa
         if (data.isFeatured !== undefined) updateData.isFeatured = data.isFeatured
         if (data.featuredOrder !== undefined) updateData.featuredOrder = data.featuredOrder
+        if (data.listingPriority !== undefined) updateData.listingPriority = data.listingPriority
+        if (data.isPinned !== undefined) updateData.isPinned = data.isPinned
+        if (data.pinPriority !== undefined) updateData.pinPriority = data.pinPriority
         if (data.coverImage !== undefined) updateData.coverImage = data.coverImage
 
         let derivedMinVariantPrice: number | null = null

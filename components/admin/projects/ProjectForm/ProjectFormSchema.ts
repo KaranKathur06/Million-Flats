@@ -64,6 +64,9 @@ export interface ProjectFormData {
   goldenVisa: boolean
   isFeatured: boolean
   featuredOrder: string
+  listingPriority: string
+  isPinned: boolean
+  pinPriority: string
   coverImage: string
   status: string
   leadCount: number
@@ -121,6 +124,9 @@ export const DEFAULT_FORM_DATA: ProjectFormData = {
   goldenVisa: false,
   isFeatured: false,
   featuredOrder: '',
+  listingPriority: '',
+  isPinned: false,
+  pinPriority: '',
   coverImage: '',
   status: 'DRAFT',
   leadCount: 0,
@@ -173,6 +179,9 @@ export function buildProjectPayload(values: ProjectFormData) {
     goldenVisa: values.goldenVisa,
     isFeatured: values.isFeatured,
     featuredOrder: values.featuredOrder ? parseInt(values.featuredOrder, 10) : null,
+    listingPriority: values.listingPriority ? parseInt(values.listingPriority, 10) : null,
+    isPinned: values.isPinned,
+    pinPriority: values.isPinned ? (values.pinPriority ? parseInt(values.pinPriority, 10) : 1) : null,
     coverImage: values.coverImage || null,
     unitTypes: values.unitTypes.filter((ut) => ut.unitType.trim()).map((ut) => ({
       id: ut.id,

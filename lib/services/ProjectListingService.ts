@@ -53,6 +53,53 @@ interface PriorityCache {
 const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
 let priorityCache: PriorityCache | null = null
 
+const DEFAULT_MARKET_PRIORITIES = [
+  { countryIso2: 'AE', priority: 1, label: 'UAE (Primary Market)' },
+  { countryIso2: 'IN', priority: 2, label: 'India (Secondary Market)' },
+  { countryIso2: 'SA', priority: 3, label: 'Saudi Arabia' },
+]
+
+const DEFAULT_CITY_PRIORITIES = [
+  { countryIso2: 'AE', cityName: 'Dubai', priority: 1 },
+  { countryIso2: 'AE', cityName: 'Abu Dhabi', priority: 2 },
+  { countryIso2: 'AE', cityName: 'Sharjah', priority: 3 },
+  { countryIso2: 'AE', cityName: 'Ras Al Khaimah', priority: 4 },
+  { countryIso2: 'AE', cityName: 'Ajman', priority: 5 },
+  { countryIso2: 'IN', cityName: 'Mumbai', priority: 1 },
+  { countryIso2: 'IN', cityName: 'Bangalore', priority: 2 },
+  { countryIso2: 'IN', cityName: 'Hyderabad', priority: 3 },
+  { countryIso2: 'IN', cityName: 'Delhi', priority: 4 },
+  { countryIso2: 'IN', cityName: 'Pune', priority: 5 },
+]
+
+async function ensureDefaultPriorityConfig() {
+  const marketCount = await prisma.marketPriority.count()
+  if (marketCount === 0) {
+    await Promise.all(
+      DEFAULT_MARKET_PRIORITIES.map((market) =>
+        prisma.marketPriority.upsert({
+          where: { countryIso2: market.countryIso2 },
+          update: { priority: market.priority, isActive: true },
+          create: { countryIso2: market.countryIso2, priority: market.priority, isActive: true },
+        })
+      )
+    )
+  }
+
+  const cityCount = await prisma.cityPriority.count()
+  if (cityCount === 0) {
+    await Promise.all(
+      DEFAULT_CITY_PRIORITIES.map((city) =>
+        prisma.cityPriority.upsert({
+          where: { countryIso2_cityName: { countryIso2: city.countryIso2, cityName: city.cityName } },
+          update: { priority: city.priority, isActive: true },
+          create: { countryIso2: city.countryIso2, cityName: city.cityName, priority: city.priority, isActive: true },
+        })
+      )
+    )
+  }
+}
+
 /**
  * Get cached market priority or fetch from DB
  */
@@ -82,6 +129,8 @@ async function getCityPriority(countryIso2: string, cityName: string): Promise<n
  * Refresh priority cache from database
  */
 async function refreshPriorityCache(): Promise<void> {
+  await ensureDefaultPriorityConfig()
+
   const [markets, cities] = await Promise.all([
     prisma.marketPriority.findMany({
       where: { isActive: true },

@@ -330,6 +330,25 @@ const navEntries: NavEntry[] = [
       </svg>
     ),
   },
+  {
+    href: "/admin/projects/listing-management",
+    label: "Listing Order",
+    icon: (
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"
+        />
+      </svg>
+    ),
+  },
 
 
   /* ---- PROPERTIES GROUP ---- */

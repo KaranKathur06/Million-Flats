@@ -86,6 +86,9 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
         goldenVisa: Boolean(p.goldenVisa),
         isFeatured: Boolean(p.isFeatured),
         featuredOrder: p.featuredOrder !== null && p.featuredOrder !== undefined ? String(p.featuredOrder) : '',
+        listingPriority: p.listingPriority !== null && p.listingPriority !== undefined ? String(p.listingPriority) : '',
+        isPinned: Boolean(p.isPinned),
+        pinPriority: p.pinPriority !== null && p.pinPriority !== undefined ? String(p.pinPriority) : '',
         coverImage: p.coverImage || '',
         status: p.status || 'DRAFT',
         leadCount: p._count?.leads || 0,
@@ -378,6 +381,22 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
               <span className="text-sm text-white/60">Featured Project</span>
             </div>
             {formData.isFeatured && <div><label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/40">Featured Order</label><input type="number" value={formData.featuredOrder} onChange={(e) => updateField('featuredOrder', e.target.value)} className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30" /></div>}
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/40">Listing Priority</label>
+                <input type="number" min="1" value={formData.listingPriority} onChange={(e) => updateField('listingPriority', e.target.value)} className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30" placeholder="1" />
+              </div>
+              <div className="flex items-end">
+                <label className="flex w-full items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70">
+                  <span>Pin to top</span>
+                  <input type="checkbox" checked={formData.isPinned} onChange={(e) => updateField('isPinned', e.target.checked)} className="h-4 w-4 accent-amber-400" />
+                </label>
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/40">Pin Priority</label>
+                <input type="number" min="1" value={formData.pinPriority} onChange={(e) => updateField('pinPriority', e.target.value)} disabled={!formData.isPinned} className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30 disabled:cursor-not-allowed disabled:opacity-50" placeholder="1" />
+              </div>
+            </div>
           </div>
         </div>
 
