@@ -52,7 +52,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         s3Key: true,
         createdAt: true,
       },
-      orderBy: sortBy === 'name' ? { label: { sort: sortOrder } } : { createdAt: { sort: sortOrder } },
+      orderBy: sortBy === 'name' ? { label: sortOrder } : { createdAt: sortOrder },
     })
 
     // Build category counts
