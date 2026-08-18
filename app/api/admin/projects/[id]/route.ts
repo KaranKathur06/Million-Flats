@@ -135,16 +135,23 @@ function escapeSqlString(value: string | null | undefined): string {
     return (value ?? '').replace(/'/g, "''")
 }
 
-async function getProjectPaymentPlanColumns(): Promise<string[]> {
+type PaymentPlanColumnInfo = {
+    column_name: string
+    data_type: string
+    is_nullable: string
+    column_default: string | null
+}
+
+async function getProjectPaymentPlanColumns(): Promise<PaymentPlanColumnInfo[]> {
     try {
-        const rows = await (prisma as any).$queryRaw<Array<{ column_name: string }>>`
-            SELECT column_name
+        const rows = await (prisma as any).$queryRaw<PaymentPlanColumnInfo[]>`
+            SELECT column_name, data_type, is_nullable, column_default
             FROM information_schema.columns
             WHERE table_schema = current_schema()
               AND table_name = 'project_payment_plans'
             ORDER BY ordinal_position
         `
-        return Array.isArray(rows) ? rows.map((row) => row.column_name) : []
+        return Array.isArray(rows) ? rows : []
     } catch {
         return []
     }
@@ -498,6 +505,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
                 })
 
                 const tableColumns = await getProjectPaymentPlanColumns()
+                console.log('[PaymentPlan INSERT] DB columns:', JSON.stringify(tableColumns.map((c) => ({ name: c.column_name, type: c.data_type, nullable: c.is_nullable, default: c.column_default }))))
                 if (tableColumns.length === 0) {
                     await (prisma as any).projectPaymentPlan.createMany({
                         data: rows.map((row) => ({
@@ -511,27 +519,44 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
                         })),
                     })
                 } else {
-                    // Build column list and values by iterating over ALL actual DB columns
-                    // to prevent NOT NULL violations from columns the code doesn't explicitly know about.
-                    const columnNames = tableColumns.slice() // use all columns from the DB
+                    // Build column list and values using full column metadata
+                    // to prevent NOT NULL violations from columns the code doesn't know about.
+                    const columnNames = tableColumns.map((c) => c.column_name)
+
+                    // Build a lookup for column metadata
+                    const colMeta = new Map(tableColumns.map((c) => [c.column_name, c]))
 
                     const insertValues = rows.map((row, idx) => {
                         const values: string[] = columnNames.map((col) => {
+                            // Known columns — map to the correct row value
                             switch (col) {
                                 case 'id': return `'${randomUUID()}'`
                                 case 'project_id': return `'${escapeSqlString(params.id)}'`
                                 case 'item_type': return `'${row.itemType}'`
                                 case 'stage': return `'${escapeSqlString(row.label)}'`
                                 case 'label': return `'${escapeSqlString(row.label)}'`
+                                case 'name': return `'${escapeSqlString(row.label)}'`
                                 case 'amount': return String(Number(row.amount) || 0)
+                                case 'percentage': return String(Number(row.amount) || 0)
                                 case 'currency': return `'${escapeSqlString(row.currency)}'`
                                 case 'milestone': return row.milestone ? `'${escapeSqlString(row.milestone)}'` : 'NULL'
                                 case 'sort_order': return String(row.sortOrder ?? idx)
                                 case 'created_at': return 'NOW()'
                                 case 'updated_at': return 'NOW()'
-                                // For any unknown column, use DEFAULT if available, otherwise empty string
-                                default: return 'DEFAULT'
+                                default: break
                             }
+                            // Unknown column — check metadata for safe fallback
+                            const meta = colMeta.get(col)
+                            if (!meta) return 'DEFAULT'
+                            // If nullable or has a DB default, let PostgreSQL handle it
+                            if (meta.is_nullable === 'YES' || meta.column_default) return 'DEFAULT'
+                            // NOT NULL with no default — provide type-appropriate fallback
+                            const dt = meta.data_type.toLowerCase()
+                            if (dt.includes('int') || dt.includes('float') || dt.includes('double') || dt.includes('numeric') || dt.includes('decimal') || dt.includes('real')) return '0'
+                            if (dt.includes('bool')) return 'false'
+                            if (dt.includes('timestamp') || dt.includes('date')) return 'NOW()'
+                            // Text / varchar / char / anything else
+                            return `''`
                         })
                         return `(${values.join(', ')})`
                     }).join(', ')
