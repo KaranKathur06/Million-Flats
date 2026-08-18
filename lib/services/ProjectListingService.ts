@@ -230,12 +230,15 @@ export async function getProjectListing(options: ProjectListingOptions) {
     const pageSize = take || 100
     const offset = skip || 0
 
+    // Build include object: merge default relations with caller's include param
+    const mergedInclude = {
+      developer: { select: { id: true, name: true } },
+      ...(include || {}),
+    }
+
     const allProjects = await prisma.project.findMany({
       where: baseWhere,
-      include: {
-        // Only include minimal relations
-        developer: { select: { id: true, name: true } },
-      },
+      include: mergedInclude,
     })
 
     // Refresh priority cache
