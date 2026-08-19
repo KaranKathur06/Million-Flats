@@ -6,11 +6,11 @@ import { revalidatePath, revalidateTag } from 'next/cache'
 
 export const ECOSYSTEM_BANNER_MAX_BYTES = Number(process.env.ECOSYSTEM_BANNER_MAX_BYTES) || 15 * 1024 * 1024
 export const ECOSYSTEM_BANNER_RECOMMENDED_WIDTH = 2560
-export const ECOSYSTEM_BANNER_RECOMMENDED_HEIGHT = 1600
+export const ECOSYSTEM_BANNER_RECOMMENDED_HEIGHT = 695
 export const ECOSYSTEM_BANNER_MIN_WIDTH = 1280
-export const ECOSYSTEM_BANNER_MIN_HEIGHT = 800
+export const ECOSYSTEM_BANNER_MIN_HEIGHT = 695
 export const ECOSYSTEM_BANNER_MIN_ASPECT = 1.35
-export const ECOSYSTEM_BANNER_MAX_ASPECT = 1.8
+export const ECOSYSTEM_BANNER_MAX_ASPECT = 4.5
 export const ECOSYSTEM_BANNER_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'] as const
 
 export type BannerDimensions = { width: number; height: number }

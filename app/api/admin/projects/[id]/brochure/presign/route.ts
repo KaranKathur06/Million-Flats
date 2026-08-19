@@ -7,9 +7,6 @@ import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
 
-// Server-side brochure size limit (300 MB by default, configurable via env)
-const BROCHURE_MAX_SIZE = Number(process.env.PROJECT_BROCHURE_MAX_SIZE_BYTES) || 300 * 1024 * 1024
-
 /**
  * POST /api/admin/projects/[id]/brochure/presign
  * 
@@ -45,18 +42,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json(
         { success: false, message: 'fileSizeBytes must be a positive number' },
         { status: 400 }
-      )
-    }
-
-    // Validate file size
-    if (fileSizeBytes > BROCHURE_MAX_SIZE) {
-      const maxMB = Math.floor(BROCHURE_MAX_SIZE / 1024 / 1024)
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: `Brochure exceeds maximum size of ${maxMB}MB (attempted: ${Math.floor(fileSizeBytes / 1024 / 1024)}MB)` 
-        },
-        { status: 413 }
       )
     }
 

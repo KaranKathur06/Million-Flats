@@ -8,8 +8,7 @@ import { PROPERTY_MEDIA_ALLOWED_TYPES, PROPERTY_MEDIA_MAX_IMAGE_BYTES } from '@/
 
 export const runtime = 'nodejs'
 
-// Server-side size limits (configurable via env, defaults shown)
-const BROCHURE_MAX_SIZE = Number(process.env.PROJECT_BROCHURE_MAX_SIZE_BYTES) || 300 * 1024 * 1024 // 300MB default
+// Image and video limits remain infrastructure safeguards; brochures have no product cap.
 const VIDEO_MAX_SIZE = Number(process.env.PROJECT_VIDEO_MAX_SIZE_BYTES) || 500 * 1024 * 1024 // 500MB default
 const IMAGE_MAX_SIZE = Number(process.env.PROJECT_IMAGE_MAX_SIZE_BYTES) || PROPERTY_MEDIA_MAX_IMAGE_BYTES
 
@@ -18,7 +17,7 @@ const BodySchema = z.object({
   category: z.enum(['COVER', 'EXTERIOR', 'INTERIOR', 'FLOOR_PLANS', 'AMENITIES', 'BROCHURE', 'VIDEO']),
   filename: z.string().trim().min(1).max(160),
   contentType: z.string().trim().min(1).max(100),
-  sizeBytes: z.number().int().min(1).max(IMAGE_MAX_SIZE),
+  sizeBytes: z.number().int().min(1),
   altText: z.string().trim().max(200).optional(),
 })
 
@@ -78,10 +77,6 @@ export async function POST(req: Request) {
     if (isBrochure) {
       if (!isAllowedPdf(contentType)) {
         return NextResponse.json({ success: false, message: 'Only PDF brochures are allowed.' }, { status: 400 })
-      }
-      const maxMB = Math.floor(BROCHURE_MAX_SIZE / 1024 / 1024)
-      if (sizeBytes > BROCHURE_MAX_SIZE) {
-        return NextResponse.json({ success: false, message: `PDF too large (max ${maxMB}MB).` }, { status: 400 })
       }
     } else if (isVideo) {
       if (!isAllowedVideoType(contentType)) {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
+import { checkProjectPublishReadiness } from '@/lib/publicationReadiness'
 
 type Body = { projectIds?: unknown; action?: unknown }
 
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
   try {
     const existing = await (prisma as any).project.findMany({
       where: { id: { in: projectIds } },
-      select: { id: true, slug: true, isDeleted: true, status: true },
+      select: { id: true, name: true, slug: true, developerId: true, isDeleted: true, status: true },
     })
     const byId = new Map<string, any>(existing.map((p: any) => [p.id, p]))
     const success: string[] = []
@@ -49,6 +50,13 @@ export async function POST(req: Request) {
       if (!p || p.isDeleted || p.status === 'ARCHIVED') {
         failed.push(id)
         continue
+      }
+      if (targetStatus === 'PUBLISHED') {
+        const readiness = checkProjectPublishReadiness(p)
+        if (!readiness.ok) {
+          failed.push(id)
+          continue
+        }
       }
       try {
         await (prisma as any).project.update({

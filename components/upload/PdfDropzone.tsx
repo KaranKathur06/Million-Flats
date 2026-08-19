@@ -113,7 +113,7 @@ export default function PdfDropzone({ value, onUpload, onDelete, loading = false
               <p className={`font-semibold transition-colors ${error ? 'text-red-400' : dragOver ? 'text-amber-300' : 'text-white/80'}`}>
                 {dragOver ? 'Drop PDF to upload' : 'Upload Brochure (PDF)'}
               </p>
-              <p className="text-xs text-white/40 mt-1">Max 300MB • PDF only</p>
+              <p className="text-xs text-white/40 mt-1">PDF only</p>
             </div>
 
             {/* Action Button */}

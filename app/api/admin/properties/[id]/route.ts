@@ -5,8 +5,37 @@ import { CanonicalLocationError, validateCanonicalLocation } from '@/lib/canonic
 import { MANUAL_PROPERTY_PUBLIC_STATUS, normalizeManualPropertyStatus } from '@/lib/manualPropertyLifecycle'
 import { applyManualPropertyAdminAction, revalidateManualPropertyPaths } from '@/lib/manualPropertyAdminLifecycle'
 import { writeAuditLog } from '@/lib/audit'
+import { z } from 'zod'
 
 const bannedMediaFields = ['images', 'imageUrl', 'imageUrls']
+
+const PropertyPatchSchema = z.object({
+    title: z.string().trim().max(120).optional().nullable(),
+    propertyType: z.string().trim().max(40).optional().nullable(),
+    intent: z.enum(['SALE', 'RENT']).optional().nullable(),
+    price: z.number().finite().min(0).optional().nullable(),
+    currency: z.string().trim().max(10).optional().nullable(),
+    constructionStatus: z.enum(['READY', 'OFF_PLAN']).optional().nullable(),
+    shortDescription: z.string().trim().max(1000).optional().nullable(),
+    bedrooms: z.number().int().min(0).max(20).optional(),
+    bathrooms: z.number().int().min(0).max(20).optional(),
+    squareFeet: z.number().finite().min(0).max(200000).optional(),
+    countryCode: z.enum(['UAE', 'INDIA']).optional(),
+    countryIso2: z.enum(['IN', 'AE']).optional().nullable(),
+    city: z.string().trim().max(80).optional().nullable(),
+    community: z.string().trim().max(120).optional().nullable(),
+    address: z.string().trim().max(200).optional().nullable(),
+    latitude: z.number().finite().min(-90).max(90).optional().nullable(),
+    longitude: z.number().finite().min(-180).max(180).optional().nullable(),
+    developerName: z.string().trim().max(120).optional().nullable(),
+    amenities: z.array(z.string().trim().min(1).max(80)).max(80).optional().nullable(),
+    customAmenities: z.array(z.string().trim().min(1).max(80)).max(5).optional().nullable(),
+    paymentPlanText: z.string().trim().max(2000).optional().nullable(),
+    emiNote: z.string().trim().max(500).optional().nullable(),
+    tour3dUrl: z.string().trim().max(500).optional().nullable(),
+    status: z.enum(['DRAFT', 'PENDING_REVIEW', 'PUBLISHED', 'REJECTED', 'SOLD', 'ARCHIVED']).optional(),
+    reason: z.string().max(1000).optional(),
+}).passthrough()
 
 function getIp(req: Request) {
     const forwarded = req.headers.get('x-forwarded-for')
@@ -77,6 +106,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
                 success: false,
                 message: 'Image URLs are not accepted for properties. Use the categorized property gallery upload flow.',
             }, { status: 422 })
+        }
+
+        const parsed = PropertyPatchSchema.safeParse(body)
+        if (!parsed.success) {
+            return NextResponse.json({ success: false, message: 'Validation failed', errors: parsed.error.flatten().fieldErrors }, { status: 400 })
         }
 
         const allowedFields = [

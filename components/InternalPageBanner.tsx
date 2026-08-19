@@ -22,24 +22,26 @@ export default function InternalPageBanner({
   image,
   breadcrumb,
   ctas,
+  variant = 'default',
 }: {
   title: string
   description?: string
   image?: { src: string; alt: string }
   breadcrumb?: BreadcrumbItem[]
   ctas?: BannerCta[]
+  variant?: 'default' | 'ecosystem'
 }) {
   const imgSrc = String(image?.src || '').trim()
 
   return (
     <section className="bg-white border-b border-gray-200">
-      <div className="relative w-full h-[120px] sm:h-[180px] lg:h-[220px] xl:h-[250px] overflow-hidden">
+      <div className={`relative w-full overflow-hidden ${variant === 'ecosystem' ? 'aspect-[4/3] sm:aspect-[3/2] lg:aspect-[2560/695]' : 'h-[120px] sm:h-[180px] lg:h-[220px] xl:h-[250px]'}`}>
         {imgSrc ? (
           <Image
             src={imgSrc}
             alt={image?.alt || title}
             fill
-            className="object-cover"
+            className="object-cover object-center"
             sizes="(max-width: 768px) 100vw, 1920px"
             priority
           />

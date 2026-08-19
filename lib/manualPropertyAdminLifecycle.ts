@@ -7,6 +7,7 @@ import {
   type ManualPropertyLifecycleAction,
 } from '@/lib/manualPropertyLifecycle'
 import { buildManualPropertyPath } from '@/lib/manualPropertyRoutes'
+import { checkManualPropertyPublishReadiness } from '@/lib/publicationReadiness'
 
 function actionToAuditAction(action: ManualPropertyLifecycleAction): AuditAction {
   switch (action) {
@@ -63,10 +64,17 @@ export async function applyManualPropertyAdminAction(input: {
       archivedAt: true,
       archivedBy: true,
       rejectionReason: true,
+      countryIso2: true,
+      city: true,
     },
   })
 
   if (!existing) return { ok: false as const, status: 404, message: 'Property not found' }
+
+  if (input.action === 'publish' || input.action === 'restore_published') {
+    const readiness = checkManualPropertyPublishReadiness(existing)
+    if (!readiness.ok) return { ok: false as const, status: 422, message: readiness.message }
+  }
 
   let nextStatus: string
   try {

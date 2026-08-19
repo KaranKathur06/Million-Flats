@@ -237,19 +237,7 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
   const validateForm = () => {
     const errors: string[] = []
     if (!name.trim()) errors.push('Project name')
-    if (!slug.trim()) errors.push('Slug')
     if (!developerId) errors.push('Developer')
-    if (!countryIso2) errors.push('Country')
-    if (!city.trim()) errors.push('City')
-    if (!description.trim()) errors.push('Description')
-    if (!overview.trim()) errors.push('Overview')
-    if (!completionYear) errors.push('Completion year')
-    if (!startingPrice) errors.push('Starting price')
-    const hasHero = Boolean(coverImage || coverFile)
-    if (!hasHero) errors.push('Hero image')
-    if (!unitTypes.some((ut) => ut.unitType.trim())) errors.push('At least one unit type')
-    if (!paymentPlans.some((pp) => pp.label.trim() && pp.amount.trim())) errors.push('Payment schedule')
-    if (!location.address.trim() && !location.latitude && !location.longitude) errors.push('Location')
     return errors
   }
 

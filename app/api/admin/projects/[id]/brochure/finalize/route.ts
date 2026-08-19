@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { prisma } from '@/lib/prisma'
-import { deleteFromS3 } from '@/lib/s3'
+import { deleteFromS3, s3ObjectExists } from '@/lib/s3'
 
 export const runtime = 'nodejs'
 
@@ -49,6 +49,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       )
     }
 
+    if (!s3Key.startsWith('private/projects/')) {
+      return NextResponse.json({ success: false, message: 'Invalid brochure storage key' }, { status: 400 })
+    }
+
     // Verify project exists
     const project = await (prisma as any).project.findUnique({
       where: { id: params.id },
@@ -62,41 +66,39 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       )
     }
 
+    if (!(await s3ObjectExists({ key: s3Key }))) {
+      return NextResponse.json({ success: false, message: 'Uploaded brochure was not found in storage' }, { status: 400 })
+    }
+
     // Delete existing brochure if any
     const existing = await (prisma as any).projectBrochure.findUnique({
       where: { projectId: params.id },
     })
 
-    if (existing?.s3Key) {
-      try {
-        await deleteFromS3(existing.s3Key)
-      } catch (e) {
-        console.warn('Failed to delete old brochure from S3:', e)
-        // Continue anyway; old file will be orphaned but brochure record will be updated
+    const brochure = await (prisma as any).$transaction(async (tx: any) => {
+      if (existing) {
+        await tx.projectBrochure.delete({ where: { projectId: params.id } })
       }
-    }
-
-    if (existing) {
-      await (prisma as any).projectBrochure.delete({ where: { projectId: params.id } })
-    }
-
-    // Create new brochure record
-    const brochure = await (prisma as any).projectBrochure.create({
-      data: {
-        projectId: params.id,
-        fileUrl: s3Key,
-        s3Key,
-        fileName,
-        fileSize: fileSizeBytes,
-        mimeType: 'application/pdf',
-      },
+      const created = await tx.projectBrochure.create({
+        data: {
+          projectId: params.id,
+          fileUrl: s3Key,
+          s3Key,
+          fileName,
+          fileSize: fileSizeBytes,
+          mimeType: 'application/pdf',
+        },
+      })
+      await tx.project.update({
+        where: { id: params.id },
+        data: { brochureUrl: s3Key },
+      })
+      return created
     })
 
-    // Update project's brochureUrl for backward compatibility
-    await (prisma as any).project.update({
-      where: { id: params.id },
-      data: { brochureUrl: s3Key },
-    })
+    if (existing?.s3Key) {
+      try { await deleteFromS3(existing.s3Key) } catch (e) { console.warn('Failed to delete old brochure from S3:', e) }
+    }
 
     return NextResponse.json({
       success: true,

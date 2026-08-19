@@ -8,7 +8,7 @@ import GlobalDropdown from '@/components/ui/GlobalDropdown'
 import { ProjectMediaManager } from './ProjectMediaManager'
 import { ProjectBrochureManager } from './ProjectBrochureManager'
 import type { ProjectFormMode, ProjectFormData, DevOption, MediaItem, UnitTypeRow, FloorPlanRow, AmenityRow, NearbyPlaceRow, PaymentPlanRow, LocationData, VideoRow, VariantRow } from './ProjectFormSchema'
-import { buildProjectPayload, DEFAULT_FORM_DATA, PROJECT_COUNTRY_OPTIONS, PROJECT_FLOOR_PLAN_ALLOWED_EXTENSIONS, PROJECT_FLOOR_PLAN_ALLOWED_TYPES, PROJECT_FLOOR_PLAN_MAX_SIZE, PROJECT_BROCHURE_ALLOWED_TYPE, PROJECT_BROCHURE_MAX_SIZE, slugify } from './ProjectFormSchema'
+import { buildProjectPayload, DEFAULT_FORM_DATA, PROJECT_COUNTRY_OPTIONS, PROJECT_FLOOR_PLAN_ALLOWED_EXTENSIONS, PROJECT_FLOOR_PLAN_ALLOWED_TYPES, PROJECT_FLOOR_PLAN_MAX_SIZE, PROJECT_BROCHURE_ALLOWED_TYPE, slugify } from './ProjectFormSchema'
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/20',
@@ -176,16 +176,6 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
     if (!formData.name.trim()) errors.push('Project name')
     if (!formData.slug.trim()) errors.push('Slug')
     if (!formData.developerId) errors.push('Developer')
-    if (!formData.countryIso2) errors.push('Country')
-    if (!formData.city.trim()) errors.push('City')
-    if (!formData.description.trim()) errors.push('Description')
-    if (!formData.overview.trim()) errors.push('Overview')
-    if (!formData.completionYear) errors.push('Completion year')
-    if (!formData.startingPrice) errors.push('Starting price')
-    if (!formData.coverImage && !coverFile) errors.push('Hero image')
-    if (!formData.unitTypes.some((ut) => ut.unitType.trim())) errors.push('At least one unit type')
-    if (!formData.paymentPlans.some((pp) => pp.label.trim() && pp.amount.trim())) errors.push('Payment schedule')
-    if (!formData.location.address.trim() && !formData.location.latitude && !formData.location.longitude) errors.push('Location')
     return errors
   }
 
@@ -221,7 +211,8 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
       toast.error(`Missing required fields: ${errors.join(', ')}`)
       return
     }
-    if (formData.paymentPlans.length > 0 && !paymentIsValid) {
+    const hasPaymentPlanData = formData.paymentPlans.some((plan) => plan.label.trim() || plan.amount.trim())
+    if (hasPaymentPlanData && !paymentIsValid) {
       toast.error('Payment plan totals must equal 100% before submission')
       return
     }
@@ -251,10 +242,6 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
   const handleBrochureUpload = async (file: File) => {
     if (file.type !== PROJECT_BROCHURE_ALLOWED_TYPE) {
       throw new Error('Only PDF files are allowed for brochures')
-    }
-    if (file.size > PROJECT_BROCHURE_MAX_SIZE) {
-      const mb = Math.round(PROJECT_BROCHURE_MAX_SIZE / 1024 / 1024)
-      throw new Error(`Brochure must be ${mb}MB or less`)
     }
     setBrochureUploading(true)
     try {

@@ -24,6 +24,7 @@ export default function EcosystemHero({
       title={headline}
       description={subheadline}
       image={{ src, alt: imageAlt }}
+      variant="ecosystem"
       breadcrumb={[
         { label: 'Home', href: '/' },
         { label: 'Ecosystem', href: '/ecosystem-partners' },

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { writeAuditLog } from '@/lib/audit'
+import { checkProjectPublishReadiness } from '@/lib/publicationReadiness'
 
 export async function PUT(_req: Request, { params }: { params: { id: string } }) {
     const auth = await requireAdminSession()
@@ -13,7 +14,7 @@ export async function PUT(_req: Request, { params }: { params: { id: string } })
     try {
         const project = await (prisma as any).project.findUnique({
             where: { id: params.id },
-            select: { id: true, status: true, isDeleted: true },
+            select: { id: true, name: true, slug: true, developerId: true, status: true, isDeleted: true },
         })
 
         if (!project) {
@@ -35,6 +36,10 @@ export async function PUT(_req: Request, { params }: { params: { id: string } })
         if (!newStatus) {
             // Default: toggle between DRAFT <-> PUBLISHED
             const toggled = project.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'
+            if (toggled === 'PUBLISHED') {
+                const readiness = checkProjectPublishReadiness(project)
+                if (!readiness.ok) return NextResponse.json({ success: false, message: readiness.message }, { status: 422 })
+            }
             const updated = await (prisma as any).project.update({
                 where: { id: params.id },
                 data: { status: toggled, archivedAt: null },
@@ -43,6 +48,11 @@ export async function PUT(_req: Request, { params }: { params: { id: string } })
             revalidatePath('/projects')
             if (updated.slug) revalidatePath(`/projects/${updated.slug}`)
             return NextResponse.json({ success: true, project: updated })
+        }
+
+        if (newStatus === 'PUBLISHED') {
+            const readiness = checkProjectPublishReadiness(project)
+            if (!readiness.ok) return NextResponse.json({ success: false, message: readiness.message }, { status: 422 })
         }
 
         const updated = await (prisma as any).project.update({

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { canonicalizePropertyImport } from '@/lib/propertyCanonical'
 import { CanonicalLocationError, validateCanonicalLocation } from '@/lib/canonicalLocation.server'
-import { MANUAL_PROPERTY_PUBLIC_STATUS, normalizeManualPropertyStatus } from '@/lib/manualPropertyLifecycle'
+import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
 
 type LifecycleFilter = 'all' | 'active' | 'pending' | 'rejected' | 'sold' | 'archived'
 
@@ -110,7 +110,9 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: false, message: 'Property image URLs are not accepted. Upload media after the property is created.' }, { status: 400 })
         }
         const normalized = canonical.normalized
-        const location = await validateCanonicalLocation(normalized)
+        const hasLocationInput = [body.countryIso2, body.countryCode, body.city, body.community]
+            .some((value) => typeof value === 'string' && value.trim().length > 0)
+        const location = hasLocationInput ? await validateCanonicalLocation(normalized) : null
 
         // Find or create system agent
         const systemAgent = await findOrCreateSystemAgent()
@@ -120,21 +122,23 @@ export async function POST(req: Request) {
                 data: {
                     agentId: systemAgent.id,
                     sourceType: 'MANUAL',
-                    status: normalizeManualPropertyStatus(body.status || MANUAL_PROPERTY_PUBLIC_STATUS),
-                    title: normalized.title || 'New Property',
+                    status: 'DRAFT',
+                    title: normalized.title?.trim() || null,
                     propertyType: normalized.propertyType || null,
-                    intent: normalized.intent || 'SALE',
+                    intent: normalized.intent || null,
                     price: typeof body.price === 'number' ? body.price : null,
-                    currency: body.currency || 'INR',
+                    currency: body.currency || undefined,
                     constructionStatus: body.constructionStatus || null,
                     shortDescription: body.shortDescription || null,
                     bedrooms: body.bedrooms || 0,
                     bathrooms: body.bathrooms || 0,
                     squareFeet: body.squareFeet || 0,
-                    countryCode: location.countryCode,
-                    countryIso2: location.countryIso2,
-                    city: location.city,
-                    community: location.community,
+                    ...(location ? {
+                        countryCode: location.countryCode,
+                        countryIso2: location.countryIso2,
+                        city: location.city,
+                        community: location.community,
+                    } : {}),
                     address: body.address || null,
                     latitude: body.latitude || null,
                     longitude: body.longitude || null,
@@ -143,7 +147,7 @@ export async function POST(req: Request) {
                     paymentPlanText: body.paymentPlanText || null,
                     emiNote: body.emiNote || null,
                     tour3dUrl: body.tour3dUrl || null,
-                    submittedAt: new Date(),
+                    submittedAt: null,
                 },
             })
 
