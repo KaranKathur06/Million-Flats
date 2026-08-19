@@ -8,6 +8,7 @@ export type AuditEntityType =
   | 'ECOSYSTEM_PARTNER_APPLICATION'
   | 'PROJECT'
   | 'PROJECT_LISTING'
+  | 'ECOSYSTEM_BANNER'
 
 export type AuditAction =
   | 'DRAFT_DELETED'
@@ -54,6 +55,9 @@ export type AuditAction =
   | 'AUTH_SETTINGS_UPDATED'
   | 'AUTH_MODE_CHANGED'
   | 'AUTH_FORCE_LOGOUT_ALL'
+  | 'ADMIN_ECOSYSTEM_BANNER_UPLOADED'
+  | 'ADMIN_ECOSYSTEM_BANNER_REPLACED'
+  | 'ADMIN_ECOSYSTEM_BANNER_REMOVED'
 
 
 export async function writeAuditLog(input: {

@@ -273,9 +273,9 @@ async function getCategoryBannerImage(slug: EcosystemCategorySlug, fallback: str
   try {
     const category = await (prisma as any).ecosystemCategory.findUnique({
       where: { slug },
-      select: { heroImage: true },
+      select: { heroImage: true, banners: { where: { status: 'ACTIVE' }, orderBy: { version: 'desc' }, take: 1, select: { imageUrl: true } } },
     })
-    return resolveUsableBannerImage(category?.heroImage || fallback)
+    return resolveUsableBannerImage(category?.banners?.[0]?.imageUrl || category?.heroImage || fallback)
   } catch {
     return resolveUsableBannerImage(fallback)
   }

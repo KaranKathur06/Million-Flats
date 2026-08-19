@@ -1177,6 +1177,9 @@ enum AuditAction {
   ADMIN_AGENCY_UNSUSPENDED
   ADMIN_AGENCY_FEATURED
   ADMIN_AGENCY_LINKED
+  ADMIN_ECOSYSTEM_BANNER_UPLOADED
+  ADMIN_ECOSYSTEM_BANNER_REPLACED
+  ADMIN_ECOSYSTEM_BANNER_REMOVED
 }
 
 model AuditLog {
@@ -1530,12 +1533,44 @@ model EcosystemCategory {
 
   partners EcosystemPartner[]
   leads    EcosystemLead[]
+  banners  EcosystemBanner[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([priorityOrder])
   @@index([isActive])
+}
+
+enum EcosystemBannerStatus {
+  ACTIVE
+  PROCESSING
+  FAILED
+  ARCHIVED
+}
+
+model EcosystemBanner {
+  id                 String                @id @default(cuid())
+  categoryId         String
+  imageUrl           String
+  storageKey         String
+  altText            String
+  width              Int?
+  height             Int?
+  mimeType           String
+  fileSize           Int
+  status             EcosystemBannerStatus @default(ACTIVE)
+  version            Int                   @default(1)
+  createdBy          String?
+  updatedBy          String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  category EcosystemCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([storageKey])
+  @@index([categoryId, status])
+  @@index([updatedAt])
 }
 
 model EcosystemPartner {
