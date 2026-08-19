@@ -29,7 +29,7 @@ type Category = {
 type UploadFile = { file: File; url: string; width: number; height: number }
 
 const MAX_BYTES = 15 * 1024 * 1024
-const ACCEPT = 'image/jpeg,image/png,image/webp,image/avif'
+const ACCEPT = 'image/jpeg,image/png,image/webp'
 
 function formatBytes(value: number) {
   if (!value) return '—'
@@ -43,7 +43,7 @@ function formatDate(value?: string | null) {
 }
 
 function validateFile(file: File) {
-  if (!ACCEPT.split(',').includes(file.type)) return 'Only JPG, PNG, WebP, and AVIF images are supported.'
+  if (!ACCEPT.split(',').includes(file.type)) return 'Only JPG, PNG, and WebP images are supported.'
   if (file.size > MAX_BYTES) return 'Banner images must be smaller than 15MB.'
   return ''
 }

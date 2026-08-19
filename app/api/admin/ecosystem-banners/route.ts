@@ -26,7 +26,7 @@ export async function GET(req: Request) {
         banners: { where: { status: 'ACTIVE' }, orderBy: { version: 'desc' }, take: 1 },
       },
     })
-    const data = categories.map((category: any) => {
+    const allData = categories.map((category: any) => {
       const banner = category.banners?.[0] || null
       const configured = Boolean(banner || category.heroImage)
       return {
@@ -39,16 +39,17 @@ export async function GET(req: Request) {
         configured,
         status: banner ? 'ACTIVE' : configured ? 'ACTIVE' : 'MISSING',
       }
-    }).filter((item: any) => status === 'all' || (status === 'configured' ? item.configured : !item.configured))
-    const updated = data.map((item: any) => item.banner?.updatedAt).filter(Boolean).sort().reverse()[0] || null
+    })
+    const data = allData.filter((item: any) => status === 'all' || (status === 'configured' ? item.configured : !item.configured))
+    const updated = allData.map((item: any) => item.banner?.updatedAt).filter(Boolean).sort().reverse()[0] || null
     return NextResponse.json({
       success: true,
       data,
       stats: {
-        categories: data.length,
-        configured: data.filter((item: any) => item.configured).length,
-        missing: data.filter((item: any) => !item.configured).length,
-        recentlyUpdated: data.filter((item: any) => item.banner?.updatedAt && Date.now() - new Date(item.banner.updatedAt).getTime() < 24 * 60 * 60 * 1000).length,
+        categories: allData.length,
+        configured: allData.filter((item: any) => item.configured).length,
+        missing: allData.filter((item: any) => !item.configured).length,
+        recentlyUpdated: allData.filter((item: any) => item.banner?.updatedAt && Date.now() - new Date(item.banner.updatedAt).getTime() < 24 * 60 * 60 * 1000).length,
         lastUpdated: updated,
       },
     })

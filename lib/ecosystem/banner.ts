@@ -11,7 +11,7 @@ export const ECOSYSTEM_BANNER_MIN_WIDTH = 1280
 export const ECOSYSTEM_BANNER_MIN_HEIGHT = 800
 export const ECOSYSTEM_BANNER_MIN_ASPECT = 1.35
 export const ECOSYSTEM_BANNER_MAX_ASPECT = 1.8
-export const ECOSYSTEM_BANNER_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/avif'] as const
+export const ECOSYSTEM_BANNER_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'] as const
 
 export type BannerDimensions = { width: number; height: number }
 
@@ -46,7 +46,6 @@ function extensionForType(mimeType: string) {
   const type = normalizeBannerContentType(mimeType)
   if (type === 'image/png') return 'png'
   if (type === 'image/webp') return 'webp'
-  if (type === 'image/avif') return 'avif'
   return 'jpg'
 }
 
@@ -72,6 +71,13 @@ export function detectImageDimensions(buffer: Buffer, mimeType: string): BannerD
   if (type === 'image/webp' && buffer.length >= 30 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') {
     const chunk = buffer.toString('ascii', 12, 16)
     if (chunk === 'VP8X') return { width: 1 + buffer.readUIntLE(24, 3), height: 1 + buffer.readUIntLE(27, 3) }
+    if (chunk === 'VP8 ' && buffer.length >= 30 && buffer[23] === 0x9d && buffer[24] === 0x01 && buffer[25] === 0x2a) {
+      return { width: buffer.readUInt16LE(26) & 0x3fff, height: buffer.readUInt16LE(28) & 0x3fff }
+    }
+    if (chunk === 'VP8L' && buffer.length >= 25 && buffer[21] === 0x2f) {
+      const bits = buffer.readUInt32LE(21)
+      return { width: 1 + (bits & 0x3fff), height: 1 + ((bits >> 14) & 0x3fff) }
+    }
   }
   if (type === 'image/jpeg' && buffer.length > 4 && buffer[0] === 0xff && buffer[1] === 0xd8) {
     let offset = 2
