@@ -10,6 +10,7 @@ import { getHomeRouteForRole, isAdminPanelRole } from "@/lib/roleHomeRoute";
 import { useAuthConfig } from "@/components/auth/AuthConfigProvider";
 import WhatsAppLoginModal from "@/components/auth/WhatsAppLoginModal";
 import DualAuthModal from "@/components/auth/DualAuthModal";
+import { useCurrency } from "@/components/CurrencyProvider";
 
 
 type NavItem = { href: string; label: React.ReactNode };
@@ -32,6 +33,7 @@ export default function Header() {
   const [waModalOpen, setWaModalOpen] = useState(false);
   const [dualModalOpen, setDualModalOpen] = useState(false);
   const authConfig = useAuthConfig();
+  const { currency, setCurrency } = useCurrency();
 
   const role = String((session?.user as any)?.role || "").toUpperCase();
   const isAuthed = status === "authenticated";
@@ -256,6 +258,21 @@ export default function Header() {
 
           {/* Auth Buttons — Dynamic based on AuthSettings */}
           <div className="hidden md:flex items-center space-x-4">
+            <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5" aria-label="Display currency">
+              {(["AED", "INR"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  aria-pressed={currency === option}
+                  onClick={() => setCurrency(option)}
+                  className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                    currency === option ? "bg-dark-blue text-white" : "text-gray-600 hover:text-dark-blue"
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
             {isAuthLoading ? null : !isAuthed ? (
               <>
                 <Link
@@ -422,6 +439,24 @@ export default function Header() {
             ) : null}
 
             <div className="pt-4 mt-4 border-t border-gray-200 space-y-2">
+              <div className="flex items-center justify-between px-4 py-2">
+                <span className="text-sm font-medium text-gray-600">Display currency</span>
+                <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+                  {(["AED", "INR"] as const).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      aria-pressed={currency === option}
+                      onClick={() => setCurrency(option)}
+                      className={`px-3 py-2 rounded-md text-xs font-semibold transition-colors ${
+                        currency === option ? "bg-dark-blue text-white" : "text-gray-600"
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </div>
               {isAuthLoading ? null : !isAuthed ? (
                 <>
                   <Link

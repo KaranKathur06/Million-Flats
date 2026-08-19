@@ -10,7 +10,7 @@ export const runtime = 'nodejs'
 
 const IMAGE_MAX_SIZE = Number(process.env.PROJECT_IMAGE_MAX_SIZE_BYTES) || 100 * 1024 * 1024
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/avif']
-const ALLOWED_FLOOR_PLAN_TYPES = [...ALLOWED_IMAGE_TYPES, 'application/pdf']
+const ALLOWED_FLOOR_PLAN_TYPES = [...ALLOWED_IMAGE_TYPES, 'image/svg+xml', 'application/pdf']
 const VALID_CATEGORIES = PROJECT_MEDIA_CATEGORY_VALUES
 
 /**

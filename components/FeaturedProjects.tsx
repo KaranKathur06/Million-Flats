@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { formatCountryPrice, type CountryCode } from "@/lib/country";
+import type { CountryCode } from "@/lib/country";
+import CurrencyPrice from "@/components/CurrencyPrice";
 
 /* ─────────────────────────────────────────────
    Types
@@ -154,7 +155,7 @@ export default function FeaturedProjects({ market }: { market: CountryCode }) {
                       <div className="mt-auto">
                         <p className="text-xl font-bold text-dark-blue">
                           {project.startingPrice && project.startingPrice > 0
-                            ? `From ${formatCountryPrice(market, project.startingPrice)}`
+                            ? <>From <CurrencyPrice amount={project.startingPrice} sourceCurrency="AED" /></>
                             : "Price on request"}
                         </p>
                       </div>

@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useAuthConfig } from '@/components/auth/AuthConfigProvider'
 import Link from 'next/link'
 import Image from 'next/image'
-import { formatAEDCompact } from '@/lib/pricing'
+import CurrencyPrice from '@/components/CurrencyPrice'
 import { calculateProjectPricingSummary } from '@/lib/projectPricing'
 import dynamic from 'next/dynamic'
 import { LocationSkeleton, SimilarProjectsSkeleton, VideosSkeleton } from '@/components/skeletons/ProjectPageSkeletons'
@@ -95,7 +95,7 @@ interface ProjectData {
     }[]
     amenities: { id: string; name: string; icon: string | null; category: string | null }[]
     paymentPlans: { id: string; itemType: 'BASE_PRICE' | 'FEE'; label: string; amount: number; currency: string; milestone: string | null; sortOrder: number | null }[]
-    floorPlans: { id: string; unitType: string; bedrooms: number | null; bathrooms: number | null; size: string | null; price: string | null; imageUrl: string | null }[]
+    floorPlans: { id: string; unitTypeId?: string | null; unitType: string; bedrooms: number | null; bathrooms: number | null; size: string | null; price: string | null; imageUrl: string | null }[]
     videos: { id: string; videoUrl: string; title: string | null; thumbnail: string | null; sortOrder: number | null }[]
     location: { id: string; latitude: number | null; longitude: number | null; address: string | null; mapUrl: string | null } | null
     nearbyPlaces: { id: string; name: string; category: string | null; distance: string | null; sortOrder: number | null }[]
@@ -148,7 +148,7 @@ function extractImageName(input: string): string {
    ═══════════════════════════════════════════════ */
 function formatPrice(price: number | null | undefined) {
     if (!price) return 'TBD'
-    return formatAEDCompact(price)
+    return <CurrencyPrice amount={price} sourceCurrency="AED" />
 }
 
 /* Amenity Icon Component */
@@ -480,16 +480,26 @@ export default function ProjectDetailClient({
     }, [normalizedUnitTypes, selectedUnitTypeId])
     const activeVariants = activeUnitType?.variants || []
     const allFloorPlans = useMemo(() => {
+        // Prefer project-level floor plans (linked via unitTypeId)
+        const projectPlans = (project.floorPlans || []).filter((fp) => fp.imageUrl)
+        if (projectPlans.length > 0) {
+            return projectPlans.map((fp) => ({
+                ...fp,
+                imageUrl: fp.imageUrl || fallbackImage,
+            }))
+        }
+        // Fallback: collect from variant-level floor plans
         const variantPlans = normalizedUnitTypes.flatMap((ut) =>
             (ut.variants || []).flatMap((variant) =>
                 (variant.floorPlans || []).map((fp) => ({
                     ...fp,
                     imageUrl: fp.imageUrl || fallbackImage,
                     unitType: fp.unitType || variant.title || ut.name,
+                    unitTypeId: ut.id,
                 }))
             )
         )
-        return variantPlans.length > 0 ? variantPlans : (project.floorPlans || [])
+        return variantPlans
     }, [normalizedUnitTypes, project.floorPlans])
 
     const handleSubmitLead = useCallback(async (e: React.FormEvent) => {
@@ -859,7 +869,9 @@ export default function ProjectDetailClient({
                                     </div>
                                 )}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {allFloorPlans.map((fp) => (
+                                    {allFloorPlans
+                                        .filter((fp: any) => !activeUnitType || !fp.unitTypeId || fp.unitTypeId === activeUnitType.id)
+                                        .map((fp) => (
                                         <div key={fp.id} className="rounded-2xl border border-gray-200 bg-white overflow-hidden group">
                                             <div className="relative aspect-square bg-white flex items-center justify-center p-4 cursor-pointer" onClick={() => {
                                                 // Open floor plan in modal for full view

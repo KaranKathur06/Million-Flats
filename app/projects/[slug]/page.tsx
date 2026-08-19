@@ -86,7 +86,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         paymentPlans: project.paymentPlans,
         unitTypes: project.unitTypes.map((ut: any) => ({
             ...ut,
-            variants: ut.variants?.map((v: any) => ({ ...v, floorPlans: [] })) || []
+            variants: ut.variants || []
         })),
         floorPlans: project.floorPlans,
         // Include minimal media for Hero Image resolution

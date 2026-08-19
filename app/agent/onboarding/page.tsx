@@ -5,7 +5,11 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 
-export default async function AgentOnboardingPage() {
+export default async function AgentOnboardingPage({
+  searchParams,
+}: {
+  searchParams?: { error?: string }
+}) {
   const session = await getServerSession(authOptions)
   const sessionUser = session?.user as any
 
@@ -26,6 +30,9 @@ export default async function AgentOnboardingPage() {
 
   const agent = dbUser.agent
   const agentStatus = String((agent as any)?.status || 'REGISTERED').toUpperCase()
+  const errorMessage = searchParams?.error === 'license_taken'
+    ? 'That license number is already associated with another agent account.'
+    : null
 
   // If already approved, go to dashboard
   if (agentStatus === 'APPROVED') {
@@ -69,6 +76,11 @@ export default async function AgentOnboardingPage() {
           </div>
 
           <form action="/agent/onboarding/submit" method="post" className="space-y-5">
+            {errorMessage && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+                {errorMessage}
+              </div>
+            )}
             <div>
               <label htmlFor="license" className="block text-sm font-semibold text-gray-700 mb-2">
                 Real Estate / Professional License <span className="text-gray-400 font-normal">(Optional)</span>

@@ -2132,6 +2132,7 @@ model ProjectUnitType {
 
   priceFrom Float?   @map("price_from")
   variants  ProjectUnitVariant[]
+  floorPlans ProjectFloorPlan[]
 
   @@index([projectId])
   @@map("project_unit_types")
@@ -2226,6 +2227,9 @@ model ProjectFloorPlan {
   projectId String   @map("project_id")
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
+  unitTypeId    String?             @map("unit_type_id")
+  unitTypeRef   ProjectUnitType?    @relation(fields: [unitTypeId], references: [id], onDelete: Cascade)
+
   unitVariantId String?             @map("unit_variant_id")
   unitVariant   ProjectUnitVariant? @relation(fields: [unitVariantId], references: [id], onDelete: Cascade)
 
@@ -2236,11 +2240,15 @@ model ProjectFloorPlan {
   price     String?
   imageUrl  String?  @map("image_url")
   s3Key     String?  @map("s3_key")
+  mimeType  String?  @map("mime_type")
+  fileSize  Int?     @map("file_size")
 
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([projectId])
+  @@index([unitTypeId])
   @@index([unitVariantId])
+  @@unique([projectId, unitTypeId])
   @@map("project_floor_plans")
 }
 

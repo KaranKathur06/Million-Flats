@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import CurrencyPrice from '@/components/CurrencyPrice'
 import Image from 'next/image'
 import { formatCountryPrice, type CountryCode } from '@/lib/country'
 import { resolvePropertyImages } from '@/lib/propertyImages'
@@ -62,7 +63,7 @@ export default function AgentListingCard({ listing }: { listing: Listing }) {
       </div>
 
       <div className="p-5">
-        <p className="text-lg font-bold text-dark-blue">{formatCountryPrice(listing.country, listing.price)}</p>
+        <p className="text-lg font-bold text-dark-blue"><CurrencyPrice amount={listing.price} sourceCurrency={listing.country === 'INDIA' ? 'INR' : 'AED'} /></p>
         <Link href={href} className="block mt-2">
           <h3 className="text-base font-semibold text-dark-blue leading-snug hover:underline">
             {listing.title}

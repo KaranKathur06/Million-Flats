@@ -58,21 +58,12 @@ const CATEGORY_ICONS: Record<string, string> = {
 }
 
 export function buildFloorPlanStatusCards(unitTypes: any[] = [], floorPlans: any[] = []): FloorPlanStatusCard[] {
-  const variantToUnitType = new Map<string, string>()
-  for (const unitType of unitTypes) {
-    for (const variant of unitType?.variants || []) {
-      if (variant?.id) variantToUnitType.set(variant.id, unitType.id)
-    }
-  }
-
+  // Build a map of unitTypeId → floor plan using the direct unitTypeId field
   const planByUnitTypeId = new Map<string, FloorPlanAsset>()
   for (const plan of floorPlans) {
-    const candidateUnitTypeId = String(plan?.unitTypeId || plan?.unitType?.id || plan?.unitTypeId || '').trim() ||
-      (plan?.unitVariantId ? variantToUnitType.get(String(plan.unitVariantId)) : null) ||
-      null
-
-    if (candidateUnitTypeId) {
-      planByUnitTypeId.set(candidateUnitTypeId, plan)
+    const uid = String(plan?.unitTypeId || '').trim()
+    if (uid) {
+      planByUnitTypeId.set(uid, plan)
     }
   }
 
@@ -92,6 +83,7 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const [floorPlanCards, setFloorPlanCards] = useState<FloorPlanStatusCard[]>([])
+  const [uploadingUnitTypeId, setUploadingUnitTypeId] = useState<string | null>(null)
 
   const loadMedia = useCallback(async () => {
     try {
@@ -121,13 +113,7 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
       if (!projectData.success) return
 
       const unitTypes = Array.isArray(projectData.project?.unitTypes) ? projectData.project.unitTypes : []
-      const floorPlans = Array.isArray(projectData.project?.floorPlans) ? projectData.project.floorPlans.map((plan: any) => {
-        const matchedUnitTypeId = String(plan?.unitTypeId || '').trim() ||
-          unitTypes.find((unitType: any) => (unitType?.variants || []).some((variant: any) => variant.id === plan?.unitVariantId))?.id ||
-          null
-
-        return { ...plan, unitTypeId: matchedUnitTypeId }
-      }) : []
+      const floorPlans = Array.isArray(projectData.project?.floorPlans) ? projectData.project.floorPlans : []
 
       setFloorPlanCards(buildFloorPlanStatusCards(unitTypes, floorPlans))
     } catch (err) {
@@ -191,6 +177,8 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
 
   const handleFloorPlanUpload = async (unitTypeId: string, file: File) => {
     try {
+      setUploadingUnitTypeId(unitTypeId)
+
       const presignRes = await fetch(`/api/admin/projects/${projectId}/media/presign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -225,6 +213,7 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
           s3Key: presignData.s3Key,
           fileName: file.name,
           fileSizeBytes: file.size,
+          contentType: file.type,
           category: 'floor_plan',
           unitTypeId,
         }),
@@ -239,6 +228,8 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
     } catch (err) {
       console.error('Failed to upload floor plan:', err)
       alert(err instanceof Error ? err.message : 'Failed to upload floor plan')
+    } finally {
+      setUploadingUnitTypeId(null)
     }
   }
 
@@ -343,21 +334,34 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {floorPlanCards.map((card) => (
-              <div key={card.unitTypeId} className="rounded-xl border border-white/[0.08] bg-black/10 p-4">
+              <div key={card.unitTypeId} className={`rounded-xl border ${uploadingUnitTypeId === card.unitTypeId ? 'border-amber-400/40 animate-pulse' : 'border-white/[0.08]'} bg-black/10 p-4`}>
                 <h4 className="mb-4 text-sm font-semibold text-white">{card.title}</h4>
 
-                {card.plan ? (
+                {uploadingUnitTypeId === card.unitTypeId ? (
+                  <div className="space-y-3">
+                    <div className="flex h-36 items-center justify-center rounded-lg border border-amber-400/20 bg-amber-400/5">
+                      <div className="text-center">
+                        <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-amber-400/40 border-t-amber-400"></div>
+                        <p className="mt-2 text-xs text-amber-300/70">Uploading...</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : card.plan ? (
                   <div className="space-y-3">
                     <div className="overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.03]">
-                      {card.plan.imageUrl ? (
+                      {card.plan.imageUrl && !String(card.plan.imageUrl || '').match(/\.pdf$/i) ? (
                         <img src={card.plan.imageUrl} alt={card.title} className="h-36 w-full object-contain bg-white/5" />
                       ) : (
-                        <div className="flex h-36 items-center justify-center text-sm text-white/40">PDF / Blueprint</div>
+                        <div className="flex h-36 items-center justify-center text-sm text-white/40">
+                          <div className="text-center">
+                            <span className="text-2xl">📄</span>
+                            <p className="mt-1 text-xs">{String(card.plan.imageUrl || '').match(/\.pdf$/i) ? 'PDF Blueprint' : 'Floor Plan'}</p>
+                          </div>
+                        </div>
                       )}
                     </div>
-                    <div className="space-y-2 text-xs text-white/60">
-                      <p className="truncate">{card.plan.imageUrl?.split('/').pop() || 'floor-plan.pdf'}</p>
-                      <p>{card.plan.size || 'Uploaded'}</p>
+                    <div className="space-y-1 text-xs text-white/60">
+                      <p className="truncate">{card.plan.imageUrl?.split('/').pop() || 'floor-plan'}</p>
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -371,7 +375,7 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
                         Replace
                         <input
                           type="file"
-                          accept="image/jpeg,image/png,image/webp,application/pdf"
+                          accept="image/jpeg,image/png,image/webp,image/svg+xml,application/pdf"
                           className="hidden"
                           onChange={(event) => {
                             const file = event.target.files?.[0]
@@ -391,14 +395,15 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <div className="rounded-lg border border-dashed border-white/[0.08] bg-white/[0.02] p-4 text-sm text-white/40">
-                      Floor plan missing
-                    </div>
-                    <label className="inline-flex cursor-pointer rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-sm font-medium text-amber-300 hover:bg-amber-400/20">
-                      Upload Floor Plan
+                    <label className="flex h-36 cursor-pointer items-center justify-center rounded-lg border border-dashed border-white/[0.12] bg-white/[0.02] hover:bg-white/[0.04] hover:border-amber-400/30 transition-colors">
+                      <div className="text-center">
+                        <span className="text-2xl">📐</span>
+                        <p className="mt-2 text-xs text-white/50">Drag & drop or click to upload</p>
+                        <p className="mt-1 text-[10px] text-white/30">JPG, PNG, WebP, SVG, PDF</p>
+                      </div>
                       <input
                         type="file"
-                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                        accept="image/jpeg,image/png,image/webp,image/svg+xml,application/pdf"
                         className="hidden"
                         onChange={(event) => {
                           const file = event.target.files?.[0]

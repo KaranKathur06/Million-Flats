@@ -8,6 +8,11 @@ function safeString(v: unknown) {
   return v.trim()
 }
 
+function isLicenseConflict(error: any) {
+  return error?.code === 'P2002' && Array.isArray(error?.meta?.target)
+    && error.meta.target.some((target: unknown) => String(target) === 'license_number' || String(target) === 'license')
+}
+
 /**
  * Build an absolute redirect URL that works both locally and behind a reverse-proxy.
  * req.nextUrl.clone() can resolve to `localhost:3000` when the request comes in
@@ -47,30 +52,48 @@ export async function POST(req: NextRequest) {
     return redirectTo(req, '/agent/auth?tab=login')
   }
 
+  const conflictingAgent = await prisma.agent.findFirst({
+    where: {
+      license,
+      ...(dbUser.agent ? { id: { not: dbUser.agent.id } } : {}),
+    },
+    select: { id: true },
+  })
+  if (conflictingAgent) {
+    return redirectTo(req, '/agent/onboarding', '?error=license_taken')
+  }
+
   const isEmailVerified = Boolean((dbUser as any).emailVerified) || Boolean((dbUser as any).verified)
 
-  if (!dbUser.agent) {
-    await prisma.agent.create({
-      data: {
-        userId: dbUser.id,
-        license,
-        company: company || null,
-        whatsapp: null,
-        approved: false,
-        status: isEmailVerified ? 'EMAIL_VERIFIED' : 'REGISTERED',
-      } as any,
-    })
-  } else {
-    const currentStatus = String((dbUser.agent as any)?.status || 'REGISTERED')
-    const nextStatus =
-      currentStatus === 'REGISTERED'    ? 'EMAIL_VERIFIED' :
-      currentStatus === 'EMAIL_VERIFIED' ? 'PROFILE_INCOMPLETE' :
-      currentStatus
+  try {
+    if (!dbUser.agent) {
+      await prisma.agent.create({
+        data: {
+          userId: dbUser.id,
+          license,
+          company: company || null,
+          whatsapp: null,
+          approved: false,
+          status: isEmailVerified ? 'EMAIL_VERIFIED' : 'REGISTERED',
+        } as any,
+      })
+    } else {
+      const currentStatus = String((dbUser.agent as any)?.status || 'REGISTERED')
+      const nextStatus =
+        currentStatus === 'REGISTERED'    ? 'EMAIL_VERIFIED' :
+        currentStatus === 'EMAIL_VERIFIED' ? 'PROFILE_INCOMPLETE' :
+        currentStatus
 
-    await prisma.agent.update({
-      where: { userId: dbUser.id },
-      data: { license, company: company || null, status: nextStatus } as any,
-    })
+      await prisma.agent.update({
+        where: { userId: dbUser.id },
+        data: { license, company: company || null, status: nextStatus } as any,
+      })
+    }
+  } catch (error) {
+    if (isLicenseConflict(error)) {
+      return redirectTo(req, '/agent/onboarding', '?error=license_taken')
+    }
+    throw error
   }
 
   if (phone && phone !== dbUser.phone) {

@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { formatAEDCompact } from '@/lib/pricing'
 import PremiumDropdown from '@/components/PremiumDropdown'
+import CurrencyPrice from '@/components/CurrencyPrice'
 
 /* ─── Types ─── */
 interface ProjectItem {
@@ -30,7 +30,7 @@ interface ProjectItem {
 /* ─── Helpers ─── */
 function formatPrice(price: number | null | undefined) {
     if (!price) return null
-    return formatAEDCompact(price)
+    return <CurrencyPrice amount={price} sourceCurrency="AED" />
 }
 
 /* ─── Icons ─── */

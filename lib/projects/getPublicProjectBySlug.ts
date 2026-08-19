@@ -89,6 +89,7 @@ export const publicProjectDetailSelect = {
   floorPlans: {
     select: {
       id: true,
+      unitTypeId: true,
       unitType: true,
       bedrooms: true,
       bathrooms: true,

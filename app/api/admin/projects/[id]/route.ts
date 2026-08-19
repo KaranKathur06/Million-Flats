@@ -338,13 +338,34 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         let derivedMinVariantPrice: number | null = null
         // Handle unit types + variants: replace all if provided
         let createdVariantByUnitTypeKey: Record<string, string> = {}
+        // Map new unit type names to their created IDs for floor plan re-association
+        const newUnitTypeByName: Record<string, { id: string; unitType: string; bedrooms: number | null; bathrooms: number | null }> = {}
         if (data.unitTypes !== undefined) {
             await (prisma as any).unitMedia.deleteMany({
                 where: { unitVariant: { projectId: params.id } },
             })
-            await (prisma as any).projectFloorPlan.deleteMany({
-                where: { OR: [{ unitVariant: { projectId: params.id } }, { projectId: params.id }] },
+
+            // PRESERVE uploaded floor plans before deletion
+            // Floor plans with s3Key are admin-uploaded via the media manager — never destroy them
+            const preservedFloorPlans = await (prisma as any).projectFloorPlan.findMany({
+                where: { projectId: params.id, s3Key: { not: null } },
+                select: { id: true, unitTypeId: true, unitType: true, bedrooms: true, bathrooms: true,
+                         imageUrl: true, s3Key: true, size: true, price: true, mimeType: true, fileSize: true },
             })
+
+            // Delete ONLY floor plans that don't have uploaded images (scraped/imported data)
+            await (prisma as any).projectFloorPlan.deleteMany({
+                where: { projectId: params.id, OR: [{ s3Key: null }, { s3Key: '' }] },
+            })
+
+            // Detach preserved floor plans from old unit types/variants (which are about to be deleted)
+            if (preservedFloorPlans.length > 0) {
+                await (prisma as any).projectFloorPlan.updateMany({
+                    where: { id: { in: preservedFloorPlans.map((fp: any) => fp.id) } },
+                    data: { unitTypeId: null, unitVariantId: null },
+                })
+            }
+
             await (prisma as any).projectUnitVariant.deleteMany({ where: { projectId: params.id } })
             await (prisma as any).projectUnitType.deleteMany({ where: { projectId: params.id } })
             for (let idx = 0; idx < data.unitTypes.length; idx++) {
@@ -362,6 +383,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
                     },
                     select: { id: true, unitType: true, bedrooms: true, bathrooms: true },
                 })
+
+                // Track new unit types by name for floor plan re-association
+                newUnitTypeByName[createdType.unitType.trim().toLowerCase()] = createdType
 
                 for (let vIdx = 0; vIdx < (ut.variants || []).length; vIdx++) {
                     const variant = ut.variants![vIdx]
@@ -395,6 +419,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
                         await (prisma as any).projectFloorPlan.createMany({
                             data: floorPlans.map((fp) => ({
                                 projectId: params.id,
+                                unitTypeId: createdType.id,
                                 unitVariantId: createdVariant.id,
                                 unitType: fp.title?.trim() || variant.title.trim() || createdType.unitType,
                                 bedrooms: fp.bedrooms ?? createdType.bedrooms ?? null,
@@ -407,27 +432,66 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
                     }
                 }
             }
+
+            // Re-associate preserved floor plans to newly created unit types by matching name
+            for (const fp of preservedFloorPlans) {
+                const matchKey = String(fp.unitType || '').trim().toLowerCase()
+                const matched = newUnitTypeByName[matchKey]
+                if (matched) {
+                    const firstVariantId = createdVariantByUnitTypeKey[matchKey] || null
+                    try {
+                        await (prisma as any).projectFloorPlan.update({
+                            where: { id: fp.id },
+                            data: {
+                                unitTypeId: matched.id,
+                                unitVariantId: firstVariantId,
+                                bedrooms: matched.bedrooms ?? fp.bedrooms,
+                                bathrooms: matched.bathrooms ?? fp.bathrooms,
+                            },
+                        })
+                    } catch (reAssocErr) {
+                        // If unique constraint violation (another plan already linked), skip silently
+                        console.warn('[PUT] Floor plan re-association skipped for', fp.id, reAssocErr)
+                    }
+                }
+                // If no match found, floor plan remains detached (unitTypeId=null) but not deleted
+            }
         }
 
         if (data.floorPlans !== undefined && data.floorPlans.length > 0) {
             const normalized = data.floorPlans.filter((fp) => String(fp.imageUrl || '').trim())
+            // Build unit type name → ID map for unitTypeId association
+            const unitTypeByName: Record<string, string> = {}
             if (data.unitTypes === undefined) {
                 const variants = await (prisma as any).projectUnitVariant.findMany({
                     where: { projectId: params.id },
-                    include: { unitType: { select: { unitType: true, bedrooms: true, bathrooms: true } } },
+                    include: { unitType: { select: { id: true, unitType: true, bedrooms: true, bathrooms: true } } },
                 })
                 for (const v of variants) {
                     createdVariantByUnitTypeKey[String(v.title || '').trim().toLowerCase()] = v.id
                     createdVariantByUnitTypeKey[String(v.unitType?.unitType || '').trim().toLowerCase()] = v.id
+                    if (v.unitType?.id) {
+                        unitTypeByName[String(v.unitType.unitType || '').trim().toLowerCase()] = v.unitType.id
+                    }
                 }
-                await (prisma as any).projectFloorPlan.deleteMany({ where: { projectId: params.id } })
+                // Only delete floor plans that don't have uploaded images
+                await (prisma as any).projectFloorPlan.deleteMany({
+                    where: { projectId: params.id, OR: [{ s3Key: null }, { s3Key: '' }] },
+                })
+            } else {
+                // Unit types were already processed above — use newUnitTypeByName
+                for (const [key, ut] of Object.entries(newUnitTypeByName)) {
+                    unitTypeByName[key] = ut.id
+                }
             }
             for (const fp of normalized) {
                 const key = String(fp.unitType || '').trim().toLowerCase()
                 const variantId = createdVariantByUnitTypeKey[key] || null
+                const resolvedUnitTypeId = unitTypeByName[key] || null
                 await (prisma as any).projectFloorPlan.create({
                     data: {
                         projectId: params.id,
+                        unitTypeId: resolvedUnitTypeId,
                         unitVariantId: variantId,
                         unitType: fp.unitType.trim(),
                         bedrooms: fp.bedrooms ?? null,

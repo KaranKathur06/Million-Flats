@@ -3,7 +3,7 @@
 import { useMemo, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { formatCurrencyAmount } from '@/lib/country'
+import CurrencyPrice from '@/components/CurrencyPrice'
 import { resolvePropertyImages } from '@/lib/propertyImages'
 import { buildPropertySlugPath } from '@/lib/seo'
 
@@ -73,7 +73,8 @@ function shuffleWithSeed<T>(items: T[], seed: string) {
 
 export default function PropertyListCard({ property, variant = 'grid' }: PropertyListCardProps) {
   const href = property.href || buildPropertySlugPath({ id: property.id, title: property.title }) || `/properties/${property.id}`
-  const priceLabel = formatCurrencyAmount(property.currency || (property.country === 'INDIA' ? 'INR' : 'AED'), property.price)
+  const sourceCurrency = property.currency === 'INR' || property.country === 'INDIA' ? 'INR' : 'AED'
+  const priceLabel = <CurrencyPrice amount={property.price} sourceCurrency={sourceCurrency} />
   const baseImages = useMemo(
     () =>
       resolvePropertyImages({
@@ -120,7 +121,7 @@ export default function PropertyListCard({ property, variant = 'grid' }: Propert
         </div>
 
         <div className="p-4">
-          <p className="text-lg font-bold text-dark-blue">{priceLabel}</p>
+          <p className="text-lg font-bold text-dark-blue"><CurrencyPrice amount={property.price} sourceCurrency={sourceCurrency} /></p>
           <h3 className="mt-2 text-base font-semibold text-dark-blue leading-tight">{property.title}</h3>
           <p className="mt-1 text-sm text-gray-600">{property.location}, {property.country}</p>
 

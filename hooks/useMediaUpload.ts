@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useRef } from 'react'
 
 // Upload state types
 export type UploadFileState = 'selected' | 'requesting' | 'authorized' | 'uploading' | 'uploaded' | 'finalizing' | 'completed' | 'validation_failed' | 'upload_failed' | 'finalization_failed'
@@ -24,81 +24,57 @@ export interface UseMediaUploadOptions {
 }
 
 /**
- * Hook for managing media file uploads with presigned URLs
- * Handles the complete state machine for each file
+ * Hook for managing media file uploads with presigned URLs.
+ * Handles the complete state machine for each file.
+ *
+ * Uses a ref to track the files map so that async upload callbacks
+ * always read the latest state (avoids stale-closure bug).
  */
 export function useMediaUpload({ projectId, category, unitTypeId, onSuccess, onError }: UseMediaUploadOptions) {
   const [files, setFiles] = useState<Map<string, UploadFile>>(new Map())
+  // Keep a ref in sync so async callbacks always see latest files
+  const filesRef = useRef<Map<string, UploadFile>>(files)
 
-  const addFiles = useCallback(
-    (filesToAdd: File[]) => {
-      const newFiles = new Map(files)
-      filesToAdd.forEach((file) => {
-        const id = Math.random().toString(36).slice(2)
-        newFiles.set(id, {
-          id,
-          file,
-          state: 'selected',
-          progress: 0,
-        })
+  const setFilesAndRef = useCallback((updater: Map<string, UploadFile> | ((prev: Map<string, UploadFile>) => Map<string, UploadFile>)) => {
+    if (typeof updater === 'function') {
+      setFiles((prev) => {
+        const next = updater(prev)
+        filesRef.current = next
+        return next
       })
-      setFiles(newFiles)
-      
-      // Auto-start upload for each file
-      filesToAdd.forEach((file) => {
-        const id = Array.from(newFiles.keys()).find(
-          (k) => newFiles.get(k)?.file === file
-        )
-        if (id) uploadFile(id)
-      })
-    },
-    [files]
-  )
-
-  const removeFile = useCallback((fileId: string) => {
-    setFiles((prev) => {
-      const next = new Map(prev)
-      next.delete(fileId)
-      return next
-    })
+    } else {
+      filesRef.current = updater
+      setFiles(updater)
+    }
   }, [])
 
   const updateFileState = useCallback((fileId: string, state: UploadFileState, progress = 0, error?: string) => {
-    setFiles((prev) => {
+    setFilesAndRef((prev) => {
       const next = new Map(prev)
       const f = next.get(fileId)
       if (f) {
-        next.set(fileId, {
-          ...f,
-          state,
-          progress,
-          error,
-        })
+        next.set(fileId, { ...f, state, progress, error })
       }
       return next
     })
-  }, [])
+  }, [setFilesAndRef])
 
-  const uploadFile = useCallback(
-    async (fileId: string) => {
-      const uploadFile = files.get(fileId)
-      if (!uploadFile) return
-
+  // Core upload function — accepts File object directly to avoid stale reads
+  const doUpload = useCallback(
+    async (fileId: string, fileObj: File) => {
       try {
-        // Step 1: Validation
-        updateFileState(fileId, 'requesting', 0)
-
-        // Step 2: Request presigned URL
+        // Step 1: Request presigned URL
         updateFileState(fileId, 'requesting', 10)
+
         const presignRes = await fetch(
           `/api/admin/projects/${projectId}/media/presign`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              fileName: uploadFile.file.name,
-              fileSizeBytes: uploadFile.file.size,
-              contentType: uploadFile.file.type,
+              fileName: fileObj.name,
+              fileSizeBytes: fileObj.size,
+              contentType: fileObj.type,
               category,
               unitTypeId,
             }),
@@ -106,21 +82,22 @@ export function useMediaUpload({ projectId, category, unitTypeId, onSuccess, onE
         )
 
         if (!presignRes.ok) {
-          const errorData = await presignRes.json()
+          const errorData = await presignRes.json().catch(() => ({ message: 'Failed to get upload URL' }))
           throw new Error(errorData.message || 'Failed to get upload URL')
         }
 
-        const { uploadUrl, s3Key, expiresIn } = await presignRes.json()
-        updateFileState(fileId, 'authorized', 20, undefined)
+        const { uploadUrl, s3Key } = await presignRes.json()
+        updateFileState(fileId, 'authorized', 20)
+
+        // Step 2: Upload to S3
         updateFileState(fileId, 'uploading', 30)
 
-        // Step 3: Upload to S3
         const uploadRes = await fetch(uploadUrl, {
           method: 'PUT',
           headers: {
-            'Content-Type': uploadFile.file.type || 'application/octet-stream',
+            'Content-Type': fileObj.type || 'application/octet-stream',
           },
-          body: uploadFile.file,
+          body: fileObj,
         })
 
         if (!uploadRes.ok) {
@@ -129,7 +106,7 @@ export function useMediaUpload({ projectId, category, unitTypeId, onSuccess, onE
 
         updateFileState(fileId, 'uploaded', 80)
 
-        // Step 4: Finalize in database
+        // Step 3: Finalize in database
         updateFileState(fileId, 'finalizing', 90)
         const finalizeRes = await fetch(
           `/api/admin/projects/${projectId}/media/finalize`,
@@ -138,8 +115,9 @@ export function useMediaUpload({ projectId, category, unitTypeId, onSuccess, onE
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               s3Key,
-              fileName: uploadFile.file.name,
-              fileSizeBytes: uploadFile.file.size,
+              fileName: fileObj.name,
+              fileSizeBytes: fileObj.size,
+              contentType: fileObj.type,
               category,
               unitTypeId,
             }),
@@ -147,7 +125,7 @@ export function useMediaUpload({ projectId, category, unitTypeId, onSuccess, onE
         )
 
         if (!finalizeRes.ok) {
-          const errorData = await finalizeRes.json()
+          const errorData = await finalizeRes.json().catch(() => ({ message: 'Failed to finalize upload' }))
           throw new Error(errorData.message || 'Failed to finalize upload')
         }
 
@@ -160,18 +138,60 @@ export function useMediaUpload({ projectId, category, unitTypeId, onSuccess, onE
         onError?.(fileId, errorMsg)
       }
     },
-    [files, projectId, category, updateFileState, onSuccess, onError]
+    [projectId, category, unitTypeId, updateFileState, onSuccess, onError]
   )
+
+  const addFiles = useCallback(
+    (filesToAdd: File[]) => {
+      const newEntries: { id: string; file: File }[] = []
+      const newMap = new Map(filesRef.current)
+
+      filesToAdd.forEach((file) => {
+        const id = Math.random().toString(36).slice(2)
+        newMap.set(id, {
+          id,
+          file,
+          state: 'selected',
+          progress: 0,
+        })
+        newEntries.push({ id, file })
+      })
+
+      setFilesAndRef(newMap)
+
+      // Auto-start upload — pass File object directly to avoid stale closure
+      for (const entry of newEntries) {
+        void doUpload(entry.id, entry.file)
+      }
+    },
+    [setFilesAndRef, doUpload]
+  )
+
+  const removeFile = useCallback((fileId: string) => {
+    setFilesAndRef((prev) => {
+      const next = new Map(prev)
+      next.delete(fileId)
+      return next
+    })
+  }, [setFilesAndRef])
 
   const retryFile = useCallback(
     (fileId: string) => {
-      const fileData = files.get(fileId)
+      const fileData = filesRef.current.get(fileId)
       if (!fileData) return
-
       updateFileState(fileId, 'selected', 0)
-      uploadFile(fileId)
+      void doUpload(fileId, fileData.file)
     },
-    [files, updateFileState, uploadFile]
+    [updateFileState, doUpload]
+  )
+
+  const uploadFile = useCallback(
+    (fileId: string) => {
+      const fileData = filesRef.current.get(fileId)
+      if (!fileData) return
+      void doUpload(fileId, fileData.file)
+    },
+    [doUpload]
   )
 
   return {
@@ -307,3 +327,4 @@ export function useBrochureUpload({ projectId, onSuccess, onError }: UseBrochure
     reset,
   }
 }
+

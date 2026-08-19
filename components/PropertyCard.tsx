@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { formatCurrencyAmount } from '@/lib/country'
+import CurrencyPrice from '@/components/CurrencyPrice'
 import { resolvePropertyImages } from '@/lib/propertyImages'
 import { buildPropertySlugPath } from '@/lib/seo'
 
@@ -32,7 +32,7 @@ interface Property {
 
 export default function PropertyCard({ property }: { property: Property }) {
   const href = property.href || buildPropertySlugPath({ id: property.id, title: property.title }) || `/properties/${property.id}`
-  const priceLabel = formatCurrencyAmount(property.currency || (property.country === 'INDIA' ? 'INR' : 'AED'), property.price)
+  const sourceCurrency = property.currency === 'INR' || property.country === 'INDIA' ? 'INR' : 'AED'
 
   const images = resolvePropertyImages({
     propertyType: property.propertyType || 'Apartment',
@@ -72,7 +72,7 @@ export default function PropertyCard({ property }: { property: Property }) {
         </p>
 
         <p className="text-2xl font-bold text-dark-blue mt-4">
-          {priceLabel}
+          <CurrencyPrice amount={property.price} sourceCurrency={sourceCurrency} />
         </p>
 
         <div className="mt-4 flex items-center justify-between text-xs text-gray-600">

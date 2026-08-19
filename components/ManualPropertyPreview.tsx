@@ -5,7 +5,7 @@ import PropertyListCard from '@/components/PropertyListCard'
 import ClientLazyMap from '@/components/ClientLazyMap'
 import AmenitiesListModal from '@/components/AmenitiesListModal'
 import { buildAssetUrl } from '@/lib/assetUrl'
-import { formatCurrencyAmount } from '@/lib/country'
+import CurrencyPrice from '@/components/CurrencyPrice'
 import { buildManualPropertyPath } from '@/lib/manualPropertyRoutes'
 import { PROPERTY_MEDIA_CATEGORIES, propertyMediaCategory, type PropertyMediaCategory } from '@/lib/propertyMedia'
 
@@ -55,7 +55,7 @@ export default function ManualPropertyPreview({ manual, related = [] }: { manual
 
   const priceLabel =
     typeof manual?.price === 'number' && manual.price > 0
-      ? formatCurrencyAmount(safeString(manual?.currency) || 'AED', manual.price)
+      ? <CurrencyPrice amount={manual.price} sourceCurrency={safeString(manual?.currency) === 'INR' ? 'INR' : 'AED'} />
       : 'Price on request'
 
   const mediaItems = Array.isArray(manual?.media)

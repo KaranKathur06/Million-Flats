@@ -100,11 +100,12 @@ export const PROJECT_FLOOR_PLAN_ALLOWED_TYPES = [
   'image/jpg',
   'image/png',
   'image/webp',
+  'image/svg+xml',
   'application/pdf',
 ]
 
-export const PROJECT_FLOOR_PLAN_ALLOWED_EXTENSIONS = '.jpg,.jpeg,.png,.webp,.pdf'
-export const PROJECT_FLOOR_PLAN_MAX_SIZE = 5 * 1024 * 1024
+export const PROJECT_FLOOR_PLAN_ALLOWED_EXTENSIONS = '.jpg,.jpeg,.png,.webp,.svg,.pdf'
+export const PROJECT_FLOOR_PLAN_MAX_SIZE = 100 * 1024 * 1024
 export const PROJECT_BROCHURE_ALLOWED_TYPE = 'application/pdf'
 // Brochure max size (bytes). Default to 200MB if not configured via env.
 // Do NOT set to Infinity; infra must enforce practical limits.

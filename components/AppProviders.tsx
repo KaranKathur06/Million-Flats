@@ -5,6 +5,7 @@ import { SessionProvider, type SessionProviderProps } from "next-auth/react";
 import CountryProvider from "@/components/CountryProvider";
 import MarketProvider from "@/components/MarketProvider";
 import AuthConfigProvider from "@/components/auth/AuthConfigProvider";
+import { CurrencyProvider } from "@/components/CurrencyProvider";
 
 export default function AppProviders({
   children,
@@ -16,11 +17,13 @@ export default function AppProviders({
   return (
     <SessionProvider session={session}>
       <CountryProvider>
-        <MarketProvider>
-          <AuthConfigProvider>
-            {children}
-          </AuthConfigProvider>
-        </MarketProvider>
+        <CurrencyProvider>
+          <MarketProvider>
+            <AuthConfigProvider>
+              {children}
+            </AuthConfigProvider>
+          </MarketProvider>
+        </CurrencyProvider>
       </CountryProvider>
     </SessionProvider>
   );
