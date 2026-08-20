@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { prisma } from '@/lib/prisma'
-import { deleteFromS3, s3ObjectExists } from '@/lib/s3'
+import { buildProjectBrochureKey, deleteFromS3, s3ObjectExists } from '@/lib/s3'
 
 export const runtime = 'nodejs'
 
@@ -49,14 +49,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       )
     }
 
-    if (!s3Key.startsWith('private/projects/')) {
-      return NextResponse.json({ success: false, message: 'Invalid brochure storage key' }, { status: 400 })
-    }
-
     // Verify project exists
     const project = await (prisma as any).project.findUnique({
       where: { id: params.id },
-      select: { id: true },
+      select: { id: true, slug: true, developer: { select: { slug: true } } },
     })
 
     if (!project) {
@@ -64,6 +60,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         { success: false, message: 'Project not found' },
         { status: 404 }
       )
+    }
+
+    const brochurePrefix = buildProjectBrochureKey({
+      developerSlug: project.developer?.slug,
+      projectSlug: project.slug,
+      originalName: 'brochure.pdf',
+      contentType: 'application/pdf',
+    }).replace(/[^/]+$/, '')
+
+    if (!s3Key.startsWith(brochurePrefix)) {
+      return NextResponse.json({ success: false, message: 'Invalid brochure storage key' }, { status: 400 })
     }
 
     if (!(await s3ObjectExists({ key: s3Key }))) {

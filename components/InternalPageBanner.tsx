@@ -35,14 +35,14 @@ export default function InternalPageBanner({
 
   return (
     <section className="bg-white border-b border-gray-200">
-      <div className={`relative w-full overflow-hidden ${variant === 'ecosystem' ? 'aspect-[2/1]' : 'h-[120px] sm:h-[180px] lg:h-[220px] xl:h-[250px]'}`}>
+      <div className={`relative w-full overflow-hidden ${variant === 'ecosystem' ? 'aspect-[2560/695]' : 'h-[120px] sm:h-[180px] lg:h-[220px] xl:h-[250px]'}`}>
         {imgSrc ? (
           <Image
             src={imgSrc}
             alt={image?.alt || title}
             fill
-            className="object-contain object-center"
-            sizes="(max-width: 768px) 100vw, 1920px"
+            className="object-cover object-center"
+            sizes="100vw"
             priority
           />
         ) : null}
