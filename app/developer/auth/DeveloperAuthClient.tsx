@@ -522,7 +522,6 @@ function RegisterTab() {
           options={[
             { value: 'Divesh More', label: 'Divesh More' },
             { value: 'Paresh Dubariya', label: 'Paresh Dubariya' },
-            { value: 'Pratik Bachchhe', label: 'Pratik Bachchhe' },
             { value: 'Tarique Mansuri', label: 'Tarique Mansuri' },
             { value: 'Neelam Mamnani', label: 'Neelam Mamnani' },
             { value: 'Nitin Mohite', label: 'Nitin Mohite' },

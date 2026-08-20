@@ -14,7 +14,6 @@ describe('leadership dataset', () => {
         'Paresh Dubariya',
         'Karan Kathur',
         'Dharani Shanmugam',
-        'Pratik Bachchhe',
         'Bharat Tank',
       ])
     )

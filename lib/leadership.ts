@@ -101,15 +101,6 @@ export const leadershipSections: LeadershipSection[] = [
     title: 'Growth & Operations',
     members: [
       {
-        id: 'pratik-bachchhe',
-        name: 'Pratik Bachchhe',
-        title: 'Head of Growth & Marketing',
-        bio: 'Pratik architects the prestige and global visibility of the MillionFlats brand. Leading our growth marketing division, he connects high-intent UHNIs with our platform through targeted digital acquisition and VIP experiential events, while also driving the monetization of our exclusive B2B SaaS and developer advertising tiers.',
-        image: '/team/pratik.jpeg',
-        location: 'Global',
-        linkedinUrl: 'https://www.linkedin.com/in/pratik-bachchhe',
-      },
-      {
         id: 'bharat-tank',
         name: 'Bharat Tank',
         title: 'Head of Administration',
