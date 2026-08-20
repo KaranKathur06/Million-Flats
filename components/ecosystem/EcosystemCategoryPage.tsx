@@ -232,12 +232,12 @@ function StarPartnerBanner({
 }) {
   return (
     <div className="relative w-full">
-      <div className="group relative aspect-[2/1] w-full overflow-hidden rounded-b-[30px] border-b border-slate-300 bg-[#edf2f7] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_22px_70px_rgba(15,23,42,0.10)]">
+      <div className="group relative aspect-[2560/620] w-full overflow-hidden rounded-b-[30px] border-b border-slate-300 bg-[#edf2f7] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_22px_70px_rgba(15,23,42,0.10)]">
         {image ? (
           <img
             src={image}
             alt={imageAlt || `${categoryTitle} partner banner`}
-            className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.025]"
+            className="absolute inset-0 h-full w-full object-cover object-center"
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-[#eef3f8] to-slate-200" />
@@ -346,10 +346,10 @@ export default async function EcosystemCategoryPage({ slug, page }: EcosystemCat
   const resources = cfg.resources?.length
     ? cfg.resources
     : cfg.benefits.slice(0, 3).map((item, index) => ({
-        title: `${item.title} guide`,
-        description: item.description,
-        href: `${categoryHref(cfg.slug)}#partners${index}`,
-      }))
+      title: `${item.title} guide`,
+      description: item.description,
+      href: `${categoryHref(cfg.slug)}#partners${index}`,
+    }))
 
   return (
     <div className="min-h-screen bg-[#f7f9fb] text-slate-950">
