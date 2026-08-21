@@ -8,7 +8,7 @@ const defaultRemotePatterns = [
 const defaultDomains = ['images.unsplash.com', 'via.placeholder.com']
 
 // CloudFront CDN domain — PRIMARY asset source
-const cdnDomain = String(process.env.NEXT_PUBLIC_CDN_DOMAIN || process.env.CLOUDFRONT_DOMAIN || '').trim().replace(/^https?:\/\//, '').replace(/\/$/, '')
+const cdnDomain = String(process.env.CDN_BASE_URL || process.env.NEXT_PUBLIC_CDN_DOMAIN || process.env.CLOUDFRONT_DOMAIN || '').trim().replace(/^https?:\/\//, '').replace(/\/$/, '')
 if (cdnDomain) {
   defaultRemotePatterns.push({ protocol: 'https', hostname: cdnDomain, pathname: '/**' })
   defaultDomains.push(cdnDomain)

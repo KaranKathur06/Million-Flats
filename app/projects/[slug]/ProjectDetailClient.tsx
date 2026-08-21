@@ -215,6 +215,7 @@ export default function ProjectDetailClient({
     const [showAllAmenities, setShowAllAmenities] = useState(false)
     const [brochureDownloading, setBrochureDownloading] = useState(false)
     const [activeTab, setActiveTab] = useState<'overview' | 'amenities' | 'plans' | 'gallery' | 'location'>('overview')
+    const [heroImageFailed, setHeroImageFailed] = useState(false)
 
     const [galleryCategory, setGalleryCategory] = useState<'all' | 'exterior' | 'amenities' | 'interior' | 'lifestyle'>('all')
     const [galleryVisibleCount, setGalleryVisibleCount] = useState(8)
@@ -334,6 +335,11 @@ export default function ProjectDetailClient({
 
     const heroImage = structuredMedia?.hero || heroImageFromMedia || project.coverImage || allGalleryMedia[0]?.mediaUrl || fallbackImage
     const heroImageResolved = resolvePublicMediaUrl(heroImage)
+    const heroImageSrc = heroImageFailed ? fallbackImage : heroImageResolved
+
+    useEffect(() => {
+        setHeroImageFailed(false)
+    }, [heroImageResolved])
 
     // Featured images: from structuredMedia, from 'featured' mediaType records, or first 5 gallery images
     const featuredImages = useMemo(() => {
@@ -530,15 +536,17 @@ export default function ProjectDetailClient({
         <div className="min-h-screen bg-gray-50">
             {/* ═══ HERO SECTION ═══ */}
             <div className="relative h-[50vh] sm:h-[60vh] lg:h-[70vh] overflow-hidden bg-gray-900">
-                {heroImageResolved ? (
+                {heroImageSrc ? (
                     <Image
-                        src={heroImageResolved}
+                        src={heroImageSrc}
                         alt={project.name}
                         fill
                         priority
                         sizes="100vw"
                         className="object-cover"
                         quality={80}
+                        unoptimized={heroImageSrc.startsWith('http')}
+                        onError={() => setHeroImageFailed(true)}
                     />
                 ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900" />

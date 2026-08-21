@@ -90,7 +90,11 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         })),
         floorPlans: project.floorPlans,
         // Include minimal media for Hero Image resolution
-        media: project.media.filter((m: any) => m.mediaType === 'hero' || m.category === 'hero').slice(0, 1),
+        media: project.media.filter((m: any) => {
+            const mediaType = String(m.mediaType || '').toLowerCase()
+            const category = String(m.category || '').toLowerCase()
+            return mediaType === 'hero' || category === 'hero'
+        }).slice(0, 1),
         mediaStructured: project.mediaStructured,
         // Include basic developer info for the hero badge
         developer: project.developer ? { name: project.developer.name, slug: project.developer.slug } : null
