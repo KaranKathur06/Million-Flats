@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { buildAssetUrl } from '@/lib/assetUrl'
-import { resolveDeveloperLogo, resolveProjectImage } from '@/lib/media/resolveMedia'
+import { resolveDeveloperLogo, resolveProjectImage, resolveProjectMediaUrl } from '@/lib/media/resolveMedia'
 
 /** Shared select shape — matches GET /api/projects/[slug] (production-verified). */
 export const publicProjectDetailSelect = {
@@ -234,14 +234,22 @@ export async function getPublicProjectBySlug(rawSlug: string) {
         }
       : null
 
-    const resolvedCover = resolveProjectImage({
+    const coverReference = resolveProjectImage({
       coverImage: project.coverImage,
       media: project.media,
     })
+    const [resolvedCover, resolvedMedia] = await Promise.all([
+      resolveProjectMediaUrl(coverReference),
+      Promise.all((project.media || []).map(async (media: any) => ({
+        ...media,
+        mediaUrl: await resolveProjectMediaUrl(media.mediaUrl) || media.mediaUrl,
+      }))),
+    ])
 
     return {
       ...project,
-      coverImage: resolvedCover,
+      coverImage: resolvedCover || coverReference,
+      media: resolvedMedia,
       highlights: parseHighlights(project.highlights),
       mediaStructured: null,
       brochure,

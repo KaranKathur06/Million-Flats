@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { buildProjectMediaTypeKey, normalizeProjectImageFilename, uploadToS3Key } from '@/lib/s3'
 import { buildAssetUrl } from '@/lib/assetUrl'
+import { resolveProjectMediaUrl } from '@/lib/media/resolveMedia'
 import { PROJECT_MEDIA_CATEGORY_VALUES, projectMediaCategoryToEnum } from '@/lib/projectMediaTaxonomy'
 
 const CATEGORY_VALUES = PROJECT_MEDIA_CATEGORY_VALUES
@@ -96,15 +97,15 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
         return NextResponse.json({
           success: true,
-          media: filtered.map((m: any) => ({
+                    media: await Promise.all(filtered.map(async (m: any) => ({
             id: m.id,
-            mediaUrl: m.mediaUrl,
+                        mediaUrl: await resolveProjectMediaUrl(m.mediaUrl) || buildAssetUrl(m.mediaUrl) || m.mediaUrl,
             category: m.category?.toLowerCase() || m.mediaType,
             label: m.label,
             sortOrder: m.sortOrder,
             s3Key: m.s3Key,
             createdAt: m.createdAt,
-          })),
+                    }))),
           counts,
         })
     } catch (err: any) {
