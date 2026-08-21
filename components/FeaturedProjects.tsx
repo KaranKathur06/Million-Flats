@@ -133,6 +133,11 @@ export default function FeaturedProjects({ market }: { market: CountryCode }) {
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                           unoptimized={unoptimized}
                           loading="lazy"
+                          onError={(event) => {
+                            const image = event.currentTarget;
+                            if (image.src.endsWith("/images/default-property.jpg")) return;
+                            image.src = "/images/default-property.jpg";
+                          }}
                         />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center bg-gray-100">

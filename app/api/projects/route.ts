@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { resolveProjectMediaUrl } from '@/lib/media/resolveMedia'
 
 export const dynamic = 'force-dynamic'
 const FALLBACK_IMAGE = '/images/default-property.jpg'
@@ -81,14 +82,15 @@ export async function GET(req: Request) {
             (prisma as any).project.count({ where }),
         ])
 
-        const normalizedItems = items.map((item: any) => {
+        const normalizedItems = await Promise.all(items.map(async (item: any) => {
             const heroMedia = (item.media || []).find((m: any) => {
                 const mt = String(m?.mediaType || '').toLowerCase()
                 const cat = String(m?.category || '').toLowerCase()
                 return mt === 'hero' || cat === 'hero'
             })
             const firstMedia = (item.media || []).find((m: any) => String(m?.mediaUrl || '').trim())
-            const heroImage = heroMedia?.mediaUrl || item.coverImage || firstMedia?.mediaUrl || FALLBACK_IMAGE
+            const imageReference = heroMedia?.mediaUrl || item.coverImage || firstMedia?.mediaUrl || FALLBACK_IMAGE
+            const heroImage = await resolveProjectMediaUrl(imageReference) || imageReference
 
             const variantPrices = (item.unitTypes || [])
                 .flatMap((ut: any) => (ut.variants || []).map((v: any) => v.price))
@@ -104,7 +106,7 @@ export async function GET(req: Request) {
                 priceRange,
                 media: undefined,
             }
-        })
+        }))
 
         return NextResponse.json({
             success: true,

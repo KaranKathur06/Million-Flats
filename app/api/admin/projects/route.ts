@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { z } from 'zod'
 import { parseAEDInput } from '@/lib/pricing'
+import { resolveProjectMediaUrl } from '@/lib/media/resolveMedia'
 
 function safeString(v: unknown) {
     return typeof v === 'string' ? v.trim() : ''
@@ -175,21 +176,22 @@ export async function GET(req: Request) {
                 _count: { select: { media: true, unitTypes: true, leads: true } },
             },
         })
-        const normalizedItems = (items || []).map((item: any) => {
+        const normalizedItems = await Promise.all((items || []).map(async (item: any) => {
             const hero = (item.media || []).find((m: any) => {
                 const mt = String(m.mediaType || '').toLowerCase()
                 const cat = String(m.category || '').toLowerCase()
                 return mt === 'hero' || cat === 'hero'
             })?.mediaUrl
             const firstMedia = (item.media || []).find((m: any) => String(m.mediaUrl || '').trim())?.mediaUrl
-            const heroImage = hero || item.coverImage || firstMedia || '/images/default-property.jpg'
+            const imageReference = hero || item.coverImage || firstMedia || '/images/default-property.jpg'
+            const heroImage = await resolveProjectMediaUrl(imageReference) || imageReference
             return {
                 ...item,
                 hero_image: heroImage,
                 coverImage: heroImage,
                 media: undefined,
             }
-        })
+        }))
 
         const [total, active, archived, deleted] = await Promise.all([
             (prisma as any).project.count(),
