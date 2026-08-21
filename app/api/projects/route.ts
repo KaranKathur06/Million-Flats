@@ -12,6 +12,7 @@ export async function GET(req: Request) {
         const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '24', 10) || 24))
         const city = (searchParams.get('city') || '').trim()
         const developer = (searchParams.get('developer') || '').trim()
+        const countryIso2 = (searchParams.get('countryIso2') || '').trim().toUpperCase()
         const goldenVisa = searchParams.get('goldenVisa')
         const minPrice = parseFloat(searchParams.get('minPrice') || '') || undefined
         const maxPrice = parseFloat(searchParams.get('maxPrice') || '') || undefined
@@ -24,6 +25,7 @@ export async function GET(req: Request) {
         if (developer) {
             where.developer = { name: { contains: developer, mode: 'insensitive' } }
         }
+        if (countryIso2 === 'AE' || countryIso2 === 'IN') where.countryIso2 = countryIso2
         if (goldenVisa === 'true') where.goldenVisa = true
         if (minPrice !== undefined || maxPrice !== undefined) {
             where.startingPrice = {}

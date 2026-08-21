@@ -44,7 +44,8 @@ export default function FeaturedProjects({ market }: { market: CountryCode }) {
 
     async function fetchRandomProjects() {
       try {
-        const res = await fetch("/api/projects?featured=true&limit=8", {
+        const countryIso2 = market === "INDIA" ? "IN" : "AE";
+        const res = await fetch(`/api/projects?featured=true&limit=8&countryIso2=${countryIso2}`, {
           cache: "no-store",
         });
         if (!res.ok) throw new Error("Failed to fetch projects");
@@ -65,7 +66,7 @@ export default function FeaturedProjects({ market }: { market: CountryCode }) {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [market]);
 
   if (!loading && projects.length === 0) return null;
 
