@@ -182,4 +182,38 @@ describe('import commit orchestration', () => {
 
     expect(mockedCreateManualProperty).not.toHaveBeenCalled()
   })
+
+  it('skips a record when its source URL already exists', async () => {
+    mockedPrisma.importRequestIdempotency.findUnique.mockResolvedValue(null)
+    mockedPrisma.importBatch.findUnique.mockResolvedValue({ id: 'batch-1', status: 'READY_TO_COMMIT', mode: 'PARTIAL' })
+    mockedPrisma.importBatch.updateMany.mockResolvedValue({ count: 1 })
+    mockedPrisma.importRecord.findMany.mockResolvedValue([
+      {
+        id: 'record-2',
+        canonicalPayload: {
+          agentId: 'agent-1',
+          title: 'Existing URL Villa',
+          sourceUrl: 'https://portal.example/listing-2',
+        },
+        sourceRow: 2,
+      },
+    ])
+    mockedPrisma.$transaction.mockImplementation(async (callback: any) => callback({
+      manualProperty: {
+        findFirst: jest.fn<any>().mockResolvedValue({ id: 'property-existing-url' }),
+      },
+      importRecord: {
+        update: jest.fn<any>().mockResolvedValue({}),
+      },
+    }))
+
+    await expect(executeImport({ batchId: 'batch-1', idempotencyKey: 'user-1:url-duplicate' })).resolves.toMatchObject({
+      status: 'COMMITTED',
+      created: 0,
+      skipped: 1,
+      failed: 0,
+    })
+
+    expect(mockedCreateManualProperty).not.toHaveBeenCalled()
+  })
 })

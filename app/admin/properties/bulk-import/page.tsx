@@ -46,6 +46,7 @@ const STATUS_ICONS: Record<string, { color: string; bg: string }> = {
 
 export default function AdminPropertiesBulkImportPage() {
     const [jsonInput, setJsonInput] = useState('')
+    const [agentId, setAgentId] = useState('')
     const [parseError, setParseError] = useState('')
     const [importing, setImporting] = useState(false)
     const [response, setResponse] = useState<any>(null)
@@ -80,6 +81,11 @@ export default function AdminPropertiesBulkImportPage() {
             setParseError('JSON must contain either a "properties" array or a single "property" object')
             return
         }
+        if (!agentId.trim() && !payload.agentId && !(payload.properties || [payload.property]).every((item: any) => item?.agentId)) {
+            setParseError('Enter an existing Agent ID or include agentId on every property')
+            return
+        }
+        if (agentId.trim()) payload.agentId = agentId.trim()
 
         setImporting(true)
         try {
@@ -101,7 +107,7 @@ export default function AdminPropertiesBulkImportPage() {
         } finally {
             setImporting(false)
         }
-    }, [jsonInput])
+    }, [agentId, jsonInput])
 
     const loadDemo = useCallback(() => {
         setJsonInput(DEMO_JSON)
@@ -123,7 +129,7 @@ export default function AdminPropertiesBulkImportPage() {
                         </Link>
                     </div>
                     <h1 className="text-2xl font-bold tracking-tight text-white/95">Bulk Import Properties</h1>
-                    <p className="mt-1 text-sm text-white/40">Import multiple properties from a JSON file. Creates a system agent account if needed.</p>
+                    <p className="mt-1 text-sm text-white/40">Import multiple properties through the reviewed property pipeline.</p>
                 </div>
             </div>
 
@@ -151,6 +157,16 @@ export default function AdminPropertiesBulkImportPage() {
                             placeholder="Paste your JSON here or upload a file..."
                             className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-white/80 placeholder-white/20 font-mono outline-none focus:border-amber-400/30 focus:ring-1 focus:ring-amber-400/10 transition-all resize-none"
                         />
+
+                        <label className="mt-4 block">
+                            <span className="mb-1.5 block text-xs font-medium text-white/60">Existing Agent ID</span>
+                            <input
+                                value={agentId}
+                                onChange={e => setAgentId(e.target.value)}
+                                placeholder="Required unless every property includes agentId"
+                                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2.5 text-sm text-white/80 placeholder-white/20 outline-none focus:border-amber-400/30 focus:ring-1 focus:ring-amber-400/10 transition-all"
+                            />
+                        </label>
 
                         {parseError && (
                             <div className="mt-3 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">{parseError}</div>
@@ -185,7 +201,7 @@ export default function AdminPropertiesBulkImportPage() {
                     <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
                         <h3 className="text-sm font-semibold text-white/70 mb-3">JSON Format</h3>
                         <div className="space-y-2 text-[12px] text-white/40">
-                            <p><span className="text-amber-300/80 font-mono">systemAgentEmail</span> — Agent email for property ownership (default: admin@millionflats.com)</p>
+                            <p><span className="text-amber-300/80 font-mono">agentId</span> — Existing Agent ID used for ownership when a property does not provide one</p>
                             <p><span className="text-amber-300/80 font-mono">properties[]</span> — Array of property objects</p>
                             <div className="pl-3 border-l border-white/[0.06] mt-2 space-y-1">
                                 <p><span className="text-white/50 font-mono">title</span> — Property title (required)</p>
@@ -261,15 +277,20 @@ export default function AdminPropertiesBulkImportPage() {
                                 </div>
                             )}
 
-                            {response.success && (
+                            {response.batchId && (
                                 <div className="flex gap-3 pt-2">
-                                    <Link href="/admin/properties" className="inline-flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-400/20 transition-colors">
-                                        View All Properties
+                                    <Link href={`/admin/properties/bulk-import/${response.batchId}`} className="inline-flex items-center gap-2 rounded-xl border border-sky-400/20 bg-sky-400/10 px-4 py-2 text-xs font-semibold text-sky-300 hover:bg-sky-400/20 transition-colors">
+                                        Review Batch
                                     </Link>
-                                    <Link href="/properties" target="_blank" className="inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/60 hover:bg-white/[0.08] hover:text-white/80 transition-colors">
-                                        Preview Frontend
-                                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                                    </Link>
+                                    {response.success && <>
+                                        <Link href="/admin/properties" className="inline-flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-400/20 transition-colors">
+                                            View All Properties
+                                        </Link>
+                                        <Link href="/properties" target="_blank" className="inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/60 hover:bg-white/[0.08] hover:text-white/80 transition-colors">
+                                            Preview Frontend
+                                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                        </Link>
+                                    </>}
                                 </div>
                             )}
                         </div>

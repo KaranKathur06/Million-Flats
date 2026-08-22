@@ -31,12 +31,15 @@ export async function executeImport(input: { batchId: string; idempotencyKey: st
         if (!payload) throw new Error('Canonical payload is missing.')
 
         const committed = await (prisma as any).$transaction(async (tx: any) => {
-          if (payload.sourceProvider && payload.sourceListingId && tx.manualProperty?.findFirst) {
+          const duplicateFilters = [
+            payload.sourceProvider && payload.sourceListingId
+              ? { sourceProvider: payload.sourceProvider, sourceListingId: payload.sourceListingId }
+              : null,
+            payload.sourceUrl ? { sourceUrl: payload.sourceUrl } : null,
+          ].filter(Boolean)
+          if (duplicateFilters.length > 0 && tx.manualProperty?.findFirst) {
             const existing = await tx.manualProperty.findFirst({
-              where: {
-                sourceProvider: payload.sourceProvider,
-                sourceListingId: payload.sourceListingId,
-              },
+              where: { OR: duplicateFilters },
               select: { id: true },
             })
             if (existing) {

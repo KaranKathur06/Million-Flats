@@ -375,6 +375,8 @@ const navEntries: NavEntry[] = [
       { href: "/admin/properties", label: "All Properties" },
       { href: "/admin/properties/new", label: "Add Property" },
       { href: "/admin/properties/bulk-import", label: "Bulk Import" },
+      { href: "/admin/properties/bulk-import/history", label: "Import History" },
+      { href: "/admin/bulk-import/templates", label: "Import Templates" },
     ],
   },
   
