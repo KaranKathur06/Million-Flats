@@ -1,35 +1,39 @@
 'use client'
 
-import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { CountryFilter, EntityIdentityCell, LifecycleBadge, LifecycleTabs, ManagementEmptyState, ManagementMetricCards } from '@/components/admin/management/ManagementPrimitives'
 
 interface AgencyProfile {
   id: string
   agencyName: string | null
+  slug: string | null
+  logo: string | null
+  country: string | null
+  city: string | null
+  email: string | null
   user: { email: string; createdAt: string } | null
   onboardingStatus: string
   kycStatus: string
   profileCompletion: number
   linkedAgency: { name: string } | null
-  isVerified: boolean
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  APPROVED: 'bg-emerald-100 text-emerald-700',
-  UNDER_REVIEW: 'bg-amber-100 text-amber-700',
-  PROFILE_COMPLETED: 'bg-purple-100 text-purple-700',
-  PROFILE_INCOMPLETE: 'bg-gray-100 text-gray-600',
-  REGISTERED: 'bg-gray-100 text-gray-400',
-  REJECTED: 'bg-red-100 text-red-700',
-  SUSPENDED: 'bg-red-100 text-red-700',
+type Metrics = { total: number; active: number; inactive: number; deleted: number }
+const operationTabs = ['ALL', 'ACTIVE', 'INACTIVE', 'DELETED', 'UNDER_REVIEW', 'APPROVED', 'PROFILE_COMPLETED', 'PROFILE_INCOMPLETE', 'REJECTED', 'SUSPENDED']
+
+function buildQuery(status: string, q: string, country: string) {
+  const params = new URLSearchParams()
+  if (status !== 'ALL') params.set('status', status)
+  if (q) params.set('q', q)
+  if (country) params.set('country', country)
+  return params.toString()
 }
 
-const KYC_COLORS: Record<string, string> = {
-  VERIFIED: 'bg-emerald-100 text-emerald-700',
-  PENDING: 'bg-amber-100 text-amber-700',
-  REJECTED: 'bg-red-100 text-red-700',
-  NOT_SUBMITTED: 'bg-gray-100 text-gray-500',
+function formatDate(value?: string) {
+  if (!value) return '-'
+  return new Date(value).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 export default function AgenciesListClient({
@@ -38,318 +42,84 @@ export default function AgenciesListClient({
   status,
   page,
   q,
-  statusCounts,
+  country,
+  metrics,
 }: {
   profiles: AgencyProfile[]
   total: number
   status: string
   page: number
   q: string
+  country: string
   statusCounts: Record<string, number>
+  metrics: Metrics
 }) {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [loading, setLoading] = useState(false)
+  const [busy, setBusy] = useState(false)
   const [searchQuery, setSearchQuery] = useState(q)
-
   const limit = 25
   const totalPages = Math.ceil(total / limit)
+  const currentStatus = status || 'ALL'
 
-  const handleSelectAll = () => {
-    if (selected.size === profiles.length) {
-      setSelected(new Set())
-    } else {
-      setSelected(new Set(profiles.map(p => p.id)))
-    }
-  }
-
-  const handleToggle = (id: string) => {
-    const newSelected = new Set(selected)
-    if (newSelected.has(id)) {
-      newSelected.delete(id)
-    } else {
-      newSelected.add(id)
-    }
-    setSelected(newSelected)
+  const navigate = (nextStatus: string, nextPage = 1) => {
+    const query = buildQuery(nextStatus, searchQuery, country)
+    const pageQuery = nextPage > 1 ? `${query ? `${query}&` : ''}page=${nextPage}` : query
+    router.push(`/admin/agencies${pageQuery ? `?${pageQuery}` : ''}`)
   }
 
   const handleBulkAction = async (action: string) => {
     if (selected.size === 0) return
-    setLoading(true)
+    setBusy(true)
     try {
       const response = await fetch('/api/admin/agencies/bulk-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action,
-          agencyIds: Array.from(selected),
-        }),
+        body: JSON.stringify({ action, agencyIds: Array.from(selected) }),
       })
-      if (response.ok) {
-        setSelected(new Set())
-        router.refresh()
-      }
-    } catch (error) {
-      console.error('Bulk action failed:', error)
+      if (!response.ok) throw new Error('Agency action failed')
+      setSelected(new Set())
+      router.refresh()
     } finally {
-      setLoading(false)
+      setBusy(false)
     }
   }
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    const params = new URLSearchParams()
-    if (status) params.set('status', status)
-    if (searchQuery) params.set('q', searchQuery)
-    router.push(`/admin/agencies?${params.toString()}`)
-  }
-
-  const fmt = (d: string) =>
-    new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-
-  const STATUS_FILTERS = [
-    { value: '', label: 'All', count: Object.values(statusCounts).reduce((a: number, b) => a + (b as number), 0) },
-    { value: 'UNDER_REVIEW', label: 'Pending Approval', count: statusCounts['UNDER_REVIEW'] || 0 },
-    { value: 'APPROVED', label: 'Approved', count: statusCounts['APPROVED'] || 0 },
-    { value: 'PROFILE_COMPLETED', label: 'Profile Complete', count: statusCounts['PROFILE_COMPLETED'] || 0 },
-    { value: 'PROFILE_INCOMPLETE', label: 'Incomplete', count: statusCounts['PROFILE_INCOMPLETE'] || 0 },
-    { value: 'REJECTED', label: 'Rejected', count: statusCounts['REJECTED'] || 0 },
-    { value: 'SUSPENDED', label: 'Suspended', count: statusCounts['SUSPENDED'] || 0 },
-  ]
+  const allSelected = profiles.length > 0 && selected.size === profiles.length
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div>
+      <div className="mb-8 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Agency Management</h1>
-          <p className="text-gray-600 text-sm mt-1">
-            {total} {total === 1 ? 'profile' : 'profiles'} • {statusCounts['UNDER_REVIEW'] || 0} pending approval
-          </p>
+          <div className="mb-2 flex items-center gap-2"><span className="inline-flex h-6 items-center rounded-md bg-amber-400/10 px-2 text-[11px] font-bold uppercase tracking-wider text-amber-400">Agencies</span></div>
+          <h1 className="text-2xl font-bold tracking-tight text-white/95">Agency Management</h1>
+          <p className="mt-1 text-sm text-white/40">Lifecycle-safe management for registered agencies and approval workflows.</p>
         </div>
+        <Link href="/agency/onboarding" className="inline-flex shrink-0 items-center rounded-xl bg-amber-400/90 px-5 py-2.5 text-sm font-semibold text-black hover:bg-amber-300">Add Agency</Link>
       </div>
 
-      {/* Search Bar */}
-      <form onSubmit={handleSearch} className="mb-5 flex gap-2">
-        <div className="flex-1">
-          <input
-            type="text"
-            placeholder="Search by agency name..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors"
-        >
-          Search
-        </button>
+      <ManagementMetricCards metrics={[
+        { key: 'total', label: 'Total', value: metrics.total },
+        { key: 'active', label: 'Active', value: metrics.active, tone: 'success' },
+        { key: 'inactive', label: 'Inactive', value: metrics.inactive, tone: 'warning' },
+        { key: 'deleted', label: 'Deleted', value: metrics.deleted, tone: 'danger' },
+      ]} />
+
+      <form className="mb-5 flex flex-col gap-2 sm:flex-row" onSubmit={(event) => { event.preventDefault(); navigate(currentStatus) }}>
+        <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search agency, slug, email, or city" className="min-w-0 flex-1 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:border-amber-400/30" />
+        <button type="submit" className="rounded-xl bg-white/[0.08] px-4 py-2.5 text-sm font-semibold text-white/80 hover:bg-white/[0.12]">Search</button>
       </form>
 
-      {/* Status Tabs */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 flex-wrap">
-        {STATUS_FILTERS.map(f => (
-          <Link
-            key={f.value}
-            href={`/admin/agencies?status=${f.value}${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}`}
-            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all border ${
-              status === f.value
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400'
-            }`}
-          >
-            {f.label}
-            {f.count > 0 && (
-              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-semibold ${status === f.value ? 'bg-white/20' : 'bg-gray-100'}`}>
-                {f.count}
-              </span>
-            )}
-          </Link>
-        ))}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <LifecycleTabs value={currentStatus} options={operationTabs} onChange={(value) => navigate(value)} />
+        <CountryFilter value={country} options={['ALL COUNTRIES', 'UAE', 'INDIA']} onChange={(value) => { const query = buildQuery(currentStatus, searchQuery, value); router.push(`/admin/agencies${query ? `?${query}` : ''}`) }} />
       </div>
 
-      {/* Bulk Actions Bar */}
-      {selected.size > 0 && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
-          <span className="text-sm font-medium text-blue-900">
-            {selected.size} selected
-          </span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleBulkAction('approve')}
-              disabled={loading}
-              className="px-3 py-1 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
-            >
-              Approve
-            </button>
-            <button
-              onClick={() => handleBulkAction('reject')}
-              disabled={loading}
-              className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
-            >
-              Reject
-            </button>
-            <button
-              onClick={() => handleBulkAction('suspend')}
-              disabled={loading}
-              className="px-3 py-1 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
-            >
-              Suspend
-            </button>
-            <button
-              onClick={() => setSelected(new Set())}
-              disabled={loading}
-              className="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 disabled:opacity-50"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-      )}
+      {selected.size > 0 && <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/20 bg-amber-500/10 p-4"><span className="text-sm font-semibold text-amber-200/80">{selected.size} agency(s) selected</span><div className="flex flex-wrap gap-2"><button onClick={() => handleBulkAction('approve')} disabled={busy} className="rounded-lg border border-emerald-400/20 bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-300 disabled:opacity-50">Approve</button><button onClick={() => handleBulkAction('reject')} disabled={busy} className="rounded-lg border border-red-400/20 bg-red-500/15 px-3 py-2 text-xs font-semibold text-red-300 disabled:opacity-50">Reject</button><button onClick={() => handleBulkAction('suspend')} disabled={busy} className="rounded-lg border border-amber-400/20 bg-amber-500/15 px-3 py-2 text-xs font-semibold text-amber-300 disabled:opacity-50">Suspend</button><button onClick={() => setSelected(new Set())} disabled={busy} className="px-3 py-2 text-xs text-white/40 hover:text-white/70">Clear</button></div></div>}
 
-      {/* Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50">
-              <th className="px-4 py-3 w-6">
-                <input
-                  type="checkbox"
-                  checked={selected.size === profiles.length && profiles.length > 0}
-                  onChange={handleSelectAll}
-                  className="rounded border-gray-300"
-                />
-              </th>
-              {['Agency Name', 'Email', 'Status', 'KYC', 'Completion', 'Linked', 'Joined', 'Actions'].map(h => (
-                <th key={h} className="text-left text-xs font-semibold text-gray-600 uppercase tracking-wider px-4 py-3 whitespace-nowrap">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {profiles.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="py-12 text-center">
-                  <div className="text-gray-400">
-                    <svg className="w-12 h-12 mx-auto mb-2 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                    </svg>
-                    <p className="text-sm">No agencies found</p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              profiles.map((p: AgencyProfile) => (
-                <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(p.id)}
-                      onChange={() => handleToggle(p.id)}
-                      className="rounded border-gray-300"
-                    />
-                  </td>
-                  <td className="px-4 py-3 font-medium text-gray-900 max-w-xs truncate">
-                    {p.agencyName || <span className="text-gray-400 italic">Unnamed</span>}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{p.user?.email}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[p.onboardingStatus] || 'bg-gray-100 text-gray-500'}`}>
-                      {(p.onboardingStatus || '').replace(/_/g, ' ')}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${KYC_COLORS[p.kycStatus] || 'bg-gray-100 text-gray-500'}`}>
-                      {p.kycStatus}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 bg-gray-200 rounded-full h-1.5">
-                        <div
-                          className={`h-1.5 rounded-full ${
-                            p.profileCompletion === 100 ? 'bg-emerald-500' : p.profileCompletion >= 60 ? 'bg-blue-500' : 'bg-amber-500'
-                          }`}
-                          style={{ width: `${p.profileCompletion || 0}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-gray-600 w-8">{p.profileCompletion || 0}%</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-xs">
-                    {p.linkedAgency ? (
-                      <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
-                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        {p.linkedAgency.name}
-                      </span>
-                    ) : (
-                      <span className="text-gray-300">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{p.user?.createdAt ? fmt(p.user.createdAt) : '—'}</td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/admin/agencies/${p.id}`}
-                      className="text-xs font-semibold text-blue-600 hover:text-blue-800 whitespace-nowrap"
-                    >
-                      View Details →
-                    </Link>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-
-        {/* Pagination */}
-        {total > limit && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
-            <p className="text-xs text-gray-600">
-              Showing {(page - 1) * limit + 1}–{Math.min(page * limit, total)} of {total}
-            </p>
-            <div className="flex gap-2">
-              {page > 1 && (
-                <Link
-                  href={`/admin/agencies?status=${status}&page=${page - 1}${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}`}
-                  className="px-3 py-2 rounded-lg text-xs font-medium border border-gray-200 bg-white hover:bg-gray-100 transition-colors"
-                >
-                  ← Previous
-                </Link>
-              )}
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const pageNum = page <= 3 ? i + 1 : page + i - 2
-                  if (pageNum > totalPages) return null
-                  return (
-                    <Link
-                      key={pageNum}
-                      href={`/admin/agencies?status=${status}&page=${pageNum}${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}`}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                        pageNum === page ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 hover:bg-gray-100'
-                      }`}
-                    >
-                      {pageNum}
-                    </Link>
-                  )
-                })}
-              </div>
-              {page < totalPages && (
-                <Link
-                  href={`/admin/agencies?status=${status}&page=${page + 1}${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}`}
-                  className="px-3 py-2 rounded-lg text-xs font-medium border border-gray-200 bg-white hover:bg-gray-100 transition-colors"
-                >
-                  Next →
-                </Link>
-              )}
-            </div>
-          </div>
-        )}
+      <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+        {profiles.length === 0 ? <ManagementEmptyState title="No agencies found" detail={q || country || currentStatus !== 'ALL' ? 'No agencies match the current filters.' : 'No agencies have been registered yet.'} action={!q && !country && currentStatus === 'ALL' ? <Link href="/agency/onboarding" className="inline-flex rounded-xl bg-amber-400 px-4 py-2 text-xs font-semibold text-black">Add Agency</Link> : undefined} /> : <div className="overflow-x-auto"><table className="w-full min-w-[980px] text-sm"><thead><tr className="border-b border-white/[0.06] bg-white/[0.02]"><th className="w-10 px-4 py-3.5 text-left"><input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(profiles.map((profile) => profile.id)))} className="h-4 w-4 accent-amber-400" /></th>{['Agency', 'Email', 'Status', 'KYC', 'Completion', 'Linked', 'Joined', 'Actions'].map((heading) => <th key={heading} className="whitespace-nowrap px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-white/30">{heading}</th>)}</tr></thead><tbody>{profiles.map((profile) => <tr key={profile.id} className={`border-b border-white/[0.04] hover:bg-white/[0.02] ${selected.has(profile.id) ? 'bg-amber-400/[0.04]' : ''}`}><td className="px-4 py-3.5"><input type="checkbox" checked={selected.has(profile.id)} onChange={() => setSelected((current) => { const next = new Set(current); next.has(profile.id) ? next.delete(profile.id) : next.add(profile.id); return next })} className="h-4 w-4 accent-amber-400" /></td><td className="px-5 py-3.5"><EntityIdentityCell name={profile.agencyName || 'Unnamed Agency'} identifier={profile.slug} mediaUrl={profile.logo} fallbackLabel={profile.agencyName || 'A'} /></td><td className="px-5 py-3.5 text-white/60">{profile.user?.email || profile.email || '-'}</td><td className="px-5 py-3.5"><LifecycleBadge status={profile.onboardingStatus} /></td><td className="px-5 py-3.5"><span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${profile.kycStatus === 'VERIFIED' ? 'bg-emerald-500/15 text-emerald-300' : profile.kycStatus === 'REJECTED' ? 'bg-red-500/15 text-red-300' : 'bg-amber-500/15 text-amber-300'}`}>{profile.kycStatus || 'NOT SUBMITTED'}</span></td><td className="px-5 py-3.5"><div className="flex items-center gap-2"><div className="h-1.5 w-16 rounded-full bg-white/[0.08]"><div className={`h-1.5 rounded-full ${profile.profileCompletion >= 100 ? 'bg-emerald-400' : profile.profileCompletion >= 60 ? 'bg-blue-400' : 'bg-amber-400'}`} style={{ width: `${Math.max(0, Math.min(100, profile.profileCompletion || 0))}%` }} /></div><span className="w-8 text-xs text-white/50">{profile.profileCompletion || 0}%</span></div></td><td className="px-5 py-3.5 text-xs text-white/60">{profile.linkedAgency?.name || 'Unlinked'}</td><td className="whitespace-nowrap px-5 py-3.5 text-xs text-white/50">{formatDate(profile.user?.createdAt)}</td><td className="px-5 py-3.5"><Link href={`/admin/agencies/${profile.id}`} className="text-xs font-semibold text-blue-300 hover:text-blue-200">View</Link></td></tr>)}</tbody></table></div>}
+        {totalPages > 1 && <div className="flex items-center justify-between border-t border-white/[0.06] px-5 py-3 text-xs text-white/40"><span>Showing {(page - 1) * limit + 1}-{Math.min(page * limit, total)} of {total}</span><div className="flex gap-2"><button disabled={page <= 1} onClick={() => navigate(currentStatus, page - 1)} className="rounded-lg border border-white/[0.08] px-3 py-1.5 disabled:opacity-30">Previous</button><button disabled={page >= totalPages} onClick={() => navigate(currentStatus, page + 1)} className="rounded-lg border border-white/[0.08] px-3 py-1.5 disabled:opacity-30">Next</button></div></div>}
       </div>
     </div>
   )

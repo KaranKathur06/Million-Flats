@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
+import { buildAssetUrl } from '@/lib/assetUrl'
 
 function slugify(text: string) {
   return text
@@ -94,7 +95,14 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       return NextResponse.json({ success: false, message: 'Developer not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ success: true, developer })
+    return NextResponse.json({
+      success: true,
+      developer: {
+        ...developer,
+        logo: buildAssetUrl(developer.logo),
+        banner: buildAssetUrl(developer.banner),
+      },
+    })
   } catch (err: any) {
     console.error('[GET /api/admin/developers/:id]', err)
     return NextResponse.json({ success: false, message: 'Internal error' }, { status: 500 })

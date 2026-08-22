@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { CountryFilter, EntityIdentityCell, LifecycleBadge, LifecycleTabs, ManagementEmptyState, ManagementMetricCards } from '@/components/admin/management/ManagementPrimitives'
 
 type FilterTab = 'ALL' | 'ACTIVE' | 'INACTIVE' | 'DELETED'
 
@@ -463,48 +464,16 @@ export default function AdminDevelopersPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        {[
-          { key: 'total', label: 'Total', value: counts.total, color: 'text-white/80' },
-          { key: 'active', label: 'Active', value: counts.active, color: 'text-emerald-400' },
-          { key: 'inactive', label: 'Inactive', value: counts.inactive, color: 'text-amber-300' },
-          { key: 'deleted', label: 'Deleted', value: counts.deleted, color: 'text-red-400' },
-        ].map((stat) => (
-          <div key={stat.key} className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-            <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-            <p className="text-[11px] text-white/30 mt-0.5">{stat.label}</p>
-          </div>
-        ))}
-      </div>
+      <ManagementMetricCards metrics={[
+        { key: 'total', label: 'Total', value: counts.total },
+        { key: 'active', label: 'Active', value: counts.active, tone: 'success' },
+        { key: 'inactive', label: 'Inactive', value: counts.inactive, tone: 'warning' },
+        { key: 'deleted', label: 'Deleted', value: counts.deleted, tone: 'danger' },
+      ]} />
 
       <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
-        <div className="flex gap-1 rounded-xl border border-white/[0.06] bg-white/[0.02] p-1">
-          {(['ALL', 'ACTIVE', 'INACTIVE', 'DELETED'] as FilterTab[]).map((value) => (
-            <button
-              key={value}
-              onClick={() => setTab(value)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                tab === value ? 'bg-white/[0.10] text-white/90' : 'text-white/35 hover:text-white/60'
-              }`}
-            >
-              {value}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex gap-1 rounded-xl border border-white/[0.06] bg-white/[0.02] p-1">
-          {['', 'UAE', 'INDIA'].map((value) => (
-            <button
-              key={value || 'ALL_COUNTRIES'}
-              onClick={() => setCountry(value)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                country === value ? 'bg-white/[0.10] text-white/90' : 'text-white/35 hover:text-white/60'
-              }`}
-            >
-              {value || 'ALL COUNTRIES'}
-            </button>
-          ))}
-        </div>
+        <LifecycleTabs value={tab} options={['ALL', 'ACTIVE', 'INACTIVE', 'DELETED']} onChange={(value) => setTab(value as FilterTab)} />
+        <CountryFilter value={country} options={['ALL COUNTRIES', 'UAE', 'INDIA']} onChange={setCountry} />
       </div>
 
       {selectedDevelopers.length > 0 && (
@@ -584,34 +553,12 @@ export default function AdminDevelopersPage() {
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        {dev.logo ? (
-                          <img
-                            src={dev.logo}
-                            alt={dev.name}
-                            className="h-9 w-9 rounded-lg object-cover border border-white/10 bg-white p-0.5 shrink-0"
-                          />
-                        ) : (
-                          <div className="h-9 w-9 rounded-lg bg-white/[0.06] flex items-center justify-center text-xs font-bold text-white/30 shrink-0">
-                            {dev.name.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="font-medium text-white/90 truncate">{dev.name}</p>
-                          <p className="text-[11px] text-white/30 font-mono">{dev.slug || '-'}</p>
-                        </div>
+                        <EntityIdentityCell name={dev.name} identifier={dev.slug} mediaUrl={dev.logo} fallbackLabel={dev.name} />
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-white/60">{dev.countryCode}</td>
                     <td className="px-5 py-3.5">
-                      {dev.isDeleted ? (
-                        <span className="inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-500/15 text-red-300">DELETED</span>
-                      ) : (
-                        <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold ${
-                          dev.status === 'ACTIVE' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300'
-                        }`}>
-                          {dev.status}
-                        </span>
-                      )}
+                      <LifecycleBadge status={dev.status} deleted={dev.isDeleted} />
                     </td>
                     <td className="px-5 py-3.5 text-center text-white/60">{dev._count.projects}</td>
                     <td className="px-5 py-3.5">
@@ -641,6 +588,16 @@ export default function AdminDevelopersPage() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {!loading && !error && developers.length === 0 && (
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+          <ManagementEmptyState
+            title="No developers found"
+            detail={country || tab !== 'ALL' ? 'No developers match the current filters.' : 'No developers have been registered yet.'}
+            action={tab === 'ALL' && !country ? <Link href="/admin/developers/new" className="inline-flex rounded-xl bg-amber-400 px-4 py-2 text-xs font-semibold text-black">Add Developer</Link> : undefined}
+          />
         </div>
       )}
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
+import { buildAssetUrl } from '@/lib/assetUrl'
 import { z } from 'zod'
 
 function slugify(text: string) {
@@ -201,7 +202,13 @@ export async function GET(req: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, items, counts })
+    const normalizedItems = items.map((item) => ({
+      ...item,
+      logo: buildAssetUrl(item.logo),
+      banner: buildAssetUrl(item.banner),
+    }))
+
+    return NextResponse.json({ success: true, items: normalizedItems, counts })
   } catch (err: any) {
     console.error('[GET /api/admin/developers]', err)
     return NextResponse.json({ success: false, message: 'Internal error' }, { status: 500 })
