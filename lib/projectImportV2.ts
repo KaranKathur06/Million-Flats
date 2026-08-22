@@ -441,17 +441,16 @@ export function buildCanonicalProjectCreatePayload(payload: unknown): any[] {
         sourceRef: project.sourceRef || sourceProject.sourceUrl || null,
       }
 
-      // CRITICAL: Remove editorial fields to prevent scrapers/imports from overwriting admin-set priorities
-      const safeProject = removeEditorialFields(canonicalProject)
-      
-      // Log if any editorial fields were unexpectedly present (for audit trail)
+      // For creation-time canonical payloads, keep explicit featured metadata so
+      // imports can set the initial state accurately without destroying admin
+      // intent. Only update flows should strip editorial fields.
       const editorialAttempted = getEditorialFields(canonicalProject)
       if (Object.keys(editorialAttempted).length > 0) {
         console.warn(
-          `[projectImportV2] Stripped editorial fields from project "${project.name}": ${Object.keys(editorialAttempted).join(', ')}`
+          `[projectImportV2] Preserved editorial fields on create payload for project "${project.name}": ${Object.keys(editorialAttempted).join(', ')}`
         )
       }
 
-      return safeProject
+      return canonicalProject
     })
 }

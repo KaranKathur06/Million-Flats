@@ -13,6 +13,11 @@ describe('S3 key extraction', () => {
     expect(extractS3KeyFromUrl(url)).toBe('private/agents/agent-1/documents/PAN/file.pdf')
   })
 
+  it('strips query parameters from signed URLs', () => {
+    const url = 'https://my-bucket.s3.us-east-1.amazonaws.com/private/agents/agent-1/documents/PAN/file.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=abc123'
+    expect(extractS3KeyFromUrl(url)).toBe('private/agents/agent-1/documents/PAN/file.pdf')
+  })
+
   it('returns null for external URLs', () => {
     expect(extractS3KeyFromUrl('https://example.com/other/path')).toBeNull()
   })

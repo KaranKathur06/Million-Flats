@@ -1062,6 +1062,7 @@ model ManualProperty {
   media ManualPropertyMedia[]
   duplicateOverrideLogs ManualDuplicateOverrideLog[]
   moderationLogs ManualPropertyModerationLog[]
+  importRecords ImportRecord[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -4190,6 +4191,229 @@ model AgentAIIntelligence {
   @@index([fraudRiskScore])
   @@index([computedAt])
   @@map("agent_ai_intelligence")
+}
+
+enum ImportEntityType {
+  PROPERTY
+}
+
+enum ImportOperation {
+  CREATE
+  UPDATE
+  UPSERT
+}
+
+enum ImportMode {
+  STRICT
+  PARTIAL
+}
+
+enum ImportBatchStatus {
+  UPLOADED
+  ANALYZING
+  READY_FOR_REVIEW
+  MAPPING_REVIEW
+  NORMALIZING
+  VALIDATING
+  DUPLICATE_REVIEW
+  READY_TO_COMMIT
+  COMMITTING
+  COMMITTED
+  PARTIALLY_COMMITTED
+  FAILED
+  RETRYING
+  CANCELLED
+}
+
+enum ImportRecordStatus {
+  DISCOVERED
+  NORMALIZED
+  READY
+  WARNING
+  ERROR
+  DUPLICATE_REVIEW
+  STAGED
+  COMMITTED
+  SKIPPED
+}
+
+enum ImportIssueSeverity {
+  WARNING
+  ERROR
+}
+
+enum ImportIssueResolutionState {
+  OPEN
+  RESOLVED
+  IGNORED
+}
+
+enum ImportMappingStatus {
+  ACCEPTED
+  REVIEW
+  IGNORED
+}
+
+model ImportBatch {
+  id                  String            @id @default(cuid())
+  entityType          ImportEntityType
+  operation           ImportOperation
+  mode                ImportMode
+  status              ImportBatchStatus @default(UPLOADED)
+  originalFileName    String            @map("original_file_name")
+  format              String
+  mimeType            String            @map("mime_type")
+  byteSize            Int               @map("byte_size")
+  checksum            String            @db.VarChar(128)
+  sourceProvider      String?           @map("source_provider")
+  sourceProfileKey    String?           @map("source_profile_key")
+  adapterVersion      Int               @map("adapter_version")
+  mappingVersion      Int               @default(1) @map("mapping_version")
+  uploadedByUserId    String            @map("uploaded_by_user_id")
+  uploadedAt          DateTime          @default(now()) @map("uploaded_at")
+  startedAt           DateTime?         @map("started_at")
+  completedAt         DateTime?         @map("completed_at")
+  cancelledAt         DateTime?         @map("cancelled_at")
+  cancelledByUserId   String?           @map("cancelled_by_user_id")
+  totalRecords        Int               @default(0) @map("total_records")
+  readyCount          Int               @default(0) @map("ready_count")
+  warningCount        Int               @default(0) @map("warning_count")
+  errorCount          Int               @default(0) @map("error_count")
+  duplicateCount      Int               @default(0) @map("duplicate_count")
+  createdCount        Int               @default(0) @map("created_count")
+  updatedCount        Int               @default(0) @map("updated_count")
+  skippedCount        Int               @default(0) @map("skipped_count")
+  failedCount         Int               @default(0) @map("failed_count")
+  failureSummary      Json?             @map("failure_summary")
+  sourceFileReference String?           @map("source_file_reference")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  records       ImportRecord[]
+  mappings      ImportMapping[]
+  issues        ImportIssue[]
+  idempotencies ImportRequestIdempotency[]
+
+  @@index([status, createdAt])
+  @@index([entityType, sourceProvider])
+  @@index([uploadedByUserId])
+  @@map("import_batches")
+}
+
+model ImportRecord {
+  id                  String             @id @default(uuid())
+  batchId             String             @map("batch_id")
+  sourceRecordId      String             @map("source_record_id")
+  sourceRow           Int?               @map("source_row")
+  sourcePath          String?            @map("source_path")
+  rawPayload          Json?              @map("raw_payload")
+  rawPayloadReference String?            @map("raw_payload_reference")
+  normalizedPayload   Json?              @map("normalized_payload")
+  canonicalPayload    Json?              @map("canonical_payload")
+  mappingVersion      Int                @default(1) @map("mapping_version")
+  overallConfidence   Float?             @map("overall_confidence")
+  status              ImportRecordStatus @default(DISCOVERED)
+  targetEntityType    ImportEntityType?  @map("target_entity_type")
+  targetEntityId      String?            @map("target_entity_id")
+  manualPropertyId    String?            @map("manual_property_id")
+  sourceProvider      String?            @map("source_provider")
+  sourceUrl           String?            @map("source_url")
+  sourceListingId     String?            @map("source_listing_id")
+  ownershipPolicy     String?            @map("ownership_policy")
+  duplicateClass      String?            @map("duplicate_class")
+  duplicateMetadata   Json?              @map("duplicate_metadata")
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+
+  batch         ImportBatch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  manualProperty ManualProperty? @relation(fields: [manualPropertyId], references: [id], onDelete: SetNull)
+  issues        ImportIssue[]
+
+  @@unique([batchId, sourceRecordId])
+  @@index([batchId, status])
+  @@index([targetEntityType, targetEntityId])
+  @@index([manualPropertyId])
+  @@index([sourceProvider, sourceListingId])
+  @@map("import_records")
+}
+
+model ImportMapping {
+  id               String              @id @default(uuid())
+  batchId          String              @map("batch_id")
+  sourcePath       String              @map("source_path")
+  canonicalField   String              @map("canonical_field")
+  status           ImportMappingStatus @default(REVIEW)
+  confidence       Float?
+  transformVersion String?             @map("transform_version")
+  mappingVersion   Int                 @default(1) @map("mapping_version")
+  snapshot         Json?
+  reviewedByUserId String?             @map("reviewed_by_user_id")
+  reviewedAt       DateTime?           @map("reviewed_at")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+
+  batch ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([batchId, mappingVersion])
+  @@index([batchId, status])
+  @@map("import_mappings")
+}
+
+model ImportIssue {
+  id               String                    @id @default(uuid())
+  batchId          String                    @map("batch_id")
+  recordId         String?                   @map("record_id")
+  stage            String
+  severity         ImportIssueSeverity
+  code             String
+  sourcePath       String?                   @map("source_path")
+  message          String                    @db.Text
+  suggestedAction  String?                   @map("suggested_action") @db.Text
+  resolutionState  ImportIssueResolutionState @default(OPEN) @map("resolution_state")
+  resolvedByUserId String?                   @map("resolved_by_user_id")
+  resolvedAt       DateTime?                 @map("resolved_at")
+  resolutionNote   String?                   @map("resolution_note") @db.Text
+  createdAt        DateTime                  @default(now()) @map("created_at")
+  updatedAt        DateTime                  @updatedAt @map("updated_at")
+
+  batch  ImportBatch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  record ImportRecord? @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@index([batchId, severity, resolutionState])
+  @@index([recordId])
+  @@map("import_issues")
+}
+
+model ImportSourceProfile {
+  id             String           @id @default(cuid())
+  sourceKey      String           @map("source_key")
+  entityType     ImportEntityType @map("entity_type")
+  version        Int
+  mapping        Json
+  normalization  Json?
+  relationRules  Json?            @map("relation_rules")
+  isActive       Boolean          @default(true) @map("is_active")
+  createdByUserId String?          @map("created_by_user_id")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  @@unique([sourceKey, entityType, version])
+  @@index([sourceKey, entityType, isActive])
+  @@map("import_source_profiles")
+}
+
+model ImportRequestIdempotency {
+  id             String   @id @default(uuid())
+  batchId        String   @map("batch_id")
+  idempotencyKey String   @map("idempotency_key")
+  response       Json?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  batch ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, idempotencyKey])
+  @@index([createdAt])
+  @@map("import_request_idempotency")
 }
 
 

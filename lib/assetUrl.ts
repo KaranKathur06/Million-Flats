@@ -23,18 +23,18 @@ let _cdnBaseUrl: string | undefined
 /**
  * Get the CDN base URL from environment.
  * Priority: CDN_BASE_URL → CLOUDFRONT_DOMAIN → NEXT_PUBLIC_CDN_DOMAIN
+ *
+ * Important: the value is not cached across env changes because tests and
+ * runtime configuration may set env vars after the module has loaded.
  */
 function getCdnBaseUrl(): string {
-  if (_cdnBaseUrl !== undefined) return _cdnBaseUrl
-
-  // Prefer explicit CDN_BASE_URL (e.g. "https://cdn.millionflats.com")
   const explicit = String(process.env.CDN_BASE_URL || '').trim()
   if (explicit) {
-    _cdnBaseUrl = explicit.replace(/\/+$/, '')
-    return _cdnBaseUrl
+    const normalized = explicit.replace(/\/+$/, '')
+    _cdnBaseUrl = normalized
+    return normalized
   }
 
-  // Fallback: build from domain env vars
   const domain = String(
     process.env.CLOUDFRONT_DOMAIN || process.env.NEXT_PUBLIC_CDN_DOMAIN || ''
   )
@@ -43,14 +43,15 @@ function getCdnBaseUrl(): string {
     .replace(/\/+$/, '')
 
   if (domain) {
-    _cdnBaseUrl = `https://${domain}`
-    return _cdnBaseUrl
+    const normalized = `https://${domain}`
+    _cdnBaseUrl = normalized
+    return normalized
   }
 
   // No CDN configured — empty string (will return paths as-is)
   console.warn('[assetUrl] No CDN_BASE_URL or CLOUDFRONT_DOMAIN configured')
   _cdnBaseUrl = ''
-  return _cdnBaseUrl
+  return ''
 }
 
 // ─── S3 URL Stripping ───────────────────────────────────────────────────────
@@ -69,7 +70,7 @@ const S3_PREFIXES = [
  * If the input is already a relative key, returns it unchanged.
  */
 function stripS3Prefix(input: string): string {
-  const trimmed = input.trim()
+  const trimmed = input.trim().split(/[?#]/)[0] || ''
 
   for (const pattern of S3_PREFIXES) {
     if (pattern.test(trimmed)) {
@@ -167,7 +168,7 @@ export function extractRelativeKey(
   if (!trimmed) return null
 
   // Strip S3 prefix if present
-  const withoutS3 = stripS3Prefix(trimmed)
+  const withoutS3 = stripS3Prefix(trimmed).split(/[?#]/)[0] || ''
 
   // Strip CDN prefix if present
   const cdnBase = getCdnBaseUrl()
