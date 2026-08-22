@@ -67,6 +67,26 @@ const navEntries: NavEntry[] = [
     ),
   },
 
+  {
+    href: "/admin/bulk-import",
+    label: "Bulk Import",
+    icon: (
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.8}
+          d="M12 16V4m0 0L8 8m4-4l4 4M5 12v6a2 2 0 002 2h10a2 2 0 002-2v-6"
+        />
+      </svg>
+    ),
+  },
+
   /* ---- GOVERNANCE SECTION ---- */
   {
     href: "/admin/governance",
@@ -374,9 +394,6 @@ const navEntries: NavEntry[] = [
     children: [
       { href: "/admin/properties", label: "All Properties" },
       { href: "/admin/properties/new", label: "Add Property" },
-      { href: "/admin/properties/bulk-import", label: "Bulk Import" },
-      { href: "/admin/properties/bulk-import/history", label: "Import History" },
-      { href: "/admin/bulk-import/templates", label: "Import Templates" },
     ],
   },
   
