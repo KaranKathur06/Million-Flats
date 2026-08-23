@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import AgentDashboardClient from './AgentDashboardClient'
 import { resolveAgentStatus } from '@/lib/agentLifecycle'
+import { buildAssetUrl } from '@/lib/assetUrl'
 
 function slugify(input: string) {
   return input
@@ -99,7 +100,7 @@ export default async function AgentDashboardPage() {
       return null
     })
 
-  const profileStatus = String((agentRow as any)?.profileStatus || (agent as any)?.profileStatus || 'DRAFT').toUpperCase()
+  const profileStatus = agentStatus
   // Removed: hard redirect for non-LIVE agents — dashboard now shows onboarding progress tracker instead
 
   const hasPhoto = Boolean(String((agentRow as any)?.profileImageUrl || (agentRow as any)?.profilePhoto || '').trim())
@@ -281,6 +282,7 @@ export default async function AgentDashboardPage() {
   return (
     <AgentDashboardClient
       agentName={name}
+      profileImageUrl={buildAssetUrl(String((agentRow as any)?.profileImageUrl || (agentRow as any)?.profilePhoto || '')) || undefined}
       company={agent.company || ''}
       license={agent.license || ''}
       approved={Boolean(agent.approved)}
@@ -299,7 +301,7 @@ export default async function AgentDashboardPage() {
         license: String(agentRow?.license || agent.license || ''),
         phone: String(dbUser.phone || ''),
         bio: String((agentRow as any)?.bio || ''),
-        photo: String((agentRow as any)?.profilePhoto || ''),
+        photo: String((agentRow as any)?.profileImageUrl || (agentRow as any)?.profilePhoto || ''),
         profileCompletion: Math.max(0, Math.min(100, Math.round(completion))),
       }}
       draftListings={Array.isArray(draftListings) ? draftListings : []}

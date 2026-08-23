@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { buildAssetUrl } from '@/lib/assetUrl'
+import { resolveAgentStatus } from '@/lib/agentLifecycle'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -33,6 +35,9 @@ export async function GET() {
           select: {
             id: true,
             status: true,
+            approved: true,
+            profileStatus: true,
+            verificationStatus: true,
             company: true,
             license: true,
             bio: true,
@@ -57,6 +62,12 @@ export async function GET() {
     const license = String(agent?.license || '').trim()
     const bio = String(agent?.bio || '').trim()
     const photo = String(agent?.profileImageUrl || agent?.profilePhoto || '').trim()
+    const resolvedStatus = resolveAgentStatus({
+      status: agent.status,
+      approved: agent.approved,
+      profileStatus: agent.profileStatus,
+      verificationStatus: agent.verificationStatus,
+    })
 
     const checks = [
       Boolean(name),
@@ -70,9 +81,9 @@ export async function GET() {
     const computedProfileCompletion = Math.round((completed / checks.length) * 100)
 
     return NextResponse.json({
-      status: agent.status || 'REGISTERED',
+      status: resolvedStatus,
       profileCompletion: computedProfileCompletion,
-      profileImageUrl: agent.profileImageUrl || agent.profilePhoto || null,
+      profileImageUrl: buildAssetUrl(photo),
     })
   } catch (error) {
     console.error('Error fetching agent profile data:', error)

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import AgentProfileClient from './AgentProfileClient'
 import { resolveAgentStatus } from '@/lib/agentLifecycle'
+import { buildAssetUrl } from '@/lib/assetUrl'
 
 export default async function AgentProfilePage() {
   const session = await getServerSession(authOptions)
@@ -53,7 +54,7 @@ export default async function AgentProfilePage() {
       initialName={user.name || ''}
       email={user.email}
       initialPhone={user.phone || ''}
-      initialImage={String((agentRow as any)?.profileImageUrl || (agentRow as any)?.profilePhoto || '')}
+      initialImage={buildAssetUrl(String((agentRow as any)?.profileImageUrl || (agentRow as any)?.profilePhoto || '')) || ''}
       initialImageUpdatedAt={String((agentRow as any)?.profileImageUpdatedAt || '')}
       initialCompany={user.agent?.company || ''}
       initialLicense={user.agent?.license || ''}

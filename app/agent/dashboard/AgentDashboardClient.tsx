@@ -90,6 +90,7 @@ function StatCard({ label, value, icon, locked }: { label: string; value: string
 /* ─── Main Component ─────────────────────────────────── */
 export default function AgentDashboardClient({
   agentName,
+  profileImageUrl,
   company,
   license,
   approved,
@@ -104,6 +105,7 @@ export default function AgentDashboardClient({
   leads,
 }: {
   agentName: string
+  profileImageUrl?: string
   company: string
   license: string
   approved: boolean
@@ -221,7 +223,12 @@ export default function AgentDashboardClient({
             <div className="flex items-center gap-4">
               <div className="relative flex-shrink-0">
                 <div className="w-14 h-14 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center backdrop-blur-sm">
-                  <span className="text-lg font-bold text-white">{initials}</span>
+                  {profileImageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={profileImageUrl} alt="Profile" className="h-full w-full rounded-2xl object-cover" />
+                  ) : (
+                    <span className="text-lg font-bold text-white">{initials}</span>
+                  )}
                 </div>
                 <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-[#1e3a5f] ${
                   isLive ? 'bg-emerald-400' : isSubmitted ? 'bg-amber-400' : 'bg-gray-400'
