@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-export type AgentProfileStatus = 'DRAFT' | 'SUBMITTED' | 'VERIFIED' | 'LIVE' | 'SUSPENDED'
+export type AgentProfileStatus = 'DRAFT' | 'SUBMITTED' | 'VERIFIED' | 'APPROVED' | 'LIVE' | 'SUSPENDED'
 
 function normalizePhone(v: string) {
   return (v || '').replace(/[^0-9+]/g, '').trim()
@@ -11,7 +11,7 @@ function normalizePhone(v: string) {
 
 function asStatus(v: unknown): AgentProfileStatus {
   const s = String(v || 'DRAFT').toUpperCase()
-  if (s === 'SUBMITTED' || s === 'VERIFIED' || s === 'LIVE' || s === 'SUSPENDED') return s
+  if (s === 'SUBMITTED' || s === 'VERIFIED' || s === 'APPROVED' || s === 'LIVE' || s === 'SUSPENDED') return s
   return 'DRAFT'
 }
 
@@ -21,7 +21,9 @@ export function ProfileStatusBadge({ status }: { status: AgentProfileStatus | st
   const styles =
     s === 'LIVE'
       ? 'bg-green-50 text-green-800 border-green-200'
-      : s === 'VERIFIED'
+      : s === 'APPROVED'
+        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+        : s === 'VERIFIED'
         ? 'bg-blue-50 text-blue-800 border-blue-200'
         : s === 'SUBMITTED'
           ? 'bg-amber-50 text-amber-800 border-amber-200'
@@ -32,7 +34,9 @@ export function ProfileStatusBadge({ status }: { status: AgentProfileStatus | st
   const label =
     s === 'DRAFT'
       ? 'Draft'
-      : s === 'SUBMITTED'
+      : s === 'APPROVED'
+        ? 'Approved'
+        : s === 'SUBMITTED'
         ? 'Submitted'
         : s === 'VERIFIED'
           ? 'Verified'

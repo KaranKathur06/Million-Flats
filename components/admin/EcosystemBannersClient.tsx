@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useAdminAction } from '@/components/admin/AdminActionProvider'
 
 type Banner = {
   id: string
@@ -72,6 +73,7 @@ function putWithProgress(url: string, file: File, onProgress: (value: number) =>
 }
 
 export default function EcosystemBannersClient() {
+  const { runAction } = useAdminAction()
   const [categories, setCategories] = useState<Category[]>([])
   const [stats, setStats] = useState({ categories: 0, configured: 0, missing: 0, recentlyUpdated: 0, lastUpdated: null as string | null })
   const [loading, setLoading] = useState(true)
@@ -169,14 +171,24 @@ export default function EcosystemBannersClient() {
   }
 
   const remove = async (category: Category) => {
-    if (!category.banner || !window.confirm(`Remove the current banner for ${category.title}? The category page will use the default ecosystem banner.`)) return
+    if (!category.banner) return
     setBusy(true); setError('')
-    try {
-      const response = await fetch(`/api/admin/ecosystem-banners/${category.banner.id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ version: category.banner.version }) })
-      const json = await response.json()
-      if (!response.ok || !json.success) throw new Error(json.message || 'Failed to remove banner')
-      await load()
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Failed to remove banner') } finally { setBusy(false) }
+    await runAction({
+      title: `Remove the banner for ${category.title}?`,
+      description: 'The category page will use the default ecosystem banner after removal.',
+      confirmLabel: 'Remove Banner',
+      variant: 'danger',
+      loadingTitle: 'Removing Banner',
+      successTitle: 'Banner Removed',
+      errorMessage: 'Unable to remove this ecosystem banner.',
+      mutation: async () => {
+        const response = await fetch(`/api/admin/ecosystem-banners/${category.banner!.id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ version: category.banner!.version }) })
+        const json = await response.json()
+        if (!response.ok || !json.success) throw new Error(json.message || 'Failed to remove banner')
+      },
+      onSuccess: load,
+    })
+    setBusy(false)
   }
 
   const visible = [...categories].sort((a, b) => sort === 'updated' ? new Date(b.banner?.updatedAt || 0).getTime() - new Date(a.banner?.updatedAt || 0).getTime() : sort === 'missing' ? Number(a.configured) - Number(b.configured) : a.title.localeCompare(b.title))

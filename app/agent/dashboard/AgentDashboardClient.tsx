@@ -151,8 +151,9 @@ export default function AgentDashboardClient({
 
   const profileReady = missingRequirements.length === 0
   const pStatusNorm = String(profileStatus).toUpperCase()
-  const isLive = pStatusNorm === 'LIVE'
-  const isSubmitted = pStatusNorm === 'SUBMITTED' || pStatusNorm === 'VERIFIED'
+  const isApproved = agentStatus === 'APPROVED' || approved
+  const isLive = isApproved || pStatusNorm === 'LIVE'
+  const isSubmitted = isApproved || pStatusNorm === 'SUBMITTED' || pStatusNorm === 'VERIFIED'
 
   /* Onboarding steps */
   const onboardingSteps = [

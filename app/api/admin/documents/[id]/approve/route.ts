@@ -34,11 +34,11 @@ async function checkAndUpdateAgentStatus(agentId: string) {
         // Get current agent status
         const agent = await (prisma as any).agent.findFirst({
             where: { id: agentId },
-            select: { status: true },
+            select: { status: true, approved: true },
         })
 
         // Only advance if not already UNDER_REVIEW or APPROVED
-        if (agent && agent.status !== 'UNDER_REVIEW' && agent.status !== 'APPROVED') {
+        if (agent && !agent.approved && agent.status !== 'UNDER_REVIEW' && agent.status !== 'APPROVED') {
             await (prisma as any).agent.update({
                 where: { id: agentId },
                 data: { status: 'UNDER_REVIEW' },

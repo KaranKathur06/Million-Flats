@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAdminCapabilities } from '@/lib/adminCapabilities'
 import type { AppRole } from '@/lib/rbac'
+import { useAdminAction } from '@/components/admin/AdminActionProvider'
 
 type ListingItem = {
   id: string
@@ -45,6 +46,7 @@ export default function AdminListingsTableClient({
   currentRole: AppRole
 }) {
   const router = useRouter()
+  const { runAction } = useAdminAction()
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
 
@@ -187,9 +189,18 @@ export default function AdminListingsTableClient({
                   title={rejectReason}
                   onClick={() =>
                     doAction(it.id, async () => {
-                      const reason = window.prompt('Rejection reason (visible to agent):') || ''
-                      if (reason.trim().length < 3) throw new Error('Rejection reason is required.')
-                      await postJson(`/api/admin/listings/${encodeURIComponent(it.id)}/reject`, { reason })
+                      let reason = ''
+                      await runAction({
+                        title: 'Reject this listing?',
+                        description: 'Provide a reason so the agent understands why the listing was rejected.',
+                        confirmLabel: 'Reject Listing',
+                        variant: 'danger',
+                        input: { label: 'Rejection reason', placeholder: 'Enter at least 3 characters.', required: true, onChange: (value) => { reason = value } },
+                        loadingTitle: 'Rejecting Listing',
+                        successTitle: 'Listing Rejected',
+                        errorMessage: 'Unable to reject this listing.',
+                        mutation: () => postJson(`/api/admin/listings/${encodeURIComponent(it.id)}/reject`, { reason: reason.trim() }),
+                      })
                     })
                   }
                   className={`h-9 rounded-lg px-3 text-xs font-semibold ${
@@ -366,9 +377,18 @@ export default function AdminListingsTableClient({
                         title={rejectReason}
                         onClick={() =>
                           doAction(it.id, async () => {
-                            const reason = window.prompt('Rejection reason (visible to agent):') || ''
-                            if (reason.trim().length < 3) throw new Error('Rejection reason is required.')
-                            await postJson(`/api/admin/listings/${encodeURIComponent(it.id)}/reject`, { reason })
+                            let reason = ''
+                            await runAction({
+                              title: 'Reject this listing?',
+                              description: 'Provide a reason so the agent understands why the listing was rejected.',
+                              confirmLabel: 'Reject Listing',
+                              variant: 'danger',
+                              input: { label: 'Rejection reason', placeholder: 'Enter at least 3 characters.', required: true, onChange: (value) => { reason = value } },
+                              loadingTitle: 'Rejecting Listing',
+                              successTitle: 'Listing Rejected',
+                              errorMessage: 'Unable to reject this listing.',
+                              mutation: () => postJson(`/api/admin/listings/${encodeURIComponent(it.id)}/reject`, { reason: reason.trim() }),
+                            })
                           })
                         }
                         className={`h-9 rounded-lg px-3 text-xs font-semibold ${

@@ -71,7 +71,7 @@ function normalizePhone(v: string) {
 
 function asProfileStatus(v: unknown) {
   const s = String(v || 'DRAFT').toUpperCase()
-  if (['SUBMITTED', 'VERIFIED', 'LIVE', 'SUSPENDED', 'DRAFT'].includes(s)) return s
+  if (['SUBMITTED', 'VERIFIED', 'APPROVED', 'LIVE', 'SUSPENDED', 'DRAFT'].includes(s)) return s
   return 'DRAFT'
 }
 
@@ -221,7 +221,7 @@ export default function AgentVerificationCenter({
   )
 
   const canSubmit = pStatus === 'DRAFT' && profileRequirements.ready && requiredDocsUploaded
-  const alreadySubmitted = pStatus === 'SUBMITTED' || pStatus === 'VERIFIED' || pStatus === 'LIVE'
+  const alreadySubmitted = pStatus === 'SUBMITTED' || pStatus === 'VERIFIED' || pStatus === 'APPROVED' || pStatus === 'LIVE'
 
   const handleSubmit = async () => {
     if (submitting || !canSubmit) return
@@ -247,7 +247,7 @@ export default function AgentVerificationCenter({
     { key: 'profile', label: 'Profile Complete', done: profileRequirements.ready },
     { key: 'docs', label: 'Documents Uploaded', done: requiredDocsUploaded },
     { key: 'submitted', label: 'Verification Submitted', done: alreadySubmitted },
-    { key: 'approved', label: 'Account Approved', done: pStatus === 'LIVE' },
+    { key: 'approved', label: 'Account Approved', done: pStatus === 'APPROVED' || pStatus === 'LIVE' },
   ]
   const doneCount = steps.filter((s) => s.done).length
   const progress = Math.round((doneCount / steps.length) * 100)

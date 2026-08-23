@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import AgentDashboardClient from './AgentDashboardClient'
+import { resolveAgentStatus } from '@/lib/agentLifecycle'
 
 function slugify(input: string) {
   return input
@@ -81,6 +82,12 @@ export default async function AgentDashboardPage() {
   }
 
   const agent = dbUser.agent
+  const agentStatus = resolveAgentStatus({
+    status: agent.status,
+    approved: agent.approved,
+    profileStatus: agent.profileStatus,
+    verificationStatus: agent.verificationStatus,
+  })
 
   const agentRow = await (prisma as any).agent
     .findUnique({
@@ -277,7 +284,7 @@ export default async function AgentDashboardPage() {
       company={agent.company || ''}
       license={agent.license || ''}
       approved={Boolean(agent.approved)}
-      agentStatus={(agent as any)?.status || 'REGISTERED'}
+      agentStatus={agentStatus}
       profileStatus={String((agentRow as any)?.profileStatus || (agent as any)?.profileStatus || 'DRAFT')}
       publicProfileHref={publicProfileHref}
       stats={{

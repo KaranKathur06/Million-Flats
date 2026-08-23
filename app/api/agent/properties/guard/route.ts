@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { canCreateListing, normalizePlan, normalizeSubscriptionStatus } from '@/lib/subscriptionPlans'
 import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
+import { resolveAgentStatus } from '@/lib/agentLifecycle'
 
 /**
  * POST /api/agent/properties/guard
@@ -29,6 +30,9 @@ export async function GET() {
         select: {
           id: true,
           status: true,
+          approved: true,
+          profileStatus: true,
+          verificationStatus: true,
           subscription: {
             select: { plan: true, status: true },
           },
@@ -49,9 +53,10 @@ export async function GET() {
   }
 
   const { agent } = user
+  const effectiveStatus = resolveAgentStatus(agent)
 
   // ── Gate 1: Agent must be APPROVED ──
-  if (agent.status !== 'APPROVED') {
+  if (effectiveStatus !== 'APPROVED') {
     const statusMessages: Record<string, string> = {
       REGISTERED: 'Please verify your email to continue.',
       EMAIL_VERIFIED: 'Please complete your onboarding.',
@@ -64,9 +69,9 @@ export async function GET() {
     }
     return NextResponse.json({
       allowed: false,
-      reason: statusMessages[agent.status as string] ?? 'Account not approved.',
+      reason: statusMessages[effectiveStatus] ?? 'Account not approved.',
       code: 'NOT_APPROVED',
-      agentStatus: agent.status,
+      agentStatus: effectiveStatus,
     }, { status: 403 })
   }
 

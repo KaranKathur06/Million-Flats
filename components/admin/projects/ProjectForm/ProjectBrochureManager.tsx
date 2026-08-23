@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useBrochureUpload } from '@/hooks/useMediaUpload'
+import { useAdminAction } from '@/components/admin/AdminActionProvider'
 
 interface Brochure {
   id: string
@@ -17,6 +18,7 @@ interface ProjectBrochureManagerProps {
 }
 
 export function ProjectBrochureManager({ projectId, initialBrochure }: ProjectBrochureManagerProps) {
+  const { runAction } = useAdminAction()
   const [brochure, setBrochure] = useState<Brochure | null>(initialBrochure || null)
   const [isDragging, setIsDragging] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -73,20 +75,23 @@ export function ProjectBrochureManager({ projectId, initialBrochure }: ProjectBr
   }
 
   const handleDelete = async () => {
-    if (!confirm('Delete the brochure?')) return
-
-    try {
-      const res = await fetch(`/api/admin/projects/${projectId}/brochure`, {
-        method: 'DELETE',
-      })
-
-      if (res.ok) {
+    await runAction({
+      title: 'Delete this brochure?',
+      description: 'The brochure will be permanently removed from this project.',
+      confirmLabel: 'Delete Brochure',
+      variant: 'danger',
+      loadingTitle: 'Deleting Brochure',
+      successTitle: 'Brochure Deleted',
+      errorMessage: 'Unable to delete this brochure.',
+      mutation: async () => {
+        const res = await fetch(`/api/admin/projects/${projectId}/brochure`, { method: 'DELETE' })
+        if (!res.ok) throw new Error('Unable to delete this brochure.')
+      },
+      onSuccess: () => {
         setBrochure(null)
         reset()
-      }
-    } catch (err) {
-      console.error('Failed to delete brochure:', err)
-    }
+      },
+    })
   }
 
   const formatFileSize = (bytes?: number | null) => {

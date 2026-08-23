@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { prisma } from '@/lib/prisma'
+import { resolveAgentStatus } from '@/lib/agentLifecycle'
 
 function bad(msg: string, status = 400) {
     return NextResponse.json({ success: false, message: msg }, { status })
@@ -152,6 +153,12 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     const hasHigh = riskSignals.some((s) => s.level === 'HIGH')
     const hasMedium = riskSignals.some((s) => s.level === 'MEDIUM')
     const overallRisk = hasHigh ? 'HIGH' : hasMedium ? 'MEDIUM' : 'LOW'
+    const effectiveStatus = resolveAgentStatus({
+        status: agent.status,
+        approved: agent.approved,
+        profileStatus: agent.profileStatus,
+        verificationStatus: agent.verificationStatus,
+    })
 
     // Combine old verifications with new documents for backward compat
     const allDocuments = [
@@ -185,6 +192,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
         success: true,
         agent: {
             ...agent,
+            status: effectiveStatus,
+            verificationStatus: effectiveStatus === 'APPROVED' ? 'APPROVED' : agent.verificationStatus,
             allDocuments,
             riskSignals,
             overallRisk,

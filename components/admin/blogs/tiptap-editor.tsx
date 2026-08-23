@@ -13,6 +13,7 @@ import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import DOMPurify from 'dompurify'
+import { useAdminAction } from '@/components/admin/AdminActionProvider'
 
 
 interface TiptapEditorProps {
@@ -27,6 +28,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   placeholder = 'Start writing your blog content here...',
 }) => {
   const isInternalUpdate = useRef(false)
+  const { runAction } = useAdminAction()
 
   const editor = useEditor({
     extensions: [
@@ -134,16 +136,34 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
     if (editor.isActive('link')) {
       editor.chain().focus().unsetLink().run()
     } else {
-      const url = prompt('Enter URL:')
-      if (url) editor.chain().focus().setLink({ href: url }).run()
+      let url = ''
+      void runAction({
+        title: 'Add a link',
+        description: 'Enter the destination URL for the selected text.',
+        confirmLabel: 'Add Link',
+        input: { label: 'URL', placeholder: 'https://example.com', required: true, onChange: (value) => { url = value } },
+        mutation: async () => {
+          if (!url.trim()) throw new Error('A URL is required.')
+          editor.chain().focus().setLink({ href: url.trim() }).run()
+        },
+      })
     }
-  }, [editor])
+  }, [editor, runAction])
 
   const addImage = useCallback(() => {
     if (!editor) return
-    const url = prompt('Enter image URL:')
-    if (url) editor.chain().focus().setImage({ src: url, alt: '' }).run()
-  }, [editor])
+    let url = ''
+    void runAction({
+      title: 'Add an image',
+      description: 'Enter the image URL to insert into the blog content.',
+      confirmLabel: 'Add Image',
+      input: { label: 'Image URL', placeholder: 'https://cdn.example.com/image.jpg', required: true, onChange: (value) => { url = value } },
+      mutation: async () => {
+        if (!url.trim()) throw new Error('An image URL is required.')
+        editor.chain().focus().setImage({ src: url.trim(), alt: '' }).run()
+      },
+    })
+  }, [editor, runAction])
 
   const insertTable = useCallback(() => {
     if (!editor) return

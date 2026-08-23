@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import AgentProfileClient from './AgentProfileClient'
+import { resolveAgentStatus } from '@/lib/agentLifecycle'
 
 export default async function AgentProfilePage() {
   const session = await getServerSession(authOptions)
@@ -39,7 +40,12 @@ export default async function AgentProfilePage() {
     })
     .catch(() => null)
 
-  const profileStatus = String((agentRow as any)?.profileStatus || (user.agent as any)?.profileStatus || 'DRAFT').toUpperCase()
+  const profileStatus = resolveAgentStatus({
+    status: (user.agent as any)?.status,
+    approved: (user.agent as any)?.approved,
+    profileStatus: (agentRow as any)?.profileStatus || (user.agent as any)?.profileStatus,
+    verificationStatus: (user.agent as any)?.verificationStatus,
+  })
 
   return (
     <AgentProfileClient

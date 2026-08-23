@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { MediaUploadDialog } from './MediaUploadDialog'
+import { useAdminAction } from '@/components/admin/AdminActionProvider'
 
 interface Media {
   id: string
@@ -77,6 +78,7 @@ export function buildFloorPlanStatusCards(unitTypes: any[] = [], floorPlans: any
 }
 
 export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
+  const { runAction } = useAdminAction()
   const [media, setMedia] = useState<Media[]>([])
   const [counts, setCounts] = useState<MediaCounts | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
@@ -127,36 +129,40 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
   }, [loadMedia, loadFloorPlanCards])
 
   const handleDeleteMedia = async (mediaId: string) => {
-    if (!confirm('Delete this image?')) return
-
-    try {
-      const res = await fetch(`/api/admin/projects/${projectId}/media/${mediaId}`, {
-        method: 'DELETE',
-      })
-
-      if (res.ok) {
+    await runAction({
+      title: 'Delete this image?',
+      description: 'This image will be permanently removed from the project media library.',
+      confirmLabel: 'Delete Image',
+      variant: 'danger',
+      loadingTitle: 'Deleting Image',
+      successTitle: 'Image Deleted',
+      errorMessage: 'Unable to delete this image.',
+      mutation: async () => {
+        const res = await fetch(`/api/admin/projects/${projectId}/media/${mediaId}`, { method: 'DELETE' })
+        if (!res.ok) throw new Error('Unable to delete this image.')
+      },
+      onSuccess: async () => {
         setMedia((prev) => prev.filter((m) => m.id !== mediaId))
         await loadMedia()
-      }
-    } catch (err) {
-      console.error('Failed to delete media:', err)
-    }
+      },
+    })
   }
 
   const handleDeleteFloorPlan = async (floorPlanId: string) => {
-    if (!confirm('Delete this floor plan?')) return
-
-    try {
-      const res = await fetch(`/api/admin/projects/${projectId}/media/${floorPlanId}`, {
-        method: 'DELETE',
-      })
-
-      if (res.ok) {
-        await loadFloorPlanCards()
-      }
-    } catch (err) {
-      console.error('Failed to delete floor plan:', err)
-    }
+    await runAction({
+      title: 'Delete this floor plan?',
+      description: 'This floor plan will be permanently removed from the project.',
+      confirmLabel: 'Delete Floor Plan',
+      variant: 'danger',
+      loadingTitle: 'Deleting Floor Plan',
+      successTitle: 'Floor Plan Deleted',
+      errorMessage: 'Unable to delete this floor plan.',
+      mutation: async () => {
+        const res = await fetch(`/api/admin/projects/${projectId}/media/${floorPlanId}`, { method: 'DELETE' })
+        if (!res.ok) throw new Error('Unable to delete this floor plan.')
+      },
+      onSuccess: loadFloorPlanCards,
+    })
   }
 
   const handleSetAsHero = async (mediaId: string) => {
@@ -227,7 +233,14 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
       await loadFloorPlanCards()
     } catch (err) {
       console.error('Failed to upload floor plan:', err)
-      alert(err instanceof Error ? err.message : 'Failed to upload floor plan')
+      void runAction({
+        title: 'Floor plan upload failed',
+        description: 'The floor plan was not saved. Review the error and try again.',
+        confirmLabel: 'Close',
+        requiresConfirmation: false,
+        errorMessage: err instanceof Error ? err.message : 'Failed to upload floor plan',
+        mutation: async () => { throw err },
+      })
     } finally {
       setUploadingUnitTypeId(null)
     }

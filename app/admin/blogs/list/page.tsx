@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { BlogTable } from '@/components/admin/blogs/table'
 import { BlogFilter } from '@/components/admin/blogs/filter'
+import { useAdminAction } from '@/components/admin/AdminActionProvider'
 
 type ApiBlogsResponse = {
   success: boolean
@@ -14,6 +15,7 @@ type ApiBlogsResponse = {
 const BlogListPage = () => {
   const router = useRouter()
   const sp = useSearchParams()
+  const { runAction } = useAdminAction()
 
   const page = sp?.get('page') || '1'
   const category = sp?.get('category') || ''
@@ -81,9 +83,21 @@ const BlogListPage = () => {
             isLoading={isLoading}
             onEdit={(id) => router.push(`/admin/blogs/${id}/edit`)}
             onDelete={async (id) => {
-              if (!confirm('Are you sure you want to delete this blog?')) return
-              await fetch(`/api/admin/blogs/${encodeURIComponent(id)}`, { method: 'DELETE' })
-              router.refresh()
+              await runAction({
+                title: 'Delete this blog?',
+                description: 'This action will permanently remove the blog post from the admin system.',
+                confirmLabel: 'Delete Blog',
+                variant: 'danger',
+                loadingTitle: 'Deleting Blog',
+                successTitle: 'Blog Deleted',
+                errorMessage: 'Unable to delete this blog.',
+                mutation: async () => {
+                  const response = await fetch(`/api/admin/blogs/${encodeURIComponent(id)}`, { method: 'DELETE' })
+                  const json = await response.json().catch(() => null)
+                  if (!response.ok || json?.success === false) throw new Error(json?.message || 'Unable to delete this blog.')
+                },
+                onSuccess: () => router.refresh(),
+              })
             }}
           />
         </div>

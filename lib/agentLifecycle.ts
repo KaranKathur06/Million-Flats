@@ -41,6 +41,30 @@ function asStatus(v: unknown): AgentStatus {
   return (valid.includes(s as AgentStatus) ? s : 'REGISTERED') as AgentStatus
 }
 
+/** Resolve legacy and current approval fields into the lifecycle status used by portals. */
+export function resolveAgentStatus(input: {
+  status?: unknown
+  approved?: unknown
+  profileStatus?: unknown
+  verificationStatus?: unknown
+}): AgentStatus {
+  const status = asStatus(input.status)
+  const profileStatus = String(input.profileStatus || '').trim().toUpperCase()
+  const verificationStatus = String(input.verificationStatus || '').trim().toUpperCase()
+
+  if (status === 'SUSPENDED' || status === 'REJECTED') return status
+  if (
+    Boolean(input.approved) ||
+    status === 'APPROVED' ||
+    profileStatus === 'LIVE' ||
+    verificationStatus === 'APPROVED'
+  ) {
+    return 'APPROVED'
+  }
+
+  return status
+}
+
 export function getAgentLifecycleUx(input: { status: unknown }): AgentLifecycleUx {
   const status = asStatus(input.status)
 

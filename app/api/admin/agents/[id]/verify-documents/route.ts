@@ -8,8 +8,8 @@ import { requireAdmin } from '@/lib/adminAuth'
  * Admin approves or rejects a specific document for an agent.
  * Body: { documentId: string, action: 'APPROVED' | 'REJECTED', rejectionReason?: string }
  *
- * After all required documents are APPROVED, agent.status advances to UNDER_REVIEW
- * so the dedicated agent-approval flow can then set it to APPROVED.
+ * After all required documents are APPROVED, an unapproved agent advances to
+ * UNDER_REVIEW so the dedicated agent-approval flow can then set it to APPROVED.
  */
 
 export async function POST(
@@ -56,9 +56,13 @@ export async function POST(
 
   let agentStatus: string | undefined
   if (allApproved) {
-    const agent = await (prisma as any).agent.findUnique({ where: { id: agentId }, select: { status: true } })
+    const agent = await (prisma as any).agent.findUnique({
+      where: { id: agentId },
+      select: { status: true, approved: true },
+    })
     if (
       agent &&
+      !agent.approved &&
       agent.status !== 'APPROVED' &&
       agent.status !== 'REJECTED'
     ) {

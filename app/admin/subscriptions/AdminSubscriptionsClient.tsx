@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import SelectDropdown from '@/components/SelectDropdown'
+import { useAdminAction } from '@/components/admin/AdminActionProvider'
 
 type Subscription = {
   id: string
@@ -18,6 +19,7 @@ type Subscription = {
 }
 
 export default function AdminSubscriptionsClient() {
+  const { runAction } = useAdminAction()
   const [subs, setSubs] = useState<Subscription[]>([])
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState<string | null>(null)
@@ -67,7 +69,14 @@ export default function AdminSubscriptionsClient() {
         setIsEditing(null)
         await fetchSubs()
       } else {
-        alert('Failed to update subscription')
+        void runAction({
+          title: 'Subscription update failed',
+          description: 'The subscription was not updated. Review the error and try again.',
+          confirmLabel: 'Close',
+          requiresConfirmation: false,
+          errorMessage: 'Failed to update subscription.',
+          mutation: async () => { throw new Error('Failed to update subscription.') },
+        })
       }
     } finally {
       setIsSaving(false)

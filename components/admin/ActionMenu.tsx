@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
+import { useAdminAction } from '@/components/admin/AdminActionProvider'
 
 export default function ActionMenu({
   user,
@@ -12,6 +13,7 @@ export default function ActionMenu({
   onOpenRoleModal: (u: any) => void
   onAction: (fn: () => Promise<void>) => Promise<void>
 }) {
+  const { runAction } = useAdminAction()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement | null>(null)
 
@@ -33,11 +35,18 @@ export default function ActionMenu({
     }
   }, [open])
 
-  const doConfirm = async (message: string, fn: () => Promise<void>) => {
-    const ok = window.confirm(message)
-    if (!ok) return
-    await onAction(fn)
+  const doConfirm = async (title: string, message: string, fn: () => Promise<void>, variant: 'danger' | 'governance' = 'governance') => {
     setOpen(false)
+    await runAction({
+      title,
+      description: message,
+      confirmLabel: title.replace('?', ''),
+      variant,
+      loadingTitle: 'Updating User',
+      successTitle: 'User Updated',
+      errorMessage: 'Unable to complete this user action.',
+      mutation: () => onAction(fn),
+    })
   }
 
   return (
@@ -48,13 +57,13 @@ export default function ActionMenu({
           <Link role="menuitem" href={`/admin/users/${encodeURIComponent(user.id)}`} className="block px-3 py-2 rounded hover:bg-white/5">View profile</Link>
           <Link role="menuitem" href={`/admin/users/${encodeURIComponent(user.id)}`} className="block px-3 py-2 rounded hover:bg-white/5">Edit user</Link>
           <button role="menuitem" onClick={() => { setOpen(false); onOpenRoleModal(user) }} className="w-full text-left px-3 py-2 rounded hover:bg-white/5">Manage role</button>
-          <button role="menuitem" onClick={() => doConfirm('Suspend this user? This will disable login.', async () => { await fetch(`/api/admin/users/${encodeURIComponent(user.id)}/ban`, { method: 'POST' }) })} className="w-full text-left px-3 py-2 rounded hover:bg-white/5">Suspend</button>
-          <button role="menuitem" onClick={() => doConfirm('Reset password for this user? (sends reset email)', async () => { await fetch(`/api/auth/resend?email=${encodeURIComponent(user.email)}`, { method: 'POST' }).catch(() => null) })} className="w-full text-left px-3 py-2 rounded hover:bg-white/5">Reset password</button>
-          <button role="menuitem" onClick={() => { setOpen(false); alert('View CRM will link to CRM system (coming soon)') }} className="w-full text-left px-3 py-2 rounded hover:bg-white/5">View CRM</button>
-          <button role="menuitem" onClick={() => { setOpen(false); alert('Activity timeline will show full login/action history (coming soon)') }} className="w-full text-left px-3 py-2 rounded hover:bg-white/5">View activity</button>
-          <button role="menuitem" onClick={() => doConfirm('Export user data?', async () => { window.location.href = `/api/admin/users/${encodeURIComponent(user.id)}/export` })} className="w-full text-left px-3 py-2 rounded hover:bg-white/5">Export user</button>
+          <button role="menuitem" onClick={() => doConfirm('Suspend this user?', 'This will disable login for the user.', async () => { await fetch(`/api/admin/users/${encodeURIComponent(user.id)}/ban`, { method: 'POST' }) })} className="w-full text-left px-3 py-2 rounded hover:bg-white/5">Suspend</button>
+          <button role="menuitem" onClick={() => doConfirm('Reset this user password?', 'A password reset email will be sent to the user.', async () => { await fetch(`/api/auth/resend?email=${encodeURIComponent(user.email)}`, { method: 'POST' }).catch(() => null) })} className="w-full text-left px-3 py-2 rounded hover:bg-white/5">Reset password</button>
+          <button role="menuitem" onClick={() => doConfirm('View CRM?', 'The CRM integration is not available yet.', async () => { throw new Error('CRM integration is not available yet.') })} className="w-full text-left px-3 py-2 rounded hover:bg-white/5">View CRM</button>
+          <button role="menuitem" onClick={() => doConfirm('View activity?', 'The activity timeline is not available yet.', async () => { throw new Error('The activity timeline is not available yet.') })} className="w-full text-left px-3 py-2 rounded hover:bg-white/5">View activity</button>
+          <button role="menuitem" onClick={() => doConfirm('Export user data?', 'A current export will be generated for this user.', async () => { window.location.href = `/api/admin/users/${encodeURIComponent(user.id)}/export` })} className="w-full text-left px-3 py-2 rounded hover:bg-white/5">Export user</button>
           <div className="border-t border-white/[0.04] my-2" />
-          <button role="menuitem" onClick={() => doConfirm('Delete this user? This action is permanent.', async () => { await fetch(`/api/admin/users/${encodeURIComponent(user.id)}/delete`, { method: 'POST' }) })} className="w-full text-left px-3 py-2 rounded text-red-300 hover:bg-red-600/10">Delete</button>
+          <button role="menuitem" onClick={() => doConfirm('Delete this user?', 'This action is permanent.', async () => { await fetch(`/api/admin/users/${encodeURIComponent(user.id)}/delete`, { method: 'POST' }) }, 'danger')} className="w-full text-left px-3 py-2 rounded text-red-300 hover:bg-red-600/10">Delete</button>
         </div>
       ) : null}
     </div>

@@ -10,6 +10,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { useAdminAction } from '@/components/admin/AdminActionProvider'
 
 interface AuthSettingsData {
   activeMode: string
@@ -106,6 +107,7 @@ const DEFAULT_SETTINGS: AuthSettingsData = {
 }
 
 export default function AuthSettingsClient({ initialSettings, recentAuditLogs }: Props) {
+  const { runAction } = useAdminAction()
   const { data: session } = useSession()
   const role = String((session?.user as any)?.role || '').toUpperCase()
   const isSuperAdmin = role === 'SUPERADMIN'
@@ -177,7 +179,14 @@ export default function AuthSettingsClient({ initialSettings, recentAuditLogs }:
     // This would call a force-logout endpoint
     setShowForceLogout(false)
     // TODO: Implement force logout endpoint
-    alert('Force logout functionality will be implemented with session revocation.')
+    void runAction({
+      title: 'Force logout is unavailable',
+      description: 'Session revocation has not been enabled for this environment.',
+      confirmLabel: 'Close',
+      requiresConfirmation: false,
+      errorMessage: 'Force logout is not available yet.',
+      mutation: async () => { throw new Error('Force logout is not available yet.') },
+    })
   }, [])
 
   const updateField = (field: keyof AuthSettingsData, value: any) => {

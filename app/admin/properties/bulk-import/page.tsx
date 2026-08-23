@@ -1,325 +1,197 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 
+type Step = 'setup' | 'upload' | 'discovery' | 'review' | 'result'
+
+const steps: Array<{ id: Step; label: string; number: string }> = [
+    { id: 'setup', label: 'Configure', number: '01' },
+    { id: 'upload', label: 'Upload source', number: '02' },
+    { id: 'discovery', label: 'Discover fields', number: '03' },
+    { id: 'review', label: 'Review batch', number: '04' },
+    { id: 'result', label: 'Complete', number: '05' },
+]
+
 const DEMO_JSON = JSON.stringify({
     schemaVersion: 'property-import-v1',
-    systemAgentEmail: 'admin@millionflats.com',
-    properties: [
-        {
-            source: {
-                provider: 'SQUAREYARDS',
-                sourceUrl: 'https://www.squareyards.com/example-listing',
-                sourceListingId: 'sqy-12345',
-            },
-            property: {
-                title: 'Lodha Alibaug 3 BHK Apartment',
-                propertyType: 'Apartment',
-                intent: 'SALE',
-                price: 15000000,
-                currency: 'INR',
-                constructionStatus: 'OFF_PLAN',
-                shortDescription: 'Premium 3 BHK apartment in Alibaug by Lodha Group with modern amenities and sea views.',
-                bedrooms: 3,
-                bathrooms: 2,
-                squareFeet: 1200,
-                countryCode: 'INDIA',
-                countryIso2: 'IN',
-                city: 'Navi Mumbai',
-                community: 'Kharghar',
-                address: 'Kharghar, Navi Mumbai',
-                developerName: 'Lodha Group',
-                amenities: ['Swimming Pool', 'Gym', 'Clubhouse', 'Garden', 'Parking'],
-                status: 'PUBLISHED',
-            },
-        },
-    ],
+    properties: [{
+        title: 'Harbour View Residence', propertyType: 'Apartment', intent: 'SALE', price: 2850000, currency: 'AED',
+        bedrooms: 3, bathrooms: 2, squareFeet: 1840, countryCode: 'UAE', countryIso2: 'AE', city: 'Dubai', community: 'Dubai Marina',
+        sourceProvider: 'DEMO_PORTAL', sourceListingId: 'demo-001', sourceUrl: 'https://example.com/demo-001',
+    }],
 }, null, 2)
 
-const STATUS_ICONS: Record<string, { color: string; bg: string }> = {
-    created: { color: 'text-emerald-300', bg: 'bg-emerald-500/5 border-emerald-500/15' },
-    skipped: { color: 'text-yellow-300', bg: 'bg-yellow-500/5 border-yellow-500/15' },
-    error: { color: 'text-red-300', bg: 'bg-red-500/5 border-red-500/15' },
+const statusTone: Record<string, string> = {
+    READY_FOR_REVIEW: 'text-amber-300 bg-amber-300/10 border-amber-300/20',
+    READY_TO_COMMIT: 'text-emerald-300 bg-emerald-300/10 border-emerald-300/20',
+    COMMITTED: 'text-sky-300 bg-sky-300/10 border-sky-300/20',
+    FAILED: 'text-red-300 bg-red-300/10 border-red-300/20',
+    CANCELLED: 'text-white/50 bg-white/[0.06] border-white/10',
 }
 
-export default function AdminPropertiesBulkImportPage() {
-    const [jsonInput, setJsonInput] = useState('')
+export default function ImportCenterPage() {
+    const [step, setStep] = useState<Step>('setup')
+    const [entity, setEntity] = useState('PROPERTY')
+    const [operation, setOperation] = useState('CREATE')
+    const [mode, setMode] = useState('PARTIAL')
     const [agentId, setAgentId] = useState('')
-    const [parseError, setParseError] = useState('')
-    const [importing, setImporting] = useState(false)
-    const [response, setResponse] = useState<any>(null)
+    const [file, setFile] = useState<File | null>(null)
+    const [batchId, setBatchId] = useState('')
+    const [discovery, setDiscovery] = useState<any>(null)
+    const [batch, setBatch] = useState<any>(null)
+    const [busy, setBusy] = useState(false)
+    const [error, setError] = useState('')
 
-    const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (!file) return
-        const reader = new FileReader()
-        reader.onload = (ev) => {
-            const text = ev.target?.result as string
-            setJsonInput(text)
-            setParseError('')
-            setResponse(null)
-        }
-        reader.readAsText(file)
-        e.target.value = ''
-    }, [])
-
-    const handleImport = useCallback(async () => {
-        setParseError('')
-        setResponse(null)
-
-        let payload: any
-        try {
-            payload = JSON.parse(jsonInput)
-        } catch {
-            setParseError('Invalid JSON — check your syntax')
-            return
-        }
-
-        if ((!payload.properties || !Array.isArray(payload.properties) || payload.properties.length === 0) && !payload.property) {
-            setParseError('JSON must contain either a "properties" array or a single "property" object')
-            return
-        }
-        if (!agentId.trim() && !payload.agentId && !(payload.properties || [payload.property]).every((item: any) => item?.agentId)) {
-            setParseError('Enter an existing Agent ID or include agentId on every property')
-            return
-        }
-        if (agentId.trim()) payload.agentId = agentId.trim()
-
-        setImporting(true)
-        try {
-            const res = await fetch('/api/admin/properties/bulk-import', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: jsonInput,
-            })
-            const json = await res.json()
-            setResponse(json)
-            if (json.success) {
-                toast.success(`Import complete: ${json.summary.created} created, ${json.summary.skipped} skipped`)
-            } else {
-                toast.error(json.message || 'Import failed')
-            }
-        } catch (err: any) {
-            setResponse({ success: false, message: err.message || 'Network error' })
-            toast.error(err.message || 'Import failed')
-        } finally {
-            setImporting(false)
-        }
-    }, [agentId, jsonInput])
+    const currentIndex = steps.findIndex((item) => item.id === step)
+    const sourcePreview = useMemo(() => file ? `${(file.size / 1024).toFixed(1)} KB` : 'No source selected', [file])
 
     const loadDemo = useCallback(() => {
-        setJsonInput(DEMO_JSON)
-        setParseError('')
-        setResponse(null)
+        const demo = new File([DEMO_JSON], 'demo-properties.json', { type: 'application/json' })
+        setFile(demo)
+        setError('')
+        setStep('upload')
     }, [])
 
+    const uploadSource = async () => {
+        if (!file) return setError('Choose a CSV or JSON source file first.')
+        if (!agentId.trim()) return setError('An existing Agent ID is required for ownership.')
+        setBusy(true); setError('')
+        try {
+            const form = new FormData()
+            form.append('file', file)
+            form.append('operation', operation)
+            form.append('mode', mode)
+            form.append('sourceProvider', 'ADMIN_IMPORT')
+            const response = await fetch('/api/admin/bulk-import', { method: 'POST', body: form })
+            const payload = await response.json()
+            if (!response.ok || !payload.success) throw new Error(payload.message || 'Upload failed.')
+            setBatchId(payload.batchId)
+            setDiscovery(payload.discovery)
+            setStep('discovery')
+            toast.success('Source uploaded and staged.')
+        } catch (value: any) { setError(value.message || 'Upload failed.') }
+        finally { setBusy(false) }
+    }
+
+    const analyze = async () => {
+        setBusy(true); setError('')
+        try {
+            const response = await fetch(`/api/admin/bulk-import/${batchId}/analyze`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ownerAgentId: agentId }),
+            })
+            const payload = await response.json()
+            if (!response.ok || !payload.success) throw new Error(payload.message || 'Analysis failed.')
+            await loadBatch()
+            setStep('review')
+        } catch (value: any) { setError(value.message || 'Analysis failed.') }
+        finally { setBusy(false) }
+    }
+
+    const loadBatch = async () => {
+        const response = await fetch(`/api/admin/bulk-import/${batchId}`, { cache: 'no-store' })
+        const payload = await response.json()
+        if (!response.ok || !payload.success) throw new Error(payload.message || 'Unable to load batch.')
+        setBatch(payload.batch)
+    }
+
+    const commit = async () => {
+        setBusy(true); setError('')
+        try {
+            const response = await fetch(`/api/admin/bulk-import/${batchId}/commit`, { method: 'POST', headers: { 'Idempotency-Key': `admin-${Date.now()}` } })
+            const payload = await response.json()
+            if (!response.ok || !payload.success) throw new Error(payload.message || 'Commit failed.')
+            setBatch(payload); setStep('result'); toast.success('Import committed.')
+        } catch (value: any) { setError(value.message || 'Commit failed.') }
+        finally { setBusy(false) }
+    }
+
+    const goBack = () => {
+        if (step === 'upload') setStep('setup')
+        if (step === 'discovery') setStep('upload')
+        if (step === 'review') setStep('discovery')
+    }
+
     return (
-        <div>
-            <Toaster position="top-right" toastOptions={{ style: { background: '#0a1628', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' } }} />
-
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-                <div>
-                    <div className="flex items-center gap-3 mb-1">
-                        <Link href="/admin/properties" className="inline-flex items-center gap-1 text-white/40 hover:text-white/70 transition-colors text-sm">
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                            Properties
-                        </Link>
+        <div className="min-h-full bg-[#080e1a] text-white">
+            <Toaster position="top-right" toastOptions={{ style: { background: '#111a2a', color: '#fff', border: '1px solid rgba(255,255,255,.1)' } }} />
+            <div className="mx-auto max-w-[1180px] px-6 py-8 lg:px-10">
+                <header className="flex flex-col justify-between gap-5 border-b border-white/[0.07] pb-7 md:flex-row md:items-end">
+                    <div>
+                        <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-300/80">Operations / Data intake</p>
+                        <h1 className="text-3xl font-semibold tracking-tight text-white">Import Center</h1>
+                        <p className="mt-2 max-w-xl text-sm leading-6 text-white/45">Bring property data into the MillionFlats catalog with a visible, reviewable path from source file to live record.</p>
                     </div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white/95">Bulk Import Properties</h1>
-                    <p className="mt-1 text-sm text-white/40">Import multiple properties through the reviewed property pipeline.</p>
-                </div>
+                    <div className="flex gap-2">
+                        <Link href="/admin/bulk-import/history" className="rounded-lg border border-white/10 px-3 py-2 text-xs text-white/60 hover:bg-white/[0.06]">History</Link>
+                        <Link href="/admin/bulk-import/templates" className="rounded-lg border border-white/10 px-3 py-2 text-xs text-white/60 hover:bg-white/[0.06]">Templates</Link>
+                    </div>
+                </header>
+
+                <nav className="my-8 grid grid-cols-5 gap-2" aria-label="Import progress">
+                    {steps.map((item, index) => {
+                        const active = index === currentIndex
+                        const done = index < currentIndex
+                        return <div key={item.id} className={`relative border-t-2 pt-3 ${active ? 'border-amber-300' : done ? 'border-emerald-400/60' : 'border-white/10'}`}>
+                            <span className={`text-[10px] font-semibold tracking-[0.2em] ${active ? 'text-amber-300' : done ? 'text-emerald-300' : 'text-white/25'}`}>{item.number}</span>
+                            <p className={`mt-1 text-xs ${active ? 'text-white' : 'text-white/40'}`}>{item.label}</p>
+                        </div>
+                    })}
+                </nav>
+
+                {error && <div className="mb-6 flex items-center justify-between rounded-lg border border-red-400/20 bg-red-400/[0.08] px-4 py-3 text-sm text-red-200"><span>{error}</span><button type="button" onClick={() => setError('')} className="text-red-200/60">Dismiss</button></div>}
+
+                <main className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+                    <section className="min-h-[470px] rounded-2xl border border-white/[0.08] bg-[#0d1625] p-6 shadow-2xl shadow-black/20 lg:p-8">
+                        {step === 'setup' && <>
+                            <div className="mb-8"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">Step 01</p><h2 className="mt-2 text-xl font-semibold">Configure this import</h2><p className="mt-2 text-sm text-white/45">Choose the destination and ownership policy before selecting a source.</p></div>
+                            <div className="grid gap-5 md:grid-cols-2">
+                                <label><span className="label">Entity</span><select value={entity} onChange={e => setEntity(e.target.value)} className="field"><option value="PROPERTY">Properties</option></select></label>
+                                <label><span className="label">Operation</span><select value={operation} onChange={e => setOperation(e.target.value)} className="field"><option>CREATE</option><option>UPSERT</option><option>UPDATE</option></select></label>
+                                <label><span className="label">Import mode</span><select value={mode} onChange={e => setMode(e.target.value)} className="field"><option value="PARTIAL">Partial · commit valid records</option><option value="STRICT">Strict · resolve every issue</option></select></label>
+                                <label><span className="label">Existing Agent ID</span><input value={agentId} onChange={e => setAgentId(e.target.value)} className="field" placeholder="Required ownership ID" /></label>
+                            </div>
+                            <div className="mt-8 flex justify-end"><button type="button" onClick={() => { setError(''); setStep('upload') }} className="button-primary">Continue to upload <span>→</span></button></div>
+                        </>}
+
+                        {step === 'upload' && <>
+                            <div className="mb-8 flex items-start justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">Step 02</p><h2 className="mt-2 text-xl font-semibold">Upload source file</h2><p className="mt-2 text-sm text-white/45">CSV and JSON are parsed server-side. Nothing is committed at upload.</p></div><button type="button" onClick={loadDemo} className="button-quiet">Load demo</button></div>
+                            <label className="flex min-h-[230px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-amber-300/30 bg-amber-300/[0.035] px-6 text-center hover:bg-amber-300/[0.06]">
+                                <span className="flex h-12 w-12 items-center justify-center rounded-full border border-amber-300/20 bg-amber-300/10 text-2xl text-amber-300">↑</span>
+                                <span className="mt-4 text-sm font-medium text-white/80">{file ? file.name : 'Drop a source file here'}</span>
+                                <span className="mt-2 text-xs text-white/35">{file ? sourcePreview : 'CSV or JSON · up to 10 MB'}</span>
+                                <input type="file" accept=".csv,.json,text/csv,application/json" className="hidden" onChange={e => setFile(e.target.files?.[0] || null)} />
+                            </label>
+                            <div className="mt-8 flex justify-between"><button type="button" onClick={goBack} className="button-quiet">Back</button><button type="button" onClick={() => void uploadSource()} disabled={busy || !file} className="button-primary disabled:opacity-40">{busy ? 'Staging…' : 'Stage source'} <span>→</span></button></div>
+                        </>}
+
+                        {step === 'discovery' && <>
+                            <div className="mb-8"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">Step 03</p><h2 className="mt-2 text-xl font-semibold">Discovery complete</h2><p className="mt-2 text-sm text-white/45">Review what the parser found before canonical mapping begins.</p></div>
+                            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">{[['Format', discovery?.format?.toUpperCase() || 'FILE'], ['Records', discovery?.recordCount ?? '—'], ['Fields', discovery?.fields?.length ?? '—'], ['Encoding', discovery?.encoding || 'UTF-8']].map(([label, value]) => <div key={label} className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-4"><p className="text-[10px] uppercase tracking-[0.15em] text-white/35">{label}</p><p className="mt-2 text-lg font-semibold text-white">{value}</p></div>)}</div>
+                            <div className="mt-6 rounded-xl border border-white/[0.07] bg-[#101b2c] p-5"><p className="text-xs font-semibold text-white/70">Detected fields</p><div className="mt-4 flex flex-wrap gap-2">{(discovery?.fields || []).map((field: string) => <span key={field} className="rounded-md border border-white/10 px-2.5 py-1.5 font-mono text-[11px] text-white/55">{field}</span>)}</div></div>
+                            <div className="mt-8 flex justify-between"><button type="button" onClick={goBack} className="button-quiet">Back</button><button type="button" onClick={() => void analyze()} disabled={busy} className="button-primary disabled:opacity-40">{busy ? 'Analyzing…' : 'Analyze & review'} <span>→</span></button></div>
+                        </>}
+
+                        {step === 'review' && <>
+                            <div className="mb-8 flex items-start justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">Step 04</p><h2 className="mt-2 text-xl font-semibold">Review batch</h2><p className="mt-2 text-sm text-white/45">Confirm the staged records and resolve issues before commit.</p></div><span className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase ${statusTone[batch?.status] || statusTone.READY_FOR_REVIEW}`}>{batch?.status?.replaceAll('_', ' ')}</span></div>
+                            <div className="grid grid-cols-2 gap-3 md:grid-cols-5">{[['Total', batch?.totalRecords], ['Ready', batch?.readyCount], ['Warnings', batch?.warningCount], ['Errors', batch?.errorCount], ['Mapping', batch?.mappingVersion]].map(([label, value]) => <div key={label} className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3"><p className="text-[10px] uppercase tracking-[0.12em] text-white/35">{label}</p><p className="mt-2 text-xl font-semibold">{value ?? '—'}</p></div>)}</div>
+                            <div className="mt-6 rounded-xl border border-amber-300/15 bg-amber-300/[0.04] p-5 text-sm text-white/60"><span className="font-medium text-amber-200">Ownership locked:</span> records will be created under the existing Agent ID configured for this import.</div>
+                            <div className="mt-8 flex justify-between"><Link href={`/admin/bulk-import/${batchId}`} className="button-quiet">Open detailed review</Link><button type="button" onClick={() => void commit()} disabled={busy || batch?.status !== 'READY_TO_COMMIT'} className="button-primary disabled:opacity-40">{busy ? 'Committing…' : 'Commit ready records'} <span>→</span></button></div>
+                        </>}
+
+                        {step === 'result' && <>
+                            <div className="flex min-h-[390px] flex-col items-center justify-center text-center"><div className="flex h-16 w-16 items-center justify-center rounded-full border border-emerald-300/25 bg-emerald-300/10 text-3xl text-emerald-300">✓</div><p className="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">Import complete</p><h2 className="mt-2 text-2xl font-semibold">Your records are processed</h2><p className="mt-3 max-w-md text-sm leading-6 text-white/45">The import result is persisted and linked to the existing property workflows.</p><div className="mt-8 flex gap-3"><Link href="/admin/properties" className="button-primary">View properties</Link><Link href="/admin/bulk-import/history" className="button-quiet">View history</Link></div></div>
+                        </>}
+                    </section>
+
+                    <aside className="space-y-4">
+                        <div className="rounded-2xl border border-white/[0.08] bg-[#0d1625] p-5"><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35">Import contract</p><div className="mt-5 space-y-4">{[['Destination', entity === 'PROPERTY' ? 'Property catalog' : entity], ['Ownership', agentId ? 'Agent selected' : 'Needs Agent ID'], ['Mode', mode === 'STRICT' ? 'All issues block' : 'Valid records proceed'], ['Source', file?.name || 'Waiting for file']].map(([label, value]) => <div key={label} className="flex items-start justify-between gap-4 border-b border-white/[0.06] pb-3 last:border-0 last:pb-0"><span className="text-xs text-white/35">{label}</span><span className="text-right text-xs text-white/70">{value}</span></div>)}</div></div>
+                        <div className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-5"><p className="text-xs font-semibold text-amber-200">Safe by design</p><p className="mt-2 text-xs leading-5 text-white/45">Files are staged first. Canonical validation, ownership checks, and duplicate detection happen before a record is created.</p></div>
+                    </aside>
+                </main>
             </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* JSON Input */}
-                <div className="space-y-4">
-                    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-sm font-semibold text-white/80">JSON Input</h2>
-                            <div className="flex items-center gap-2">
-                                <button type="button" onClick={loadDemo} className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-white/50 hover:bg-white/[0.08] hover:text-white/80 transition-all cursor-pointer">
-                                    Load Example
-                                </button>
-                                <label className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-white/50 hover:bg-white/[0.08] hover:text-white/80 transition-all cursor-pointer">
-                                    Upload File
-                                    <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
-                                </label>
-                            </div>
-                        </div>
-
-                        <textarea
-                            value={jsonInput}
-                            onChange={e => { setJsonInput(e.target.value); setParseError('') }}
-                            rows={20}
-                            placeholder="Paste your JSON here or upload a file..."
-                            className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-white/80 placeholder-white/20 font-mono outline-none focus:border-amber-400/30 focus:ring-1 focus:ring-amber-400/10 transition-all resize-none"
-                        />
-
-                        <label className="mt-4 block">
-                            <span className="mb-1.5 block text-xs font-medium text-white/60">Existing Agent ID</span>
-                            <input
-                                value={agentId}
-                                onChange={e => setAgentId(e.target.value)}
-                                placeholder="Required unless every property includes agentId"
-                                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2.5 text-sm text-white/80 placeholder-white/20 outline-none focus:border-amber-400/30 focus:ring-1 focus:ring-amber-400/10 transition-all"
-                            />
-                        </label>
-
-                        {parseError && (
-                            <div className="mt-3 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">{parseError}</div>
-                        )}
-
-                        <button
-                            type="button"
-                            onClick={handleImport}
-                            disabled={importing || !jsonInput.trim()}
-                            className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400/90 px-5 py-3 text-sm font-semibold text-black hover:bg-amber-300 transition-colors shadow-lg shadow-amber-400/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                        >
-                            {importing ? (
-                                <>
-                                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                    </svg>
-                                    Importing…
-                                </>
-                            ) : (
-                                <>
-                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                    </svg>
-                                    Import Properties
-                                </>
-                            )}
-                        </button>
-                    </div>
-
-                    {/* Format Guide */}
-                    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-                        <h3 className="text-sm font-semibold text-white/70 mb-3">JSON Format</h3>
-                        <div className="space-y-2 text-[12px] text-white/40">
-                            <p><span className="text-amber-300/80 font-mono">agentId</span> — Existing Agent ID used for ownership when a property does not provide one</p>
-                            <p><span className="text-amber-300/80 font-mono">properties[]</span> — Array of property objects</p>
-                            <div className="pl-3 border-l border-white/[0.06] mt-2 space-y-1">
-                                <p><span className="text-white/50 font-mono">title</span> — Property title (required)</p>
-                                <p><span className="text-white/50 font-mono">propertyType</span> — Apartment, Villa, Plot, Penthouse, etc.</p>
-                                <p><span className="text-white/50 font-mono">intent</span> — SALE | RENT</p>
-                                <p><span className="text-white/50 font-mono">price</span> — Number (in local currency)</p>
-                                <p><span className="text-white/50 font-mono">currency</span> — INR | AED | USD</p>
-                                <p><span className="text-white/50 font-mono">constructionStatus</span> — READY | OFF_PLAN</p>
-                                <p><span className="text-white/50 font-mono">bedrooms</span> — Number of bedrooms</p>
-                                <p><span className="text-white/50 font-mono">bathrooms</span> — Number of bathrooms</p>
-                                <p><span className="text-white/50 font-mono">squareFeet</span> — Area in sq ft</p>
-                                <p><span className="text-white/50 font-mono">city</span> — City name</p>
-                                <p><span className="text-white/50 font-mono">community</span> — Locality / area</p>
-                                <p><span className="text-white/50 font-mono">countryCode</span> — INDIA | UAE</p>
-                                <p><span className="text-white/50 font-mono">countryIso2</span> — IN | AE</p>
-                                <p><span className="text-white/50 font-mono">developerName</span> — Developer name</p>
-                                <p><span className="text-white/50 font-mono">amenities</span> — Array of amenity names</p>
-                                <p><span className="text-white/50 font-mono">status</span> - PUBLISHED | DRAFT</p>
-                                <p className="text-amber-300/80">No image URLs are accepted in the canonical property import payload. Use the Property Gallery upload flow after import.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Results */}
-                <div>
-                    {response && (
-                        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-5">
-                            {response.success ? (
-                                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <svg className="h-5 w-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        <h3 className="text-sm font-bold text-emerald-300">Import Complete</h3>
-                                    </div>
-                                    {response.summary && (
-                                        <div className="flex gap-4 text-xs">
-                                            <span className="text-emerald-300"><span className="font-bold text-lg">{response.summary.created}</span> created</span>
-                                            <span className="text-yellow-300"><span className="font-bold text-lg">{response.summary.skipped}</span> skipped</span>
-                                            <span className="text-red-300"><span className="font-bold text-lg">{response.summary.errored}</span> errors</span>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-                                    <h3 className="text-sm font-bold text-red-300 mb-1">Import Failed</h3>
-                                    <p className="text-xs text-red-300/70">{response.message || 'Unknown error'}</p>
-                                </div>
-                            )}
-
-                            {response.results && response.results.length > 0 && (
-                                <div>
-                                    <h3 className="text-sm font-semibold text-white/70 mb-3">Results ({response.results.length})</h3>
-                                    <div className="space-y-1.5 max-h-[500px] overflow-y-auto scrollbar-thin">
-                                        {response.results.map((r: any, i: number) => {
-                                            const style = STATUS_ICONS[r.status] || STATUS_ICONS.error
-                                            return (
-                                                <div key={i} className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 ${style.bg}`}>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-xs font-medium text-white/80 truncate">{r.title}</p>
-                                                    </div>
-                                                    <div className="text-right flex-shrink-0">
-                                                        <span className={`text-[11px] font-bold uppercase ${style.color}`}>{r.status}</span>
-                                                        {r.reason && (
-                                                            <p className="text-[10px] text-white/25 max-w-[180px] truncate">{r.reason}</p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-
-                            {response.batchId && (
-                                <div className="flex gap-3 pt-2">
-                                    <Link href={`/admin/properties/bulk-import/${response.batchId}`} className="inline-flex items-center gap-2 rounded-xl border border-sky-400/20 bg-sky-400/10 px-4 py-2 text-xs font-semibold text-sky-300 hover:bg-sky-400/20 transition-colors">
-                                        Review Batch
-                                    </Link>
-                                    {response.success && <>
-                                        <Link href="/admin/properties" className="inline-flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-400/20 transition-colors">
-                                            View All Properties
-                                        </Link>
-                                        <Link href="/properties" target="_blank" className="inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/60 hover:bg-white/[0.08] hover:text-white/80 transition-colors">
-                                            Preview Frontend
-                                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                                        </Link>
-                                    </>}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {!response && !importing && (
-                        <div className="flex flex-col items-center justify-center py-20 text-center">
-                            <div className="h-16 w-16 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-4">
-                                <svg className="h-8 w-8 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                </svg>
-                            </div>
-                            <p className="text-white/50 text-sm">Paste JSON or upload a file to begin</p>
-                            <p className="text-white/25 text-xs mt-1">Supports bulk import of multiple properties at once</p>
-                        </div>
-                    )}
-
-                    {importing && (
-                        <div className="flex flex-col items-center justify-center py-20 text-center">
-                            <svg className="h-8 w-8 animate-spin text-amber-400 mb-4" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                            </svg>
-                            <p className="text-white/60 text-sm font-medium">Importing properties…</p>
-                            <p className="text-white/30 text-xs mt-1">This may take a moment for large batches</p>
-                        </div>
-                    )}
-                </div>
-            </div>
+            <style jsx global>{`.label{display:block;margin-bottom:.5rem;font-size:.75rem;font-weight:500;color:rgba(255,255,255,.55)}.field{width:100%;border:1px solid rgba(255,255,255,.1);border-radius:.65rem;background:#111c2d;padding:.7rem .8rem;font-size:.8rem;color:rgba(255,255,255,.8);outline:0}.field:focus{border-color:rgba(252,211,77,.55);box-shadow:0 0 0 3px rgba(252,211,77,.08)}.button-primary{display:inline-flex;align-items:center;gap:.7rem;border-radius:.65rem;background:#f6c945;padding:.72rem 1rem;font-size:.75rem;font-weight:700;color:#10151d;transition:background .2s}.button-primary:hover{background:#f8d66b}.button-quiet{display:inline-flex;align-items:center;border-radius:.65rem;border:1px solid rgba(255,255,255,.1);padding:.7rem .9rem;font-size:.75rem;color:rgba(255,255,255,.58);transition:background .2s}.button-quiet:hover{background:rgba(255,255,255,.06)}`}</style>
         </div>
     )
 }

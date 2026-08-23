@@ -15,24 +15,35 @@ export async function approveAgent(input: {
 
   const agent = await (prisma as any).agent.findFirst({
     where: { id: agentId },
-    select: { id: true, approved: true, profileStatus: true, userId: true, user: { select: { status: true, role: true } } },
+    select: {
+      id: true,
+      approved: true,
+      profileStatus: true,
+      verificationStatus: true,
+      status: true,
+      userId: true,
+      user: { select: { status: true, role: true } },
+    },
   })
 
   if (!agent) return { ok: false as const, status: 404, message: 'Not found' }
 
   const currentProfileStatus = String(agent?.profileStatus || 'DRAFT').toUpperCase()
+  const alreadyApproved = Boolean(agent.approved)
 
-  if (!isOverride && currentProfileStatus !== 'SUBMITTED') {
+  if (!alreadyApproved && !isOverride && currentProfileStatus !== 'SUBMITTED') {
     return { ok: false as const, status: 409, message: 'Agent must submit profile before approval' }
   }
 
-  if (isOverride && currentProfileStatus !== 'SUBMITTED' && currentProfileStatus !== 'DRAFT') {
+  if (!alreadyApproved && isOverride && currentProfileStatus !== 'SUBMITTED' && currentProfileStatus !== 'DRAFT') {
     return { ok: false as const, status: 409, message: `Cannot approve agent from ${currentProfileStatus} state` }
   }
 
   const beforeState = {
     approved: Boolean(agent.approved),
     profileStatus: currentProfileStatus,
+    verificationStatus: String(agent?.verificationStatus || 'PENDING').toUpperCase(),
+    status: String(agent?.status || 'REGISTERED').toUpperCase(),
     userStatus: String(agent?.user?.status || 'ACTIVE'),
     userRole: String(agent?.user?.role || ''),
   }
@@ -40,8 +51,15 @@ export async function approveAgent(input: {
   const updated = await prisma.$transaction(async (tx: any) => {
     const updatedAgent = await (tx as any).agent.update({
       where: { id: agentId },
-      data: { approved: true, profileStatus: 'VERIFIED' } as any,
-      select: { id: true, approved: true, profileStatus: true, userId: true },
+      data: {
+        approved: true,
+        profileStatus: 'VERIFIED',
+        verificationStatus: 'APPROVED',
+        status: 'APPROVED',
+        approvedBy: input.actorUserId,
+        approvedAt: new Date(),
+      } as any,
+      select: { id: true, approved: true, profileStatus: true, verificationStatus: true, status: true, userId: true },
     })
 
     if (String(agent?.user?.role || '').toUpperCase() !== 'AGENT') {
@@ -91,9 +109,17 @@ export async function approveAgent(input: {
   const afterState = {
     approved: Boolean(updated.agent.approved),
     profileStatus: String(updated.agent?.profileStatus || '').toUpperCase(),
+    verificationStatus: String(updated.agent?.verificationStatus || '').toUpperCase(),
+    status: String(updated.agent?.status || '').toUpperCase(),
     userStatus: String(agent?.user?.status || 'ACTIVE'),
     userRole: String(updated.userAfter?.role || agent?.user?.role || ''),
   }
 
-  return { ok: true as const, agent: updated.agent, beforeState, afterState, wasOverride: isOverride && currentProfileStatus === 'DRAFT' }
+  return {
+    ok: true as const,
+    agent: updated.agent,
+    beforeState,
+    afterState,
+    wasOverride: !alreadyApproved && isOverride && currentProfileStatus === 'DRAFT',
+  }
 }

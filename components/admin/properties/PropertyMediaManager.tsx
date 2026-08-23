@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { PROPERTY_MEDIA_CATEGORIES, type PropertyMediaCategory } from '@/lib/propertyMedia'
+import { useAdminAction } from '@/components/admin/AdminActionProvider'
 
 type Media = { id: string; category: PropertyMediaCategory; url: string; altText?: string | null; position: number }
 
 const labels: Record<PropertyMediaCategory, string> = { hero: 'Hero', interior: 'Interior', exterior: 'Exterior', amenities: 'Amenities', lifestyle: 'Lifestyle', floor_plan: 'Floor plan' }
 
 export function PropertyMediaManager({ propertyId }: { propertyId: string }) {
+  const { runAction } = useAdminAction()
   const [media, setMedia] = useState<Media[]>([])
   const [category, setCategory] = useState<PropertyMediaCategory>('hero')
   const [uploading, setUploading] = useState(false)
@@ -49,11 +51,21 @@ export function PropertyMediaManager({ propertyId }: { propertyId: string }) {
   }
 
   async function removeMedia(mediaId: string) {
-    if (!confirm('Delete this media item?')) return
-    const response = await fetch(`/api/admin/properties/${propertyId}/media/${mediaId}`, { method: 'DELETE' })
-    const data = await response.json()
-    if (!response.ok) { setError(data.message || 'Unable to delete media'); return }
-    await refresh()
+    await runAction({
+      title: 'Delete this media item?',
+      description: 'This media item will be permanently removed from the property gallery.',
+      confirmLabel: 'Delete Media',
+      variant: 'danger',
+      loadingTitle: 'Deleting Media',
+      successTitle: 'Media Deleted',
+      errorMessage: 'Unable to delete this media item.',
+      mutation: async () => {
+        const response = await fetch(`/api/admin/properties/${propertyId}/media/${mediaId}`, { method: 'DELETE' })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.message || 'Unable to delete media')
+      },
+      onSuccess: refresh,
+    })
   }
 
   async function move(mediaId: string, direction: -1 | 1) {

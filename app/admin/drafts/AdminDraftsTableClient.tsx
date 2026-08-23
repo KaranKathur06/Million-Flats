@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAdminCapabilities } from '@/lib/adminCapabilities'
 import type { AppRole } from '@/lib/rbac'
+import { useAdminAction } from '@/components/admin/AdminActionProvider'
 
 type DraftItem = {
   id: string
@@ -37,6 +38,7 @@ export default function AdminDraftsTableClient({
   currentRole: AppRole
 }) {
   const router = useRouter()
+  const { runAction } = useAdminAction()
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
 
@@ -95,14 +97,20 @@ export default function AdminDraftsTableClient({
                 <button
                   disabled={isBusy || !canDelete}
                   title={deleteReason}
-                  onClick={() =>
-                    doAction(it.id, async () => {
-                      if (!canDelete) throw new Error(deleteReason)
-                      const ok = window.confirm('Delete this draft? This cannot be undone.')
-                      if (!ok) return
-                      await postJson(`/api/admin/drafts/${encodeURIComponent(it.id)}/delete`)
-                    })
-                  }
+                  onClick={() => void runAction({
+                    title: 'Delete this draft?',
+                    description: 'This action cannot be undone and will permanently remove the draft.',
+                    confirmLabel: 'Delete Draft',
+                    variant: 'danger',
+                    loadingTitle: 'Deleting Draft',
+                    successTitle: 'Draft Deleted',
+                    errorMessage: 'Unable to delete this draft.',
+                    mutation: () => {
+                      if (!canDelete) return Promise.reject(new Error(deleteReason))
+                      return postJson(`/api/admin/drafts/${encodeURIComponent(it.id)}/delete`)
+                    },
+                    onSuccess: () => router.refresh(),
+                  })}
                   className={`h-9 rounded-lg px-3 text-xs font-semibold ${
                     !isBusy && canDelete
                       ? 'border border-white/10 bg-transparent text-white hover:bg-white/5'
@@ -155,14 +163,20 @@ export default function AdminDraftsTableClient({
                       <button
                         disabled={isBusy || !canDelete}
                         title={deleteReason}
-                        onClick={() =>
-                          doAction(it.id, async () => {
-                            if (!canDelete) throw new Error(deleteReason)
-                            const ok = window.confirm('Delete this draft? This cannot be undone.')
-                            if (!ok) return
-                            await postJson(`/api/admin/drafts/${encodeURIComponent(it.id)}/delete`)
-                          })
-                        }
+                        onClick={() => void runAction({
+                          title: 'Delete this draft?',
+                          description: 'This action cannot be undone and will permanently remove the draft.',
+                          confirmLabel: 'Delete Draft',
+                          variant: 'danger',
+                          loadingTitle: 'Deleting Draft',
+                          successTitle: 'Draft Deleted',
+                          errorMessage: 'Unable to delete this draft.',
+                          mutation: () => {
+                            if (!canDelete) return Promise.reject(new Error(deleteReason))
+                            return postJson(`/api/admin/drafts/${encodeURIComponent(it.id)}/delete`)
+                          },
+                          onSuccess: () => router.refresh(),
+                        })}
                         className={`h-9 rounded-lg px-3 text-xs font-semibold ${
                           !isBusy && canDelete
                             ? 'border border-white/10 bg-transparent text-white hover:bg-white/5'

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Suspense } from 'react'
 import SelectDropdown from '@/components/SelectDropdown'
+import { useAdminAction } from '@/components/admin/AdminActionProvider'
 
 interface SubscriptionsClientProps {
   subscriptions: any[]
@@ -17,6 +18,7 @@ interface SubscriptionsClientProps {
 
 function SubscriptionsClientContent({ subscriptions, pagination }: SubscriptionsClientProps) {
   const router = useRouter()
+  const { runAction } = useAdminAction()
   const searchParams = useSearchParams()
   const [selectedSubscription, setSelectedSubscription] = useState<any>(null)
   const [actionModal, setActionModal] = useState<{ type: 'upgrade' | 'cancel' | 'extend'; subscription: any } | null>(null)
@@ -78,34 +80,40 @@ function SubscriptionsClientContent({ subscriptions, pagination }: Subscriptions
   const executeAction = async () => {
     if (!actionModal) return
 
-    try {
-      const endpoint = {
-        upgrade: '/api/admin/subscriptions',
-        cancel: '/api/admin/subscriptions/cancel',
-        extend: '/api/admin/subscriptions/extend',
-      }[actionModal.type]
+    const endpoint = {
+      upgrade: '/api/admin/subscriptions',
+      cancel: '/api/admin/subscriptions/cancel',
+      extend: '/api/admin/subscriptions/extend',
+    }[actionModal.type]
 
-      const body = {
-        upgrade: { agentId: actionModal.subscription.agentId, plan: 'PREMIUM' },
-        cancel: { agentId: actionModal.subscription.agentId },
-        extend: { agentId: actionModal.subscription.agentId, extensionDays: 30 },
-      }[actionModal.type]
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-
-      if (res.ok) {
-        router.refresh()
-        setActionModal(null)
-      } else {
-        alert('Action failed. Please try again.')
-      }
-    } catch (error) {
-      alert('Action failed. Please try again.')
-    }
+    const body = {
+      upgrade: { agentId: actionModal.subscription.agentId, plan: 'PREMIUM' },
+      cancel: { agentId: actionModal.subscription.agentId },
+      extend: { agentId: actionModal.subscription.agentId, extensionDays: 30 },
+    }[actionModal.type]
+    const label = actionModal.type === 'upgrade' ? 'Upgrade Subscription' : actionModal.type === 'cancel' ? 'Cancel Subscription' : 'Extend Subscription'
+    setActionModal(null)
+    await runAction({
+      title: `${label}?`,
+      description: 'The subscription record will be updated on the server.',
+      confirmLabel: label,
+      requiresConfirmation: false,
+      variant: actionModal.type === 'cancel' ? 'danger' : 'governance',
+      loadingTitle: actionModal.type === 'upgrade' ? 'Upgrading Subscription' : actionModal.type === 'cancel' ? 'Cancelling Subscription' : 'Extending Subscription',
+      successTitle: 'Subscription Updated',
+      successMessage: 'The subscription was updated successfully.',
+      errorMessage: 'Unable to update this subscription.',
+      mutation: async () => {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+        const json = await res.json().catch(() => null)
+        if (!res.ok || json?.success === false) throw new Error(json?.message || 'Action failed. Please try again.')
+      },
+      onSuccess: () => router.refresh(),
+    })
   }
 
   return (

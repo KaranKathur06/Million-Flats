@@ -14,6 +14,7 @@ describe('import batch state machine', () => {
     expect(canTransition('READY_FOR_REVIEW', 'READY_TO_COMMIT')).toBe(true)
     expect(canTransition('VALIDATING', 'READY_TO_COMMIT')).toBe(true)
     expect(canTransition('VALIDATING', 'DUPLICATE_REVIEW')).toBe(true)
+    expect(canTransition('VALIDATING', 'ANALYZING')).toBe(true)
   })
 
   it('rejects production mutation before readiness', () => {

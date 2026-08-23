@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import AgentVerificationCenter from './ui/AgentVerificationCenter'
+import { resolveAgentStatus } from '@/lib/agentLifecycle'
 
 export const metadata = {
   title: 'Verification Center | MillionFlats Agent',
@@ -49,7 +50,12 @@ export default async function AgentVerificationPage() {
   const profileStatus = String(
     (agentRow as any)?.profileStatus || (user.agent as any)?.profileStatus || 'DRAFT'
   ).toUpperCase()
-  const agentStatus = String((user.agent as any)?.status || 'REGISTERED').toUpperCase()
+  const agentStatus = resolveAgentStatus({
+    status: (user.agent as any)?.status,
+    approved: (user.agent as any)?.approved,
+    profileStatus,
+    verificationStatus: (user.agent as any)?.verificationStatus,
+  })
   const license = String((agentRow as any)?.license || user.agent?.license || '')
   const bio = String((agentRow as any)?.bio || (user.agent as any)?.bio || '')
   const photo = String((agentRow as any)?.profileImageUrl || (agentRow as any)?.profilePhoto || '')
@@ -58,7 +64,7 @@ export default async function AgentVerificationPage() {
   return (
     <AgentVerificationCenter
       agentName={user.name || 'Agent'}
-      profileStatus={profileStatus}
+      profileStatus={agentStatus}
       agentStatus={agentStatus}
       license={license}
       bio={bio}

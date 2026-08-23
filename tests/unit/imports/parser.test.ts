@@ -1,5 +1,5 @@
 import { csvParser, jsonParser } from '@/lib/imports/parser'
-import { normalizeBedrooms, normalizePrice } from '@/lib/imports/normalization'
+import { normalizeArea, normalizeBedrooms, normalizeBoolean, normalizeDate, normalizePrice } from '@/lib/imports/normalization'
 
 describe('universal import parsers', () => {
   it('parses quoted commas, escaped quotes, and multiline CSV values', async () => {
@@ -55,5 +55,17 @@ describe('property normalization', () => {
     expect(normalizeBedrooms('3 BHK')).toBe(3)
     expect(normalizeBedrooms('Studio')).toBe(0)
     expect(normalizeBedrooms('Large')).toBeNull()
+  })
+
+  it('normalizes area units without inventing unresolved values', () => {
+    expect(normalizeArea('100 sqm')).toMatchObject({ amount: 1076.39, unresolved: false })
+    expect(normalizeArea('Large')).toMatchObject({ amount: null, unresolved: true })
+  })
+
+  it('normalizes dates and booleans conservatively', () => {
+    expect(normalizeDate('2026-08-22').unresolved).toBe(false)
+    expect(normalizeDate('unknown').unresolved).toBe(true)
+    expect(normalizeBoolean('yes')).toBe(true)
+    expect(normalizeBoolean('maybe')).toBeNull()
   })
 })

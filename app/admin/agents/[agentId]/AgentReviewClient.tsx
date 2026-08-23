@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useAdminAction } from '@/components/admin/AdminActionProvider'
 
 /* ─── helpers ─── */
 function safeString(v: unknown) {
@@ -148,13 +148,11 @@ export default function AgentReviewClient({
     agentId: string
     currentRole: string
 }) {
-    const router = useRouter()
+    const { runAction } = useAdminAction()
     const [agent, setAgent] = useState<AgentDetail | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
     const [actionBusy, setActionBusy] = useState(false)
-    const [actionError, setActionError] = useState('')
-    const [actionSuccess, setActionSuccess] = useState('')
 
     // Modal states
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -187,30 +185,27 @@ export default function AgentReviewClient({
         fetchAgent()
     }, [fetchAgent])
 
-    const postAction = async (url: string, body?: any) => {
+    const postAction = async (
+        url: string,
+        body: Record<string, string> | undefined,
+        action: Omit<Parameters<typeof runAction>[0], 'mutation' | 'onSuccess'>,
+    ) => {
         setActionBusy(true)
-        setActionError('')
-        setActionSuccess('')
-        try {
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: body ? { 'content-type': 'application/json' } : undefined,
-                body: body ? JSON.stringify(body) : undefined,
-            })
-            const data = await res.json().catch(() => null)
-            if (!res.ok || !data?.success) {
-                setActionError(data?.message || 'Action failed')
-                return false
-            }
-            setActionSuccess('Action completed successfully')
-            await fetchAgent()
-            return true
-        } catch {
-            setActionError('Network error')
-            return false
-        } finally {
-            setActionBusy(false)
-        }
+        const result = await runAction({
+            ...action,
+            mutation: async () => {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: body ? { 'content-type': 'application/json' } : undefined,
+                    body: body ? JSON.stringify(body) : undefined,
+                })
+                const data = await res.json().catch(() => null)
+                if (!res.ok || !data?.success) throw new Error(data?.message || 'Action failed')
+            },
+            onSuccess: fetchAgent,
+        })
+        setActionBusy(false)
+        return result
     }
 
     if (loading) {
@@ -265,18 +260,6 @@ export default function AgentReviewClient({
                     {verificationStatus.replace('_', ' ')}
                 </span>
             </div>
-
-            {/* Action feedback */}
-            {actionError && (
-                <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm font-semibold text-red-300">
-                    {actionError}
-                </div>
-            )}
-            {actionSuccess && (
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm font-semibold text-emerald-300">
-                    {actionSuccess}
-                </div>
-            )}
 
             {/* ─── Section 1: Agent Summary ─── */}
             <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
@@ -429,9 +412,17 @@ export default function AgentReviewClient({
                                             <button
                                                 disabled={actionBusy}
                                                 onClick={async () => {
-                                                    const ok = window.confirm('Approve this document?')
-                                                    if (!ok) return
-                                                    await postAction(`/api/admin/documents/${encodeURIComponent(doc.id)}/approve`)
+                                                    await postAction(`/api/admin/documents/${encodeURIComponent(doc.id)}/approve`, undefined, {
+                                                        title: 'Approve this document?',
+                                                        description: 'The document will be marked as approved and the agent record will be refreshed.',
+                                                        confirmLabel: 'Approve Document',
+                                                        variant: 'governance',
+                                                        loadingTitle: 'Approving Document',
+                                                        loadingMessage: 'Please wait while we update the document status.',
+                                                        successTitle: 'Document Approved',
+                                                        successMessage: 'The document was approved successfully.',
+                                                        errorMessage: 'Unable to approve this document.',
+                                                    })
                                                 }}
                                                 className="h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 px-3 text-[11px] font-bold text-emerald-300 hover:bg-emerald-500/30 transition-all disabled:opacity-50"
                                             >
@@ -575,9 +566,17 @@ export default function AgentReviewClient({
                             <button
                                 disabled={actionBusy}
                                 onClick={async () => {
-                                    const ok = window.confirm('Move this agent to UNDER REVIEW?')
-                                    if (!ok) return
-                                    await postAction(`/api/admin/agents/${encodeURIComponent(agentId)}/review`)
+                                    await postAction(`/api/admin/agents/${encodeURIComponent(agentId)}/review`, undefined, {
+                                        title: 'Move this agent to Under Review?',
+                                        description: 'This will start the governance review workflow for this agent.',
+                                        confirmLabel: 'Start Review',
+                                        variant: 'governance',
+                                        loadingTitle: 'Starting Review',
+                                        loadingMessage: 'Please wait while we update the agent status.',
+                                        successTitle: 'Review Started',
+                                        successMessage: 'The agent is now under review.',
+                                        errorMessage: 'Unable to start the agent review.',
+                                    })
                                 }}
                                 className="h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 px-6 text-sm font-bold text-blue-300 hover:bg-blue-500/30 transition-all disabled:opacity-50"
                             >
@@ -602,9 +601,21 @@ export default function AgentReviewClient({
                             <button
                                 disabled={actionBusy || !canFinalApprove || !finalComment.trim()}
                                 onClick={async () => {
-                                    const ok = window.confirm('Approve this agent? All required documents must be approved first.')
-                                    if (!ok) return
-                                    await postAction(`/api/admin/agents/${encodeURIComponent(agentId)}/approve`)
+                                    await postAction(`/api/admin/agents/${encodeURIComponent(agentId)}/approve`, undefined, {
+                                        title: 'Approve this agent?',
+                                        description: 'All required documents must be approved before this agent can be activated.',
+                                        confirmLabel: 'Approve Agent',
+                                        variant: 'governance',
+                                        loadingTitle: 'Approving Agent',
+                                        loadingMessage: 'Please wait while we update the agent status.',
+                                        successTitle: 'Agent Approved',
+                                        successMessage: 'The agent has been successfully approved and activated.',
+                                        errorMessage: 'Unable to approve this agent.',
+                                        validation: [
+                                            { label: 'Required Documents', value: `${agent.allDocuments.filter((document) => document.status.toUpperCase() === 'APPROVED').length} / ${agent.allDocuments.length} Approved`, tone: requiredDocsApproved ? 'success' : 'warning' },
+                                            { label: 'Risk Status', value: agent.overallRisk, tone: agent.overallRisk === 'HIGH' ? 'danger' : 'neutral' },
+                                        ],
+                                    })
                                 }}
                                 title={
                                     !canFinalApprove
@@ -695,7 +706,18 @@ export default function AgentReviewClient({
                             <button
                                 disabled={actionBusy || !rejectReason.trim()}
                                 onClick={async () => {
-                                    const success = await postAction(`/api/admin/agents/${encodeURIComponent(agentId)}/reject`, { reason: rejectReason.trim() })
+                                    const success = await postAction(`/api/admin/agents/${encodeURIComponent(agentId)}/reject`, { reason: rejectReason.trim() }, {
+                                        title: 'Reject this agent?',
+                                        description: 'The agent will be rejected and notified with the reason provided.',
+                                        confirmLabel: 'Reject Agent',
+                                        variant: 'danger',
+                                        requiresConfirmation: false,
+                                        loadingTitle: 'Rejecting Agent',
+                                        loadingMessage: 'Please wait while we update the agent status.',
+                                        successTitle: 'Agent Rejected',
+                                        successMessage: 'The agent was rejected and the record was refreshed.',
+                                        errorMessage: 'Unable to reject this agent.',
+                                    })
                                     if (success) setRejectModalOpen(false)
                                 }}
                                 className="h-10 rounded-xl bg-red-500 px-5 text-sm font-bold text-white hover:bg-red-400 transition-all disabled:opacity-40"
@@ -732,7 +754,18 @@ export default function AgentReviewClient({
                             <button
                                 disabled={actionBusy || !docRejectReason.trim()}
                                 onClick={async () => {
-                                    const success = await postAction(`/api/admin/documents/${encodeURIComponent(docRejectId)}/reject`, { reason: docRejectReason.trim() })
+                                    const success = await postAction(`/api/admin/documents/${encodeURIComponent(docRejectId)}/reject`, { reason: docRejectReason.trim() }, {
+                                        title: 'Reject this document?',
+                                        description: 'The document will be marked as rejected with the reason provided.',
+                                        confirmLabel: 'Reject Document',
+                                        variant: 'danger',
+                                        requiresConfirmation: false,
+                                        loadingTitle: 'Rejecting Document',
+                                        loadingMessage: 'Please wait while we update the document status.',
+                                        successTitle: 'Document Rejected',
+                                        successMessage: 'The document was rejected and the record was refreshed.',
+                                        errorMessage: 'Unable to reject this document.',
+                                    })
                                     if (success) setDocRejectId(null)
                                 }}
                                 className="h-10 rounded-xl bg-red-500 px-5 text-sm font-bold text-white hover:bg-red-400 transition-all disabled:opacity-40"

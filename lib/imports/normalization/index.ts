@@ -1,2 +1,5 @@
 export * from './price'
 export * from './bedrooms'
+export * from './area'
+export * from './dates'
+export * from './booleans'

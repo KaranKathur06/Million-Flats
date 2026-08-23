@@ -1,5 +1,5 @@
 import { canonicalizePropertyImport } from '@/lib/propertyCanonical'
-import { normalizeBedrooms, normalizePrice } from '@/lib/imports/normalization'
+import { normalizeArea, normalizeBedrooms, normalizeBoolean, normalizePrice } from '@/lib/imports/normalization'
 import type {
   CanonicalPayloadResult,
   CanonicalMappingInput,
@@ -83,6 +83,7 @@ export const propertyImportAdapter: ImportAdapter<CanonicalManualPropertyInput> 
     const raw = (input.raw && typeof input.raw === 'object' ? input.raw : {}) as Record<string, unknown>
     const price = normalizePrice(readValue(raw, ['price', 'asking_price', 'askingPrice', 'amount']), readValue(raw, ['currency', 'price_currency']))
     const bedrooms = normalizeBedrooms(readValue(raw, ['bedrooms', 'bhk', 'beds', 'bedrooms_count']))
+    const area = normalizeArea(readValue(raw, ['squareFeet', 'square_feet', 'built_up_area', 'area', 'size']), readValue(raw, ['areaUnit', 'area_unit', 'unit']))
     const normalized = {
       ...raw,
       title: asText(readValue(raw, ['title', 'property_name', 'listing_title', 'name'])),
@@ -93,7 +94,10 @@ export const propertyImportAdapter: ImportAdapter<CanonicalManualPropertyInput> 
       priceUnresolved: price.unresolved,
       bedrooms,
       bathrooms: readValue(raw, ['bathrooms', 'baths', 'bathrooms_count']),
-      squareFeet: readValue(raw, ['squareFeet', 'square_feet', 'built_up_area', 'area', 'size']),
+      squareFeet: area.amount,
+      areaDisplay: area.display,
+      areaUnresolved: area.unresolved,
+      authorizedToMarket: normalizeBoolean(readValue(raw, ['authorizedToMarket', 'authorized_to_market'])),
       city: readValue(raw, ['city', 'city_name', 'location.city']),
       community: readValue(raw, ['community', 'locality', 'neighborhood', 'location.community']),
       sourceProvider: readValue(raw, ['sourceProvider', 'source_provider', 'provider', 'source']),
@@ -157,6 +161,7 @@ export const propertyImportAdapter: ImportAdapter<CanonicalManualPropertyInput> 
     if (!input.canonical.title) errors.push('Property title is required.')
     if (!input.canonical.agentId) errors.push('An existing Agent owner is required.')
     if (!input.canonical.city || !input.canonical.community) warnings.push('Canonical city and community should be reviewed.')
+    if (input.normalized && (input.normalized as any).areaUnresolved) warnings.push('Area could not be converted to square feet and should be reviewed.')
     if (input.canonical.price === null && input.normalized && (input.normalized as any).priceUnresolved) warnings.push('Price is unresolved and will remain display-only.')
     return { ready: errors.length === 0, warnings, errors }
   },

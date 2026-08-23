@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useAdminAction } from '@/components/admin/AdminActionProvider'
 
 export default function UserDetailClient({ initialUser }: { initialUser: any }) {
   const [tab, setTab] = useState('overview')
+  const { runAction } = useAdminAction()
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -48,8 +50,8 @@ export default function UserDetailClient({ initialUser }: { initialUser: any }) 
             <h3 className="font-bold text-white mb-2">Quick Actions</h3>
             <div className="flex flex-col gap-2">
               <Link href={`/admin/users/${encodeURIComponent(initialUser.id)}`} className="px-3 py-2 rounded bg-white/5">View profile</Link>
-              <button onClick={() => alert('Send email not implemented')} className="px-3 py-2 rounded bg-white/5">Send email</button>
-              <button onClick={() => alert('Generate login link not implemented')} className="px-3 py-2 rounded bg-white/5">Generate login link</button>
+              <button onClick={() => void runAction({ title: 'Send email is unavailable', description: 'Email delivery is not enabled for this admin action yet.', confirmLabel: 'Close', requiresConfirmation: false, errorMessage: 'Send email is not available yet.', mutation: async () => { throw new Error('Send email is not available yet.') } })} className="px-3 py-2 rounded bg-white/5">Send email</button>
+              <button onClick={() => void runAction({ title: 'Generate login link is unavailable', description: 'Login link generation is not enabled for this admin action yet.', confirmLabel: 'Close', requiresConfirmation: false, errorMessage: 'Generate login link is not available yet.', mutation: async () => { throw new Error('Generate login link is not available yet.') } })} className="px-3 py-2 rounded bg-white/5">Generate login link</button>
             </div>
           </div>
 

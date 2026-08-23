@@ -9,6 +9,7 @@ import { SEOScore } from '@/components/admin/blogs/seo-score'
 import { TiptapEditor } from '@/components/admin/blogs/tiptap-editor'
 import { CloudinaryUpload } from '@/components/admin/blogs/cloudinary-upload'
 import SelectDropdown from '@/components/SelectDropdown'
+import { useAdminAction } from '@/components/admin/AdminActionProvider'
 
 const blogSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -37,6 +38,7 @@ interface TagItem {
 }
 
 export default function CreateBlogPage() {
+  const { runAction } = useAdminAction()
   const router = useRouter()
   const [categories, setCategories] = useState<any[]>([])
   const [availableTags, setAvailableTags] = useState<TagItem[]>([])
@@ -263,7 +265,14 @@ export default function CreateBlogPage() {
       router.push('/admin/blogs/all')
     } catch (error) {
       console.error('Error creating blog:', error)
-      alert(error instanceof Error ? error.message : 'Failed to create blog')
+      void runAction({
+        title: 'Blog could not be created',
+        description: 'The blog was not saved. Review the error and try again.',
+        confirmLabel: 'Close',
+        requiresConfirmation: false,
+        errorMessage: error instanceof Error ? error.message : 'Failed to create blog',
+        mutation: async () => { throw error },
+      })
     } finally {
       setIsSubmitting(false)
     }

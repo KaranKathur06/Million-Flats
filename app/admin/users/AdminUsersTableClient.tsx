@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAdminCapabilities } from '@/lib/adminCapabilities'
 import ActionMenu from '@/components/admin/ActionMenu'
+import { useAdminAction } from '@/components/admin/AdminActionProvider'
 
 type UserRow = {
   id: string
@@ -82,6 +83,7 @@ export default function AdminUsersTableClient({
   items: UserRow[]
   currentRole: unknown
 }) {
+  const { runAction } = useAdminAction()
   const router = useRouter()
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
@@ -350,10 +352,16 @@ export default function AdminUsersTableClient({
                       ) : (
                         <button
                           disabled={!canVerifyEmail || isBusy}
-                          onClick={() => doAction(u.id, async () => {
-                            const ok = window.confirm('Mark this user email as verified?')
-                            if (!ok) return
-                            await postJson(`/api/admin/users/${encodeURIComponent(u.id)}/verify-email`)
+                          onClick={() => void runAction({
+                            title: 'Verify this user email?',
+                            description: 'The user will be marked as having a verified email address.',
+                            confirmLabel: 'Verify Email',
+                            variant: 'governance',
+                            loadingTitle: 'Verifying Email',
+                            successTitle: 'Email Verified',
+                            errorMessage: 'Unable to verify this user email.',
+                            mutation: () => postJson(`/api/admin/users/${encodeURIComponent(u.id)}/verify-email`),
+                            onSuccess: () => router.refresh(),
                           })}
                           className={`h-8 rounded-lg px-3 text-[11px] font-semibold ${canVerifyEmail && !isBusy ? 'border border-white/10 bg-transparent text-white/90 hover:bg-white/5' : 'bg-white/5 text-white/30 cursor-not-allowed'}`}
                         >
@@ -373,10 +381,16 @@ export default function AdminUsersTableClient({
 
                       <button
                         disabled={!canBan || isBusy}
-                        onClick={() => doAction(u.id, async () => {
-                          const ok = window.confirm('Ban this user?')
-                          if (!ok) return
-                          await postJson(`/api/admin/users/${encodeURIComponent(u.id)}/ban`)
+                        onClick={() => void runAction({
+                          title: 'Ban this user?',
+                          description: 'The user will lose access to the platform until an administrator restores access.',
+                          confirmLabel: 'Ban User',
+                          variant: 'danger',
+                          loadingTitle: 'Banning User',
+                          successTitle: 'User Banned',
+                          errorMessage: 'Unable to ban this user.',
+                          mutation: () => postJson(`/api/admin/users/${encodeURIComponent(u.id)}/ban`),
+                          onSuccess: () => router.refresh(),
                         })}
                         className={`h-8 rounded-lg px-3 text-[11px] font-semibold ${canBan && !isBusy ? 'bg-red-500/20 text-red-200 border border-red-500/30 hover:bg-red-500/25' : 'bg-white/5 text-white/30 cursor-not-allowed'}`}
                       >
@@ -385,10 +399,16 @@ export default function AdminUsersTableClient({
 
                       <button
                         disabled={!canDelete || isBusy}
-                        onClick={() => doAction(u.id, async () => {
-                          const ok = window.confirm('Delete this user? This is permanent.')
-                          if (!ok) return
-                          await postJson(`/api/admin/users/${encodeURIComponent(u.id)}/delete`)
+                        onClick={() => void runAction({
+                          title: 'Delete this user?',
+                          description: 'This action is permanent and will remove the user from MillionFlats.',
+                          confirmLabel: 'Delete User',
+                          variant: 'danger',
+                          loadingTitle: 'Deleting User',
+                          successTitle: 'User Deleted',
+                          errorMessage: 'Unable to delete this user.',
+                          mutation: () => postJson(`/api/admin/users/${encodeURIComponent(u.id)}/delete`),
+                          onSuccess: () => router.refresh(),
                         })}
                         className={`h-8 rounded-lg px-3 text-[11px] font-semibold ${canDelete && !isBusy ? 'border border-red-500/30 bg-transparent text-red-200 hover:bg-red-500/10' : 'bg-white/5 text-white/30 cursor-not-allowed'}`}
                       >
