@@ -6,6 +6,7 @@ import { getHomeRouteForRole } from '@/lib/roleHomeRoute'
 import AgentDashboardClient from './AgentDashboardClient'
 import { resolveAgentStatus } from '@/lib/agentLifecycle'
 import { buildAssetUrl } from '@/lib/assetUrl'
+import { calculateManualListingQuality } from '@/lib/manualPropertyForm'
 
 function slugify(input: string) {
   return input
@@ -27,37 +28,23 @@ function formatRelativeTime(date: Date) {
 }
 
 function computeDraftCompletion(d: any) {
-  const hasTitle = Boolean(String(d?.title || '').trim())
-  const hasPrice = typeof d?.price === 'number' && d.price > 0
-  const hasLocation = Boolean(String(d?.city || '').trim()) && Boolean(String(d?.community || '').trim())
-  const hasIntent = Boolean(String(d?.intent || '').trim())
-  const hasType = Boolean(String(d?.propertyType || '').trim())
-  const hasDesc = Boolean(String(d?.shortDescription || '').trim())
-
-  const media = Array.isArray(d?.media) ? d.media : []
-  const hasCover = media.some((m: any) => m?.category === 'COVER')
-  const hasAnyImages = media.some((m: any) => m?.category !== 'VIDEO' && m?.category !== 'BROCHURE')
-
-  const weights = {
-    basics: 20,
-    price: 15,
-    location: 15,
-    details: 15,
-    description: 10,
-    cover: 15,
-    images: 10,
-  }
-
-  const percent =
-    (hasTitle && hasIntent && hasType ? weights.basics : 0) +
-    (hasPrice ? weights.price : 0) +
-    (hasLocation ? weights.location : 0) +
-    (typeof d?.bedrooms === 'number' && typeof d?.bathrooms === 'number' ? weights.details : 0) +
-    (hasDesc ? weights.description : 0) +
-    (hasCover ? weights.cover : 0) +
-    (hasAnyImages ? weights.images : 0)
-
-  return Math.max(0, Math.min(100, Math.round(percent)))
+  return calculateManualListingQuality({
+    title: d?.title,
+    category: d?.category,
+    propertyType: d?.propertyType,
+    intent: d?.intent,
+    price: d?.price,
+    squareFeet: d?.squareFeet,
+    bedrooms: d?.bedrooms,
+    bathrooms: d?.bathrooms,
+    city: d?.city,
+    community: d?.community,
+    latitude: d?.latitude,
+    longitude: d?.longitude,
+    shortDescription: d?.shortDescription,
+    media: d?.media,
+    amenities: Array.isArray(d?.amenities) ? d.amenities : [],
+  }).score
 }
 
 export default async function AgentDashboardPage() {
@@ -223,6 +210,11 @@ export default async function AgentDashboardPage() {
         bedrooms: true,
         bathrooms: true,
         shortDescription: true,
+        category: true,
+        squareFeet: true,
+        latitude: true,
+        longitude: true,
+        amenities: true,
         updatedAt: true,
         createdAt: true,
         media: { select: { id: true, category: true } },

@@ -178,6 +178,7 @@ export default function ManualPropertyWizardClient() {
 
   const [step, setStep] = useState<Step>('basics')
   const [saving, setSaving] = useState(false)
+  const [saveState, setSaveState] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [loadingDraft, setLoadingDraft] = useState(false)
@@ -241,6 +242,8 @@ export default function ManualPropertyWizardClient() {
   const propertyRef = useRef(property)
   const lastAutosaveFingerprintRef = useRef<string>('')
   const didHydrateFromServerRef = useRef(false)
+  const patchQueueRef = useRef(Promise.resolve())
+  const skipNextAutosaveRef = useRef(false)
 
   const selectedCategory = property.category || categoryForPropertyType(property.propertyType)
   const quality = useMemo(() => calculateManualListingQuality(property), [property])
@@ -488,6 +491,7 @@ export default function ManualPropertyWizardClient() {
           return
         }
 
+        skipNextAutosaveRef.current = true
         mergeProperty(data.property)
         didHydrateFromServerRef.current = true
         rememberDraftId(String(data.property?.id || id))
@@ -621,32 +625,40 @@ export default function ManualPropertyWizardClient() {
   }
 
   const patchById = useCallback(async (id: string, data: Partial<ManualProperty>) => {
-    setSaving(true)
-    setNotice('')
-    try {
-      const res = await fetch(`/api/manual-properties/${encodeURIComponent(id)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-      const json = (await safeJson(res)) as any
-      if (!json) throw new Error('Invalid server response')
-      if (!res.ok || !json?.success) {
-        const details = json?.details?.message ? `: ${String(json.details.message)}` : ''
-        const code = json?.code ? ` (${String(json.code)})` : ''
-        throw new Error(String(json?.error || json?.message || 'Failed to save') + code + details)
+    const save = async () => {
+      setSaving(true)
+      setSaveState('saving')
+      setNotice('')
+      try {
+        const res = await fetch(`/api/manual-properties/${encodeURIComponent(id)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        })
+        const json = (await safeJson(res)) as any
+        if (!json) throw new Error('Invalid server response')
+        if (!res.ok || !json?.success) {
+          const details = json?.details?.message ? `: ${String(json.details.message)}` : ''
+          const code = json?.code ? ` (${String(json.code)})` : ''
+          throw new Error(String(json?.error || json?.message || 'Failed to save') + code + details)
+        }
+        setLastSavedAt(new Date())
+        setSaveState('saved')
+        didHydrateFromServerRef.current = true
+        return json.property as ManualProperty
+      } catch (e) {
+        setSaveState('error')
+        setError(e instanceof Error ? e.message : 'Failed to save')
+        return null
+      } finally {
+        setSaving(false)
       }
-      mergeProperty(json.property)
-      setLastSavedAt(new Date())
-      didHydrateFromServerRef.current = true
-      return json.property as ManualProperty
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save')
-      return null
-    } finally {
-      setSaving(false)
     }
-  }, [mergeProperty, safeJson])
+
+    const queued = patchQueueRef.current.then(save, save)
+    patchQueueRef.current = queued.then(() => undefined, () => undefined)
+    return queued
+  }, [safeJson])
 
   useEffect(() => {
     const id = propertyRef.current?.id
@@ -775,8 +787,29 @@ export default function ManualPropertyWizardClient() {
 
     const payload = buildSavePayload()
     const fingerprint = JSON.stringify(payload)
+    if (skipNextAutosaveRef.current) {
+      skipNextAutosaveRef.current = false
+      lastAutosaveFingerprintRef.current = fingerprint
+      setSaveState('saved')
+      return
+    }
+    if (lastAutosaveFingerprintRef.current === fingerprint) {
+      setSaveState('saved')
+      return
+    }
+    setSaveState('unsaved')
     autosave(propertyId, payload, fingerprint)
   }, [autosave, buildSavePayload, loadingDraft, property?.status, propertyId, saving])
+
+  useEffect(() => {
+    if (saveState !== 'saving' && saveState !== 'unsaved' && saveState !== 'error') return
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = 'Your listing changes have not finished saving.'
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [saveState])
 
   const saveDraft = async () => {
     setError('')
@@ -1042,7 +1075,15 @@ export default function ManualPropertyWizardClient() {
               Agent-owned inventory is reviewed before going live.
             </p>
           </div>
-          <Link href={getHomeRouteForRole('AGENT')} className="text-sm font-semibold text-dark-blue hover:underline">
+          <Link
+            href={getHomeRouteForRole('AGENT')}
+            onClick={(event) => {
+              if (saveState === 'saving' || saveState === 'unsaved' || saveState === 'error') {
+                if (!window.confirm('Your listing changes have not finished saving. Leave this page anyway?')) event.preventDefault()
+              }
+            }}
+            className="text-sm font-semibold text-dark-blue hover:underline"
+          >
             Back to Agent Portal
           </Link>
         </div>
@@ -1150,8 +1191,8 @@ export default function ManualPropertyWizardClient() {
                 {label}
               </button>
             ))}
-            <span className="ml-auto text-xs text-gray-500">
-              {saving ? 'Saving…' : lastSavedAt ? `Saved ${lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Not saved yet'}
+            <span className={`ml-auto text-xs ${saveState === 'error' ? 'text-red-700' : saveState === 'unsaved' ? 'text-amber-700' : 'text-gray-500'}`} role="status">
+              {saveState === 'saving' ? 'Saving…' : saveState === 'unsaved' ? 'Changes not saved yet' : saveState === 'error' ? 'Save failed - retry' : lastSavedAt ? `Saved ${lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Not saved yet'}
             </span>
           </div>
 
@@ -1423,7 +1464,10 @@ export default function ManualPropertyWizardClient() {
                 <input
                   type="number"
                   value={property?.latitude ?? ''}
-                  onChange={(e) => setProperty((p) => ({ ...(p as any), latitude: Number(e.target.value) }))}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    setProperty((p) => ({ ...(p as any), latitude: raw === '' ? null : Number(raw) }))
+                  }}
                   onBlur={(e) => {
                     const raw = e.target.value
                     if (raw === '') {
@@ -1441,7 +1485,10 @@ export default function ManualPropertyWizardClient() {
                 <input
                   type="number"
                   value={property?.longitude ?? ''}
-                  onChange={(e) => setProperty((p) => ({ ...(p as any), longitude: Number(e.target.value) }))}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    setProperty((p) => ({ ...(p as any), longitude: raw === '' ? null : Number(raw) }))
+                  }}
                   onBlur={(e) => {
                     const raw = e.target.value
                     if (raw === '') {
