@@ -26,6 +26,7 @@ type DraftListing = {
   priceLabel: string
   updatedAtLabel: string
   completionPercent: number
+  thumbnailUrl?: string
 }
 
 type Lead = {
@@ -151,11 +152,11 @@ export default function AgentDashboardClient({
     return missing
   }, [submitMeta])
 
-  const profileReady = missingRequirements.length === 0
   const pStatusNorm = String(profileStatus).toUpperCase()
   const isApproved = agentStatus === 'APPROVED' || approved
   const isLive = isApproved || pStatusNorm === 'LIVE'
   const isSubmitted = isApproved || pStatusNorm === 'SUBMITTED' || pStatusNorm === 'VERIFIED'
+  const profileReady = isApproved || missingRequirements.length === 0
 
   /* Onboarding steps */
   const onboardingSteps = [
@@ -434,13 +435,27 @@ export default function AgentDashboardClient({
                           </span>
                         </div>
 
-                        <div className="mt-3">
+                        <div className="mt-3 flex gap-3">
+                          <div className="h-16 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-gray-200">
+                            {d.thumbnailUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={d.thumbnailUrl} alt={d.title} className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="flex h-full items-center justify-center text-gray-400" aria-label="No cover image">
+                                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between mb-1">
                             <p className="text-[10px] text-gray-500">Completion</p>
                             <p className="text-[10px] font-semibold text-gray-700">{Math.max(0, Math.min(100, Math.round(d.completionPercent)))}%</p>
                           </div>
                           <div className="h-1.5 rounded-full bg-gray-200 overflow-hidden">
                             <div className="h-full bg-amber-400 rounded-full" style={{ width: `${Math.max(0, Math.min(100, Math.round(d.completionPercent)))}%` }} />
+                          </div>
                           </div>
                         </div>
 

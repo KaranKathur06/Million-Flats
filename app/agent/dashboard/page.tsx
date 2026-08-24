@@ -47,6 +47,11 @@ function computeDraftCompletion(d: any) {
   }).score
 }
 
+function mediaAssetUrl(media: any) {
+  const source = String(media?.s3Key || media?.url || '').trim()
+  return source ? buildAssetUrl(source) || source : ''
+}
+
 export default async function AgentDashboardPage() {
   const session = await getServerSession(authOptions)
   const role = String((session?.user as any)?.role || '').toUpperCase()
@@ -130,39 +135,16 @@ export default async function AgentDashboardPage() {
       return 0
     })
 
-  const hasPublishedListing = totalListings > 0 || manualApprovedCount > 0
+  const completionWeights = { photo: 20, bio: 30, phone: 20, whatsapp: 10, license: 20 }
 
-  const hasMedia = await (prisma as any).manualPropertyMedia
-    .findFirst({
-      where: {
-        property: { agentId: agent.id, status: 'PUBLISHED', sourceType: 'MANUAL' },
-      },
-      select: { id: true },
-    })
-    .then((row: any) => Boolean(row?.id))
-    .catch((error: unknown) => {
-      console.error('Agent dashboard: failed to check listing media', error)
-      return false
-    })
-
-  const completionWeights = {
-    photo: 15,
-    bio: 15,
-    phone: 10,
-    whatsapp: 10,
-    license: 15,
-    listing: 20,
-    media: 15,
-  }
-
-  const completion =
+  const calculatedCompletion =
     (hasPhoto ? completionWeights.photo : 0) +
     (hasBio ? completionWeights.bio : 0) +
     (hasPhone ? completionWeights.phone : 0) +
     (hasWhatsapp ? completionWeights.whatsapp : 0) +
-    (hasLicense ? completionWeights.license : 0) +
-    (hasPublishedListing ? completionWeights.listing : 0) +
-    (hasMedia ? completionWeights.media : 0)
+    (hasLicense ? completionWeights.license : 0)
+
+  const completion = agentStatus === 'APPROVED' ? 100 : calculatedCompletion
 
   const missing: Array<{ key: string; label: string; href: string }> = []
   if (!hasPhoto) missing.push({ key: 'photo', label: 'Add profile photo', href: '/agent/profile?focus=image' })
@@ -170,8 +152,7 @@ export default async function AgentDashboardPage() {
   if (!hasPhone) missing.push({ key: 'phone', label: 'Add phone', href: '/agent/profile?focus=phone' })
   if (!hasWhatsapp) missing.push({ key: 'whatsapp', label: 'Add WhatsApp', href: '/agent/profile?focus=whatsapp' })
   if (!hasLicense) missing.push({ key: 'license', label: 'Add license', href: '/agent/profile?focus=license' })
-  if (!hasPublishedListing) missing.push({ key: 'listing', label: 'Publish a listing', href: '/properties/new/manual' })
-  if (!hasMedia) missing.push({ key: 'media', label: 'Add listing media', href: '/properties/new/manual' })
+  if (agentStatus === 'APPROVED') missing.length = 0
 
   const now = Date.now()
   const last = agentRow?.profileCompletionUpdatedAt ? new Date(agentRow.profileCompletionUpdatedAt).getTime() : 0
@@ -217,7 +198,7 @@ export default async function AgentDashboardPage() {
         amenities: true,
         updatedAt: true,
         createdAt: true,
-        media: { select: { id: true, category: true } },
+        media: { select: { id: true, category: true, url: true, s3Key: true } },
       },
     })
     .then((rows: any[]) =>
@@ -232,6 +213,7 @@ export default async function AgentDashboardPage() {
             : 'Price pending',
         updatedAtLabel: formatRelativeTime(new Date(d.updatedAt || d.createdAt)),
         completionPercent: computeDraftCompletion(d),
+        thumbnailUrl: mediaAssetUrl((d.media || []).find((media: any) => String(media?.category) === 'COVER') || d.media?.[0]),
       }))
     )
     .catch((error: unknown) => {
@@ -279,7 +261,7 @@ export default async function AgentDashboardPage() {
       license={agent.license || ''}
       approved={Boolean(agent.approved)}
       agentStatus={agentStatus}
-      profileStatus={String((agentRow as any)?.profileStatus || (agent as any)?.profileStatus || 'DRAFT')}
+      profileStatus={agentStatus === 'APPROVED' ? 'APPROVED' : String((agentRow as any)?.profileStatus || (agent as any)?.profileStatus || 'DRAFT')}
       publicProfileHref={publicProfileHref}
       stats={{
         totalListings,
