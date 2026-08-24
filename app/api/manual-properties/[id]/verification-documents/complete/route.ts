@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { requireAgentSession } from '@/lib/agentAuth'
+import { requireAgentDraftSession } from '@/lib/agentAuth'
 import { s3ObjectExists } from '@/lib/s3'
 
 export const runtime = 'nodejs'
@@ -15,7 +15,7 @@ const BodySchema = z.object({
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
-    const auth = await requireAgentSession()
+    const auth = await requireAgentDraftSession()
     if (!auth.ok) return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
     const parsed = BodySchema.safeParse(await req.json().catch(() => null))
     if (!parsed.success) return NextResponse.json({ success: false, message: 'Invalid document data' }, { status: 400 })

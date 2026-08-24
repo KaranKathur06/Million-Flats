@@ -11,10 +11,13 @@ import { buildPropertySlugPath } from '@/lib/seo'
 import GlobalDropdown from '@/components/ui/GlobalDropdown'
 import { singleDropdownValue } from '@/components/ui/dropdownUtils'
 import { trackEvent } from '@/lib/tracking'
+import toast, { Toaster } from 'react-hot-toast'
 import {
   calculateManualListingQuality,
   categoryForPropertyType,
+  countryIso2ForCountry,
   defaultCurrencyForCountry,
+  MANUAL_AMENITY_GROUPS,
   MANUAL_PROPERTY_CATEGORIES,
   propertyTypesForCategory,
   suggestManualPropertyTitle,
@@ -61,6 +64,7 @@ type ValuationSummary = {
 
 type ManualProperty = {
   id: string
+  updatedAt?: string | Date | null
   status: 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'REJECTED'
   rejectionReason?: string | null
   title?: string | null
@@ -102,6 +106,7 @@ type ManualProperty = {
   squareFeet?: number
 
   countryCode?: 'UAE' | 'India'
+  countryIso2?: 'AE' | 'IN' | null
   city?: string | null
   region?: string | null
   community?: string | null
@@ -161,6 +166,7 @@ export default function ManualPropertyWizardClient() {
   const didAutoLoadDraftRef = useRef(false)
   const didAutoCreateDraftRef = useRef(false)
   const hydratedDraftIdRef = useRef<string>('')
+  const trackedStartRef = useRef(false)
 
   const safeJson = useCallback(async (res: Response) => {
     try {
@@ -176,6 +182,8 @@ export default function ManualPropertyWizardClient() {
   const [notice, setNotice] = useState('')
   const [loadingDraft, setLoadingDraft] = useState(false)
   const [uploadingCategory, setUploadingCategory] = useState<string>('')
+  const [failedUploads, setFailedUploads] = useState<Record<string, File[]>>({})
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
   const [mediaPreviewUrls, setMediaPreviewUrls] = useState<Record<string, string>>({})
   const [mediaBusyId, setMediaBusyId] = useState<string>('')
   const [resumeDraftId, setResumeDraftId] = useState<string>('')
@@ -217,6 +225,17 @@ export default function ManualPropertyWizardClient() {
   const [valuation, setValuation] = useState<ValuationSummary | null>(null)
   const [valuationLoading, setValuationLoading] = useState(false)
   const [valuationError, setValuationError] = useState('')
+  const [isOnline, setIsOnline] = useState(true)
+
+  useEffect(() => {
+    if (trackedStartRef.current) return
+    trackedStartRef.current = true
+    trackEvent('listing_started', { workflow: 'manual_property_v2' })
+  }, [])
+
+  useEffect(() => {
+    if (step === 'review') trackEvent('listing_review_opened', { workflow: 'manual_property_v2' })
+  }, [step])
 
   const propertyId = property?.id || ''
   const propertyRef = useRef(property)
@@ -227,6 +246,37 @@ export default function ManualPropertyWizardClient() {
   const quality = useMemo(() => calculateManualListingQuality(property), [property])
   const stepErrors = useMemo(() => validateManualPropertyStep(step, property), [property, step])
 
+  const localDraftKey = propertyId ? `millionflats:manual-draft:${propertyId}` : ''
+
+  useEffect(() => {
+    const updateOnline = () => setIsOnline(navigator.onLine)
+    updateOnline()
+    window.addEventListener('online', updateOnline)
+    window.addEventListener('offline', updateOnline)
+    return () => {
+      window.removeEventListener('online', updateOnline)
+      window.removeEventListener('offline', updateOnline)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!localDraftKey || loadingDraft || property.status !== 'DRAFT') return
+    try {
+      const snapshot = { ...property, media: undefined }
+      window.localStorage.setItem(localDraftKey, JSON.stringify(snapshot))
+    } catch {
+      return
+    }
+  }, [localDraftKey, loadingDraft, property])
+
+  useEffect(() => {
+    if (error) toast.error(error)
+  }, [error])
+
+  useEffect(() => {
+    if (notice) toast.success(notice)
+  }, [notice])
+
   const goToNextStep = useCallback(() => {
     const errors = validateManualPropertyStep(step, property)
     if (Object.keys(errors).length > 0) {
@@ -234,6 +284,7 @@ export default function ManualPropertyWizardClient() {
       return
     }
     setError('')
+    trackEvent('listing_step_completed', { workflow: 'manual_property_v2', step })
     setStep(STEP_ORDER[Math.min(STEP_ORDER.length - 1, STEP_ORDER.indexOf(step) + 1)])
   }, [property, step])
 
@@ -288,6 +339,24 @@ export default function ManualPropertyWizardClient() {
     }
     if (remembered) setResumeDraftId(remembered)
   }, [draftIdFromUrl, propertyId])
+
+  useEffect(() => {
+    if (!propertyId || loadingDraft) return
+    try {
+      const raw = window.localStorage.getItem(`millionflats:manual-draft:${propertyId}`)
+      if (!raw) return
+      const local = JSON.parse(raw) as ManualProperty
+      if (!local || local.id !== propertyId) return
+      const remoteUpdated = property.updatedAt ? new Date(String(property.updatedAt)).getTime() : 0
+      const localUpdated = local.updatedAt ? new Date(String(local.updatedAt)).getTime() : 0
+      if (localUpdated > remoteUpdated) {
+        mergeProperty(local)
+        setNotice('Recovered unsaved local changes. They will sync when online.')
+      }
+    } catch {
+      return
+    }
+  }, [propertyId, loadingDraft, mergeProperty, property.updatedAt])
 
   const statusBanner = useMemo(() => {
     if (!property) return null
@@ -627,6 +696,7 @@ export default function ManualPropertyWizardClient() {
       bathrooms: typeof property.bathrooms === 'number' && Number.isFinite(property.bathrooms) ? property.bathrooms : 0,
       squareFeet: typeof property.squareFeet === 'number' && Number.isFinite(property.squareFeet) ? property.squareFeet : 0,
       countryCode: property.countryCode || 'UAE',
+      countryIso2: property.countryIso2 || countryIso2ForCountry(property.countryCode),
       city: property.city ?? null,
       region: property.region ?? null,
       community: property.community ?? null,
@@ -718,6 +788,7 @@ export default function ManualPropertyWizardClient() {
     if (saved) {
       setLastSavedAt(new Date())
       setNotice('Draft saved.')
+      trackEvent('listing_draft_saved', { workflow: 'manual_property_v2' })
     }
     return Boolean(saved)
   }
@@ -809,7 +880,7 @@ export default function ManualPropertyWizardClient() {
           altText: altGuess,
         })
 
-        await (await import('@/lib/upload-client')).uploadToSignedUrl(String(presignJson.uploadUrl), file)
+        await (await import('@/lib/upload-client')).uploadToSignedUrl(String(presignJson.uploadUrl), file, (percent) => setUploadProgress((current) => ({ ...current, [`${category}:${file.name}`]: percent })))
 
         const completeRes = await fetch('/api/manual-properties/upload/complete', {
           method: 'POST',
@@ -835,8 +906,14 @@ export default function ManualPropertyWizardClient() {
         }
 
         setNotice('Uploaded successfully')
+        setFailedUploads((current) => ({ ...current, [category]: (current[category] || []).filter((pending) => pending !== file) }))
+        setUploadProgress((current) => ({ ...current, [`${category}:${file.name}`]: 100 }))
+        trackEvent('listing_media_uploaded', { workflow: 'manual_property_v2', category })
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Upload failed')
+        setFailedUploads((current) => ({ ...current, [category]: [...(current[category] || []).filter((pending) => pending.name !== file.name), file] }))
+        setUploadProgress((current) => ({ ...current, [`${category}:${file.name}`]: 0 }))
+        trackEvent('listing_media_failed', { workflow: 'manual_property_v2', category })
       } finally {
         setUploadingCategory('')
       }
@@ -944,8 +1021,10 @@ export default function ManualPropertyWizardClient() {
 
       await fetchDraft(id, { mode: 'manual' })
       setNotice('Submitted successfully')
+      trackEvent('listing_submitted', { workflow: 'manual_property_v2' })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Submission failed')
+      trackEvent('listing_submission_failed', { workflow: 'manual_property_v2' })
     } finally {
       setSaving(false)
     }
@@ -953,6 +1032,7 @@ export default function ManualPropertyWizardClient() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
+      <Toaster position="top-right" toastOptions={{ duration: 4500 }} />
       <div className="mx-auto max-w-[1100px] px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -968,6 +1048,8 @@ export default function ManualPropertyWizardClient() {
         </div>
 
         {statusBanner}
+
+        {!isOnline ? <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">You&apos;re offline. Changes are stored locally and will sync when the connection returns.</div> : null}
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <button
@@ -998,14 +1080,6 @@ export default function ManualPropertyWizardClient() {
             </button>
           ) : null}
         </div>
-
-        {notice ? (
-          <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{notice}</div>
-        ) : null}
-
-        {error ? (
-          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
-        ) : null}
 
         {duplicate && duplicate.level !== 'none' ? (
           <div
@@ -1258,6 +1332,10 @@ export default function ManualPropertyWizardClient() {
                   appearance="admin-light"
                 />
                 <div><label className="block text-sm font-semibold text-gray-700 mb-2">Floor</label><input type="number" min={0} value={property?.floorNumber ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), floorNumber: Math.max(0, Math.floor(toNumber(e.target.value))) }))} onBlur={(e) => patch({ floorNumber: Math.max(0, Math.floor(toNumber(e.target.value))) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Total floors</label><input type="number" min={0} value={property?.totalFloors ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), totalFloors: Math.max(0, Math.floor(toNumber(e.target.value))) }))} onBlur={(e) => patch({ totalFloors: Math.max(0, Math.floor(toNumber(e.target.value))) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
+                <GlobalDropdown label="Facing" value={property?.facing || ''} onChange={(value) => { const next = singleDropdownValue(value); setProperty((p) => ({ ...(p as any), facing: next || null })); patch({ facing: next || null }) }} options={[{ value: '', label: 'Not specified' }, ...['North', 'South', 'East', 'West', 'North-East', 'North-West', 'South-East', 'South-West'].map((value) => ({ value, label: value }))]} appearance="admin-light" />
+                <GlobalDropdown label="View" value={property?.view || ''} onChange={(value) => { const next = singleDropdownValue(value); setProperty((p) => ({ ...(p as any), view: next || null })); patch({ view: next || null }) }} options={[{ value: '', label: 'Not specified' }, ...['Sea view', 'City view', 'Garden view', 'Community view', 'Street view'].map((value) => ({ value, label: value }))]} appearance="admin-light" />
+                <GlobalDropdown label="Property condition" value={property?.propertyCondition || ''} onChange={(value) => { const next = singleDropdownValue(value); setProperty((p) => ({ ...(p as any), propertyCondition: next || null })); patch({ propertyCondition: next || null }) }} options={[{ value: '', label: 'Not specified' }, { value: 'NEW', label: 'New' }, { value: 'GOOD', label: 'Good' }, { value: 'NEEDS_RENOVATION', label: 'Needs renovation' }]} appearance="admin-light" />
               </> : null}
 
               <div>
@@ -1298,8 +1376,9 @@ export default function ManualPropertyWizardClient() {
                 value={property?.countryCode || 'UAE'}
                 onChange={(v) => {
                   const next = singleDropdownValue(v) as any
-                  setProperty((p) => ({ ...(p as any), countryCode: next, currency: defaultCurrencyForCountry(next) }))
-                  patch({ countryCode: next })
+                  const countryIso2 = countryIso2ForCountry(next)
+                  setProperty((p) => ({ ...(p as any), countryCode: next, countryIso2, currency: defaultCurrencyForCountry(next) }))
+                  patch({ countryCode: next, countryIso2 })
                 }}
                 options={[
                   { value: 'UAE', label: 'UAE' },
@@ -1515,6 +1594,8 @@ export default function ManualPropertyWizardClient() {
                 <div key={cat} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const files = Array.from(event.dataTransfer.files); if (files.length) uploadMany(cat, cat === 'BROCHURE' ? files.slice(0, 1) : files) }} className="rounded-2xl border border-gray-200 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
+
+                    {Object.entries(uploadProgress).filter(([key, percent]) => key.startsWith(`${cat}:`) && percent < 100).map(([key, percent]) => <div key={key} className="mt-3"><div className="flex justify-between text-xs text-gray-500"><span className="truncate">{key.slice(cat.length + 1)}</span><span>{percent}%</span></div><div className="mt-1 h-1.5 overflow-hidden rounded-full bg-gray-100"><div className="h-full bg-dark-blue transition-all" style={{ width: `${percent}%` }} /></div></div>)}
                       <p className="font-semibold text-dark-blue">{label}</p>
                       {req ? <p className="text-xs text-gray-600 mt-1">Required</p> : null}
                     </div>
@@ -1541,6 +1622,8 @@ export default function ManualPropertyWizardClient() {
                       />
                     </label>
                   </div>
+
+                  {(failedUploads[cat] || []).length > 0 ? <div className="mt-3 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800"><span>{failedUploads[cat].length} upload{failedUploads[cat].length === 1 ? '' : 's'} failed.</span><button type="button" onClick={() => { const pending = failedUploads[cat] || []; setFailedUploads((current) => ({ ...current, [cat]: [] })); void uploadMany(cat, pending) }} className="font-semibold underline">Retry</button></div> : null}
 
                   {!propertyId ? <p className="mt-3 text-xs text-gray-600">Save draft to start uploading media</p> : null}
 
@@ -1603,21 +1686,11 @@ export default function ManualPropertyWizardClient() {
                   {amenityIndex.length === 0 ? (
                     <p className="text-sm text-gray-600">Loading amenities…</p>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {amenityIndex.slice(0, 120).map((a) => {
-                        const selected = (property?.amenities || []).includes(a)
-                        return (
-                          <button
-                            key={a}
-                            type="button"
-                            onClick={() => toggleAmenity(a)}
-                            className={`px-3 py-2 rounded-lg border text-sm text-left transition ${
-                              selected ? 'bg-dark-blue text-white border-dark-blue' : 'bg-white border-gray-300 text-gray-700'
-                            }`}
-                          >
-                            {a}
-                          </button>
-                        )
+                    <div className="space-y-5">
+                      {(Object.entries(MANUAL_AMENITY_GROUPS) as Array<[string, readonly string[]]>).map(([group, defaults]) => {
+                        const values = Array.from(new Set([...defaults, ...amenityIndex.filter((amenity) => defaults.includes(amenity))]))
+                        if (selectedCategory === 'LAND' && group !== 'Outdoor') return null
+                        return <div key={group}><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{group}</p><div className="grid grid-cols-1 gap-2 sm:grid-cols-2">{values.map((amenity) => { const selected = (property?.amenities || []).includes(amenity); return <button key={amenity} type="button" onClick={() => toggleAmenity(amenity)} className={`rounded-lg border px-3 py-2 text-left text-sm transition ${selected ? 'border-dark-blue bg-dark-blue text-white' : 'border-gray-300 bg-white text-gray-700'}`}>{amenity}</button> })}</div></div>
                       })}
                     </div>
                   )}
@@ -1687,13 +1760,16 @@ export default function ManualPropertyWizardClient() {
               {property?.intent === 'RENT' ? <>
                 <div><label className="block text-sm font-semibold text-gray-700 mb-2">Annual rent</label><input type="number" value={property?.annualRent ?? (property?.price ? property.price * 12 : '')} readOnly className="w-full h-12 px-4 rounded-xl border border-gray-200 bg-gray-50" /></div>
                 <div><label className="block text-sm font-semibold text-gray-700 mb-2">Security deposit</label><input type="number" min={0} value={property?.securityDeposit ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), securityDeposit: toNumber(e.target.value) }))} onBlur={(e) => patch({ securityDeposit: toNumber(e.target.value) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
-                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Payment frequency</label><select value={property?.paymentFrequency || 'MONTHLY'} onChange={(e) => { setProperty((p) => ({ ...(p as any), paymentFrequency: e.target.value })); patch({ paymentFrequency: e.target.value }) }} className="w-full h-12 px-4 rounded-xl border border-gray-300"><option value="MONTHLY">Monthly</option><option value="QUARTERLY">Quarterly</option><option value="YEARLY">Yearly</option></select></div>
+                <GlobalDropdown label="Payment frequency" value={property?.paymentFrequency || 'MONTHLY'} onChange={(value) => { const next = singleDropdownValue(value); setProperty((p) => ({ ...(p as any), paymentFrequency: next })); patch({ paymentFrequency: next }) }} options={[{ value: 'MONTHLY', label: 'Monthly' }, { value: 'QUARTERLY', label: 'Quarterly' }, { value: 'YEARLY', label: 'Yearly' }]} appearance="admin-light" />
                 <div><label className="block text-sm font-semibold text-gray-700 mb-2">Lease duration (months)</label><input type="number" min={1} value={property?.leaseDurationMonths ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), leaseDurationMonths: Math.max(1, Math.floor(toNumber(e.target.value))) }))} onBlur={(e) => patch({ leaseDurationMonths: Math.max(1, Math.floor(toNumber(e.target.value))) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Available from</label><input type="date" value={property?.availableFrom ? String(property.availableFrom).slice(0, 10) : ''} onChange={(e) => { const value = e.target.value || null; setProperty((p) => ({ ...(p as any), availableFrom: value })); patch({ availableFrom: value }) }} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Agency fee</label><input type="number" min={0} value={property?.agencyFee ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), agencyFee: toNumber(e.target.value) }))} onBlur={(e) => patch({ agencyFee: toNumber(e.target.value) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
                 <label className="flex items-center gap-3 text-sm text-gray-700"><input type="checkbox" checked={Boolean(property?.utilitiesIncluded)} onChange={(e) => { setProperty((p) => ({ ...(p as any), utilitiesIncluded: e.target.checked })); patch({ utilitiesIncluded: e.target.checked }) }} /> Utilities included</label>
                 <label className="flex items-center gap-3 text-sm text-gray-700"><input type="checkbox" checked={Boolean(property?.petFriendly)} onChange={(e) => { setProperty((p) => ({ ...(p as any), petFriendly: e.target.checked })); patch({ petFriendly: e.target.checked }) }} /> Pet friendly</label>
               </> : <>
                 <div><label className="block text-sm font-semibold text-gray-700 mb-2">Booking amount</label><input type="number" min={0} value={property?.bookingAmount ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), bookingAmount: toNumber(e.target.value) }))} onBlur={(e) => patch({ bookingAmount: toNumber(e.target.value) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
                 <div><label className="block text-sm font-semibold text-gray-700 mb-2">Maintenance / service charges</label><input type="number" min={0} value={property?.maintenanceCharges ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), maintenanceCharges: toNumber(e.target.value) }))} onBlur={(e) => patch({ maintenanceCharges: toNumber(e.target.value) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Other charges</label><input type="number" min={0} value={property?.otherCharges ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), otherCharges: toNumber(e.target.value) }))} onBlur={(e) => patch({ otherCharges: toNumber(e.target.value) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
               </>}
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Payment plan text (optional)</label>

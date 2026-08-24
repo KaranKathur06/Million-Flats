@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { requireAgentSession } from '@/lib/agentAuth'
+import { requireAgentDraftSession } from '@/lib/agentAuth'
 import { s3ObjectExists } from '@/lib/s3'
 import { PROPERTY_MEDIA_MAX_IMAGE_BYTES } from '@/lib/propertyMedia'
 
@@ -19,7 +19,7 @@ const BodySchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const auth = await requireAgentSession()
+    const auth = await requireAgentDraftSession()
     if (!auth.ok) {
       return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
     }

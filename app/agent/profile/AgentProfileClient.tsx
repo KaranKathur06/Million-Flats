@@ -155,6 +155,7 @@ export default function AgentProfileClient({
   const statusIsLive = String(profileStatus).toUpperCase() === 'LIVE'
   const statusIsSubmitted = String(profileStatus).toUpperCase() === 'SUBMITTED'
   const statusIsVerified = String(profileStatus).toUpperCase() === 'VERIFIED'
+  const verificationApproved = statusIsLive || statusIsVerified || String(profileStatus).toUpperCase() === 'APPROVED'
 
   const initials = useMemo(() => {
     const parts = (name || '').trim().split(/\s+/).filter(Boolean)
@@ -185,15 +186,21 @@ export default function AgentProfileClient({
             </div>
             <div className="flex items-center gap-3">
               <ProfileStatusBadge status={profileStatus} />
-              <Link
-                href="/agent/verification"
-                className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-                Upload Documents
-              </Link>
+              {verificationApproved ? (
+                <span className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-semibold">
+                  Verification Approved
+                </span>
+              ) : (
+                <Link
+                  href="/agent/verification"
+                  className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                  Upload Documents
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -231,7 +238,7 @@ export default function AgentProfileClient({
                 />
               </div>
               <p className="mt-2 text-xs text-gray-500">
-                {livePct === 100 ? 'Profile complete! Proceed to upload your verification documents.' :
+                {livePct === 100 && verificationApproved ? 'Profile and verification complete. Your account is active.' : livePct === 100 ? 'Profile complete. Continue to verification.' :
                  `${checks.length - completedChecks} item${checks.length - completedChecks !== 1 ? 's' : ''} remaining to complete your profile.`}
               </p>
             </div>
@@ -537,14 +544,14 @@ export default function AgentProfileClient({
         </div>
 
         {/* ─── NEXT STEP CTA ────────────────────────────── */}
-        {livePct === 100 && (
+        {livePct === 100 && !verificationApproved && (
           <div className="mt-8 rounded-xl border border-blue-200 bg-blue-50 p-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <p className="text-blue-600 text-xs font-semibold uppercase tracking-wider mb-1">Next Step</p>
                 <h3 className="text-gray-900 text-base font-semibold">Complete your verification to activate your account</h3>
                 <p className="text-gray-600 text-sm mt-1">
-                  Upload at least one valid Government Identity Proof to activate your account. Professional documents (RERA, licenses) are optional and increase your VerixPro™ trust score.
+                  Upload at least one valid Government Identity Proof to activate your account. Professional documents (RERA, licenses) are optional and can strengthen your profile.
                 </p>
               </div>
               <Link

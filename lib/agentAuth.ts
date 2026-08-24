@@ -58,6 +58,24 @@ export async function requireAgentSession() {
   return { ok: true as const, agentId: dbUser.agent.id, userId: dbUser.id }
 }
 
+// Draft authoring is available before an agent is approved or live. Submission
+// still uses requireAgentSession and therefore retains the full marketplace gate.
+export async function requireAgentDraftSession() {
+  const session = await getServerSession(authOptions)
+  const role = asUpper((session?.user as any)?.role)
+  if (!session?.user) return { ok: false as const, status: 401, message: 'Unauthorized', reason: 'UNAUTHENTICATED' as const }
+
+  const email = String((session.user as any).email || '').trim().toLowerCase()
+  if (!email || role !== 'AGENT') return { ok: false as const, status: 403, message: 'Only authenticated agents can create drafts', reason: 'NOT_AN_AGENT' as const }
+
+  const dbUser = await prisma.user.findUnique({ where: { email }, include: { agent: true } })
+  if (!dbUser?.agent) return { ok: false as const, status: 403, message: 'Agent profile required to create a draft', reason: 'NOT_AN_AGENT' as const }
+  if (asUpper((dbUser as any).status || 'ACTIVE') !== 'ACTIVE') return { ok: false as const, status: 403, message: 'Your account is not active', reason: 'INACTIVE' as const }
+  if (!((dbUser as any).emailVerified || (dbUser as any).verified)) return { ok: false as const, status: 403, message: 'Verify your email before saving a draft', reason: 'EMAIL_NOT_VERIFIED' as const }
+
+  return { ok: true as const, agentId: dbUser.agent.id, userId: dbUser.id }
+}
+
 export async function requireAgentProfileSession() {
   const session = await getServerSession(authOptions)
   const role = asUpper((session?.user as any)?.role)

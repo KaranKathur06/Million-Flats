@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAgentSession } from '@/lib/agentAuth'
+import { requireAgentDraftSession } from '@/lib/agentAuth'
 
 function errorToDetails(error: unknown) {
   if (!error || typeof error !== 'object') return null
@@ -36,7 +36,7 @@ function classifyDraftCreateError(error: unknown) {
 
 export async function POST() {
   try {
-    const auth = await requireAgentSession()
+    const auth = await requireAgentDraftSession()
     if (!auth.ok) {
       return NextResponse.json({ success: false, error: auth.message }, { status: auth.status })
     }
@@ -61,7 +61,7 @@ export async function POST() {
 
 export async function GET() {
   try {
-    const auth = await requireAgentSession()
+    const auth = await requireAgentDraftSession()
     if (!auth.ok) {
       return NextResponse.json({ success: false, error: auth.message }, { status: auth.status })
     }

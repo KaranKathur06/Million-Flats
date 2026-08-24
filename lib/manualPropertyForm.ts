@@ -83,6 +83,21 @@ export function defaultCurrencyForCountry(countryCode?: string | null) {
   return String(countryCode || '').toUpperCase() === 'INDIA' ? 'INR' : 'AED'
 }
 
+export function countryIso2ForCountry(countryCode?: string | null) {
+  return String(countryCode || '').toUpperCase() === 'INDIA' ? 'IN' : 'AE'
+}
+
+export function orderManualPropertyMedia<T extends { category?: string | null; position?: number | null }>(media: T[]) {
+  return [...media].sort((a, b) => {
+    const aCategory = String(a.category || '').toUpperCase()
+    const bCategory = String(b.category || '').toUpperCase()
+    const aIsCover = aCategory === 'COVER' || aCategory === 'HERO'
+    const bIsCover = bCategory === 'COVER' || bCategory === 'HERO'
+    if (aIsCover !== bIsCover) return aIsCover ? -1 : 1
+    return Number(a.position || 0) - Number(b.position || 0)
+  })
+}
+
 export function suggestManualPropertyTitle(data: Pick<ManualPropertyFormData, 'propertyType' | 'bedrooms' | 'city' | 'community'>) {
   const type = String(data.propertyType || 'Property').trim()
   const bedrooms = Number(data.bedrooms) > 0 ? `${Math.floor(Number(data.bedrooms))}BR ` : ''

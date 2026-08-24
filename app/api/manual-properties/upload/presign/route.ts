@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { requireAgentSession } from '@/lib/agentAuth'
+import { requireAgentDraftSession } from '@/lib/agentAuth'
 import { createSignedPutUrl } from '@/lib/s3'
 import { buildAssetUrl } from '@/lib/assetUrl'
 import { PROPERTY_MEDIA_ALLOWED_TYPES, PROPERTY_MEDIA_MAX_IMAGE_BYTES } from '@/lib/propertyMedia'
@@ -49,7 +49,7 @@ function folderForUpload(category: string, propertyId: string) {
 
 export async function POST(req: Request) {
   try {
-    const auth = await requireAgentSession()
+    const auth = await requireAgentDraftSession()
     if (!auth.ok) {
       return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
     }

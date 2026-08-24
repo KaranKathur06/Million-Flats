@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { requireAgentSession } from '@/lib/agentAuth'
+import { requireAgentDraftSession } from '@/lib/agentAuth'
+import { countryIso2ForCountry } from '@/lib/manualPropertyForm'
 
 function errorToDetails(error: unknown) {
   if (!error || typeof error !== 'object') return null
@@ -75,6 +76,7 @@ const PatchSchema = z.object({
   squareFeet: z.number().min(0).max(200000).optional(),
 
   countryCode: z.enum(['UAE', 'India']).optional(),
+  countryIso2: z.enum(['AE', 'IN']).optional().nullable(),
   city: z.string().trim().max(80).optional().nullable(),
   community: z.string().trim().max(120).optional().nullable(),
   region: z.string().trim().max(100).optional().nullable(),
@@ -125,7 +127,7 @@ const PatchSchema = z.object({
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {
-    const auth = await requireAgentSession()
+    const auth = await requireAgentDraftSession()
     if (!auth.ok) {
       return NextResponse.json({ success: false, error: auth.message }, { status: auth.status })
     }
@@ -149,7 +151,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
-    const auth = await requireAgentSession()
+    const auth = await requireAgentDraftSession()
     if (!auth.ok) {
       return NextResponse.json({ success: false, error: auth.message }, { status: auth.status })
     }
@@ -172,6 +174,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const data: any = {
       ...parsed.data,
     }
+
+    if (parsed.data.countryCode) data.countryIso2 = countryIso2ForCountry(parsed.data.countryCode)
 
     if (parsed.data.amenities !== undefined) data.amenities = parsed.data.amenities
     if (parsed.data.customAmenities !== undefined) data.customAmenities = parsed.data.customAmenities

@@ -1,7 +1,9 @@
 import {
   calculateManualListingQuality,
   categoryForPropertyType,
+  countryIso2ForCountry,
   defaultCurrencyForCountry,
+  orderManualPropertyMedia,
   validateManualPropertyStep,
   visibleManualPropertyFields,
 } from '@/lib/manualPropertyForm'
@@ -17,6 +19,31 @@ describe('manual property form rules', () => {
   it('suggests country currencies without blocking cross-border overrides', () => {
     expect(defaultCurrencyForCountry('India')).toBe('INR')
     expect(defaultCurrencyForCountry('UAE')).toBe('AED')
+    expect(countryIso2ForCountry('India')).toBe('IN')
+    expect(countryIso2ForCountry('UAE')).toBe('AE')
+  })
+
+  it('keeps sale and rent pricing validation distinct', () => {
+    const base = {
+      category: 'RESIDENTIAL' as const,
+      propertyType: 'Apartment',
+      title: 'Apartment in Dubai Marina',
+      price: 12000,
+      squareFeet: 1200,
+      shortDescription: 'A bright apartment with excellent access to transit, dining, and waterfront amenities.',
+    }
+    expect(validateManualPropertyStep('basics', { ...base, intent: 'RENT' }).price).toBeUndefined()
+    expect(validateManualPropertyStep('basics', { ...base, intent: 'SALE' }).price).toBeUndefined()
+    expect(validateManualPropertyStep('basics', { ...base }).intent).toContain('sale or rent')
+  })
+
+  it('orders cover media before other media', () => {
+    const ordered = orderManualPropertyMedia([
+      { category: 'INTERIOR', position: 0 },
+      { category: 'hero', position: 4 },
+      { category: 'EXTERIOR', position: 1 },
+    ])
+    expect(ordered.map((item) => item.category)).toEqual(['hero', 'INTERIOR', 'EXTERIOR'])
   })
 
   it('validates land without residential bedroom requirements', () => {

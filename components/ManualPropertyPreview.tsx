@@ -8,6 +8,7 @@ import { buildAssetUrl } from '@/lib/assetUrl'
 import CurrencyPrice from '@/components/CurrencyPrice'
 import { buildManualPropertyPath } from '@/lib/manualPropertyRoutes'
 import { PROPERTY_MEDIA_CATEGORIES, propertyMediaCategory, type PropertyMediaCategory } from '@/lib/propertyMedia'
+import { orderManualPropertyMedia } from '@/lib/manualPropertyForm'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v : ''
@@ -59,7 +60,7 @@ export default function ManualPropertyPreview({ manual, related = [] }: { manual
       : 'Price on request'
 
   const mediaItems = Array.isArray(manual?.media)
-    ? manual.media
+    ? orderManualPropertyMedia(manual.media
         .filter((m: any) => {
           const cat = safeString(m?.category)
           return cat !== 'BROCHURE' && cat !== 'VIDEO'
@@ -69,12 +70,7 @@ export default function ManualPropertyPreview({ manual, related = [] }: { manual
           url: buildAssetUrl(safeString(m?.s3Key) || safeString(m?.url)) || safeString(m?.url),
           position: safeNumber(m?.position),
         }))
-        .filter((m: any) => Boolean(m.url))
-        .sort((a: any, b: any) => {
-          if (a.category === 'hero' && b.category !== 'hero') return -1
-          if (a.category !== 'hero' && b.category === 'hero') return 1
-          return a.position - b.position
-        })
+        .filter((m: any) => Boolean(m.url)))
     : []
 
   const images: string[] = mediaItems.map((m: any) => m.url)
@@ -185,6 +181,12 @@ export default function ManualPropertyPreview({ manual, related = [] }: { manual
                 <div className="text-2xl sm:text-3xl font-semibold text-dark-blue tracking-tight">{priceLabel}</div>
                 <div className="mt-1 text-xs uppercase tracking-widest text-gray-500">Price</div>
               </div>
+            </div>
+            <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
+              {manual?.furnishingStatus ? <span>Furnishing: <strong className="text-dark-blue">{String(manual.furnishingStatus).replace(/_/g, ' ')}</strong></span> : null}
+              {manual?.parkingSpaces != null ? <span>Parking: <strong className="text-dark-blue">{manual.parkingSpaces}</strong></span> : null}
+              {manual?.balconyCount != null ? <span>Balconies: <strong className="text-dark-blue">{manual.balconyCount}</strong></span> : null}
+              {manual?.floorNumber != null ? <span>Floor: <strong className="text-dark-blue">{manual.floorNumber}{manual?.totalFloors != null ? ` / ${manual.totalFloors}` : ''}</strong></span> : null}
             </div>
           </section>
 

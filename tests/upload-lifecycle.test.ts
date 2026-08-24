@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals'
 
-const mockRequireAgentSession = jest.fn() as jest.MockedFunction<() => Promise<{ ok: boolean; agentId: string }>>
+const mockRequireAgentDraftSession = jest.fn() as jest.MockedFunction<() => Promise<{ ok: boolean; agentId: string }>>
 const mockS3ObjectExists = jest.fn() as jest.MockedFunction<(key: string) => Promise<boolean>>
 const mockDeleteFromS3 = jest.fn() as jest.MockedFunction<(key: string) => Promise<void>>
 const mockCreate = jest.fn() as jest.MockedFunction<(data: any) => Promise<{ id: string }>>
@@ -26,7 +26,7 @@ jest.mock('next/server', () => {
 })
 
 jest.mock('@/lib/agentAuth', () => ({
-  requireAgentSession: mockRequireAgentSession,
+  requireAgentDraftSession: mockRequireAgentDraftSession,
 }))
 
 jest.mock('@/lib/prisma', () => ({
@@ -52,7 +52,7 @@ import { POST } from '@/app/api/manual-properties/upload/complete/route'
 describe('upload lifecycle regression checks', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockRequireAgentSession.mockResolvedValue({ ok: true, agentId: 'agent-1' })
+    mockRequireAgentDraftSession.mockResolvedValue({ ok: true, agentId: 'agent-1' })
     mockFindFirst.mockResolvedValue({ id: 'prop-1', status: 'DRAFT' })
     mockFindMany.mockResolvedValue([])
     mockCreate.mockResolvedValue({ id: 'media-1' })

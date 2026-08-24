@@ -47,26 +47,23 @@ export async function requestPresign(endpoint: string, body: any) {
   return payload as PresignResponse
 }
 
-export async function uploadToSignedUrl(uploadUrl: string, file: File) {
+export function uploadToSignedUrl(uploadUrl: string, file: File, onProgress?: (percent: number) => void) {
   if (!uploadUrl) throw new Error('Missing upload URL')
-
-  const res = await fetch(String(uploadUrl), {
-    method: 'PUT',
-    headers: { 'Content-Type': file.type || 'application/octet-stream' },
-    body: file,
+  return new Promise<boolean>((resolve, reject) => {
+    const request = new XMLHttpRequest()
+    request.open('PUT', String(uploadUrl))
+    request.setRequestHeader('Content-Type', file.type || 'application/octet-stream')
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100))
+    }
+    request.onerror = () => reject(new Error('Upload to storage failed. Please retry.'))
+    request.onload = () => {
+      if (request.status >= 200 && request.status < 300) { onProgress?.(100); resolve(true); return }
+      logUploadIssue('upload_failed', { uploadUrl, status: request.status, body: request.responseText })
+      reject(new Error('Upload to storage failed: ' + (request.responseText || request.statusText || request.status)))
+    }
+    request.send(file)
   })
-
-  if (!res.ok) {
-    // try to extract error body for diagnostics
-    let body = ''
-    try {
-      body = await res.text()
-    } catch {}
-    logUploadIssue('upload_failed', { uploadUrl, status: res.status, body })
-    throw new Error('Upload to storage failed: ' + (body || res.statusText || res.status))
-  }
-
-  return true
 }
 
 export async function saveDocumentRecord(endpoint: string, payload: any) {

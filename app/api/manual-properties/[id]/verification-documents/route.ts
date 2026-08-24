@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAgentSession } from '@/lib/agentAuth'
+import { requireAgentDraftSession } from '@/lib/agentAuth'
 import { deleteFromS3 } from '@/lib/s3'
 
 export const runtime = 'nodejs'
@@ -10,7 +10,7 @@ async function ownedProperty(id: string, agentId: string) {
 }
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const auth = await requireAgentSession()
+  const auth = await requireAgentDraftSession()
   if (!auth.ok) return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
   const property = await ownedProperty(params.id, auth.agentId)
   if (!property) return NextResponse.json({ success: false, message: 'Not found' }, { status: 404 })
@@ -23,7 +23,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 }
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
-  const auth = await requireAgentSession()
+  const auth = await requireAgentDraftSession()
   if (!auth.ok) return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
   const property = await ownedProperty(params.id, auth.agentId)
   if (!property || (property.status !== 'DRAFT' && property.status !== 'REJECTED')) return NextResponse.json({ success: false, message: 'Not found or not editable' }, { status: 404 })
