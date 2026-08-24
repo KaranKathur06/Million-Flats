@@ -1241,7 +1241,22 @@ export default function ManualPropertyWizardClient() {
                 <div><label className="block text-sm font-semibold text-gray-700 mb-2">Balconies</label><input type="number" min={0} value={property?.balconyCount ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), balconyCount: Math.max(0, Math.floor(toNumber(e.target.value))) }))} onBlur={(e) => patch({ balconyCount: Math.max(0, Math.floor(toNumber(e.target.value))) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
                 <div><label className="block text-sm font-semibold text-gray-700 mb-2">Parking spaces</label><input type="number" min={0} value={property?.parkingSpaces ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), parkingSpaces: Math.max(0, Math.floor(toNumber(e.target.value))) }))} onBlur={(e) => patch({ parkingSpaces: Math.max(0, Math.floor(toNumber(e.target.value))) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
                 <div><label className="block text-sm font-semibold text-gray-700 mb-2">Property age (years)</label><input type="number" min={0} value={property?.propertyAgeYears ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), propertyAgeYears: Math.max(0, Math.floor(toNumber(e.target.value))) }))} onBlur={(e) => patch({ propertyAgeYears: Math.max(0, Math.floor(toNumber(e.target.value))) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
-                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Furnishing</label><select value={property?.furnishingStatus || ''} onChange={(e) => { setProperty((p) => ({ ...(p as any), furnishingStatus: e.target.value || null })); patch({ furnishingStatus: e.target.value || null }) }} className="w-full h-12 px-4 rounded-xl border border-gray-300"><option value="">Not specified</option><option value="UNFURNISHED">Unfurnished</option><option value="SEMI_FURNISHED">Semi-furnished</option><option value="FURNISHED">Furnished</option></select></div>
+                <GlobalDropdown
+                  label="Furnishing"
+                  value={property?.furnishingStatus || ''}
+                  onChange={(value) => {
+                    const next = singleDropdownValue(value)
+                    setProperty((p) => ({ ...(p as any), furnishingStatus: next || null }))
+                    patch({ furnishingStatus: next || null })
+                  }}
+                  options={[
+                    { value: '', label: 'Not specified' },
+                    { value: 'UNFURNISHED', label: 'Unfurnished' },
+                    { value: 'SEMI_FURNISHED', label: 'Semi-furnished' },
+                    { value: 'FURNISHED', label: 'Furnished' },
+                  ]}
+                  appearance="admin-light"
+                />
                 <div><label className="block text-sm font-semibold text-gray-700 mb-2">Floor</label><input type="number" min={0} value={property?.floorNumber ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), floorNumber: Math.max(0, Math.floor(toNumber(e.target.value))) }))} onBlur={(e) => patch({ floorNumber: Math.max(0, Math.floor(toNumber(e.target.value))) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
               </> : null}
 
