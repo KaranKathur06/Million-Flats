@@ -275,6 +275,8 @@ model User {
   inquiries Inquiry[]
   leadMagnetDownloads LeadMagnetDownload[]
   brochureDownloads BrochureDownload[]
+  manualPropertyVerificationUploads ManualPropertyVerificationDocument[] @relation("ManualPropertyVerificationUploader")
+  manualPropertyVerificationReviews ManualPropertyVerificationDocument[] @relation("ManualPropertyVerificationReviewer")
 
   blogs Blog[]
 
@@ -1014,25 +1016,55 @@ model ManualProperty {
   archivedBy String? @map("archived_by")
 
   title       String?
+  category    String?
   propertyType String? @map("property_type")
   intent      ManualPropertyIntent?
   price       Float?
   currency    String @default("AED")
+  negotiable  Boolean?
+  bookingAmount Float? @map("booking_amount")
+  maintenanceCharges Float? @map("maintenance_charges")
+  otherCharges Float? @map("other_charges")
+  annualRent Float? @map("annual_rent")
+  securityDeposit Float? @map("security_deposit")
+  agencyFee Float? @map("agency_fee")
+  utilitiesIncluded Boolean? @map("utilities_included")
+  availableFrom DateTime? @map("available_from")
+  leaseDurationMonths Int? @map("lease_duration_months")
+  paymentFrequency String? @map("payment_frequency")
+  preferredTenantType String? @map("preferred_tenant_type")
+  petFriendly Boolean? @map("pet_friendly")
   constructionStatus ManualPropertyConstructionStatus? @map("construction_status")
   shortDescription String? @map("short_description")
 
   bedrooms   Int @default(0)
   bathrooms  Int @default(0)
   squareFeet Float @default(0) @map("square_feet")
+  carpetArea Float? @map("carpet_area")
+  plotArea Float? @map("plot_area")
+  balconyCount Int? @map("balcony_count")
+  parkingSpaces Int? @map("parking_spaces")
+  propertyAgeYears Int? @map("property_age_years")
+  floorNumber Int? @map("floor_number")
+  totalFloors Int? @map("total_floors")
+  facing String?
+  view String?
+  furnishingStatus String? @map("furnishing_status")
+  propertyCondition String? @map("property_condition")
+  possessionDate DateTime? @map("possession_date")
 
   countryCode CountryCode @default(UAE) @map("country")
   countryIso2 String? @db.Char(2) @map("country_iso2")
   country     Country? @relation(fields: [countryIso2], references: [iso2])
   city        String?
+  region      String?
   community   String?
+  locality    String?
   address     String?
   latitude    Float?
   longitude   Float?
+  locationPrecision String? @map("location_precision")
+  publicLocationVisible Boolean? @map("public_location_visible")
 
   developerName String? @map("developer_name")
 
@@ -1060,6 +1092,7 @@ model ManualProperty {
   developer Developer? @relation(fields: [developerId], references: [id], onDelete: SetNull)
   inquiries Inquiry[]
   media ManualPropertyMedia[]
+  verificationDocuments ManualPropertyVerificationDocument[]
   duplicateOverrideLogs ManualDuplicateOverrideLog[]
   moderationLogs ManualPropertyModerationLog[]
   importRecords ImportRecord[]
@@ -1076,6 +1109,31 @@ model ManualProperty {
   @@index([countryCode, city])
   @@index([countryIso2, city])
   @@map("manual_properties")
+}
+
+model ManualPropertyVerificationDocument {
+  id String @id @default(uuid())
+  propertyId String @map("property_id")
+  category String
+  storageKey String @map("storage_key")
+  url String? @db.Text
+  mimeType String? @map("mime_type")
+  sizeBytes Int? @map("size_bytes")
+  uploadStatus String @default("UPLOADED") @map("upload_status")
+  verificationStatus String @default("UNVERIFIED") @map("verification_status")
+  uploadedBy String @map("uploaded_by")
+  reviewedBy String? @map("reviewed_by")
+  reviewNote String? @db.Text @map("review_note")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  property ManualProperty @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  uploader User @relation("ManualPropertyVerificationUploader", fields: [uploadedBy], references: [id], onDelete: Cascade)
+  reviewer User? @relation("ManualPropertyVerificationReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+
+  @@index([propertyId])
+  @@index([verificationStatus])
+  @@map("manual_property_verification_documents")
 }
 
 model Inquiry {

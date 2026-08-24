@@ -10,6 +10,17 @@ import { nanoid } from 'nanoid'
 import { buildPropertySlugPath } from '@/lib/seo'
 import GlobalDropdown from '@/components/ui/GlobalDropdown'
 import { singleDropdownValue } from '@/components/ui/dropdownUtils'
+import { trackEvent } from '@/lib/tracking'
+import {
+  calculateManualListingQuality,
+  categoryForPropertyType,
+  defaultCurrencyForCountry,
+  MANUAL_PROPERTY_CATEGORIES,
+  propertyTypesForCategory,
+  suggestManualPropertyTitle,
+  validateManualPropertyStep,
+  type ManualPropertyCategory,
+} from '@/lib/manualPropertyForm'
 
 type DuplicateResult = {
   score: number
@@ -29,6 +40,23 @@ type MediaItem = {
   category: string
   url: string
   altText?: string | null
+  position?: number
+}
+
+type VerificationDocument = {
+  id: string
+  category: string
+  mimeType?: string | null
+  sizeBytes?: number | null
+  uploadStatus?: string
+  verificationStatus?: string
+}
+
+type ValuationSummary = {
+  fairValue?: { min?: number; mid?: number; max?: number; currency?: string }
+  confidence?: number
+  marketPosition?: string
+  askingPrice?: number | null
 }
 
 type ManualProperty = {
@@ -36,10 +64,36 @@ type ManualProperty = {
   status: 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'REJECTED'
   rejectionReason?: string | null
   title?: string | null
+  category?: ManualPropertyCategory | null
   propertyType?: string | null
   intent?: 'SALE' | 'RENT' | null
   price?: number | null
   currency?: string | null
+  negotiable?: boolean | null
+  bookingAmount?: number | null
+  maintenanceCharges?: number | null
+  otherCharges?: number | null
+  annualRent?: number | null
+  securityDeposit?: number | null
+  agencyFee?: number | null
+  utilitiesIncluded?: boolean | null
+  availableFrom?: string | null
+  leaseDurationMonths?: number | null
+  paymentFrequency?: string | null
+  preferredTenantType?: string | null
+  petFriendly?: boolean | null
+  carpetArea?: number | null
+  plotArea?: number | null
+  balconyCount?: number | null
+  parkingSpaces?: number | null
+  propertyAgeYears?: number | null
+  floorNumber?: number | null
+  totalFloors?: number | null
+  facing?: string | null
+  view?: string | null
+  furnishingStatus?: string | null
+  propertyCondition?: string | null
+  possessionDate?: string | null
   constructionStatus?: 'READY' | 'OFF_PLAN' | null
   shortDescription?: string | null
 
@@ -49,10 +103,14 @@ type ManualProperty = {
 
   countryCode?: 'UAE' | 'India'
   city?: string | null
+  region?: string | null
   community?: string | null
+  locality?: string | null
   address?: string | null
   latitude?: number | null
   longitude?: number | null
+  locationPrecision?: 'EXACT' | 'APPROXIMATE' | null
+  publicLocationVisible?: boolean | null
 
   developerName?: string | null
 
@@ -87,6 +145,7 @@ function debounce<T extends (...args: any[]) => void>(fn: T, ms: number) {
 }
 
 const LAST_MANUAL_DRAFT_KEY = 'millionflats:last_manual_draft_id'
+const STEP_ORDER: Step[] = ['basics', 'location', 'media', 'amenities', 'pricing', 'declaration', 'review']
 
 function toNumber(v: string) {
   const n = Number(v)
@@ -148,11 +207,35 @@ export default function ManualPropertyWizardClient() {
 
   const [amenityIndex, setAmenityIndex] = useState<string[]>([])
   const [customAmenityInput, setCustomAmenityInput] = useState('')
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
+  const [verificationDocuments, setVerificationDocuments] = useState<VerificationDocument[]>([])
+  const [documentCategory, setDocumentCategory] = useState('OWNERSHIP_PROOF')
+  const [documentBusy, setDocumentBusy] = useState(false)
+  const [locationQuery, setLocationQuery] = useState('')
+  const [locationResults, setLocationResults] = useState<Array<{ displayName: string; latitude: number; longitude: number }>>([])
+  const [locationSearching, setLocationSearching] = useState(false)
+  const [valuation, setValuation] = useState<ValuationSummary | null>(null)
+  const [valuationLoading, setValuationLoading] = useState(false)
+  const [valuationError, setValuationError] = useState('')
 
   const propertyId = property?.id || ''
   const propertyRef = useRef(property)
   const lastAutosaveFingerprintRef = useRef<string>('')
   const didHydrateFromServerRef = useRef(false)
+
+  const selectedCategory = property.category || categoryForPropertyType(property.propertyType)
+  const quality = useMemo(() => calculateManualListingQuality(property), [property])
+  const stepErrors = useMemo(() => validateManualPropertyStep(step, property), [property, step])
+
+  const goToNextStep = useCallback(() => {
+    const errors = validateManualPropertyStep(step, property)
+    if (Object.keys(errors).length > 0) {
+      setError(Object.values(errors)[0])
+      return
+    }
+    setError('')
+    setStep(STEP_ORDER[Math.min(STEP_ORDER.length - 1, STEP_ORDER.indexOf(step) + 1)])
+  }, [property, step])
 
   useEffect(() => {
     propertyRef.current = property
@@ -388,6 +471,86 @@ export default function ManualPropertyWizardClient() {
       .catch(() => null)
   }, [step, amenityIndex.length])
 
+  useEffect(() => {
+    if (step !== 'declaration' || !propertyId) return
+    fetch(`/api/manual-properties/${encodeURIComponent(propertyId)}/verification-documents`)
+      .then((res) => res.json())
+      .then((json) => { if (Array.isArray(json?.documents)) setVerificationDocuments(json.documents) })
+      .catch(() => null)
+  }, [propertyId, step])
+
+  useEffect(() => {
+    if (step !== 'location' || locationQuery.trim().length < 3) {
+      setLocationResults([])
+      return
+    }
+    const controller = new AbortController()
+    const timer = window.setTimeout(async () => {
+      setLocationSearching(true)
+      try {
+        const response = await fetch(`/api/manual-properties/geocode?query=${encodeURIComponent(locationQuery)}`, { signal: controller.signal })
+        const json = await response.json()
+        if (response.ok && Array.isArray(json?.results)) setLocationResults(json.results)
+      } catch {
+        if (!controller.signal.aborted) setLocationResults([])
+      } finally {
+        if (!controller.signal.aborted) setLocationSearching(false)
+      }
+    }, 450)
+    return () => { controller.abort(); window.clearTimeout(timer) }
+  }, [locationQuery, step])
+
+  useEffect(() => {
+    if (step !== 'review' || !propertyId) return
+    let cancelled = false
+    setValuationLoading(true)
+    setValuationError('')
+    fetch('/api/ai/valuation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entityId: propertyId, entityType: 'MANUAL_PROPERTY' }) })
+      .then(async (response) => {
+        const json = await response.json()
+        if (!response.ok || !json?.success) throw new Error(json?.error || 'AIShield valuation is unavailable')
+        if (!cancelled) setValuation(json.data)
+      })
+      .catch((error) => { if (!cancelled) { setValuation(null); setValuationError(error instanceof Error ? error.message : 'AIShield valuation is unavailable') } })
+      .finally(() => { if (!cancelled) setValuationLoading(false) })
+    return () => { cancelled = true }
+  }, [propertyId, step])
+
+  const uploadVerificationDocument = async (file: File) => {
+    if (!propertyId) return
+    setDocumentBusy(true)
+    setError('')
+    try {
+      const presignRes = await fetch(`/api/manual-properties/${encodeURIComponent(propertyId)}/verification-documents/presign`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category: documentCategory, filename: file.name, contentType: file.type, sizeBytes: file.size }) })
+      const presign = await safeJson(presignRes) as any
+      if (!presignRes.ok || !presign?.uploadUrl) throw new Error(presign?.message || 'Could not prepare document upload')
+      const uploadRes = await fetch(String(presign.uploadUrl), { method: 'PUT', headers: { 'Content-Type': file.type }, body: file })
+      if (!uploadRes.ok) throw new Error('Document upload failed. Please retry.')
+      const completeRes = await fetch(`/api/manual-properties/${encodeURIComponent(propertyId)}/verification-documents/complete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category: documentCategory, storageKey: presign.key, mimeType: file.type, sizeBytes: file.size }) })
+      const complete = await safeJson(completeRes) as any
+      if (!completeRes.ok || !complete?.document) throw new Error(complete?.message || 'Could not save document')
+      setVerificationDocuments((documents) => [complete.document, ...documents])
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Document upload failed')
+    } finally {
+      setDocumentBusy(false)
+    }
+  }
+
+  const deleteVerificationDocument = async (documentId: string) => {
+    if (!propertyId) return
+    setDocumentBusy(true)
+    try {
+      const res = await fetch(`/api/manual-properties/${encodeURIComponent(propertyId)}/verification-documents`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ documentId }) })
+      if (!res.ok) throw new Error('Could not remove document')
+      setVerificationDocuments((documents) => documents.filter((document) => document.id !== documentId))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not remove document')
+    } finally {
+      setDocumentBusy(false)
+    }
+  }
+
   const patchById = useCallback(async (id: string, data: Partial<ManualProperty>) => {
     setSaving(true)
     setNotice('')
@@ -405,6 +568,7 @@ export default function ManualPropertyWizardClient() {
         throw new Error(String(json?.error || json?.message || 'Failed to save') + code + details)
       }
       mergeProperty(json.property)
+      setLastSavedAt(new Date())
       didHydrateFromServerRef.current = true
       return json.property as ManualProperty
     } catch (e) {
@@ -427,10 +591,36 @@ export default function ManualPropertyWizardClient() {
   const buildSavePayload = useCallback((): Partial<ManualProperty> => {
     return {
       title: property.title ?? null,
+      category: selectedCategory ?? null,
       propertyType: property.propertyType ?? null,
       intent: property.intent ?? null,
       price: typeof property.price === 'number' && Number.isFinite(property.price) ? property.price : null,
       currency: property.currency || 'AED',
+      negotiable: property.negotiable ?? null,
+      bookingAmount: property.bookingAmount ?? null,
+      maintenanceCharges: property.maintenanceCharges ?? null,
+      otherCharges: property.otherCharges ?? null,
+      annualRent: property.annualRent ?? (property.intent === 'RENT' && property.price ? property.price * 12 : null),
+      securityDeposit: property.securityDeposit ?? null,
+      agencyFee: property.agencyFee ?? null,
+      utilitiesIncluded: property.utilitiesIncluded ?? null,
+      availableFrom: property.availableFrom ?? null,
+      leaseDurationMonths: property.leaseDurationMonths ?? null,
+      paymentFrequency: property.paymentFrequency ?? null,
+      preferredTenantType: property.preferredTenantType ?? null,
+      petFriendly: property.petFriendly ?? null,
+      carpetArea: property.carpetArea ?? null,
+      plotArea: property.plotArea ?? null,
+      balconyCount: property.balconyCount ?? null,
+      parkingSpaces: property.parkingSpaces ?? null,
+      propertyAgeYears: property.propertyAgeYears ?? null,
+      floorNumber: property.floorNumber ?? null,
+      totalFloors: property.totalFloors ?? null,
+      facing: property.facing ?? null,
+      view: property.view ?? null,
+      furnishingStatus: property.furnishingStatus ?? null,
+      propertyCondition: property.propertyCondition ?? null,
+      possessionDate: property.possessionDate ?? null,
       constructionStatus: property.constructionStatus ?? null,
       shortDescription: property.shortDescription ?? null,
       bedrooms: typeof property.bedrooms === 'number' && Number.isFinite(property.bedrooms) ? property.bedrooms : 0,
@@ -438,10 +628,14 @@ export default function ManualPropertyWizardClient() {
       squareFeet: typeof property.squareFeet === 'number' && Number.isFinite(property.squareFeet) ? property.squareFeet : 0,
       countryCode: property.countryCode || 'UAE',
       city: property.city ?? null,
+      region: property.region ?? null,
       community: property.community ?? null,
+      locality: property.locality ?? null,
       address: property.address ?? null,
       latitude: typeof property.latitude === 'number' && Number.isFinite(property.latitude) ? property.latitude : null,
       longitude: typeof property.longitude === 'number' && Number.isFinite(property.longitude) ? property.longitude : null,
+      locationPrecision: property.locationPrecision ?? 'APPROXIMATE',
+      publicLocationVisible: property.publicLocationVisible ?? false,
       developerName: property.developerName ?? null,
       amenities: Array.isArray(property.amenities) ? property.amenities : null,
       customAmenities: Array.isArray(property.customAmenities) ? property.customAmenities : null,
@@ -455,7 +649,7 @@ export default function ManualPropertyWizardClient() {
       duplicateMatchedProjectId: property.duplicateMatchedProjectId ?? null,
       tour3dUrl: property.tour3dUrl ?? null,
     }
-  }, [duplicateConfirm, property])
+  }, [duplicateConfirm, property, selectedCategory])
 
   const patch = useCallback(async (data: Partial<ManualProperty>) => {
     if (!propertyId) return
@@ -518,10 +712,18 @@ export default function ManualPropertyWizardClient() {
     setError('')
     setNotice('')
     const id = await ensureRemoteDraft()
-    if (!id) return
+    if (!id) return false
 
     const saved = await patchById(id, buildSavePayload())
-    if (saved) setNotice('Draft saved.')
+    if (saved) {
+      setLastSavedAt(new Date())
+      setNotice('Draft saved.')
+    }
+    return Boolean(saved)
+  }
+
+  const saveAndExit = async () => {
+    if (await saveDraft()) router.push(getHomeRouteForRole('AGENT'))
   }
 
   const debouncedDuplicateCheck = useMemo(
@@ -695,8 +897,32 @@ export default function ManualPropertyWizardClient() {
     [fetchDraft, propertyId, safeJson]
   )
 
+  const updateMedia = useCallback(async (mediaId: string, data: { category?: string; position?: number }) => {
+    setMediaBusyId(mediaId)
+    setError('')
+    try {
+      const res = await fetch(`/api/manual-properties/media/${encodeURIComponent(mediaId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      const json = (await safeJson(res)) as any
+      if (!res.ok || !json?.success) throw new Error(json?.message || 'Failed to update media')
+      if (Array.isArray(json.media)) setProperty((p) => ({ ...(p as any), media: json.media }))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to update media')
+    } finally {
+      setMediaBusyId('')
+    }
+  }, [safeJson])
+
   const submit = async () => {
     setError('')
+    const validationErrors = validateManualPropertyStep('review', property)
+    if (Object.keys(validationErrors).length > 0) {
+      setError(Object.values(validationErrors)[0])
+      return
+    }
     setSaving(true)
     try {
       const id = await ensureRemoteDraft()
@@ -751,6 +977,14 @@ export default function ManualPropertyWizardClient() {
             disabled={saving}
           >
             Save Draft
+          </button>
+          <button
+            type="button"
+            onClick={saveAndExit}
+            className="inline-flex items-center justify-center h-11 px-6 rounded-xl border border-gray-200 bg-white text-dark-blue font-semibold hover:bg-gray-50"
+            disabled={saving}
+          >
+            Save &amp; Exit
           </button>
 
           {draftIdFromUrl && !propertyId ? (
@@ -825,22 +1059,34 @@ export default function ManualPropertyWizardClient() {
               ['media', 'Media'],
               ['amenities', 'Amenities'],
               ['pricing', 'Pricing'],
-              ['declaration', 'Declaration'],
+              ['declaration', 'Verification'],
               ['review', 'Review'],
             ] as Array<[Step, string]>).map(([k, label]) => (
               <button
                 key={k}
                 type="button"
-                onClick={() => setStep(k)}
+                onClick={() => {
+                  if (STEP_ORDER.indexOf(k) <= STEP_ORDER.indexOf(step) + 1) setStep(k)
+                }}
+                disabled={STEP_ORDER.indexOf(k) > STEP_ORDER.indexOf(step) + 1}
                 className={`px-3 py-2 rounded-xl border ${
-                  step === k ? 'border-dark-blue bg-gray-50 text-dark-blue' : 'border-gray-200 bg-white text-gray-700'
+                  step === k ? 'border-dark-blue bg-gray-50 text-dark-blue' : 'border-gray-200 bg-white text-gray-700 disabled:cursor-not-allowed disabled:opacity-50'
                 }`}
               >
                 {label}
               </button>
             ))}
-            <span className="ml-auto text-xs text-gray-500">{saving ? 'Saving…' : 'Saved'}</span>
+            <span className="ml-auto text-xs text-gray-500">
+              {saving ? 'Saving…' : lastSavedAt ? `Saved ${lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Not saved yet'}
+            </span>
           </div>
+
+          {Object.keys(stepErrors).length > 0 && step !== 'review' ? (
+            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
+              Complete {Object.keys(stepErrors).length} required {Object.keys(stepErrors).length === 1 ? 'field' : 'fields'} before continuing.
+              <span className="block mt-1 text-xs text-amber-800">{Object.values(stepErrors)[0]}</span>
+            </div>
+          ) : null}
 
           {step === 'basics' ? (
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -856,6 +1102,20 @@ export default function ManualPropertyWizardClient() {
               </div>
 
               <GlobalDropdown
+                label="Property category"
+                value={selectedCategory || ''}
+                onChange={(v) => {
+                  const next = singleDropdownValue(v) as ManualPropertyCategory
+                  setProperty((p) => ({ ...(p as any), category: next, propertyType: null }))
+                }}
+                options={[
+                  { value: '', label: 'Select' },
+                  ...MANUAL_PROPERTY_CATEGORIES.map((item) => ({ value: item.value, label: item.label })),
+                ]}
+                appearance="admin-light"
+              />
+
+              <GlobalDropdown
                 label="Property type"
                 value={property?.propertyType || ''}
                 onChange={(v) => {
@@ -863,13 +1123,7 @@ export default function ManualPropertyWizardClient() {
                   setProperty((p) => ({ ...(p as any), propertyType: next }))
                   patch({ propertyType: next || null })
                 }}
-                options={[
-                  { value: '', label: 'Select' },
-                  { value: 'Apartment', label: 'Apartment' },
-                  { value: 'Villa', label: 'Villa' },
-                  { value: 'Plot', label: 'Plot' },
-                  { value: 'Commercial', label: 'Commercial' },
-                ]}
+                options={[{ value: '', label: 'Select category first' }, ...propertyTypesForCategory(selectedCategory).map((item) => ({ value: item.label, label: item.label }))]}
                 appearance="admin-light"
               />
 
@@ -917,6 +1171,10 @@ export default function ManualPropertyWizardClient() {
                 appearance="admin-light"
               />
 
+              <div className="md:col-span-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                Suggested currency for {property?.countryCode === 'India' ? 'India' : 'the UAE'}: <strong>{defaultCurrencyForCountry(property?.countryCode)}</strong>. You can change it for cross-border listings.
+              </div>
+
               <GlobalDropdown
                 label="Property status"
                 value={property?.constructionStatus || ''}
@@ -933,7 +1191,7 @@ export default function ManualPropertyWizardClient() {
                 appearance="admin-light"
               />
 
-              <div>
+              {selectedCategory !== 'LAND' ? <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Bedrooms</label>
                 <input
                   type="number"
@@ -946,9 +1204,9 @@ export default function ManualPropertyWizardClient() {
                   }}
                   className="w-full h-12 px-4 rounded-xl border border-gray-300"
                 />
-              </div>
+              </div> : null}
 
-              <div>
+              {selectedCategory !== 'LAND' ? <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Bathrooms</label>
                 <input
                   type="number"
@@ -961,7 +1219,7 @@ export default function ManualPropertyWizardClient() {
                   }}
                   className="w-full h-12 px-4 rounded-xl border border-gray-300"
                 />
-              </div>
+              </div> : null}
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Size (sq ft)</label>
@@ -977,6 +1235,15 @@ export default function ManualPropertyWizardClient() {
                   className="w-full h-12 px-4 rounded-xl border border-gray-300"
                 />
               </div>
+
+              {selectedCategory === 'LAND' ? <div><label className="block text-sm font-semibold text-gray-700 mb-2">Plot area (sq ft)</label><input type="number" min={0} value={property?.plotArea ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), plotArea: toNumber(e.target.value) }))} onBlur={(e) => patch({ plotArea: toNumber(e.target.value) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div> : null}
+              {selectedCategory !== 'LAND' ? <>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Balconies</label><input type="number" min={0} value={property?.balconyCount ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), balconyCount: Math.max(0, Math.floor(toNumber(e.target.value))) }))} onBlur={(e) => patch({ balconyCount: Math.max(0, Math.floor(toNumber(e.target.value))) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Parking spaces</label><input type="number" min={0} value={property?.parkingSpaces ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), parkingSpaces: Math.max(0, Math.floor(toNumber(e.target.value))) }))} onBlur={(e) => patch({ parkingSpaces: Math.max(0, Math.floor(toNumber(e.target.value))) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Property age (years)</label><input type="number" min={0} value={property?.propertyAgeYears ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), propertyAgeYears: Math.max(0, Math.floor(toNumber(e.target.value))) }))} onBlur={(e) => patch({ propertyAgeYears: Math.max(0, Math.floor(toNumber(e.target.value))) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Furnishing</label><select value={property?.furnishingStatus || ''} onChange={(e) => { setProperty((p) => ({ ...(p as any), furnishingStatus: e.target.value || null })); patch({ furnishingStatus: e.target.value || null }) }} className="w-full h-12 px-4 rounded-xl border border-gray-300"><option value="">Not specified</option><option value="UNFURNISHED">Unfurnished</option><option value="SEMI_FURNISHED">Semi-furnished</option><option value="FURNISHED">Furnished</option></select></div>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Floor</label><input type="number" min={0} value={property?.floorNumber ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), floorNumber: Math.max(0, Math.floor(toNumber(e.target.value))) }))} onBlur={(e) => patch({ floorNumber: Math.max(0, Math.floor(toNumber(e.target.value))) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
+              </> : null}
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Developer (optional)</label>
@@ -1005,12 +1272,18 @@ export default function ManualPropertyWizardClient() {
 
           {step === 'location' ? (
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2 rounded-2xl border border-dark-blue/15 bg-blue-50 p-5">
+                <label className="block text-sm font-semibold text-dark-blue mb-2">Search for the property or area</label>
+                <input value={locationQuery} onChange={(e) => setLocationQuery(e.target.value)} className="w-full h-12 px-4 rounded-xl border border-gray-300 bg-white" placeholder="Search Dubai Marina, Bandra West, or an address" aria-describedby="location-search-status" />
+                <p id="location-search-status" className="mt-2 text-xs text-gray-600">{locationSearching ? 'Searching locations…' : 'Select a result to place the pin automatically. You can still adjust the details below.'}</p>
+                {locationResults.length > 0 ? <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white">{locationResults.map((result) => <button key={`${result.latitude}-${result.longitude}-${result.displayName}`} type="button" onClick={() => { mergeProperty({ address: result.displayName, latitude: result.latitude, longitude: result.longitude }); patch({ address: result.displayName, latitude: result.latitude, longitude: result.longitude }); setLocationQuery(result.displayName); setLocationResults([]) }} className="block w-full border-b border-gray-100 px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 last:border-b-0">{result.displayName}</button>)}</div> : null}
+              </div>
               <GlobalDropdown
                 label="Country"
                 value={property?.countryCode || 'UAE'}
                 onChange={(v) => {
                   const next = singleDropdownValue(v) as any
-                  setProperty((p) => ({ ...(p as any), countryCode: next }))
+                  setProperty((p) => ({ ...(p as any), countryCode: next, currency: defaultCurrencyForCountry(next) }))
                   patch({ countryCode: next })
                 }}
                 options={[
@@ -1029,6 +1302,7 @@ export default function ManualPropertyWizardClient() {
                   placeholder="e.g., Dubai"
                 />
               </div>
+              <div><label className="block text-sm font-semibold text-gray-700 mb-2">State / Region</label><input value={property?.region || ''} onChange={(e) => setProperty((p) => ({ ...(p as any), region: e.target.value }))} onBlur={(e) => patch({ region: e.target.value || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" placeholder="e.g., Maharashtra" /></div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Community / Area</label>
                 <input
@@ -1039,6 +1313,7 @@ export default function ManualPropertyWizardClient() {
                   placeholder="e.g., Dubai Marina"
                 />
               </div>
+              <div><label className="block text-sm font-semibold text-gray-700 mb-2">Locality</label><input value={property?.locality || ''} onChange={(e) => setProperty((p) => ({ ...(p as any), locality: e.target.value }))} onBlur={(e) => patch({ locality: e.target.value || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" placeholder="e.g., Sector 42" /></div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Address (optional)</label>
                 <input
@@ -1101,6 +1376,22 @@ export default function ManualPropertyWizardClient() {
                   </div>
                 ) : null}
               </div>
+
+              <GlobalDropdown
+                label="Location precision"
+                value={property?.locationPrecision || 'APPROXIMATE'}
+                onChange={(v) => {
+                  const next = singleDropdownValue(v) as 'EXACT' | 'APPROXIMATE'
+                  setProperty((p) => ({ ...(p as any), locationPrecision: next }))
+                  patch({ locationPrecision: next })
+                }}
+                options={[{ value: 'APPROXIMATE', label: 'Approximate area' }, { value: 'EXACT', label: 'Exact location' }]}
+                appearance="admin-light"
+              />
+              <label className="flex items-center gap-3 text-sm text-gray-700 pt-8">
+                <input type="checkbox" checked={Boolean(property?.publicLocationVisible)} onChange={(e) => { setProperty((p) => ({ ...(p as any), publicLocationVisible: e.target.checked })); patch({ publicLocationVisible: e.target.checked }) }} />
+                Show this location publicly
+              </label>
             </div>
           ) : null}
 
@@ -1206,7 +1497,7 @@ export default function ManualPropertyWizardClient() {
                 ['AMENITIES', 'Amenities images', false],
                 ['BROCHURE', 'Marketing brochure (PDF)', false],
               ] as Array<[string, string, boolean]>).map(([cat, label, req]) => (
-                <div key={cat} className="rounded-2xl border border-gray-200 p-5">
+                <div key={cat} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const files = Array.from(event.dataTransfer.files); if (files.length) uploadMany(cat, cat === 'BROCHURE' ? files.slice(0, 1) : files) }} className="rounded-2xl border border-gray-200 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="font-semibold text-dark-blue">{label}</p>
@@ -1246,8 +1537,8 @@ export default function ManualPropertyWizardClient() {
                     ) : (
                       (property?.media || [])
                         .filter((m) => m.category === cat)
-                        .slice(0, 6)
-                        .map((m) => (
+                        .slice(0, 12)
+                        .map((m, index, items) => (
                           <div key={m.id} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
                             {cat === 'BROCHURE' ? (
                               <a href={getPreviewUrl(m)} target="_blank" className="block p-3 hover:bg-gray-50">
@@ -1269,14 +1560,16 @@ export default function ManualPropertyWizardClient() {
                             )}
                             <div className="p-3 flex items-center justify-between gap-3">
                               <p className="text-xs text-gray-500 truncate">{m.altText || 'Alt text pending'}</p>
-                              <button
-                                type="button"
-                                disabled={mediaBusyId === m.id}
-                                onClick={() => deleteMedia(String(m.id))}
-                                className="text-xs font-semibold text-red-700 hover:underline disabled:opacity-60"
-                              >
-                                {mediaBusyId === m.id ? 'Removing…' : 'Remove'}
-                              </button>
+                              <div className="flex items-center gap-2">
+                                {cat !== 'BROCHURE' && cat !== 'VIDEO' ? <>
+                                  <button type="button" title="Move media up" disabled={index === 0 || mediaBusyId === m.id} onClick={() => updateMedia(String(m.id), { position: Math.max(0, Number((items[index - 1] as any).position || index - 1)) })} className="text-xs font-semibold text-dark-blue disabled:opacity-40">Up</button>
+                                  <button type="button" title="Move media down" disabled={index === items.length - 1 || mediaBusyId === m.id} onClick={() => updateMedia(String(m.id), { position: Number((items[index + 1] as any).position || index + 1) })} className="text-xs font-semibold text-dark-blue disabled:opacity-40">Down</button>
+                                  {cat !== 'COVER' ? <button type="button" disabled={mediaBusyId === m.id} onClick={() => updateMedia(String(m.id), { category: 'COVER' })} className="text-xs font-semibold text-dark-blue disabled:opacity-40">Set hero</button> : null}
+                                </> : null}
+                                <button type="button" disabled={mediaBusyId === m.id} onClick={() => deleteMedia(String(m.id))} className="text-xs font-semibold text-red-700 hover:underline disabled:opacity-60">
+                                  {mediaBusyId === m.id ? 'Updating…' : 'Remove'}
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ))
@@ -1368,6 +1661,25 @@ export default function ManualPropertyWizardClient() {
 
           {step === 'pricing' ? (
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">{property?.intent === 'RENT' ? 'Monthly rent' : 'Asking price'}</label>
+                <input type="number" min={0} value={property?.price ?? ''} onChange={(e) => { const value = toNumber(e.target.value); setProperty((p) => ({ ...(p as any), price: value, annualRent: p.intent === 'RENT' ? value * 12 : p.annualRent })) }} onBlur={(e) => patch({ price: toNumber(e.target.value) || null, annualRent: property?.intent === 'RENT' ? toNumber(e.target.value) * 12 : property?.annualRent })} className="w-full h-12 px-4 rounded-xl border border-gray-300" />
+              </div>
+              <label className="flex items-center gap-3 text-sm text-gray-700 pt-8">
+                <input type="checkbox" checked={Boolean(property?.negotiable)} onChange={(e) => { setProperty((p) => ({ ...(p as any), negotiable: e.target.checked })); patch({ negotiable: e.target.checked }) }} />
+                Price is negotiable
+              </label>
+              {property?.intent === 'RENT' ? <>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Annual rent</label><input type="number" value={property?.annualRent ?? (property?.price ? property.price * 12 : '')} readOnly className="w-full h-12 px-4 rounded-xl border border-gray-200 bg-gray-50" /></div>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Security deposit</label><input type="number" min={0} value={property?.securityDeposit ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), securityDeposit: toNumber(e.target.value) }))} onBlur={(e) => patch({ securityDeposit: toNumber(e.target.value) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Payment frequency</label><select value={property?.paymentFrequency || 'MONTHLY'} onChange={(e) => { setProperty((p) => ({ ...(p as any), paymentFrequency: e.target.value })); patch({ paymentFrequency: e.target.value }) }} className="w-full h-12 px-4 rounded-xl border border-gray-300"><option value="MONTHLY">Monthly</option><option value="QUARTERLY">Quarterly</option><option value="YEARLY">Yearly</option></select></div>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Lease duration (months)</label><input type="number" min={1} value={property?.leaseDurationMonths ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), leaseDurationMonths: Math.max(1, Math.floor(toNumber(e.target.value))) }))} onBlur={(e) => patch({ leaseDurationMonths: Math.max(1, Math.floor(toNumber(e.target.value))) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
+                <label className="flex items-center gap-3 text-sm text-gray-700"><input type="checkbox" checked={Boolean(property?.utilitiesIncluded)} onChange={(e) => { setProperty((p) => ({ ...(p as any), utilitiesIncluded: e.target.checked })); patch({ utilitiesIncluded: e.target.checked }) }} /> Utilities included</label>
+                <label className="flex items-center gap-3 text-sm text-gray-700"><input type="checkbox" checked={Boolean(property?.petFriendly)} onChange={(e) => { setProperty((p) => ({ ...(p as any), petFriendly: e.target.checked })); patch({ petFriendly: e.target.checked }) }} /> Pet friendly</label>
+              </> : <>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Booking amount</label><input type="number" min={0} value={property?.bookingAmount ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), bookingAmount: toNumber(e.target.value) }))} onBlur={(e) => patch({ bookingAmount: toNumber(e.target.value) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Maintenance / service charges</label><input type="number" min={0} value={property?.maintenanceCharges ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), maintenanceCharges: toNumber(e.target.value) }))} onBlur={(e) => patch({ maintenanceCharges: toNumber(e.target.value) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
+              </>}
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Payment plan text (optional)</label>
                 <textarea
@@ -1402,10 +1714,10 @@ export default function ManualPropertyWizardClient() {
                   }}
                   className="mt-1"
                 />
-                <span>
-                  I confirm I am authorized to market this property.
-                </span>
+                <span>I confirm I am authorized to market this property.</span>
               </label>
+
+              <p className="text-sm text-gray-600">I confirm that the information provided is accurate to the best of my knowledge and understand MillionFlats may verify this listing before publishing.</p>
 
               <label className="flex items-start gap-3 text-sm text-gray-700">
                 <input
@@ -1432,11 +1744,51 @@ export default function ManualPropertyWizardClient() {
                 />
                 <span>Owner contact on file (hidden from public)</span>
               </label>
+
+              <div className="rounded-2xl border border-gray-200 p-5">
+                <p className="font-semibold text-dark-blue">Verification documents (optional)</p>
+                <p className="mt-1 text-xs text-gray-600">Documents are private, associated with this property, and remain unverified until reviewed.</p>
+                <div className="mt-4 flex flex-col sm:flex-row gap-3">
+                  <select value={documentCategory} onChange={(e) => setDocumentCategory(e.target.value)} className="h-11 rounded-xl border border-gray-300 px-3 text-sm">
+                    <option value="OWNERSHIP_PROOF">Ownership proof</option><option value="AUTHORIZATION_LETTER">Authorization letter</option><option value="RERA_DOCUMENT">RERA documentation</option><option value="REGISTRATION_DOCUMENT">Registration document</option><option value="DEVELOPER_DOCUMENT">Developer document</option><option value="OTHER">Other</option>
+                  </select>
+                  <label className="inline-flex h-11 items-center justify-center rounded-xl bg-dark-blue px-5 text-sm font-semibold text-white cursor-pointer disabled:opacity-50">
+                    {documentBusy ? 'Uploading…' : 'Upload document'}
+                    <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" disabled={documentBusy || !propertyId} className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadVerificationDocument(file); e.currentTarget.value = '' }} />
+                  </label>
+                </div>
+                <div className="mt-4 space-y-2">
+                  {verificationDocuments.length === 0 ? <p className="text-sm text-gray-500">No supporting documents uploaded.</p> : verificationDocuments.map((document) => <div key={document.id} className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 px-3 py-2 text-sm"><span>{document.category.replaceAll('_', ' ')}</span><span className="flex items-center gap-3 text-xs text-gray-500">{document.verificationStatus || 'UNVERIFIED'}<button type="button" onClick={() => deleteVerificationDocument(document.id)} className="font-semibold text-red-700">Remove</button></span></div>)}
+                </div>
+              </div>
             </div>
           ) : null}
 
           {step === 'review' ? (
             <div className="mt-8 space-y-6">
+              <div className="rounded-2xl border border-dark-blue/15 bg-dark-blue px-6 py-5 text-white">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-wide text-white/70">Listing Quality</p>
+                    <p className="mt-1 text-3xl font-serif font-bold">{quality.score}% Complete</p>
+                  </div>
+                  <div className="h-16 w-16 rounded-full border-4 border-accent-orange flex items-center justify-center text-sm font-bold">
+                    {quality.score}%
+                  </div>
+                </div>
+                {quality.items.some((item) => !item.complete) ? (
+                  <div className="mt-4 space-y-1 text-sm text-white/85">
+                    {quality.items.filter((item) => !item.complete).slice(0, 4).map((item) => <button key={item.key} type="button" onClick={() => setStep(item.key === 'location' ? 'location' : item.key === 'hero' ? 'media' : item.key === 'amenities' ? 'amenities' : item.key === 'price' ? 'pricing' : 'basics')} className="block text-left underline-offset-2 hover:underline">- {item.label}</button>)}
+                  </div>
+                ) : <p className="mt-3 text-sm text-white/85">Core listing information is complete.</p>}
+              </div>
+              <div className="rounded-2xl border border-gray-200 bg-white p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div><p className="font-semibold text-dark-blue">AIShield price intelligence</p><p className="mt-1 text-xs text-gray-600">A backend-generated estimate based on the listing data and available market comparables.</p></div>
+                  {valuationLoading ? <span className="text-xs text-gray-500">Calculating…</span> : null}
+                </div>
+                {valuation?.fairValue?.mid ? <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm"><div><p className="text-gray-500">Fair value</p><p className="font-semibold text-dark-blue">{valuation.fairValue.currency || property.currency || 'AED'} {valuation.fairValue.mid.toLocaleString()}</p></div><div><p className="text-gray-500">Range</p><p className="font-semibold text-dark-blue">{valuation.fairValue.min?.toLocaleString()} - {valuation.fairValue.max?.toLocaleString()}</p></div><div><p className="text-gray-500">Confidence</p><p className="font-semibold text-dark-blue">{valuation.confidence ?? 'Not available'}{typeof valuation.confidence === 'number' ? '%' : ''}</p></div><div><p className="text-gray-500">Position</p><p className="font-semibold text-dark-blue">{valuation.marketPosition || 'Not available'}</p></div></div> : <p className="mt-4 text-sm text-gray-600">{valuationError || 'Valuation will be available after review.'}</p>}
+              </div>
               <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
                 <p className="text-sm font-semibold text-dark-blue">Preview</p>
                 <p className="mt-2 text-2xl font-serif font-bold text-dark-blue">
@@ -1446,6 +1798,12 @@ export default function ManualPropertyWizardClient() {
                   {(property?.city || 'City')} · {(property?.community || 'Community')}
                 </p>
                 <p className="mt-4 text-sm text-gray-700">{property?.shortDescription || 'Short description pending.'}</p>
+                <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                  <div><p className="text-gray-500">Purpose</p><p className="font-semibold text-dark-blue">{property?.intent || 'Not set'}</p></div>
+                  <div><p className="text-gray-500">Type</p><p className="font-semibold text-dark-blue">{property?.propertyType || 'Not set'}</p></div>
+                  <div><p className="text-gray-500">Price</p><p className="font-semibold text-dark-blue">{property?.price ? `${property.currency || 'AED'} ${property.price.toLocaleString()}` : 'Not set'}</p></div>
+                  <div><p className="text-gray-500">Size</p><p className="font-semibold text-dark-blue">{property?.squareFeet ? `${property.squareFeet.toLocaleString()} sq ft` : 'Not set'}</p></div>
+                </div>
                 <div className="mt-5 flex flex-wrap gap-2">
                   <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white text-dark-blue border border-gray-200">
                     Agent Listing
@@ -1494,11 +1852,7 @@ export default function ManualPropertyWizardClient() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                const order: Step[] = ['basics', 'location', 'media', 'amenities', 'pricing', 'declaration', 'review']
-                const idx = Math.min(order.length - 1, order.indexOf(step) + 1)
-                setStep(order[idx])
-              }}
+              onClick={goToNextStep}
               className="h-11 px-5 rounded-xl bg-dark-blue text-white font-semibold hover:bg-dark-blue/90"
             >
               Next

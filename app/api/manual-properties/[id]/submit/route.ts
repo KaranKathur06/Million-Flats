@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAgentSession } from '@/lib/agentAuth'
 import { evaluateManualPropertyRisk } from '@/lib/services/riskEngine'
 import { ensureModerationCase, setCaseRiskWithReasons, setModerationQueue } from '@/lib/services/moderation.service'
+import { validateManualPropertyStep } from '@/lib/manualPropertyForm'
 
 const SubmitSchema = z.object({
   duplicateOverrideConfirmed: z.boolean().optional(),
@@ -45,24 +46,27 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return bad('This listing has already been submitted.')
     }
 
-    if (!property.title || property.title.trim().length < 6) return bad('Property title is required.')
-    if (!property.propertyType) return bad('Property type is required.')
-    if (!property.intent) return bad('Sale/Rent is required.')
-    if (!property.price || property.price <= 0) return bad('Price is required.')
-    if (!property.constructionStatus) return bad('Property status is required.')
-    if (!property.shortDescription || property.shortDescription.trim().length < 40) return bad('Short description is required.')
-
-    if (!property.city || !property.community) return bad('City and community are required.')
-    if (typeof property.latitude !== 'number' || typeof property.longitude !== 'number') {
-      return bad('Coordinates are required.')
-    }
-
-    const hasCover = (property.media || []).some((m: { category: string }) => m.category === 'COVER')
-    if (!hasCover) return bad('Cover image is required.')
-
-    if (!property.authorizedToMarket) {
-      return bad('You must confirm you are authorized to market this property.')
-    }
+    const validationErrors = validateManualPropertyStep('review', {
+      title: property.title,
+      propertyType: property.propertyType,
+      intent: property.intent,
+      price: property.price,
+      currency: property.currency,
+      shortDescription: property.shortDescription,
+      squareFeet: property.squareFeet,
+      bedrooms: property.bedrooms,
+      bathrooms: property.bathrooms,
+      city: property.city,
+      community: property.community,
+      latitude: property.latitude,
+      longitude: property.longitude,
+      media: (property.media || []).map((media: { category: string }) => ({ category: media.category })),
+      amenities: Array.isArray(property.amenities) ? property.amenities : [],
+      authorizedToMarket: property.authorizedToMarket,
+      constructionStatus: property.constructionStatus,
+    })
+    const firstValidationError = Object.values(validationErrors)[0]
+    if (firstValidationError) return bad(firstValidationError)
 
     const score = typeof property.duplicateScore === 'number' ? property.duplicateScore : 0
     if (score > 75 && property.duplicateMatchedProjectId && property.developerName) {

@@ -454,6 +454,7 @@ export const authOptions: NextAuthOptions = {
         const tokenAgentProfileStatus = (token as any)?.agentProfileStatus
         const tokenAgentApproved = (token as any)?.agentApproved
         const tokenAgentVerificationStatus = (token as any)?.agentVerificationStatus
+        const tokenAgentStatus = (token as any)?.agentStatus
         if (tokenId) {
           ; (session.user as any).id = tokenId
         }
@@ -472,6 +473,9 @@ export const authOptions: NextAuthOptions = {
         }
         if (tokenAgentVerificationStatus) {
           ; (session.user as any).agentVerificationStatus = normalizeAgentVerificationStatus(tokenAgentVerificationStatus)
+        }
+        if (tokenAgentStatus) {
+          ; (session.user as any).agentStatus = String(tokenAgentStatus).toUpperCase()
         }
         if (typeof (token as any).profileCompletion === 'number') {
           ; (session.user as any).profileCompletion = (token as any).profileCompletion

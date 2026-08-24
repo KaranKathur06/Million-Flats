@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import AgentAuthClient from './AgentAuthClient'
 import type { Metadata } from 'next'
+import { getAgentAuthRedirect } from '@/lib/auth/agentRedirect'
 
 export const metadata: Metadata = {
   title: 'Agent Access | MillionFlats',
@@ -16,8 +17,13 @@ export default async function AgentAuthPage({
   searchParams?: Promise<{ tab?: string }>
 }) {
   const session = await getServerSession(authOptions)
-  if (session?.user && (session.user as any)?.role === 'AGENT') {
-    redirect('/agent/dashboard')
+  const sessionUser = session?.user as any
+  if (sessionUser && String(sessionUser.role || '').toUpperCase() === 'AGENT') {
+    redirect(getAgentAuthRedirect({
+      status: sessionUser.agentStatus,
+      emailVerified: Boolean(sessionUser.emailVerified),
+      email: sessionUser.email,
+    }))
   }
 
   const params = await searchParams

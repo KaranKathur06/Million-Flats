@@ -398,7 +398,10 @@ function RegisterTab({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
         return;
       }
 
-      router.push('/agent/auth?tab=login');
+      const redirectTo = typeof data?.redirectTo === 'string' && data.redirectTo.startsWith('/')
+        ? data.redirectTo
+        : '/agent/auth?tab=login';
+      router.push(redirectTo);
     } catch {
       setError('Registration failed. Please try again.');
     } finally {
