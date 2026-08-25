@@ -90,4 +90,10 @@ describe('schema compatibility expectations', () => {
       ]),
     )
   })
+
+  it('uses mapped PostgreSQL values for Prisma enums', () => {
+    const projectMediaCategory = expectations.enums.find((item) => item.name === 'ProjectImageCategory')
+
+    expect(projectMediaCategory?.values).toEqual(['hero', 'exterior', 'amenities', 'lifestyle', 'floor_plan', 'other'])
+  })
 })
