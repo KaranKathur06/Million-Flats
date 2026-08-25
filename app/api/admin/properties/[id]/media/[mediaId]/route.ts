@@ -15,18 +15,26 @@ export async function PATCH(req: Request, { params }: { params: { id: string; me
   if (!auth.ok) return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
   const media = await findOwnedMedia(params.id, params.mediaId)
   if (!media) return NextResponse.json({ success: false, message: 'Media not found' }, { status: 404 })
-  const body = z.object({ category: z.string().optional(), altText: z.string().max(200).nullable().optional(), position: z.number().int().min(0).optional() }).safeParse(await req.json().catch(() => null))
+  const body = z.object({ category: z.string().optional(), altText: z.string().max(200).nullable().optional(), position: z.number().int().min(0).optional(), floorPlanTitle: z.string().trim().max(160).nullable().optional(), floorPlanBedroomCount: z.number().int().min(0).max(100).nullable().optional() }).safeParse(await req.json().catch(() => null))
   if (!body.success) return NextResponse.json({ success: false, message: 'Invalid media update' }, { status: 400 })
   const update: any = {}
   if (body.data.category !== undefined) {
     if (!isPropertyMediaCategory(body.data.category)) return NextResponse.json({ success: false, message: 'Invalid media category' }, { status: 400 })
     const category = propertyMediaStorageCategory(body.data.category)
-    if (category === 'COVER') await (prisma as any).manualPropertyMedia.updateMany({ where: { propertyId: params.id, category: 'COVER', id: { not: media.id } }, data: { category: 'EXTERIOR' } })
     update.category = category
   }
   if (body.data.altText !== undefined) update.altText = body.data.altText
   if (body.data.position !== undefined) update.position = body.data.position
-  const updated = await (prisma as any).manualPropertyMedia.update({ where: { id: media.id }, data: update })
+  if (body.data.floorPlanTitle !== undefined) update.floorPlanTitle = body.data.floorPlanTitle
+  if (body.data.floorPlanBedroomCount !== undefined) update.floorPlanBedroomCount = body.data.floorPlanBedroomCount
+  if (update.category && update.category !== 'FLOOR_PLANS') {
+    update.floorPlanTitle = null
+    update.floorPlanBedroomCount = null
+  }
+  const updated = await (prisma as any).$transaction(async (tx: any) => {
+    if (update.category === 'COVER') await tx.manualPropertyMedia.updateMany({ where: { propertyId: params.id, category: 'COVER', id: { not: media.id } }, data: { category: 'EXTERIOR' } })
+    return tx.manualPropertyMedia.update({ where: { id: media.id }, data: update })
+  })
   return NextResponse.json({ success: true, media: { ...updated, category: propertyMediaCategory(updated.category) } })
 }
 

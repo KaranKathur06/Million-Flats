@@ -19,6 +19,8 @@ const BodySchema = z.object({
   contentType: z.string().trim().min(1).max(100),
   sizeBytes: z.number().int().min(1),
   altText: z.string().trim().max(200).optional(),
+  floorPlanTitle: z.string().trim().max(160).optional(),
+  floorPlanBedroomCount: z.number().int().min(0).max(100).optional().nullable(),
 })
 
 function safeFilename(name: string) {

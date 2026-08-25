@@ -9,6 +9,8 @@ export const runtime = 'nodejs'
 const UpdateSchema = z.object({
   category: z.enum(['COVER', 'EXTERIOR', 'LIVING_ROOM', 'BEDROOM', 'KITCHEN', 'BATHROOM', 'VIEW', 'FLOOR_PLANS', 'AMENITIES', 'OTHER', 'BROCHURE', 'VIDEO']).optional(),
   position: z.number().int().min(0).max(10000).optional(),
+  floorPlanTitle: z.string().trim().max(160).nullable().optional(),
+  floorPlanBedroomCount: z.number().int().min(0).max(100).nullable().optional(),
 })
 
 async function ownedMedia(mediaId: string, agentId: string) {
@@ -41,14 +43,20 @@ export async function PATCH(req: Request, { params }: { params: { mediaId: strin
     return NextResponse.json({ success: false, message: 'Cannot edit media after submission' }, { status: 400 })
   }
 
-  if (parsed.data.category === 'COVER') {
-    await (prisma as any).manualPropertyMedia.updateMany({
-      where: { propertyId: media.propertyId, category: 'COVER', id: { not: media.id } },
-      data: { category: 'EXTERIOR' },
-    })
-  }
-
-  await (prisma as any).manualPropertyMedia.update({ where: { id: media.id }, data: parsed.data as any })
+  await (prisma as any).$transaction(async (tx: any) => {
+    if (parsed.data.category === 'COVER') {
+      await tx.manualPropertyMedia.updateMany({
+        where: { propertyId: media.propertyId, category: 'COVER', id: { not: media.id } },
+        data: { category: 'EXTERIOR' },
+      })
+    }
+    const update = { ...parsed.data } as Record<string, unknown>
+    if (parsed.data.category && parsed.data.category !== 'FLOOR_PLANS') {
+      update.floorPlanTitle = null
+      update.floorPlanBedroomCount = null
+    }
+    await tx.manualPropertyMedia.update({ where: { id: media.id }, data: update as any })
+  })
   return NextResponse.json({ success: true, media: await listMedia(media.propertyId) })
 }
 

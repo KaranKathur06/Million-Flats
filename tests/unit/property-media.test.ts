@@ -9,20 +9,25 @@ import {
 describe('property media taxonomy', () => {
   it('uses the shared project-style category set for property images', () => {
     expect(PROPERTY_MEDIA_CATEGORIES).toEqual([
-      'hero',
-      'exterior',
-      'amenities',
-      'lifestyle',
-      'floor_plan',
+      'COVER',
+      'EXTERIOR',
+      'LIVING_ROOM',
+      'BEDROOM',
+      'KITCHEN',
+      'BATHROOM',
+      'VIEW',
+      'AMENITIES',
+      'FLOOR_PLANS',
+      'OTHER',
     ])
   })
 
-  it('maps shared categories to existing ManualPropertyMedia storage enums', () => {
-    expect(propertyMediaStorageCategory('hero')).toBe('COVER')
+  it('accepts canonical and legacy values without lossy remapping', () => {
+    expect(propertyMediaStorageCategory('COVER')).toBe('COVER')
     expect(propertyMediaStorageCategory('floor_plan')).toBe('FLOOR_PLANS')
-    expect(propertyMediaCategory('COVER')).toBe('hero')
-    expect(propertyMediaCategory('FLOOR_PLANS')).toBe('floor_plan')
-    expect(propertyMediaCategory('INTERIOR')).toBe('other')
+    expect(propertyMediaCategory('COVER')).toBe('COVER')
+    expect(propertyMediaCategory('FLOOR_PLANS')).toBe('FLOOR_PLANS')
+    expect(propertyMediaCategory('INTERIOR')).toBe('OTHER')
   })
 
   it('allows modern image formats without allowing arbitrary URLs or files', () => {

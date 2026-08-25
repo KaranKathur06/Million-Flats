@@ -2,6 +2,8 @@
 
 import Image from 'next/image'
 import { useMemo, useRef, useState } from 'react'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
+import { PROPERTY_MEDIA_CATEGORY_OPTIONS } from '@/lib/propertyMedia'
 
 type MediaItem = {
   id: string
@@ -11,20 +13,14 @@ type MediaItem = {
   position?: number
   mimeType?: string | null
   sizeBytes?: number | null
+  floorPlanTitle?: string | null
+  floorPlanBedroomCount?: number | null
   verificationStatus?: string | null
 }
 
-type UploadItem = { id: string; file: File; category: string; status: 'uploading' | 'failed'; progress: number; error?: string }
+type UploadItem = { id: string; file: File; category: string; floorPlanTitle?: string; floorPlanBedroomCount?: number | null; status: 'uploading' | 'failed'; progress: number; error?: string }
 
-const IMAGE_CATEGORIES = [
-  ['EXTERIOR', 'Exterior'], ['LIVING_ROOM', 'Living Room'],
-  ['BEDROOM', 'Bedroom'], ['KITCHEN', 'Kitchen'], ['BATHROOM', 'Bathroom'],
-  ['VIEW', 'View'], ['AMENITIES', 'Amenities'], ['FLOOR_PLANS', 'Floor Plan'],
-  ['COVER', 'Hero'], ['OTHER', 'Other'],
-] as const
-
-const API_CATEGORIES = new Set(['COVER', 'EXTERIOR', 'LIVING_ROOM', 'BEDROOM', 'KITCHEN', 'BATHROOM', 'VIEW', 'FLOOR_PLANS', 'AMENITIES', 'OTHER', 'BROCHURE', 'VIDEO'])
-const categoryLabel = (value: string) => IMAGE_CATEGORIES.find(([key]) => key === value)?.[1] || value.replaceAll('_', ' ')
+const categoryLabel = (value: string) => PROPERTY_MEDIA_CATEGORY_OPTIONS.find((option) => option.value === value)?.label || value.replaceAll('_', ' ')
 
 function displayUrl(item: MediaItem) {
   return item.url || ''
@@ -48,8 +44,9 @@ export default function ManualPropertyMediaManager({
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
   const [previewIndex, setPreviewIndex] = useState<number | null>(null)
+  const [floorPlanBedroomCount, setFloorPlanBedroomCount] = useState('')
 
-  const photos = useMemo(() => media.filter((item) => !['VIDEO', 'BROCHURE'].includes(item.category)), [media])
+  const photos = useMemo(() => media.filter((item) => !['VIDEO', 'BROCHURE', 'FLOOR_PLANS'].includes(item.category)), [media])
   const video = media.find((item) => item.category === 'VIDEO')
   const brochure = media.find((item) => item.category === 'BROCHURE')
   const floorPlans = media.filter((item) => item.category === 'FLOOR_PLANS')
@@ -63,7 +60,7 @@ export default function ManualPropertyMediaManager({
     try {
       const presignResponse = await fetch('/api/manual-properties/upload/presign', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ propertyId, category, filename: item.file.name, contentType: item.file.type, sizeBytes: item.file.size }),
+        body: JSON.stringify({ propertyId, category, filename: item.file.name, contentType: item.file.type, sizeBytes: item.file.size, floorPlanTitle: item.floorPlanTitle, floorPlanBedroomCount: item.floorPlanBedroomCount }),
       })
       const presign = await presignResponse.json()
       if (!presignResponse.ok || !presign?.uploadUrl) throw new Error(presign?.message || 'Unable to prepare upload')
@@ -71,7 +68,7 @@ export default function ManualPropertyMediaManager({
       await uploadToSignedUrl(String(presign.uploadUrl), item.file, (progress) => updateUploads(item.id, { progress }))
       const completeResponse = await fetch('/api/manual-properties/upload/complete', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ propertyId, category, url: presign.objectUrl, s3Key: presign.key, mimeType: item.file.type, sizeBytes: item.file.size, altText: item.file.name }),
+        body: JSON.stringify({ propertyId, category, url: presign.objectUrl, s3Key: presign.key, mimeType: item.file.type, sizeBytes: item.file.size, altText: item.file.name, floorPlanTitle: item.floorPlanTitle, floorPlanBedroomCount: item.floorPlanBedroomCount }),
       })
       const complete = await completeResponse.json()
       if (!completeResponse.ok || !complete?.success) throw new Error(complete?.message || 'Unable to save upload')
@@ -83,7 +80,7 @@ export default function ManualPropertyMediaManager({
   }
 
   function addFiles(files: File[], category: string) {
-    const next = files.map((file) => ({ id: `${file.name}-${file.lastModified}-${Math.random()}`, file, category, status: 'uploading' as const, progress: 0 }))
+    const next = files.map((file) => ({ id: `${file.name}-${file.lastModified}-${Math.random()}`, file, category, floorPlanTitle: category === 'FLOOR_PLANS' ? file.name : undefined, floorPlanBedroomCount: category === 'FLOOR_PLANS' && floorPlanBedroomCount.trim() ? Number(floorPlanBedroomCount) : null, status: 'uploading' as const, progress: 0 }))
     setError('')
     setUploads((current) => [...current, ...next])
     next.forEach((item) => void uploadFile(item))
@@ -149,7 +146,7 @@ export default function ManualPropertyMediaManager({
 
       <section className="rounded-2xl border border-gray-200 bg-white p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-semibold text-dark-blue">Gallery</h3><p className="text-xs text-gray-600">{photos.length} photos · {hero ? '1 hero' : 'No hero selected'}</p></div></div>
-        {photos.length === 0 ? <p className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-7 text-center text-sm text-gray-600">No photos uploaded yet.</p> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{photos.map((item, index) => <figure key={item.id} className="overflow-hidden rounded-xl border border-gray-200 bg-white"><button type="button" onClick={() => setPreviewIndex(index)} className="relative block aspect-[4/3] w-full bg-gray-100"><Image src={displayUrl(item)} alt={item.altText || 'Property photo'} fill className="object-cover" unoptimized /></button><figcaption className="space-y-2 p-3"><div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold text-dark-blue">{item.category === 'COVER' ? 'Hero' : categoryLabel(item.category)}</span>{item.category === 'COVER' ? <span className="text-xs text-amber-600">Hero</span> : null}</div><select value={API_CATEGORIES.has(item.category) ? item.category : 'EXTERIOR'} onChange={(event) => void updateMedia(item.id, { category: event.target.value })} className="h-9 w-full rounded-lg border border-gray-200 px-2 text-xs" aria-label="Media category">{IMAGE_CATEGORIES.filter(([key]) => API_CATEGORIES.has(key)).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select><div className="flex flex-wrap gap-2 text-xs"><button type="button" onClick={() => void updateMedia(item.id, { category: 'COVER' })} disabled={item.category === 'COVER' || busyId === item.id} className="font-semibold text-dark-blue disabled:opacity-40">Set as Hero</button><button type="button" onClick={() => void move(item, -1)} disabled={index === 0 || busyId === item.id} aria-label="Move photo earlier" className="text-gray-600 disabled:opacity-40">Up</button><button type="button" onClick={() => void move(item, 1)} disabled={index === photos.length - 1 || busyId === item.id} aria-label="Move photo later" className="text-gray-600 disabled:opacity-40">Down</button><button type="button" onClick={() => void removeMedia(item)} disabled={busyId === item.id} className="font-semibold text-red-700 disabled:opacity-40">Delete</button></div></figcaption></figure>)}</div>}
+        {photos.length === 0 ? <p className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-7 text-center text-sm text-gray-600">No photos uploaded yet.</p> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{photos.map((item, index) => <figure key={item.id} className="overflow-hidden rounded-xl border border-gray-200 bg-white"><button type="button" onClick={() => setPreviewIndex(index)} className="relative block aspect-[4/3] w-full bg-gray-100"><Image src={displayUrl(item)} alt={item.altText || 'Property photo'} fill className="object-cover" unoptimized /></button><figcaption className="space-y-2 p-3"><div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold text-dark-blue">{categoryLabel(item.category)}</span>{item.category === 'COVER' ? <span className="text-xs text-amber-600">★ Hero</span> : null}</div><GlobalDropdown value={item.category} onChange={(value) => void updateMedia(item.id, { category: String(value) })} options={PROPERTY_MEDIA_CATEGORY_OPTIONS} appearance="admin-light" dense showLabel={false} /><div className="flex flex-wrap gap-2 text-xs"><button type="button" onClick={() => void updateMedia(item.id, { category: 'COVER' })} disabled={item.category === 'COVER' || busyId === item.id} className="font-semibold text-dark-blue disabled:opacity-40">Set as Hero</button><button type="button" onClick={() => void move(item, -1)} disabled={index === 0 || busyId === item.id} aria-label="Move photo earlier" className="text-gray-600 disabled:opacity-40">Up</button><button type="button" onClick={() => void move(item, 1)} disabled={index === photos.length - 1 || busyId === item.id} aria-label="Move photo later" className="text-gray-600 disabled:opacity-40">Down</button><button type="button" onClick={() => void removeMedia(item)} disabled={busyId === item.id} className="font-semibold text-red-700 disabled:opacity-40">Delete</button></div></figcaption></figure>)}</div>}
       </section>
 
       <section className="grid gap-6 lg:grid-cols-3">
@@ -157,7 +154,7 @@ export default function ManualPropertyMediaManager({
         <div className="rounded-2xl border border-gray-200 bg-white p-5"><h3 className="font-semibold text-dark-blue">3D Tour</h3><p className="mt-1 text-xs text-gray-600">Optional hosted walkthrough URL.</p><input value={tour3dUrl || ''} onChange={(event) => onTour3dUrlChange(event.target.value)} placeholder="https://..." className="mt-4 h-10 w-full rounded-lg border border-gray-200 px-3 text-sm" /><p className="mt-2 text-xs text-gray-500">{tour3dUrl ? (() => { try { const url = new URL(tour3dUrl); return url.protocol === 'http:' || url.protocol === 'https:' ? 'Valid URL' : 'Invalid URL' } catch { return 'Invalid URL' } })() : 'No tour added'}</p></div>
         <MediaAttachment title="Marketing Brochure" item={brochure} accept="application/pdf" buttonLabel="Upload PDF" onUpload={(files) => addFiles(files, 'BROCHURE')} onRemove={removeMedia} />
       </section>
-      <section className="rounded-2xl border border-gray-200 bg-white p-5"><div className="flex items-center justify-between"><div><h3 className="font-semibold text-dark-blue">Floor Plans</h3><p className="mt-1 text-xs text-gray-600">Upload and order floor plans separately from the photo gallery.</p></div><label className="inline-flex h-10 cursor-pointer items-center rounded-xl border border-gray-200 px-4 text-sm font-semibold text-dark-blue">Upload Floor Plan<input type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" onChange={(event) => { addFiles(Array.from(event.target.files || []), 'FLOOR_PLANS'); event.currentTarget.value = '' }} /></label></div><div className="mt-4 flex flex-wrap gap-2">{floorPlans.map((item) => <div key={item.id} className="flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-2 text-xs"><span>{item.url.split('/').pop() || 'Floor plan'}</span><button type="button" onClick={() => void removeMedia(item)} className="font-semibold text-red-700">Delete</button></div>)}</div>{floorPlans.length === 0 ? <p className="mt-4 text-sm text-gray-600">No floor plans uploaded.</p> : null}</section>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5"><div className="flex items-center justify-between"><div><h3 className="font-semibold text-dark-blue">Floor Plans</h3><p className="mt-1 text-xs text-gray-600">Upload structured floor plans separately from the photo gallery.</p></div><label className="inline-flex h-10 cursor-pointer items-center rounded-xl border border-gray-200 px-4 text-sm font-semibold text-dark-blue">Upload Floor Plan<input type="file" multiple accept="image/jpeg,image/png,image/webp,image/svg+xml,application/pdf" className="hidden" onChange={(event) => { addFiles(Array.from(event.target.files || []), 'FLOOR_PLANS'); event.currentTarget.value = '' }} /></label></div><label className="mt-4 block max-w-xs text-xs font-semibold text-dark-blue">Bedrooms (optional)<input type="number" min="0" max="100" value={floorPlanBedroomCount} onChange={(event) => setFloorPlanBedroomCount(event.target.value)} className="mt-1 h-9 w-full rounded-lg border border-gray-200 px-2 text-sm font-normal" /></label><div className="mt-4 flex flex-wrap gap-2">{floorPlans.map((item) => <div key={item.id} className="flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-2 text-xs"><span>{item.floorPlanTitle || item.url.split('/').pop() || 'Floor plan'}{item.floorPlanBedroomCount !== null && item.floorPlanBedroomCount !== undefined ? ` · ${item.floorPlanBedroomCount} Bedroom` : ''}</span><button type="button" onClick={() => void removeMedia(item)} className="font-semibold text-red-700">Delete</button></div>)}</div>{floorPlans.length === 0 ? <p className="mt-4 text-sm text-gray-600">No floor plans uploaded.</p> : null}</section>
       <p className="text-xs text-gray-500">Verification pending review. Media authenticity states are controlled by the backend.</p>
       <section className="rounded-2xl border border-gray-200 bg-white p-5"><h3 className="font-semibold text-dark-blue">Media Summary</h3><p className="mt-2 text-sm text-gray-600">{photos.length} photos · {hero ? '1 hero' : '0 hero'} · {floorPlans.length} floor plans · {video ? '1 video' : '0 videos'} · {tour3dUrl ? '1 3D tour' : '0 tours'} · {brochure ? '1 brochure' : '0 brochures'}</p></section>
 

@@ -15,6 +15,8 @@ const BodySchema = z.object({
   mimeType: z.string().trim().min(1).max(100).optional().nullable(),
   sizeBytes: z.number().int().min(1).max(Math.max(PROPERTY_MEDIA_MAX_IMAGE_BYTES, 500 * 1024 * 1024)).optional().nullable(),
   altText: z.string().trim().max(200).optional().nullable(),
+  floorPlanTitle: z.string().trim().max(160).optional().nullable(),
+  floorPlanBedroomCount: z.number().int().min(0).max(100).optional().nullable(),
 })
 
 export async function POST(req: Request) {
@@ -30,7 +32,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: 'Invalid data' }, { status: 400 })
     }
 
-    const { propertyId, category, url, s3Key, mimeType, sizeBytes, altText } = parsed.data
+    const { propertyId, category, url, s3Key, mimeType, sizeBytes, altText, floorPlanTitle, floorPlanBedroomCount } = parsed.data
 
     const property = await (prisma as any).manualProperty.findFirst({ where: { id: propertyId, agentId: auth.agentId } })
     if (!property) {
@@ -65,6 +67,8 @@ export async function POST(req: Request) {
         mimeType: mimeType || null,
         sizeBytes: typeof sizeBytes === 'number' ? sizeBytes : null,
         altText: altText || null,
+        floorPlanTitle: category === 'FLOOR_PLANS' ? floorPlanTitle || null : null,
+        floorPlanBedroomCount: category === 'FLOOR_PLANS' ? floorPlanBedroomCount ?? null : null,
         position: (last._max.position ?? -1) + 1,
       } as any,
     })

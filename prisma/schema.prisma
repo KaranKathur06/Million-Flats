@@ -1387,6 +1387,8 @@ model ManualPropertyMedia {
   sizeBytes Int?    @map("size_bytes")
   altText   String? @map("alt_text")
   position  Int @default(0)
+  floorPlanTitle String? @map("floor_plan_title")
+  floorPlanBedroomCount Int? @map("floor_plan_bedroom_count")
 
   property ManualProperty @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 

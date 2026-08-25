@@ -12,15 +12,21 @@ async function propertyExists(id: string) {
   return (prisma as any).manualProperty.findUnique({ where: { id }, select: { id: true } })
 }
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: { id: string } }) {
   const auth = await requireAdminSession()
   if (!auth.ok) return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
   if (!await propertyExists(params.id)) return NextResponse.json({ success: false, message: 'Property not found' }, { status: 404 })
-  const media = await (prisma as any).manualPropertyMedia.findMany({ where: { propertyId: params.id }, orderBy: [{ position: 'asc' }, { createdAt: 'asc' }] })
+  const requestedCategory = new URL(req.url).searchParams.get('category')
+  const where: Record<string, unknown> = { propertyId: params.id }
+  if (requestedCategory) {
+    if (!isPropertyMediaCategory(requestedCategory)) return NextResponse.json({ success: false, message: 'Invalid media category' }, { status: 400 })
+    where.category = propertyMediaStorageCategory(requestedCategory)
+  }
+  const media = await (prisma as any).manualPropertyMedia.findMany({ where, orderBy: [{ position: 'asc' }, { createdAt: 'asc' }] })
   return NextResponse.json({ success: true, media: media.map((item: any) => ({ ...item, category: propertyMediaCategory(item.category), url: buildAssetUrl(item.s3Key || item.url) || item.url })) })
 }
 
-const presignSchema = z.object({ fileName: z.string().min(1).max(160), fileSizeBytes: z.number().int().positive(), contentType: z.string().min(1), category: z.string() })
+const presignSchema = z.object({ fileName: z.string().min(1).max(160), fileSizeBytes: z.number().int().positive(), contentType: z.string().min(1), category: z.string(), floorPlanTitle: z.string().trim().max(160).optional().nullable(), floorPlanBedroomCount: z.number().int().min(0).max(100).optional().nullable() })
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const auth = await requireAdminSession()
@@ -49,7 +55,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   const media = await (prisma as any).$transaction(async (tx: any) => {
     if (category === 'COVER') await tx.manualPropertyMedia.updateMany({ where: { propertyId: params.id, category: 'COVER' }, data: { category: 'EXTERIOR' } })
     const last = await tx.manualPropertyMedia.aggregate({ where: { propertyId: params.id }, _max: { position: true } })
-    return tx.manualPropertyMedia.create({ data: { propertyId: params.id, category, url: buildAssetUrl(data.s3Key) || data.s3Key, s3Key: data.s3Key, mimeType: data.contentType, sizeBytes: data.fileSizeBytes, altText: data.altText || null, position: (last._max.position ?? -1) + 1 } })
+    return tx.manualPropertyMedia.create({ data: { propertyId: params.id, category, url: buildAssetUrl(data.s3Key) || data.s3Key, s3Key: data.s3Key, mimeType: data.contentType, sizeBytes: data.fileSizeBytes, altText: data.altText || null, floorPlanTitle: category === 'FLOOR_PLANS' ? data.floorPlanTitle || null : null, floorPlanBedroomCount: category === 'FLOOR_PLANS' ? data.floorPlanBedroomCount ?? null : null, position: (last._max.position ?? -1) + 1 } })
   })
   return NextResponse.json({ success: true, media: { ...media, category: propertyMediaCategory(media.category) } }, { status: 201 })
 }

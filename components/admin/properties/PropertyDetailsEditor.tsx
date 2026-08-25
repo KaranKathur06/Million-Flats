@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { CanonicalLocationFields } from './CanonicalLocationFields'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
+import type { GlobalDropdownOption } from '@/components/ui/GlobalDropdown'
 
 type EditableProperty = {
   id: string
@@ -32,6 +34,14 @@ type EditableProperty = {
 const sectionClass = 'rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5'
 const inputClass = 'w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-white/80 placeholder-white/20 outline-none focus:border-amber-400/30 focus:ring-1 focus:ring-amber-400/10'
 const labelClass = 'text-[11px] font-medium uppercase tracking-wider text-white/35'
+const intentOptions: GlobalDropdownOption[] = [{ value: 'SALE', label: 'Sale' }, { value: 'RENT', label: 'Rent' }]
+const currencyOptions: GlobalDropdownOption[] = [{ value: 'INR', label: 'INR' }, { value: 'AED', label: 'AED' }, { value: 'USD', label: 'USD' }]
+const constructionOptions: GlobalDropdownOption[] = [{ value: '', label: 'Not set' }, { value: 'READY', label: 'Ready' }, { value: 'OFF_PLAN', label: 'Off-plan' }]
+const statusOptions: GlobalDropdownOption[] = [
+  { value: 'DRAFT', label: 'Draft' }, { value: 'PENDING_REVIEW', label: 'Pending review' },
+  { value: 'PUBLISHED', label: 'Published' }, { value: 'REJECTED', label: 'Rejected' },
+  { value: 'SOLD', label: 'Sold' }, { value: 'ARCHIVED', label: 'Archived' },
+]
 
 function toText(value: unknown) {
   return value === null || value === undefined ? '' : String(value)
@@ -115,11 +125,11 @@ export function PropertyDetailsEditor({ property }: { property: EditableProperty
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <label className="space-y-2 md:col-span-2"><span className={labelClass}>Title</span><input className={inputClass} value={form.title} onChange={e => update('title', e.target.value)} /></label>
         <label className="space-y-2"><span className={labelClass}>Property Type</span><input className={inputClass} value={form.propertyType} onChange={e => update('propertyType', e.target.value)} /></label>
-        <label className="space-y-2"><span className={labelClass}>Intent</span><select className={inputClass} value={form.intent} onChange={e => update('intent', e.target.value)}><option value="SALE">Sale</option><option value="RENT">Rent</option></select></label>
+        <div className="space-y-2"><span className={labelClass}>Intent</span><GlobalDropdown value={form.intent} onChange={value => update('intent', String(value))} options={intentOptions} appearance="admin-dark" showLabel={false} /></div>
         <label className="space-y-2"><span className={labelClass}>Price</span><input className={inputClass} inputMode="decimal" value={form.price} onChange={e => update('price', e.target.value)} /></label>
-        <label className="space-y-2"><span className={labelClass}>Currency</span><select className={inputClass} value={form.currency} onChange={e => update('currency', e.target.value)}><option value="INR">INR</option><option value="AED">AED</option><option value="USD">USD</option></select></label>
-        <label className="space-y-2"><span className={labelClass}>Construction</span><select className={inputClass} value={form.constructionStatus} onChange={e => update('constructionStatus', e.target.value)}><option value="">Not set</option><option value="READY">Ready</option><option value="OFF_PLAN">Off-plan</option></select></label>
-        <label className="space-y-2"><span className={labelClass}>Status</span><select className={inputClass} value={form.status} onChange={e => update('status', e.target.value)}><option value="DRAFT">Draft</option><option value="PENDING_REVIEW">Pending review</option><option value="PUBLISHED">Published</option><option value="REJECTED">Rejected</option><option value="SOLD">Sold</option><option value="ARCHIVED">Archived</option></select></label>
+        <div className="space-y-2"><span className={labelClass}>Currency</span><GlobalDropdown value={form.currency} onChange={value => update('currency', String(value))} options={currencyOptions} appearance="admin-dark" showLabel={false} /></div>
+        <div className="space-y-2"><span className={labelClass}>Construction</span><GlobalDropdown value={form.constructionStatus} onChange={value => update('constructionStatus', String(value))} options={constructionOptions} appearance="admin-dark" showLabel={false} /></div>
+        <div className="space-y-2"><span className={labelClass}>Status</span><GlobalDropdown value={form.status} onChange={value => update('status', String(value))} options={statusOptions} appearance="admin-dark" showLabel={false} /></div>
       </div>
 
       <CanonicalLocationFields

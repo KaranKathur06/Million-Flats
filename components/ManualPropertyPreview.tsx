@@ -200,7 +200,7 @@ export default function ManualPropertyPreview({ manual, related = [] }: { manual
             </div>
             {Object.keys(mediaByCategory).length > 1 ? (
               <div className="mt-5 grid gap-4 md:grid-cols-2">
-                {PROPERTY_MEDIA_CATEGORIES.filter((category) => category !== 'hero' && mediaByCategory[category]?.length).map((category) => (
+                {PROPERTY_MEDIA_CATEGORIES.filter((category) => category !== 'COVER' && mediaByCategory[category]?.length).map((category) => (
                   <div key={category} className="rounded-2xl border border-gray-100 bg-gray-50/60 p-3">
                     <div className="mb-2 flex items-center justify-between">
                       <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-500">{category.replace('_', ' ')}</h3>
