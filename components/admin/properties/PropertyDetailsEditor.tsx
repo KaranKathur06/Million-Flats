@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { CanonicalLocationFields } from './CanonicalLocationFields'
 import GlobalDropdown from '@/components/ui/GlobalDropdown'
 import type { GlobalDropdownOption } from '@/components/ui/GlobalDropdown'
-import PaymentPlanBuilder from '@/components/PaymentPlanBuilder'
+import PaymentPlanBuilder from '@/components/StructuredPaymentPlanBuilder'
 import type { PaymentPlan } from '@/lib/paymentPlan'
 
 type EditableProperty = {
@@ -163,7 +163,7 @@ export function PropertyDetailsEditor({ property }: { property: EditableProperty
         <label className="space-y-2"><span className={labelClass}>Latitude</span><input className={inputClass} inputMode="decimal" value={form.latitude} onChange={e => update('latitude', e.target.value)} /></label>
         <label className="space-y-2"><span className={labelClass}>Longitude</span><input className={inputClass} inputMode="decimal" value={form.longitude} onChange={e => update('longitude', e.target.value)} /></label>
         <label className="space-y-2 md:col-span-2"><span className={labelClass}>Description</span><textarea className={inputClass} rows={5} value={form.shortDescription} onChange={e => update('shortDescription', e.target.value)} /></label>
-        <div className="md:col-span-2"><PaymentPlanBuilder value={paymentPlan} price={toNumberOrNull(form.price)} currency={form.currency} areaSquareFeet={toNumberOrNull(form.squareFeet)} onChange={setPaymentPlan} /></div>
+        <div className="md:col-span-2"><PaymentPlanBuilder value={paymentPlan} price={toNumberOrNull(form.price)} currency={form.currency} areaSquareFeet={toNumberOrNull(form.squareFeet)} appearance="admin-dark" onChange={setPaymentPlan} /></div>
       </div>
     </section>
   )

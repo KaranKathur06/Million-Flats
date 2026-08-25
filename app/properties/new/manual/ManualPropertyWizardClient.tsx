@@ -15,7 +15,7 @@ import toast, { Toaster } from 'react-hot-toast'
 import ManualPropertyMediaManager from '@/components/manual/ManualPropertyMediaManager'
 import ManualPropertyAmenities from '@/components/manual/ManualPropertyAmenities'
 import ManualPropertyPreview from '@/components/ManualPropertyPreview'
-import PaymentPlanBuilder from '@/components/PaymentPlanBuilder'
+import PaymentPlanBuilder from '@/components/StructuredPaymentPlanBuilder'
 import { calculateFinancialModel, createPaymentPlan, normalizePaymentPlan as normalizeFinancialPlan, type PaymentPlan } from '@/lib/paymentPlan'
 import {
   calculateManualListingQuality,
@@ -209,9 +209,9 @@ export default function ManualPropertyWizardClient() {
     id: '',
     status: 'DRAFT',
     currency: 'AED',
-    bedrooms: 0,
-    bathrooms: 0,
-    squareFeet: 0,
+    bedrooms: undefined,
+    bathrooms: undefined,
+    squareFeet: undefined,
     countryCode: 'UAE',
     authorizedToMarket: false,
     exclusiveDeal: false,
@@ -1331,7 +1331,7 @@ export default function ManualPropertyWizardClient() {
                 <input
                   type="number"
                   min={0}
-                  value={property?.bedrooms ?? 0}
+                  value={property?.bedrooms || ''}
                   onChange={(e) => {
                     const v = Math.max(0, Math.floor(toNumber(e.target.value)))
                     setProperty((p) => ({ ...(p as any), bedrooms: v }))
@@ -1346,7 +1346,7 @@ export default function ManualPropertyWizardClient() {
                 <input
                   type="number"
                   min={0}
-                  value={property?.bathrooms ?? 0}
+                  value={property?.bathrooms || ''}
                   onChange={(e) => {
                     const v = Math.max(0, Math.floor(toNumber(e.target.value)))
                     setProperty((p) => ({ ...(p as any), bathrooms: v }))
@@ -1361,7 +1361,7 @@ export default function ManualPropertyWizardClient() {
                 <input
                   type="number"
                   min={0}
-                  value={property?.squareFeet ?? 0}
+                  value={property?.squareFeet || ''}
                   onChange={(e) => {
                     const v = Math.max(0, toNumber(e.target.value))
                     setProperty((p) => ({ ...(p as any), squareFeet: v }))
@@ -1839,7 +1839,7 @@ export default function ManualPropertyWizardClient() {
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">{property?.intent === 'RENT' ? 'Monthly rent' : 'Asking price'}</label>
-                <input type="number" min={0} value={property?.price ?? ''} onChange={(e) => { const value = toNumber(e.target.value); setProperty((p) => ({ ...(p as any), price: value, annualRent: p.intent === 'RENT' ? value * 12 : p.annualRent })) }} onBlur={(e) => patch({ price: toNumber(e.target.value) || null, annualRent: property?.intent === 'RENT' ? toNumber(e.target.value) * 12 : property?.annualRent })} className="w-full h-12 px-4 rounded-xl border border-gray-300" />
+                <input type="number" min={0} value={property?.price || ''} onChange={(e) => { const value = toNumber(e.target.value); setProperty((p) => ({ ...(p as any), price: value || null, annualRent: p.intent === 'RENT' ? value * 12 : p.annualRent })) }} onBlur={(e) => patch({ price: toNumber(e.target.value) || null, annualRent: property?.intent === 'RENT' ? toNumber(e.target.value) * 12 : property?.annualRent })} className="w-full h-12 px-4 rounded-xl border border-gray-300" />
               </div>
               <label className="flex items-center gap-3 text-sm text-gray-700 pt-8">
                 <input type="checkbox" checked={Boolean(property?.negotiable)} onChange={(e) => { setProperty((p) => ({ ...(p as any), negotiable: e.target.checked })); patch({ negotiable: e.target.checked }) }} />

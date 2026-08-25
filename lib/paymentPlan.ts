@@ -107,6 +107,7 @@ export type FinancialCalculation = {
   allocatedPercentage: number
   remainingPercentage: number
   oneTimeCosts: number
+  oneTimeCostDetails: Array<AdditionalCost & { calculatedAmount: number }>
   recurringCosts: number
   recurringCostDetails: Array<RecurringCost & { calculatedAmount: number }>
   stageResults: Array<PaymentStage & { calculatedAmount: number; installmentAmount: number | null; totalAmount: number }>
@@ -258,10 +259,11 @@ export function calculateFinancialModel(plan: PaymentPlan | unknown, propertyPri
     if (stage.installmentAmount !== null && Math.abs(stage.installmentAmount * (stage.installmentCount || 0) - stage.totalAmount) > 0.01) warnings.push(`${stage.label} installment total does not reconcile.`)
   })
 
-  const oneTimeCosts = round(normalized.additionalCosts.filter((cost) => !cost.recurring).reduce((sum, cost) => {
+  const oneTimeCostDetails = normalized.additionalCosts.filter((cost) => !cost.recurring).map((cost) => {
     const amount = cost.basis === 'PERCENTAGE_OF_PROPERTY_PRICE' ? price * (positive(cost.percentage) || 0) / 100 : cost.basis === 'PERCENTAGE_OF_LOAN' ? financing.loan * (positive(cost.percentage) || 0) / 100 : positive(cost.amount) || 0
-    return sum + amount
-  }, 0))
+    return { ...cost, calculatedAmount: round(amount) }
+  })
+  const oneTimeCosts = round(oneTimeCostDetails.reduce((sum, cost) => sum + cost.calculatedAmount, 0))
   const area = positive(areaSquareFeet)
   const recurringCostDetails = normalized.recurringCosts.map((cost) => {
     const amount = cost.basis === 'PER_SQ_FT' && area !== null ? (positive(cost.ratePerSquareFoot) || 0) * area : positive(cost.amount) || 0
@@ -279,6 +281,7 @@ export function calculateFinancialModel(plan: PaymentPlan | unknown, propertyPri
     allocatedPercentage,
     remainingPercentage,
     oneTimeCosts,
+    oneTimeCostDetails,
     recurringCosts,
     recurringCostDetails,
     stageResults,
