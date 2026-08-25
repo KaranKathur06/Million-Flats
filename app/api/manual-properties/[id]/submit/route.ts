@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { requireAgentSession } from '@/lib/agentAuth'
+import { requireAgentDraftSession } from '@/lib/agentAuth'
 import { evaluateManualPropertyRisk } from '@/lib/services/riskEngine'
 import { ensureModerationCase, setCaseRiskWithReasons, setModerationQueue } from '@/lib/services/moderation.service'
 import { validateManualPropertyStep } from '@/lib/manualPropertyForm'
@@ -24,7 +24,7 @@ function normalizeName(v: string) {
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
-    const auth = await requireAgentSession()
+    const auth = await requireAgentDraftSession()
     if (!auth.ok) {
       return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
     }
