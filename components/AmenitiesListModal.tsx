@@ -46,7 +46,7 @@ export default function AmenitiesListModal({ amenities, maxPreview = 8 }: Props)
                 />
               </svg>
             </span>
-            <span className="text-sm text-charcoal leading-snug">{name}</span>
+            <span className="text-sm text-gray-700 leading-snug">{name}</span>
           </div>
         ))}
       </div>
