@@ -5,6 +5,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNod
 export type GlobalDropdownOption = {
   value: string
   label?: string
+  disabled?: boolean
 }
 
 export type GlobalDropdownProps = {
@@ -137,6 +138,8 @@ export default function GlobalDropdown({
   }, [isMulti, resolvedOptions, selectedValues])
 
   const pickOption = (optValue: string) => {
+    const option = resolvedOptions.find((item) => item.value === optValue)
+    if (option?.disabled) return
     if (isMulti) {
       const set = new Set(selectedValues)
       if (set.has(optValue)) set.delete(optValue)
@@ -381,6 +384,7 @@ export default function GlobalDropdown({
               filteredOptions.map((o, idx) => {
                 const selected = selectedValues.some((v) => normalize(v) === normalize(o.value))
                 const active = idx === activeIndex
+                const optionDisabled = Boolean(o.disabled)
 
                 const itemClass = premium
                   ? [
@@ -396,10 +400,14 @@ export default function GlobalDropdown({
                       isDark
                         ? selected
                           ? 'bg-white/[0.06] text-white font-medium'
+                          : optionDisabled
+                            ? 'cursor-not-allowed bg-transparent text-white/25'
                           : active
                             ? 'bg-white/[0.03] text-white/90'
                             : 'bg-transparent text-white/60'
-                        : selected
+                        : optionDisabled
+                          ? 'cursor-not-allowed bg-white text-gray-400'
+                          : selected
                           ? 'bg-dark-blue text-white'
                           : active
                             ? 'bg-gray-50 text-dark-blue'
@@ -412,11 +420,13 @@ export default function GlobalDropdown({
                     type="button"
                     role="option"
                     aria-selected={selected}
+                    aria-disabled={optionDisabled}
                     data-option-index={idx}
                     data-selected={selected}
-                    onMouseEnter={() => setActiveIndex(idx)}
+                    onMouseEnter={() => { if (!optionDisabled) setActiveIndex(idx) }}
                     onMouseDown={(e) => {
                       e.preventDefault()
+                      if (optionDisabled) return
                       pickOption(o.value)
                     }}
                     className={itemClass}

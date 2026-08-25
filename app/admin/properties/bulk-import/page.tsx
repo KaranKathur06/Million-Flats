@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
 
 type Step = 'setup' | 'upload' | 'discovery' | 'review' | 'result'
 
@@ -30,6 +31,23 @@ const statusTone: Record<string, string> = {
     FAILED: 'text-red-300 bg-red-300/10 border-red-300/20',
     CANCELLED: 'text-white/50 bg-white/[0.06] border-white/10',
 }
+
+const entityOptions = [
+    { value: 'PROPERTY', label: 'Properties' },
+    { value: 'PROJECT', label: 'Projects · adapter pending', disabled: true },
+    { value: 'DEVELOPER', label: 'Developers · adapter pending', disabled: true },
+    { value: 'AGENCY', label: 'Agencies · adapter pending', disabled: true },
+    { value: 'AGENT', label: 'Agents · adapter pending', disabled: true },
+]
+const operationOptions = [
+    { value: 'CREATE', label: 'Create' },
+    { value: 'UPSERT', label: 'Upsert' },
+    { value: 'UPDATE', label: 'Update' },
+]
+const modeOptions = [
+    { value: 'PARTIAL', label: 'Partial · commit valid records' },
+    { value: 'STRICT', label: 'Strict · resolve every issue' },
+]
 
 export default function ImportCenterPage() {
     const [step, setStep] = useState<Step>('setup')
@@ -61,6 +79,7 @@ export default function ImportCenterPage() {
         try {
             const form = new FormData()
             form.append('file', file)
+            form.append('entity', entity)
             form.append('operation', operation)
             form.append('mode', mode)
             form.append('sourceProvider', 'ADMIN_IMPORT')
@@ -147,9 +166,9 @@ export default function ImportCenterPage() {
                         {step === 'setup' && <>
                             <div className="mb-8"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">Step 01</p><h2 className="mt-2 text-xl font-semibold">Configure this import</h2><p className="mt-2 text-sm text-white/45">Choose the destination and ownership policy before selecting a source.</p></div>
                             <div className="grid gap-5 md:grid-cols-2">
-                                <label><span className="label">Entity</span><select value={entity} onChange={e => setEntity(e.target.value)} className="field"><option value="PROPERTY">Properties</option></select></label>
-                                <label><span className="label">Operation</span><select value={operation} onChange={e => setOperation(e.target.value)} className="field"><option>CREATE</option><option>UPSERT</option><option>UPDATE</option></select></label>
-                                <label><span className="label">Import mode</span><select value={mode} onChange={e => setMode(e.target.value)} className="field"><option value="PARTIAL">Partial · commit valid records</option><option value="STRICT">Strict · resolve every issue</option></select></label>
+                                <GlobalDropdown label="Entity" value={entity} onChange={value => setEntity(value as string)} options={entityOptions} appearance="admin-dark" />
+                                <GlobalDropdown label="Operation" value={operation} onChange={value => setOperation(value as string)} options={operationOptions} appearance="admin-dark" />
+                                <GlobalDropdown label="Import mode" value={mode} onChange={value => setMode(value as string)} options={modeOptions} appearance="admin-dark" />
                                 <label><span className="label">Existing Agent ID</span><input value={agentId} onChange={e => setAgentId(e.target.value)} className="field" placeholder="Required ownership ID" /></label>
                             </div>
                             <div className="mt-8 flex justify-end"><button type="button" onClick={() => { setError(''); setStep('upload') }} className="button-primary">Continue to upload <span>→</span></button></div>

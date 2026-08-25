@@ -54,8 +54,19 @@ function normalizeListResponse(raw: unknown) {
 const QuerySchema = z.object({
   purpose: z.enum(['rent', 'buy']).optional(),
   country: z.enum(['UAE', 'INDIA']).optional(),
+  q: z.string().trim().max(120).optional(),
+  state: z.string().trim().min(1).max(120).optional(),
   city: z.string().trim().min(1).max(120).optional(),
+  community: z.string().trim().min(1).max(120).optional(),
   propertyType: z.string().trim().min(1).max(80).optional(),
+  bedrooms: z.coerce.number().int().min(0).max(50).optional(),
+  bathrooms: z.coerce.number().int().min(0).max(50).optional(),
+  minArea: z.coerce.number().finite().nonnegative().optional(),
+  maxArea: z.coerce.number().finite().nonnegative().optional(),
+  sortBy: z.enum(['recommended', 'newest', 'price-asc', 'price-desc', 'area-asc', 'area-desc']).optional(),
+  constructionStatus: z.string().trim().min(1).max(80).optional(),
+  furnishingStatus: z.string().trim().min(1).max(80).optional(),
+  has3dTour: z.enum(['true', 'false']).optional(),
   minPrice: z.coerce.number().finite().nonnegative().optional(),
   maxPrice: z.coerce.number().finite().nonnegative().optional(),
   featured: z.enum(['true', 'false']).optional(),
@@ -88,8 +99,19 @@ export async function GET(req: Request) {
     const parsed = QuerySchema.safeParse({
       purpose: (searchParams.get('purpose') || '').toLowerCase() || undefined,
       country: (searchParams.get('country') || '').trim() || undefined,
+      q: searchParams.get('q') || undefined,
+      state: searchParams.get('state') || searchParams.get('region') || undefined,
       city: searchParams.get('city') || undefined,
+      community: searchParams.get('community') || undefined,
       propertyType: searchParams.get('propertyType') || searchParams.get('type') || undefined,
+      bedrooms: searchParams.get('bedrooms') || undefined,
+      bathrooms: searchParams.get('bathrooms') || undefined,
+      minArea: searchParams.get('minArea') || undefined,
+      maxArea: searchParams.get('maxArea') || undefined,
+      sortBy: searchParams.get('sortBy') || undefined,
+      constructionStatus: searchParams.get('constructionStatus') || undefined,
+      furnishingStatus: searchParams.get('furnishingStatus') || undefined,
+      has3dTour: searchParams.get('has3dTour') || undefined,
       minPrice: searchParams.get('minPrice') || undefined,
       maxPrice: searchParams.get('maxPrice') || undefined,
       featured: (searchParams.get('featured') || '').trim() || undefined,
@@ -102,6 +124,13 @@ export async function GET(req: Request) {
     }
 
     const q = parsed.data
+    if (q.minPrice !== undefined && q.maxPrice !== undefined && q.minPrice > q.maxPrice) {
+      return NextResponse.json({ success: false, message: 'Minimum price cannot exceed maximum price' }, { status: 400 })
+    }
+    if (q.minArea !== undefined && q.maxArea !== undefined && q.minArea > q.maxArea) {
+      return NextResponse.json({ success: false, message: 'Minimum area cannot exceed maximum area' }, { status: 400 })
+    }
+
     const where: any = {
       status: MANUAL_PROPERTY_PUBLIC_STATUS,
       sourceType: 'MANUAL',
@@ -112,7 +141,33 @@ export async function GET(req: Request) {
     }
 
     if (q.country) where.countryCode = q.country
+    if (q.q) {
+      where.OR = [
+        { title: { contains: q.q, mode: 'insensitive' } },
+        { developerName: { contains: q.q, mode: 'insensitive' } },
+        { locality: { contains: q.q, mode: 'insensitive' } },
+        { community: { contains: q.q, mode: 'insensitive' } },
+        { city: { contains: q.q, mode: 'insensitive' } },
+        { region: { contains: q.q, mode: 'insensitive' } },
+        { address: { contains: q.q, mode: 'insensitive' } },
+        { propertyType: { contains: q.q, mode: 'insensitive' } },
+      ]
+    }
+    if (q.state) where.region = { contains: q.state, mode: 'insensitive' }
     if (q.city) where.city = { contains: q.city, mode: 'insensitive' }
+    if (q.community) where.community = { contains: q.community, mode: 'insensitive' }
+    if (q.city && q.community) {
+      const masterCommunity = await (prisma as any).community.findFirst({
+        where: {
+          name: { equals: q.community, mode: 'insensitive' },
+          city: { name: { equals: q.city, mode: 'insensitive' } },
+        },
+        select: { id: true },
+      })
+      if (!masterCommunity) {
+        return NextResponse.json({ success: false, message: 'Community does not belong to the selected city' }, { status: 400 })
+      }
+    }
     if (q.propertyType) where.propertyType = { contains: q.propertyType, mode: 'insensitive' }
     if (q.purpose === 'rent') where.intent = 'RENT'
     if (q.purpose === 'buy') where.intent = 'SALE'
@@ -125,16 +180,36 @@ export async function GET(req: Request) {
     if (typeof q.maxPrice === 'number' && Number.isFinite(q.maxPrice)) {
       where.price = { ...(where.price || {}), lte: q.maxPrice }
     }
+    if (typeof q.bedrooms === 'number') where.bedrooms = { gte: q.bedrooms }
+    if (typeof q.bathrooms === 'number') where.bathrooms = { gte: q.bathrooms }
+    if (typeof q.minArea === 'number') where.squareFeet = { ...(where.squareFeet || {}), gte: q.minArea }
+    if (typeof q.maxArea === 'number') where.squareFeet = { ...(where.squareFeet || {}), lte: q.maxArea }
+    if (q.constructionStatus) where.constructionStatus = q.constructionStatus
+    if (q.furnishingStatus) where.furnishingStatus = { contains: q.furnishingStatus, mode: 'insensitive' }
+    if (q.has3dTour === 'true') where.tour3dUrl = { not: null }
 
     const take = typeof q.limit === 'number' && Number.isFinite(q.limit) ? Math.min(q.limit, 250) : 24
     const page = typeof q.page === 'number' && Number.isFinite(q.page) ? Math.max(1, q.page) : 1
     const skip = (page - 1) * take
 
+    const sortBy = q.sortBy || 'recommended'
+    const orderBy = sortBy === 'price-asc'
+      ? [{ price: 'asc' as const }, { id: 'asc' as const }]
+      : sortBy === 'price-desc'
+        ? [{ price: 'desc' as const }, { id: 'asc' as const }]
+        : sortBy === 'area-asc'
+          ? [{ squareFeet: 'asc' as const }, { id: 'asc' as const }]
+          : sortBy === 'area-desc'
+            ? [{ squareFeet: 'desc' as const }, { id: 'asc' as const }]
+            : sortBy === 'newest'
+              ? [{ createdAt: 'desc' as const }, { id: 'asc' as const }]
+              : [{ exclusiveDeal: 'desc' as const }, { updatedAt: 'desc' as const }, { id: 'asc' as const }]
+
     const [totalCount, rows] = await Promise.all([
       (prisma as any).manualProperty.count({ where }),
       (prisma as any).manualProperty.findMany({
         where,
-        orderBy: { updatedAt: 'desc' },
+        orderBy,
         include: { media: true, agent: { include: { user: true } } },
         skip,
         take,
@@ -185,7 +260,7 @@ export async function GET(req: Request) {
       }
     })
 
-    return NextResponse.json({ success: true, items, totalCount })
+    return NextResponse.json({ success: true, items, totalCount, page, limit: take, totalPages: Math.ceil(totalCount / take) })
   } catch (e) {
     console.error('Properties feed: failed', e)
     return NextResponse.json({ success: false, message: 'Unable to load properties. Please try again later.' }, { status: 500 })

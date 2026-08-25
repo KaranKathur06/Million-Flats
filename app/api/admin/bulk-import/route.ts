@@ -54,11 +54,12 @@ export async function POST(req: Request) {
     const discovery = await parser.inspect(input)
     if (discovery.recordCount > MAX_RECORDS) return NextResponse.json({ success: false, message: `File exceeds the ${MAX_RECORDS} record limit.` }, { status: 413 })
 
-    const adapter = getImportAdapterForEntity('PROPERTY')
-    if (!adapter) return NextResponse.json({ success: false, message: 'No import adapter is registered for PROPERTY.' }, { status: 500 })
+    const entityType = String(form.get('entity') || 'PROPERTY').trim().toUpperCase()
+    const adapter = getImportAdapterForEntity(entityType)
+    if (!adapter) return NextResponse.json({ success: false, message: `No import adapter is registered for ${entityType}.` }, { status: 400 })
 
     const batch = await createImportBatch({
-      entityType: 'PROPERTY',
+      entityType: entityType as 'PROPERTY',
       operation: String(form.get('operation') || 'CREATE').toUpperCase() as 'CREATE' | 'UPDATE' | 'UPSERT',
       mode: String(form.get('mode') || 'PARTIAL').toUpperCase() as 'STRICT' | 'PARTIAL',
       originalFileName: file.name.replace(/[^a-zA-Z0-9._-]/g, '_'),

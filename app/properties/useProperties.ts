@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useCountry } from '@/components/CountryProvider'
 import { COUNTRY_META, DEFAULT_COUNTRY, isCountryCode, type CountryCode } from '@/lib/country'
@@ -44,6 +44,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
   const [page, setPage] = useState<number>(1)
   const [limit, setLimit] = useState<number>(24)
   const [totalCount, setTotalCount] = useState<number | null>(null)
+  const restoringUrlRef = useRef(false)
 
   const [purposeState, setPurposeState] = useState<Purpose>(() => {
     if (forcedPurpose) return forcedPurpose
@@ -76,7 +77,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
     maxPrice: getParam('maxPrice') || COUNTRY_META[initialCountry].maxPrice.toString(),
     bedrooms: getParam('bedrooms'),
     bathrooms: getParam('bathrooms'),
-    sortBy: 'featured',
+    sortBy: getParam('sortBy') || 'recommended',
     offPlanOnly: false,
     readyHomesOnly: false,
     soldOnly: false,
@@ -110,8 +111,35 @@ export default function useProperties(forcedPurpose?: Purpose) {
     if (nextFilters.sortBy) params.set('sortBy', nextFilters.sortBy)
     else params.delete('sortBy')
 
-    window.history.replaceState(null, '', `?${params.toString()}`)
+    const nextUrl = `${window.location.pathname}?${params.toString()}`
+    if (restoringUrlRef.current) restoringUrlRef.current = false
+    else window.history.pushState(null, '', nextUrl)
   }, [])
+
+  useEffect(() => {
+    const restoreFromUrl = () => {
+      const params = new URLSearchParams(window.location.search)
+      const next: Filters = {
+        ...filters,
+        search: params.get('q') || '',
+        location: params.get('location') || params.get('city') || '',
+        community: params.get('community') || '',
+        type: params.get('type') || params.get('propertyType') || '',
+        minPrice: params.get('minPrice') || '',
+        maxPrice: params.get('maxPrice') || '',
+        bedrooms: params.get('bedrooms') || '',
+        bathrooms: params.get('bathrooms') || '',
+        sortBy: params.get('sortBy') || 'recommended',
+      }
+      restoringUrlRef.current = true
+      setFilters(next)
+      setDraftFilters(next)
+      setPage(1)
+    }
+
+    window.addEventListener('popstate', restoreFromUrl)
+    return () => window.removeEventListener('popstate', restoreFromUrl)
+  }, [filters])
 
   useEffect(() => {
     syncUrl(filters, purpose)
@@ -154,6 +182,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
       const params = new URLSearchParams()
 
       params.set('country', filters.country)
+      if (filters.search.trim()) params.set('q', filters.search.trim())
       if (filters.location) params.set('city', filters.location)
       if (filters.community) params.set('community', filters.community)
       if (filters.type) params.set('type', filters.type)
@@ -161,6 +190,9 @@ export default function useProperties(forcedPurpose?: Purpose) {
       if (filters.maxPrice) params.set('maxPrice', filters.maxPrice)
       if (filters.bedrooms) params.set('bedrooms', filters.bedrooms)
       if (filters.bathrooms) params.set('bathrooms', filters.bathrooms)
+      if (filters.offPlanOnly) params.set('constructionStatus', 'OFF_PLAN')
+      if (filters.readyHomesOnly) params.set('constructionStatus', 'READY')
+      if (filters.sortBy) params.set('sortBy', filters.sortBy === 'price-low' ? 'price-asc' : filters.sortBy === 'price-high' ? 'price-desc' : filters.sortBy)
       params.set('purpose', purpose)
       params.set('page', String(page))
       params.set('limit', String(limit))
@@ -231,14 +263,13 @@ export default function useProperties(forcedPurpose?: Purpose) {
 
       setProperties((prev) => (page > 1 ? [...prev, ...mapped] : mapped))
       setTotalCount(total)
-      if (mapped.length === 0) setApiError('No properties found matching your filters')
     } catch (e) {
       setProperties([])
       setApiError('Unable to load properties. Please try again later.')
     } finally {
       setLoading(false)
     }
-  }, [filters.bathrooms, filters.bedrooms, filters.community, filters.country, filters.location, filters.maxPrice, filters.minPrice, filters.type, purpose, page, limit])
+  }, [filters.bathrooms, filters.bedrooms, filters.community, filters.country, filters.location, filters.maxPrice, filters.minPrice, filters.type, filters.search, filters.offPlanOnly, filters.readyHomesOnly, filters.sortBy, purpose, page, limit])
 
   useEffect(() => {
     fetchProperties()
@@ -286,8 +317,8 @@ export default function useProperties(forcedPurpose?: Purpose) {
     return getCommunityOptions(iso2, draftFilters.location || filters.location).map((item) => item.name)
   }, [draftFilters.location, filters.country, filters.location])
 
-  const applyDraft = () => {
-    handleFilterChange(draftFilters)
+  const applyDraft = (nextDraft?: Partial<Filters>) => {
+    handleFilterChange(nextDraft ? { ...draftFilters, ...nextDraft } : draftFilters)
   }
 
   const loadMore = () => {

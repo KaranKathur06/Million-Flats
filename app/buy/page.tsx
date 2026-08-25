@@ -2,7 +2,9 @@ import { Suspense } from 'react'
 import PropertiesClient from '@/app/properties/PropertiesClient'
 
 export const metadata = {
-  title: 'Buy - millionflats',
+  title: 'Buy Premium Properties | MillionFlats',
+  description: 'Discover properties for sale across India and the UAE with MillionFlats.',
+  alternates: { canonical: '/buy' },
 }
 
 export default function BuyPage() {

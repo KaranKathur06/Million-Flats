@@ -59,50 +59,12 @@ type Filters = {
   offPlanOnly: boolean
   readyHomesOnly: boolean
   soldOnly: boolean
-  features: string[]
-}
-
-const MORE_FEATURES = [
-  'Private Pool',
-  'Large Plot',
-  'Brand New',
-  'Vacant on Transfer',
-  'Golf Course View',
-  'Garden',
-  'Beach Access',
-  'Upgraded',
-  'Close to Park',
-  'Furnished',
-  'Water Views',
-  'Balcony',
-  'Maid Room',
-  'Gym',
-] as const
-
-type MoreFeature = (typeof MORE_FEATURES)[number]
-
-function hashToIndex(input: string, length: number) {
-  let h = 2166136261
-  for (let i = 0; i < input.length; i++) {
-    h ^= input.charCodeAt(i)
-    h = Math.imul(h, 16777619)
-  }
-  return length === 0 ? 0 : Math.abs(h) % length
 }
 
 type Purpose = 'buy' | 'rent'
 
 function safePurpose(v: unknown): Purpose {
   return v === 'rent' ? 'rent' : 'buy'
-}
-
-function deriveFeatures(propertyId: string) {
-  const picked: MoreFeature[] = []
-  for (let i = 0; i < MORE_FEATURES.length; i++) {
-    const keep = hashToIndex(`feat:${propertyId}:${MORE_FEATURES[i]}`, 10) < 3
-    if (keep) picked.push(MORE_FEATURES[i])
-  }
-  return picked
 }
 
 export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Purpose }) {
@@ -253,104 +215,15 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
     return communityOptions.filter((c) => c.toLowerCase().includes(q))
   }, [communityOptions, communityQuery])
 
-  const displayedProperties = useMemo(() => {
-    const countryForFilter = filters.country
-    const minPrice = parseInt(filters.minPrice)
-    const maxPrice = parseInt(filters.maxPrice)
-
-    let filtered = properties
-
-    filtered = filtered.filter((p) => (purpose === 'rent' ? p.intent === 'RENT' : p.intent === 'BUY'))
-
-    if (filters.search) {
-      const q = filters.search.trim().toLowerCase()
-      filtered = filtered.filter((p) => {
-        const comm = p.community || ''
-        return (
-          p.title.toLowerCase().includes(q) ||
-          p.location.toLowerCase().includes(q) ||
-          comm.toLowerCase().includes(q)
-        )
-      })
-    }
-
-    if (filters.location) {
-      const q = filters.location.toLowerCase()
-      filtered = filtered.filter((p) => p.location.toLowerCase().includes(q))
-    }
-
-    if (filters.community) {
-      filtered = filtered.filter((p) => (p.community || '').toLowerCase() === filters.community.toLowerCase())
-    }
-
-    if (filters.type) {
-      const t = filters.type.toLowerCase()
-      filtered = filtered.filter((p) => p.propertyType.toLowerCase() === t)
-    }
-
-    if (Number.isFinite(minPrice)) {
-      filtered = filtered.filter((p) => p.price >= minPrice)
-    }
-    if (Number.isFinite(maxPrice)) {
-      filtered = filtered.filter((p) => p.price <= maxPrice)
-    }
-
-    if (filters.bedrooms) {
-      const b = parseInt(filters.bedrooms)
-      if (Number.isFinite(b)) filtered = filtered.filter((p) => p.bedrooms >= b)
-    }
-
-    if (filters.bathrooms) {
-      const b = parseInt(filters.bathrooms)
-      if (Number.isFinite(b)) filtered = filtered.filter((p) => p.bathrooms >= b)
-    }
-
-    if (filters.offPlanOnly || filters.readyHomesOnly || filters.soldOnly) {
-      filtered = filtered.filter((p) => {
-        const status = String((p as any).status || '').toUpperCase()
-        const construction = String((p as any).constructionStatus || '').toUpperCase()
-        return (
-          (filters.offPlanOnly && construction === 'OFF_PLAN') ||
-          (filters.readyHomesOnly && construction === 'READY') ||
-          (filters.soldOnly && status === 'SOLD')
-        )
-      })
-    }
-
-    if (filters.features.length > 0) {
-      filtered = filtered.filter((p) => {
-        const pf = deriveFeatures(p.id)
-        return filters.features.every((f) => pf.includes(f as MoreFeature))
-      })
-    }
-
-    const sortBy = filters.sortBy || 'featured'
-    switch (sortBy) {
-      case 'price-low':
-        filtered = [...filtered].sort((a, b) => a.price - b.price)
-        break
-      case 'price-high':
-        filtered = [...filtered].sort((a, b) => b.price - a.price)
-        break
-      case 'newest':
-        filtered = [...filtered].sort((a, b) => (b.yearBuilt || 0) - (a.yearBuilt || 0))
-        break
-      case 'featured':
-      default:
-        filtered = [...filtered].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0))
-        break
-    }
-
-    return filtered
-  }, [filters, properties, purpose])
+  const displayedProperties = properties
 
   // Price options provided by `useProperties` hook
 
-  const heroTitle = forcedPurpose === 'rent' ? 'Properties for Rent' : 'Properties for Sale'
+  const heroTitle = forcedPurpose === 'rent' ? 'Find Your Next Home' : 'Discover Premium Properties'
   const heroSubtitle =
     forcedPurpose === 'rent'
-      ? 'Discover premium rentals across curated markets. Refine by city, community, and price.'
-      : 'Browse verified listings across curated markets. Refine by city, community, and price.'
+      ? 'Discover rental properties across India and the UAE. Search by location, property type, configuration, rent and lifestyle preferences.'
+      : 'Browse properties available for purchase across India and the UAE. Search by location, property type, configuration, budget and more.'
 
   const breadcrumbLabel = purpose === 'rent' ? 'Rent' : 'Buy'
   const breadcrumbHref = purpose === 'rent' ? '/rent' : '/buy'
@@ -366,7 +239,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
 
       <div className="mx-auto max-w-[1800px] px-4 sm:px-6 lg:px-8 pt-10 pb-14">
         <div className="mb-8">
-          <p className="text-gray-600">{displayedProperties.length} properties found</p>
+          <p className="text-gray-600">{(totalCount ?? displayedProperties.length).toLocaleString()} properties found</p>
         </div>
 
         <div className="sticky top-14 md:top-20 z-30 mb-6 md:mb-10">
@@ -374,7 +247,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
             <div className="relative z-20 bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl shadow-sm p-3">
               <div className="flex flex-col md:flex-row md:items-center gap-3">
                 <div className="w-full md:w-[320px]">
-                  <SmartSearch draftFilters={draftFilters} setDraftFilters={setDraftFilters} onSearch={applyDraft} />
+                  <SmartSearch draftFilters={draftFilters} setDraftFilters={setDraftFilters} onSearch={applyDraft} purpose={purpose} />
                 </div>
 
                 <div className="relative w-full md:w-[240px]" ref={cityRefDesktop}>
@@ -655,32 +528,6 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
                   />
                   <span className="text-sm font-semibold text-dark-blue">Sold Only</span>
                 </label>
-              </div>
-
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-dark-blue mb-3">Features</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {MORE_FEATURES.map((f) => {
-                    const checked = draftFilters.features.includes(f)
-                    return (
-                      <label key={f} className="flex items-center gap-3 rounded-xl border border-gray-200 p-3">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={(e) => {
-                            setDraftFilters((prev) => {
-                              const next = e.target.checked
-                                ? [...prev.features, f]
-                                : prev.features.filter((x) => x !== f)
-                              return { ...prev, features: next }
-                            })
-                          }}
-                        />
-                        <span className="text-sm text-dark-blue">{f}</span>
-                      </label>
-                    )
-                  })}
-                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3">

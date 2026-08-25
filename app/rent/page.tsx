@@ -2,7 +2,9 @@ import { Suspense } from 'react'
 import PropertiesClient from '@/app/properties/PropertiesClient'
 
 export const metadata = {
-  title: 'Rent - millionflats',
+  title: 'Rent Premium Properties | MillionFlats',
+  description: 'Find rental properties across India and the UAE with MillionFlats.',
+  alternates: { canonical: '/rent' },
 }
 
 export default function RentPage() {
