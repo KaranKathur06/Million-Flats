@@ -5,6 +5,8 @@ import toast from 'react-hot-toast'
 import { CanonicalLocationFields } from './CanonicalLocationFields'
 import GlobalDropdown from '@/components/ui/GlobalDropdown'
 import type { GlobalDropdownOption } from '@/components/ui/GlobalDropdown'
+import PaymentPlanBuilder from '@/components/PaymentPlanBuilder'
+import type { PaymentPlan } from '@/lib/paymentPlan'
 
 type EditableProperty = {
   id: string
@@ -26,6 +28,7 @@ type EditableProperty = {
   latitude: number | null
   longitude: number | null
   paymentPlanText: string | null
+  paymentPlan: unknown
   emiNote: string | null
   tour3dUrl: string | null
   status: string | null
@@ -78,6 +81,7 @@ export function PropertyDetailsEditor({ property }: { property: EditableProperty
     status: toText(property.status || 'PUBLISHED'),
   })
   const [saving, setSaving] = useState(false)
+  const [paymentPlan, setPaymentPlan] = useState<PaymentPlan | unknown>(property.paymentPlan)
 
   function update(field: keyof typeof form, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -94,6 +98,7 @@ export function PropertyDetailsEditor({ property }: { property: EditableProperty
         squareFeet: Math.max(0, toNumberOrNull(form.squareFeet) || 0),
         latitude: toNumberOrNull(form.latitude),
         longitude: toNumberOrNull(form.longitude),
+        paymentPlan,
       }
       const response = await fetch(`/api/admin/properties/${property.id}`, {
         method: 'PATCH',
@@ -158,8 +163,7 @@ export function PropertyDetailsEditor({ property }: { property: EditableProperty
         <label className="space-y-2"><span className={labelClass}>Latitude</span><input className={inputClass} inputMode="decimal" value={form.latitude} onChange={e => update('latitude', e.target.value)} /></label>
         <label className="space-y-2"><span className={labelClass}>Longitude</span><input className={inputClass} inputMode="decimal" value={form.longitude} onChange={e => update('longitude', e.target.value)} /></label>
         <label className="space-y-2 md:col-span-2"><span className={labelClass}>Description</span><textarea className={inputClass} rows={5} value={form.shortDescription} onChange={e => update('shortDescription', e.target.value)} /></label>
-        <label className="space-y-2"><span className={labelClass}>Payment Plan</span><textarea className={inputClass} rows={3} value={form.paymentPlanText} onChange={e => update('paymentPlanText', e.target.value)} /></label>
-        <label className="space-y-2"><span className={labelClass}>EMI Note</span><textarea className={inputClass} rows={3} value={form.emiNote} onChange={e => update('emiNote', e.target.value)} /></label>
+        <div className="md:col-span-2"><PaymentPlanBuilder value={paymentPlan} price={toNumberOrNull(form.price)} currency={form.currency} areaSquareFeet={toNumberOrNull(form.squareFeet)} onChange={setPaymentPlan} /></div>
       </div>
     </section>
   )

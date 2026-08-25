@@ -27,6 +27,7 @@ export default async function AdminPropertyEditPage({ params }: { params: { id: 
       latitude: true,
       longitude: true,
       paymentPlanText: true,
+      paymentPlan: true,
       emiNote: true,
       tour3dUrl: true,
       status: true,

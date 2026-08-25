@@ -8,7 +8,6 @@ import { buildAssetUrl } from '@/lib/assetUrl'
 import { buildManualPropertyPath } from '@/lib/manualPropertyRoutes'
 import { PROPERTY_MEDIA_CATEGORIES, propertyMediaCategory, type PropertyMediaCategory } from '@/lib/propertyMedia'
 import { orderManualPropertyMedia } from '@/lib/manualPropertyForm'
-import { normalizePaymentPlan, parseLegacyPaymentPlanText } from '@/lib/manualPropertyForm'
 import { PaymentPlan } from '@/components/PaymentPlan'
 
 function safeString(v: unknown) {
@@ -84,9 +83,6 @@ export default function ManualPropertyPreview({ manual, related = [], previewMod
 
   const coverMedia = Array.isArray(manual?.media) ? manual.media.find((m: any) => safeString(m?.category).toUpperCase() === 'COVER') : null
   const cover = coverMedia ? buildAssetUrl(safeString(coverMedia?.s3Key) || safeString(coverMedia?.url)) || safeString(coverMedia?.url) : '/image-placeholder.svg'
-  const paymentPlan = normalizePaymentPlan(manual?.paymentPlan).length > 0
-    ? normalizePaymentPlan(manual?.paymentPlan)
-    : parseLegacyPaymentPlanText(manual?.paymentPlanText)
   const floorPlans = Array.isArray(manual?.media) ? manual.media.filter((m: any) => safeString(m?.category).toUpperCase() === 'FLOOR_PLANS' && safeString(m?.url)).sort((a: any, b: any) => safeNumber(a?.position) - safeNumber(b?.position)) : []
   const brochure = Array.isArray(manual?.media) ? manual.media.find((m: any) => safeString(m?.category).toUpperCase() === 'BROCHURE') : null
   const lat = safeNumber(manual?.latitude)
@@ -223,7 +219,7 @@ export default function ManualPropertyPreview({ manual, related = [], previewMod
             </section>
           ) : null}
 
-          <PaymentPlan stages={paymentPlan} price={manual?.price} currency={displayCurrency} />
+          <PaymentPlan stages={manual?.paymentPlan || manual?.paymentPlanText} price={manual?.price} currency={displayCurrency} areaSquareFeet={manual?.squareFeet} />
 
           {floorPlans.length > 0 ? <section className="bg-white rounded-3xl p-5 md:p-7 shadow-sm"><h2 className="text-xl md:text-2xl font-serif font-semibold text-dark-blue">Floor plans</h2><div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{floorPlans.map((floorPlan: any) => { const url = buildAssetUrl(safeString(floorPlan?.s3Key) || safeString(floorPlan?.url)) || safeString(floorPlan?.url); return <figure key={floorPlan.id} className="overflow-hidden rounded-2xl border border-gray-200"><div className="flex aspect-square items-center justify-center bg-gray-50 p-3"><img src={url} alt={safeString(floorPlan?.floorPlanTitle) || 'Property floor plan'} className="max-h-full max-w-full object-contain" loading="lazy" /></div><figcaption className="p-3 text-sm font-semibold text-dark-blue">{safeString(floorPlan?.floorPlanTitle) || (floorPlan?.floorPlanBedroomCount ? `${floorPlan.floorPlanBedroomCount} bedroom floor plan` : 'Floor plan')}</figcaption></figure> })}</div></section> : null}
 

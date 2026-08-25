@@ -29,9 +29,9 @@ export function normalizePaymentPlan(raw: unknown): PaymentPlanStage[] {
       const item = stage && typeof stage === 'object' ? stage as Record<string, unknown> : {}
       return {
         id: String(item.id || `payment-stage-${index + 1}`),
-        label: String(item.label || '').trim(),
+        label: String(item.label || ''),
         percentage: finitePercentage(item.percentage),
-        description: String(item.description || '').trim() || undefined,
+        description: String(item.description || '') || undefined,
         order: Number.isFinite(Number(item.order)) ? Number(item.order) : index,
       }
     })
@@ -60,7 +60,7 @@ export function paymentPlanValidation(stages: PaymentPlanStage[]): PaymentPlanVa
   const totalPercentage = stages.reduce((sum, stage) => sum + finitePercentage(stage.percentage), 0)
   const roundedTotal = Math.round(totalPercentage * 100) / 100
   const remainingPercentage = Math.round((100 - roundedTotal) * 100) / 100
-  if (stages.some((stage) => !stage.label || finitePercentage(stage.percentage) <= 0)) {
+  if (stages.some((stage) => !stage.label.trim() || finitePercentage(stage.percentage) <= 0)) {
     return { totalPercentage: roundedTotal, remainingPercentage, valid: false, state: 'invalid', message: 'Every payment stage needs a label and a percentage greater than zero.' }
   }
   if (roundedTotal > 100) return { totalPercentage: roundedTotal, remainingPercentage, valid: false, state: 'overallocated', message: 'Payment stages exceed the base property price.' }
@@ -211,6 +211,17 @@ export function validateManualPropertyStep(step: ManualPropertyFormStep, data: M
   if ((step === 'pricing' || step === 'review') && Array.isArray(data.paymentPlan)) {
     const paymentValidation = paymentPlanValidation(normalizePaymentPlan(data.paymentPlan))
     if (!paymentValidation.valid) errors.paymentPlan = paymentValidation.message || 'Complete the payment plan.'
+  }
+
+  if ((step === 'pricing' || step === 'review') && data.paymentPlan && !Array.isArray(data.paymentPlan) && typeof data.paymentPlan === 'object') {
+    const value = data.paymentPlan as { stages?: unknown[] }
+    const stages = Array.isArray(value.stages) ? value.stages : []
+    const total = stages.reduce((sum: number, stage) => {
+      if (!stage || typeof stage !== 'object') return sum
+      const item = stage as Record<string, unknown>
+      return sum + (item.basis === 'FIXED_AMOUNT' ? 0 : Number(item.percentage) || 0)
+    }, 0)
+    if (stages.length > 0 && total > 100) errors.paymentPlan = 'Payment stages exceed the base property price.'
   }
 
   return errors

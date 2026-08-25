@@ -10,11 +10,17 @@ import { z } from 'zod'
 const bannedMediaFields = ['images', 'imageUrl', 'imageUrls']
 const PaymentPlanStageSchema = z.object({
     id: z.string().trim().min(1).max(80),
-    label: z.string().trim().min(1).max(120),
-    percentage: z.number().finite().gt(0).max(100),
-    description: z.string().trim().max(300).optional(),
+    label: z.string().trim().max(120),
+    type: z.string().optional(),
+    basis: z.enum(['PERCENTAGE', 'FIXED_AMOUNT']).optional(),
+    percentage: z.number().finite().min(0).max(100).optional().nullable(),
+    fixedAmount: z.number().finite().min(0).optional().nullable(),
+    timingType: z.string().optional(), timingValue: z.union([z.string(), z.number()]).optional().nullable(),
+    frequency: z.string().optional().nullable(), installmentCount: z.number().finite().min(0).optional().nullable(),
+    milestone: z.string().max(300).optional().nullable(), description: z.string().trim().max(300).optional().nullable(),
     order: z.number().int().min(0).max(1000),
 })
+const PaymentPlanSchema = z.union([z.array(PaymentPlanStageSchema).max(50), z.object({ version: z.literal(2), mode: z.enum(['PERCENTAGE', 'FIXED', 'MIXED']), stages: z.array(PaymentPlanStageSchema).max(50), additionalCosts: z.array(z.record(z.unknown())).max(100).default([]), recurringCosts: z.array(z.record(z.unknown())).max(100).default([]), financing: z.record(z.unknown()).nullable().optional() })])
 
 const PropertyPatchSchema = z.object({
     title: z.string().trim().max(120).optional().nullable(),
@@ -37,7 +43,7 @@ const PropertyPatchSchema = z.object({
     developerName: z.string().trim().max(120).optional().nullable(),
     amenities: z.array(z.string().trim().min(1).max(80)).max(80).optional().nullable(),
     customAmenities: z.array(z.string().trim().min(1).max(80)).max(5).optional().nullable(),
-    paymentPlan: z.array(PaymentPlanStageSchema).max(50).optional().nullable(),
+    paymentPlan: PaymentPlanSchema.optional().nullable(),
     paymentPlanText: z.string().trim().max(2000).optional().nullable(),
     emiNote: z.string().trim().max(500).optional().nullable(),
     tour3dUrl: z.string().trim().max(500).optional().nullable(),

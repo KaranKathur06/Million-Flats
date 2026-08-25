@@ -16,6 +16,7 @@ import ManualPropertyMediaManager from '@/components/manual/ManualPropertyMediaM
 import ManualPropertyAmenities from '@/components/manual/ManualPropertyAmenities'
 import ManualPropertyPreview from '@/components/ManualPropertyPreview'
 import PaymentPlanBuilder from '@/components/PaymentPlanBuilder'
+import { calculateFinancialModel, createPaymentPlan, normalizePaymentPlan as normalizeFinancialPlan, type PaymentPlan } from '@/lib/paymentPlan'
 import {
   calculateManualListingQuality,
   categoryForPropertyType,
@@ -257,11 +258,16 @@ export default function ManualPropertyWizardClient() {
   const selectedCategory = property.category || categoryForPropertyType(property.propertyType)
   const quality = useMemo(() => calculateManualListingQuality(property), [property])
   const stepErrors = useMemo(() => validateManualPropertyStep(step, property), [property, step])
-  const paymentPlan = useMemo(() => {
-    const structured = normalizePaymentPlan(property.paymentPlan)
-    return structured.length > 0 ? structured : parseLegacyPaymentPlanText(property.paymentPlanText)
+  const paymentPlan = useMemo<PaymentPlan>(() => {
+    const raw = normalizeFinancialPlan(property.paymentPlan, property.paymentPlanText)
+    if (raw.stages.length > 0 || raw.additionalCosts.length > 0 || raw.recurringCosts.length > 0 || raw.financing) return raw
+    const legacyStages = normalizePaymentPlan(property.paymentPlan)
+    return createPaymentPlan({
+      stages: (legacyStages.length > 0 ? legacyStages : parseLegacyPaymentPlanText(property.paymentPlanText)).map((stage, index) => ({ ...stage, type: index === 0 ? 'BOOKING' : index === 2 ? 'HANDOVER' : 'CONSTRUCTION_MILESTONE', basis: 'PERCENTAGE' as const, timingType: index === 0 ? 'AT_BOOKING' as const : 'CUSTOM_MILESTONE' as const })),
+      legacy: { paymentPlanText: property.paymentPlanText ?? null, bookingAmount: property.bookingAmount ?? null, maintenanceCharges: property.maintenanceCharges ?? null, otherCharges: property.otherCharges ?? null, emiNote: property.emiNote ?? null },
+    })
   }, [property.paymentPlan, property.paymentPlanText])
-  const paymentValidation = useMemo(() => paymentPlanValidation(paymentPlan), [paymentPlan])
+  const financialModel = useMemo(() => calculateFinancialModel(paymentPlan, property.price, property.squareFeet), [paymentPlan, property.price, property.squareFeet])
 
   const localDraftKey = propertyId ? `millionflats:manual-draft:${propertyId}` : ''
 
@@ -735,7 +741,7 @@ export default function ManualPropertyWizardClient() {
       developerName: property.developerName ?? null,
       amenities: Array.isArray(property.amenities) ? property.amenities : null,
       customAmenities: Array.isArray(property.customAmenities) ? property.customAmenities : null,
-      paymentPlan: paymentPlan.length > 0 ? paymentPlan : null,
+      paymentPlan: paymentPlan.stages.length > 0 || paymentPlan.additionalCosts.length > 0 || paymentPlan.recurringCosts.length > 0 || paymentPlan.financing ? paymentPlan : null,
       paymentPlanText: property.paymentPlanText ?? null,
       emiNote: property.emiNote ?? null,
       authorizedToMarket: Boolean(property.authorizedToMarket),
@@ -1848,29 +1854,17 @@ export default function ManualPropertyWizardClient() {
                 <div><label className="block text-sm font-semibold text-gray-700 mb-2">Agency fee</label><input type="number" min={0} value={property?.agencyFee ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), agencyFee: toNumber(e.target.value) }))} onBlur={(e) => patch({ agencyFee: toNumber(e.target.value) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
                 <label className="flex items-center gap-3 text-sm text-gray-700"><input type="checkbox" checked={Boolean(property?.utilitiesIncluded)} onChange={(e) => { setProperty((p) => ({ ...(p as any), utilitiesIncluded: e.target.checked })); patch({ utilitiesIncluded: e.target.checked }) }} /> Utilities included</label>
                 <label className="flex items-center gap-3 text-sm text-gray-700"><input type="checkbox" checked={Boolean(property?.petFriendly)} onChange={(e) => { setProperty((p) => ({ ...(p as any), petFriendly: e.target.checked })); patch({ petFriendly: e.target.checked }) }} /> Pet friendly</label>
-              </> : <>
-                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Booking amount</label><input type="number" min={0} value={property?.bookingAmount ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), bookingAmount: toNumber(e.target.value) }))} onBlur={(e) => patch({ bookingAmount: toNumber(e.target.value) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
-                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Maintenance / service charges</label><input type="number" min={0} value={property?.maintenanceCharges ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), maintenanceCharges: toNumber(e.target.value) }))} onBlur={(e) => patch({ maintenanceCharges: toNumber(e.target.value) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
-                <div><label className="block text-sm font-semibold text-gray-700 mb-2">Other charges</label><input type="number" min={0} value={property?.otherCharges ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), otherCharges: toNumber(e.target.value) }))} onBlur={(e) => patch({ otherCharges: toNumber(e.target.value) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
-              </>}
+              </> : null}
               <PaymentPlanBuilder
                 value={paymentPlan}
                 price={property?.price}
                 currency={property?.currency}
-                onChange={(stages: PaymentPlanStage[]) => {
-                  setProperty((current) => ({ ...(current as any), paymentPlan: stages }))
-                  void patch({ paymentPlan: stages })
+                areaSquareFeet={property?.squareFeet}
+                onChange={(nextPlan: PaymentPlan) => {
+                  setProperty((current) => ({ ...(current as any), paymentPlan: nextPlan }))
+                  void patch({ paymentPlan: nextPlan })
                 }}
               />
-              <div className="md:col-span-2">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">EMI note (optional)</label>
-                <input
-                  value={property?.emiNote || ''}
-                  onChange={(e) => setProperty((p) => ({ ...(p as any), emiNote: e.target.value }))}
-                  onBlur={(e) => patch({ emiNote: e.target.value || null })}
-                  className="w-full h-12 px-4 rounded-xl border border-gray-300"
-                />
-              </div>
             </div>
           ) : null}
 
@@ -1960,7 +1954,7 @@ export default function ManualPropertyWizardClient() {
               </section>
               <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4"><p className="text-sm font-semibold text-dark-blue">Buyer preview</p><p className="mt-1 text-xs text-gray-600">This read-only view uses the same listing presentation as the published property.</p></div>
               <ManualPropertyPreview manual={{ ...property, paymentPlan }} previewMode />
-              <div className="rounded-2xl border border-gray-200 bg-white p-5"><p className="text-sm font-semibold text-dark-blue">Payment plan readiness</p><p className={`mt-2 text-sm ${paymentValidation.valid ? 'text-emerald-700' : 'text-amber-700'}`}>{paymentPlan.length === 0 ? 'No payment plan added.' : paymentValidation.valid ? 'Payment plan complete: 100% allocated.' : paymentValidation.message}</p></div>
+              <div className="rounded-2xl border border-gray-200 bg-white p-5"><p className="text-sm font-semibold text-dark-blue">Payment plan readiness</p><p className={`mt-2 text-sm ${financialModel.status === 'COMPLETE' ? 'text-emerald-700' : 'text-amber-700'}`}>{paymentPlan.stages.length === 0 ? 'No payment plan added.' : financialModel.status === 'COMPLETE' ? 'Payment plan complete: 100% allocated.' : financialModel.warnings[0] || 'Payment plan incomplete.'}</p></div>
 
               <button
                 type="button"

@@ -55,15 +55,6 @@ export const leadershipSections: LeadershipSection[] = [
     title: 'Sales & Partnerships',
     members: [
       {
-        id: 'divesh-more',
-        name: 'Divesh More',
-        title: 'Head of Sales & Partnerships (Mumbai)',
-        bio: 'Operating from Mumbai, Divesh architects MillionFlats\' rapidly expanding B2B ecosystem. He leads the charge in onboarding elite Tier-1 developers, boutique agencies, and wealth managers, ensuring our offshore investors receive unparalleled access to Dubai\'s finest luxury assets while driving highly lucrative channel partnerships.',
-        image: '/team/divesh.jpeg',
-        location: 'Mumbai',
-        linkedinUrl: 'https://www.linkedin.com/in/diveshmore/',
-      },
-      {
         id: 'paresh-dubariya',
         name: 'Paresh Dubariya',
         title: 'Head of Domestic Sales',
