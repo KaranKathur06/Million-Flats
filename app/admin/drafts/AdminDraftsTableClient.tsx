@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getAdminCapabilities } from '@/lib/adminCapabilities'
 import type { AppRole } from '@/lib/rbac'
@@ -15,6 +16,7 @@ type DraftItem = {
   lastCompletedStep: string
   createdAt: string
   updatedAt: string
+  coverImage: string
 }
 
 function safeString(v: unknown) {
@@ -70,8 +72,15 @@ export default function AdminDraftsTableClient({
 
           return (
             <div key={it.id} className="rounded-2xl border border-white/10 bg-[#0f1a2e] p-4">
-              <div className="text-white font-semibold">{it.title}</div>
-              <div className="mt-1 text-xs text-white/60 break-all">{it.id}</div>
+              <div className="flex gap-3">
+                <div className="h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-white/5">
+                  {it.coverImage ? <img src={it.coverImage} alt={`${it.title} cover`} className="h-full w-full object-cover" /> : null}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-white font-semibold">{it.title}</div>
+                  <div className="mt-1 text-xs text-white/60 break-all">{it.id}</div>
+                </div>
+              </div>
 
               <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-white/80">
                 <div>
@@ -94,6 +103,12 @@ export default function AdminDraftsTableClient({
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
+                <Link
+                  href={`/admin/properties/${encodeURIComponent(it.id)}/edit`}
+                  className="inline-flex h-9 items-center rounded-lg bg-amber-400 px-3 text-xs font-bold text-black hover:bg-amber-300"
+                >
+                  View details
+                </Link>
                 <button
                   disabled={isBusy || !canDelete}
                   title={deleteReason}
@@ -148,8 +163,15 @@ export default function AdminDraftsTableClient({
               return (
                 <tr key={it.id} className="border-b border-white/5">
                   <td className="py-4 pr-4">
-                    <div className="font-semibold text-white">{it.title}</div>
-                    <div className="text-xs text-white/60">{it.id}</div>
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-md bg-white/5">
+                        {it.coverImage ? <img src={it.coverImage} alt={`${it.title} cover`} className="h-full w-full object-cover" /> : null}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-white">{it.title}</div>
+                        <div className="text-xs text-white/60">{it.id}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className="py-4 pr-4">
                     <div className="text-white">{it.agentName}</div>
@@ -160,6 +182,12 @@ export default function AdminDraftsTableClient({
                   <td className="py-4 pr-4 text-white/70">{it.updatedAt || '—'}</td>
                   <td className="py-4 pr-4">
                     <div className="flex flex-wrap gap-2">
+                      <Link
+                        href={`/admin/properties/${encodeURIComponent(it.id)}/edit`}
+                        className="inline-flex h-9 items-center rounded-lg bg-amber-400 px-3 text-xs font-bold text-black hover:bg-amber-300"
+                      >
+                        View details
+                      </Link>
                       <button
                         disabled={isBusy || !canDelete}
                         title={deleteReason}

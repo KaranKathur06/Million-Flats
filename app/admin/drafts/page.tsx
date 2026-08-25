@@ -35,6 +35,12 @@ export default async function AdminDraftsPage() {
       lastCompletedStep: true,
       createdAt: true,
       updatedAt: true,
+      media: {
+        where: { category: 'COVER' },
+        orderBy: [{ position: 'asc' }, { createdAt: 'desc' }],
+        take: 1,
+        select: { url: true },
+      },
       agent: { select: { id: true, user: { select: { name: true, email: true } } } },
     },
   })
@@ -54,6 +60,7 @@ export default async function AdminDraftsPage() {
       lastCompletedStep: safeString(d?.lastCompletedStep) || '—',
       createdAt: d?.createdAt ? new Date(d.createdAt).toLocaleString() : '',
       updatedAt: d?.updatedAt ? new Date(d.updatedAt).toLocaleString() : '',
+      coverImage: safeString(d?.media?.[0]?.url),
     }
   })
 
