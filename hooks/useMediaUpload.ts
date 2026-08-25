@@ -19,7 +19,11 @@ export interface UseMediaUploadOptions {
   projectId: string
   category: string
   unitTypeId?: string
-  onSuccess?: (mediaId: string, s3Key: string) => void
+  presignEndpoint?: string
+  finalizeEndpoint?: string
+  buildPresignBody?: (file: File) => Record<string, unknown>
+  buildFinalizeBody?: (file: File, s3Key: string) => Record<string, unknown>
+  onSuccess?: (media: any, s3Key: string) => void
   onError?: (fileId: string, error: string) => void
 }
 
@@ -30,7 +34,7 @@ export interface UseMediaUploadOptions {
  * Uses a ref to track the files map so that async upload callbacks
  * always read the latest state (avoids stale-closure bug).
  */
-export function useMediaUpload({ projectId, category, unitTypeId, onSuccess, onError }: UseMediaUploadOptions) {
+export function useMediaUpload({ projectId, category, unitTypeId, presignEndpoint, finalizeEndpoint, buildPresignBody, buildFinalizeBody, onSuccess, onError }: UseMediaUploadOptions) {
   const [files, setFiles] = useState<Map<string, UploadFile>>(new Map())
   // Keep a ref in sync so async callbacks always see latest files
   const filesRef = useRef<Map<string, UploadFile>>(files)
@@ -67,11 +71,11 @@ export function useMediaUpload({ projectId, category, unitTypeId, onSuccess, onE
         updateFileState(fileId, 'requesting', 10)
 
         const presignRes = await fetch(
-          `/api/admin/projects/${projectId}/media/presign`,
+          presignEndpoint || `/api/admin/projects/${projectId}/media/presign`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+            body: JSON.stringify(buildPresignBody ? buildPresignBody(fileObj) : {
               fileName: fileObj.name,
               fileSizeBytes: fileObj.size,
               contentType: fileObj.type,
@@ -109,11 +113,11 @@ export function useMediaUpload({ projectId, category, unitTypeId, onSuccess, onE
         // Step 3: Finalize in database
         updateFileState(fileId, 'finalizing', 90)
         const finalizeRes = await fetch(
-          `/api/admin/projects/${projectId}/media/finalize`,
+          finalizeEndpoint || `/api/admin/projects/${projectId}/media/finalize`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+            body: JSON.stringify(buildFinalizeBody ? buildFinalizeBody(fileObj, s3Key) : {
               s3Key,
               fileName: fileObj.name,
               fileSizeBytes: fileObj.size,
@@ -131,14 +135,14 @@ export function useMediaUpload({ projectId, category, unitTypeId, onSuccess, onE
 
         const finalData = await finalizeRes.json()
         updateFileState(fileId, 'completed', 100)
-        onSuccess?.(finalData.media.id, s3Key)
+        onSuccess?.(finalData.media, s3Key)
       } catch (err: any) {
         const errorMsg = err.message || 'Upload failed'
         updateFileState(fileId, 'upload_failed', 0, errorMsg)
         onError?.(fileId, errorMsg)
       }
     },
-    [projectId, category, unitTypeId, updateFileState, onSuccess, onError]
+    [projectId, category, unitTypeId, presignEndpoint, finalizeEndpoint, buildPresignBody, buildFinalizeBody, updateFileState, onSuccess, onError]
   )
 
   const addFiles = useCallback(

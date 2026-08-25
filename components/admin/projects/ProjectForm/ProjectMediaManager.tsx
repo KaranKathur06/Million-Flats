@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { MediaUploadDialog } from './MediaUploadDialog'
 import { useAdminAction } from '@/components/admin/AdminActionProvider'
+import { MediaCard } from '@/components/media/MediaCard'
 
 interface Media {
   id: string
@@ -13,7 +14,6 @@ interface Media {
   s3Key?: string
   createdAt?: string
 }
-
 interface MediaCounts {
   total: number
   hero: number
@@ -47,15 +47,6 @@ interface FloorPlanStatusCard {
   sortOrder?: number | null
   isUploaded: boolean
   plan: FloorPlanAsset | null
-}
-
-const CATEGORY_ICONS: Record<string, string> = {
-  hero: '👑',
-  other: '🗂️',
-  exterior: '🏘️',
-  amenities: '✨',
-  lifestyle: '🌟',
-  floor_plan: '📐',
 }
 
 export function buildFloorPlanStatusCards(unitTypes: any[] = [], floorPlans: any[] = []): FloorPlanStatusCard[] {
@@ -442,68 +433,6 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
           void loadFloorPlanCards()
         }}
       />
-    </div>
-  )
-}
-
-interface MediaCardProps {
-  media: Media
-  isHero?: boolean
-  onDelete: () => void
-  onSetAsHero: () => void
-}
-
-function MediaCard({ media, isHero, onDelete, onSetAsHero }: MediaCardProps) {
-  const [showActions, setShowActions] = useState(false)
-
-  return (
-    <div
-      className="group relative rounded-lg overflow-hidden bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.2] transition"
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-    >
-      <div className="relative aspect-square overflow-hidden bg-black/20">
-        <img
-          src={media.mediaUrl}
-          alt={media.label || 'Project media'}
-          className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-        />
-
-        {isHero && (
-          <div className="absolute top-2 left-2 rounded-full bg-amber-400/20 px-2 py-1 text-xs font-semibold text-amber-300 border border-amber-400/30">
-            👑 Hero
-          </div>
-        )}
-      </div>
-
-      <div className="p-3">
-        <p className="text-xs font-medium text-white/70 truncate">
-          {media.label || 'Untitled'}
-        </p>
-        <p className="text-xs text-white/40 flex items-center gap-1 mt-1">
-          <span>{CATEGORY_ICONS[media.category] || '📁'}</span>
-          <span className="capitalize">{media.category}</span>
-        </p>
-      </div>
-
-      {showActions && (
-        <div className="absolute inset-0 bg-black/60 backdrop-blur flex items-center justify-center gap-2">
-          {!isHero && (
-            <button
-              onClick={onSetAsHero}
-              className="rounded-lg bg-amber-400/20 px-2 py-1 text-xs font-medium text-amber-300 hover:bg-amber-400/30"
-            >
-              Set Hero
-            </button>
-          )}
-          <button
-            onClick={onDelete}
-            className="rounded-lg bg-red-400/20 px-2 py-1 text-xs font-medium text-red-300 hover:bg-red-400/30"
-          >
-            Delete
-          </button>
-        </div>
-      )}
     </div>
   )
 }

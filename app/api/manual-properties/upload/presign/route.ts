@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAgentDraftSession } from '@/lib/agentAuth'
 import { createSignedPutUrl } from '@/lib/s3'
 import { buildAssetUrl } from '@/lib/assetUrl'
-import { PROPERTY_MEDIA_ALLOWED_TYPES, PROPERTY_MEDIA_MAX_IMAGE_BYTES } from '@/lib/propertyMedia'
+import { PROPERTY_FLOOR_PLAN_ALLOWED_TYPES, PROPERTY_MEDIA_ALLOWED_TYPES, PROPERTY_MEDIA_MAX_IMAGE_BYTES } from '@/lib/propertyMedia'
 
 export const runtime = 'nodejs'
 
@@ -37,6 +37,10 @@ function isAllowedImageType(mime: string) {
 
 function isAllowedPdf(mime: string) {
   return mime === 'application/pdf'
+}
+
+function isAllowedFloorPlanType(mime: string) {
+  return (PROPERTY_FLOOR_PLAN_ALLOWED_TYPES as readonly string[]).includes(mime.toLowerCase())
 }
 
 function isAllowedVideoType(mime: string) {
@@ -87,6 +91,14 @@ export async function POST(req: Request) {
       const maxMB = Math.floor(VIDEO_MAX_SIZE / 1024 / 1024)
       if (sizeBytes > VIDEO_MAX_SIZE) {
         return NextResponse.json({ success: false, message: `Video too large (max ${maxMB}MB).` }, { status: 400 })
+      }
+    } else if (category === 'FLOOR_PLANS') {
+      if (!isAllowedFloorPlanType(contentType)) {
+        return NextResponse.json({ success: false, message: 'Floor plans must be JPG, PNG, WebP, SVG, or PDF files.' }, { status: 400 })
+      }
+      if (sizeBytes > IMAGE_MAX_SIZE) {
+        const maxMB = Math.floor(IMAGE_MAX_SIZE / 1024 / 1024)
+        return NextResponse.json({ success: false, message: `Floor plan too large (max ${maxMB}MB).` }, { status: 400 })
       }
     } else {
       if (!isAllowedImageType(contentType)) {

@@ -24,7 +24,7 @@ export function PropertyMediaManager({ propertyId }: { propertyId: string }) {
     const res = await fetch(`/api/admin/properties/${propertyId}/media${query}`)
     const data = await res.json()
     if (data.success) setMedia(data.media || [])
-  }, [propertyId])
+  }, [propertyId, selectedCategory])
   useEffect(() => { void refresh() }, [refresh])
 
   async function upload(files: FileList | null) {
@@ -93,7 +93,7 @@ export function PropertyMediaManager({ propertyId }: { propertyId: string }) {
         {uploadCategory === 'FLOOR_PLANS' ? <input type="number" min="0" max="100" value={floorPlanBedroomCount} onChange={(event) => setFloorPlanBedroomCount(event.target.value)} placeholder="Bedrooms" aria-label="Floor plan bedrooms" className="h-10 w-24 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-xs text-white" /> : null}
         <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} className="min-h-11 rounded-xl bg-amber-400 px-4 text-sm font-semibold text-black disabled:opacity-60">{uploading ? 'Uploading…' : 'Upload files'}</button>
       </div>
-      <input ref={inputRef} className="hidden" type="file" multiple accept="image/jpeg,image/png,image/webp,image/avif" onChange={(event) => void upload(event.target.files)} />
+      <input ref={inputRef} className="hidden" type="file" multiple accept={uploadCategory === 'FLOOR_PLANS' ? 'image/jpeg,image/png,image/webp,image/avif,image/svg+xml,application/pdf' : 'image/jpeg,image/png,image/webp,image/avif'} onChange={(event) => void upload(event.target.files)} />
     </div>
     <div className="flex gap-2 overflow-x-auto pb-1"><button type="button" onClick={() => setSelectedCategory(null)} className={`min-h-10 whitespace-nowrap rounded-lg border px-3 text-xs font-medium ${selectedCategory === null ? 'border-amber-400/50 bg-amber-400/15 text-amber-300' : 'border-white/[0.08] text-white/55'}`}>All</button>{PROPERTY_MEDIA_CATEGORIES.map((value) => <button key={value} type="button" onClick={() => setSelectedCategory(value)} className={`min-h-10 whitespace-nowrap rounded-lg border px-3 text-xs font-medium ${value === selectedCategory ? 'border-amber-400/50 bg-amber-400/15 text-amber-300' : 'border-white/[0.08] text-white/55'}`}>{labels[value]}</button>)}</div>
     {error ? <p role="alert" className="text-sm text-red-300">{error}</p> : null}

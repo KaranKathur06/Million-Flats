@@ -67,5 +67,6 @@ export function propertyMediaCategory(value: string | null | undefined): Propert
 }
 
 export const PROPERTY_MEDIA_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'] as const
+export const PROPERTY_FLOOR_PLAN_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/svg+xml', 'application/pdf'] as const
 
 export const PROPERTY_MEDIA_MAX_IMAGE_BYTES = 100 * 1024 * 1024

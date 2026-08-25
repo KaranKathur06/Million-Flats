@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { buildAssetUrl } from '@/lib/assetUrl'
 import { createSignedPutUrl, s3ObjectExists } from '@/lib/s3'
-import { PROPERTY_MEDIA_ALLOWED_TYPES, PROPERTY_MEDIA_CATEGORIES, PROPERTY_MEDIA_MAX_IMAGE_BYTES, isPropertyMediaCategory, propertyMediaCategory, propertyMediaStorageCategory } from '@/lib/propertyMedia'
+import { PROPERTY_FLOOR_PLAN_ALLOWED_TYPES, PROPERTY_MEDIA_ALLOWED_TYPES, PROPERTY_MEDIA_CATEGORIES, PROPERTY_MEDIA_MAX_IMAGE_BYTES, isPropertyMediaCategory, propertyMediaCategory, propertyMediaStorageCategory } from '@/lib/propertyMedia'
 
 const maxBytes = Number(process.env.PROJECT_IMAGE_MAX_SIZE_BYTES) || PROPERTY_MEDIA_MAX_IMAGE_BYTES
 
@@ -34,7 +34,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const parsed = presignSchema.safeParse(await req.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ success: false, message: 'Invalid upload request' }, { status: 400 })
   const data = parsed.data
-  if (!isPropertyMediaCategory(data.category) || !(PROPERTY_MEDIA_ALLOWED_TYPES as readonly string[]).includes(data.contentType.toLowerCase())) return NextResponse.json({ success: false, message: 'Unsupported media category or file format' }, { status: 400 })
+  const allowedTypes = data.category.toUpperCase() === 'FLOOR_PLANS' ? PROPERTY_FLOOR_PLAN_ALLOWED_TYPES : PROPERTY_MEDIA_ALLOWED_TYPES
+  if (!isPropertyMediaCategory(data.category) || !(allowedTypes as readonly string[]).includes(data.contentType.toLowerCase())) return NextResponse.json({ success: false, message: 'Unsupported media category or file format' }, { status: 400 })
   if (data.fileSizeBytes > maxBytes) return NextResponse.json({ success: false, message: `File exceeds ${Math.floor(maxBytes / 1024 / 1024)}MB limit` }, { status: 413 })
   if (!await propertyExists(params.id)) return NextResponse.json({ success: false, message: 'Property not found' }, { status: 404 })
   const signed = await createSignedPutUrl({ folder: `public/properties/${params.id}/images`, filename: data.fileName, contentType: data.contentType, expiresInSeconds: 600 })

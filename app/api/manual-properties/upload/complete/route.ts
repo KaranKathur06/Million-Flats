@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAgentDraftSession } from '@/lib/agentAuth'
 import { s3ObjectExists } from '@/lib/s3'
 import { PROPERTY_MEDIA_MAX_IMAGE_BYTES } from '@/lib/propertyMedia'
+import { buildAssetUrl } from '@/lib/assetUrl'
 
 export const runtime = 'nodejs'
 
@@ -62,7 +63,7 @@ export async function POST(req: Request) {
       data: {
         propertyId,
         category: category as any,
-        url,
+        url: buildAssetUrl(s3Key) || url,
         s3Key,
         mimeType: mimeType || null,
         sizeBytes: typeof sizeBytes === 'number' ? sizeBytes : null,
