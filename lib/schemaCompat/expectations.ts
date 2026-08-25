@@ -29,6 +29,11 @@ function readMap(line: string, fallback: string) {
   return match?.[1] || fallback
 }
 
+function readEnumValue(line: string) {
+  const parts = line.trim().split(/\s+/)
+  return readMap(line, parts[0] || '')
+}
+
 function readBlockMap(block: string, fallback: string) {
   const match = block.match(/@@map\("([^"]+)"\)/)
   return match?.[1] || fallback
@@ -72,7 +77,7 @@ export function loadSchemaExpectations(schemaPath = path.join(process.cwd(), 'pr
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter((line) => line && !line.startsWith('//') && !line.startsWith('@@'))
-      .map((line) => line.split(/\s+/)[0])
+      .map(readEnumValue)
       .filter(Boolean)
     enums.push({ name, values })
   }
