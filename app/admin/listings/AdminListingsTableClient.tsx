@@ -76,6 +76,31 @@ export default function AdminListingsTableClient({
     }
   }
 
+  const unpublishListing = (id: string) =>
+    doAction(id, async () => {
+      await postJson(`/api/admin/properties/${encodeURIComponent(id)}/lifecycle`, { action: 'unpublish' })
+    })
+
+  const permanentlyDeleteListing = (item: ListingItem) =>
+    doAction(item.id, async () => {
+      let confirmation = ''
+      const confirmed = await runAction({
+        title: 'Permanently delete this listing?',
+        description: `This permanently removes "${item.title}" and its media, inquiries, and moderation history. Type DELETE to continue.`,
+        confirmLabel: 'Delete permanently',
+        variant: 'danger',
+        input: { label: 'Type DELETE to confirm', placeholder: 'DELETE', required: true, onChange: (value) => { confirmation = value } },
+        loadingTitle: 'Deleting listing',
+        successTitle: 'Listing permanently deleted',
+        errorMessage: 'Unable to permanently delete this listing.',
+        mutation: async () => {
+          if (confirmation.trim() !== 'DELETE') throw new Error('Type DELETE exactly to permanently delete this listing.')
+          await postJson(`/api/admin/properties/${encodeURIComponent(item.id)}?permanent=true`, undefined)
+        },
+      })
+      if (!confirmed) return
+    })
+
   return (
     <div>
       {error ? <p className="mb-4 text-sm font-semibold text-red-300">{error}</p> : null}
@@ -97,12 +122,15 @@ export default function AdminListingsTableClient({
           const canArchiveByState = it.status === 'PUBLISHED'
           const canRestoreByState = it.status === 'ARCHIVED'
           const canEditByState = it.status === 'PUBLISHED'
+          const canUnpublishByState = it.status === 'PUBLISHED'
 
           const canApprove = capabilities.listings.approve && canApproveByState
           const canReject = capabilities.listings.reject && canRejectByState
           const canArchive = capabilities.listings.archive && canArchiveByState
           const canRestore = capabilities.listings.restore && canRestoreByState
           const canEdit = capabilities.listings.editSafely && canEditByState
+          const canUnpublish = capabilities.listings.archive && canUnpublishByState
+          const canDelete = capabilities.listings.archive
 
           const approveReason = !capabilities.listings.approve
             ? 'You do not have permission to approve listings.'
@@ -257,6 +285,28 @@ export default function AdminListingsTableClient({
                 </button>
 
                 <button
+                  disabled={!canUnpublish || isBusy}
+                  title="Move this published listing back to draft."
+                  onClick={() => unpublishListing(it.id)}
+                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                    canUnpublish && !isBusy ? 'border border-amber-400/30 bg-amber-400/10 text-amber-200 hover:bg-amber-400/20' : 'bg-white/5 text-white/30 cursor-not-allowed'
+                  }`}
+                >
+                  Unpublish
+                </button>
+
+                <button
+                  disabled={!canDelete || isBusy}
+                  title="Permanently delete this listing."
+                  onClick={() => permanentlyDeleteListing(it)}
+                  className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                    canDelete && !isBusy ? 'border border-red-400/30 bg-red-400/10 text-red-200 hover:bg-red-400/20' : 'bg-white/5 text-white/30 cursor-not-allowed'
+                  }`}
+                >
+                  Delete permanently
+                </button>
+
+                <button
                   disabled={!canRestore || isBusy}
                   title={restoreReason}
                   onClick={() =>
@@ -303,12 +353,15 @@ export default function AdminListingsTableClient({
               const canArchiveByState = it.status === 'PUBLISHED'
               const canRestoreByState = it.status === 'ARCHIVED'
               const canEditByState = it.status === 'PUBLISHED'
+              const canUnpublishByState = it.status === 'PUBLISHED'
 
               const canApprove = capabilities.listings.approve && canApproveByState
               const canReject = capabilities.listings.reject && canRejectByState
               const canArchive = capabilities.listings.archive && canArchiveByState
               const canRestore = capabilities.listings.restore && canRestoreByState
               const canEdit = capabilities.listings.editSafely && canEditByState
+              const canUnpublish = capabilities.listings.archive && canUnpublishByState
+              const canDelete = capabilities.listings.archive
 
               const approveReason = !capabilities.listings.approve
                 ? 'You do not have permission to approve listings.'
@@ -448,6 +501,28 @@ export default function AdminListingsTableClient({
                         }`}
                       >
                         Archive
+                      </button>
+
+                      <button
+                        disabled={!canUnpublish || isBusy}
+                        title="Move this published listing back to draft."
+                        onClick={() => unpublishListing(it.id)}
+                        className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                          canUnpublish && !isBusy ? 'border border-amber-400/30 bg-amber-400/10 text-amber-200 hover:bg-amber-400/20' : 'bg-white/5 text-white/30 cursor-not-allowed'
+                        }`}
+                      >
+                        Unpublish
+                      </button>
+
+                      <button
+                        disabled={!canDelete || isBusy}
+                        title="Permanently delete this listing."
+                        onClick={() => permanentlyDeleteListing(it)}
+                        className={`h-9 rounded-lg px-3 text-xs font-semibold ${
+                          canDelete && !isBusy ? 'border border-red-400/30 bg-red-400/10 text-red-200 hover:bg-red-400/20' : 'bg-white/5 text-white/30 cursor-not-allowed'
+                        }`}
+                      >
+                        Delete permanently
                       </button>
 
                       <button

@@ -5,6 +5,7 @@ import { CanonicalLocationError, validateCanonicalLocation } from '@/lib/canonic
 import { MANUAL_PROPERTY_PUBLIC_STATUS, normalizeManualPropertyStatus } from '@/lib/manualPropertyLifecycle'
 import { applyManualPropertyAdminAction, revalidateManualPropertyPaths } from '@/lib/manualPropertyAdminLifecycle'
 import { writeAuditLog } from '@/lib/audit'
+import { deleteFromS3 } from '@/lib/s3'
 import { z } from 'zod'
 
 const bannedMediaFields = ['images', 'imageUrl', 'imageUrls']
@@ -217,6 +218,11 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
         }
 
         if (permanent) {
+            const media = await (prisma as any).manualPropertyMedia.findMany({
+                where: { propertyId: params.id },
+                select: { s3Key: true },
+            })
+
             await (prisma as any).$transaction(async (tx: any) => {
                 await tx.manualPropertyMedia.deleteMany({ where: { propertyId: params.id } })
                 await tx.manualPropertyModerationLog.deleteMany({ where: { propertyId: params.id } })
@@ -233,6 +239,12 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
                 beforeState: existing,
                 meta: { actor: 'admin', permanent: true },
             })
+            await Promise.all(
+                (media as any[])
+                    .map((item) => String(item?.s3Key || '').trim())
+                    .filter(Boolean)
+                    .map((key) => deleteFromS3(key).catch((err) => console.error('[property delete] storage cleanup failed', err)))
+            )
             revalidateManualPropertyPaths(existing)
             return NextResponse.json({ success: true, action: 'permanently_deleted' })
         }

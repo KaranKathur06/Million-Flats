@@ -107,7 +107,6 @@ export async function GET(req: Request) {
       sourceType: 'MANUAL',
       agent: {
         approved: true,
-        profileStatus: 'LIVE',
         user: { status: 'ACTIVE' },
       },
     }

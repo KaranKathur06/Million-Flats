@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import PropertyGallery from '@/components/PropertyGallery'
 import PropertyListCard from '@/components/PropertyListCard'
 import ClientLazyMap from '@/components/ClientLazyMap'
@@ -259,7 +258,7 @@ export default function ManualPropertyPreview({ manual, related = [], previewMod
             <div className="mt-5 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="relative w-12 h-12 rounded-2xl overflow-hidden bg-gray-100 shadow-sm">
-                  {avatarUrl ? <Image src={avatarUrl} alt={agentName} fill className="object-cover" sizes="48px" /> : null}
+                  {avatarUrl ? <img src={avatarUrl} alt={agentName} className="h-full w-full object-cover" loading="lazy" /> : null}
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-dark-blue truncate">{agentName}</p>
