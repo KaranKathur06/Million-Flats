@@ -1072,9 +1072,13 @@ export default function ManualPropertyWizardClient() {
         throw new Error(json?.error || json?.message || 'Submission failed')
       }
 
-      await fetchDraft(id, { mode: 'manual' })
       setNotice('Submitted successfully')
       trackEvent('listing_submitted', { workflow: 'manual_property_v2' })
+      try {
+        await fetchDraft(id, { mode: 'manual' })
+      } catch {}
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 1200))
+      router.replace(getHomeRouteForRole('AGENT'))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Submission failed')
       trackEvent('listing_submission_failed', { workflow: 'manual_property_v2' })

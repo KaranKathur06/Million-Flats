@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getAdminCapabilities } from '@/lib/adminCapabilities'
 import type { AppRole } from '@/lib/rbac'
@@ -169,6 +170,12 @@ export default function AdminListingsTableClient({
               {it.archivedAt ? <div className="mt-2 text-xs text-amber-200">Archived: {it.archivedAt}</div> : null}
 
               <div className="mt-4 flex flex-wrap gap-2">
+                <Link
+                  href={`/admin/listings/${encodeURIComponent(it.id)}`}
+                  className="inline-flex h-9 items-center rounded-lg border border-sky-400/30 bg-sky-400/10 px-3 text-xs font-semibold text-sky-200 hover:bg-sky-400/20"
+                >
+                  View property
+                </Link>
                 <button
                   disabled={!canApprove || isBusy}
                   title={approveReason}
@@ -355,6 +362,12 @@ export default function AdminListingsTableClient({
                   <td className="py-4 pr-4 text-white/70">{it.createdAt || '—'}</td>
                   <td className="py-4 pr-4">
                     <div className="flex flex-wrap gap-2">
+                      <Link
+                        href={`/admin/listings/${encodeURIComponent(it.id)}`}
+                        className="inline-flex h-9 items-center rounded-lg border border-sky-400/30 bg-sky-400/10 px-3 text-xs font-semibold text-sky-200 hover:bg-sky-400/20"
+                      >
+                        View property
+                      </Link>
                       <button
                         disabled={!canApprove || isBusy}
                         title={approveReason}
