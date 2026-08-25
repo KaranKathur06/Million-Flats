@@ -5,10 +5,11 @@ import PropertyListCard from '@/components/PropertyListCard'
 import ClientLazyMap from '@/components/ClientLazyMap'
 import AmenitiesListModal from '@/components/AmenitiesListModal'
 import { buildAssetUrl } from '@/lib/assetUrl'
-import CurrencyPrice from '@/components/CurrencyPrice'
 import { buildManualPropertyPath } from '@/lib/manualPropertyRoutes'
 import { PROPERTY_MEDIA_CATEGORIES, propertyMediaCategory, type PropertyMediaCategory } from '@/lib/propertyMedia'
 import { orderManualPropertyMedia } from '@/lib/manualPropertyForm'
+import { normalizePaymentPlan, parseLegacyPaymentPlanText } from '@/lib/manualPropertyForm'
+import { PaymentPlan } from '@/components/PaymentPlan'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v : ''
@@ -48,22 +49,23 @@ function mapRelatedProperty(property: any) {
   }
 }
 
-export default function ManualPropertyPreview({ manual, related = [] }: { manual: any; related?: any[] }) {
+export default function ManualPropertyPreview({ manual, related = [], previewMode = false }: { manual: any; related?: any[]; previewMode?: boolean }) {
   const title = safeString(manual?.title) || 'Agent Listing'
   const city = safeString(manual?.city)
   const community = safeString(manual?.community)
   const locationLabel = [community, city].filter(Boolean).join(', ')
 
+  const displayCurrency = safeString(manual?.currency).toUpperCase() || 'AED'
   const priceLabel =
     typeof manual?.price === 'number' && manual.price > 0
-      ? <CurrencyPrice amount={manual.price} sourceCurrency={safeString(manual?.currency) === 'INR' ? 'INR' : 'AED'} />
+      ? `${displayCurrency} ${manual.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
       : 'Price on request'
 
   const mediaItems = Array.isArray(manual?.media)
     ? orderManualPropertyMedia(manual.media
         .filter((m: any) => {
           const cat = safeString(m?.category)
-          return cat !== 'BROCHURE' && cat !== 'VIDEO'
+          return cat !== 'BROCHURE' && cat !== 'VIDEO' && cat !== 'FLOOR_PLANS'
         })
         .map((m: any) => ({
           category: propertyMediaCategory(safeString(m?.category)),
@@ -80,7 +82,13 @@ export default function ManualPropertyPreview({ manual, related = [] }: { manual
     return acc
   }, {} as Record<PropertyMediaCategory, string[]>)
 
-  const cover = images[0] || '/image-placeholder.svg'
+  const coverMedia = Array.isArray(manual?.media) ? manual.media.find((m: any) => safeString(m?.category).toUpperCase() === 'COVER') : null
+  const cover = coverMedia ? buildAssetUrl(safeString(coverMedia?.s3Key) || safeString(coverMedia?.url)) || safeString(coverMedia?.url) : '/image-placeholder.svg'
+  const paymentPlan = normalizePaymentPlan(manual?.paymentPlan).length > 0
+    ? normalizePaymentPlan(manual?.paymentPlan)
+    : parseLegacyPaymentPlanText(manual?.paymentPlanText)
+  const floorPlans = Array.isArray(manual?.media) ? manual.media.filter((m: any) => safeString(m?.category).toUpperCase() === 'FLOOR_PLANS' && safeString(m?.url)).sort((a: any, b: any) => safeNumber(a?.position) - safeNumber(b?.position)) : []
+  const brochure = Array.isArray(manual?.media) ? manual.media.find((m: any) => safeString(m?.category).toUpperCase() === 'BROCHURE') : null
   const lat = safeNumber(manual?.latitude)
   const lng = safeNumber(manual?.longitude)
   const hasCoords = Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)
@@ -123,7 +131,7 @@ export default function ManualPropertyPreview({ manual, related = [] }: { manual
 
   return (
     <div className="min-h-screen bg-[#fbfaf7]">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      {!previewMode ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} /> : null}
 
       <div className="relative h-[60vh] max-h-[70vh] overflow-hidden">
         <Image src={cover} alt={title} fill className="object-cover" priority sizes="100vw" />
@@ -136,14 +144,7 @@ export default function ManualPropertyPreview({ manual, related = [] }: { manual
                 <p className="mt-2 text-white/85 text-sm sm:text-base">{locationLabel || 'Location available on request'}</p>
                 <p className="mt-4 text-2xl sm:text-3xl font-semibold text-white">{priceLabel}</p>
               </div>
-              <a
-                href={whatsappHref || (phone ? `tel:${phone}` : email ? `mailto:${email}` : '/contact')}
-                target={whatsappHref ? '_blank' : undefined}
-                rel={whatsappHref ? 'noreferrer' : undefined}
-                className="inline-flex h-12 px-6 rounded-xl bg-white text-dark-blue font-semibold items-center justify-center shadow-sm hover:bg-white/95"
-              >
-                Contact Agent
-              </a>
+              {previewMode ? <button type="button" disabled className="inline-flex h-12 px-6 rounded-xl bg-white/70 text-dark-blue font-semibold items-center justify-center cursor-not-allowed">Contact Agent</button> : <a href={whatsappHref || (phone ? `tel:${phone}` : email ? `mailto:${email}` : '/contact')} target={whatsappHref ? '_blank' : undefined} rel={whatsappHref ? 'noreferrer' : undefined} className="inline-flex h-12 px-6 rounded-xl bg-white text-dark-blue font-semibold items-center justify-center shadow-sm hover:bg-white/95">Contact Agent</a>}
             </div>
           </div>
         </div>
@@ -222,13 +223,18 @@ export default function ManualPropertyPreview({ manual, related = [] }: { manual
             </section>
           ) : null}
 
+          <PaymentPlan stages={paymentPlan} price={manual?.price} currency={displayCurrency} />
+
+          {floorPlans.length > 0 ? <section className="bg-white rounded-3xl p-5 md:p-7 shadow-sm"><h2 className="text-xl md:text-2xl font-serif font-semibold text-dark-blue">Floor plans</h2><div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{floorPlans.map((floorPlan: any) => { const url = buildAssetUrl(safeString(floorPlan?.s3Key) || safeString(floorPlan?.url)) || safeString(floorPlan?.url); return <figure key={floorPlan.id} className="overflow-hidden rounded-2xl border border-gray-200"><div className="flex aspect-square items-center justify-center bg-gray-50 p-3"><img src={url} alt={safeString(floorPlan?.floorPlanTitle) || 'Property floor plan'} className="max-h-full max-w-full object-contain" loading="lazy" /></div><figcaption className="p-3 text-sm font-semibold text-dark-blue">{safeString(floorPlan?.floorPlanTitle) || (floorPlan?.floorPlanBedroomCount ? `${floorPlan.floorPlanBedroomCount} bedroom floor plan` : 'Floor plan')}</figcaption></figure> })}</div></section> : null}
+
+          {brochure ? <section className="bg-white rounded-3xl p-5 md:p-7 shadow-sm"><h2 className="text-xl md:text-2xl font-serif font-semibold text-dark-blue">Property brochure</h2><div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-4"><p className="text-sm font-semibold text-dark-blue">{safeString(brochure?.altText) || 'Property brochure'}</p>{previewMode ? <span className="text-xs text-gray-500">Available after publication</span> : <a href={safeString(brochure?.url)} target="_blank" rel="noreferrer" className="text-sm font-semibold text-dark-blue hover:underline">Preview brochure</a>}</div></section> : null}
+
           <section className="bg-white rounded-3xl p-5 md:p-7 shadow-sm">
             <h2 className="text-xl md:text-2xl font-serif font-semibold text-dark-blue">Location</h2>
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
               <div className="order-2 md:order-1">
                 <p className="text-sm text-gray-700">{locationLabel || 'Location available on request'}</p>
                 {safeString(manual?.address) ? <p className="mt-2 text-sm text-gray-600">{safeString(manual?.address)}</p> : null}
-                <p className="mt-3 text-xs text-gray-500">Agent listing</p>
                 {hasCoords ? (
                   <a
                     href={`https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lng}`)}`}
@@ -264,23 +270,16 @@ export default function ManualPropertyPreview({ manual, related = [] }: { manual
                   <p className="text-xs text-gray-600">Listing Agent</p>
                 </div>
               </div>
-              <a
-                href={whatsappHref || (phone ? `tel:${phone}` : email ? `mailto:${email}` : '/contact')}
-                target={whatsappHref ? '_blank' : undefined}
-                rel={whatsappHref ? 'noreferrer' : undefined}
-                className="inline-flex h-11 px-5 rounded-xl bg-dark-blue text-white font-semibold items-center justify-center shadow-sm"
-              >
-                Contact
-              </a>
+              {previewMode ? <button type="button" disabled className="inline-flex h-11 px-5 rounded-xl bg-dark-blue/50 text-white font-semibold items-center justify-center cursor-not-allowed">Contact</button> : <a href={whatsappHref || (phone ? `tel:${phone}` : email ? `mailto:${email}` : '/contact')} target={whatsappHref ? '_blank' : undefined} rel={whatsappHref ? 'noreferrer' : undefined} className="inline-flex h-11 px-5 rounded-xl bg-dark-blue text-white font-semibold items-center justify-center shadow-sm">Contact</a>}
             </div>
-            <div className="mt-6">
+            {!previewMode ? <div className="mt-6">
               <Link href={`/agents/${encodeURIComponent(String(manual?.agentId || ''))}`} className="text-sm font-semibold text-dark-blue hover:underline">
                 View agent profile
               </Link>
-            </div>
+            </div> : null}
           </section>
 
-          {relatedProperties.length > 0 ? (
+          {!previewMode && relatedProperties.length > 0 ? (
             <section className="bg-white rounded-3xl p-5 md:p-7 shadow-sm">
               <div className="flex items-end justify-between gap-4">
                 <div>
@@ -299,7 +298,7 @@ export default function ManualPropertyPreview({ manual, related = [] }: { manual
             </section>
           ) : null}
 
-          <section className="bg-white rounded-3xl p-5 md:p-7 shadow-sm">
+          {!previewMode ? <section className="bg-white rounded-3xl p-5 md:p-7 shadow-sm">
             <h2 className="text-xl md:text-2xl font-serif font-semibold text-dark-blue">Contact</h2>
             <p className="mt-2 text-sm text-gray-600">Speak to an agent for availability, pricing, and viewing.</p>
             <div className="mt-5">
@@ -307,7 +306,7 @@ export default function ManualPropertyPreview({ manual, related = [] }: { manual
                 Contact Agent
               </Link>
             </div>
-          </section>
+          </section> : null}
         </div>
       </div>
     </div>

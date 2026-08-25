@@ -4,6 +4,14 @@ import { prisma } from '@/lib/prisma'
 import { requireAgentDraftSession } from '@/lib/agentAuth'
 import { countryIso2ForCountry } from '@/lib/manualPropertyForm'
 
+const PaymentPlanStageSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  label: z.string().trim().min(1).max(120),
+  percentage: z.number().finite().gt(0).max(100),
+  description: z.string().trim().max(300).optional(),
+  order: z.number().int().min(0).max(1000),
+})
+
 function errorToDetails(error: unknown) {
   if (!error || typeof error !== 'object') return null
   const anyErr = error as any
@@ -92,6 +100,7 @@ const PatchSchema = z.object({
   amenities: z.array(z.string().trim().min(1).max(80)).max(80).optional().nullable(),
   customAmenities: z.array(z.string().trim().min(1).max(80)).max(5).optional().nullable(),
 
+  paymentPlan: z.array(PaymentPlanStageSchema).max(50).optional().nullable(),
   paymentPlanText: z.string().trim().max(2000).optional().nullable(),
   emiNote: z.string().trim().max(500).optional().nullable(),
 

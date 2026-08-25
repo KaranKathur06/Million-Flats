@@ -8,6 +8,13 @@ import { writeAuditLog } from '@/lib/audit'
 import { z } from 'zod'
 
 const bannedMediaFields = ['images', 'imageUrl', 'imageUrls']
+const PaymentPlanStageSchema = z.object({
+    id: z.string().trim().min(1).max(80),
+    label: z.string().trim().min(1).max(120),
+    percentage: z.number().finite().gt(0).max(100),
+    description: z.string().trim().max(300).optional(),
+    order: z.number().int().min(0).max(1000),
+})
 
 const PropertyPatchSchema = z.object({
     title: z.string().trim().max(120).optional().nullable(),
@@ -30,6 +37,7 @@ const PropertyPatchSchema = z.object({
     developerName: z.string().trim().max(120).optional().nullable(),
     amenities: z.array(z.string().trim().min(1).max(80)).max(80).optional().nullable(),
     customAmenities: z.array(z.string().trim().min(1).max(80)).max(5).optional().nullable(),
+    paymentPlan: z.array(PaymentPlanStageSchema).max(50).optional().nullable(),
     paymentPlanText: z.string().trim().max(2000).optional().nullable(),
     emiNote: z.string().trim().max(500).optional().nullable(),
     tour3dUrl: z.string().trim().max(500).optional().nullable(),
@@ -118,7 +126,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             'constructionStatus', 'shortDescription', 'bedrooms', 'bathrooms',
             'squareFeet', 'countryCode', 'countryIso2', 'city', 'community',
             'address', 'latitude', 'longitude', 'developerName',
-            'amenities', 'customAmenities', 'paymentPlanText', 'emiNote',
+            'amenities', 'customAmenities', 'paymentPlan', 'paymentPlanText', 'emiNote',
             'tour3dUrl', 'status',
         ]
 

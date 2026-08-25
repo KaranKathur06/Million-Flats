@@ -1,0 +1,1 @@
+ALTER TABLE "manual_properties" ADD COLUMN IF NOT EXISTS "payment_plan" JSONB;

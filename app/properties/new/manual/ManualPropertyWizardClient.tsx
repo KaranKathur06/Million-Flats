@@ -14,6 +14,8 @@ import { trackEvent } from '@/lib/tracking'
 import toast, { Toaster } from 'react-hot-toast'
 import ManualPropertyMediaManager from '@/components/manual/ManualPropertyMediaManager'
 import ManualPropertyAmenities from '@/components/manual/ManualPropertyAmenities'
+import ManualPropertyPreview from '@/components/ManualPropertyPreview'
+import PaymentPlanBuilder from '@/components/PaymentPlanBuilder'
 import {
   calculateManualListingQuality,
   categoryForPropertyType,
@@ -25,6 +27,10 @@ import {
   suggestManualPropertyTitle,
   validateManualPropertyStep,
   type ManualPropertyCategory,
+  normalizePaymentPlan,
+  parseLegacyPaymentPlanText,
+  paymentPlanValidation,
+  type PaymentPlanStage,
 } from '@/lib/manualPropertyForm'
 
 type DuplicateResult = {
@@ -124,6 +130,7 @@ type ManualProperty = {
   amenities?: string[] | null
   customAmenities?: string[] | null
 
+  paymentPlan?: unknown
   paymentPlanText?: string | null
   emiNote?: string | null
 
@@ -250,6 +257,11 @@ export default function ManualPropertyWizardClient() {
   const selectedCategory = property.category || categoryForPropertyType(property.propertyType)
   const quality = useMemo(() => calculateManualListingQuality(property), [property])
   const stepErrors = useMemo(() => validateManualPropertyStep(step, property), [property, step])
+  const paymentPlan = useMemo(() => {
+    const structured = normalizePaymentPlan(property.paymentPlan)
+    return structured.length > 0 ? structured : parseLegacyPaymentPlanText(property.paymentPlanText)
+  }, [property.paymentPlan, property.paymentPlanText])
+  const paymentValidation = useMemo(() => paymentPlanValidation(paymentPlan), [paymentPlan])
 
   const localDraftKey = propertyId ? `millionflats:manual-draft:${propertyId}` : ''
 
@@ -723,6 +735,7 @@ export default function ManualPropertyWizardClient() {
       developerName: property.developerName ?? null,
       amenities: Array.isArray(property.amenities) ? property.amenities : null,
       customAmenities: Array.isArray(property.customAmenities) ? property.customAmenities : null,
+      paymentPlan: paymentPlan.length > 0 ? paymentPlan : null,
       paymentPlanText: property.paymentPlanText ?? null,
       emiNote: property.emiNote ?? null,
       authorizedToMarket: Boolean(property.authorizedToMarket),
@@ -733,7 +746,7 @@ export default function ManualPropertyWizardClient() {
       duplicateMatchedProjectId: property.duplicateMatchedProjectId ?? null,
       tour3dUrl: property.tour3dUrl ?? null,
     }
-  }, [duplicateConfirm, property, selectedCategory])
+  }, [duplicateConfirm, paymentPlan, property, selectedCategory])
 
   const patch = useCallback(async (data: Partial<ManualProperty>) => {
     if (!propertyId) return
@@ -1840,16 +1853,15 @@ export default function ManualPropertyWizardClient() {
                 <div><label className="block text-sm font-semibold text-gray-700 mb-2">Maintenance / service charges</label><input type="number" min={0} value={property?.maintenanceCharges ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), maintenanceCharges: toNumber(e.target.value) }))} onBlur={(e) => patch({ maintenanceCharges: toNumber(e.target.value) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
                 <div><label className="block text-sm font-semibold text-gray-700 mb-2">Other charges</label><input type="number" min={0} value={property?.otherCharges ?? ''} onChange={(e) => setProperty((p) => ({ ...(p as any), otherCharges: toNumber(e.target.value) }))} onBlur={(e) => patch({ otherCharges: toNumber(e.target.value) || null })} className="w-full h-12 px-4 rounded-xl border border-gray-300" /></div>
               </>}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Payment plan text (optional)</label>
-                <textarea
-                  rows={5}
-                  value={property?.paymentPlanText || ''}
-                  onChange={(e) => setProperty((p) => ({ ...(p as any), paymentPlanText: e.target.value }))}
-                  onBlur={(e) => patch({ paymentPlanText: e.target.value || null })}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300"
-                />
-              </div>
+              <PaymentPlanBuilder
+                value={paymentPlan}
+                price={property?.price}
+                currency={property?.currency}
+                onChange={(stages: PaymentPlanStage[]) => {
+                  setProperty((current) => ({ ...(current as any), paymentPlan: stages }))
+                  void patch({ paymentPlan: stages })
+                }}
+              />
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">EMI note (optional)</label>
                 <input
@@ -1942,46 +1954,13 @@ export default function ManualPropertyWizardClient() {
                   </div>
                 ) : <p className="mt-3 text-sm text-white/85">Core listing information is complete.</p>}
               </div>
-              <div className="rounded-2xl border border-gray-200 bg-white p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <div><p className="font-semibold text-dark-blue">AIShield price intelligence</p><p className="mt-1 text-xs text-gray-600">A backend-generated estimate based on the listing data and available market comparables.</p></div>
-                  {valuationLoading ? <span className="text-xs text-gray-500">Calculating…</span> : null}
-                </div>
-                {valuation?.fairValue?.mid ? <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm"><div><p className="text-gray-500">Fair value</p><p className="font-semibold text-dark-blue">{valuation.fairValue.currency || property.currency || 'AED'} {valuation.fairValue.mid.toLocaleString()}</p></div><div><p className="text-gray-500">Range</p><p className="font-semibold text-dark-blue">{valuation.fairValue.min?.toLocaleString()} - {valuation.fairValue.max?.toLocaleString()}</p></div><div><p className="text-gray-500">Confidence</p><p className="font-semibold text-dark-blue">{valuation.confidence ?? 'Not available'}{typeof valuation.confidence === 'number' ? '%' : ''}</p></div><div><p className="text-gray-500">Position</p><p className="font-semibold text-dark-blue">{valuation.marketPosition || 'Not available'}</p></div></div> : <p className="mt-4 text-sm text-gray-600">{valuationError || 'Valuation will be available after review.'}</p>}
-              </div>
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-                <p className="text-sm font-semibold text-dark-blue">Preview</p>
-                <p className="mt-2 text-2xl font-serif font-bold text-dark-blue">
-                  {property?.title || 'Untitled property'}
-                </p>
-                <p className="mt-2 text-gray-600">
-                  {(property?.city || 'City')} · {(property?.community || 'Community')}
-                </p>
-                <p className="mt-4 text-sm text-gray-700">{property?.shortDescription || 'Short description pending.'}</p>
-                <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                  <div><p className="text-gray-500">Purpose</p><p className="font-semibold text-dark-blue">{property?.intent || 'Not set'}</p></div>
-                  <div><p className="text-gray-500">Type</p><p className="font-semibold text-dark-blue">{property?.propertyType || 'Not set'}</p></div>
-                  <div><p className="text-gray-500">Price</p><p className="font-semibold text-dark-blue">{property?.price ? `${property.currency || 'AED'} ${property.price.toLocaleString()}` : 'Not set'}</p></div>
-                  <div><p className="text-gray-500">Size</p><p className="font-semibold text-dark-blue">{property?.squareFeet ? `${property.squareFeet.toLocaleString()} sq ft` : 'Not set'}</p></div>
-                </div>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white text-dark-blue border border-gray-200">
-                    Agent Listing
-                  </span>
-                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white text-gray-700 border border-gray-200">
-                    Status: {property?.status}
-                  </span>
-                  {coverImages.length > 0 ? (
-                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-800 border border-green-200">
-                      Cover uploaded
-                    </span>
-                  ) : (
-                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-800 border border-red-200">
-                      Cover required
-                    </span>
-                  )}
-                </div>
-              </div>
+              <section className="rounded-2xl border border-gray-200 bg-white p-5">
+                <div className="flex items-center justify-between gap-3"><div><p className="font-semibold text-dark-blue">Internal listing insights</p><p className="mt-1 text-xs text-gray-600">Visible only to you while preparing this listing.</p></div>{valuationLoading ? <span className="text-xs text-gray-500">Calculating...</span> : null}</div>
+                {valuation?.fairValue?.mid ? <p className="mt-4 text-sm text-gray-700">Estimated fair value: <strong>{valuation.fairValue.currency || property.currency || 'AED'} {valuation.fairValue.mid.toLocaleString()}</strong></p> : <p className="mt-4 text-sm text-gray-600">{valuationError || 'Valuation is unavailable; the buyer preview is unaffected.'}</p>}
+              </section>
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4"><p className="text-sm font-semibold text-dark-blue">Buyer preview</p><p className="mt-1 text-xs text-gray-600">This read-only view uses the same listing presentation as the published property.</p></div>
+              <ManualPropertyPreview manual={{ ...property, paymentPlan }} previewMode />
+              <div className="rounded-2xl border border-gray-200 bg-white p-5"><p className="text-sm font-semibold text-dark-blue">Payment plan readiness</p><p className={`mt-2 text-sm ${paymentValidation.valid ? 'text-emerald-700' : 'text-amber-700'}`}>{paymentPlan.length === 0 ? 'No payment plan added.' : paymentValidation.valid ? 'Payment plan complete: 100% allocated.' : paymentValidation.message}</p></div>
 
               <button
                 type="button"

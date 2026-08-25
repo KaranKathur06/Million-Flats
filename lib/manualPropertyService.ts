@@ -28,6 +28,7 @@ export interface ManualPropertyCreateInput {
   developerName?: string | null
   amenities?: unknown
   customAmenities?: unknown
+  paymentPlan?: unknown
   paymentPlanText?: string | null
   emiNote?: string | null
   authorizedToMarket?: boolean
@@ -96,6 +97,7 @@ export async function createManualProperty(
       developerName: input.developerName || null,
       amenities: input.amenities ?? null,
       customAmenities: input.customAmenities ?? null,
+      paymentPlan: input.paymentPlan ?? null,
       paymentPlanText: input.paymentPlanText || null,
       emiNote: input.emiNote || null,
       authorizedToMarket: input.authorizedToMarket ?? false,

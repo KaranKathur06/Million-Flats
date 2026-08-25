@@ -74,6 +74,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     amenities: existing.amenities,
     customAmenities: existing.customAmenities,
 
+    paymentPlan: existing.paymentPlan,
     paymentPlanText: existing.paymentPlanText,
     emiNote: existing.emiNote,
 

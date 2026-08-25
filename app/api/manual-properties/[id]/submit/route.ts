@@ -62,6 +62,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       longitude: property.longitude,
       media: (property.media || []).map((media: { category: string }) => ({ category: media.category })),
       amenities: Array.isArray(property.amenities) ? property.amenities : [],
+      paymentPlan: property.paymentPlan,
       authorizedToMarket: property.authorizedToMarket,
       constructionStatus: property.constructionStatus,
     })

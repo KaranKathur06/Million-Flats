@@ -1,6 +1,73 @@
 export type ManualPropertyCategory = 'RESIDENTIAL' | 'COMMERCIAL' | 'LAND'
 export type ManualPropertyFormStep = 'basics' | 'location' | 'media' | 'amenities' | 'pricing' | 'declaration' | 'review'
 
+export type PaymentPlanStage = {
+  id: string
+  label: string
+  percentage: number
+  description?: string
+  order: number
+}
+
+export type PaymentPlanValidation = {
+  totalPercentage: number
+  remainingPercentage: number
+  valid: boolean
+  state: 'empty' | 'incomplete' | 'complete' | 'overallocated' | 'invalid'
+  message?: string
+}
+
+function finitePercentage(value: unknown) {
+  const number = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(number) ? number : 0
+}
+
+export function normalizePaymentPlan(raw: unknown): PaymentPlanStage[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map((stage, index) => {
+      const item = stage && typeof stage === 'object' ? stage as Record<string, unknown> : {}
+      return {
+        id: String(item.id || `payment-stage-${index + 1}`),
+        label: String(item.label || '').trim(),
+        percentage: finitePercentage(item.percentage),
+        description: String(item.description || '').trim() || undefined,
+        order: Number.isFinite(Number(item.order)) ? Number(item.order) : index,
+      }
+    })
+    .sort((a, b) => a.order - b.order)
+    .map((stage, index) => ({ ...stage, order: index }))
+}
+
+export function parseLegacyPaymentPlanText(value: unknown): PaymentPlanStage[] {
+  const text = typeof value === 'string' ? value : ''
+  if (!text.trim()) return []
+  const stages: PaymentPlanStage[] = []
+  for (const [index, line] of text.split(/\r?\n/).map((item) => item.trim()).filter(Boolean).entries()) {
+    const match = line.match(/^(?:(\d+(?:\.\d+)?)%\s*[-: ]\s*(.+)|(.+?)\s*[-: ]\s*(\d+(?:\.\d+)?)%)$/)
+    if (!match) continue
+    const percentage = Number(match[1] || match[4])
+    const label = String(match[2] || match[3] || '').trim()
+    if (label && Number.isFinite(percentage) && percentage > 0) {
+      stages.push({ id: `legacy-payment-stage-${index + 1}`, label, percentage, order: stages.length })
+    }
+  }
+  return stages
+}
+
+export function paymentPlanValidation(stages: PaymentPlanStage[]): PaymentPlanValidation {
+  if (stages.length === 0) return { totalPercentage: 0, remainingPercentage: 100, valid: true, state: 'empty' }
+  const totalPercentage = stages.reduce((sum, stage) => sum + finitePercentage(stage.percentage), 0)
+  const roundedTotal = Math.round(totalPercentage * 100) / 100
+  const remainingPercentage = Math.round((100 - roundedTotal) * 100) / 100
+  if (stages.some((stage) => !stage.label || finitePercentage(stage.percentage) <= 0)) {
+    return { totalPercentage: roundedTotal, remainingPercentage, valid: false, state: 'invalid', message: 'Every payment stage needs a label and a percentage greater than zero.' }
+  }
+  if (roundedTotal > 100) return { totalPercentage: roundedTotal, remainingPercentage, valid: false, state: 'overallocated', message: 'Payment stages exceed the base property price.' }
+  if (roundedTotal < 100) return { totalPercentage: roundedTotal, remainingPercentage, valid: false, state: 'incomplete', message: `${remainingPercentage}% of the base property price remains unallocated.` }
+  return { totalPercentage: roundedTotal, remainingPercentage: 0, valid: true, state: 'complete' }
+}
+
 export type ManualPropertyFormData = {
   title?: string | null
   category?: ManualPropertyCategory | null
@@ -20,6 +87,8 @@ export type ManualPropertyFormData = {
   amenities?: string[] | null
   authorizedToMarket?: boolean
   constructionStatus?: string | null
+  paymentPlan?: unknown
+  paymentPlanText?: string | null
 }
 
 type PropertyTypeDefinition = {
@@ -137,6 +206,11 @@ export function validateManualPropertyStep(step: ManualPropertyFormStep, data: M
 
   if (step === 'declaration' || step === 'review') {
     required('authorizedToMarket', 'Confirm that you are authorized to market this property.', data.authorizedToMarket === true)
+  }
+
+  if ((step === 'pricing' || step === 'review') && Array.isArray(data.paymentPlan)) {
+    const paymentValidation = paymentPlanValidation(normalizePaymentPlan(data.paymentPlan))
+    if (!paymentValidation.valid) errors.paymentPlan = paymentValidation.message || 'Complete the payment plan.'
   }
 
   return errors

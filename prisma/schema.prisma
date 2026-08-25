@@ -1077,6 +1077,7 @@ model ManualProperty {
   customAmenities Json? @map("custom_amenities")
 
   paymentPlanText String? @map("payment_plan_text")
+  paymentPlan Json? @map("payment_plan")
   emiNote        String? @map("emi_note")
 
   authorizedToMarket Boolean @default(false) @map("authorized_to_market")
