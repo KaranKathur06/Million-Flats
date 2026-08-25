@@ -10,7 +10,7 @@ function normalizeMediaType(v: unknown) {
 function groupProjectMedia(rows: Array<{ mediaUrl?: string | null; mediaType?: string | null; category?: string | null; label?: string | null; sortOrder?: number | null }>) {
     const out = {
         hero: [] as any[],
-        interior: [] as any[],
+        other: [] as any[],
         exterior: [] as any[],
         amenities: [] as any[],
         lifestyle: [] as any[],
@@ -28,7 +28,7 @@ function groupProjectMedia(rows: Array<{ mediaUrl?: string | null; mediaType?: s
         const payload = { url: buildAssetUrl(m.mediaUrl) || m.mediaUrl, title: m.label || null, orderIndex: m.sortOrder ?? 0 }
 
         if (key === 'hero') out.hero.push(payload)
-        else if (key === 'interior' || key === 'interiors') out.interior.push(payload)
+        else if (key === 'other' || key === 'interior' || key === 'interiors') out.other.push(payload)
         else if (key === 'exterior') out.exterior.push(payload)
         else if (key === 'amenities') out.amenities.push(payload)
         else if (key === 'lifestyle') out.lifestyle.push(payload)
@@ -36,7 +36,7 @@ function groupProjectMedia(rows: Array<{ mediaUrl?: string | null; mediaType?: s
     }
 
     if (out.hero.length === 0) {
-        const fallback = out.exterior[0] || out.interior[0] || out.amenities[0] || out.lifestyle[0]
+        const fallback = out.exterior[0] || out.other[0] || out.amenities[0] || out.lifestyle[0]
         out.hero.push(fallback || { url: FALLBACK_IMAGE, title: 'Default Property Image', orderIndex: 0 })
     }
 

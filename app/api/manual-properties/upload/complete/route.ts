@@ -9,7 +9,7 @@ export const runtime = 'nodejs'
 
 const BodySchema = z.object({
   propertyId: z.string().trim().min(1),
-  category: z.enum(['COVER', 'EXTERIOR', 'INTERIOR', 'FLOOR_PLANS', 'AMENITIES', 'BROCHURE', 'VIDEO']),
+  category: z.enum(['COVER', 'EXTERIOR', 'LIVING_ROOM', 'BEDROOM', 'KITCHEN', 'BATHROOM', 'VIEW', 'FLOOR_PLANS', 'AMENITIES', 'OTHER', 'BROCHURE', 'VIDEO']),
   url: z.string().trim().min(1),
   s3Key: z.string().trim().min(1),
   mimeType: z.string().trim().min(1).max(100).optional().nullable(),

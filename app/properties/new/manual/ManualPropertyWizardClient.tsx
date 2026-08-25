@@ -12,6 +12,8 @@ import GlobalDropdown from '@/components/ui/GlobalDropdown'
 import { singleDropdownValue } from '@/components/ui/dropdownUtils'
 import { trackEvent } from '@/lib/tracking'
 import toast, { Toaster } from 'react-hot-toast'
+import ManualPropertyMediaManager from '@/components/manual/ManualPropertyMediaManager'
+import ManualPropertyAmenities from '@/components/manual/ManualPropertyAmenities'
 import {
   calculateManualListingQuality,
   categoryForPropertyType,
@@ -884,12 +886,11 @@ export default function ManualPropertyWizardClient() {
     const c = String(category || '').toUpperCase()
     if (c === 'COVER') return 'cover'
     if (c === 'EXTERIOR') return 'exterior'
-    if (c === 'INTERIOR') return 'interior'
     if (c === 'FLOOR_PLANS') return 'floorplan'
     if (c === 'VIDEO') return 'video'
     if (c === 'AMENITIES') return 'amenities'
     if (c === 'BROCHURE') return 'brochure'
-    return 'interior'
+    return 'other'
   }
 
   const upload = useCallback(
@@ -1537,6 +1538,16 @@ export default function ManualPropertyWizardClient() {
           ) : null}
 
           {step === 'media' ? (
+            <ManualPropertyMediaManager
+              propertyId={propertyId}
+              media={(property?.media || []) as any}
+              onChange={(media) => mergeProperty({ media })}
+              tour3dUrl={property?.tour3dUrl}
+              onTour3dUrlChange={(value) => setProperty((current) => ({ ...(current as any), tour3dUrl: value }))}
+            />
+          ) : null}
+
+          {false && step === 'media' ? (
             <div className="mt-8 space-y-6">
               <div className="rounded-2xl border border-gray-200 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1633,7 +1644,7 @@ export default function ManualPropertyWizardClient() {
               {([
                 ['COVER', 'Cover image (required)', true],
                 ['EXTERIOR', 'Architecture / Exterior', false],
-                ['INTERIOR', 'Interior', false],
+                ['OTHER', 'Other', false],
                 ['FLOOR_PLANS', 'Floor plans', false],
                 ['AMENITIES', 'Amenities images', false],
                 ['BROCHURE', 'Marketing brochure (PDF)', false],
@@ -1726,6 +1737,17 @@ export default function ManualPropertyWizardClient() {
           ) : null}
 
           {step === 'amenities' ? (
+            <ManualPropertyAmenities
+              selected={Array.isArray(property?.amenities) ? property.amenities : []}
+              customSelected={Array.isArray(property?.customAmenities) ? property.customAmenities : []}
+              propertyType={property?.propertyType}
+              propertyCategory={selectedCategory}
+              onSelectedChange={(amenities) => { mergeProperty({ amenities }); void patch({ amenities }) }}
+              onCustomChange={(customAmenities) => { mergeProperty({ customAmenities }); void patch({ customAmenities }) }}
+            />
+          ) : null}
+
+          {false && step === 'amenities' ? (
             <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                 <p className="text-sm font-semibold text-gray-700 mb-2">Select amenities</p>

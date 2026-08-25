@@ -78,7 +78,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         const counts = {
           total: allMedia.length,
           hero: allMedia.filter((m: any) => m.category === 'HERO').length,
-          interior: allMedia.filter((m: any) => m.category === 'INTERIOR').length,
+          other: allMedia.filter((m: any) => m.category === 'OTHER').length,
           exterior: allMedia.filter((m: any) => m.category === 'EXTERIOR').length,
           amenities: allMedia.filter((m: any) => m.category === 'AMENITIES').length,
           lifestyle: allMedia.filter((m: any) => m.category === 'LIFESTYLE').length,
@@ -194,7 +194,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         // Backward-compatible multipart upload path
         const formData = await req.formData()
         const file = formData.get('file') as File | null
-        const rawCategory = String(formData.get('category') || formData.get('mediaType') || 'interior').toLowerCase()
+        const rawCategory = String(formData.get('category') || formData.get('mediaType') || 'other').toLowerCase()
         const category = rawCategory === 'cover' || rawCategory === 'hero'
             ? 'hero'
             : rawCategory === 'floor-plans' || rawCategory === 'floorplan'

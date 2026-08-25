@@ -14,7 +14,7 @@ const IMAGE_MAX_SIZE = Number(process.env.PROJECT_IMAGE_MAX_SIZE_BYTES) || PROPE
 
 const BodySchema = z.object({
   propertyId: z.string().trim().min(1),
-  category: z.enum(['COVER', 'EXTERIOR', 'INTERIOR', 'FLOOR_PLANS', 'AMENITIES', 'BROCHURE', 'VIDEO']),
+  category: z.enum(['COVER', 'EXTERIOR', 'LIVING_ROOM', 'BEDROOM', 'KITCHEN', 'BATHROOM', 'VIEW', 'FLOOR_PLANS', 'AMENITIES', 'OTHER', 'BROCHURE', 'VIDEO']),
   filename: z.string().trim().min(1).max(160),
   contentType: z.string().trim().min(1).max(100),
   sizeBytes: z.number().int().min(1),

@@ -39,11 +39,11 @@ describe('manual property form rules', () => {
 
   it('orders cover media before other media', () => {
     const ordered = orderManualPropertyMedia([
-      { category: 'INTERIOR', position: 0 },
+      { category: 'OTHER', position: 0 },
       { category: 'hero', position: 4 },
       { category: 'EXTERIOR', position: 1 },
     ])
-    expect(ordered.map((item) => item.category)).toEqual(['hero', 'INTERIOR', 'EXTERIOR'])
+    expect(ordered.map((item) => item.category)).toEqual(['hero', 'OTHER', 'EXTERIOR'])
   })
 
   it('validates land without residential bedroom requirements', () => {

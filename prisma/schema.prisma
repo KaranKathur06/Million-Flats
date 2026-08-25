@@ -388,9 +388,14 @@ enum ManualPropertyStatus {
 enum ManualPropertyMediaCategory {
   COVER
   EXTERIOR
-  INTERIOR
+  LIVING_ROOM
+  BEDROOM
+  KITCHEN
+  BATHROOM
+  VIEW
   FLOOR_PLANS
   AMENITIES
+  OTHER
   BROCHURE
   VIDEO
 }
@@ -2087,11 +2092,11 @@ enum ProjectStatus {
 
 enum ProjectImageCategory {
   HERO      @map("hero")
-  INTERIOR @map("interior")
   EXTERIOR @map("exterior")
   AMENITIES @map("amenities")
   LIFESTYLE @map("lifestyle")
   FLOOR_PLAN @map("floor_plan")
+  OTHER @map("other")
 }
 
 enum UnitAvailabilityStatus {

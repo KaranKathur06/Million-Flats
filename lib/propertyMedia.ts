@@ -1,4 +1,4 @@
-export const SHARED_MEDIA_CATEGORIES = ['hero', 'interior', 'exterior', 'amenities', 'lifestyle', 'floor_plan'] as const
+export const SHARED_MEDIA_CATEGORIES = ['hero', 'exterior', 'amenities', 'lifestyle', 'floor_plan', 'other'] as const
 
 export const PROPERTY_MEDIA_CATEGORIES = SHARED_MEDIA_CATEGORIES
 
@@ -8,19 +8,19 @@ export type SharedMediaCategory = (typeof SHARED_MEDIA_CATEGORIES)[number]
 
 const TO_STORAGE: Record<PropertyMediaCategory, string> = {
   hero: 'COVER',
-  interior: 'INTERIOR',
   exterior: 'EXTERIOR',
   amenities: 'AMENITIES',
   lifestyle: 'EXTERIOR',
   floor_plan: 'FLOOR_PLANS',
+  other: 'OTHER',
 }
 
 const FROM_STORAGE: Record<string, PropertyMediaCategory> = {
   COVER: 'hero',
-  INTERIOR: 'interior',
   EXTERIOR: 'exterior',
   AMENITIES: 'amenities',
   FLOOR_PLANS: 'floor_plan',
+  OTHER: 'other',
 }
 
 export function isPropertyMediaCategory(value: unknown): value is PropertyMediaCategory {
@@ -32,7 +32,9 @@ export function propertyMediaStorageCategory(value: PropertyMediaCategory): stri
 }
 
 export function propertyMediaCategory(value: string | null | undefined): PropertyMediaCategory {
-  return FROM_STORAGE[String(value || '').toUpperCase()] || 'exterior'
+  const normalized = String(value || '').toUpperCase()
+  if (normalized === 'INTERIOR') return 'other'
+  return FROM_STORAGE[normalized] || 'exterior'
 }
 
 export const PROPERTY_MEDIA_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'] as const

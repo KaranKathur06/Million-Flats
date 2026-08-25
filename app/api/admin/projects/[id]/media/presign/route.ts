@@ -25,7 +25,7 @@ const VALID_CATEGORIES = PROJECT_MEDIA_CATEGORY_VALUES
  *   fileName: string,
  *   fileSizeBytes: number,
  *   contentType: string (e.g. "image/jpeg"),
- *   category: string (hero|interior|exterior|amenities|lifestyle|floor_plan)
+ *   category: string (hero|exterior|amenities|lifestyle|floor_plan|other)
  *   unitTypeId?: string
  * }
  */

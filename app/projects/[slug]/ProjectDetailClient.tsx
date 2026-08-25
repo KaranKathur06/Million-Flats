@@ -66,8 +66,7 @@ interface ProjectData {
         tabs?: {
             exterior?: string[]
             amenities?: string[]
-            interior?: string[]
-            interiors?: string[]
+            other?: string[]
             lifestyle?: string[]
         }
     } | null
@@ -217,7 +216,7 @@ export default function ProjectDetailClient({
     const [activeTab, setActiveTab] = useState<'overview' | 'amenities' | 'plans' | 'gallery' | 'location'>('overview')
     const [heroImageFailed, setHeroImageFailed] = useState(false)
 
-    const [galleryCategory, setGalleryCategory] = useState<'all' | 'exterior' | 'amenities' | 'interior' | 'lifestyle'>('all')
+    const [galleryCategory, setGalleryCategory] = useState<'all' | 'exterior' | 'amenities' | 'other' | 'lifestyle'>('all')
     const [galleryVisibleCount, setGalleryVisibleCount] = useState(8)
     const [galleryModalOpen, setGalleryModalOpen] = useState(false)
     const [modalImgIndex, setModalImgIndex] = useState(0)
@@ -230,7 +229,7 @@ export default function ProjectDetailClient({
     }), [project.startingPrice, project.paymentPlans])
 
     // Recognised gallery media types (tab-specific + legacy ones)
-    const GALLERY_MEDIA_TYPES = useMemo(() => new Set(['gallery', 'cover', 'image', 'IMAGE', 'featured', 'exterior', 'amenities', 'interior', 'interiors', 'lifestyle']), [])
+    const GALLERY_MEDIA_TYPES = useMemo(() => new Set(['gallery', 'cover', 'image', 'IMAGE', 'featured', 'exterior', 'amenities', 'other', 'lifestyle']), [])
 
     const allGalleryMedia = useMemo(() => {
         const images = project.media.filter((m) => {
@@ -356,13 +355,13 @@ export default function ProjectDetailClient({
     const tabImages = useMemo(() => {
         // Approach 1: structuredMedia has explicit tabs
         const tabs = structuredMedia?.tabs
-        if (tabs && (tabs.exterior?.length || tabs.amenities?.length || tabs.interior?.length || tabs.interiors?.length || tabs.lifestyle?.length)) {
+        if (tabs && (tabs.exterior?.length || tabs.amenities?.length || tabs.other?.length || tabs.lifestyle?.length)) {
             const hero = structuredMedia?.hero
             const filterHero = (list: string[]) => list.filter((img) => img !== hero)
             return {
                 exterior: uniqueStrings(filterHero(tabs.exterior || [])),
                 amenities: uniqueStrings(filterHero(tabs.amenities || [])),
-                interior: uniqueStrings(filterHero((tabs.interior || tabs.interiors || []))),
+                other: uniqueStrings(filterHero(tabs.other || [])),
                 lifestyle: uniqueStrings(filterHero(tabs.lifestyle || [])),
             }
         }
@@ -372,40 +371,39 @@ export default function ProjectDetailClient({
             .filter((m) => {
                 const mt = String(m.mediaType || '').toLowerCase()
                 const cat = String(m.category || '').toLowerCase()
-                if (type === 'interior') return mt === 'interior' || mt === 'interiors' || cat === 'interior'
                 return mt === type || cat === type
             })
             .map(m => m.mediaUrl)
         const ext = byType('exterior')
         const amen = byType('amenities')
-        const inter = byType('interior')
+        const other = byType('other')
         const life = byType('lifestyle')
-        if (ext.length > 0 || amen.length > 0 || inter.length > 0 || life.length > 0) {
+        if (ext.length > 0 || amen.length > 0 || other.length > 0 || life.length > 0) {
             return {
                 exterior: uniqueStrings(ext),
                 amenities: uniqueStrings(amen),
-                interior: uniqueStrings(inter),
+            other: uniqueStrings(other),
                 lifestyle: uniqueStrings(life),
             }
         }
 
         // Fallback: show all in every tab
         const all = allGalleryMedia.map((m) => m.mediaUrl).filter((url) => url !== structuredMedia?.hero)
-        return { exterior: all, amenities: all, interior: all, lifestyle: all }
+        return { exterior: all, amenities: all, other: all, lifestyle: all }
     }, [structuredMedia, allGalleryMedia])
 
     const tabImagesResolved = useMemo(() => {
         return {
             exterior: tabImages.exterior.map(resolvePublicMediaUrl).filter(Boolean),
             amenities: tabImages.amenities.map(resolvePublicMediaUrl).filter(Boolean),
-            interior: tabImages.interior.map(resolvePublicMediaUrl).filter(Boolean),
+            other: tabImages.other.map(resolvePublicMediaUrl).filter(Boolean),
             lifestyle: tabImages.lifestyle.map(resolvePublicMediaUrl).filter(Boolean),
         }
     }, [tabImages])
 
     // "All" tab: combine all unique images across all tabs
     const allTabImages = useMemo(() => uniqueStrings([
-        ...tabImages.exterior, ...tabImages.amenities, ...tabImages.interior, ...tabImages.lifestyle,
+        ...tabImages.exterior, ...tabImages.amenities, ...tabImages.other, ...tabImages.lifestyle,
     ]), [tabImages])
     const allTabImagesResolved = useMemo(() => allTabImages.map(resolvePublicMediaUrl).filter(Boolean), [allTabImages])
     const mediaLabelByRawUrl = useMemo(() => {
@@ -1016,7 +1014,7 @@ export default function ProjectDetailClient({
                                 {/* Gallery Tabs */}
                                 <div className="mt-6">
                                     <div className="flex flex-wrap gap-2">
-                                        {(['all', 'exterior', 'amenities', 'interior', 'lifestyle'] as const).map((t) => {
+                                        {(['all', 'exterior', 'amenities', 'other', 'lifestyle'] as const).map((t) => {
                                             const count = t === 'all' ? allTabImagesResolved.length : (tabImagesResolved[t]?.length || 0)
                                             return (
                                                 <button
@@ -1456,7 +1454,7 @@ export default function ProjectDetailClient({
                                             ...featuredImagesResolved,
                                             ...tabImagesResolved.exterior,
                                             ...tabImagesResolved.amenities,
-                                            ...tabImagesResolved.interior,
+                                            ...tabImagesResolved.other,
                                             ...tabImagesResolved.lifestyle,
                                         ]).length}</span></div>
                                     )}

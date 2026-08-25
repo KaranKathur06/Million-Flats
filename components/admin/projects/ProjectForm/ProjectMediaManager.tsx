@@ -17,7 +17,7 @@ interface Media {
 interface MediaCounts {
   total: number
   hero: number
-  interior: number
+  other: number
   exterior: number
   amenities: number
   lifestyle: number
@@ -51,7 +51,7 @@ interface FloorPlanStatusCard {
 
 const CATEGORY_ICONS: Record<string, string> = {
   hero: '👑',
-  interior: '🏠',
+  other: '🗂️',
   exterior: '🏘️',
   amenities: '✨',
   lifestyle: '🌟',
@@ -253,7 +253,7 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
   const allCategories = [
     { value: null, label: 'All', icon: '📁', count: counts?.total },
     { value: 'hero', label: 'Hero', icon: '👑', count: counts?.hero },
-    { value: 'interior', label: 'Interior', icon: '🏠', count: counts?.interior },
+    { value: 'other', label: 'Other', icon: '🗂️', count: counts?.other },
     { value: 'exterior', label: 'Exterior', icon: '🏘️', count: counts?.exterior },
     { value: 'amenities', label: 'Amenities', icon: '✨', count: counts?.amenities },
     { value: 'lifestyle', label: 'Lifestyle', icon: '🌟', count: counts?.lifestyle },

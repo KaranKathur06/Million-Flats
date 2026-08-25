@@ -7,7 +7,7 @@ import { deleteFromS3, extractS3KeyFromUrl } from '@/lib/s3'
 export const runtime = 'nodejs'
 
 const UpdateSchema = z.object({
-  category: z.enum(['COVER', 'EXTERIOR', 'INTERIOR', 'FLOOR_PLANS', 'AMENITIES', 'BROCHURE', 'VIDEO']).optional(),
+  category: z.enum(['COVER', 'EXTERIOR', 'LIVING_ROOM', 'BEDROOM', 'KITCHEN', 'BATHROOM', 'VIEW', 'FLOOR_PLANS', 'AMENITIES', 'OTHER', 'BROCHURE', 'VIDEO']).optional(),
   position: z.number().int().min(0).max(10000).optional(),
 })
 

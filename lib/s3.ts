@@ -265,7 +265,7 @@ export function buildProjectMediaKey(params: { developerSlug: string; projectSlu
 }
 
 export function buildProjectGalleryKey(params: { developerSlug: string; projectSlug: string; originalName: string; contentType?: string }) {
-  return buildProjectMediaTypeKey({ ...params, mediaType: 'interior' })
+  return buildProjectMediaTypeKey({ ...params, mediaType: 'other' })
 }
 
 export function buildProjectMediaTypeKey(params: { developerSlug: string; projectSlug: string; originalName: string; contentType?: string; mediaType?: string }) {
@@ -275,12 +275,12 @@ export function buildProjectMediaTypeKey(params: { developerSlug: string; projec
   const mt = String(params.mediaType || 'hero').toLowerCase()
   const folder =
     mt === 'hero' ? 'hero'
-      : mt === 'interior' ? 'interior'
+      : mt === 'other' ? 'other'
         : mt === 'exterior' ? 'exterior'
           : mt === 'amenities' ? 'amenities'
             : mt === 'lifestyle' ? 'lifestyle'
               : mt === 'floor_plan' || mt === 'floor-plan' || mt === 'floorplan' ? 'floor-plans'
-                : 'interior'
+                : 'other'
   return `public/projects/${devSlug}/${projSlug}/${folder}/${filename}`
 }
 

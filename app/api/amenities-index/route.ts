@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 
 type AmenityIndexItem = {
   projectId: number
   amenities: string[]
+}
+
+type AmenityRecord = {
+  id: string
+  name: string
+  category: string
 }
 
 type Payload = {
@@ -10,6 +17,7 @@ type Payload = {
   items: AmenityIndexItem[]
   amenities: string[]
   amenityIcons: Record<string, string>
+  records: AmenityRecord[]
 }
 
 const INDEX_TTL_MS = 6 * 60 * 60 * 1000
@@ -71,11 +79,35 @@ async function mapWithConcurrency<T, R>(items: T[], concurrency: number, fn: (it
 }
 
 async function buildAmenityIndex(): Promise<Payload> {
+  const rows = await (prisma as any).projectAmenity.findMany({
+    where: {
+      project: { status: 'PUBLISHED', isDeleted: false },
+    },
+    select: { id: true, name: true, category: true },
+    orderBy: [{ category: 'asc' }, { name: 'asc' }],
+  })
+
+  const records: AmenityRecord[] = []
+  const seen = new Set<string>()
+  for (const row of rows) {
+    const name = safeString(row.name).trim()
+    if (!name) continue
+    const key = normalize(name)
+    if (seen.has(key)) continue
+    seen.add(key)
+    records.push({
+      id: safeString(row.id) || key,
+      name,
+      category: safeString(row.category).trim() || 'Other',
+    })
+  }
+
   return {
     generatedAt: Date.now(),
     items: [],
-    amenities: [],
+    amenities: records.map((record) => record.name),
     amenityIcons: {},
+    records,
   }
 }
 

@@ -12,7 +12,7 @@ interface MediaUploadDialogProps {
 
 const MEDIA_CATEGORIES = [
   { value: 'hero', label: 'Hero', icon: '👑' },
-  { value: 'interior', label: 'Interior', icon: '🏠' },
+  { value: 'other', label: 'Other', icon: '🗂️' },
   { value: 'exterior', label: 'Exterior', icon: '🏘️' },
   { value: 'amenities', label: 'Amenities', icon: '✨' },
   { value: 'lifestyle', label: 'Lifestyle', icon: '🌟' },

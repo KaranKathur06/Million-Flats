@@ -10,7 +10,6 @@ describe('property media taxonomy', () => {
   it('uses the shared project-style category set for property images', () => {
     expect(PROPERTY_MEDIA_CATEGORIES).toEqual([
       'hero',
-      'interior',
       'exterior',
       'amenities',
       'lifestyle',
@@ -23,6 +22,7 @@ describe('property media taxonomy', () => {
     expect(propertyMediaStorageCategory('floor_plan')).toBe('FLOOR_PLANS')
     expect(propertyMediaCategory('COVER')).toBe('hero')
     expect(propertyMediaCategory('FLOOR_PLANS')).toBe('floor_plan')
+    expect(propertyMediaCategory('INTERIOR')).toBe('other')
   })
 
   it('allows modern image formats without allowing arbitrary URLs or files', () => {

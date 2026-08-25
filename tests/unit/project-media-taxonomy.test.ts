@@ -10,8 +10,8 @@ describe('project media taxonomy', () => {
   it('uses the canonical five image categories only', () => {
     expect(PROJECT_MEDIA_CATEGORIES).toEqual([
       'hero',
-      'interior',
       'exterior',
+      'other',
       'amenities',
       'lifestyle',
     ])
@@ -21,11 +21,11 @@ describe('project media taxonomy', () => {
   it('keeps floor plan as a separate special-case category without reintroducing gallery', () => {
     expect(PROJECT_MEDIA_CATEGORY_VALUES).toEqual([
       'hero',
-      'interior',
       'exterior',
       'amenities',
       'lifestyle',
       'floor_plan',
+      'other',
     ])
     expect(isProjectMediaCategory('gallery')).toBe(false)
     expect(normalizeProjectMediaCategory('GALLERY')).toBeNull()

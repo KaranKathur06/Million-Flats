@@ -6,7 +6,7 @@ import { useAdminAction } from '@/components/admin/AdminActionProvider'
 
 type Media = { id: string; category: PropertyMediaCategory; url: string; altText?: string | null; position: number }
 
-const labels: Record<PropertyMediaCategory, string> = { hero: 'Hero', interior: 'Interior', exterior: 'Exterior', amenities: 'Amenities', lifestyle: 'Lifestyle', floor_plan: 'Floor plan' }
+const labels: Record<PropertyMediaCategory, string> = { hero: 'Hero', exterior: 'Exterior', amenities: 'Amenities', lifestyle: 'Lifestyle', floor_plan: 'Floor plan', other: 'Other' }
 
 export function PropertyMediaManager({ propertyId }: { propertyId: string }) {
   const { runAction } = useAdminAction()

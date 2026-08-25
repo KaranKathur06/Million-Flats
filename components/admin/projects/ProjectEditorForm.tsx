@@ -255,7 +255,7 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
     for (let i = 0; i < galleryFiles.length; i += 1) {
       const fd = new FormData()
       fd.append('file', galleryFiles[i])
-      fd.append('mediaType', 'interior')
+      fd.append('mediaType', 'other')
       fd.append('sortOrder', String(i + 1))
       const res = await fetch(`/api/admin/projects/${projectIdValue}/media`, { method: 'POST', body: fd })
       const json = await res.json()
