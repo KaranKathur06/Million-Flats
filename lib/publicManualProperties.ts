@@ -11,7 +11,6 @@ import {
 export function manualPropertyPublicAgentWhere() {
   return {
     approved: true,
-    profileStatus: 'LIVE',
     user: { status: 'ACTIVE' },
   }
 }

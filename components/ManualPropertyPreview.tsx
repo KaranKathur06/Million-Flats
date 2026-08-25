@@ -129,7 +129,7 @@ export default function ManualPropertyPreview({ manual, related = [], previewMod
       {!previewMode ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} /> : null}
 
       <div className="relative h-[60vh] max-h-[70vh] overflow-hidden">
-        <img src={cover} alt={title} className="absolute inset-0 h-full w-full object-cover" fetchPriority="high" onError={(event) => { event.currentTarget.src = '/image-placeholder.svg' }} />
+        <img src={cover} alt={title} className="absolute inset-0 h-full w-full object-cover" fetchPriority="high" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
         <div className="absolute inset-0">
           <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 h-full flex items-end pb-8">
