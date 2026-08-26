@@ -1,0 +1,1 @@
+ALTER TABLE "import_records" ADD COLUMN IF NOT EXISTS "commit_action" TEXT;

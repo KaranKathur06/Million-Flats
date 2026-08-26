@@ -32,7 +32,9 @@ export async function analyzeImportBatch(input: { batchId: string; ownerAgentId?
   let errors = 0
 
   for (const record of records) {
-    const raw = record.rawPayload || {}
+    const raw = batch.category && batch.entityType === 'ECOSYSTEM_PARTNER' && record.rawPayload && typeof record.rawPayload === 'object' && !('category' in (record.rawPayload as object)) && !('categorySlug' in (record.rawPayload as object))
+      ? { ...(record.rawPayload as Record<string, unknown>), categorySlug: batch.category }
+      : record.rawPayload || {}
     const mappings = adapter.suggestMappings({ fields: Object.keys(raw) })
     const normalized = adapter.normalize({ raw, sourcePath: record.sourcePath, mappings })
     const canonicalResult = adapter.mapCanonical({ raw, normalized: normalized.normalized, mappings })
@@ -42,8 +44,11 @@ export async function analyzeImportBatch(input: { batchId: string; ownerAgentId?
     const validation = canonical
       ? adapter.validate({ canonical, raw, normalized: normalized.normalized })
       : { ready: false, warnings: [], errors: canonicalResult.errors }
-    const recordWarnings = [...normalized.warnings, ...canonicalResult.warnings, ...validation.warnings]
-    const recordErrors = [...normalized.errors, ...canonicalResult.errors, ...validation.errors]
+    const relations = canonical
+      ? adapter.resolveRelations({ canonical, raw })
+      : { ready: false, warnings: [], errors: [] }
+    const recordWarnings = [...normalized.warnings, ...canonicalResult.warnings, ...validation.warnings, ...relations.warnings]
+    const recordErrors = [...normalized.errors, ...canonicalResult.errors, ...validation.errors, ...relations.errors]
     const status = recordErrors.length > 0 ? 'ERROR' : recordWarnings.length > 0 ? 'WARNING' : 'READY'
 
     if (status === 'READY') ready += 1

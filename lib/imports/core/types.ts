@@ -1,6 +1,7 @@
 export type ImportOperation = 'CREATE' | 'UPDATE' | 'UPSERT'
 export type ImportMode = 'STRICT' | 'PARTIAL'
-export type ImportFormat = 'csv' | 'json'
+export type ImportEntityType = 'PROPERTY' | 'DEVELOPER' | 'PROJECT' | 'ECOSYSTEM_PARTNER' | 'AGENCY' | 'AGENT' | 'LEAD'
+export type ImportFormat = 'csv' | 'json' | 'xlsx'
 
 export interface ImportFieldDefinition {
   field: string
@@ -90,6 +91,13 @@ export interface CommitPreparation {
   identity: { provider?: string | null; sourceRecordId?: string | null; sourceUrl?: string | null; sourceListingId?: string | null }
 }
 
+export interface ImportCommitResult {
+  status: 'created' | 'updated' | 'skipped'
+  entityId: string
+  affectedPaths: string[]
+  reason?: string
+}
+
 export interface ImportAdapter<TCanonical> {
   key: string
   displayName: string
@@ -104,4 +112,5 @@ export interface ImportAdapter<TCanonical> {
   getDuplicateSignals(): DuplicateSignalDefinition[]
   resolveRelations(input: RelationInput<TCanonical>): RelationResolution
   prepareCommit(input: CommitPreparationInput<TCanonical>): CommitPreparation
+  commit(input: { canonical: TCanonical; operation: ImportOperation; sourceRecordId: string; db: unknown }): Promise<ImportCommitResult>
 }

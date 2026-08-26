@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { requireAdminSession } from '@/lib/adminAuth'
-import { createImportBatch, stageImportRecord } from '@/lib/imports/core'
-import { getImportAdapterForEntity } from '@/lib/imports/registry'
-import { csvParser, detectFormat, jsonParser } from '@/lib/imports/parser'
+import { createImportBatch, stageImportRecord, type ImportEntityType } from '@/lib/imports/core'
+import { getImportAdapterForEntity, listImportAdapters } from '@/lib/imports/registry'
+import { csvParser, detectFormat, jsonParser, xlsxParser } from '@/lib/imports/parser'
 
 const MAX_BYTES = Number(process.env.IMPORT_MAX_FILE_SIZE || 10 * 1024 * 1024)
 const MAX_RECORDS = Number(process.env.IMPORT_MAX_RECORDS || 5000)
@@ -14,7 +14,6 @@ export async function GET() {
 
   const { prisma } = await import('@/lib/prisma')
   const batches = await (prisma as any).importBatch.findMany({
-    where: { entityType: 'PROPERTY' },
     orderBy: { createdAt: 'desc' },
     take: 100,
     select: {
@@ -30,9 +29,13 @@ export async function GET() {
       skippedCount: true,
       failedCount: true,
       createdAt: true,
+      entityType: true,
+      operation: true,
+      sourceProvider: true,
+      category: true,
     },
   })
-  return NextResponse.json({ success: true, batches })
+  return NextResponse.json({ success: true, batches, adapters: listImportAdapters() })
 }
 
 export async function POST(req: Request) {
@@ -45,21 +48,22 @@ export async function POST(req: Request) {
     if (!(file instanceof File)) return NextResponse.json({ success: false, message: 'A CSV or JSON file is required.' }, { status: 400 })
     if (file.size > MAX_BYTES) return NextResponse.json({ success: false, message: `File exceeds the ${MAX_BYTES} byte limit.` }, { status: 413 })
 
-    const content = await file.text()
+    const formatHint = detectFormat({ content: '', fileName: file.name, mimeType: file.type })
+    const content = formatHint === 'xlsx' ? new Uint8Array(await file.arrayBuffer()) : await file.text()
     const input = { content, fileName: file.name, mimeType: file.type }
     const format = detectFormat(input)
-    if (format !== 'csv' && format !== 'json') return NextResponse.json({ success: false, message: 'Only CSV and JSON files are supported.' }, { status: 415 })
+    if (format !== 'csv' && format !== 'json' && format !== 'xlsx') return NextResponse.json({ success: false, message: 'Only CSV, XLSX, and JSON files are supported.' }, { status: 415 })
 
-    const parser = format === 'csv' ? csvParser : jsonParser
+    const parser = format === 'csv' ? csvParser : format === 'xlsx' ? xlsxParser : jsonParser
     const discovery = await parser.inspect(input)
     if (discovery.recordCount > MAX_RECORDS) return NextResponse.json({ success: false, message: `File exceeds the ${MAX_RECORDS} record limit.` }, { status: 413 })
 
-    const entityType = String(form.get('entity') || 'PROPERTY').trim().toUpperCase()
+    const entityType = String(form.get('entity') || 'PROPERTY').trim().toUpperCase() as ImportEntityType
     const adapter = getImportAdapterForEntity(entityType)
     if (!adapter) return NextResponse.json({ success: false, message: `No import adapter is registered for ${entityType}.` }, { status: 400 })
 
     const batch = await createImportBatch({
-      entityType: entityType as 'PROPERTY',
+      entityType,
       operation: String(form.get('operation') || 'CREATE').toUpperCase() as 'CREATE' | 'UPDATE' | 'UPSERT',
       mode: String(form.get('mode') || 'PARTIAL').toUpperCase() as 'STRICT' | 'PARTIAL',
       originalFileName: file.name.replace(/[^a-zA-Z0-9._-]/g, '_'),
@@ -70,6 +74,7 @@ export async function POST(req: Request) {
       uploadedByUserId: auth.userId,
       adapterVersion: adapter.adapterVersion,
       sourceProvider: String(form.get('sourceProvider') || '').trim() || null,
+      category: String(form.get('category') || '').trim() || null,
     })
 
     let staged = 0

@@ -1,4 +1,5 @@
 import { canonicalizePropertyImport } from '@/lib/propertyCanonical'
+import { createManualProperty } from '@/lib/manualPropertyService'
 import { normalizeArea, normalizeBedrooms, normalizeBoolean, normalizePrice } from '@/lib/imports/normalization'
 import type {
   CanonicalPayloadResult,
@@ -68,7 +69,7 @@ export const propertyImportAdapter: ImportAdapter<CanonicalManualPropertyInput> 
   key: 'property',
   displayName: 'Properties',
   adapterVersion: 1,
-  supportedFormats: ['csv', 'json'],
+  supportedFormats: ['csv', 'json', 'xlsx'],
   supportedOperations: ['CREATE', 'UPDATE', 'UPSERT'],
 
   getFieldDefinitions(): ImportFieldDefinition[] {
@@ -187,5 +188,21 @@ export const propertyImportAdapter: ImportAdapter<CanonicalManualPropertyInput> 
         sourceListingId: input.canonical.sourceListingId,
       },
     }
+  },
+
+  async commit(input) {
+    const db = input.db as any
+    const duplicateFilters = [
+      input.canonical.sourceProvider && input.canonical.sourceListingId
+        ? { sourceProvider: input.canonical.sourceProvider, sourceListingId: input.canonical.sourceListingId }
+        : null,
+      input.canonical.sourceUrl ? { sourceUrl: input.canonical.sourceUrl } : null,
+    ].filter(Boolean)
+    if (duplicateFilters.length > 0) {
+      const existing = await db.manualProperty.findFirst({ where: { OR: duplicateFilters }, select: { id: true } })
+      if (existing) return { status: 'skipped', entityId: existing.id, affectedPaths: [], reason: 'Matching property already exists.' }
+    }
+    const created = await createManualProperty(input.canonical, { db: input.db as any })
+    return { status: 'created', entityId: created.property.id, affectedPaths: created.affectedPaths }
   },
 }

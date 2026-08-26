@@ -10,6 +10,7 @@ function safeString(v: unknown) {
 }
 
 export type CreateLeadInput = {
+  db?: Prisma.TransactionClient
   leadType: LeadType
   name: string
   email: string
@@ -113,7 +114,8 @@ export async function createLead(input: CreateLeadInput) {
     ...(input.projectId ? { project: { connect: { id: input.projectId } } } : {}),
   }
 
-  const lead = await prisma.lead.create({
+  const database = input.db || prisma
+  const lead = await database.lead.create({
     data,
     select: { id: true, leadType: true, status: true, category: true, createdAt: true },
   })

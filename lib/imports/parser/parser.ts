@@ -1,4 +1,4 @@
-export type ImportFormat = 'csv' | 'json'
+export type ImportFormat = 'csv' | 'json' | 'xlsx'
 
 export interface ParserInput {
   content: string | Uint8Array
@@ -7,6 +7,7 @@ export interface ParserInput {
   delimiter?: string
   headerRow?: number
   collectionPath?: string
+  sheetName?: string
 }
 
 export interface RawSourceRecord {
@@ -25,6 +26,7 @@ export interface StructureDiscovery {
   fields: string[]
   recordCount: number
   candidates?: Array<{ path: string; recordCount: number; confidence: number }>
+  sheets?: Array<{ name: string; recordCount: number; confidence: number }>
 }
 
 export interface UniversalParser {
@@ -41,6 +43,7 @@ export function decodeInput(content: string | Uint8Array): string {
 export function detectFormat(input: ParserInput): ImportFormat {
   const name = String(input.fileName || '').toLowerCase()
   if (input.mimeType === 'application/json' || name.endsWith('.json')) return 'json'
+  if (input.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || name.endsWith('.xlsx')) return 'xlsx'
   if (input.mimeType === 'text/csv' || name.endsWith('.csv')) return 'csv'
   const content = decodeInput(input.content).trimStart()
   return content.startsWith('{') || content.startsWith('[') ? 'json' : 'csv'

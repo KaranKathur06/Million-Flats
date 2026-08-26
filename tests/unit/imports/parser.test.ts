@@ -1,4 +1,5 @@
-import { csvParser, jsonParser } from '@/lib/imports/parser'
+import * as XLSX from 'xlsx'
+import { csvParser, jsonParser, xlsxParser } from '@/lib/imports/parser'
 import { normalizeArea, normalizeBedrooms, normalizeBoolean, normalizeDate, normalizePrice } from '@/lib/imports/normalization'
 
 describe('universal import parsers', () => {
@@ -32,6 +33,20 @@ describe('universal import parsers', () => {
     expect(discovery.collectionPath).toBe('data.results')
     expect(records[0].sourceRecordId).toBe('p-1')
     expect(records[0].sourcePath).toBe('data.results[0]')
+  })
+
+  it('lists workbook sheets and parses the selected sheet', async () => {
+    const book = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([['metadata'], ['name', 'city'], ['Project', 'Dubai']]), 'Projects')
+    XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([['name'], ['Other']]), 'Other')
+    const content = XLSX.write(book, { type: 'buffer', bookType: 'xlsx' })
+    const input = { content, fileName: 'source.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', sheetName: 'Projects' }
+    const discovery = await xlsxParser.inspect(input)
+    expect(discovery.sheets?.map((sheet) => sheet.name)).toEqual(['Projects', 'Other'])
+    expect(discovery.fields).toEqual(['name', 'city'])
+    const records = []
+    for await (const record of xlsxParser.parse(input)) records.push(record)
+    expect(records[0].raw).toEqual({ name: 'Project', city: 'Dubai' })
   })
 })
 

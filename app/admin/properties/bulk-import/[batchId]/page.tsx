@@ -10,6 +10,7 @@ type ImportRecord = {
     sourceRecordId: string
     sourceRow: number | null
     status: string
+    commitAction?: string | null
     rawPayload: unknown
     normalizedPayload: unknown
     canonicalPayload: unknown
@@ -49,6 +50,7 @@ export default function ImportBatchDetailPage() {
     const [committing, setCommitting] = useState(false)
     const [cancelling, setCancelling] = useState(false)
     const [resetting, setResetting] = useState(false)
+    const [rollingBack, setRollingBack] = useState(false)
 
     const loadBatch = useCallback(async () => {
         setLoading(true)
@@ -121,6 +123,22 @@ export default function ImportBatchDetailPage() {
         }
     }
 
+    const rollbackBatch = async () => {
+        if (!window.confirm('Rollback newly created draft properties from this batch?')) return
+        setRollingBack(true)
+        try {
+            const response = await fetch(`/api/admin/bulk-import/${batchId}/rollback`, { method: 'POST' })
+            const payload = await response.json()
+            if (!response.ok || !payload.success) throw new Error(payload.message || 'Rollback failed.')
+            toast.success(`${payload.rolledBack} draft properties rolled back.`)
+            await loadBatch()
+        } catch (error: any) {
+            toast.error(error.message || 'Rollback failed.')
+        } finally {
+            setRollingBack(false)
+        }
+    }
+
     if (loading) return <div className="p-8 text-sm text-white/50">Loading import batch...</div>
     if (!batch) return <div className="p-8 text-sm text-red-300">Import batch could not be loaded.</div>
 
@@ -150,6 +168,11 @@ export default function ImportBatchDetailPage() {
                     {canCommit && (
                         <button type="button" onClick={() => void commitBatch()} disabled={committing || batch.status !== 'READY_TO_COMMIT'} className="rounded-lg bg-amber-400 px-4 py-2 text-xs font-semibold text-black disabled:cursor-not-allowed disabled:opacity-40">
                             {committing ? 'Committing...' : 'Commit ready records'}
+                        </button>
+                    )}
+                    {(batch.status === 'COMMITTED' || batch.status === 'PARTIALLY_COMMITTED') && batch.records.some((record) => record.commitAction === 'created') && (
+                        <button type="button" onClick={() => void rollbackBatch()} disabled={rollingBack} className="rounded-lg border border-red-400/20 px-3 py-2 text-xs text-red-300 disabled:cursor-not-allowed disabled:opacity-40">
+                            {rollingBack ? 'Rolling back...' : 'Rollback drafts'}
                         </button>
                     )}
                 </div>

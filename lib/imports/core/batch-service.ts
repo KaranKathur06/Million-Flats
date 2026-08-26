@@ -1,8 +1,8 @@
 import { prisma } from '@/lib/prisma'
-import type { ImportFormat, ImportMode, ImportOperation } from './types'
+import type { ImportEntityType, ImportFormat, ImportMode, ImportOperation } from './types'
 
 export async function createImportBatch(input: {
-  entityType: 'PROPERTY'
+  entityType: ImportEntityType
   operation: ImportOperation
   mode: ImportMode
   originalFileName: string
@@ -13,6 +13,7 @@ export async function createImportBatch(input: {
   uploadedByUserId: string
   adapterVersion: number
   sourceProvider?: string | null
+  category?: string | null
 }) {
   return (prisma as any).importBatch.create({
     data: {
@@ -27,6 +28,7 @@ export async function createImportBatch(input: {
       uploadedByUserId: input.uploadedByUserId,
       adapterVersion: input.adapterVersion,
       sourceProvider: input.sourceProvider || null,
+      category: input.category || null,
     },
   })
 }

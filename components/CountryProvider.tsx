@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { DEFAULT_COUNTRY, isCountryCode, type CountryCode } from '@/lib/country'
 
 interface CountryContextValue {
@@ -41,12 +41,12 @@ export default function CountryProvider({ children }: { children: React.ReactNod
     }
   }, [])
 
-  const setCountry = (next: CountryCode) => {
+  const setCountry = useCallback((next: CountryCode) => {
     setCountryState(next)
     try {
       window.localStorage.setItem(STORAGE_KEY, next)
     } catch {}
-  }
+  }, [])
 
   const value = useMemo(() => ({ country, setCountry }), [country])
 

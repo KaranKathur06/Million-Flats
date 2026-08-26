@@ -21,11 +21,11 @@ export default function AdminKpiCard({ label, value, sublabel, href, accent = 'b
   const a = accents[accent]
   const inner = (
     <div
-      className={`rounded-xl border ${a.border} bg-gradient-to-br ${a.bg} px-4 py-3.5 transition-colors hover:border-white/20 ${href ? 'cursor-pointer' : ''}`}
+      className={`min-h-[102px] rounded-xl border ${a.border} bg-gradient-to-br ${a.bg} px-4 py-3.5 transition-colors hover:border-white/20 ${href ? 'cursor-pointer' : ''}`}
     >
       <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40 truncate">{label}</p>
       <p className={`mt-1 text-2xl font-bold tabular-nums ${a.text}`}>{value}</p>
-      {sublabel ? <p className="mt-1 text-[11px] text-white/40">{sublabel}</p> : null}
+      <p className="mt-1 min-h-[1rem] text-[11px] text-white/40">{sublabel || '\u00a0'}</p>
     </div>
   )
 

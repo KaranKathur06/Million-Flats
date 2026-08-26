@@ -1,5 +1,11 @@
 import type { ImportAdapter } from '@/lib/imports/core/types'
 import { propertyImportAdapter } from '@/lib/imports/adapters/property/adapter'
+import { developerImportAdapter } from '@/lib/imports/adapters/developer/adapter'
+import { projectImportAdapter } from '@/lib/imports/adapters/project/adapter'
+import { ecosystemPartnerImportAdapter } from '@/lib/imports/adapters/ecosystem-partner/adapter'
+import { agencyImportAdapter } from '@/lib/imports/adapters/agency/adapter'
+import { agentImportAdapter } from '@/lib/imports/adapters/agent/adapter'
+import { leadImportAdapter } from '@/lib/imports/adapters/lead/adapter'
 
 export const importRegistry = new Map<string, ImportAdapter<unknown>>()
 
@@ -21,4 +27,20 @@ export function getImportAdapterForEntity(entityType: string) {
   return getImportAdapter(String(entityType || '')) || null
 }
 
+export function listImportAdapters() {
+  return Array.from(importRegistry.values()).map((adapter) => ({
+    key: adapter.key.toUpperCase().replace(/-/g, '_'),
+    displayName: adapter.displayName,
+    supportedFormats: adapter.supportedFormats,
+    supportedOperations: adapter.supportedOperations,
+    adapterVersion: adapter.adapterVersion,
+  }))
+}
+
 registerImportAdapter(propertyImportAdapter)
+registerImportAdapter(developerImportAdapter)
+registerImportAdapter(projectImportAdapter)
+registerImportAdapter(ecosystemPartnerImportAdapter)
+registerImportAdapter(agencyImportAdapter)
+registerImportAdapter(agentImportAdapter)
+registerImportAdapter(leadImportAdapter)

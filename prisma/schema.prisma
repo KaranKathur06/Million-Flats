@@ -4261,6 +4261,12 @@ model AgentAIIntelligence {
 
 enum ImportEntityType {
   PROPERTY
+  DEVELOPER
+  PROJECT
+  ECOSYSTEM_PARTNER
+  AGENCY
+  AGENT
+  LEAD
 }
 
 enum ImportOperation {
@@ -4332,6 +4338,7 @@ model ImportBatch {
   byteSize            Int               @map("byte_size")
   checksum            String            @db.VarChar(128)
   sourceProvider      String?           @map("source_provider")
+  category            String?
   sourceProfileKey    String?           @map("source_profile_key")
   adapterVersion      Int               @map("adapter_version")
   mappingVersion      Int               @default(1) @map("mapping_version")
@@ -4381,6 +4388,7 @@ model ImportRecord {
   status              ImportRecordStatus @default(DISCOVERED)
   targetEntityType    ImportEntityType?  @map("target_entity_type")
   targetEntityId      String?            @map("target_entity_id")
+  commitAction        String?            @map("commit_action")
   manualPropertyId    String?            @map("manual_property_id")
   sourceProvider      String?            @map("source_provider")
   sourceUrl           String?            @map("source_url")
