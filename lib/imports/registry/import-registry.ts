@@ -34,6 +34,7 @@ export function listImportAdapters() {
     supportedFormats: adapter.supportedFormats,
     supportedOperations: adapter.supportedOperations,
     adapterVersion: adapter.adapterVersion,
+    fields: adapter.getFieldDefinitions(),
   }))
 }
 
