@@ -12,7 +12,11 @@ const fields: ImportFieldDefinition[] = [
 ]
 const text = (value: unknown) => value == null ? null : String(value).trim() || null
 const slugify = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120)
-const read = (raw: Record<string, unknown>, aliases: string[]) => aliases.map((key) => raw[key]).find((value) => value != null && String(value).trim() !== '')
+const normalizeKey = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '')
+const read = (raw: Record<string, unknown>, aliases: string[]) => {
+  const keys = new Map(Object.keys(raw).map((key) => [normalizeKey(key), key]))
+  return aliases.map((key) => raw[key] ?? raw[keys.get(normalizeKey(key)) || '']).find((value) => value != null && String(value).trim() !== '')
+}
 const mappings = (input: { fields: string[] }): MappingSuggestion[] => fields.flatMap((definition) => { const match = input.fields.find((field) => [definition.field, ...definition.aliases].some((alias) => alias.toLowerCase() === field.toLowerCase())); return match ? [{ sourcePath: match, canonicalField: definition.field, confidence: 99, reason: 'Exact field or known alias', status: 'accepted' }] : [] })
 
 export const developerImportAdapter: ImportAdapter<CanonicalDeveloper> = {
