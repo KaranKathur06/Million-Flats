@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useCountry } from '@/components/CountryProvider'
 import { COUNTRY_META, DEFAULT_COUNTRY, isCountryCode, type CountryCode } from '@/lib/country'
-import { getCityOptions, getCommunityOptions } from '@/lib/propertyCanonical'
 import {
   priceFilterOptions,
 } from '@/lib/filters/dropdownOptions'
@@ -14,6 +13,7 @@ type Property = any
 type Filters = {
   country: CountryCode
   search: string
+  region: string
   location: string
   community: string
   type: string
@@ -45,6 +45,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
   const [limit, setLimit] = useState<number>(24)
   const [totalCount, setTotalCount] = useState<number | null>(null)
   const restoringUrlRef = useRef(false)
+  const [locationOptions, setLocationOptions] = useState<{ states: string[]; cities: string[]; localities: string[] }>({ states: [], cities: [], localities: [] })
 
   const [purposeState, setPurposeState] = useState<Purpose>(() => {
     if (forcedPurpose) return forcedPurpose
@@ -70,8 +71,9 @@ export default function useProperties(forcedPurpose?: Purpose) {
   const [filters, setFilters] = useState<Filters>({
     country: initialCountry,
     search: getParam('q'),
+    region: getParam('state') || getParam('region'),
     location: getParam('location'),
-    community: getParam('community'),
+    community: getParam('locality') || getParam('community'),
     type: getParam('type'),
     minPrice: getParam('minPrice') || COUNTRY_META[initialCountry].minPrice.toString(),
     maxPrice: getParam('maxPrice') || COUNTRY_META[initialCountry].maxPrice.toString(),
@@ -95,6 +97,9 @@ export default function useProperties(forcedPurpose?: Purpose) {
     else params.delete('q')
     if (nextFilters.location) params.set('location', nextFilters.location)
     else params.delete('location')
+    if (nextFilters.region) params.set('state', nextFilters.region)
+    else params.delete('state')
+    params.delete('region')
     if (nextFilters.community) params.set('community', nextFilters.community)
     else params.delete('community')
     if (nextFilters.type) params.set('type', nextFilters.type)
@@ -112,16 +117,21 @@ export default function useProperties(forcedPurpose?: Purpose) {
     else params.delete('sortBy')
 
     const nextUrl = `${window.location.pathname}?${params.toString()}`
-    if (restoringUrlRef.current) restoringUrlRef.current = false
-    else window.history.pushState(null, '', nextUrl)
+    if (restoringUrlRef.current) {
+      restoringUrlRef.current = false
+    } else if (`${window.location.pathname}${window.location.search}` !== nextUrl) {
+      window.history.pushState(null, '', nextUrl)
+    }
   }, [])
 
   useEffect(() => {
     const restoreFromUrl = () => {
       const params = new URLSearchParams(window.location.search)
-      const next: Filters = {
-        ...filters,
+      restoringUrlRef.current = true
+      setFilters((previous) => ({
+        ...previous,
         search: params.get('q') || '',
+        region: params.get('state') || params.get('region') || '',
         location: params.get('location') || params.get('city') || '',
         community: params.get('community') || '',
         type: params.get('type') || params.get('propertyType') || '',
@@ -130,16 +140,26 @@ export default function useProperties(forcedPurpose?: Purpose) {
         bedrooms: params.get('bedrooms') || '',
         bathrooms: params.get('bathrooms') || '',
         sortBy: params.get('sortBy') || 'recommended',
-      }
-      restoringUrlRef.current = true
-      setFilters(next)
-      setDraftFilters(next)
+      }))
+      setDraftFilters((previous) => ({
+        ...previous,
+        search: params.get('q') || '',
+        region: params.get('state') || params.get('region') || '',
+        location: params.get('location') || params.get('city') || '',
+        community: params.get('community') || '',
+        type: params.get('type') || params.get('propertyType') || '',
+        minPrice: params.get('minPrice') || '',
+        maxPrice: params.get('maxPrice') || '',
+        bedrooms: params.get('bedrooms') || '',
+        bathrooms: params.get('bathrooms') || '',
+        sortBy: params.get('sortBy') || 'recommended',
+      }))
       setPage(1)
     }
 
     window.addEventListener('popstate', restoreFromUrl)
     return () => window.removeEventListener('popstate', restoreFromUrl)
-  }, [filters])
+  }, [])
 
   useEffect(() => {
     syncUrl(filters, purpose)
@@ -175,6 +195,28 @@ export default function useProperties(forcedPurpose?: Purpose) {
     setDraftFilters(filters)
   }, [filters])
 
+  useEffect(() => {
+    const controller = new AbortController()
+    const params = new URLSearchParams({ country: filters.country })
+    if (filters.region) params.set('region', filters.region)
+    if (filters.location) params.set('city', filters.location)
+
+    fetch(`/api/properties/locations?${params.toString()}`, { signal: controller.signal })
+      .then((response) => response.json())
+      .then((json) => {
+        if (!controller.signal.aborted && json?.success) {
+          setLocationOptions({
+            states: Array.isArray(json.states) ? json.states : [],
+            cities: Array.isArray(json.cities) ? json.cities : [],
+            localities: Array.isArray(json.localities) ? json.localities : [],
+          })
+        }
+      })
+      .catch(() => {})
+
+    return () => controller.abort()
+  }, [filters.country, filters.region, filters.location])
+
   const fetchProperties = useCallback(async () => {
     setLoading(true)
     setApiError('')
@@ -185,6 +227,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
       if (filters.search.trim()) params.set('q', filters.search.trim())
       if (filters.location) params.set('city', filters.location)
       if (filters.community) params.set('community', filters.community)
+      if (filters.region) params.set('state', filters.region)
       if (filters.type) params.set('type', filters.type)
       if (filters.minPrice) params.set('minPrice', filters.minPrice)
       if (filters.maxPrice) params.set('maxPrice', filters.maxPrice)
@@ -269,7 +312,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
     } finally {
       setLoading(false)
     }
-  }, [filters.bathrooms, filters.bedrooms, filters.community, filters.country, filters.location, filters.maxPrice, filters.minPrice, filters.type, filters.search, filters.offPlanOnly, filters.readyHomesOnly, filters.sortBy, purpose, page, limit])
+  }, [filters.bathrooms, filters.bedrooms, filters.community, filters.country, filters.location, filters.region, filters.maxPrice, filters.minPrice, filters.type, filters.search, filters.offPlanOnly, filters.readyHomesOnly, filters.sortBy, purpose, page, limit])
 
   useEffect(() => {
     fetchProperties()
@@ -278,7 +321,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
   useEffect(() => {
     // when filters or purpose change, reset pagination
     setPage(1)
-  }, [filters.country, filters.location, filters.community, filters.type, filters.minPrice, filters.maxPrice, filters.bedrooms, filters.bathrooms, filters.sortBy, purpose])
+  }, [filters.country, filters.region, filters.location, filters.community, filters.type, filters.minPrice, filters.maxPrice, filters.bedrooms, filters.bathrooms, filters.sortBy, purpose])
 
   const handleFilterChange = (newFilters: Partial<Filters>) => {
     if (newFilters.country && newFilters.country !== country && isCountryCode(newFilters.country)) {
@@ -288,6 +331,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
         ...filters,
         ...newFilters,
         search: '',
+        region: '',
         location: '',
         community: '',
         minPrice: COUNTRY_META[nextCountry].minPrice.toString(),
@@ -296,26 +340,19 @@ export default function useProperties(forcedPurpose?: Purpose) {
       return
     }
 
-    const nextLocation = newFilters.location
-    const didLocationChange = nextLocation !== undefined && nextLocation !== filters.location
+    const didRegionChange = newFilters.region !== undefined && newFilters.region !== filters.region
+    const didLocationChange = newFilters.location !== undefined && newFilters.location !== filters.location
     const next: Filters = {
       ...filters,
       ...newFilters,
-      community: didLocationChange ? '' : filters.community,
-      search: didLocationChange ? '' : filters.search,
+      location: didRegionChange ? '' : newFilters.location ?? filters.location,
+      community: didRegionChange || didLocationChange ? '' : newFilters.community ?? filters.community,
     }
     setFilters(next)
   }
 
-  const cities = useMemo(() => {
-    const iso2 = filters.country === 'INDIA' ? 'IN' : 'AE'
-    return getCityOptions(iso2).map((item) => item.name)
-  }, [filters.country])
-
-  const communities = useMemo(() => {
-    const iso2 = filters.country === 'INDIA' ? 'IN' : 'AE'
-    return getCommunityOptions(iso2, draftFilters.location || filters.location).map((item) => item.name)
-  }, [draftFilters.location, filters.country, filters.location])
+  const cities = locationOptions.cities
+  const communities = locationOptions.localities
 
   const applyDraft = (nextDraft?: Partial<Filters>) => {
     handleFilterChange(nextDraft ? { ...draftFilters, ...nextDraft } : draftFilters)
@@ -331,6 +368,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
     const next: Filters = {
       country: nextCountry,
       search: '',
+      region: '',
       location: '',
       community: '',
       type: '',
@@ -394,5 +432,6 @@ export default function useProperties(forcedPurpose?: Purpose) {
     maxPriceDrawerOptions,
     cities,
     communities,
+    states: locationOptions.states,
   }
 }

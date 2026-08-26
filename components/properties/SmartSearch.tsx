@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import GlobalDropdown from '@/components/ui/GlobalDropdown'
-import { singleDropdownValue } from '@/components/ui/dropdownUtils'
-import { COUNTRY_FILTER_OPTIONS } from '@/lib/filters/dropdownOptions'
-import { isCountryCode } from '@/lib/country'
 
 export default function SmartSearch({
   draftFilters,
   setDraftFilters,
   onSearch,
   purpose = 'buy',
+  country = '',
 }: any) {
   const timerRef = useRef<number | null>(null)
   const requestRef = useRef<AbortController | null>(null)
@@ -37,6 +34,7 @@ export default function SmartSearch({
     const timer = window.setTimeout(async () => {
       try {
         const params = new URLSearchParams({ q: query, purpose, limit: '6' })
+        if (country) params.set('country', country)
         const response = await fetch(`/api/properties?${params.toString()}`, { signal: controller.signal })
         const json = await response.json()
         if (!controller.signal.aborted) setSuggestions(Array.isArray(json?.items) ? json.items : [])
@@ -47,7 +45,7 @@ export default function SmartSearch({
       }
     }, 200)
     return () => window.clearTimeout(timer)
-  }, [draftFilters.search, purpose])
+  }, [country, draftFilters.search, purpose])
 
   const updateSearch = (search: string) => {
     const next = { ...draftFilters, search }
@@ -57,23 +55,7 @@ export default function SmartSearch({
   }
 
   return (
-    <div className="relative flex items-center gap-3">
-      <GlobalDropdown
-        label="Country"
-        showLabel={false}
-        value={draftFilters.country}
-        onChange={(v) => {
-          const next = singleDropdownValue(v)
-          if (!isCountryCode(next)) return
-          setDraftFilters((prev: any) => ({ ...prev, country: next }))
-        }}
-        options={COUNTRY_FILTER_OPTIONS}
-        appearance="admin-light"
-        dense
-        className="w-[150px]"
-      />
-
-      <div className="relative flex-1">
+    <div className="relative flex-1">
         <input
           value={draftFilters.search}
           onChange={(e) => updateSearch(e.target.value)}
@@ -128,7 +110,6 @@ export default function SmartSearch({
             ))}
           </div>
         ) : null}
-      </div>
     </div>
   )
 }

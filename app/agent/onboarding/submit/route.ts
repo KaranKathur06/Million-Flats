@@ -40,10 +40,6 @@ export async function POST(req: NextRequest) {
   const company = safeString(form.get('company'))
   const phone = safeString(form.get('phone'))
 
-  if (!license) {
-    return redirectTo(req, '/agent/onboarding')
-  }
-
   const dbUser = await prisma.user.findUnique({
     where: { email },
     include: { agent: true, accounts: true },
@@ -52,13 +48,15 @@ export async function POST(req: NextRequest) {
     return redirectTo(req, '/agent/auth?tab=login')
   }
 
-  const conflictingAgent = await prisma.agent.findFirst({
-    where: {
-      license,
-      ...(dbUser.agent ? { id: { not: dbUser.agent.id } } : {}),
-    },
-    select: { id: true },
-  })
+  const conflictingAgent = license
+    ? await prisma.agent.findFirst({
+        where: {
+          license,
+          ...(dbUser.agent ? { id: { not: dbUser.agent.id } } : {}),
+        },
+        select: { id: true },
+      })
+    : null
   if (conflictingAgent) {
     return redirectTo(req, '/agent/onboarding', '?error=license_taken')
   }
@@ -70,23 +68,23 @@ export async function POST(req: NextRequest) {
       await prisma.agent.create({
         data: {
           userId: dbUser.id,
-          license,
+          license: license || null,
           company: company || null,
           whatsapp: null,
           approved: false,
-          status: isEmailVerified ? 'EMAIL_VERIFIED' : 'REGISTERED',
+          status: isEmailVerified ? 'PROFILE_INCOMPLETE' : 'REGISTERED',
         } as any,
       })
     } else {
       const currentStatus = String((dbUser.agent as any)?.status || 'REGISTERED')
       const nextStatus =
-        currentStatus === 'REGISTERED'    ? 'EMAIL_VERIFIED' :
+        currentStatus === 'REGISTERED'    ? (isEmailVerified ? 'PROFILE_INCOMPLETE' : 'EMAIL_VERIFIED') :
         currentStatus === 'EMAIL_VERIFIED' ? 'PROFILE_INCOMPLETE' :
         currentStatus
 
       await prisma.agent.update({
         where: { userId: dbUser.id },
-        data: { license, company: company || null, status: nextStatus } as any,
+        data: { license: license || null, company: company || null, status: nextStatus } as any,
       })
     }
   } catch (error) {

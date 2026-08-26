@@ -58,6 +58,7 @@ const QuerySchema = z.object({
   state: z.string().trim().min(1).max(120).optional(),
   city: z.string().trim().min(1).max(120).optional(),
   community: z.string().trim().min(1).max(120).optional(),
+  locality: z.string().trim().min(1).max(120).optional(),
   propertyType: z.string().trim().min(1).max(80).optional(),
   bedrooms: z.coerce.number().int().min(0).max(50).optional(),
   bathrooms: z.coerce.number().int().min(0).max(50).optional(),
@@ -103,6 +104,7 @@ export async function GET(req: Request) {
       state: searchParams.get('state') || searchParams.get('region') || undefined,
       city: searchParams.get('city') || undefined,
       community: searchParams.get('community') || undefined,
+      locality: searchParams.get('locality') || undefined,
       propertyType: searchParams.get('propertyType') || searchParams.get('type') || undefined,
       bedrooms: searchParams.get('bedrooms') || undefined,
       bathrooms: searchParams.get('bathrooms') || undefined,
@@ -156,6 +158,7 @@ export async function GET(req: Request) {
     if (q.state) where.region = { contains: q.state, mode: 'insensitive' }
     if (q.city) where.city = { contains: q.city, mode: 'insensitive' }
     if (q.community) where.community = { contains: q.community, mode: 'insensitive' }
+    if (q.locality) where.locality = { contains: q.locality, mode: 'insensitive' }
     if (q.city && q.community) {
       const masterCommunity = await (prisma as any).community.findFirst({
         where: {
@@ -166,6 +169,41 @@ export async function GET(req: Request) {
       })
       if (!masterCommunity) {
         return NextResponse.json({ success: false, message: 'Community does not belong to the selected city' }, { status: 400 })
+      }
+    }
+    if (q.state && q.city) {
+      const validRegionCity = await (prisma as any).manualProperty.findFirst({
+        where: {
+          status: MANUAL_PROPERTY_PUBLIC_STATUS,
+          sourceType: 'MANUAL',
+          countryCode: q.country,
+          agent: { approved: true, user: { status: 'ACTIVE' } },
+          region: { equals: q.state, mode: 'insensitive' },
+          city: { equals: q.city, mode: 'insensitive' },
+        },
+        select: { id: true },
+      })
+      if (!validRegionCity) {
+        return NextResponse.json({ success: false, message: 'City does not belong to the selected state or emirate' }, { status: 400 })
+      }
+    }
+    if (q.city && q.locality) {
+      const validCityLocality = await (prisma as any).manualProperty.findFirst({
+        where: {
+          status: MANUAL_PROPERTY_PUBLIC_STATUS,
+          sourceType: 'MANUAL',
+          countryCode: q.country,
+          agent: { approved: true, user: { status: 'ACTIVE' } },
+          city: { equals: q.city, mode: 'insensitive' },
+          OR: [
+            { locality: { equals: q.locality, mode: 'insensitive' } },
+            { community: { equals: q.locality, mode: 'insensitive' } },
+          ],
+        },
+        select: { id: true },
+      })
+      if (!validCityLocality) {
+        return NextResponse.json({ success: false, message: 'Locality does not belong to the selected city' }, { status: 400 })
       }
     }
     if (q.propertyType) where.propertyType = { contains: q.propertyType, mode: 'insensitive' }
@@ -215,6 +253,33 @@ export async function GET(req: Request) {
         take,
       }),
     ])
+
+    if (q.q) {
+      const needle = q.q.toLowerCase().replace(/\s+/g, ' ').trim()
+      const score = (property: any) => {
+        const fields = [
+          [property.title, 100],
+          [property.developerName, 55],
+          [property.projectName, 50],
+          [property.locality, 40],
+          [property.community, 35],
+          [property.city, 30],
+          [property.region, 25],
+          [property.countryCode, 20],
+          [property.address, 15],
+          [property.propertyType, 10],
+        ] as const
+        return fields.reduce((total, [value, weight]) => {
+          const normalized = String(value || '').toLowerCase().replace(/\s+/g, ' ').trim()
+          if (!normalized) return total
+          if (normalized === needle) return total + weight + 30
+          if (normalized.startsWith(needle)) return total + weight + 20
+          if (normalized.includes(needle)) return total + weight
+          return total
+        }, 0)
+      }
+      rows.sort((a: any, b: any) => score(b) - score(a) || String(a.id).localeCompare(String(b.id)))
+    }
 
     const items = (rows as any[]).map((p) => {
       const images: string[] = Array.isArray(p?.media)

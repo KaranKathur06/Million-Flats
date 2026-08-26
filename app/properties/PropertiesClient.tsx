@@ -1,6 +1,6 @@
  'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CountryCode } from '@/lib/country'
 import useProperties from '@/app/properties/useProperties'
 import PropertiesHero from '@/components/properties/PropertiesHero'
@@ -48,6 +48,7 @@ interface Property {
 type Filters = {
   country: CountryCode
   search: string
+  region: string
   location: string
   community: string
   type: string
@@ -68,16 +69,6 @@ function safePurpose(v: unknown): Purpose {
 }
 
 export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Purpose }) {
-  const cityRefMobile = useRef<HTMLDivElement>(null)
-  const cityRefDesktop = useRef<HTMLDivElement>(null)
-  const [cityOpen, setCityOpen] = useState(false)
-  const [cityQuery, setCityQuery] = useState('')
-
-  const [communityOpen, setCommunityOpen] = useState(false)
-  const [communityQuery, setCommunityQuery] = useState('')
-  const communityRefMobile = useRef<HTMLDivElement>(null)
-  const communityRefDesktop = useRef<HTMLDivElement>(null)
-
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false)
   const [moreFiltersVisible, setMoreFiltersVisible] = useState(false)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
@@ -110,26 +101,10 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
     maxPriceDrawerOptions,
     cities,
     communities,
+    states,
   } = useProperties(forcedPurpose)
 
   // Data and URL sync handled by `useProperties` hook
-
-  useEffect(() => {
-    const onDown = (e: MouseEvent) => {
-      const target = e.target as Node
-      const inCityMobile = cityRefMobile.current?.contains(target) ?? false
-      const inCityDesktop = cityRefDesktop.current?.contains(target) ?? false
-      const inCommunityMobile = communityRefMobile.current?.contains(target) ?? false
-      const inCommunityDesktop = communityRefDesktop.current?.contains(target) ?? false
-      const inside = inCityMobile || inCityDesktop || inCommunityMobile || inCommunityDesktop
-      if (!inside) {
-        setCityOpen(false)
-        setCommunityOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [])
 
   const openMoreFilters = () => {
     setMoreFiltersOpen(true)
@@ -200,20 +175,10 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
     }
   }, [mobileFiltersEl, mobileFiltersOpen])
 
-  // Data fetching and filter handlers are provided by the hook
-  const communityOptions = communities
-
-  const filteredCities = useMemo(() => {
-    const q = cityQuery.trim().toLowerCase()
-    if (!q) return cities
-    return (cities as string[]).filter((c: string) => c.toLowerCase().includes(q))
-  }, [cities, cityQuery])
-
-  const filteredCommunities = useMemo(() => {
-    const q = communityQuery.trim().toLowerCase()
-    if (!q) return communityOptions
-    return communityOptions.filter((c) => c.toLowerCase().includes(q))
-  }, [communityOptions, communityQuery])
+  const changeFilter = (patch: Partial<Filters>) => {
+    setDraftFilters((previous) => ({ ...previous, ...patch }))
+    applyDraft(patch)
+  }
 
   const displayedProperties = properties
 
@@ -235,6 +200,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
         subtitle={heroSubtitle}
         image={{ src: '/HOMEPAGE.jpg', alt: heroTitle }}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: breadcrumbLabel, href: breadcrumbHref }]}
+        search={<SmartSearch draftFilters={draftFilters} setDraftFilters={setDraftFilters} onSearch={applyDraft} purpose={purpose} country={draftFilters.country} />}
       />
 
       <div className="mx-auto max-w-[1800px] px-4 sm:px-6 lg:px-8 pt-10 pb-14">
@@ -244,108 +210,27 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
 
         <div className="sticky top-14 md:top-20 z-30 mb-6 md:mb-10">
           <div className="space-y-3">
-            <div className="relative z-20 bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl shadow-sm p-3">
-              <div className="flex flex-col md:flex-row md:items-center gap-3">
-                <div className="w-full md:w-[320px]">
-                  <SmartSearch draftFilters={draftFilters} setDraftFilters={setDraftFilters} onSearch={applyDraft} purpose={purpose} />
-                </div>
-
-                <div className="relative w-full md:w-[240px]" ref={cityRefDesktop}>
-                  <input
-                    value={cityQuery !== '' ? cityQuery : draftFilters.location}
-                    onChange={(e) => {
-                      setCityQuery(e.target.value)
-                      setCityOpen(true)
-                    }}
-                    onFocus={() => setCityOpen(true)}
-                    placeholder="City"
-                    className="w-full h-12 md:h-11 px-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-dark-blue/30"
-                  />
-                  {cityOpen && filteredCities.length > 0 && (
-                    <div className="absolute z-[70] mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                      {filteredCities.slice(0, 10).map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => {
-                            setDraftFilters((prev) => ({ ...prev, location: c, community: '' }))
-                            setCityQuery('')
-                            setCommunityQuery('')
-                            setCityOpen(false)
-                            setCommunityOpen(false)
-                          }}
-                          className="w-full text-left px-4 py-3 hover:bg-gray-50"
-                        >
-                          {c}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="relative w-full md:flex-1" ref={communityRefDesktop}>
-                  <input
-                    value={communityQuery !== '' ? communityQuery : draftFilters.community}
-                    onChange={(e) => {
-                      setCommunityQuery(e.target.value)
-                      setCommunityOpen(true)
-                    }}
-                    onFocus={() => {
-                      if (!draftFilters.location) return
-                      setCommunityOpen(true)
-                    }}
-                    placeholder={draftFilters.location ? 'Community / Area' : 'Select City First'}
-                    disabled={!draftFilters.location || communityOptions.length === 0}
-                    className="w-full h-12 md:h-11 px-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-dark-blue/30 disabled:opacity-60 disabled:cursor-not-allowed"
-                  />
-                  {communityOpen && filteredCommunities.length > 0 && (
-                    <div className="absolute z-[70] mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                      {filteredCommunities.slice(0, 10).map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => {
-                            setDraftFilters((prev) => ({ ...prev, community: c }))
-                            setCommunityQuery('')
-                            setCommunityOpen(false)
-                          }}
-                          className="w-full text-left px-4 py-3 hover:bg-gray-50"
-                        >
-                          {c}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="md:hidden flex gap-2">
-                  <button
-                    type="button"
-                    onClick={openMobileFilters}
-                    className="h-12 flex-1 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue hover:bg-gray-50"
-                  >
-                    Filters
-                  </button>
-                  <button
-                    type="button"
-                    onClick={applyDraft}
-                    className="h-12 w-12 rounded-full bg-dark-blue text-white font-semibold hover:bg-dark-blue/90 transition-colors inline-flex items-center justify-center"
-                    aria-label="Search"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 21l-4.35-4.35m1.35-5.65a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              </div>
+            <div className="mb-3 flex gap-2 md:hidden">
+              <button
+                type="button"
+                onClick={openMobileFilters}
+                className="h-12 flex-1 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-dark-blue"
+              >
+                Filters
+              </button>
+              <GlobalDropdown
+                label="Sort"
+                showLabel={false}
+                value={draftFilters.sortBy}
+                onChange={(v) => changeFilter({ sortBy: singleDropdownValue(v) })}
+                options={LISTING_SORT_COMPACT_OPTIONS}
+                appearance="admin-light"
+                dense
+                className="min-w-[155px]"
+              />
             </div>
 
-            <div className="relative z-10 hidden md:block bg-white/85 backdrop-blur-md border border-gray-200 rounded-2xl shadow-sm p-3">
+            <div className="relative z-10 bg-white/85 backdrop-blur-md border border-gray-200 rounded-2xl shadow-sm p-3">
               <div className="flex flex-wrap items-center gap-2">
                 {!forcedPurpose ? (
                   <div className="inline-flex items-center rounded-xl border border-gray-200 bg-white p-1">
@@ -371,10 +256,57 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
                 ) : null}
 
                 <GlobalDropdown
+                  label="Country"
+                  showLabel={false}
+                  value={draftFilters.country}
+                  onChange={(v) => changeFilter({ country: singleDropdownValue(v) as CountryCode })}
+                  options={COUNTRY_FILTER_OPTIONS}
+                  appearance="admin-light"
+                  dense
+                  className="min-w-[150px]"
+                />
+
+                <GlobalDropdown
+                  label="State / Emirate"
+                  showLabel={false}
+                  value={draftFilters.region}
+                  onChange={(v) => changeFilter({ region: singleDropdownValue(v) })}
+                  options={[{ value: '', label: 'All States / Emirates' }, ...states.map((value) => ({ value, label: value }))]}
+                  disabled={!draftFilters.country}
+                  appearance="admin-light"
+                  dense
+                  className="min-w-[190px]"
+                />
+
+                <GlobalDropdown
+                  label="City"
+                  showLabel={false}
+                  value={draftFilters.location}
+                  onChange={(v) => changeFilter({ location: singleDropdownValue(v) })}
+                  options={[{ value: '', label: draftFilters.region ? 'All Cities' : 'Select State / Emirate' }, ...cities.map((value) => ({ value, label: value }))]}
+                  disabled={!draftFilters.region}
+                  appearance="admin-light"
+                  dense
+                  className="min-w-[160px]"
+                />
+
+                <GlobalDropdown
+                  label="Locality"
+                  showLabel={false}
+                  value={draftFilters.community}
+                  onChange={(v) => changeFilter({ community: singleDropdownValue(v) })}
+                  options={[{ value: '', label: draftFilters.location ? 'All Localities' : 'Select City' }, ...communities.map((value) => ({ value, label: value }))]}
+                  disabled={!draftFilters.location}
+                  appearance="admin-light"
+                  dense
+                  className="min-w-[170px]"
+                />
+
+                <GlobalDropdown
                   label="Property Type"
                   showLabel={false}
                   value={draftFilters.type}
-                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, type: singleDropdownValue(v) }))}
+                  onChange={(v) => changeFilter({ type: singleDropdownValue(v) })}
                   options={PROPERTY_TYPE_COMPACT_OPTIONS}
                   appearance="admin-light"
                   dense
@@ -385,7 +317,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
                   label="Min Price"
                   showLabel={false}
                   value={draftFilters.minPrice}
-                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, minPrice: singleDropdownValue(v) }))}
+                  onChange={(v) => changeFilter({ minPrice: singleDropdownValue(v) })}
                   options={minPriceDropdownOptions}
                   appearance="admin-light"
                   dense
@@ -396,7 +328,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
                   label="Max Price"
                   showLabel={false}
                   value={draftFilters.maxPrice}
-                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, maxPrice: singleDropdownValue(v) }))}
+                  onChange={(v) => changeFilter({ maxPrice: singleDropdownValue(v) })}
                   options={maxPriceDropdownOptions}
                   appearance="admin-light"
                   dense
@@ -407,7 +339,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
                   label="Beds"
                   showLabel={false}
                   value={draftFilters.bedrooms}
-                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, bedrooms: singleDropdownValue(v) }))}
+                  onChange={(v) => changeFilter({ bedrooms: singleDropdownValue(v) })}
                   options={BEDROOM_PLUS_FILTER_OPTIONS}
                   appearance="admin-light"
                   dense
@@ -418,7 +350,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
                   label="Baths"
                   showLabel={false}
                   value={draftFilters.bathrooms}
-                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, bathrooms: singleDropdownValue(v) }))}
+                  onChange={(v) => changeFilter({ bathrooms: singleDropdownValue(v) })}
                   options={BATHROOM_PLUS_FILTER_OPTIONS}
                   appearance="admin-light"
                   dense
@@ -445,7 +377,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
                   label="Sort"
                   showLabel={false}
                   value={draftFilters.sortBy}
-                  onChange={(v) => setDraftFilters((prev) => ({ ...prev, sortBy: singleDropdownValue(v) }))}
+                  onChange={(v) => changeFilter({ sortBy: singleDropdownValue(v) })}
                   options={LISTING_SORT_COMPACT_OPTIONS}
                   appearance="admin-light"
                   dense

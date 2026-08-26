@@ -1,7 +1,8 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 
-export default function PropertiesHero({ title, subtitle, breadcrumb, image }: any) {
+export default function PropertiesHero({ title, subtitle, breadcrumb, image, search }: { title: string; subtitle: string; breadcrumb?: { label: string; href: string }[]; image?: { src: string; alt: string }; search?: ReactNode }) {
   return (
     <section className="relative overflow-hidden bg-[#0c1d37] text-white">
       <div className="absolute inset-0 opacity-25">
@@ -22,6 +23,7 @@ export default function PropertiesHero({ title, subtitle, breadcrumb, image }: a
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-accent-yellow">Property Discovery</p>
         <h1 className="mx-auto mt-5 max-w-3xl font-serif text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">{title}</h1>
         <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-white/78 sm:text-lg">{subtitle}</p>
+        {search ? <div className="relative z-20 mx-auto mt-8 w-full max-w-3xl text-left">{search}</div> : null}
       </div>
     </section>
   )
