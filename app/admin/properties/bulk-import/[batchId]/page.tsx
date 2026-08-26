@@ -60,7 +60,7 @@ export default function ImportBatchDetailPage() {
             const response = await fetch(`/api/admin/bulk-import/${batchId}`, { cache: 'no-store' })
             const payload = await response.json()
             if (!response.ok || !payload.success) throw new Error(payload.message || 'Unable to load import batch.')
-            setBatch(payload.batch)
+            setBatch({ ...payload.batch, records: Array.isArray(payload.batch?.records) ? payload.batch.records : [], issues: Array.isArray(payload.batch?.issues) ? payload.batch.issues : [] })
         } catch (error: any) {
             toast.error(error.message || 'Unable to load import batch.')
         } finally {
