@@ -10,9 +10,9 @@ describe('universal entity adapters', () => {
   })
 
   it('accepts human-formatted CSV headers with spaces', () => {
-    const normalized = developerImportAdapter.normalize({ raw: { 'Developer  Name': 'Shivalik Group', City: 'Ahmedabad', Country: 'India', 'Short Description': 'Green developments', Website: 'https://shivalik.example' }, sourcePath: null, mappings: [] })
+    const normalized = developerImportAdapter.normalize({ raw: { 'Developer  Name': 'Shivalik Group', City: 'Ahmedabad', State: 'Gujarat', Country: 'India', 'Short Description': 'Green developments', 'Full Description': 'Detailed description', Website: 'https://shivalik.example', Email: 'INFO@SHIVALIK.EXAMPLE', Phone: '91 79 4020 0000', Address: 'Ahmedabad', 'Meta Title': 'Shivalik title', 'Meta Description': 'Shivalik description', 'Meta Keywords': 'shivalik, ahmedabad', 'Duplicate Check': 'Unique' }, sourcePath: null, mappings: [] })
     const mapped = developerImportAdapter.mapCanonical({ raw: {}, normalized: normalized.normalized, mappings: [] })
-    expect(mapped.canonical).toMatchObject({ name: 'Shivalik Group', city: 'Ahmedabad', countryIso2: 'IN', website: 'https://shivalik.example' })
+    expect(mapped.canonical).toMatchObject({ name: 'Shivalik Group', city: 'Ahmedabad', countryIso2: 'IN', website: 'https://shivalik.example', description: 'Detailed description', email: 'info@shivalik.example', phone: '91 79 4020 0000', address: 'Ahmedabad', metaTitle: 'Shivalik title', metaDescription: 'Shivalik description', metaKeywords: 'shivalik, ahmedabad', sourceState: 'Gujarat', sourceDuplicateCheck: 'Unique' })
   })
 
   it('normalizes project prices and requires a developer relation', () => {

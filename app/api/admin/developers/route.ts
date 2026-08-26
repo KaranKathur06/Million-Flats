@@ -173,30 +173,33 @@ export async function GET(req: Request) {
     try {
       // Try with isDeleted filter and aiScore
       items = await runQuery(true, true, true)
+      const countryWhere = country === 'UAE' || country === 'INDIA' ? { countryCode: country } : {}
       const [total, active, inactive, deleted] = await Promise.all([
-        (prisma as any).developer.count(),
-        (prisma as any).developer.count({ where: { isDeleted: { not: true }, status: 'ACTIVE' } }),
-        (prisma as any).developer.count({ where: { isDeleted: { not: true }, status: 'INACTIVE' } }),
-        (prisma as any).developer.count({ where: { isDeleted: true } }),
+        (prisma as any).developer.count({ where: countryWhere }),
+        (prisma as any).developer.count({ where: { ...countryWhere, isDeleted: { not: true }, status: 'ACTIVE' } }),
+        (prisma as any).developer.count({ where: { ...countryWhere, isDeleted: { not: true }, status: 'INACTIVE' } }),
+        (prisma as any).developer.count({ where: { ...countryWhere, isDeleted: true } }),
       ])
       counts = { total, active, inactive, deleted }
     } catch {
       try {
         // If isDeleted column isn't present, retry without deleted filters
         items = await runQuery(false, false, true)
+        const countryWhere = country === 'UAE' || country === 'INDIA' ? { countryCode: country } : {}
         const [total, active, inactive] = await Promise.all([
-          (prisma as any).developer.count(),
-          (prisma as any).developer.count({ where: { status: 'ACTIVE' } }),
-          (prisma as any).developer.count({ where: { status: 'INACTIVE' } }),
+          (prisma as any).developer.count({ where: countryWhere }),
+          (prisma as any).developer.count({ where: { ...countryWhere, status: 'ACTIVE' } }),
+          (prisma as any).developer.count({ where: { ...countryWhere, status: 'INACTIVE' } }),
         ])
         counts = { total, active, inactive, deleted: 0 }
       } catch {
         // If aiScore isn't present either, retry without it
         items = await runQuery(false, false, false)
+        const countryWhere = country === 'UAE' || country === 'INDIA' ? { countryCode: country } : {}
         const [total, active, inactive] = await Promise.all([
-          (prisma as any).developer.count(),
-          (prisma as any).developer.count({ where: { status: 'ACTIVE' } }),
-          (prisma as any).developer.count({ where: { status: 'INACTIVE' } }),
+          (prisma as any).developer.count({ where: countryWhere }),
+          (prisma as any).developer.count({ where: { ...countryWhere, status: 'ACTIVE' } }),
+          (prisma as any).developer.count({ where: { ...countryWhere, status: 'INACTIVE' } }),
         ])
         counts = { total, active, inactive, deleted: 0 }
       }

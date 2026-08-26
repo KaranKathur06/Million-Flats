@@ -22,13 +22,15 @@ type ImportBatch = {
     originalFileName: string
     status: string
     mode: string
+    entityType: string
     totalRecords: number
     readyCount: number
     warningCount: number
     errorCount: number
     createdCount: number
-    skippedCount: number
     failedCount: number
+    updatedCount?: number
+    skippedCount?: number
     createdAt: string
     records: ImportRecord[]
     issues: Array<{ id: string; severity: string; stage: string; message: string; resolutionState: string }>
@@ -143,6 +145,12 @@ export default function ImportBatchDetailPage() {
     if (!batch) return <div className="p-8 text-sm text-red-300">Import batch could not be loaded.</div>
 
     const canCommit = batch.status === 'READY_TO_COMMIT' || batch.status === 'READY_FOR_REVIEW'
+    const entityLabel = batch.entityType === 'DEVELOPER' ? 'developer' : batch.entityType === 'PROJECT' ? 'project' : batch.entityType === 'ECOSYSTEM_PARTNER' ? 'ecosystem partner' : batch.entityType === 'AGENCY' ? 'agency' : batch.entityType === 'AGENT' ? 'agent' : batch.entityType === 'LEAD' ? 'lead' : 'property'
+    const recordLabel = (record: ImportRecord) => {
+        const value = record.canonicalPayload as any || record.normalizedPayload as any || record.rawPayload as any || {}
+        return String(value.name || value.title || value.company_name || value['Developer  Name'] || value.email || record.sourceRecordId)
+    }
+    const jsonText = (value: unknown) => JSON.stringify(value ?? {}, null, 2)
 
     return (
         <div className="mx-auto max-w-6xl p-6 lg:p-8">
@@ -178,13 +186,15 @@ export default function ImportBatchDetailPage() {
                 </div>
             </div>
 
-            <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
+            <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-7">
                 {[
-                    ['Total', batch.totalRecords],
-                    ['Ready', batch.readyCount],
+                    ['Source records', batch.totalRecords],
+                    ['Ready to commit', batch.readyCount],
                     ['Warnings', batch.warningCount],
                     ['Errors', batch.errorCount],
                     ['Created', batch.createdCount],
+                    ['Updated', batch.updatedCount ?? 0],
+                    ['Skipped', batch.skippedCount ?? 0],
                 ].map(([label, value]) => (
                     <div key={label} className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-4">
                         <p className="text-[11px] uppercase tracking-[0.16em] text-white/35">{label}</p>
@@ -192,6 +202,7 @@ export default function ImportBatchDetailPage() {
                     </div>
                 ))}
             </div>
+            <p className="mb-6 text-xs text-white/40">Ready to commit means the record passed validation. Created counts new {entityLabel}s; updated counts existing records changed; skipped counts duplicates or records intentionally not created.</p>
 
             {batch.issues.length > 0 && (
                 <section className="mb-6 rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-5">
@@ -211,16 +222,22 @@ export default function ImportBatchDetailPage() {
                     <h2 className="text-sm font-semibold text-white/80">Records</h2>
                 </div>
                 <div className="divide-y divide-white/[0.06]">
-                    {batch.records.map((record) => (
-                        <div key={record.id} className="grid gap-3 px-5 py-4 md:grid-cols-[70px_1fr_140px_120px] md:items-center">
-                            <span className="text-xs text-white/35">#{record.sourceRow ?? '-'}</span>
-                            <div className="min-w-0">
-                                <p className="truncate text-sm text-white/80">{String((record.canonicalPayload as any)?.title || (record.rawPayload as any)?.title || record.sourceRecordId)}</p>
-                                <p className="mt-1 truncate text-[11px] text-white/35">{record.sourceRecordId}</p>
+                    {batch.records.map((record, index) => (
+                        <details key={record.id} className="group px-5 py-4">
+                            <summary className="grid cursor-pointer list-none gap-3 md:grid-cols-[120px_1fr_140px_120px] md:items-center">
+                                <span className="text-xs text-white/45">Record {index + 1} <span className="text-white/25">· source row {record.sourceRow ?? '-'}</span></span>
+                                <div className="min-w-0"><p className="truncate text-sm text-white/80">{recordLabel(record)}</p><p className="mt-1 truncate text-[11px] text-white/35">Source ID: {record.sourceRecordId}</p></div>
+                                <span className={`w-fit rounded-full border px-2 py-1 text-[10px] font-semibold uppercase ${STATUS_STYLES[record.status] || STATUS_STYLES.SKIPPED}`}>{record.status}</span>
+                                <span className="text-xs text-white/35">{record.targetEntityId ? 'Linked' : 'Not linked'}</span>
+                            </summary>
+                            <div className="mt-4 grid gap-4 border-t border-white/[0.06] pt-4 lg:grid-cols-3">
+                                {([ 
+                                    ['Source', record.rawPayload],
+                                    ['Normalized', record.normalizedPayload],
+                                    ['Canonical', record.canonicalPayload],
+                                ] as Array<[string, unknown]>).map(([label, value]) => <div key={label} className="min-w-0"><p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">{label}</p><pre className="max-h-64 overflow-auto rounded-lg border border-white/[0.07] bg-black/20 p-3 text-[11px] leading-5 text-white/60">{jsonText(value)}</pre></div>)}
                             </div>
-                            <span className={`w-fit rounded-full border px-2 py-1 text-[10px] font-semibold uppercase ${STATUS_STYLES[record.status] || STATUS_STYLES.SKIPPED}`}>{record.status}</span>
-                            <span className="text-xs text-white/35">{record.targetEntityId ? 'Linked' : 'Pending'}</span>
-                        </div>
+                        </details>
                     ))}
                 </div>
             </section>
