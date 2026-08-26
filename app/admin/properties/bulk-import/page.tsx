@@ -59,9 +59,10 @@ export default function ImportCenterPage() {
     const [error, setError] = useState('')
     const [entityOptions, setEntityOptions] = useState(fallbackEntityOptions)
     const [ecosystemCategoryOptions, setEcosystemCategoryOptions] = useState(fallbackEcosystemCategoryOptions)
+    const [dragActive, setDragActive] = useState(false)
 
     useEffect(() => {
-        fetch('/api/admin/bulk-import', { cache: 'no-store' }).then((response) => response.json()).then((payload) => {
+        fetch('/api/admin/bulk-import/registry', { cache: 'no-store' }).then((response) => response.json()).then((payload) => {
             if (Array.isArray(payload.adapters) && payload.adapters.length) setEntityOptions(payload.adapters.map((adapter: any) => ({ value: adapter.key, label: adapter.displayName })))
         }).catch(() => undefined)
     }, [])
@@ -82,6 +83,22 @@ export default function ImportCenterPage() {
         setError('')
         setStep('upload')
     }, [])
+
+    const selectSourceFile = (selectedFile?: File) => {
+        if (!selectedFile) return
+        const fileName = selectedFile.name.toLowerCase()
+        const supported = fileName.endsWith('.csv') || fileName.endsWith('.xlsx') || fileName.endsWith('.json')
+        if (!supported) {
+            setError('Choose a CSV, XLSX, or JSON source file.')
+            return
+        }
+        if (selectedFile.size > 10 * 1024 * 1024) {
+            setError('Source files must be 10 MB or smaller.')
+            return
+        }
+        setFile(selectedFile)
+        setError('')
+    }
 
     const uploadSource = async () => {
         if (!file) return setError('Choose a CSV, XLSX, or JSON source file first.')
@@ -189,11 +206,17 @@ export default function ImportCenterPage() {
 
                         {step === 'upload' && <>
                             <div className="mb-8 flex items-start justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">Step 02</p><h2 className="mt-2 text-xl font-semibold">Upload source file</h2><p className="mt-2 text-sm text-white/45">CSV, XLSX, and JSON are parsed server-side. Nothing is committed at upload.</p></div><button type="button" onClick={loadDemo} className="button-quiet">Load demo</button></div>
-                            <label className="flex min-h-[230px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-amber-300/30 bg-amber-300/[0.035] px-6 text-center hover:bg-amber-300/[0.06]">
+                            <label
+                                onDragEnter={(event) => { event.preventDefault(); setDragActive(true) }}
+                                onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; setDragActive(true) }}
+                                onDragLeave={(event) => { if (event.currentTarget === event.target) setDragActive(false) }}
+                                onDrop={(event) => { event.preventDefault(); setDragActive(false); selectSourceFile(event.dataTransfer.files?.[0]) }}
+                                className={`flex min-h-[230px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 text-center transition-colors ${dragActive ? 'border-amber-300 bg-amber-300/[0.12]' : 'border-amber-300/30 bg-amber-300/[0.035] hover:bg-amber-300/[0.06]'}`}
+                            >
                                 <span className="flex h-12 w-12 items-center justify-center rounded-full border border-amber-300/20 bg-amber-300/10 text-2xl text-amber-300">↑</span>
                                 <span className="mt-4 text-sm font-medium text-white/80">{file ? file.name : 'Drop a source file here'}</span>
                                 <span className="mt-2 text-xs text-white/35">{file ? sourcePreview : 'CSV, XLSX, or JSON · up to 10 MB'}</span>
-                                <input type="file" accept=".csv,.xlsx,.json,text/csv,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden" onChange={e => setFile(e.target.files?.[0] || null)} />
+                                <input type="file" accept=".csv,.xlsx,.json,text/csv,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden" onChange={e => selectSourceFile(e.target.files?.[0])} />
                             </label>
                             <div className="mt-8 flex justify-between"><button type="button" onClick={goBack} className="button-quiet">Back</button><button type="button" onClick={() => void uploadSource()} disabled={busy || !file} className="button-primary disabled:opacity-40">{busy ? 'Staging…' : 'Stage source'} <span>→</span></button></div>
                         </>}

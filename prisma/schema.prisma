@@ -4328,7 +4328,7 @@ enum ImportMappingStatus {
 
 model ImportBatch {
   id                  String            @id @default(cuid())
-  entityType          ImportEntityType
+  entityType          ImportEntityType  @map("entity_type")
   operation           ImportOperation
   mode                ImportMode
   status              ImportBatchStatus @default(UPLOADED)

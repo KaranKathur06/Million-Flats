@@ -12,29 +12,34 @@ export async function GET() {
   const auth = await requireAdminSession()
   if (!auth.ok) return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
 
-  const { prisma } = await import('@/lib/prisma')
-  const batches = await (prisma as any).importBatch.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: 100,
-    select: {
-      id: true,
-      originalFileName: true,
-      status: true,
-      mode: true,
-      totalRecords: true,
-      readyCount: true,
-      warningCount: true,
-      errorCount: true,
-      createdCount: true,
-      skippedCount: true,
-      failedCount: true,
-      createdAt: true,
-      entityType: true,
-      operation: true,
-      sourceProvider: true,
-      category: true,
-    },
-  })
+  let batches: unknown[] = []
+  try {
+    const { prisma } = await import('@/lib/prisma')
+    batches = await (prisma as any).importBatch.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      select: {
+        id: true,
+        originalFileName: true,
+        status: true,
+        mode: true,
+        totalRecords: true,
+        readyCount: true,
+        warningCount: true,
+        errorCount: true,
+        createdCount: true,
+        skippedCount: true,
+        failedCount: true,
+        createdAt: true,
+        entityType: true,
+        operation: true,
+        sourceProvider: true,
+        category: true,
+      },
+    })
+  } catch (error) {
+    console.error('[GET /api/admin/bulk-import] history unavailable:', error)
+  }
   return NextResponse.json({ success: true, batches, adapters: listImportAdapters() })
 }
 
