@@ -39,6 +39,7 @@ describe('universal entity adapters', () => {
     const normalized = ecosystemPartnerImportAdapter.normalize({
       raw: {
         'Business Name': 'State Bank of India (SBI)',
+        'Years of Experience': '71 Years (Est. 1955)',
         'Loan Types': 'Regular Home Loan; Balance Transfer; NRI Loan',
         'Interest Rate Min (%)': '8.5',
         'Interest Rate Max (%)': '9.85',
@@ -52,6 +53,7 @@ describe('universal entity adapters', () => {
 
     expect(mapped.canonical).toMatchObject({
       name: 'State Bank of India (SBI)',
+      yearsExperience: 71,
       categoryData: {
         loanTypes: ['Regular Home Loan', 'Balance Transfer', 'NRI Loan'],
         interestRateMin: 8.5,
