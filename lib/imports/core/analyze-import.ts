@@ -13,6 +13,17 @@ export async function analyzeImportBatch(input: { batchId: string; ownerAgentId?
   }
 
   const currentState = String(batch.status || 'UPLOADED')
+  if (currentState === 'READY_TO_COMMIT') {
+    return {
+      batchId: batch.id,
+      status: currentState,
+      total: batch.totalRecords || 0,
+      ready: batch.readyCount || 0,
+      warnings: batch.warningCount || 0,
+      errors: batch.errorCount || 0,
+    }
+  }
+
   if (!canTransition(currentState as any, 'ANALYZING')) {
     throw new Error(`Import batch cannot transition from ${currentState} to ANALYZING.`)
   }

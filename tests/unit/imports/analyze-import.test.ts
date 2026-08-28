@@ -39,4 +39,27 @@ describe('import batch analysis', () => {
       data: expect.objectContaining({ status: 'FAILED' }),
     })
   })
+
+  it('returns the existing result when analysis is retried after readiness', async () => {
+    mockedPrisma.importBatch.findUnique.mockResolvedValue({
+      id: 'batch-1',
+      entityType: 'PROPERTY',
+      status: 'READY_TO_COMMIT',
+      totalRecords: 3,
+      readyCount: 3,
+      warningCount: 0,
+      errorCount: 0,
+    })
+
+    await expect(analyzeImportBatch({ batchId: 'batch-1' })).resolves.toEqual({
+      batchId: 'batch-1',
+      status: 'READY_TO_COMMIT',
+      total: 3,
+      ready: 3,
+      warnings: 0,
+      errors: 0,
+    })
+    expect(mockedPrisma.importBatch.update).not.toHaveBeenCalled()
+    expect(mockedPrisma.importRecord.findMany).not.toHaveBeenCalled()
+  })
 })
