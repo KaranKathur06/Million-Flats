@@ -54,6 +54,7 @@ describe('universal entity adapters', () => {
     expect(mapped.canonical).toMatchObject({
       name: 'State Bank of India (SBI)',
       yearsExperience: 71,
+      experienceDisplay: '71 Years (Est. 1955)',
       categoryData: {
         loanTypes: ['Regular Home Loan', 'Balance Transfer', 'NRI Loan'],
         interestRateMin: 8.5,
