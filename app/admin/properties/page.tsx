@@ -309,6 +309,11 @@ export default function AdminPropertiesPage() {
                         <button onClick={() => runBulkAction('archive')} disabled={bulkActionLoading !== null} className="rounded-lg border border-white/[0.15] bg-white/[0.05] px-3 py-1.5 text-xs font-semibold text-white/60 hover:bg-white/[0.10] disabled:opacity-50 cursor-pointer">
                             {bulkActionLoading === 'archive' ? 'Archiving...' : 'Archive'}
                         </button>
+                        <button onClick={() => runBulkAction('unpublish')} disabled={bulkActionLoading !== null} className="rounded-lg border border-white/[0.15] bg-white/[0.05] px-3 py-1.5 text-xs font-semibold text-white/60 hover:bg-white/[0.10] disabled:opacity-50 cursor-pointer">Unpublish</button>
+                        <button onClick={() => runBulkAction('sold')} disabled={bulkActionLoading !== null} className="rounded-lg border border-purple-500/30 bg-purple-500/10 px-3 py-1.5 text-xs font-semibold text-purple-300 hover:bg-purple-500/20 disabled:opacity-50 cursor-pointer">Sold</button>
+                        <button onClick={() => runBulkAction('restore')} disabled={bulkActionLoading !== null} className="rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-300 hover:bg-blue-500/20 disabled:opacity-50 cursor-pointer">Restore</button>
+                        <button onClick={() => runBulkAction('delete')} disabled={bulkActionLoading !== null} className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-300 hover:bg-red-500/20 disabled:opacity-50 cursor-pointer">Delete</button>
+                        <button onClick={() => { if (window.confirm('Permanently delete the selected properties? This cannot be undone.')) runBulkAction('permanent_delete') }} disabled={bulkActionLoading !== null} className="rounded-lg border border-red-500/40 bg-red-500/20 px-3 py-1.5 text-xs font-semibold text-red-200 hover:bg-red-500/30 disabled:opacity-50 cursor-pointer">Permanent Delete</button>
                         <button onClick={() => setSelectedIds([])} className="rounded-lg px-3 py-1.5 text-xs text-white/40 hover:text-white/70 cursor-pointer">
                             Clear
                         </button>

@@ -540,6 +540,23 @@ export default function AdminProjectsPage() {
             disabled: bulkActionLoading !== null,
             onClick: () => setBulkDeleteModalOpen(true),
           },
+          {
+            key: 'permanent-delete',
+            label: 'Permanent Delete',
+            variant: 'danger',
+            disabled: bulkActionLoading !== null,
+            onClick: async () => {
+              if (!window.confirm('Permanently delete the selected projects? This cannot be undone.')) return
+              setBulkActionLoading('delete')
+              try {
+                const res = await fetch('/api/admin/bulk-approve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'projects', action: 'permanent_delete', ids: selectedIds }) })
+                const json = await res.json()
+                if (!res.ok || !json.success) throw new Error(json.message || 'Permanent delete failed')
+                setSelectedIds([])
+                await load()
+              } catch (err: any) { toast.error(err.message || 'Permanent delete failed') } finally { setBulkActionLoading(null) }
+            },
+          },
         ]}
       />
 

@@ -90,6 +90,23 @@ export default function AdminEcosystemPartnersManagePage() {
     }
   }
 
+  const handleBulkAction = async (action: string) => {
+    if (!selectedIds.length) return
+    if (action === 'permanent_delete' && !window.confirm('Permanently delete the selected partners? This cannot be undone.')) return
+    setBulkApproving(true)
+    try {
+      const response = await fetch('/api/admin/bulk-approve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'ecosystem-partners', action, ids: selectedIds }) })
+      const json = await response.json().catch(() => null)
+      if (!response.ok || !json?.success) throw new Error(json?.message || 'Partner action failed')
+      setSelectedIds([])
+      await load()
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Partner action failed')
+    } finally {
+      setBulkApproving(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -163,9 +180,11 @@ export default function AdminEcosystemPartnersManagePage() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-400/20 bg-amber-500/10 px-4 py-3">
             <span className="text-sm font-semibold text-amber-200/80">{selectedIds.length} partner(s) selected</span>
             <div className="flex gap-2">
-              <button type="button" onClick={handleBulkApprove} disabled={bulkApproving} className="rounded-lg border border-emerald-400/20 bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-300 disabled:opacity-50">
-                {bulkApproving ? 'Publishing...' : 'Approve & Publish'}
-              </button>
+              <button type="button" onClick={() => handleBulkAction('approve')} disabled={bulkApproving} className="rounded-lg border border-emerald-400/20 bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-300 disabled:opacity-50">{bulkApproving ? 'Working...' : 'Approve & Publish'}</button>
+              <button type="button" onClick={() => handleBulkAction('unpublish')} disabled={bulkApproving} className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/70 disabled:opacity-50">Unpublish</button>
+              <button type="button" onClick={() => handleBulkAction('reject')} disabled={bulkApproving} className="rounded-lg border border-red-400/20 bg-red-500/15 px-3 py-2 text-xs font-semibold text-red-300 disabled:opacity-50">Reject</button>
+              <button type="button" onClick={() => handleBulkAction('delete')} disabled={bulkApproving} className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-300 disabled:opacity-50">Delete</button>
+              <button type="button" onClick={() => handleBulkAction('permanent_delete')} disabled={bulkApproving} className="rounded-lg border border-red-500/40 bg-red-500/20 px-3 py-2 text-xs font-semibold text-red-200 disabled:opacity-50">Permanent Delete</button>
               <button type="button" onClick={() => setSelectedIds([])} disabled={bulkApproving} className="px-3 py-2 text-xs text-white/40 hover:text-white/70">
                 Clear
               </button>

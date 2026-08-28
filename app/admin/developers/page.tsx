@@ -513,6 +513,22 @@ export default function AdminDevelopersPage() {
               {bulkApproving ? 'Activating...' : 'Approve & Publish'}
             </button>
             <button
+              onClick={async () => {
+                setBulkApproving(true)
+                try {
+                  const res = await fetch('/api/admin/bulk-approve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'developers', action: 'unpublish', ids: selectedDevelopers }) })
+                  const json = await res.json().catch(() => null)
+                  if (!res.ok || !json?.success) throw new Error(json?.message || 'Unpublish failed')
+                  setSelectedDevelopers([])
+                  await load()
+                } catch (err: any) { showToast(err?.message || 'Unpublish failed') } finally { setBulkApproving(false) }
+              }}
+              disabled={bulkApproving || bulkDeleteModeLoading !== null || bulkRestoring || selectedRows.every((dev) => !!dev.isDeleted)}
+              className="inline-flex items-center gap-1.5 text-xs px-4 py-2 bg-white/5 text-white/70 rounded-lg border border-white/15 hover:bg-white/10 disabled:opacity-50"
+            >
+              Unpublish
+            </button>
+            <button
               onClick={() => setBulkDeleteOpen(true)}
               disabled={bulkApproving || bulkDeleteModeLoading !== null || bulkRestoring}
               className="inline-flex items-center gap-1.5 text-xs px-4 py-2 bg-red-500/15 text-red-300 rounded-lg border border-red-400/20 hover:bg-red-500/25 disabled:opacity-50"

@@ -126,13 +126,13 @@ export default function ImportBatchDetailPage() {
     }
 
     const rollbackBatch = async () => {
-        if (!window.confirm('Rollback newly created draft properties from this batch?')) return
+        if (!window.confirm(`Rollback newly created ${entityLabel}s from this batch? This cannot be undone.`)) return
         setRollingBack(true)
         try {
             const response = await fetch(`/api/admin/bulk-import/${batchId}/rollback`, { method: 'POST' })
             const payload = await response.json()
             if (!response.ok || !payload.success) throw new Error(payload.message || 'Rollback failed.')
-            toast.success(`${payload.rolledBack} draft properties rolled back.`)
+            toast.success(`${payload.rolledBack} ${entityLabel}(s) rolled back.`)
             await loadBatch()
         } catch (error: any) {
             toast.error(error.message || 'Rollback failed.')
