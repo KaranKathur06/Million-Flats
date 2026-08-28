@@ -203,6 +203,8 @@ export async function getPartnerProfile(
     reviews,
     faqs,
     gallery,
+    categorySpecificData: (partner.categoryData && typeof partner.categoryData === 'object') ? partner.categoryData as Record<string, unknown> : {},
+    experienceDisplay: partner.experienceDisplay || null,
   }
 }
 

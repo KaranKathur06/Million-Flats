@@ -5,6 +5,7 @@ import { requireAdminSession } from '@/lib/adminAuth'
 import { slugifyPartnerName } from '@/lib/ecosystem/slugify'
 import { applyApprovalDefaults } from '@/lib/ecosystem/partnerVisibility'
 import { revalidatePartnerSurfaces } from '@/lib/ecosystem/revalidatePartner'
+import { auditPartnerCreate } from '@/lib/ecosystem/admin/auditPartner'
 
 const partnerSchema = z.object({
   categoryId: z.string().min(1),
@@ -17,19 +18,30 @@ const partnerSchema = z.object({
   coverImage: z.string().max(2000).optional().nullable(),
   rating: z.number().min(0).max(5).optional().nullable(),
   yearsExperience: z.number().int().min(0).optional().nullable(),
+  experienceDisplay: z.string().max(100).optional().nullable(),
   projectsCompleted: z.number().int().min(0).optional().nullable(),
   teamSize: z.number().int().min(0).optional().nullable(),
   partnerSince: z.number().int().min(1990).max(2100).optional().nullable(),
   locationCoverage: z.string().max(500).optional().nullable(),
   pricingRange: z.string().max(200).optional().nullable(),
+  contactPerson: z.string().max(200).optional().nullable(),
   contactEmail: z.string().email().optional().nullable(),
-  status: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
+  contactPhone: z.string().max(30).optional().nullable(),
+  whatsapp: z.string().max(30).optional().nullable(),
+  website: z.string().max(500).optional().nullable(),
+  gstNumber: z.string().max(50).optional().nullable(),
+  registrationNumber: z.string().max(100).optional().nullable(),
+  categoryData: z.record(z.unknown()).optional().nullable(),
+  whyChoose: z.array(z.object({ title: z.string(), description: z.string() })).optional().nullable(),
+  workProcess: z.array(z.object({ step: z.number(), title: z.string(), description: z.string() })).optional().nullable(),
+  status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED']).optional(),
   isFeatured: z.boolean().optional(),
   isVerified: z.boolean().optional(),
   isActive: z.boolean().optional(),
   priorityOrder: z.number().int().min(0).optional(),
   metaTitle: z.string().max(300).optional().nullable(),
   metaDescription: z.string().optional().nullable(),
+  metaKeywords: z.string().max(500).optional().nullable(),
 })
 
 export async function GET(req: Request) {
@@ -92,12 +104,22 @@ export async function POST(req: Request) {
       coverImage: data.coverImage || null,
       rating: data.rating ?? null,
       yearsExperience: data.yearsExperience ?? null,
+      experienceDisplay: data.experienceDisplay?.trim() || null,
       projectsCompleted: data.projectsCompleted ?? null,
       teamSize: data.teamSize ?? null,
       partnerSince: data.partnerSince ?? null,
       locationCoverage: data.locationCoverage?.trim() || null,
       pricingRange: data.pricingRange?.trim() || null,
+      contactPerson: data.contactPerson?.trim() || null,
       contactEmail: data.contactEmail?.trim() || `${slug}@partners.millionflats.local`,
+      contactPhone: data.contactPhone?.trim() || null,
+      whatsapp: data.whatsapp?.trim() || null,
+      website: data.website?.trim() || null,
+      gstNumber: data.gstNumber?.trim() || null,
+      registrationNumber: data.registrationNumber?.trim() || null,
+      categoryData: data.categoryData || null,
+      whyChoose: data.whyChoose || null,
+      workProcess: data.workProcess || null,
       status: data.status || 'PENDING',
       isFeatured: data.isFeatured ?? false,
       isVerified: data.isVerified ?? false,
@@ -105,12 +127,20 @@ export async function POST(req: Request) {
       priorityOrder: data.priorityOrder ?? 0,
       metaTitle: data.metaTitle?.trim() || null,
       metaDescription: data.metaDescription?.trim() || null,
+      metaKeywords: data.metaKeywords?.trim() || null,
     })
 
     const partner = await (prisma as any).ecosystemPartner.create({
       data: createData,
       include: { category: { select: { slug: true } } },
     })
+
+    // Audit log
+    auditPartnerCreate({
+      partnerId: partner.id,
+      adminUserId: auth.userId,
+      afterState: createData as Record<string, unknown>,
+    }).catch(() => {})
 
     revalidatePartnerSurfaces(partner.category.slug, partner.slug)
     return NextResponse.json({ success: true, data: partner })

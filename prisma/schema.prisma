@@ -1245,6 +1245,14 @@ enum AuditAction {
   ADMIN_ECOSYSTEM_BANNER_UPLOADED
   ADMIN_ECOSYSTEM_BANNER_REPLACED
   ADMIN_ECOSYSTEM_BANNER_REMOVED
+  ADMIN_ECOSYSTEM_PARTNER_CREATED
+  ADMIN_ECOSYSTEM_PARTNER_UPDATED
+  ADMIN_ECOSYSTEM_PARTNER_STATUS_CHANGED
+  ADMIN_ECOSYSTEM_PARTNER_VERIFICATION_CHANGED
+  ADMIN_ECOSYSTEM_PARTNER_FEATURED_CHANGED
+  ADMIN_ECOSYSTEM_PARTNER_MEDIA_UPLOADED
+  ADMIN_ECOSYSTEM_PARTNER_MEDIA_REPLACED
+  ADMIN_ECOSYSTEM_PARTNER_MEDIA_DELETED
 }
 
 model AuditLog {
@@ -1650,6 +1658,7 @@ model EcosystemPartner {
   shortDescription String?
   rating           Float?
   yearsExperience  Int?
+  experienceDisplay String?
   projectsCompleted Int?
   teamSize         Int?
   partnerSince     Int?
@@ -1691,6 +1700,7 @@ model EcosystemPartner {
   portfolios EcosystemPartnerPortfolio[]
   reviews    EcosystemPartnerReview[]
   faqs       EcosystemPartnerFaq[]
+  media      EcosystemPartnerMedia[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1705,6 +1715,33 @@ model EcosystemPartner {
   @@index([isActive])
   @@unique([categoryId, contactEmail])
   @@unique([categoryId, slug])
+}
+
+enum EcosystemPartnerMediaType {
+  LOGO
+  COVER
+}
+
+model EcosystemPartnerMedia {
+  id          String                    @id @default(cuid())
+  partnerId   String
+  type        EcosystemPartnerMediaType
+  storageKey  String
+  publicUrl   String
+  mimeType    String
+  fileSize    Int
+  width       Int?
+  height      Int?
+  altText     String?
+  sortOrder   Int                       @default(0)
+
+  partner     EcosystemPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([partnerId, type])
+  @@index([partnerId])
 }
 
 model EcosystemPartnerService {
@@ -1836,6 +1873,7 @@ enum EcosystemPartnerStatus {
   PENDING
   APPROVED
   REJECTED
+  SUSPENDED
 }
 
 enum EcosystemSubscriptionTier {

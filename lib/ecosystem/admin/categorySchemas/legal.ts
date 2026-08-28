@@ -1,0 +1,76 @@
+import type { CategorySchema } from '../categoryFieldRegistry'
+
+export const legalCategorySchema: CategorySchema = {
+  slug: 'legal-documentation',
+  label: 'Legal & Documentation',
+  sections: [
+    { key: 'legal-credentials', title: 'Legal Credentials' },
+    { key: 'expertise', title: 'Expertise & Service Capabilities' },
+  ],
+  fields: [
+    {
+      name: 'licenseNumber',
+      label: 'License Number',
+      type: 'text',
+      section: 'legal-credentials',
+      required: true,
+      placeholder: 'Bar Council / Firm registration number',
+    },
+    {
+      name: 'courtRegistration',
+      label: 'Court Registration',
+      type: 'text',
+      section: 'legal-credentials',
+      placeholder: 'Court registration details (if applicable)',
+    },
+    {
+      name: 'specialization',
+      label: 'Specialization',
+      type: 'multiselect',
+      section: 'expertise',
+      required: true,
+      options: ['Due Diligence', 'Agreement Drafting', 'Registration', 'RERA', 'Litigation Support', 'NRI Legal Services', 'Property Tax', 'Title Verification'],
+      colSpan: 2,
+    },
+    {
+      name: 'dueDiligence',
+      label: 'Due Diligence Services',
+      type: 'textarea',
+      section: 'expertise',
+      placeholder: 'Describe due diligence capabilities...',
+      colSpan: 2,
+    },
+    {
+      name: 'agreementDrafting',
+      label: 'Agreement Drafting',
+      type: 'textarea',
+      section: 'expertise',
+      placeholder: 'Types of agreements handled...',
+      colSpan: 2,
+    },
+    {
+      name: 'registration',
+      label: 'Registration Services',
+      type: 'textarea',
+      section: 'expertise',
+      placeholder: 'Property registration support offered...',
+      colSpan: 2,
+    },
+    {
+      name: 'rera',
+      label: 'RERA Expertise',
+      type: 'textarea',
+      section: 'expertise',
+      placeholder: 'RERA-related legal support...',
+      colSpan: 2,
+    },
+    {
+      name: 'litigationSupport',
+      label: 'Litigation Support',
+      type: 'textarea',
+      section: 'expertise',
+      placeholder: 'Property litigation capabilities...',
+      colSpan: 2,
+    },
+  ],
+}

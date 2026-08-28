@@ -89,4 +89,6 @@ export type PartnerProfileData = {
   reviews: PartnerReviewItem[]
   faqs: PartnerFaqItem[]
   gallery: PartnerGalleryItem[]
+  categorySpecificData?: Record<string, unknown>
+  experienceDisplay?: string | null
 }

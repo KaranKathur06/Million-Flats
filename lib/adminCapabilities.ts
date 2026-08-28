@@ -54,6 +54,15 @@ export type AdminCapabilities = {
       reject: boolean
     }
   }
+  ecosystem: {
+    create: boolean
+    edit: boolean
+    verify: boolean
+    feature: boolean
+    activate: boolean
+    delete: boolean
+    manageMedia: boolean
+  }
 }
 
 export function getAdminCapabilities(userRole: unknown): AdminCapabilities {
@@ -92,6 +101,15 @@ export function getAdminCapabilities(userRole: unknown): AdminCapabilities {
         approve: hasMinRole(role, 'ADMIN'),
         reject: hasMinRole(role, 'ADMIN'),
       },
+    },
+    ecosystem: {
+      create: hasMinRole(role, 'ADMIN'),
+      edit: hasMinRole(role, 'ADMIN'),
+      verify: hasMinRole(role, 'ADMIN'),
+      feature: hasMinRole(role, 'ADMIN'),
+      activate: hasMinRole(role, 'ADMIN'),
+      delete: hasMinRole(role, 'SUPERADMIN'),
+      manageMedia: hasMinRole(role, 'ADMIN'),
     },
   }
 }

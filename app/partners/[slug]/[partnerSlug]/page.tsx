@@ -15,6 +15,7 @@ import {
   PartnerFaqs,
   PartnerCTA,
 } from '@/components/partner-profile'
+import PartnerCategoryDetails from '@/components/partner-profile/PartnerCategoryDetails'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -131,6 +132,12 @@ export default async function PartnerProfilePage({ params }: PartnerPageProps) {
       <PartnerHero partner={partner} />
       <PartnerStats partner={partner} />
       <PartnerAbout partner={partner} />
+      {partner.categorySpecificData && Object.keys(partner.categorySpecificData).length > 0 && (
+        <PartnerCategoryDetails
+          categorySlug={partner.categorySlug}
+          data={partner.categorySpecificData}
+        />
+      )}
       <PartnerTrust partnerName={partner.name} items={partner.whyChoose} />
       <PartnerPortfolio portfolios={partner.portfolios} partnerName={partner.name} />
       <PartnerServices services={partner.services} partnerName={partner.name} />

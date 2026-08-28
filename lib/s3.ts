@@ -240,6 +240,18 @@ export function buildEcosystemPartnerLogoKey(params: { partnerId: string; ext?: 
   })
 }
 
+export function buildEcosystemPartnerCoverKey(params: { partnerId: string; ext?: string; contentType?: string }) {
+  const ext = sanitizeFilename(params.ext || guessExtensionFromContentType(params.contentType || '') || 'bin').replace('.', '')
+  const partnerId = sanitizeFilename(params.partnerId || '')
+  return buildStructuredS3Key({
+    visibility: 'public',
+    module: 'ecosystem',
+    subModule: `partners/${partnerId}/cover`,
+    fileName: `cover.${ext}`,
+  })
+}
+
+
 export function buildEcosystemRegistrationDocKey(params: { registrationId: string; ext?: string; contentType?: string }) {
   const extRaw = params.ext || guessExtensionFromContentType(params.contentType || '') || 'pdf'
   const ext = sanitizeFilename(extRaw).replace('.', '')
