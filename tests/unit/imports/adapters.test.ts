@@ -34,4 +34,31 @@ describe('universal entity adapters', () => {
     const mapped = ecosystemPartnerImportAdapter.mapCanonical({ raw: {}, normalized: normalized.normalized, mappings: [] })
     expect(mapped.canonical).toMatchObject({ name: 'Legal Co', categorySlug: 'legal-documentation', contactEmail: 'info@legal.example', categoryData: { license_number: 'LIC-1' } })
   })
+
+  it('maps spreadsheet home-loan fields into category data', () => {
+    const normalized = ecosystemPartnerImportAdapter.normalize({
+      raw: {
+        'Business Name': 'State Bank of India (SBI)',
+        'Loan Types': 'Regular Home Loan; Balance Transfer; NRI Loan',
+        'Interest Rate Min (%)': '8.5',
+        'Interest Rate Max (%)': '9.85',
+        'Processing Fee': '0.35% of loan amount',
+        'RBI Registration': 'RBI Registered Scheduled Public Sector Bank',
+      },
+      sourcePath: null,
+      mappings: [],
+    })
+    const mapped = ecosystemPartnerImportAdapter.mapCanonical({ raw: {}, normalized: normalized.normalized, mappings: [] })
+
+    expect(mapped.canonical).toMatchObject({
+      name: 'State Bank of India (SBI)',
+      categoryData: {
+        loanTypes: ['Regular Home Loan', 'Balance Transfer', 'NRI Loan'],
+        interestRateMin: 8.5,
+        interestRateMax: 9.85,
+        processingFee: '0.35% of loan amount',
+        rbiRegistration: 'RBI Registered Scheduled Public Sector Bank',
+      },
+    })
+  })
 })

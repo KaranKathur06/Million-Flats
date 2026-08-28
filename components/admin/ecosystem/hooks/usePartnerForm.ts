@@ -140,7 +140,7 @@ export function usePartnerForm(initial?: Partial<PartnerCoreFields> & { id?: str
       experienceDisplay: form.experienceDisplay || null,
       projectsCompleted: form.projectsCompleted ? Number(form.projectsCompleted) : null,
       teamSize: form.teamSize ? Number(form.teamSize) : null,
-      partnerSince: form.partnerSince ? Number(form.partnerSince) : null,
+      partnerSince: form.partnerSince && Number(form.partnerSince) !== 0 ? Number(form.partnerSince) : null,
       locationCoverage: form.locationCoverage || null,
       pricingRange: form.pricingRange || null,
       contactPerson: form.contactPerson || null,

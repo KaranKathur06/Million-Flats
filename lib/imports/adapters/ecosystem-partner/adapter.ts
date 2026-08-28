@@ -2,7 +2,7 @@ import { applyApprovalDefaults } from '@/lib/ecosystem/partnerVisibility'
 import { revalidatePartnerSurfaces } from '@/lib/ecosystem/revalidatePartner'
 import { slugifyPartnerName } from '@/lib/ecosystem/slugify'
 import type { CanonicalPayloadResult, CommitPreparation, DuplicateSignalDefinition, ImportAdapter, ImportFieldDefinition, MappingSuggestion, NormalizationInput, NormalizationResult, RelationInput, RelationResolution, ValidationInput, ValidationResult } from '@/lib/imports/core/types'
-import { readImportField, suggestImportMappings } from '@/lib/imports/field-utils'
+import { normalizeImportField, readImportField, suggestImportMappings } from '@/lib/imports/field-utils'
 
 interface CanonicalEcosystemPartner {
   categoryId?: string | null
@@ -36,10 +36,16 @@ const fields: ImportFieldDefinition[] = [
   { field: 'website', label: 'Website', type: 'string', requiredness: 'optional', aliases: ['website_url', 'url'] },
   { field: 'shortDescription', label: 'Short description', type: 'string', requiredness: 'recommended', aliases: ['short_description', 'tagline'] },
   { field: 'locationCoverage', label: 'Location coverage', type: 'string', requiredness: 'optional', aliases: ['service_areas', 'locations'] },
+  { field: 'loanTypes', label: 'Loan types', type: 'string', requiredness: 'optional', aliases: ['loan_types', 'loan types'] },
+  { field: 'interestRateMin', label: 'Interest rate minimum', type: 'number', requiredness: 'optional', aliases: ['interest_rate_min', 'interest rate min (%)'] },
+  { field: 'interestRateMax', label: 'Interest rate maximum', type: 'number', requiredness: 'optional', aliases: ['interest_rate_max', 'interest rate max (%)'] },
+  { field: 'processingFee', label: 'Processing fee', type: 'string', requiredness: 'optional', aliases: ['processing_fee', 'processing fee'] },
+  { field: 'rbiRegistration', label: 'RBI registration', type: 'string', requiredness: 'optional', aliases: ['rbi_registration', 'rbi registration'] },
 ]
 const text = (value: unknown) => value == null ? null : String(value).trim() || null
 const read = readImportField
 const number = (value: unknown) => { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : null }
+const list = (value: unknown) => String(value || '').split(';').map((item) => item.trim()).filter(Boolean)
 const mappings = (input: { fields: string[] }): MappingSuggestion[] => suggestImportMappings(input.fields, fields)
 
 export const ecosystemPartnerImportAdapter: ImportAdapter<CanonicalEcosystemPartner> = {
@@ -49,8 +55,20 @@ export const ecosystemPartnerImportAdapter: ImportAdapter<CanonicalEcosystemPart
   normalize(input: NormalizationInput): NormalizationResult {
     const raw = (input.raw && typeof input.raw === 'object' ? input.raw : {}) as Record<string, unknown>
     const name = text(read(raw, ['name', 'business_name', 'company_name', 'partner_name']))
-    const known = new Set(['name', 'business_name', 'company_name', 'partner_name', 'categoryId', 'category_id', 'category', 'categorySlug', 'category_slug', 'partner_category', 'slug', 'tagline', 'shortDescription', 'short_description', 'description', 'logo', 'coverImage', 'cover_image', 'rating', 'yearsExperience', 'years_experience', 'projectsCompleted', 'projects_completed', 'teamSize', 'team_size', 'partnerSince', 'partner_since', 'locationCoverage', 'location_coverage', 'service_areas', 'locations', 'pricingRange', 'pricing_range', 'contactEmail', 'contact_email', 'email', 'contactPhone', 'contact_phone', 'phone', 'website', 'website_url', 'url', 'status'])
-    const categoryData = Object.fromEntries(Object.entries(raw).filter(([key]) => !known.has(key)))
+    const known = new Set([
+      'name', 'business_name', 'company_name', 'partner_name', 'categoryId', 'category_id', 'category', 'categorySlug', 'category_slug', 'partner_category', 'slug', 'tagline', 'shortDescription', 'short_description', 'description', 'logo', 'coverImage', 'cover_image', 'rating', 'yearsExperience', 'years_experience', 'projectsCompleted', 'projects_completed', 'teamSize', 'team_size', 'partnerSince', 'partner_since', 'locationCoverage', 'location_coverage', 'service_areas', 'locations', 'pricingRange', 'pricing_range', 'contactEmail', 'contact_email', 'email', 'contactPhone', 'contact_phone', 'phone', 'website', 'website_url', 'url', 'status', 'loanTypes', 'loan_types', 'loan types', 'interestRateMin', 'interest_rate_min', 'Interest Rate Min (%)', 'interestRateMax', 'interest_rate_max', 'Interest Rate Max (%)', 'processingFee', 'processing_fee', 'Processing Fee', 'rbiRegistration', 'rbi_registration', 'RBI Registration',
+    ].map(normalizeImportField))
+    const categoryData = Object.fromEntries(Object.entries(raw).filter(([key]) => !known.has(normalizeImportField(key))))
+    const loanTypes = list(read(raw, ['loanTypes', 'loan_types', 'loan types']))
+    const interestRateMin = number(read(raw, ['interestRateMin', 'interest_rate_min', 'Interest Rate Min (%)']))
+    const interestRateMax = number(read(raw, ['interestRateMax', 'interest_rate_max', 'Interest Rate Max (%)']))
+    const processingFee = text(read(raw, ['processingFee', 'processing_fee', 'Processing Fee']))
+    const rbiRegistration = text(read(raw, ['rbiRegistration', 'rbi_registration', 'RBI Registration']))
+    if (loanTypes.length > 0) categoryData.loanTypes = loanTypes
+    if (interestRateMin !== null) categoryData.interestRateMin = interestRateMin
+    if (interestRateMax !== null) categoryData.interestRateMax = interestRateMax
+    if (processingFee !== null) categoryData.processingFee = processingFee
+    if (rbiRegistration !== null) categoryData.rbiRegistration = rbiRegistration
     return { normalized: { ...raw, name, categoryId: text(read(raw, ['categoryId', 'category_id'])), categorySlug: text(read(raw, ['categorySlug', 'category_slug', 'category', 'partner_category'])), slug: text(read(raw, ['slug'])) || (name ? slugifyPartnerName(name) : null), tagline: text(read(raw, ['tagline'])), shortDescription: text(read(raw, ['shortDescription', 'short_description'])), description: text(read(raw, ['description'])), logo: text(read(raw, ['logo'])), coverImage: text(read(raw, ['coverImage', 'cover_image'])), rating: number(read(raw, ['rating'])), yearsExperience: number(read(raw, ['yearsExperience', 'years_experience'])), projectsCompleted: number(read(raw, ['projectsCompleted', 'projects_completed'])), teamSize: number(read(raw, ['teamSize', 'team_size'])), partnerSince: number(read(raw, ['partnerSince', 'partner_since'])), locationCoverage: text(read(raw, ['locationCoverage', 'location_coverage', 'service_areas', 'locations'])), pricingRange: text(read(raw, ['pricingRange', 'pricing_range'])), contactEmail: text(read(raw, ['contactEmail', 'contact_email', 'email']))?.toLowerCase(), contactPhone: text(read(raw, ['contactPhone', 'contact_phone', 'phone'])), website: text(read(raw, ['website', 'website_url', 'url'])), status: String(read(raw, ['status']) || 'PENDING').toUpperCase(), categoryData }, warnings: [], errors: [] }
   },
   mapCanonical(input: { raw: unknown; normalized: unknown; mappings: MappingSuggestion[] }): CanonicalPayloadResult<CanonicalEcosystemPartner> {
