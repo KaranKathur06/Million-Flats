@@ -72,10 +72,12 @@ export default function AgenciesListClient({
     if (selected.size === 0) return
     setBusy(true)
     try {
-      const response = await fetch('/api/admin/agencies/bulk-action', {
+      const response = await fetch(action === 'approve' ? '/api/admin/bulk-approve' : '/api/admin/agencies/bulk-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, agencyIds: Array.from(selected) }),
+        body: action === 'approve'
+          ? JSON.stringify({ entity: 'agencies', ids: Array.from(selected) })
+          : JSON.stringify({ action, agencyIds: Array.from(selected) }),
       })
       if (!response.ok) throw new Error('Agency action failed')
       setSelected(new Set())

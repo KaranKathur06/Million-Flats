@@ -224,6 +224,7 @@ export default function AdminDevelopersPage() {
   const [bulkRestoreOpen, setBulkRestoreOpen] = useState(false)
   const [bulkDeleteModeLoading, setBulkDeleteModeLoading] = useState<'soft' | 'hard' | null>(null)
   const [bulkRestoring, setBulkRestoring] = useState(false)
+  const [bulkApproving, setBulkApproving] = useState(false)
 
   const [toastMsg, setToastMsg] = useState('')
 
@@ -407,6 +408,28 @@ export default function AdminDevelopersPage() {
     }
   }
 
+  const handleBulkApprove = async () => {
+    if (selectedDevelopers.length === 0) return
+    setBulkApproving(true)
+    try {
+      const res = await fetch('/api/admin/bulk-approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entity: 'developers', ids: selectedDevelopers }),
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok || !json?.success) throw new Error(json?.message || 'Bulk approval failed')
+      showToast(`${json.updated || 0} developer(s) activated`)
+      if (json.failures?.length) showToast(`${json.failures.length} developer(s) could not be activated`)
+      setSelectedDevelopers([])
+      await load()
+    } catch (err: any) {
+      showToast(err?.message || 'Bulk approval failed')
+    } finally {
+      setBulkApproving(false)
+    }
+  }
+
   return (
     <div>
       {toastMsg && (
@@ -483,21 +506,29 @@ export default function AdminDevelopersPage() {
           </span>
           <div className="flex gap-2">
             <button
+              onClick={handleBulkApprove}
+              disabled={bulkApproving || bulkDeleteModeLoading !== null || bulkRestoring || selectedRows.every((dev) => !!dev.isDeleted)}
+              className="inline-flex items-center gap-1.5 text-xs px-4 py-2 bg-emerald-500/15 text-emerald-300 rounded-lg border border-emerald-400/20 hover:bg-emerald-500/25 disabled:opacity-50"
+            >
+              {bulkApproving ? 'Activating...' : 'Approve & Publish'}
+            </button>
+            <button
               onClick={() => setBulkDeleteOpen(true)}
-              disabled={bulkDeleteModeLoading !== null || bulkRestoring}
+              disabled={bulkApproving || bulkDeleteModeLoading !== null || bulkRestoring}
               className="inline-flex items-center gap-1.5 text-xs px-4 py-2 bg-red-500/15 text-red-300 rounded-lg border border-red-400/20 hover:bg-red-500/25 disabled:opacity-50"
             >
               Delete Selected
             </button>
             <button
               onClick={() => setBulkRestoreOpen(true)}
-              disabled={bulkDeleteModeLoading !== null || bulkRestoring || selectedRows.every((dev) => !dev.isDeleted)}
+              disabled={bulkApproving || bulkDeleteModeLoading !== null || bulkRestoring || selectedRows.every((dev) => !dev.isDeleted)}
               className="inline-flex items-center gap-1.5 text-xs px-4 py-2 bg-emerald-500/15 text-emerald-300 rounded-lg border border-emerald-400/20 hover:bg-emerald-500/25 disabled:opacity-50"
             >
               Restore Selected
             </button>
             <button
               onClick={() => setSelectedDevelopers([])}
+              disabled={bulkApproving || bulkDeleteModeLoading !== null || bulkRestoring}
               className="text-xs px-3 py-2 text-white/40 hover:text-white/60"
             >
               Clear

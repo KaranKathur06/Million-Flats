@@ -28,6 +28,8 @@ export default function AdminEcosystemPartnersManagePage() {
   const [categoryFilter, setCategoryFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [search, setSearch] = useState('')
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [bulkApproving, setBulkApproving] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -53,6 +55,40 @@ export default function AdminEcosystemPartnersManagePage() {
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    setSelectedIds((current) => current.filter((id) => partners.some((partner) => partner.id === id)))
+  }, [partners])
+
+  const allSelected = partners.length > 0 && partners.every((partner) => selectedIds.includes(partner.id))
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? [] : partners.map((partner) => partner.id))
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
+  }
+
+  const handleBulkApprove = async () => {
+    if (!selectedIds.length) return
+    setBulkApproving(true)
+    try {
+      const response = await fetch('/api/admin/bulk-approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entity: 'ecosystem-partners', ids: selectedIds }),
+      })
+      const json = await response.json().catch(() => null)
+      if (!response.ok || !json?.success) throw new Error(json?.message || 'Bulk approval failed')
+      setSelectedIds([])
+      await load()
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Bulk approval failed')
+    } finally {
+      setBulkApproving(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -123,9 +159,23 @@ export default function AdminEcosystemPartnersManagePage() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-white/10">
+        {selectedIds.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-400/20 bg-amber-500/10 px-4 py-3">
+            <span className="text-sm font-semibold text-amber-200/80">{selectedIds.length} partner(s) selected</span>
+            <div className="flex gap-2">
+              <button type="button" onClick={handleBulkApprove} disabled={bulkApproving} className="rounded-lg border border-emerald-400/20 bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-300 disabled:opacity-50">
+                {bulkApproving ? 'Publishing...' : 'Approve & Publish'}
+              </button>
+              <button type="button" onClick={() => setSelectedIds([])} disabled={bulkApproving} className="px-3 py-2 text-xs text-white/40 hover:text-white/70">
+                Clear
+              </button>
+            </div>
+          </div>
+        )}
         <table className="min-w-full text-sm">
           <thead className="bg-white/5 text-left text-white/60">
             <tr>
+              <th className="px-4 py-3 font-semibold"><input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="h-4 w-4 accent-amber-400" /></th>
               <th className="px-4 py-3 font-semibold">Partner</th>
               <th className="px-4 py-3 font-semibold">Category</th>
               <th className="px-4 py-3 font-semibold">Status</th>
@@ -136,7 +186,7 @@ export default function AdminEcosystemPartnersManagePage() {
           <tbody className="divide-y divide-white/5">
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-white/50">
+                <td colSpan={6} className="px-4 py-8 text-center text-white/50">
                   Loading...
                 </td>
               </tr>
@@ -148,7 +198,8 @@ export default function AdminEcosystemPartnersManagePage() {
               </tr>
             ) : (
               partners.map((p) => (
-                <tr key={p.id} className="text-white/80 hover:bg-white/[0.03]">
+                <tr key={p.id} className={`text-white/80 hover:bg-white/[0.03] ${selectedIds.includes(p.id) ? 'bg-amber-400/[0.04]' : ''}`}>
+                  <td className="px-4 py-3"><input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => toggleSelect(p.id)} className="h-4 w-4 accent-amber-400" /></td>
                   <td className="px-4 py-3">
                     <div className="font-semibold text-white">{p.name}</div>
                     <div className="text-xs text-white/45">{p.slug || '—'}</div>

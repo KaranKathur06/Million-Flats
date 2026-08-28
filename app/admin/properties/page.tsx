@@ -112,10 +112,12 @@ export default function AdminPropertiesPage() {
         if (selectedIds.length === 0) return
         setBulkActionLoading(action)
         try {
-            const res = await fetch('/api/admin/properties/bulk-approve', {
+            const res = await fetch(action === 'approve' ? '/api/admin/bulk-approve' : '/api/admin/properties/bulk-approve', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ids: selectedIds, action }),
+                body: action === 'approve'
+                    ? JSON.stringify({ entity: 'properties', ids: selectedIds })
+                    : JSON.stringify({ ids: selectedIds, action }),
             })
             const json = await res.json()
             if (!json.success) throw new Error(json.message || 'Bulk action failed')

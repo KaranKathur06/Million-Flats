@@ -291,17 +291,19 @@ export default function AdminProjectsPage() {
     if (!selectedIds.length) return
     setBulkActionLoading(action === 'publish' ? 'publish' : 'unpublish')
     try {
-      const res = await fetch('/api/admin/projects/bulk-publish', {
+      const res = await fetch(action === 'publish' ? '/api/admin/bulk-approve' : '/api/admin/projects/bulk-publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectIds: selectedIds, action }),
+        body: action === 'publish'
+          ? JSON.stringify({ entity: 'projects', ids: selectedIds })
+          : JSON.stringify({ projectIds: selectedIds, action }),
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.message || 'Bulk update failed')
-      const result = json.result || { success: [], failed: [] }
-      toast.success(`${action === 'publish' ? 'Published' : 'Unpublished'} ${result.success.length} project(s)`)
-      if ((result.failed || []).length) {
-        toast.error(`Failed: ${result.failed.length} project(s)`)
+      const result = json.result || { success: json.approved || [], failed: json.failures || [] }
+      toast.success(`${action === 'publish' ? 'Published' : 'Unpublished'} ${(result.success || []).length} project(s)`)
+      if ((result.failed || []).length || (result.failures || []).length) {
+        toast.error(`Failed: ${(result.failed || result.failures || []).length} project(s)`)
       }
       setSelectedIds([])
       await load()
