@@ -8,6 +8,9 @@ export async function analyzeImportBatch(input: { batchId: string; ownerAgentId?
 
   const adapter = getImportAdapterForEntity(batch.entityType)
   if (!adapter) throw new Error(`No import adapter is registered for ${batch.entityType}.`)
+  if (batch.adapterVersion != null && adapter.adapterVersion !== batch.adapterVersion) {
+    throw new Error(`Import adapter version mismatch for ${batch.entityType}: batch ${batch.adapterVersion}, runtime ${adapter.adapterVersion}.`)
+  }
 
   const currentState = String(batch.status || 'UPLOADED')
   if (!canTransition(currentState as any, 'ANALYZING')) {

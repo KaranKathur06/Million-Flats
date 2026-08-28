@@ -13,6 +13,9 @@ export async function executeImport(input: { batchId: string; idempotencyKey: st
   const entityType = batch.entityType || 'PROPERTY'
   const adapter = getImportAdapterForEntity(entityType)
   if (!adapter) throw new Error(`No import adapter is registered for ${entityType}.`)
+  if (batch.adapterVersion != null && adapter.adapterVersion !== batch.adapterVersion) {
+    throw new Error(`Import adapter version mismatch for ${entityType}: batch ${batch.adapterVersion}, runtime ${adapter.adapterVersion}.`)
+  }
 
   const locked = await acquireImportCommitLock(input.batchId)
   if (!locked) throw new Error('Import batch is not ready to commit or is already committing.')

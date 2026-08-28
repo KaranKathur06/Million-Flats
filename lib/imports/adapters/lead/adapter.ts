@@ -2,6 +2,7 @@ import { createLead } from '@/lib/leads/createLead'
 import { normalizeLeadType, normalizeEcosystemCategory } from '@/lib/leads/types'
 import type { CanonicalPayloadResult, CommitPreparation, DuplicateSignalDefinition, ImportAdapter, ImportFieldDefinition, MappingSuggestion, NormalizationInput, NormalizationResult, RelationInput, RelationResolution, ValidationInput, ValidationResult } from '@/lib/imports/core/types'
 import type { LeadCountry, LeadType, Prisma } from '@prisma/client'
+import { readImportField, suggestImportMappings } from '@/lib/imports/field-utils'
 
 interface CanonicalLead { leadType: LeadType; name: string; email: string; phone?: string | null; whatsapp?: string | null; message?: string | null; category?: string | null; sourceId?: string | null; sourceName?: string | null; projectOrCompany?: string | null; country?: LeadCountry; status?: string; projectId?: string | null; userId?: string | null; propertyType?: string | null; propertyName?: string | null; propertySize?: string | null; budgetRange?: string | null; timeline?: string | null; metadata?: Prisma.InputJsonValue }
 const fields: ImportFieldDefinition[] = [
@@ -13,8 +14,8 @@ const fields: ImportFieldDefinition[] = [
   { field: 'projectId', label: 'Project ID', type: 'string', requiredness: 'optional', aliases: ['project_id'] },
 ]
 const text = (value: unknown) => value == null ? null : String(value).trim() || null
-const read = (raw: Record<string, unknown>, aliases: string[]) => aliases.map((key) => raw[key]).find((value) => value != null && String(value).trim() !== '')
-const mappings = (input: { fields: string[] }): MappingSuggestion[] => fields.flatMap((definition) => { const match = input.fields.find((field) => [definition.field, ...definition.aliases].some((alias) => alias.toLowerCase() === field.toLowerCase())); return match ? [{ sourcePath: match, canonicalField: definition.field, confidence: 99, reason: 'Exact field or known alias', status: 'accepted' }] : [] })
+const read = readImportField
+const mappings = (input: { fields: string[] }): MappingSuggestion[] => suggestImportMappings(input.fields, fields)
 
 export const leadImportAdapter: ImportAdapter<CanonicalLead> = {
   key: 'lead', displayName: 'Leads', adapterVersion: 1, supportedFormats: ['csv', 'json', 'xlsx'], supportedOperations: ['CREATE', 'UPSERT'],

@@ -13,6 +13,10 @@ function normalizeAdapterKey(value: string) {
   return String(value || '').trim().toLowerCase().replace(/[_\s]+/g, '-')
 }
 
+export function normalizeImportEntityType(value: string) {
+  return String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_')
+}
+
 export function registerImportAdapter(adapter: ImportAdapter<unknown>) {
   importRegistry.set(normalizeAdapterKey(adapter.key), adapter)
   return adapter
@@ -24,7 +28,10 @@ export function getImportAdapter(key: string) {
 }
 
 export function getImportAdapterForEntity(entityType: string) {
-  return getImportAdapter(String(entityType || '')) || null
+  const normalizedEntityType = normalizeImportEntityType(entityType)
+  const adapter = getImportAdapter(normalizedEntityType)
+  if (!adapter || normalizeImportEntityType(adapter.key) !== normalizedEntityType) return null
+  return adapter
 }
 
 export function listImportAdapters() {

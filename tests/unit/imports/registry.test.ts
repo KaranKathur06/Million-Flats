@@ -1,6 +1,8 @@
 import { describe, expect, it } from '@jest/globals'
 import { propertyImportAdapter } from '@/lib/imports/adapters/property/adapter'
-import { getImportAdapter, importRegistry, registerImportAdapter } from '@/lib/imports/registry'
+import { getImportAdapter, getImportAdapterForEntity, importRegistry, registerImportAdapter } from '@/lib/imports/registry'
+import { developerImportAdapter } from '@/lib/imports/adapters/developer/adapter'
+import { ecosystemPartnerImportAdapter } from '@/lib/imports/adapters/ecosystem-partner/adapter'
 
 describe('import registry', () => {
   it('exposes the property adapter by default and allows explicit registration', () => {
@@ -20,5 +22,11 @@ describe('import registry', () => {
     expect(getImportAdapter('Property Variant')).toBe(adapter)
     expect(getImportAdapter('property-variant')).toBe(adapter)
     expect(getImportAdapter('PROPERTY_VARIANT')).toBe(adapter)
+  })
+
+  it('resolves each entity only to its canonical adapter', () => {
+    expect(getImportAdapterForEntity('DEVELOPER')).toBe(developerImportAdapter)
+    expect(getImportAdapterForEntity('ecosystem-partner')).toBe(ecosystemPartnerImportAdapter)
+    expect(getImportAdapterForEntity('unknown')).toBeNull()
   })
 })

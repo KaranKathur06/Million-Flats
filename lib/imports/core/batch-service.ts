@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import type { ImportEntityType, ImportFormat, ImportMode, ImportOperation } from './types'
+import { getImportAdapterForEntity, normalizeImportEntityType } from '@/lib/imports/registry'
 
 export async function createImportBatch(input: {
   entityType: ImportEntityType
@@ -15,9 +16,14 @@ export async function createImportBatch(input: {
   sourceProvider?: string | null
   category?: string | null
 }) {
+  const entityType = normalizeImportEntityType(input.entityType) as ImportEntityType
+  const adapter = getImportAdapterForEntity(entityType)
+  if (!adapter) throw new Error(`No import adapter is registered for ${entityType}.`)
+  if (adapter.adapterVersion !== input.adapterVersion) throw new Error(`Import adapter version mismatch for ${entityType}.`)
+
   return (prisma as any).importBatch.create({
     data: {
-      entityType: input.entityType,
+      entityType,
       operation: input.operation,
       mode: input.mode,
       originalFileName: input.originalFileName,

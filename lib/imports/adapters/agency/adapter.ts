@@ -1,4 +1,5 @@
 import type { CanonicalPayloadResult, CommitPreparation, DuplicateSignalDefinition, ImportAdapter, ImportFieldDefinition, MappingSuggestion, NormalizationInput, NormalizationResult, RelationInput, RelationResolution, ValidationInput, ValidationResult } from '@/lib/imports/core/types'
+import { readImportField, suggestImportMappings } from '@/lib/imports/field-utils'
 
 interface CanonicalAgency { name: string; countryCode?: 'UAE' | 'INDIA'; countryIso2?: string | null; isFeatured?: boolean }
 const fields: ImportFieldDefinition[] = [
@@ -7,8 +8,8 @@ const fields: ImportFieldDefinition[] = [
   { field: 'isFeatured', label: 'Featured', type: 'boolean', requiredness: 'optional', aliases: ['is_featured', 'featured'] },
 ]
 const text = (value: unknown) => value == null ? null : String(value).trim() || null
-const read = (raw: Record<string, unknown>, aliases: string[]) => aliases.map((key) => raw[key]).find((value) => value != null && String(value).trim() !== '')
-const mappings = (input: { fields: string[] }): MappingSuggestion[] => fields.flatMap((definition) => { const match = input.fields.find((field) => [definition.field, ...definition.aliases].some((alias) => alias.toLowerCase() === field.toLowerCase())); return match ? [{ sourcePath: match, canonicalField: definition.field, confidence: 99, reason: 'Exact field or known alias', status: 'accepted' }] : [] })
+const read = readImportField
+const mappings = (input: { fields: string[] }): MappingSuggestion[] => suggestImportMappings(input.fields, fields)
 
 export const agencyImportAdapter: ImportAdapter<CanonicalAgency> = {
   key: 'agency', displayName: 'Agencies', adapterVersion: 1, supportedFormats: ['csv', 'json', 'xlsx'], supportedOperations: ['CREATE', 'UPDATE', 'UPSERT'],

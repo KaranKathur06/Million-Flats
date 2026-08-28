@@ -2,6 +2,7 @@ import { applyApprovalDefaults } from '@/lib/ecosystem/partnerVisibility'
 import { revalidatePartnerSurfaces } from '@/lib/ecosystem/revalidatePartner'
 import { slugifyPartnerName } from '@/lib/ecosystem/slugify'
 import type { CanonicalPayloadResult, CommitPreparation, DuplicateSignalDefinition, ImportAdapter, ImportFieldDefinition, MappingSuggestion, NormalizationInput, NormalizationResult, RelationInput, RelationResolution, ValidationInput, ValidationResult } from '@/lib/imports/core/types'
+import { readImportField, suggestImportMappings } from '@/lib/imports/field-utils'
 
 interface CanonicalEcosystemPartner {
   categoryId?: string | null
@@ -37,9 +38,9 @@ const fields: ImportFieldDefinition[] = [
   { field: 'locationCoverage', label: 'Location coverage', type: 'string', requiredness: 'optional', aliases: ['service_areas', 'locations'] },
 ]
 const text = (value: unknown) => value == null ? null : String(value).trim() || null
-const read = (raw: Record<string, unknown>, aliases: string[]) => aliases.map((key) => raw[key]).find((value) => value != null && String(value).trim() !== '')
+const read = readImportField
 const number = (value: unknown) => { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : null }
-const mappings = (input: { fields: string[] }): MappingSuggestion[] => fields.flatMap((definition) => { const match = input.fields.find((field) => [definition.field, ...definition.aliases].some((alias) => alias.toLowerCase() === field.toLowerCase())); return match ? [{ sourcePath: match, canonicalField: definition.field, confidence: 99, reason: 'Exact field or known alias', status: 'accepted' }] : [] })
+const mappings = (input: { fields: string[] }): MappingSuggestion[] => suggestImportMappings(input.fields, fields)
 
 export const ecosystemPartnerImportAdapter: ImportAdapter<CanonicalEcosystemPartner> = {
   key: 'ecosystem-partner', displayName: 'Ecosystem Partners', adapterVersion: 1, supportedFormats: ['csv', 'json', 'xlsx'], supportedOperations: ['CREATE', 'UPDATE', 'UPSERT'],

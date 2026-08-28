@@ -1,5 +1,6 @@
 import { normalizePrice } from '@/lib/imports/normalization'
 import type { CanonicalPayloadResult, CommitPreparation, DuplicateSignalDefinition, ImportAdapter, ImportFieldDefinition, MappingSuggestion, NormalizationInput, NormalizationResult, RelationInput, RelationResolution, ValidationInput, ValidationResult } from '@/lib/imports/core/types'
+import { readImportField, suggestImportMappings } from '@/lib/imports/field-utils'
 
 interface CanonicalProject { name: string; slug?: string | null; developerId?: string | null; developerName?: string | null; countryIso2?: string | null; city?: string | null; community?: string | null; description?: string | null; overview?: string | null; completionYear?: number | null; startingPrice?: number | null; goldenVisa?: boolean; coverImage?: string | null }
 const fields: ImportFieldDefinition[] = [
@@ -13,8 +14,8 @@ const fields: ImportFieldDefinition[] = [
 ]
 const text = (value: unknown) => value == null ? null : String(value).trim() || null
 const slugify = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120)
-const read = (raw: Record<string, unknown>, aliases: string[]) => aliases.map((key) => raw[key]).find((value) => value != null && String(value).trim() !== '')
-const mappings = (input: { fields: string[] }): MappingSuggestion[] => fields.flatMap((definition) => { const match = input.fields.find((field) => [definition.field, ...definition.aliases].some((alias) => alias.toLowerCase() === field.toLowerCase())); return match ? [{ sourcePath: match, canonicalField: definition.field, confidence: 99, reason: 'Exact field or known alias', status: 'accepted' }] : [] })
+const read = readImportField
+const mappings = (input: { fields: string[] }): MappingSuggestion[] => suggestImportMappings(input.fields, fields)
 
 export const projectImportAdapter: ImportAdapter<CanonicalProject> = {
   key: 'project', displayName: 'Projects', adapterVersion: 1, supportedFormats: ['csv', 'json', 'xlsx'], supportedOperations: ['CREATE', 'UPDATE', 'UPSERT'],

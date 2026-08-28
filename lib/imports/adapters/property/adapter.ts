@@ -19,6 +19,7 @@ import type {
 } from '@/lib/imports/core/types'
 import { propertyFieldDefinitions } from './fields'
 import { suggestPropertyMappings } from './mappings'
+import { readImportField } from '@/lib/imports/field-utils'
 
 export interface CanonicalManualPropertyInput {
   title: string
@@ -51,6 +52,8 @@ export interface CanonicalManualPropertyInput {
 }
 
 function readValue(record: Record<string, unknown>, paths: string[]) {
+  const sharedValue = readImportField(record, paths)
+  if (sharedValue !== undefined) return sharedValue
   for (const path of paths) {
     const value = path.split('.').reduce<unknown>((current, segment) => {
       if (!current || typeof current !== 'object') return undefined

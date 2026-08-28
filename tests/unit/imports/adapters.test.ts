@@ -9,6 +9,13 @@ describe('universal entity adapters', () => {
     expect(mapped.canonical).toMatchObject({ name: 'Acme Homes', countryCode: 'INDIA', countryIso2: 'IN', website: 'https://acme.example' })
   })
 
+  it('normalizes developers from spreadsheet-style headers without using another entity adapter', () => {
+    const normalized = developerImportAdapter.normalize({ raw: { 'Developer Name': 'Acme Homes', 'Country Code': 'AE' }, sourcePath: null, mappings: [] })
+    const mapped = developerImportAdapter.mapCanonical({ raw: {}, normalized: normalized.normalized, mappings: developerImportAdapter.suggestMappings({ fields: ['Developer Name', 'Country Code'] }) })
+    expect(mapped.canonical?.name).toBe('Acme Homes')
+    expect(mapped.errors).toEqual([])
+  })
+
   it('accepts human-formatted CSV headers with spaces', () => {
     const normalized = developerImportAdapter.normalize({ raw: { 'Developer  Name': 'Shivalik Group', City: 'Ahmedabad', State: 'Gujarat', Country: 'India', 'Short Description': 'Green developments', 'Full Description': 'Detailed description', Website: 'https://shivalik.example', Email: 'INFO@SHIVALIK.EXAMPLE', Phone: '91 79 4020 0000', Address: 'Ahmedabad', 'Meta Title': 'Shivalik title', 'Meta Description': 'Shivalik description', 'Meta Keywords': 'shivalik, ahmedabad', 'Duplicate Check': 'Unique' }, sourcePath: null, mappings: [] })
     const mapped = developerImportAdapter.mapCanonical({ raw: {}, normalized: normalized.normalized, mappings: [] })
