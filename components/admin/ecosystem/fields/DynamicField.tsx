@@ -33,6 +33,7 @@ export default function DynamicField({ field, value, onChange }: DynamicFieldPro
           required={field.required}
           min={field.validation?.min}
           max={field.validation?.max}
+          step={field.type === 'number' ? 'any' : undefined}
           maxLength={field.validation?.maxLength}
           className={commonInputClass}
         />
