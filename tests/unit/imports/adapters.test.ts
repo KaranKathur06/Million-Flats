@@ -119,6 +119,8 @@ describe('universal entity adapters', () => {
     ['technology-partners', { Solutions: 'Cloud Migration, AI Solutions', 'Integration or Product Type': 'AWS Premier Partner' }, { solutions: ['Cloud Migration', 'AI Solutions'], integrationType: 'AWS Premier Partner' }],
     ['tiles-surface-finishing', { Materials: 'Porcelain Tiles, Quartz Stone', 'Supported Brands': 'Kajaria, Somany' }, { materials: ['Porcelain Tiles', 'Quartz Stone'], supportedBrands: ['Kajaria', 'Somany'] }],
     ['vastu-feng-shui', { 'Consultation Modes': 'Online, On-Site Inspection', 'Your Approach / Philosophy': 'Scientific space planning' }, { consultationModes: ['Online', 'On-Site Inspection'], philosophy: 'Scientific space planning' }],
+    ['hardware-architectural-fittings', { 'Product Categories': 'Digital Locks, Glass Hardware', 'Supported Brands': 'Godrej, Ozone' }, { productCategories: ['Digital Locks', 'Glass Hardware'], supportedBrands: ['Godrej', 'Ozone'] }],
+    ['cement-structural', { Materials: 'Ordinary Portland Cement (OPC 53), Ready Mix Concrete (RMC)', 'Delivery Capability': 'Nationwide multi-modal logistics with 100+ grinding units.' }, { materials: ['Ordinary Portland Cement (OPC 53)', 'Ready Mix Concrete (RMC)'], deliveryCapability: 'Nationwide multi-modal logistics with 100+ grinding units.' }],
   ] as const
   categoryCases.forEach(([categorySlug, rawFields, expected]) => {
     it(`maps ${categorySlug} category fields from CSV labels`, () => {
