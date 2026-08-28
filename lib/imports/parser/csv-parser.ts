@@ -45,7 +45,9 @@ function findHeaderRow(rows: string[][], explicitHeaderRow?: number) {
 
 function buildHeaders(row: string[]) {
   const seen = new Map<string, number>()
-  return row.map((cell, index) => {
+  let lastHeaderIndex = row.length - 1
+  while (lastHeaderIndex >= 0 && !String(row[lastHeaderIndex] || '').trim()) lastHeaderIndex -= 1
+  return row.slice(0, lastHeaderIndex + 1).map((cell, index) => {
     const base = String(cell || '').trim() || `column_${index + 1}`
     const count = seen.get(base) || 0
     seen.set(base, count + 1)

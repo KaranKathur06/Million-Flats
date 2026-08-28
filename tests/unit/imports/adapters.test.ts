@@ -32,13 +32,14 @@ describe('universal entity adapters', () => {
   it('preserves unmapped ecosystem fields as category data', () => {
     const normalized = ecosystemPartnerImportAdapter.normalize({ raw: { company_name: 'Legal Co', category: 'legal-documentation', license_number: 'LIC-1', contact_email: 'INFO@LEGAL.EXAMPLE' }, sourcePath: null, mappings: [] })
     const mapped = ecosystemPartnerImportAdapter.mapCanonical({ raw: {}, normalized: normalized.normalized, mappings: [] })
-    expect(mapped.canonical).toMatchObject({ name: 'Legal Co', categorySlug: 'legal-documentation', contactEmail: 'info@legal.example', categoryData: { license_number: 'LIC-1' } })
+    expect(mapped.canonical).toMatchObject({ name: 'Legal Co', categorySlug: 'legal-documentation', contactEmail: 'info@legal.example', categoryData: { licenseNumber: 'LIC-1' } })
   })
 
   it('maps spreadsheet home-loan fields into category data', () => {
     const normalized = ecosystemPartnerImportAdapter.normalize({
       raw: {
         'Business Name': 'State Bank of India (SBI)',
+        categorySlug: 'home-loans-finance',
         'Years of Experience': '71 Years (Est. 1955)',
         'Loan Types': 'Regular Home Loan; Balance Transfer; NRI Loan',
         'Interest Rate Min (%)': '8.5',
@@ -62,6 +63,68 @@ describe('universal entity adapters', () => {
         processingFee: '0.35% of loan amount',
         rbiRegistration: 'RBI Registered Scheduled Public Sector Bank',
       },
+    })
+  })
+
+  it('maps Legal & Documentation CSV fields into the category schema', () => {
+    const normalized = ecosystemPartnerImportAdapter.normalize({
+      raw: {
+        'Business Name': 'Astraea Legal Advocates & Solicitors',
+        categorySlug: 'legal-documentation',
+        'Contact Person': 'Rishi Anand',
+        Email: 'delhi@astraealegal.com',
+        Phone: '+91 11 4100 5600',
+        Website: 'https://www.astraealegal.com',
+        'Years of Experience': '14+ Years',
+        'Pricing Range': 'Mid-Range (₹15,000 - ₹1,20,000)',
+        'Business Description': 'Full-service law firm with extensive experience.',
+        'Service Areas': 'New Delhi, Mumbai, Chandigarh, Jaipur',
+        'License Number': 'D/1090/2008 (Bar Council of Delhi)',
+        Specialization: 'Real Estate Title Verification, Commercial Disputes, Arbitration',
+        'Due Diligence': 'Yes (Property Search Reports & Title Clearance Audits)',
+        'Agreement Drafting': 'Yes (Builder-Buyer Agreements, Collaboration Deeds, Leases)',
+        Registration: 'Yes (Sub-Registrar Offices in Delhi NCR)',
+        RERA: 'Yes (RERA Complaints & Developer Advisory)',
+        'Litigation Support': 'Yes (Supreme Court, Delhi High Court, District Courts)',
+        'Court Registration': 'Yes (Delhi High Court & Supreme Court)',
+      },
+      sourcePath: null,
+      mappings: [],
+    })
+    const mapped = ecosystemPartnerImportAdapter.mapCanonical({ raw: {}, normalized: normalized.normalized, mappings: [] })
+
+    expect(mapped.canonical).toMatchObject({
+      name: 'Astraea Legal Advocates & Solicitors',
+      contactPerson: 'Rishi Anand',
+      description: 'Full-service law firm with extensive experience.',
+      categoryData: {
+        licenseNumber: 'D/1090/2008 (Bar Council of Delhi)',
+        courtRegistration: 'Yes (Delhi High Court & Supreme Court)',
+        specialization: ['Real Estate Title Verification', 'Commercial Disputes', 'Arbitration'],
+        dueDiligence: 'Yes (Property Search Reports & Title Clearance Audits)',
+        agreementDrafting: 'Yes (Builder-Buyer Agreements, Collaboration Deeds, Leases)',
+        registration: 'Yes (Sub-Registrar Offices in Delhi NCR)',
+        rera: 'Yes (RERA Complaints & Developer Advisory)',
+        litigationSupport: 'Yes (Supreme Court, Delhi High Court, District Courts)',
+      },
+    })
+  })
+
+  const categoryCases = [
+    ['smart-home-automation', { 'Supported Brands': 'Control4, Tuya, Zigbee', 'AMC Available?': 'Yes' }, { supportedBrands: ['Control4', 'Tuya', 'Zigbee'], amcAvailable: 'Yes' }],
+    ['interior-design-renovation', { 'Portfolio Links': 'https://example.com/portfolio' }, { portfolioLinks: ['https://example.com/portfolio'] }],
+    ['packers-movers', { 'Service Types': 'Household Shifting; Office Relocation', 'Fleet Details': '100 container trucks' }, { serviceTypes: ['Household Shifting', 'Office Relocation'], fleetDetails: '100 container trucks' }],
+    ['property-insurance', { Products: 'Home Insurance, Fire Cover', 'IRDAI Registration Number': 'IRDAI Reg. No. 113' }, { products: ['Home Insurance', 'Fire Cover'], irdaiRegistrationNumber: 'IRDAI Reg. No. 113' }],
+    ['property-management', { 'Units Managed': '2,000+ properties', 'Fee Structure': '8% monthly management fee' }, { unitsManagedDisplay: '2,000+ properties', feeStructure: '8% monthly management fee' }],
+    ['technology-partners', { Solutions: 'Cloud Migration, AI Solutions', 'Integration or Product Type': 'AWS Premier Partner' }, { solutions: ['Cloud Migration', 'AI Solutions'], integrationType: 'AWS Premier Partner' }],
+    ['tiles-surface-finishing', { Materials: 'Porcelain Tiles, Quartz Stone', 'Supported Brands': 'Kajaria, Somany' }, { materials: ['Porcelain Tiles', 'Quartz Stone'], supportedBrands: ['Kajaria', 'Somany'] }],
+    ['vastu-feng-shui', { 'Consultation Modes': 'Online, On-Site Inspection', 'Your Approach / Philosophy': 'Scientific space planning' }, { consultationModes: ['Online', 'On-Site Inspection'], philosophy: 'Scientific space planning' }],
+  ] as const
+  categoryCases.forEach(([categorySlug, rawFields, expected]) => {
+    it(`maps ${categorySlug} category fields from CSV labels`, () => {
+      const normalized = ecosystemPartnerImportAdapter.normalize({ raw: { 'Business Name': 'Category Partner', categorySlug, ...rawFields }, sourcePath: null, mappings: [] })
+      const mapped = ecosystemPartnerImportAdapter.mapCanonical({ raw: {}, normalized: normalized.normalized, mappings: [] })
+      expect(mapped.canonical?.categoryData).toMatchObject(expected)
     })
   })
 })

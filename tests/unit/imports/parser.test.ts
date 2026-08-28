@@ -24,6 +24,16 @@ describe('universal import parsers', () => {
     expect(discovery.fields).toEqual(['title', 'city'])
   })
 
+  it('ignores trailing empty CSV headers without losing populated columns', async () => {
+    const content = 'Business Name,Email,Supported Brands,AMC Available?,,,,,\nSmart Home Co,hello@example.com,"Tuya, Zigbee",Yes,,,,\n'
+    const discovery = await csvParser.inspect({ content, fileName: 'smart-home.csv' })
+    const records = []
+    for await (const record of csvParser.parse({ content, fileName: 'smart-home.csv' })) records.push(record)
+
+    expect(discovery.fields).toEqual(['Business Name', 'Email', 'Supported Brands', 'AMC Available?'])
+    expect(records[0].raw).toMatchObject({ 'Business Name': 'Smart Home Co', Email: 'hello@example.com', 'Supported Brands': 'Tuya, Zigbee', 'AMC Available?': 'Yes' })
+  })
+
   it('discovers nested JSON collections and preserves source paths', async () => {
     const content = JSON.stringify({ data: { results: [{ id: 'p-1', title: 'Villa' }] } })
     const discovery = await jsonParser.inspect({ content, fileName: 'properties.json' })
