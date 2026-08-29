@@ -61,8 +61,18 @@ export async function POST(req: Request) {
     if (format !== 'csv' && format !== 'json' && format !== 'xlsx') return NextResponse.json({ success: false, message: 'Only CSV, XLSX, and JSON files are supported.' }, { status: 415 })
 
     const parser = format === 'csv' ? csvParser : format === 'xlsx' ? xlsxParser : jsonParser
+    
+    // Parse file once and cache all records
+    const allRecords: any[] = []
+    for await (const record of parser.parse(input)) {
+      allRecords.push(record)
+      if (allRecords.length > MAX_RECORDS) break
+    }
+
+    if (allRecords.length > MAX_RECORDS) return NextResponse.json({ success: false, message: `File exceeds the ${MAX_RECORDS} record limit.` }, { status: 413 })
+    
+    // Use cached records for discovery
     const discovery = await parser.inspect(input)
-    if (discovery.recordCount > MAX_RECORDS) return NextResponse.json({ success: false, message: `File exceeds the ${MAX_RECORDS} record limit.` }, { status: 413 })
 
     const entityType = String(form.get('entity') || 'PROPERTY').trim().toUpperCase() as ImportEntityType
     const adapter = getImportAdapterForEntity(entityType)
@@ -70,25 +80,21 @@ export async function POST(req: Request) {
 
     let sourceProfileKey: string | null = null
     let sourceProvider: string | null = String(form.get('sourceProvider') || '').trim() || null
-    let sampleRecord: Record<string, unknown> | undefined
+    
+    // Use first cached record for profile detection
     try {
-      const sampleRecords: Array<Record<string, unknown>> = []
-      for await (const record of parser.parse(input)) {
-        if (record && typeof record.raw === 'object' && !Array.isArray(record.raw)) {
-          sampleRecords.push(record.raw as Record<string, unknown>)
+      const sampleRecord = allRecords[0]?.raw
+      if (sampleRecord && typeof sampleRecord === 'object' && !Array.isArray(sampleRecord)) {
+        const detection = adapter.detectSourceProfile?.({
+          fields: discovery.fields,
+          sample: sampleRecord as Record<string, unknown>,
+          fileName: file.name,
+          sourceProvider,
+        })
+        if (detection && detection.detected && detection.sourceProfileKey) {
+          sourceProfileKey = detection.sourceProfileKey
+          sourceProvider = sourceProvider || 'SquareYards'
         }
-        if (sampleRecords.length >= 1) break
-      }
-      sampleRecord = sampleRecords[0]
-      const detection = adapter.detectSourceProfile?.({
-        fields: discovery.fields,
-        sample: sampleRecord,
-        fileName: file.name,
-        sourceProvider,
-      })
-      if (detection && detection.detected && detection.sourceProfileKey) {
-        sourceProfileKey = detection.sourceProfileKey
-        sourceProvider = sourceProvider || 'SquareYards'
       }
     } catch {
       // Ignore source-profile detection failures; the generic import engine remains operational.
@@ -110,6 +116,7 @@ export async function POST(req: Request) {
       category: String(form.get('category') || '').trim() || null,
     })
 
+    // Stage all cached records in batches
     let staged = 0
     let stagingBatch: Array<{
       batchId: string
@@ -127,7 +134,7 @@ export async function POST(req: Request) {
       sourceListingId?: undefined
     }> = []
 
-    for await (const record of parser.parse(input)) {
+    for (const record of allRecords) {
       stagingBatch.push({
         batchId: batch.id,
         sourceRecordId: record.sourceRecordId,
