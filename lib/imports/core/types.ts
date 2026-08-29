@@ -119,7 +119,7 @@ export interface ImportAdapter<TCanonical> {
   mapCanonical(input: CanonicalMappingInput): CanonicalPayloadResult<TCanonical>
   validate(input: ValidationInput<TCanonical>): ValidationResult
   getDuplicateSignals(): DuplicateSignalDefinition[]
-  resolveRelations(input: RelationInput<TCanonical>): RelationResolution
+  resolveRelations(input: RelationInput<TCanonical>): Promise<RelationResolution>
   prepareCommit(input: CommitPreparationInput<TCanonical>): CommitPreparation
   commit(input: { canonical: TCanonical; operation: ImportOperation; sourceRecordId: string; db: unknown }): Promise<ImportCommitResult>
 }

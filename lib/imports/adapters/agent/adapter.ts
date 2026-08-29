@@ -29,7 +29,7 @@ export const agentImportAdapter: ImportAdapter<CanonicalAgent> = {
   },
   validate(input: ValidationInput<CanonicalAgent>): ValidationResult { const errors = input.canonical.userId ? [] : ['An existing userId is required.']; return { ready: errors.length === 0, warnings: [], errors } },
   getDuplicateSignals: (): DuplicateSignalDefinition[] => [{ key: 'userId', strength: 'deterministic' }, { key: 'license', strength: 'strong' }],
-  resolveRelations: (input: RelationInput<CanonicalAgent>): RelationResolution => ({ ready: Boolean(input.canonical.userId), warnings: [], errors: input.canonical.userId ? [] : ['Existing user relation is required.'], metadata: {} }),
+  resolveRelations: async (input: RelationInput<CanonicalAgent>): Promise<RelationResolution> => ({ ready: Boolean(input.canonical.userId), warnings: [], errors: input.canonical.userId ? [] : ['Existing user relation is required.'], metadata: {} }),
   prepareCommit: (): CommitPreparation => ({ identity: { sourceRecordId: null, sourceUrl: null, provider: null } }),
   async commit(input) {
     const db = input.db as any

@@ -21,6 +21,10 @@ import type {
 import { propertyFieldDefinitions } from './fields'
 import { suggestPropertyMappings } from './mappings'
 import { readImportField } from '@/lib/imports/field-utils'
+import { detectPropertyType } from './property-type-detection'
+import { extractFloor, extractParking, extractPossession } from './contamination-detection'
+import { validateRecord } from './conditional-validation'
+import { resolveOwnership, validateAgentIsApproved } from '@/lib/imports/relations/ownership-resolution'
 
 const SQUAREYARDS_SOURCE_PROFILE_KEY = 'squareyards-property-v1'
 
@@ -146,6 +150,20 @@ export const propertyImportAdapter: ImportAdapter<CanonicalManualPropertyInput> 
     const price = normalizePrice(readValue(raw, ['price', 'asking_price', 'askingPrice', 'amount']), readValue(raw, ['currency', 'price_currency']))
     const bedrooms = normalizeBedrooms(readValue(raw, ['bedrooms', 'bhk', 'beds', 'bedrooms_count']))
     const area = normalizeArea(readValue(raw, ['squareFeet', 'square_feet', 'built_up_area', 'area', 'size']), readValue(raw, ['areaUnit', 'area_unit', 'unit']))
+    
+    const floor = extractFloor(readValue(raw, ['floorLevel', 'floor_level', 'floor', 'floorNo']))
+    const parking = extractParking(readValue(raw, ['parking', 'parkingSpaces', 'parking_spaces']))
+    const possession = extractPossession(readValue(raw, ['possessionStatus', 'possession_status', 'status']))
+    
+    const warnings: string[] = []
+    const errors: string[] = []
+    
+    if (price.unresolved) warnings.push('PRICE_UNRESOLVED: ' + (price.display || 'unknown'))
+    if (area.unresolved) warnings.push('AREA_UNRESOLVED: ' + (area.display || 'unknown'))
+    if (floor.contaminated && floor.warning) warnings.push(floor.warning)
+    if (parking.contaminated && parking.warning) warnings.push(parking.warning)
+    if (possession.contaminated && possession.warning) warnings.push(possession.warning)
+    
     const normalized = {
       ...raw,
       title: asText(readValue(raw, ['title', 'property_name', 'listing_title', 'name'])),
@@ -159,6 +177,12 @@ export const propertyImportAdapter: ImportAdapter<CanonicalManualPropertyInput> 
       squareFeet: area.amount,
       areaDisplay: area.display,
       areaUnresolved: area.unresolved,
+      floorLevel: floor.extracted,
+      floorContaminated: floor.contaminated,
+      parking: parking.extracted,
+      parkingContaminated: parking.contaminated,
+      possessionStatus: possession.extracted,
+      possessionContaminated: possession.contaminated,
       authorizedToMarket: normalizeBoolean(readValue(raw, ['authorizedToMarket', 'authorized_to_market'])),
       city: readValue(raw, ['city', 'city_name', 'location.city']),
       community: readValue(raw, ['community', 'locality', 'neighborhood', 'location.community']),
@@ -168,8 +192,8 @@ export const propertyImportAdapter: ImportAdapter<CanonicalManualPropertyInput> 
     }
     return {
       normalized,
-      warnings: price.unresolved ? ['Price could not be converted to a numeric amount.'] : [],
-      errors: [],
+      warnings,
+      errors,
     }
   },
 
@@ -220,11 +244,38 @@ export const propertyImportAdapter: ImportAdapter<CanonicalManualPropertyInput> 
   validate(input: ValidationInput<CanonicalManualPropertyInput>): ValidationResult {
     const warnings: string[] = []
     const errors: string[] = []
-    if (!input.canonical.title) errors.push('Property title is required.')
-    if (!input.canonical.agentId) errors.push('An existing Agent owner is required.')
-    if (!input.canonical.city || !input.canonical.community) warnings.push('Canonical city and community should be reviewed.')
+    
+    const normalized = (input.normalized || {}) as Record<string, unknown>
+    const propertyTypeDetection = detectPropertyType({
+      title: input.canonical.title,
+      description: normalized.shortDescription || normalized.description,
+      bedrooms: input.canonical.bedrooms,
+      bathrooms: input.canonical.bathrooms,
+      propertyType: input.canonical.propertyType,
+      floorLevel: normalized.floorLevel as number | null,
+      squareFeet: input.canonical.squareFeet,
+    })
+    
+    const detectedType = propertyTypeDetection.type || input.canonical.propertyType
+    
+    const validationIssues = validateRecord(input.canonical as Record<string, unknown>, {
+      propertyType: detectedType,
+      intent: input.canonical.intent,
+      bedrooms: input.canonical.bedrooms,
+      bathrooms: input.canonical.bathrooms,
+      squareFeet: input.canonical.squareFeet,
+      floorLevel: normalized.floorLevel as number | null,
+      price: input.canonical.price,
+    })
+    
+    for (const issue of validationIssues) {
+      if (issue.severity === 'ERROR') errors.push(issue.message)
+      if (issue.severity === 'WARNING') warnings.push(issue.message)
+    }
+    
     if (input.normalized && (input.normalized as any).areaUnresolved) warnings.push('Area could not be converted to square feet and should be reviewed.')
     if (input.canonical.price === null && input.normalized && (input.normalized as any).priceUnresolved) warnings.push('Price is unresolved and will remain display-only.')
+    
     return { ready: errors.length === 0, warnings, errors }
   },
 
@@ -236,8 +287,55 @@ export const propertyImportAdapter: ImportAdapter<CanonicalManualPropertyInput> 
     ]
   },
 
-  resolveRelations(_input: RelationInput<CanonicalManualPropertyInput>): RelationResolution {
-    return { ready: true, warnings: [], errors: [], metadata: {} }
+  async resolveRelations(input: RelationInput<CanonicalManualPropertyInput>): Promise<RelationResolution> {
+    const warnings: string[] = []
+    const errors: string[] = []
+    const metadata: Record<string, unknown> = {}
+
+    // Resolve agent/ownership if agentId is missing
+    if (!input.canonical.agentId) {
+      const raw = (input.raw && typeof input.raw === 'object' ? input.raw : {}) as Record<string, unknown>
+      const ownership = await resolveOwnership({
+        agentId: input.canonical.agentId,
+        city: input.canonical.city,
+        locality: input.canonical.community,
+        latitude: input.canonical.latitude ?? undefined,
+        longitude: input.canonical.longitude ?? undefined,
+        propertyType: input.canonical.propertyType,
+        price: input.canonical.price ?? undefined,
+        sourceProvider: input.canonical.sourceProvider,
+        countryCode: input.canonical.countryCode,
+      })
+
+      metadata.ownershipResolution = {
+        resolved: ownership.resolved,
+        confidence: ownership.confidence,
+        signals: ownership.signals,
+        requiresManualReview: ownership.requiresManualReview,
+        reason: ownership.reason,
+      }
+
+      if (ownership.resolved && ownership.agentId) {
+        metadata.resolvedAgentId = ownership.agentId
+        if (ownership.requiresManualReview) {
+          warnings.push(`Ownership auto-resolved with low confidence (${Math.round(ownership.confidence * 100)}%): ${ownership.reason}`)
+        }
+      } else if (!ownership.resolved && ownership.requiresManualReview) {
+        errors.push(`Could not resolve property ownership: ${ownership.reason}. Manual agent assignment required.`)
+      } else {
+        warnings.push(`Could not resolve property ownership: ${ownership.reason}`)
+      }
+
+      warnings.push(...ownership.warnings)
+    } else {
+      // Validate that provided agent is still approved
+      const agentValidation = await validateAgentIsApproved(input.canonical.agentId)
+      if (!agentValidation.valid) {
+        errors.push(`Agent validation failed: ${agentValidation.reason}`)
+      }
+    }
+
+    return { ready: errors.length === 0, warnings, errors, metadata }
   },
 
   prepareCommit(input: CommitPreparationInput<CanonicalManualPropertyInput>): CommitPreparation {

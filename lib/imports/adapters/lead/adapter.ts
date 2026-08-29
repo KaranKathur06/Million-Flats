@@ -37,7 +37,7 @@ export const leadImportAdapter: ImportAdapter<CanonicalLead> = {
   },
   validate(input: ValidationInput<CanonicalLead>): ValidationResult { const errors = [!input.canonical.leadType && 'A valid lead type is required.', !input.canonical.name && 'Lead name is required.', !/^\S+@\S+\.\S+$/.test(input.canonical.email) && 'A valid lead email is required.'].filter(Boolean) as string[]; return { ready: errors.length === 0, warnings: [], errors } },
   getDuplicateSignals: (): DuplicateSignalDefinition[] => [{ key: 'leadType+email+sourceId', strength: 'strong' }, { key: 'email+phone', strength: 'potential' }],
-  resolveRelations: (input: RelationInput<CanonicalLead>): RelationResolution => ({ ready: true, warnings: input.canonical.projectId ? [] : ['No project relation supplied.'], errors: [], metadata: {} }),
+  resolveRelations: async (input: RelationInput<CanonicalLead>): Promise<RelationResolution> => ({ ready: true, warnings: input.canonical.projectId ? [] : ['No project relation supplied.'], errors: [], metadata: {} }),
   prepareCommit: (): CommitPreparation => ({ identity: { sourceRecordId: null, sourceUrl: null, provider: null } }),
   async commit(input) {
     if (input.operation !== 'CREATE' && input.operation !== 'UPSERT') throw new Error('Lead imports support CREATE and UPSERT only.')

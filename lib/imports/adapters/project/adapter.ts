@@ -38,7 +38,7 @@ export const projectImportAdapter: ImportAdapter<CanonicalProject> = {
   },
   validate(input: ValidationInput<CanonicalProject>): ValidationResult { const errors = input.canonical.name ? [] : ['Project name is required.']; const warnings = input.canonical.developerId || input.canonical.developerName ? [] : ['Developer relationship requires review.']; return { ready: errors.length === 0, errors, warnings } },
   getDuplicateSignals: (): DuplicateSignalDefinition[] => [{ key: 'slug', strength: 'deterministic' }, { key: 'name+city', strength: 'strong' }],
-  resolveRelations: (input: RelationInput<CanonicalProject>): RelationResolution => ({ ready: Boolean(input.canonical.developerId || input.canonical.developerName), warnings: [], errors: input.canonical.developerId || input.canonical.developerName ? [] : ['Developer relationship is required.'], metadata: {} }),
+  resolveRelations: async (input: RelationInput<CanonicalProject>): Promise<RelationResolution> => ({ ready: Boolean(input.canonical.developerId || input.canonical.developerName), warnings: [], errors: input.canonical.developerId || input.canonical.developerName ? [] : ['Developer relationship is required.'], metadata: {} }),
   prepareCommit: (): CommitPreparation => ({ identity: { sourceRecordId: null, sourceUrl: null, provider: null } }),
   async commit(input) {
     const db = input.db as any

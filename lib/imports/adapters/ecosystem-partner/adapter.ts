@@ -101,7 +101,7 @@ export const ecosystemPartnerImportAdapter: ImportAdapter<CanonicalEcosystemPart
   },
   validate(input: ValidationInput<CanonicalEcosystemPartner>): ValidationResult { const errors = input.canonical.name ? [] : ['Partner business name is required.']; const warnings = input.canonical.categoryId || input.canonical.categorySlug ? [] : ['Partner category requires review.']; return { ready: errors.length === 0, errors, warnings } },
   getDuplicateSignals: (): DuplicateSignalDefinition[] => [{ key: 'category+name', strength: 'strong' }, { key: 'category+contactEmail', strength: 'deterministic' }, { key: 'category+website', strength: 'potential' }],
-  resolveRelations: (input: RelationInput<CanonicalEcosystemPartner>): RelationResolution => ({ ready: Boolean(input.canonical.categoryId || input.canonical.categorySlug), warnings: [], errors: input.canonical.categoryId || input.canonical.categorySlug ? [] : ['Partner category is required.'], metadata: {} }),
+  resolveRelations: async (input: RelationInput<CanonicalEcosystemPartner>): Promise<RelationResolution> => ({ ready: Boolean(input.canonical.categoryId || input.canonical.categorySlug), warnings: [], errors: input.canonical.categoryId || input.canonical.categorySlug ? [] : ['Partner category is required.'], metadata: {} }),
   prepareCommit: (): CommitPreparation => ({ identity: { sourceRecordId: null, sourceUrl: null, provider: null } }),
   async commit(input) {
     const db = input.db as any

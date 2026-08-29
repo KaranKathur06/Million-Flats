@@ -59,7 +59,7 @@ export async function analyzeImportBatch(input: { batchId: string; ownerAgentId?
       ? adapter.validate({ canonical, raw, normalized: normalized.normalized })
       : { ready: false, warnings: [], errors: canonicalResult.errors }
     const relations = canonical
-      ? adapter.resolveRelations({ canonical, raw })
+      ? await adapter.resolveRelations({ canonical, raw })
       : { ready: false, warnings: [], errors: [] }
     const recordWarnings = [...normalized.warnings, ...canonicalResult.warnings, ...validation.warnings, ...relations.warnings]
     const recordErrors = [...normalized.errors, ...canonicalResult.errors, ...validation.errors, ...relations.errors]

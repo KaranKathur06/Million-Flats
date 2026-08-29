@@ -46,7 +46,7 @@ export const developerImportAdapter: ImportAdapter<CanonicalDeveloper> = {
   },
   validate(input: ValidationInput<CanonicalDeveloper>): ValidationResult { const errors = input.canonical.name ? [] : ['Developer name is required.']; const warnings = input.canonical.website && !/^https?:\/\//i.test(input.canonical.website) ? ['Website should use http or https.'] : []; return { ready: errors.length === 0, errors, warnings } },
   getDuplicateSignals: (): DuplicateSignalDefinition[] => [{ key: 'name', strength: 'deterministic' }, { key: 'slug', strength: 'strong' }, { key: 'website', strength: 'potential' }],
-  resolveRelations: (): RelationResolution => ({ ready: true, warnings: [], errors: [], metadata: {} }),
+  resolveRelations: async (): Promise<RelationResolution> => ({ ready: true, warnings: [], errors: [], metadata: {} }),
   prepareCommit: (input): CommitPreparation => ({ identity: { sourceRecordId: null, sourceUrl: null, provider: null } }),
   async commit(input) {
     const db = input.db as any

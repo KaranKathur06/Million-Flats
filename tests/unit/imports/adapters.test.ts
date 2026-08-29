@@ -22,11 +22,12 @@ describe('universal entity adapters', () => {
     expect(mapped.canonical).toMatchObject({ name: 'Shivalik Group', city: 'Ahmedabad', countryIso2: 'IN', website: 'https://shivalik.example', description: 'Detailed description', email: 'info@shivalik.example', phone: '91 79 4020 0000', address: 'Ahmedabad', metaTitle: 'Shivalik title', metaDescription: 'Shivalik description', metaKeywords: 'shivalik, ahmedabad', sourceState: 'Gujarat', sourceDuplicateCheck: 'Unique' })
   })
 
-  it('normalizes project prices and requires a developer relation', () => {
+  it('normalizes project prices and requires a developer relation', async () => {
     const normalized = projectImportAdapter.normalize({ raw: { project_name: 'Harbour View', developer_name: 'Acme Homes', starting_price: '₹1.85 Cr', city_name: 'Mumbai' }, sourcePath: null, mappings: [] })
     const mapped = projectImportAdapter.mapCanonical({ raw: {}, normalized: normalized.normalized, mappings: [] })
     expect(mapped.canonical).toMatchObject({ name: 'Harbour View', developerName: 'Acme Homes', startingPrice: 18500000 })
-    expect(projectImportAdapter.resolveRelations({ canonical: mapped.canonical!, raw: {} }).ready).toBe(true)
+    const relations = await projectImportAdapter.resolveRelations({ canonical: mapped.canonical!, raw: {} })
+    expect(relations.ready).toBe(true)
   })
 
   it('preserves unmapped ecosystem fields as category data', () => {

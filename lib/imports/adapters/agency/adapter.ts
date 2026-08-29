@@ -27,7 +27,7 @@ export const agencyImportAdapter: ImportAdapter<CanonicalAgency> = {
   },
   validate(input: ValidationInput<CanonicalAgency>): ValidationResult { const errors = input.canonical.name ? [] : ['Agency name is required.']; return { ready: errors.length === 0, warnings: [], errors } },
   getDuplicateSignals: (): DuplicateSignalDefinition[] => [{ key: 'name+countryIso2', strength: 'deterministic' }],
-  resolveRelations: (_input: RelationInput<CanonicalAgency>): RelationResolution => ({ ready: true, warnings: [], errors: [], metadata: {} }),
+  resolveRelations: async (_input: RelationInput<CanonicalAgency>): Promise<RelationResolution> => ({ ready: true, warnings: [], errors: [], metadata: {} }),
   prepareCommit: (): CommitPreparation => ({ identity: { sourceRecordId: null, sourceUrl: null, provider: null } }),
   async commit(input) {
     const db = input.db as any
