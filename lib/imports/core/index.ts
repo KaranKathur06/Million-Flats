@@ -12,3 +12,6 @@ export * from './resolve-issue'
 export * from './queue-import'
 export * from './execute-import'
 export * from './rollback-import'
+
+// Re-export commonly used functions
+export { stageImportRecordsBatch } from './batch-service'

@@ -1,12 +1,13 @@
 import { createHash } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { requireAdminSession } from '@/lib/adminAuth'
-import { createImportBatch, stageImportRecord, type ImportEntityType } from '@/lib/imports/core'
+import { createImportBatch, stageImportRecordsBatch, type ImportEntityType } from '@/lib/imports/core'
 import { getImportAdapterForEntity, listImportAdapters } from '@/lib/imports/registry'
 import { csvParser, detectFormat, jsonParser, xlsxParser } from '@/lib/imports/parser'
 
 const MAX_BYTES = Number(process.env.IMPORT_MAX_FILE_SIZE || 10 * 1024 * 1024)
 const MAX_RECORDS = Number(process.env.IMPORT_MAX_RECORDS || 5000)
+const BATCH_SIZE = 500 // Stage records in batches for performance
 
 export async function GET() {
   const auth = await requireAdminSession()
@@ -110,8 +111,24 @@ export async function POST(req: Request) {
     })
 
     let staged = 0
+    let stagingBatch: Array<{
+      batchId: string
+      sourceRecordId: string
+      sourceRow?: number | null
+      sourcePath?: string | null
+      raw: unknown
+      normalized?: undefined
+      canonical?: undefined
+      mappingVersion?: number
+      overallConfidence?: null
+      status?: string
+      sourceProvider?: string | null
+      sourceUrl?: undefined
+      sourceListingId?: undefined
+    }> = []
+
     for await (const record of parser.parse(input)) {
-      await stageImportRecord({
+      stagingBatch.push({
         batchId: batch.id,
         sourceRecordId: record.sourceRecordId,
         sourceRow: record.sourceRow,
@@ -119,7 +136,18 @@ export async function POST(req: Request) {
         raw: record.raw,
         sourceProvider: String(form.get('sourceProvider') || '').trim() || null,
       })
-      staged += 1
+
+      if (stagingBatch.length >= BATCH_SIZE) {
+        await stageImportRecordsBatch(stagingBatch)
+        staged += stagingBatch.length
+        stagingBatch = []
+      }
+    }
+
+    // Stage remaining records
+    if (stagingBatch.length > 0) {
+      await stageImportRecordsBatch(stagingBatch)
+      staged += stagingBatch.length
     }
 
     const { prisma } = await import('@/lib/prisma')

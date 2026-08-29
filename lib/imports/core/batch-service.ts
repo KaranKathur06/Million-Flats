@@ -86,6 +86,58 @@ export async function stageImportRecord(input: {
   })
 }
 
+export async function stageImportRecordsBatch(inputs: Array<{
+  batchId: string
+  sourceRecordId: string
+  sourceRow?: number | null
+  sourcePath?: string | null
+  raw: unknown
+  normalized?: unknown
+  canonical?: unknown
+  mappingVersion?: number
+  overallConfidence?: number | null
+  status?: string
+  sourceProvider?: string | null
+  sourceUrl?: string | null
+  sourceListingId?: string | null
+}>) {
+  if (inputs.length === 0) return []
+
+  // Use transaction for better performance
+  return (prisma as any).$transaction(
+    inputs.map((input) =>
+      (prisma as any).importRecord.upsert({
+        where: { batchId_sourceRecordId: { batchId: input.batchId, sourceRecordId: input.sourceRecordId } },
+        create: {
+          batchId: input.batchId,
+          sourceRecordId: input.sourceRecordId,
+          sourceRow: input.sourceRow ?? null,
+          sourcePath: input.sourcePath || null,
+          rawPayload: input.raw ?? null,
+          normalizedPayload: input.normalized ?? null,
+          canonicalPayload: input.canonical ?? null,
+          mappingVersion: input.mappingVersion || 1,
+          overallConfidence: input.overallConfidence ?? null,
+          status: input.status || 'DISCOVERED',
+          sourceProvider: input.sourceProvider || null,
+          sourceUrl: input.sourceUrl || null,
+          sourceListingId: input.sourceListingId || null,
+        },
+        update: {
+          sourceRow: input.sourceRow ?? null,
+          sourcePath: input.sourcePath || null,
+          rawPayload: input.raw ?? null,
+          normalizedPayload: input.normalized ?? null,
+          canonicalPayload: input.canonical ?? null,
+          mappingVersion: input.mappingVersion || 1,
+          overallConfidence: input.overallConfidence ?? null,
+          status: input.status || 'DISCOVERED',
+        },
+      })
+    )
+  )
+}
+
 export async function updateImportBatchCounters(batchId: string, data: Record<string, number>) {
   return (prisma as any).importBatch.update({ where: { id: batchId }, data })
 }

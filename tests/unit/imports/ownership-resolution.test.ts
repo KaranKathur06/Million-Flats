@@ -272,10 +272,10 @@ describe('Ownership Resolution', () => {
   describe('Strategy 4: Agent Specialization Matching', () => {
     it('matches agents by property type specialization', async () => {
       (mockPrisma.agentServiceArea.findMany as jest.Mock).mockResolvedValue([])
-      (mockPrisma.agentSpecialization.findMany as jest.Mock).mockResolvedValue([
+      ;(mockPrisma.agentSpecialization.findMany as jest.Mock).mockResolvedValue([
         {
           agentId: 'ag1',
-          specialization: 'luxury apartments',
+          propertyType: 'APARTMENT',
           agent: { id: 'ag1', status: 'APPROVED' },
         } as any,
       ])
