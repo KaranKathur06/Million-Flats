@@ -7,7 +7,7 @@ import { csvParser, detectFormat, jsonParser, xlsxParser } from '@/lib/imports/p
 
 const MAX_BYTES = Number(process.env.IMPORT_MAX_FILE_SIZE || 10 * 1024 * 1024)
 const MAX_RECORDS = Number(process.env.IMPORT_MAX_RECORDS || 5000)
-const BATCH_SIZE = 500 // Stage records in batches for performance
+const BATCH_SIZE = 2000 // Use larger batches with createMany for performance
 
 export async function GET() {
   const auth = await requireAdminSession()
