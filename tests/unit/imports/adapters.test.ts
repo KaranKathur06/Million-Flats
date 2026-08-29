@@ -110,6 +110,20 @@ describe('universal entity adapters', () => {
     })
   })
 
+  it('uses CSV-aligned legal specializations in the legal category schema', () => {
+    const options = require('@/lib/ecosystem/admin/categorySchemas/legal').legalCategorySchema.fields.find((field: any) => field.name === 'specialization')?.options ?? []
+
+    expect(options).toEqual(expect.arrayContaining([
+      'Real Estate Title Verification',
+      'Commercial Disputes',
+      'Arbitration',
+      'Corporate Advisory',
+      'Real Estate Conveyance',
+      'Dispute Resolution',
+    ]))
+    expect(options).not.toEqual(expect.arrayContaining(['Due Diligence', 'RERA', 'Litigation Support']))
+  })
+
   const categoryCases = [
     ['smart-home-automation', { 'Supported Brands': 'Control4, Tuya, Zigbee', 'AMC Available?': 'Yes' }, { supportedBrands: ['Control4', 'Tuya', 'Zigbee'], amcAvailable: 'Yes' }],
     ['interior-design-renovation', { 'Portfolio Links': 'https://example.com/portfolio' }, { portfolioLinks: ['https://example.com/portfolio'] }],

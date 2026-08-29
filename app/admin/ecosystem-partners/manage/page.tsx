@@ -30,6 +30,9 @@ export default function AdminEcosystemPartnersManagePage() {
   const [search, setSearch] = useState('')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [bulkApproving, setBulkApproving] = useState(false)
+  const [bulkPermanentDeleteModalOpen, setBulkPermanentDeleteModalOpen] = useState(false)
+  const [bulkPermanentDeleteIds, setBulkPermanentDeleteIds] = useState<string[]>([])
+  const [bulkPermanentDeleteConfirmation, setBulkPermanentDeleteConfirmation] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -92,7 +95,14 @@ export default function AdminEcosystemPartnersManagePage() {
 
   const handleBulkAction = async (action: string) => {
     if (!selectedIds.length) return
-    if (action === 'permanent_delete' && !window.confirm('Permanently delete the selected partners? This cannot be undone.')) return
+
+    if (action === 'permanent_delete') {
+      setBulkPermanentDeleteIds(selectedIds)
+      setBulkPermanentDeleteConfirmation('')
+      setBulkPermanentDeleteModalOpen(true)
+      return
+    }
+
     setBulkApproving(true)
     try {
       const response = await fetch('/api/admin/bulk-approve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'ecosystem-partners', action, ids: selectedIds }) })
@@ -102,6 +112,33 @@ export default function AdminEcosystemPartnersManagePage() {
       await load()
     } catch (error) {
       window.alert(error instanceof Error ? error.message : 'Partner action failed')
+    } finally {
+      setBulkApproving(false)
+    }
+  }
+
+  const confirmPermanentDelete = async () => {
+    if (!bulkPermanentDeleteIds.length) return
+    if (bulkPermanentDeleteConfirmation !== 'DELETE') return
+
+    setBulkApproving(true)
+    try {
+      const response = await fetch('/api/admin/bulk-approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entity: 'ecosystem-partners', action: 'permanent_delete', ids: bulkPermanentDeleteIds }),
+      })
+
+      const json = await response.json().catch(() => null)
+      if (!response.ok || !json?.success) throw new Error(json?.message || 'Partner permanent delete failed')
+
+      setSelectedIds([])
+      setBulkPermanentDeleteIds([])
+      setBulkPermanentDeleteConfirmation('')
+      setBulkPermanentDeleteModalOpen(false)
+      await load()
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Partner permanent delete failed')
     } finally {
       setBulkApproving(false)
     }
@@ -278,6 +315,57 @@ export default function AdminEcosystemPartnersManagePage() {
           </tbody>
         </table>
       </div>
+
+      {bulkPermanentDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl border border-red-500/35 bg-[#071328] p-6">
+            <h3 className="text-xl font-semibold text-white">Permanently Delete Partner(s)?</h3>
+            <p className="mt-3 text-sm leading-relaxed text-white/70">
+              This action cannot be undone. The selected partner profiles and their associated data will be permanently removed from MillionFlats.
+            </p>
+            <div className="mt-5 rounded-xl border border-red-500/25 bg-red-500/5 p-4 text-sm text-white/80">
+              <div className="flex justify-between gap-4 py-1">
+                <span className="text-white/50">Partners selected:</span>
+                <span className="font-semibold text-white">{bulkPermanentDeleteIds.length}</span>
+              </div>
+              <div className="flex justify-between gap-4 py-1">
+                <span className="text-white/50">Status:</span>
+                <span className="font-semibold text-red-200">Deleted</span>
+              </div>
+            </div>
+            <label className="mt-5 block text-sm font-medium text-white/75">
+              Type DELETE to confirm
+              <input
+                value={bulkPermanentDeleteConfirmation}
+                onChange={(e) => setBulkPermanentDeleteConfirmation(e.target.value)}
+                className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/25 focus:border-red-400/40"
+                placeholder="DELETE"
+              />
+            </label>
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setBulkPermanentDeleteModalOpen(false)
+                  setBulkPermanentDeleteIds([])
+                  setBulkPermanentDeleteConfirmation('')
+                }}
+                className="rounded-lg border border-white/20 bg-white/5 px-3.5 py-2 text-sm text-white/80 hover:bg-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmPermanentDelete}
+                disabled={bulkPermanentDeleteConfirmation !== 'DELETE' || bulkApproving}
+                className="rounded-lg border border-red-500/35 bg-red-500/15 px-3.5 py-2 text-sm font-semibold text-red-100 hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {bulkApproving ? 'Deleting...' : 'Permanently Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
