@@ -24,14 +24,18 @@ export async function analyzeImportBatch(input: { batchId: string; ownerAgentId?
     }
   }
 
-  if (!canTransition(currentState as any, 'ANALYZING')) {
+  // If already analyzing, continue with the analysis (allows re-analysis)
+  const needsStatusUpdate = currentState !== 'ANALYZING'
+  if (needsStatusUpdate && !canTransition(currentState as any, 'ANALYZING')) {
     throw new Error(`Import batch cannot transition from ${currentState} to ANALYZING.`)
   }
 
-  await (prisma as any).importBatch.update({
-    where: { id: batch.id },
-    data: { status: 'ANALYZING', startedAt: new Date() },
-  })
+  if (needsStatusUpdate) {
+    await (prisma as any).importBatch.update({
+      where: { id: batch.id },
+      data: { status: 'ANALYZING', startedAt: new Date() },
+    })
+  }
 
   try {
   await (prisma as any).importIssue.deleteMany({
