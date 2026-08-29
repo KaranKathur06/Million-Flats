@@ -124,6 +124,32 @@ describe('universal entity adapters', () => {
     expect(options).not.toEqual(expect.arrayContaining(['Due Diligence', 'RERA', 'Litigation Support']))
   })
 
+  it('keeps ecosystem partner option sets aligned across category schemas and registration config', () => {
+    const schemaCases = {
+      'home-loans-finance': ['Home Loan', 'Loan Against Property', 'Balance Transfer', 'NRI Loan', 'Construction Loan', 'Plot Loan', 'Top-up Loan'],
+      'legal-documentation': ['Real Estate Title Verification', 'Commercial Disputes', 'Arbitration', 'Real Estate Conveyance', 'Property Due Diligence', 'Corporate Advisory', 'Commercial Contracts', 'RERA Compliance', 'Dispute Resolution', 'Real Estate Litigation'],
+      'property-insurance': ['Home Insurance', 'Fire & Perils', 'Contents Cover', 'Landlord Insurance', 'Earthquake Cover', 'Flood Cover', 'Builder Risk'],
+      'packers-movers': ['Local', 'Inter-city', 'International', 'Storage', 'Office', 'Vehicle Transport', 'Warehousing'],
+      'smart-home-automation': ['Philips Hue', 'Google', 'Amazon Alexa', 'Apple HomeKit', 'Sonoff', 'Lutron', 'Schneider', 'Hikvision', 'Control4', 'Crestron', 'KNX'],
+      'technology-partners': ['CRM', 'Automation', 'Analytics', 'AI', 'Marketplace', 'Property Tech', 'Payments', 'Identity/KYC', 'Mapping/GIS', 'Cloud/Infra'],
+      'tiles-surface-finishing': ['Tiles', 'Stone', 'Marble', 'Granite', 'Wood', 'Vinyl', 'Porcelain', 'Ceramic', 'Mosaic', 'Terrazzo'],
+      'hardware-architectural-fittings': ['Door Hardware', 'Kitchen Hardware', 'Bathroom Fittings', 'Wardrobe Systems', 'Locks & Security', 'Glass Fittings', 'Sliding Systems', 'Commercial Hardware'],
+      'cement-structural': ['Cement', 'Steel', 'Bricks', 'Blocks', 'Concrete', 'Ready-mix', 'Admixtures', 'Waterproofing'],
+    }
+
+    const config = require('@/lib/ecosystem/ecosystemCategoryConfig')
+    Object.entries(schemaCases).forEach(([slug, expected]) => {
+      const configEntry = config.ECOSYSTEM_REGISTRATION_CONFIG[slug]
+      expect(configEntry).toBeDefined()
+      if (!configEntry) return
+      const field = configEntry.extraFields.find((item: any) => Array.isArray(item.options))
+      expect(field).toBeDefined()
+      if (!field) return
+      expect(field.options).toEqual(expect.arrayContaining(expected.slice(0, 3)))
+      expect(field.options).toEqual(expect.arrayContaining(expected.slice(-3)))
+    })
+  })
+
   const categoryCases = [
     ['smart-home-automation', { 'Supported Brands': 'Control4, Tuya, Zigbee', 'AMC Available?': 'Yes' }, { supportedBrands: ['Control4', 'Tuya', 'Zigbee'], amcAvailable: 'Yes' }],
     ['interior-design-renovation', { 'Portfolio Links': 'https://example.com/portfolio' }, { portfolioLinks: ['https://example.com/portfolio'] }],

@@ -64,7 +64,7 @@ export const ECOSYSTEM_REGISTRATION_CONFIG: Record<EcosystemCategorySlug, Ecosys
     requiresDocumentUpload: true,
     baseFields: BASE_FIELDS,
     extraFields: [
-      { type: 'multiselect', name: 'loanTypes', label: 'Loan Types', required: true, options: ['Home Loan', 'Loan Against Property', 'Balance Transfer', 'NRI Loan'] },
+      { type: 'multiselect', name: 'loanTypes', label: 'Loan Types', required: true, options: ['Home Loan', 'Loan Against Property', 'Balance Transfer', 'NRI Loan', 'Construction Loan', 'Plot Loan', 'Top-up Loan'] },
       { type: 'number', name: 'interestRateMin', label: 'Interest Rate Min (%)', required: false },
       { type: 'number', name: 'interestRateMax', label: 'Interest Rate Max (%)', required: false },
       { type: 'text', name: 'processingFee', label: 'Processing Fee', required: false },
@@ -113,7 +113,7 @@ export const ECOSYSTEM_REGISTRATION_CONFIG: Record<EcosystemCategorySlug, Ecosys
     requiresDocumentUpload: true,
     baseFields: BASE_FIELDS,
     extraFields: [
-      { type: 'multiselect', name: 'products', label: 'Products', required: true, options: ['Home Insurance', 'Fire & Perils', 'Contents Cover', 'Landlord Insurance'] },
+      { type: 'multiselect', name: 'products', label: 'Products', required: true, options: ['Home Insurance', 'Fire & Perils', 'Contents Cover', 'Landlord Insurance', 'Earthquake Cover', 'Flood Cover', 'Builder Risk'] },
       { type: 'text', name: 'irdaiRegistrationNumber', label: 'IRDAI Registration Number', required: false },
       { type: 'file', name: 'certificate', label: 'License/Registration Document', accept: 'image/png,image/jpeg,image/webp', required: true, help: 'Max 2MB (JPG/PNG/WebP)' },
     ],
@@ -141,7 +141,7 @@ export const ECOSYSTEM_REGISTRATION_CONFIG: Record<EcosystemCategorySlug, Ecosys
     requiresDocumentUpload: false,
     baseFields: BASE_FIELDS,
     extraFields: [
-      { type: 'multiselect', name: 'serviceTypes', label: 'Service Types', required: true, options: ['Local', 'Inter-city', 'Storage', 'Office'] },
+      { type: 'multiselect', name: 'serviceTypes', label: 'Service Types', required: true, options: ['Local', 'Inter-city', 'International', 'Storage', 'Office', 'Vehicle Transport', 'Warehousing'] },
       { type: 'text', name: 'fleetDetails', label: 'Fleet Details', required: false },
     ],
   },
@@ -167,7 +167,7 @@ export const ECOSYSTEM_REGISTRATION_CONFIG: Record<EcosystemCategorySlug, Ecosys
     requiresDocumentUpload: false,
     baseFields: BASE_FIELDS,
     extraFields: [
-      { type: 'multiselect', name: 'consultationModes', label: 'Consultation Modes', required: true, options: ['On-site', 'Online', 'Hybrid'] },
+      { type: 'multiselect', name: 'consultationModes', label: 'Consultation Modes', required: true, options: ['On-site', 'Online', 'Hybrid', 'Phone', 'Video Call'] },
       { type: 'text', name: 'philosophy', label: 'Your Approach / Philosophy', required: false },
     ],
   },
@@ -180,7 +180,7 @@ export const ECOSYSTEM_REGISTRATION_CONFIG: Record<EcosystemCategorySlug, Ecosys
     requiresDocumentUpload: true,
     baseFields: BASE_FIELDS,
     extraFields: [
-      { type: 'multiselect', name: 'materials', label: 'Materials', required: true, options: ['Tiles', 'Stone', 'Marble', 'Granite', 'Wood', 'Vinyl'] },
+      { type: 'multiselect', name: 'materials', label: 'Materials', required: true, options: ['Tiles', 'Stone', 'Marble', 'Granite', 'Wood', 'Vinyl', 'Porcelain', 'Ceramic', 'Mosaic', 'Terrazzo'] },
       { type: 'text', name: 'brands', label: 'Supported Brands', required: false },
       { type: 'file', name: 'certificate', label: 'Business/Trade Document (optional)', accept: 'image/png,image/jpeg,image/webp', required: false, help: 'Max 2MB (JPG/PNG/WebP)' },
     ],
@@ -194,7 +194,7 @@ export const ECOSYSTEM_REGISTRATION_CONFIG: Record<EcosystemCategorySlug, Ecosys
     requiresDocumentUpload: true,
     baseFields: BASE_FIELDS,
     extraFields: [
-      { type: 'multiselect', name: 'productCategories', label: 'Product Categories', required: true, options: ['Door Hardware', 'Kitchen Hardware', 'Bathroom Fittings', 'Wardrobe Systems', 'Locks & Security'] },
+      { type: 'multiselect', name: 'productCategories', label: 'Product Categories', required: true, options: ['Door Hardware', 'Kitchen Hardware', 'Bathroom Fittings', 'Wardrobe Systems', 'Locks & Security', 'Glass Fittings', 'Sliding Systems', 'Commercial Hardware'] },
       { type: 'text', name: 'supportedBrands', label: 'Supported Brands', required: false },
       { type: 'file', name: 'certificate', label: 'Business/Trade Document (optional)', accept: 'image/png,image/jpeg,image/webp', required: false, help: 'Max 2MB (JPG/PNG/WebP)' },
     ],
@@ -208,7 +208,7 @@ export const ECOSYSTEM_REGISTRATION_CONFIG: Record<EcosystemCategorySlug, Ecosys
     requiresDocumentUpload: true,
     baseFields: BASE_FIELDS,
     extraFields: [
-      { type: 'multiselect', name: 'materials', label: 'Materials', required: true, options: ['Cement', 'Steel', 'Bricks', 'Blocks', 'Concrete'] },
+      { type: 'multiselect', name: 'materials', label: 'Materials', required: true, options: ['Cement', 'Steel', 'Bricks', 'Blocks', 'Concrete', 'Ready-mix', 'Admixtures', 'Waterproofing'] },
       { type: 'text', name: 'deliveryCapability', label: 'Delivery Capability', required: false },
       { type: 'file', name: 'certificate', label: 'Business/Trade Document (optional)', accept: 'image/png,image/jpeg,image/webp', required: false, help: 'Max 2MB (JPG/PNG/WebP)' },
     ],
@@ -222,7 +222,7 @@ export const ECOSYSTEM_REGISTRATION_CONFIG: Record<EcosystemCategorySlug, Ecosys
     requiresDocumentUpload: false,
     baseFields: BASE_FIELDS,
     extraFields: [
-      { type: 'multiselect', name: 'supportedBrands', label: 'Supported Brands', required: true, options: ['Philips Hue', 'Google', 'Amazon Alexa', 'Apple HomeKit', 'Sonoff', 'Other'] },
+      { type: 'multiselect', name: 'supportedBrands', label: 'Supported Brands', required: true, options: ['Philips Hue', 'Google', 'Amazon Alexa', 'Apple HomeKit', 'Sonoff', 'Lutron', 'Schneider', 'Hikvision', 'Control4', 'Crestron', 'KNX'] },
       { type: 'select', name: 'amcAvailable', label: 'AMC Available?', required: false, options: ['Yes', 'No'] },
     ],
   },
@@ -235,7 +235,7 @@ export const ECOSYSTEM_REGISTRATION_CONFIG: Record<EcosystemCategorySlug, Ecosys
     requiresDocumentUpload: false,
     baseFields: BASE_FIELDS,
     extraFields: [
-      { type: 'multiselect', name: 'solutions', label: 'Solutions', required: true, options: ['CRM', 'Automation', 'Analytics', 'AI', 'Marketplace', 'Property Tech'] },
+      { type: 'multiselect', name: 'solutions', label: 'Solutions', required: true, options: ['CRM', 'Automation', 'Analytics', 'AI', 'Marketplace', 'Property Tech', 'Payments', 'Identity/KYC', 'Mapping/GIS', 'Cloud/Infra'] },
       { type: 'text', name: 'integrationType', label: 'Integration or Product Type', required: false },
     ],
   },

@@ -47,7 +47,7 @@ export default function InsurancePartnerRegistrationPage() {
                   name: 'products',
                   label: 'Primary Insurance Products Offered',
                   required: true,
-                  options: ['Home', 'Fire', 'Burglary', 'Landlord', 'Tenant Contents', 'Builder Risk'],
+                  options: ['Home Insurance', 'Fire & Perils', 'Contents Cover', 'Landlord Insurance', 'Earthquake Cover', 'Flood Cover', 'Builder Risk'],
                 },
                 { type: 'text', name: 'differentiators', label: 'Key Differentiators', required: true, placeholder: 'e.g., 24/7 Support' },
                 { type: 'text', name: 'claimSettlement', label: 'Average Claim Settlement Ratio & Time', required: true },

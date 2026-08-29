@@ -42,7 +42,7 @@ export default function MoversPartnerRegistrationPage() {
                   name: 'serviceTypes',
                   label: 'Service Types Offered',
                   required: true,
-                  options: ['Local', 'Domestic', 'Packing', 'Storage', 'Car Transport', 'Bike Transport'],
+                  options: ['Local', 'Inter-city', 'International', 'Storage', 'Office', 'Vehicle Transport', 'Warehousing'],
                 },
                 { type: 'text', name: 'fleetDetails', label: 'Fleet Details (Number & Type of Vehicles)', required: true },
                 { type: 'select', name: 'packingMaterials', label: 'Do you provide packing materials & labor?', required: true, options: ['Yes', 'No'] },

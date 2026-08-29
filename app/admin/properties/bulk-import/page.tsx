@@ -44,6 +44,19 @@ const modeOptions = [
     { value: 'STRICT', label: 'Strict · resolve every issue' },
 ]
 
+async function parseJsonResponse(response: Response) {
+    const contentType = response.headers.get('content-type') || ''
+    if (!contentType.includes('application/json') && !contentType.includes('+json')) {
+        if (response.redirected) {
+            throw new Error('Session expired or the request was redirected. Please refresh and try again.')
+        }
+        throw new Error('The server returned an unexpected response. Please refresh and try again.')
+    }
+
+    const payload = await response.json()
+    return payload
+}
+
 export default function ImportCenterPage() {
     const [step, setStep] = useState<Step>('setup')
     const [entity, setEntity] = useState('PROPERTY')
@@ -113,7 +126,7 @@ export default function ImportCenterPage() {
             form.append('sourceProvider', 'ADMIN_IMPORT')
             if (category) form.append('category', category)
             const response = await fetch('/api/admin/bulk-import', { method: 'POST', body: form })
-            const payload = await response.json()
+            const payload = await parseJsonResponse(response)
             if (!response.ok || !payload.success) throw new Error(payload.message || 'Upload failed.')
             setBatchId(payload.batchId)
             setDiscovery(payload.discovery)
@@ -129,7 +142,7 @@ export default function ImportCenterPage() {
             const response = await fetch(`/api/admin/bulk-import/${batchId}/analyze`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ownerAgentId: agentId }),
             })
-            const payload = await response.json()
+            const payload = await parseJsonResponse(response)
             if (!response.ok || !payload.success) throw new Error(payload.message || 'Analysis failed.')
             await loadBatch()
             setStep('review')
@@ -139,7 +152,7 @@ export default function ImportCenterPage() {
 
     const loadBatch = async () => {
         const response = await fetch(`/api/admin/bulk-import/${batchId}`, { cache: 'no-store' })
-        const payload = await response.json()
+        const payload = await parseJsonResponse(response)
         if (!response.ok || !payload.success) throw new Error(payload.message || 'Unable to load batch.')
         setBatch(payload.batch)
     }
@@ -148,7 +161,7 @@ export default function ImportCenterPage() {
         setBusy(true); setError('')
         try {
             const response = await fetch(`/api/admin/bulk-import/${batchId}/commit`, { method: 'POST', headers: { 'Idempotency-Key': `admin-${Date.now()}` } })
-            const payload = await response.json()
+            const payload = await parseJsonResponse(response)
             if (!response.ok || !payload.success) throw new Error(payload.message || 'Commit failed.')
             setBatch(payload); setStep('result'); toast.success('Import committed.')
         } catch (value: any) { setError(value.message || 'Commit failed.') }

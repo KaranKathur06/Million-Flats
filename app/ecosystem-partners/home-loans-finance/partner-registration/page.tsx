@@ -45,10 +45,10 @@ export default function HomeLoansFinancePartnerRegistrationPage() {
               fields: [
                 {
                   type: 'multiselect',
-                  name: 'specializations',
-                  label: 'Specializations',
+                  name: 'loanTypes',
+                  label: 'Loan Types',
                   required: true,
-                  options: ['Salaried', 'Self-Employed', 'NRI', 'First-Time Buyer', 'Balance Transfer'],
+                  options: ['Home Loan', 'Loan Against Property', 'Balance Transfer', 'NRI Loan', 'Construction Loan', 'Plot Loan', 'Top-up Loan'],
                 },
                 { type: 'text', name: 'competitiveEdge', label: 'Competitive Edge', required: true, placeholder: 'e.g., Fastest Sanction' },
                 { type: 'text', name: 'interestRateRange', label: 'Approximate Interest Rate Range', required: true, placeholder: 'e.g., 8.4% - 9.2%' },
