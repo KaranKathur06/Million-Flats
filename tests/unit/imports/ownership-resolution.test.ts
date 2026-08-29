@@ -40,7 +40,7 @@ describe('Ownership Resolution', () => {
     })
 
     it('accepts authorized sources', async () => {
-      mockPrisma.agent.findUnique.mockResolvedValue({
+      (mockPrisma.agent.findUnique as jest.Mock).mockResolvedValue({
         id: 'ag1',
         status: 'APPROVED',
       } as any)
@@ -56,7 +56,7 @@ describe('Ownership Resolution', () => {
 
   describe('Strategy 1: Explicit agentId', () => {
     it('resolves with explicit agentId if agent exists and is approved', async () => {
-      mockPrisma.agent.findUnique.mockResolvedValue({
+      (mockPrisma.agent.findUnique as jest.Mock).mockResolvedValue({
         id: 'ag123',
         status: 'APPROVED',
         approved: true,
@@ -75,7 +75,7 @@ describe('Ownership Resolution', () => {
     })
 
     it('warns if explicit agentId not found', async () => {
-      mockPrisma.agent.findUnique.mockResolvedValue(null)
+      (mockPrisma.agent.findUnique as jest.Mock).mockResolvedValue(null)
 
       const result = await resolveOwnership({
         agentId: 'ag999',
@@ -86,7 +86,7 @@ describe('Ownership Resolution', () => {
     })
 
     it('warns if explicit agentId has non-approved status', async () => {
-      mockPrisma.agent.findUnique.mockResolvedValue({
+      (mockPrisma.agent.findUnique as jest.Mock).mockResolvedValue({
         id: 'ag123',
         status: 'PENDING',
       } as any)
@@ -103,7 +103,7 @@ describe('Ownership Resolution', () => {
 
   describe('Strategy 2: City Matching', () => {
     it('resolves with locality match when available', async () => {
-      mockPrisma.agentServiceArea.findMany.mockResolvedValue([
+      (mockPrisma.agentServiceArea.findMany as jest.Mock).mockResolvedValue([
         {
           agentId: 'ag1',
           locality: 'Bandra',
@@ -135,7 +135,7 @@ describe('Ownership Resolution', () => {
     })
 
     it('falls back to city-wide match when locality not found', async () => {
-      mockPrisma.agentServiceArea.findMany.mockResolvedValue([
+      (mockPrisma.agentServiceArea.findMany as jest.Mock).mockResolvedValue([
         {
           agentId: 'ag2',
           locality: null,
@@ -157,7 +157,7 @@ describe('Ownership Resolution', () => {
     })
 
     it('requires manual review if multiple agents in city with no specific locality match', async () => {
-      mockPrisma.agentServiceArea.findMany.mockResolvedValue([
+      (mockPrisma.agentServiceArea.findMany as jest.Mock).mockResolvedValue([
         {
           agentId: 'ag1',
           locality: 'Locality A',
@@ -183,7 +183,7 @@ describe('Ownership Resolution', () => {
     })
 
     it('warns if no agents found in city', async () => {
-      mockPrisma.agentServiceArea.findMany.mockResolvedValue([])
+      (mockPrisma.agentServiceArea.findMany as jest.Mock).mockResolvedValue([])
 
       const result = await resolveOwnership({
         city: 'NoAgentsHere',
@@ -195,7 +195,7 @@ describe('Ownership Resolution', () => {
     })
 
     it('filters for approved agents only', async () => {
-      mockPrisma.agentServiceArea.findMany.mockResolvedValue([
+      (mockPrisma.agentServiceArea.findMany as jest.Mock).mockResolvedValue([
         {
           agentId: 'ag1',
           locality: 'Bandra',
@@ -223,7 +223,7 @@ describe('Ownership Resolution', () => {
 
   describe('Strategy 3: Geo-Proximity Matching', () => {
     it('resolves with nearby agent within 5km', async () => {
-      mockPrisma.agentServiceArea.findMany.mockResolvedValue([
+      (mockPrisma.agentServiceArea.findMany as jest.Mock).mockResolvedValue([
         {
           agentId: 'ag1',
           latitude: 19.06,
@@ -247,7 +247,7 @@ describe('Ownership Resolution', () => {
       // Test distance-to-confidence mapping
       // 5km → 0.95, 10km → 0.85, 25km → 0.70, 50km → 0.50
 
-      mockPrisma.agentServiceArea.findMany.mockResolvedValue([
+      (mockPrisma.agentServiceArea.findMany as jest.Mock).mockResolvedValue([
         {
           agentId: 'ag_close',
           latitude: 19.06,
@@ -271,8 +271,8 @@ describe('Ownership Resolution', () => {
 
   describe('Strategy 4: Agent Specialization Matching', () => {
     it('matches agents by property type specialization', async () => {
-      mockPrisma.agentServiceArea.findMany.mockResolvedValue([])
-      mockPrisma.agentSpecialization.findMany.mockResolvedValue([
+      (mockPrisma.agentServiceArea.findMany as jest.Mock).mockResolvedValue([])
+      (mockPrisma.agentSpecialization.findMany as jest.Mock).mockResolvedValue([
         {
           agentId: 'ag1',
           specialization: 'luxury apartments',
@@ -293,7 +293,7 @@ describe('Ownership Resolution', () => {
 
   describe('Resolution Logic', () => {
     it('returns highest confidence signal as primary resolution', async () => {
-      mockPrisma.agentServiceArea.findMany.mockResolvedValue([
+      (mockPrisma.agentServiceArea.findMany as jest.Mock).mockResolvedValue([
         {
           agentId: 'ag_city',
           locality: null,
@@ -312,7 +312,7 @@ describe('Ownership Resolution', () => {
     })
 
     it('flags for manual review when multiple candidates with similar confidence', async () => {
-      mockPrisma.agentServiceArea.findMany.mockResolvedValue([
+      (mockPrisma.agentServiceArea.findMany as jest.Mock).mockResolvedValue([
         {
           agentId: 'ag1',
           locality: 'Area1',
@@ -339,7 +339,7 @@ describe('Ownership Resolution', () => {
     })
 
     it('returns unresolved with requiresManualReview when no signals found', async () => {
-      mockPrisma.agentServiceArea.findMany.mockResolvedValue([])
+      (mockPrisma.agentServiceArea.findMany as jest.Mock).mockResolvedValue([])
 
       const result = await resolveOwnership({
         sourceProvider: 'squareyards',
@@ -353,7 +353,7 @@ describe('Ownership Resolution', () => {
 
   describe('validateAgentIsApproved', () => {
     it('validates agent is approved', async () => {
-      mockPrisma.agent.findUnique.mockResolvedValue({
+      (mockPrisma.agent.findUnique as jest.Mock).mockResolvedValue({
         id: 'ag1',
         status: 'APPROVED',
       } as any)
@@ -364,7 +364,7 @@ describe('Ownership Resolution', () => {
     })
 
     it('rejects agent not found', async () => {
-      mockPrisma.agent.findUnique.mockResolvedValue(null)
+      (mockPrisma.agent.findUnique as jest.Mock).mockResolvedValue(null)
 
       const result = await validateAgentIsApproved('ag999')
 
@@ -373,7 +373,7 @@ describe('Ownership Resolution', () => {
     })
 
     it('rejects agent with non-approved status', async () => {
-      mockPrisma.agent.findUnique.mockResolvedValue({
+      (mockPrisma.agent.findUnique as jest.Mock).mockResolvedValue({
         id: 'ag1',
         status: 'PENDING',
       } as any)
@@ -385,3 +385,4 @@ describe('Ownership Resolution', () => {
     })
   })
 })
+

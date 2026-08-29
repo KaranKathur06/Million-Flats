@@ -4,7 +4,7 @@
  */
 
 export interface ContaminationResult {
-  extracted: string | number | null
+  extracted: unknown
   contaminated: boolean
   warning: string | null
   original: unknown

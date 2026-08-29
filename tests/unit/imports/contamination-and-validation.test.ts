@@ -255,50 +255,56 @@ describe('Conditional Validation', () => {
 describe('Adapter Integration', () => {
   it('normalizes contaminated floor in SquareYards data', () => {
     const input: NormalizationInput = {
-      entityKey: 'property',
       raw: {
         title: '3 BHK Apartment',
         floorLevel: '12th Floor Facing North West Overlooking Garden',
         price: 7800000,
         city: 'Mumbai',
       },
+      sourcePath: null,
+      mappings: [],
     }
     const result = propertyImportAdapter.normalize(input)
-    expect(result.normalized.floorLevel).toBe(12)
-    expect(result.normalized.floorContaminated).toBe(true)
+    const normalized = result.normalized as any
+    expect(normalized.floorLevel).toBe(12)
+    expect(normalized.floorContaminated).toBe(true)
     expect(result.warnings).toContain('FLOOR_SOURCE_CONTAMINATED')
   })
 
   it('normalizes contaminated parking in SquareYards data', () => {
     const input: NormalizationInput = {
-      entityKey: 'property',
       raw: {
         title: '3 BHK Apartment',
         parking: '2 Covered Parking This semi-furnished flat has an open terrace',
         price: 7800000,
         city: 'Mumbai',
       },
+      sourcePath: null,
+      mappings: [],
     }
     const result = propertyImportAdapter.normalize(input)
-    expect((result.normalized.parking as any).covered).toBe(2)
-    expect(result.normalized.parkingContaminated).toBe(true)
+    const normalized = result.normalized as any
+    expect((normalized.parking as any).covered).toBe(2)
+    expect(normalized.parkingContaminated).toBe(true)
     expect(result.warnings).toContain('PARKING_SOURCE_CONTAMINATED')
   })
 
   it('detects property type during normalization', () => {
     const input: NormalizationInput = {
-      entityKey: 'property',
       raw: {
         title: 'Residential Plot 5000 Sqft for Sale',
         squareFeet: 5000,
         city: 'Pune',
         price: 2500000,
       },
+      sourcePath: null,
+      mappings: [],
     }
     const result = propertyImportAdapter.normalize(input)
+    const normalized = result.normalized as any
     const typeDetection = detectPropertyType({
-      title: result.normalized.title,
-      squareFeet: result.normalized.squareFeet,
+      title: normalized.title,
+      squareFeet: normalized.squareFeet,
     })
     expect(typeDetection.type).toBe('PLOT')
   })
@@ -324,8 +330,9 @@ describe('Real-world SquareYards Data Scenarios', () => {
     }
 
     const input: NormalizationInput = {
-      entityKey: 'property',
       raw: squareYardsRecord,
+      sourcePath: null,
+      mappings: [],
     }
     const result = propertyImportAdapter.normalize(input)
     expect(result.errors).toHaveLength(0)
@@ -349,12 +356,14 @@ describe('Real-world SquareYards Data Scenarios', () => {
     }
 
     const input: NormalizationInput = {
-      entityKey: 'property',
       raw: squareYardsRecord,
+      sourcePath: null,
+      mappings: [],
     }
     const result = propertyImportAdapter.normalize(input)
-    expect(result.normalized.floorContaminated).toBe(true)
-    expect(result.normalized.possessionContaminated).toBe(true)
+    const normalized = result.normalized as any
+    expect(normalized.floorContaminated).toBe(true)
+    expect(normalized.possessionContaminated).toBe(true)
     expect(result.warnings.length).toBeGreaterThan(0)
   })
 
@@ -371,10 +380,12 @@ describe('Real-world SquareYards Data Scenarios', () => {
     }
 
     const input: NormalizationInput = {
-      entityKey: 'property',
       raw: squareYardsRecord,
+      sourcePath: null,
+      mappings: [],
     }
     const result = propertyImportAdapter.normalize(input)
-    expect(result.normalized.bedrooms).toBe(3.5)
+    const normalized = result.normalized as any
+    expect(normalized.bedrooms).toBe(3.5)
   })
 })

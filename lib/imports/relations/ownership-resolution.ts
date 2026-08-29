@@ -304,7 +304,7 @@ export async function resolveOwnership(input: OwnershipResolutionInput): Promise
         },
         select: {
           agentId: true,
-          specialization: true,
+          propertyType: true,
           agent: {
             select: {
               id: true,
@@ -316,7 +316,7 @@ export async function resolveOwnership(input: OwnershipResolutionInput): Promise
 
       const propertyType = input.propertyType.toLowerCase()
       const matchingSpecs = specializations.filter((spec) =>
-        spec.specialization.toLowerCase().includes(propertyType),
+        spec.propertyType.toLowerCase().includes(propertyType),
       )
 
       for (const spec of matchingSpecs.slice(0, 3)) {

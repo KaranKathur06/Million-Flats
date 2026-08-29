@@ -258,7 +258,7 @@ export const propertyImportAdapter: ImportAdapter<CanonicalManualPropertyInput> 
     
     const detectedType = propertyTypeDetection.type || input.canonical.propertyType
     
-    const validationIssues = validateRecord(input.canonical as Record<string, unknown>, {
+    const validationIssues = validateRecord(input.canonical as unknown as Record<string, unknown>, {
       propertyType: detectedType,
       intent: input.canonical.intent,
       bedrooms: input.canonical.bedrooms,

@@ -90,8 +90,8 @@ describe('property import with ownership resolution', () => {
     expect(mockedPrisma.importRecord.update).toHaveBeenCalled()
     
     // Check the actual call to see what was updated
-    const updateCall = (mockedPrisma.importRecord.update as jest.Mock).mock.calls[0]
-    const updateData = updateCall[0].data
+    const updateCall = ((mockedPrisma.importRecord.update as jest.Mock).mock.calls[0] || []) as any
+    const updateData = updateCall[0]?.data as any
     
     // The record should be processed without errors
     expect(updateData.status).toBeDefined()
@@ -180,8 +180,8 @@ describe('property import with ownership resolution', () => {
     await analyzeImportBatch({ batchId: 'batch-1' })
 
     // The record should be marked as ERROR due to unapproved agent
-    const updateCall = (mockedPrisma.importRecord.update as jest.Mock).mock.calls[0]
-    const updateData = updateCall[0].data
+    const updateCall = ((mockedPrisma.importRecord.update as jest.Mock).mock.calls[0] || []) as any
+    const updateData = updateCall[0]?.data as any
     
     expect(updateData.status).toBe('ERROR')
   })
