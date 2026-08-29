@@ -49,25 +49,57 @@ export async function analyzeImportBatch(input: { batchId: string; ownerAgentId?
   let warnings = 0
   let errors = 0
 
-  for (const record of records) {
-    const raw = batch.category && batch.entityType === 'ECOSYSTEM_PARTNER' && record.rawPayload && typeof record.rawPayload === 'object' && !('category' in (record.rawPayload as object)) && !('categorySlug' in (record.rawPayload as object))
-      ? { ...(record.rawPayload as Record<string, unknown>), categorySlug: batch.category }
-      : record.rawPayload || {}
-    const mappings = adapter.suggestMappings({ fields: Object.keys(raw) })
-    const normalized = adapter.normalize({ raw, sourcePath: record.sourcePath, mappings })
-    const canonicalResult = adapter.mapCanonical({ raw, normalized: normalized.normalized, mappings })
-    const canonical = canonicalResult.canonical as any
-    if (canonical && !canonical.agentId && input.ownerAgentId) canonical.agentId = input.ownerAgentId
+  // Process records in parallel batches for performance (e.g., 50 records at a time)
+  const PARALLEL_BATCH_SIZE = 50
+  const analysisResults: Array<{
+    record: any
+    normalized: any
+    canonicalResult: any
+    canonical: any
+    recordWarnings: string[]
+    recordErrors: string[]
+    status: string
+  }> = []
 
-    const validation = canonical
-      ? adapter.validate({ canonical, raw, normalized: normalized.normalized })
-      : { ready: false, warnings: [], errors: canonicalResult.errors }
-    const relations = canonical
-      ? await adapter.resolveRelations({ canonical, raw })
-      : { ready: false, warnings: [], errors: [] }
-    const recordWarnings = [...normalized.warnings, ...canonicalResult.warnings, ...validation.warnings, ...relations.warnings]
-    const recordErrors = [...normalized.errors, ...canonicalResult.errors, ...validation.errors, ...relations.errors]
-    const status = recordErrors.length > 0 ? 'ERROR' : recordWarnings.length > 0 ? 'WARNING' : 'READY'
+  for (let i = 0; i < records.length; i += PARALLEL_BATCH_SIZE) {
+    const recordsBatch = records.slice(i, i + PARALLEL_BATCH_SIZE)
+    
+    // Analyze all records in this batch in parallel
+    const batchResults = await Promise.all(
+      recordsBatch.map(async (record: any) => {
+        const raw = batch.category && batch.entityType === 'ECOSYSTEM_PARTNER' && record.rawPayload && typeof record.rawPayload === 'object' && !('category' in (record.rawPayload as object)) && !('categorySlug' in (record.rawPayload as object))
+          ? { ...(record.rawPayload as Record<string, unknown>), categorySlug: batch.category }
+          : record.rawPayload || {}
+        
+        const mappings = adapter.suggestMappings({ fields: Object.keys(raw) })
+        const normalized = adapter.normalize({ raw, sourcePath: record.sourcePath, mappings })
+        const canonicalResult = adapter.mapCanonical({ raw, normalized: normalized.normalized, mappings })
+        const canonical = canonicalResult.canonical as any
+        if (canonical && !canonical.agentId && input.ownerAgentId) canonical.agentId = input.ownerAgentId
+
+        const validation = canonical
+          ? adapter.validate({ canonical, raw, normalized: normalized.normalized })
+          : { ready: false, warnings: [], errors: canonicalResult.errors }
+        
+        // Async relation resolution is now parallelized
+        const relations = canonical
+          ? await adapter.resolveRelations({ canonical, raw })
+          : { ready: false, warnings: [], errors: [] }
+        
+        const recordWarnings = [...normalized.warnings, ...canonicalResult.warnings, ...validation.warnings, ...relations.warnings]
+        const recordErrors = [...normalized.errors, ...canonicalResult.errors, ...validation.errors, ...relations.errors]
+        const status = recordErrors.length > 0 ? 'ERROR' : recordWarnings.length > 0 ? 'WARNING' : 'READY'
+
+        return { record, normalized, canonicalResult, canonical, recordWarnings, recordErrors, status }
+      })
+    )
+
+    analysisResults.push(...batchResults)
+  }
+
+  // Update database with analysis results
+  for (const result of analysisResults) {
+    const { record, normalized, canonicalResult, canonical, recordWarnings, recordErrors, status } = result
 
     if (status === 'READY') ready += 1
     if (status === 'WARNING') warnings += 1
@@ -82,10 +114,10 @@ export async function analyzeImportBatch(input: { batchId: string; ownerAgentId?
         ownershipPolicy: input.ownerAgentId && !String((normalized.normalized as any)?.agentId || '').trim()
           ? 'configured-owner-agent'
           : 'source-agent',
-        overallConfidence: Object.values(canonicalResult.fieldConfidence).length
-          ? Object.values(canonicalResult.fieldConfidence).reduce((sum, value) => sum + value, 0) / Object.values(canonicalResult.fieldConfidence).length
+        overallConfidence: Object.values(canonicalResult.fieldConfidence || {}).length
+          ? Object.values(canonicalResult.fieldConfidence || {}).reduce((sum: number, value: any) => sum + (typeof value === 'number' ? value : 0), 0) / Object.values(canonicalResult.fieldConfidence || {}).length
           : null,
-      },
+      }, 
     })
 
     for (const issue of [
