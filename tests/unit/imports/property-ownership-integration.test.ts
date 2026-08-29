@@ -83,8 +83,8 @@ describe('property import with ownership resolution', () => {
       },
     ])
 
-    // Execute analysis
-    await analyzeImportBatch({ batchId: 'batch-1' })
+    // Execute analysis in synchronous mode for direct validation
+    await analyzeImportBatch({ batchId: 'batch-1', waitForCompletion: true })
 
     // Verify that the record was updated
     expect(mockedPrisma.importRecord.update).toHaveBeenCalled()
@@ -134,7 +134,7 @@ describe('property import with ownership resolution', () => {
       },
     ])
 
-    await analyzeImportBatch({ batchId: 'batch-1' })
+    await analyzeImportBatch({ batchId: 'batch-1', waitForCompletion: true })
 
     // The record should still be analyzed but may have warnings about ownership
     expect(mockedPrisma.importRecord.update).toHaveBeenCalled()
@@ -177,7 +177,7 @@ describe('property import with ownership resolution', () => {
       },
     ])
 
-    await analyzeImportBatch({ batchId: 'batch-1' })
+    await analyzeImportBatch({ batchId: 'batch-1', waitForCompletion: true })
 
     // The record should be marked as ERROR due to unapproved agent
     const updateCall = ((mockedPrisma.importRecord.update as jest.Mock).mock.calls[0] || []) as any
