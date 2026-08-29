@@ -98,6 +98,14 @@ export interface ImportCommitResult {
   reason?: string
 }
 
+export interface SourceProfileDetection {
+  detected: boolean
+  sourceProfileKey: string | null
+  confidence: number
+  reasons: string[]
+  fields: string[]
+}
+
 export interface ImportAdapter<TCanonical> {
   key: string
   displayName: string
@@ -106,6 +114,7 @@ export interface ImportAdapter<TCanonical> {
   supportedOperations: ImportOperation[]
   getFieldDefinitions(): ImportFieldDefinition[]
   suggestMappings(input: { fields: string[] }): MappingSuggestion[]
+  detectSourceProfile?(input: { fields: string[]; sample?: Record<string, unknown>; fileName?: string; sourceProvider?: string | null }): SourceProfileDetection
   normalize(input: NormalizationInput): NormalizationResult
   mapCanonical(input: CanonicalMappingInput): CanonicalPayloadResult<TCanonical>
   validate(input: ValidationInput<TCanonical>): ValidationResult

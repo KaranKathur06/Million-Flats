@@ -14,6 +14,7 @@ export async function createImportBatch(input: {
   uploadedByUserId: string
   adapterVersion: number
   sourceProvider?: string | null
+  sourceProfileKey?: string | null
   category?: string | null
 }) {
   const entityType = normalizeImportEntityType(input.entityType) as ImportEntityType
@@ -34,6 +35,7 @@ export async function createImportBatch(input: {
       uploadedByUserId: input.uploadedByUserId,
       adapterVersion: input.adapterVersion,
       sourceProvider: input.sourceProvider || null,
+      sourceProfileKey: input.sourceProfileKey || null,
       category: input.category || null,
     },
   })

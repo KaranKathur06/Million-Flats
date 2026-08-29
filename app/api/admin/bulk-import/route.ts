@@ -67,6 +67,32 @@ export async function POST(req: Request) {
     const adapter = getImportAdapterForEntity(entityType)
     if (!adapter) return NextResponse.json({ success: false, message: `No import adapter is registered for ${entityType}.` }, { status: 400 })
 
+    let sourceProfileKey: string | null = null
+    let sourceProvider: string | null = String(form.get('sourceProvider') || '').trim() || null
+    let sampleRecord: Record<string, unknown> | undefined
+    try {
+      const sampleRecords: Array<Record<string, unknown>> = []
+      for await (const record of parser.parse(input)) {
+        if (record && typeof record.raw === 'object' && !Array.isArray(record.raw)) {
+          sampleRecords.push(record.raw as Record<string, unknown>)
+        }
+        if (sampleRecords.length >= 1) break
+      }
+      sampleRecord = sampleRecords[0]
+      const detection = adapter.detectSourceProfile?.({
+        fields: discovery.fields,
+        sample: sampleRecord,
+        fileName: file.name,
+        sourceProvider,
+      })
+      if (detection && detection.detected && detection.sourceProfileKey) {
+        sourceProfileKey = detection.sourceProfileKey
+        sourceProvider = sourceProvider || 'SquareYards'
+      }
+    } catch {
+      // Ignore source-profile detection failures; the generic import engine remains operational.
+    }
+
     const batch = await createImportBatch({
       entityType,
       operation: String(form.get('operation') || 'CREATE').toUpperCase() as 'CREATE' | 'UPDATE' | 'UPSERT',
@@ -78,7 +104,8 @@ export async function POST(req: Request) {
       checksum: createHash('sha256').update(content).digest('hex'),
       uploadedByUserId: auth.userId,
       adapterVersion: adapter.adapterVersion,
-      sourceProvider: String(form.get('sourceProvider') || '').trim() || null,
+      sourceProvider,
+      sourceProfileKey,
       category: String(form.get('category') || '').trim() || null,
     })
 

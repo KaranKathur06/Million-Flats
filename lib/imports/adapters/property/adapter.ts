@@ -14,12 +14,66 @@ import type {
   NormalizationResult,
   RelationInput,
   RelationResolution,
+  SourceProfileDetection,
   ValidationInput,
   ValidationResult,
 } from '@/lib/imports/core/types'
 import { propertyFieldDefinitions } from './fields'
 import { suggestPropertyMappings } from './mappings'
 import { readImportField } from '@/lib/imports/field-utils'
+
+const SQUAREYARDS_SOURCE_PROFILE_KEY = 'squareyards-property-v1'
+
+function normalizeKey(value: string) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+}
+
+function detectSquareYardsProperties(fields: string[], sample?: Record<string, unknown>): SourceProfileDetection {
+  const fieldNames = fields.map((field) => String(field || '').trim())
+  const normalizedFields = fieldNames.map((field) => normalizeKey(field))
+  const reasons: string[] = []
+  let score = 0
+
+  const addSignal = (weight: number, reason: string) => {
+    score += weight
+    reasons.push(reason)
+  }
+
+  if (normalizedFields.some((field) => field === 'listingid' || field === 'source_listing_id')) addSignal(0.18, 'listingId signal present')
+  if (normalizedFields.some((field) => field === 'pricetext' || field === 'price_text')) addSignal(0.18, 'priceText signal present')
+  if (normalizedFields.some((field) => field === 'areasqft' || field === 'area_sqft' || field === 'squarefeet')) addSignal(0.18, 'areaSqft signal present')
+  if (normalizedFields.some((field) => field === 'floorlevel' || field === 'floor_level')) addSignal(0.1, 'floorLevel signal present')
+  if (normalizedFields.some((field) => field === 'possessionstatus' || field === 'possession_status')) addSignal(0.14, 'possessionStatus signal present')
+  if (normalizedFields.some((field) => field === 'projectname' || field === 'project_name')) addSignal(0.12, 'projectName signal present')
+  if (normalizedFields.some((field) => field === 'locality')) addSignal(0.1, 'locality signal present')
+  if (normalizedFields.some((field) => field === 'imageurl' || field === 'image_url')) addSignal(0.08, 'imageUrl signal present')
+  if (normalizedFields.some((field) => field === 'scrapedat' || field === 'scraped_at')) addSignal(0.08, 'scrapedAt signal present')
+
+  const sampleValues = sample ? Object.entries(sample).map(([key, value]) => ({ key, value })) : []
+  const stringified = sampleValues.map(({ key, value }) => `${key}:${String(value ?? '')}`).join('\n')
+  if (/squareyards\.com|squareyards/i.test(stringified)) {
+    addSignal(0.2, 'SquareYards URL pattern detected')
+  }
+
+  if (sample && typeof sample.url === 'string' && /squareyards\.com/i.test(sample.url)) {
+    addSignal(0.16, 'Direct SquareYards URL in source data')
+  }
+
+  if (sample && typeof sample.city === 'string' && /mumbai|navi mumbai|lucknow|hyderabad|pune|bengaluru|delhi/i.test(sample.city)) {
+    addSignal(0.04, 'Known regional city pattern detected')
+  }
+
+  const confidence = Math.min(0.99, Math.max(0.12, Number(score.toFixed(2))))
+  const detected = confidence >= 0.55 || normalizedFields.some((field) => field === 'listingid' || field === 'pricetext' || field === 'areasqft')
+
+  return {
+    detected,
+    sourceProfileKey: detected ? SQUAREYARDS_SOURCE_PROFILE_KEY : null,
+    confidence,
+    reasons,
+    fields: fieldNames,
+  }
+}
 
 export interface CanonicalManualPropertyInput {
   title: string
@@ -81,6 +135,10 @@ export const propertyImportAdapter: ImportAdapter<CanonicalManualPropertyInput> 
 
   suggestMappings(input: { fields: string[] }): MappingSuggestion[] {
     return suggestPropertyMappings(input.fields, propertyFieldDefinitions)
+  },
+
+  detectSourceProfile(input) {
+    return detectSquareYardsProperties(input.fields, input.sample)
   },
 
   normalize(input: NormalizationInput): NormalizationResult {

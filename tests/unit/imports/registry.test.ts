@@ -29,4 +29,32 @@ describe('import registry', () => {
     expect(getImportAdapterForEntity('ecosystem-partner')).toBe(ecosystemPartnerImportAdapter)
     expect(getImportAdapterForEntity('unknown')).toBeNull()
   })
+
+  it('detects the SquareYards property source profile from real scraper fields', () => {
+    const detection = propertyImportAdapter.detectSourceProfile?.({
+      fields: ['listingId', 'url', 'title', 'description', 'price', 'priceText', 'bedrooms', 'areaSqft', 'floorLevel', 'possessionStatus', 'projectName', 'locality', 'city', 'latitude', 'longitude', 'imageUrl', 'scrapedAt'],
+      sample: {
+        listingId: '10583565',
+        url: 'https://www.squareyards.com/property/mumbai/10583565',
+        title: '2 BHK Apartment',
+        price: 7800000,
+        priceText: '₹ 78 L',
+        bedrooms: '2',
+        areaSqft: 1200,
+        floorLevel: '12',
+        possessionStatus: 'Ready To Move',
+        projectName: 'Example Project',
+        locality: 'Example Locality',
+        city: 'Mumbai',
+        latitude: 19.123,
+        longitude: 72.123,
+        imageUrl: 'https://img.squareyards.com/cover.jpg',
+        scrapedAt: '2026-08-28T18:20:06.014Z',
+      },
+    })
+
+    expect(detection?.detected).toBe(true)
+    expect(detection?.sourceProfileKey).toBe('squareyards-property-v1')
+    expect(detection?.confidence).toBeGreaterThan(0.7)
+  })
 })

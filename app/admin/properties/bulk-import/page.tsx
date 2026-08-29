@@ -46,15 +46,21 @@ const modeOptions = [
 
 async function parseJsonResponse(response: Response) {
     const contentType = response.headers.get('content-type') || ''
-    if (!contentType.includes('application/json') && !contentType.includes('+json')) {
+    const isJson = contentType.includes('application/json') || contentType.includes('+json')
+
+    if (!isJson) {
+        const rawText = await response.text()
+        const trimmed = rawText.trim()
         if (response.redirected) {
             throw new Error('Session expired or the request was redirected. Please refresh and try again.')
+        }
+        if (trimmed) {
+            throw new Error(trimmed.slice(0, 500))
         }
         throw new Error('The server returned an unexpected response. Please refresh and try again.')
     }
 
-    const payload = await response.json()
-    return payload
+    return response.json()
 }
 
 export default function ImportCenterPage() {
