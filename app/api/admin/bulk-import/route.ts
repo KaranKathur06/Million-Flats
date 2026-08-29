@@ -62,17 +62,16 @@ export async function POST(req: Request) {
 
     const parser = format === 'csv' ? csvParser : format === 'xlsx' ? xlsxParser : jsonParser
     
-    // Parse file once and cache all records
+    // Run discovery first before parsing
+    const discovery = await parser.inspect(input)
+    if (discovery.recordCount > MAX_RECORDS) return NextResponse.json({ success: false, message: `File exceeds the ${MAX_RECORDS} record limit.` }, { status: 413 })
+
+    // Then parse file and cache all records
     const allRecords: any[] = []
     for await (const record of parser.parse(input)) {
       allRecords.push(record)
       if (allRecords.length > MAX_RECORDS) break
     }
-
-    if (allRecords.length > MAX_RECORDS) return NextResponse.json({ success: false, message: `File exceeds the ${MAX_RECORDS} record limit.` }, { status: 413 })
-    
-    // Use cached records for discovery
-    const discovery = await parser.inspect(input)
 
     const entityType = String(form.get('entity') || 'PROPERTY').trim().toUpperCase() as ImportEntityType
     const adapter = getImportAdapterForEntity(entityType)
