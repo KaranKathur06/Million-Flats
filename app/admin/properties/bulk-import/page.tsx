@@ -69,7 +69,10 @@ export default function ImportCenterPage() {
     const [operation, setOperation] = useState('CREATE')
     const [mode, setMode] = useState('PARTIAL')
     const [category, setCategory] = useState('')
-    const [agentId, setAgentId] = useState('')
+    const [approvedAgents, setApprovedAgents] = useState<Array<{ id: string; name: string | null; email: string; company: string | null }>>([])
+    const [ownerMode, setOwnerMode] = useState<'select' | 'other'>('select')
+    const [ownerSelection, setOwnerSelection] = useState('')
+    const [customOwnerName, setCustomOwnerName] = useState('')
     const [file, setFile] = useState<File | null>(null)
     const [batchId, setBatchId] = useState('')
     const [discovery, setDiscovery] = useState<any>(null)
@@ -87,6 +90,27 @@ export default function ImportCenterPage() {
     }, [])
 
     useEffect(() => {
+        fetch('/api/admin/agents?approved=1', { cache: 'no-store' }).then((response) => response.json()).then((payload) => {
+            if (Array.isArray(payload.items)) {
+                const list = payload.items
+                    .map((item: any) => {
+                        const agent = item.agent || {}
+                        if (!agent.id || !item.email) return null
+                        return {
+                            id: agent.id,
+                            name: item.name || 'Unnamed agent',
+                            email: item.email,
+                            company: agent.company || null,
+                        }
+                    })
+                    .filter(Boolean) as Array<{ id: string; name: string; email: string; company: string | null }>
+                setApprovedAgents(list)
+                if (list.length && !ownerSelection) setOwnerSelection(list[0].id)
+            }
+        }).catch(() => undefined)
+    }, [])
+
+    useEffect(() => {
         if (entity !== 'ECOSYSTEM_PARTNER') return
         fetch('/api/admin/ecosystem-partners/categories', { cache: 'no-store' }).then((response) => response.json()).then((payload) => {
             if (Array.isArray(payload.data) && payload.data.length) setEcosystemCategoryOptions(payload.data.map((item: any) => ({ value: item.slug, label: item.title })))
@@ -95,6 +119,34 @@ export default function ImportCenterPage() {
 
     const currentIndex = steps.findIndex((item) => item.id === step)
     const sourcePreview = useMemo(() => file ? `${(file.size / 1024).toFixed(1)} KB` : 'No source selected', [file])
+    const selectedOwnerAgent = useMemo(() => approvedAgents.find((agent) => agent.id === ownerSelection) || null, [approvedAgents, ownerSelection])
+    const resolveOwnerId = useCallback(() => {
+        if (ownerMode === 'select') return ownerSelection
+        if (!customOwnerName.trim()) return ''
+        const matched = approvedAgents.find((agent) => {
+            const values = [agent.name, agent.company, agent.email].filter(Boolean).map((value) => String(value).trim().toLowerCase())
+            const input = customOwnerName.trim().toLowerCase()
+            return values.some((value) => value === input || value.includes(input))
+        })
+        return matched?.id || ''
+    }, [approvedAgents, customOwnerName, ownerMode, ownerSelection])
+    const agentId = useMemo(() => resolveOwnerId(), [resolveOwnerId])
+    const ownershipSummary = useMemo(() => {
+        if (entity !== 'PROPERTY') return 'Adapter-managed'
+        if (selectedOwnerAgent) return `Approved owner: ${selectedOwnerAgent.name}`
+        if (customOwnerName.trim()) return `Custom owner: ${customOwnerName.trim()}`
+        return 'Needs approved owner'
+    }, [customOwnerName, entity, selectedOwnerAgent])
+    const contractRows = useMemo(() => [
+        ['Destination', entity === 'PROPERTY' ? 'Property catalog' : entity],
+        ['Ownership', ownershipSummary],
+        ['Mode', mode === 'STRICT' ? 'All issues block' : 'Valid records proceed'],
+        ['Source', file?.name || 'Waiting for file'],
+    ], [entity, file?.name, mode, ownershipSummary])
+    const approvedAgentOptions = useMemo(() => approvedAgents.map((agent) => ({
+        value: agent.id,
+        label: `${agent.name}${agent.company ? ` · ${agent.company}` : ''}`,
+    })).concat({ value: '__other__', label: 'Other' }), [approvedAgents])
 
     const loadDemo = useCallback(() => {
         const demo = new File([DEMO_JSON], 'demo-properties.json', { type: 'application/json' })
@@ -121,7 +173,21 @@ export default function ImportCenterPage() {
 
     const uploadSource = async () => {
         if (!file) return setError('Choose a CSV, XLSX, or JSON source file first.')
-        if (entity === 'PROPERTY' && !agentId.trim()) return setError('An existing Agent ID is required for property ownership.')
+        if (entity === 'PROPERTY') {
+            if (ownerMode === 'other') {
+                const customName = customOwnerName.trim()
+                if (!customName) return setError('Type the owner name or choose a listed approved agent.')
+                const matched = approvedAgents.find((agent) => {
+                    const values = [agent.name, agent.company, agent.email].filter(Boolean).map((value) => String(value).trim().toLowerCase())
+                    const input = customName.toLowerCase()
+                    return values.some((value) => value === input || value.includes(input))
+                })
+                if (!matched) return setError('No approved agent matches that name. Select a listed approved agent instead.')
+                setOwnerSelection(matched.id)
+            } else if (!ownerSelection.trim()) {
+                return setError('Choose an approved agent for this property import.')
+            }
+        }
         setBusy(true); setError('')
         try {
             const form = new FormData()
@@ -143,10 +209,15 @@ export default function ImportCenterPage() {
     }
 
     const analyze = async () => {
+        const resolvedOwnerId = resolveOwnerId()
+        if (entity === 'PROPERTY' && ownerMode === 'other' && !resolvedOwnerId) {
+            setError('No approved agent matches the custom owner name. Select a listed approved agent instead.')
+            return
+        }
         setBusy(true); setError('')
         try {
             const response = await fetch(`/api/admin/bulk-import/${batchId}/analyze`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ownerAgentId: agentId }),
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ownerAgentId: resolvedOwnerId }),
             })
             const payload = await parseJsonResponse(response)
             if (!response.ok || !payload.success) throw new Error(payload.message || 'Analysis failed.')
@@ -218,7 +289,38 @@ export default function ImportCenterPage() {
                                 <GlobalDropdown label="Operation" value={operation} onChange={value => setOperation(value as string)} options={operationOptions} appearance="admin-dark" />
                                 <GlobalDropdown label="Import mode" value={mode} onChange={value => setMode(value as string)} options={modeOptions} appearance="admin-dark" />
                                 {entity === 'ECOSYSTEM_PARTNER' && <GlobalDropdown label="Partner category" value={category} onChange={value => setCategory(value as string)} options={ecosystemCategoryOptions} appearance="admin-dark" />}
-                                {entity === 'PROPERTY' && <label><span className="label">Existing Agent ID</span><input value={agentId} onChange={e => setAgentId(e.target.value)} className="field" placeholder="Required ownership ID" /></label>}
+                                {entity === 'PROPERTY' && (
+                                    <div className="space-y-3">
+                                        <GlobalDropdown
+                                            label="Approved owner"
+                                            value={ownerMode === 'other' ? '__other__' : ownerSelection}
+                                            onChange={(value) => {
+                                                const nextValue = Array.isArray(value) ? value[0] : value
+                                                if (nextValue === '__other__') {
+                                                    setOwnerMode('other')
+                                                    setOwnerSelection('')
+                                                } else {
+                                                    setOwnerMode('select')
+                                                    setOwnerSelection(nextValue)
+                                                }
+                                            }}
+                                            options={approvedAgentOptions}
+                                            appearance="admin-dark"
+                                        />
+                                        {ownerMode === 'other' && (
+                                            <label className="block">
+                                                <span className="label">Custom owner name</span>
+                                                <input
+                                                    value={customOwnerName}
+                                                    onChange={(e) => setCustomOwnerName(e.target.value)}
+                                                    className="field"
+                                                    placeholder="Type the matching approved agent name"
+                                                />
+                                                <span className="mt-2 block text-[11px] leading-5 text-white/45">Use this only when the owner matches an existing approved agent record. If there is no match, choose one from the list instead.</span>
+                                            </label>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div className="mt-8 flex justify-end"><button type="button" onClick={() => { setError(''); setStep('upload') }} className="button-primary">Continue to upload <span>→</span></button></div>
                         </>}
@@ -250,7 +352,7 @@ export default function ImportCenterPage() {
                         {step === 'review' && <>
                             <div className="mb-8 flex items-start justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">Step 04</p><h2 className="mt-2 text-xl font-semibold">Review batch</h2><p className="mt-2 text-sm text-white/45">Confirm the staged records and resolve issues before commit.</p></div><span className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase ${statusTone[batch?.status] || statusTone.READY_FOR_REVIEW}`}>{batch?.status?.replaceAll('_', ' ')}</span></div>
                             <div className="grid grid-cols-2 gap-3 md:grid-cols-5">{[['Total', batch?.totalRecords], ['Ready', batch?.readyCount], ['Warnings', batch?.warningCount], ['Errors', batch?.errorCount], ['Mapping', batch?.mappingVersion]].map(([label, value]) => <div key={label} className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3"><p className="text-[10px] uppercase tracking-[0.12em] text-white/35">{label}</p><p className="mt-2 text-xl font-semibold">{value ?? '—'}</p></div>)}</div>
-                            {entity === 'PROPERTY' && <div className="mt-6 rounded-xl border border-amber-300/15 bg-amber-300/[0.04] p-5 text-sm text-white/60"><span className="font-medium text-amber-200">Ownership locked:</span> records will be created under the existing Agent ID configured for this import.</div>}
+                            {entity === 'PROPERTY' && <div className="mt-6 rounded-xl border border-amber-300/15 bg-amber-300/[0.04] p-5 text-sm text-white/60"><span className="font-medium text-amber-200">Ownership locked:</span> {selectedOwnerAgent ? `records will be created under ${selectedOwnerAgent.name}${selectedOwnerAgent.company ? ` (${selectedOwnerAgent.company})` : ''}.` : 'records will be created under the selected approved owner.'}</div>}
                             <div className="mt-8 flex justify-between"><Link href={`/admin/bulk-import/${batchId}`} className="button-quiet">Open detailed review</Link><button type="button" onClick={() => void commit()} disabled={busy || batch?.status !== 'READY_TO_COMMIT'} className="button-primary disabled:opacity-40">{busy ? 'Committing…' : 'Commit ready records'} <span>→</span></button></div>
                         </>}
 
@@ -260,7 +362,17 @@ export default function ImportCenterPage() {
                     </section>
 
                     <aside className="space-y-4">
-                        <div className="rounded-2xl border border-white/[0.08] bg-[#0d1625] p-5"><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35">Import contract</p><div className="mt-5 space-y-4">{[['Destination', entity === 'PROPERTY' ? 'Property catalog' : entity], ['Ownership', entity === 'PROPERTY' ? (agentId ? 'Agent selected' : 'Needs Agent ID') : 'Adapter-managed'], ['Mode', mode === 'STRICT' ? 'All issues block' : 'Valid records proceed'], ['Source', file?.name || 'Waiting for file']].map(([label, value]) => <div key={label} className="flex items-start justify-between gap-4 border-b border-white/[0.06] pb-3 last:border-0 last:pb-0"><span className="text-xs text-white/35">{label}</span><span className="text-right text-xs text-white/70">{value}</span></div>)}</div></div>
+                        <div className="rounded-2xl border border-white/[0.08] bg-[#0d1625] p-5">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35">Import contract</p>
+                            <div className="mt-5 space-y-4">
+                                {contractRows.map(([label, value]) => (
+                                    <div key={label} className="flex items-start justify-between gap-4 border-b border-white/[0.06] pb-3 last:border-0 last:pb-0">
+                                        <span className="text-xs text-white/35">{label}</span>
+                                        <span className="text-right text-xs text-white/70">{value}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                         <div className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-5"><p className="text-xs font-semibold text-amber-200">Safe by design</p><p className="mt-2 text-xs leading-5 text-white/45">Files are staged first. Canonical validation, ownership checks, and duplicate detection happen before a record is created.</p></div>
                     </aside>
                 </main>

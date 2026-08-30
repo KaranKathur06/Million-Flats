@@ -29,13 +29,21 @@ export async function approveAgent(input: {
   if (!agent) return { ok: false as const, status: 404, message: 'Not found' }
 
   const currentProfileStatus = String(agent?.profileStatus || 'DRAFT').toUpperCase()
+  const currentVerificationStatus = String(agent?.verificationStatus || 'PENDING').toUpperCase()
   const alreadyApproved = Boolean(agent.approved)
 
-  if (!alreadyApproved && !isOverride && currentProfileStatus !== 'SUBMITTED') {
+  const canApproveFromCurrentState =
+    currentProfileStatus === 'SUBMITTED' ||
+    currentProfileStatus === 'VERIFIED' ||
+    currentVerificationStatus === 'UNDER_REVIEW' ||
+    currentVerificationStatus === 'SUBMITTED' ||
+    currentVerificationStatus === 'APPROVED'
+
+  if (!alreadyApproved && !isOverride && !canApproveFromCurrentState) {
     return { ok: false as const, status: 409, message: 'Agent must submit profile before approval' }
   }
 
-  if (!alreadyApproved && isOverride && currentProfileStatus !== 'SUBMITTED' && currentProfileStatus !== 'DRAFT') {
+  if (!alreadyApproved && isOverride && !canApproveFromCurrentState && currentProfileStatus !== 'DRAFT') {
     return { ok: false as const, status: 409, message: `Cannot approve agent from ${currentProfileStatus} state` }
   }
 

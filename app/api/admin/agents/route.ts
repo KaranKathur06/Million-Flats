@@ -2,14 +2,20 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 
-export async function GET() {
+export async function GET(req: Request) {
   const auth = await requireAdminSession()
   if (!auth.ok) {
     return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
   }
 
+  const url = new URL(req.url)
+  const approvedOnly = url.searchParams.get('approved') === '1' || url.searchParams.get('approved') === 'true'
+
   const agents = await (prisma as any).user.findMany({
-    where: { role: 'AGENT' },
+    where: approvedOnly ? {
+      role: 'AGENT',
+      agent: { is: { approved: true } },
+    } : { role: 'AGENT' },
     orderBy: { createdAt: 'desc' },
     take: 500,
     select: {
