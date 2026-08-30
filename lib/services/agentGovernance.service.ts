@@ -29,21 +29,24 @@ export async function approveAgent(input: {
   if (!agent) return { ok: false as const, status: 404, message: 'Not found' }
 
   const currentProfileStatus = String(agent?.profileStatus || 'DRAFT').toUpperCase()
-  const currentVerificationStatus = String(agent?.verificationStatus || 'PENDING').toUpperCase()
+  const currentStatus = String(agent?.status || 'REGISTERED').toUpperCase()
   const alreadyApproved = Boolean(agent.approved)
 
-  const canApproveFromCurrentState =
-    currentProfileStatus === 'SUBMITTED' ||
-    currentProfileStatus === 'VERIFIED' ||
-    currentVerificationStatus === 'UNDER_REVIEW' ||
-    currentVerificationStatus === 'SUBMITTED' ||
-    currentVerificationStatus === 'APPROVED'
-
-  if (!alreadyApproved && !isOverride && !canApproveFromCurrentState) {
-    return { ok: false as const, status: 409, message: 'Agent must submit profile before approval' }
+  // Reject if already suspended or rejected
+  if (currentStatus === 'REJECTED' || currentStatus === 'SUSPENDED') {
+    return { ok: false as const, status: 409, message: `Cannot approve agent from ${currentStatus} state` }
   }
 
-  if (!alreadyApproved && isOverride && !canApproveFromCurrentState && currentProfileStatus !== 'DRAFT') {
+  // For non-superadmin: require profile submitted or already in review
+  if (!alreadyApproved && !isOverride) {
+    const validStatesForApproval = ['SUBMITTED', 'VERIFIED', 'UNDER_REVIEW']
+    if (!validStatesForApproval.includes(currentProfileStatus)) {
+      return { ok: false as const, status: 409, message: 'Agent must submit profile before approval' }
+    }
+  }
+
+  // For superadmin: allow draft override
+  if (!alreadyApproved && isOverride && currentProfileStatus !== 'SUBMITTED' && currentProfileStatus !== 'DRAFT' && currentProfileStatus !== 'VERIFIED' && currentProfileStatus !== 'UNDER_REVIEW') {
     return { ok: false as const, status: 409, message: `Cannot approve agent from ${currentProfileStatus} state` }
   }
 
@@ -57,6 +60,9 @@ export async function approveAgent(input: {
   }
 
   try {
+    // Evaluate risk before transaction to avoid nested queries
+    const risk = await evaluateAgentRisk({ agentId })
+
     const updated = await prisma.$transaction(async (tx: any) => {
       const updatedAgent = await (tx as any).agent.update({
         where: { id: agentId },
@@ -90,7 +96,6 @@ export async function approveAgent(input: {
         createdByUserId: input.actorUserId,
       })
 
-      const risk = await evaluateAgentRisk({ agentId })
       await setCaseRiskWithReasons(tx, {
         caseId: mcase.id,
         currentRiskScore: risk.score,
