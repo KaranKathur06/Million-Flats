@@ -56,78 +56,83 @@ export async function approveAgent(input: {
     userRole: String(agent?.user?.role || ''),
   }
 
-  const updated = await prisma.$transaction(async (tx: any) => {
-    const updatedAgent = await (tx as any).agent.update({
-      where: { id: agentId },
-      data: {
-        approved: true,
-        profileStatus: 'VERIFIED',
-        verificationStatus: 'APPROVED',
-        status: 'APPROVED',
-        approvedBy: input.actorUserId,
-        approvedAt: new Date(),
-      } as any,
-      select: { id: true, approved: true, profileStatus: true, verificationStatus: true, status: true, userId: true },
-    })
-
-    if (String(agent?.user?.role || '').toUpperCase() !== 'AGENT') {
-      await (tx as any).user.update({
-        where: { id: String(agent.userId) },
-        data: { role: 'AGENT' } as any,
-        select: { id: true },
+  try {
+    const updated = await prisma.$transaction(async (tx: any) => {
+      const updatedAgent = await (tx as any).agent.update({
+        where: { id: agentId },
+        data: {
+          approved: true,
+          profileStatus: 'VERIFIED',
+          verificationStatus: 'APPROVED',
+          status: 'APPROVED',
+          approvedBy: input.actorUserId,
+          approvedAt: new Date(),
+        } as any,
+        select: { id: true, approved: true, profileStatus: true, verificationStatus: true, status: true, userId: true },
       })
+
+      if (String(agent?.user?.role || '').toUpperCase() !== 'AGENT') {
+        await (tx as any).user.update({
+          where: { id: String(agent.userId) },
+          data: { role: 'AGENT' } as any,
+          select: { id: true },
+        })
+      }
+
+      const userAfter = await (tx as any).user.findUnique({
+        where: { id: String(agent.userId) },
+        select: { role: true },
+      })
+
+      const mcase = await ensureModerationCase(tx, {
+        entityType: 'AGENT',
+        entityId: agentId,
+        createdByUserId: input.actorUserId,
+      })
+
+      const risk = await evaluateAgentRisk({ agentId })
+      await setCaseRiskWithReasons(tx, {
+        caseId: mcase.id,
+        currentRiskScore: risk.score,
+        currentRiskReasons: risk.reasons,
+        riskEngineVersion: risk.version,
+      })
+
+      if (risk.score >= 50) {
+        await setModerationQueue(tx, { caseId: mcase.id, queue: 'HIGH_RISK' })
+      }
+
+      await addModerationAction(tx, {
+        caseId: mcase.id,
+        actorUserId: input.actorUserId,
+        decision: 'APPROVED',
+        note: null,
+        riskScoreSnapshot: risk.score,
+        riskReasonsSnapshot: risk.reasons,
+        riskEngineVersion: risk.version,
+      })
+
+      return { agent: updatedAgent, userAfter }
+    })
+
+    const afterState = {
+      approved: Boolean(updated.agent.approved),
+      profileStatus: String(updated.agent?.profileStatus || '').toUpperCase(),
+      verificationStatus: String(updated.agent?.verificationStatus || '').toUpperCase(),
+      status: String(updated.agent?.status || '').toUpperCase(),
+      userStatus: String(agent?.user?.status || 'ACTIVE'),
+      userRole: String(updated.userAfter?.role || agent?.user?.role || ''),
     }
 
-    const userAfter = await (tx as any).user.findUnique({
-      where: { id: String(agent.userId) },
-      select: { role: true },
-    })
-
-    const mcase = await ensureModerationCase(tx, {
-      entityType: 'AGENT',
-      entityId: agentId,
-      createdByUserId: input.actorUserId,
-    })
-
-    const risk = await evaluateAgentRisk({ agentId })
-    await setCaseRiskWithReasons(tx, {
-      caseId: mcase.id,
-      currentRiskScore: risk.score,
-      currentRiskReasons: risk.reasons,
-      riskEngineVersion: risk.version,
-    })
-
-    if (risk.score >= 50) {
-      await setModerationQueue(tx, { caseId: mcase.id, queue: 'HIGH_RISK' })
+    return {
+      ok: true as const,
+      agent: updated.agent,
+      beforeState,
+      afterState,
+      wasOverride: !alreadyApproved && isOverride && currentProfileStatus === 'DRAFT',
     }
-
-    await addModerationAction(tx, {
-      caseId: mcase.id,
-      actorUserId: input.actorUserId,
-      decision: 'APPROVED',
-      note: null,
-      riskScoreSnapshot: risk.score,
-      riskReasonsSnapshot: risk.reasons,
-      riskEngineVersion: risk.version,
-    })
-
-    return { agent: updatedAgent, userAfter }
-  })
-
-  const afterState = {
-    approved: Boolean(updated.agent.approved),
-    profileStatus: String(updated.agent?.profileStatus || '').toUpperCase(),
-    verificationStatus: String(updated.agent?.verificationStatus || '').toUpperCase(),
-    status: String(updated.agent?.status || '').toUpperCase(),
-    userStatus: String(agent?.user?.status || 'ACTIVE'),
-    userRole: String(updated.userAfter?.role || agent?.user?.role || ''),
-  }
-
-  return {
-    ok: true as const,
-    agent: updated.agent,
-    beforeState,
-    afterState,
-    wasOverride: !alreadyApproved && isOverride && currentProfileStatus === 'DRAFT',
+  } catch (error) {
+    console.error('[approveAgent] Transaction error:', error instanceof Error ? error.message : error)
+    return { ok: false as const, status: 500, message: 'Failed to approve agent: internal server error' }
   }
 }
