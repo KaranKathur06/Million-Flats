@@ -34,6 +34,40 @@ describe('universal import parsers', () => {
     expect(records[0].raw).toMatchObject({ 'Business Name': 'Smart Home Co', Email: 'hello@example.com', 'Supported Brands': 'Tuya, Zigbee', 'AMC Available?': 'Yes' })
   })
 
+  it('strips long trailing comma padding from real-world smart home exports', async () => {
+    const columns = [
+      'Business Name', 'Contact Person', 'Email', 'Phone', 'Website', 'Years of Experience',
+      'Pricing Range', 'Business Description', 'Service Areas', 'Supported Brands', 'AMC Available?'
+    ]
+    const padded = [
+      ...columns,
+      ...Array.from({ length: 1200 }, () => '')
+    ]
+    const content = `${columns.join(',')},${Array.from({ length: 1200 }, () => '').join(',')}\n"Smart Home Co","A. Singh","hello@example.com","+91 99999 99999","https://example.com","10+ years","₹50k - ₹2L","Integrates smart lighting and security","Bengaluru, Pune","Tuya, Zigbee, Alexa",Yes,${Array.from({ length: 1200 }, () => '').join(',')}\n`
+    const discovery = await csvParser.inspect({ content, fileName: 'smart-home.csv' })
+    const records = []
+    for await (const record of csvParser.parse({ content, fileName: 'smart-home.csv' })) records.push(record)
+
+    expect(discovery.fields).toHaveLength(columns.length)
+    expect(discovery.fields).toEqual(columns)
+    expect(records[0].raw).toMatchObject({
+      'Business Name': 'Smart Home Co',
+      'Contact Person': 'A. Singh',
+      Email: 'hello@example.com',
+      Phone: '+91 99999 99999',
+      Website: 'https://example.com',
+      'Years of Experience': '10+ years',
+      'Pricing Range': '₹50k - ₹2L',
+      'Business Description': 'Integrates smart lighting and security',
+      'Service Areas': 'Bengaluru, Pune',
+      'Supported Brands': 'Tuya, Zigbee, Alexa',
+      'AMC Available?': 'Yes',
+    })
+
+    const rawRecord = records[0].raw as Record<string, unknown>
+    expect(Object.keys(rawRecord)).not.toEqual(expect.arrayContaining([expect.stringMatching(/^column_/)]))
+  })
+
   it('discovers nested JSON collections and preserves source paths', async () => {
     const content = JSON.stringify({ data: { results: [{ id: 'p-1', title: 'Villa' }] } })
     const discovery = await jsonParser.inspect({ content, fileName: 'properties.json' })

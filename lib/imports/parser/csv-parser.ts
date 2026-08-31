@@ -8,16 +8,26 @@ import {
   type UniversalParser,
 } from './parser'
 
+function trimTrailingEmptyColumns(row: string[]) {
+  let lastIndex = row.length - 1
+  while (lastIndex >= 0 && !String(row[lastIndex] || '').trim()) lastIndex -= 1
+  return row.slice(0, lastIndex + 1)
+}
+
+function normalizeRows(rows: string[][]) {
+  return rows.map((row) => trimTrailingEmptyColumns(row))
+}
+
 function parseRows(input: ParserInput) {
   const text = decodeInput(input.content)
   const delimiter = input.delimiter || detectDelimiter(text)
-  const rows = parse(text, {
+  const rows = normalizeRows(parse(text, {
     delimiter,
     bom: true,
     relax_column_count: true,
     skip_empty_lines: false,
     trim: false,
-  }) as string[][]
+  }) as string[][])
   return { text, delimiter, rows }
 }
 

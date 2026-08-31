@@ -76,11 +76,11 @@ export async function analyzeImportBatch(input: { batchId: string; ownerAgentId?
 
   // For testing: allow synchronous analysis
   if (input.waitForCompletion) {
-    return await performBackgroundAnalysis(batch.id, input.ownerAgentId)
+    return await performBackgroundAnalysis(batch.id, input.ownerAgentId, batch.mode)
   }
 
   // Production: start background analysis without waiting
-  const analysisPromise = performBackgroundAnalysis(batch.id, input.ownerAgentId).catch((error) => {
+  const analysisPromise = performBackgroundAnalysis(batch.id, input.ownerAgentId, batch.mode).catch((error) => {
     console.error(`[Background Analysis] Error analyzing batch ${batch.id}:`, error)
     return {
       batchId: batch.id,
@@ -107,7 +107,7 @@ export async function analyzeImportBatch(input: { batchId: string; ownerAgentId?
   }
 }
 
-async function performBackgroundAnalysis(batchId: string, ownerAgentId: string | null | undefined): Promise<AnalysisSummary> {
+async function performBackgroundAnalysis(batchId: string, ownerAgentId: string | null | undefined, batchMode: string = 'PARTIAL'): Promise<AnalysisSummary> {
   const batch = await (prisma as any).importBatch.findUnique({ where: { id: batchId } })
   if (!batch) throw new Error('Batch not found for background analysis.')
 
@@ -178,7 +178,9 @@ async function performBackgroundAnalysis(batchId: string, ownerAgentId: string |
     }
 
     // Non-blocking warnings that don't prevent READY status
-    const NON_BLOCKING_WARNINGS = [
+    // In STRICT mode: NOTHING is non-blocking (all warnings block)
+    // In PARTIAL mode: contamination warnings are non-blocking (data is usable)
+    const NON_BLOCKING_WARNINGS = batchMode === 'STRICT' ? [] : [
       'PARKING_SOURCE_CONTAMINATED',
       'POSSESSION_SOURCE_CONTAMINATED',
       'FLOOR_SOURCE_CONTAMINATED',
