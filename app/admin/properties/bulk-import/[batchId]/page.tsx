@@ -174,7 +174,7 @@ export default function ImportBatchDetailPage() {
                         </button>
                     )}
                     {canCommit && (
-                        <button type="button" onClick={() => void commitBatch()} disabled={committing || batch.status !== 'READY_TO_COMMIT'} className="rounded-lg bg-amber-400 px-4 py-2 text-xs font-semibold text-black disabled:cursor-not-allowed disabled:opacity-40">
+                        <button type="button" onClick={() => void commitBatch()} disabled={committing || (batch.status !== 'READY_TO_COMMIT' && batch.status !== 'READY_FOR_REVIEW')} className="rounded-lg bg-amber-400 px-4 py-2 text-xs font-semibold text-black disabled:cursor-not-allowed disabled:opacity-40">
                             {committing ? 'Committing...' : 'Commit ready records'}
                         </button>
                     )}

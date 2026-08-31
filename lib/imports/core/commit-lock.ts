@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 
 export async function acquireImportCommitLock(batchId: string) {
   const result = await (prisma as any).importBatch.updateMany({
-    where: { id: batchId, status: 'READY_TO_COMMIT' },
+    where: { id: batchId, status: { in: ['READY_TO_COMMIT', 'READY_FOR_REVIEW'] } },
     data: { status: 'COMMITTING', startedAt: new Date() },
   })
   return result.count === 1

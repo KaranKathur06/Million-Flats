@@ -177,20 +177,36 @@ async function performBackgroundAnalysis(batchId: string, ownerAgentId: string |
       analysisResults.push(...batchResults)
     }
 
+    // Non-blocking warnings that don't prevent READY status
+    const NON_BLOCKING_WARNINGS = [
+      'PARKING_SOURCE_CONTAMINATED',
+      'POSSESSION_SOURCE_CONTAMINATED',
+      'FLOOR_SOURCE_CONTAMINATED',
+      'PARKING_UNPARSEABLE_CONTAMINATION',
+      'POSSESSION_UNPARSEABLE_CONTAMINATION',
+      'FLOOR_UNPARSEABLE_CONTAMINATION',
+    ]
+
     // Batch update database records (not individual updates)
     for (const result of analysisResults) {
       const { record, normalized, canonicalResult, canonical, recordWarnings, recordErrors, status } = result
 
-      if (status === 'READY') ready += 1
-      if (status === 'WARNING') warnings += 1
-      if (status === 'ERROR') errors += 1
+      // Filter out non-blocking warnings for status determination
+      const blockingWarnings = recordWarnings.filter(
+        (w) => !NON_BLOCKING_WARNINGS.some((code) => w.includes(code)),
+      )
+      const finalStatus = recordErrors.length > 0 ? 'ERROR' : blockingWarnings.length > 0 ? 'WARNING' : 'READY'
+
+      if (finalStatus === 'READY') ready += 1
+      if (finalStatus === 'WARNING') warnings += 1
+      if (finalStatus === 'ERROR') errors += 1
 
       await (prisma as any).importRecord.update({
         where: { id: record.id },
         data: {
           normalizedPayload: normalized.normalized,
           canonicalPayload: canonical,
-          status,
+          status: finalStatus,
           ownershipPolicy: ownerAgentId && !String((normalized.normalized as any)?.agentId || '').trim()
             ? 'configured-owner-agent'
             : 'source-agent',
@@ -200,18 +216,28 @@ async function performBackgroundAnalysis(batchId: string, ownerAgentId: string |
         },
       })
 
-      for (const issue of [
-        ...recordWarnings.map((message) => ({ severity: 'WARNING', message })),
-        ...recordErrors.map((message) => ({ severity: 'ERROR', message })),
-      ]) {
+      for (const message of recordWarnings) {
+        const isNonBlocking = NON_BLOCKING_WARNINGS.some((code) => message.includes(code))
         await (prisma as any).importIssue.create({
           data: {
             batchId: batch.id,
             recordId: record.id,
             stage: 'ANALYSIS',
-            severity: issue.severity,
-            code: issue.severity === 'ERROR' ? 'CANONICAL_VALIDATION' : 'QUALITY_WARNING',
-            message: issue.message,
+            severity: isNonBlocking ? 'INFO' : 'WARNING',
+            code: isNonBlocking ? 'DATA_QUALITY_INFO' : 'QUALITY_WARNING',
+            message,
+          },
+        })
+      }
+
+      for (const message of recordErrors) {
+        await (prisma as any).importIssue.create({
+          data: {
+            batchId: batch.id,
+            recordId: record.id,
+            stage: 'ANALYSIS',            severity: 'ERROR',
+            code: 'CANONICAL_VALIDATION',
+            message,
           },
         })
       }
