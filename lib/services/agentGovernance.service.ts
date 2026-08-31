@@ -64,6 +64,16 @@ export async function approveAgent(input: {
     const risk = await evaluateAgentRisk({ agentId })
 
     const updated = await prisma.$transaction(async (tx: any) => {
+      // DB trigger enforces: DRAFT→SUBMITTED→VERIFIED→LIVE→SUSPENDED
+      // When approving from DRAFT, step through SUBMITTED first.
+      if (currentProfileStatus === 'DRAFT') {
+        await (tx as any).agent.update({
+          where: { id: agentId },
+          data: { profileStatus: 'SUBMITTED' } as any,
+          select: { id: true },
+        })
+      }
+
       const updatedAgent = await (tx as any).agent.update({
         where: { id: agentId },
         data: {
