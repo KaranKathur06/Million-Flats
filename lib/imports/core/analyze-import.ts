@@ -223,7 +223,7 @@ async function performBackgroundAnalysis(batchId: string, ownerAgentId: string |
             batchId: batch.id,
             recordId: record.id,
             stage: 'ANALYSIS',
-            severity: isNonBlocking ? 'INFO' : 'WARNING',
+            severity: 'WARNING',
             code: isNonBlocking ? 'DATA_QUALITY_INFO' : 'QUALITY_WARNING',
             message,
           },
@@ -235,7 +235,8 @@ async function performBackgroundAnalysis(batchId: string, ownerAgentId: string |
           data: {
             batchId: batch.id,
             recordId: record.id,
-            stage: 'ANALYSIS',            severity: 'ERROR',
+            stage: 'ANALYSIS',
+            severity: 'ERROR',
             code: 'CANONICAL_VALIDATION',
             message,
           },
