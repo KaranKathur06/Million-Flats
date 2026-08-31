@@ -90,13 +90,19 @@ export async function approveAgent(input: {
         select: { role: true },
       })
 
-      const mcase = await ensureModerationCase(tx, {
+      return { agent: updatedAgent, userAfter }
+    })
+
+    // Moderation logging – runs outside the transaction so missing tables
+    // (ModerationCase / ModerationAction) won't roll back the approval.
+    try {
+      const mcase = await ensureModerationCase(prisma, {
         entityType: 'AGENT',
         entityId: agentId,
         createdByUserId: input.actorUserId,
       })
 
-      await setCaseRiskWithReasons(tx, {
+      await setCaseRiskWithReasons(prisma, {
         caseId: mcase.id,
         currentRiskScore: risk.score,
         currentRiskReasons: risk.reasons,
@@ -104,10 +110,10 @@ export async function approveAgent(input: {
       })
 
       if (risk.score >= 50) {
-        await setModerationQueue(tx, { caseId: mcase.id, queue: 'HIGH_RISK' })
+        await setModerationQueue(prisma, { caseId: mcase.id, queue: 'HIGH_RISK' })
       }
 
-      await addModerationAction(tx, {
+      await addModerationAction(prisma, {
         caseId: mcase.id,
         actorUserId: input.actorUserId,
         decision: 'APPROVED',
@@ -116,9 +122,9 @@ export async function approveAgent(input: {
         riskReasonsSnapshot: risk.reasons,
         riskEngineVersion: risk.version,
       })
-
-      return { agent: updatedAgent, userAfter }
-    })
+    } catch (moderationErr) {
+      console.warn('[approveAgent] Moderation logging skipped (tables may not exist):', moderationErr instanceof Error ? moderationErr.message : moderationErr)
+    }
 
     const afterState = {
       approved: Boolean(updated.agent.approved),
