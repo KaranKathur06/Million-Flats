@@ -177,10 +177,37 @@ export function canonicalizePropertyImport(payload: unknown) {
 
   const root = payload as Record<string, any>
   const supportedPropertyKeys = new Set([
+    // Core property fields
     'title', 'propertyType', 'intent', 'price', 'currency', 'constructionStatus', 'shortDescription',
     'bedrooms', 'bathrooms', 'squareFeet', 'location', 'country', 'city', 'community', 'countryCode',
     'countryIso2', 'address', 'latitude', 'longitude', 'developerName', 'amenities', 'paymentPlanText',
-    'emiNote', 'tour3dUrl', 'status', 'sourceUrl', 'schemaVersion', 'property'
+    'emiNote', 'tour3dUrl', 'status', 'sourceUrl', 'schemaVersion', 'property',
+    // Import adapter fields
+    'agentId', 'agent_id', 'ownerAgentId', 'owner_agent_id',
+    'sourceProvider', 'source_provider', 'provider', 'source',
+    'sourceListingId', 'source_listing_id', 'external_id', 'listing_id', 'listingId',
+    'source_url', 'listing_url', 'url',
+    // Normalization / scraper fields
+    'property_name', 'listing_title', 'name', 'property_type', 'type', 'listing_type', 'purpose',
+    'asking_price', 'askingPrice', 'amount', 'price_currency', 'priceText', 'price_text',
+    'bhk', 'beds', 'bedrooms_count', 'baths', 'bathrooms_count',
+    'square_feet', 'built_up_area', 'area', 'size', 'areaSqft', 'area_sqft', 'areaUnit', 'area_unit', 'unit',
+    'country_code', 'city_name', 'locality', 'neighborhood',
+    'projectName', 'project_name',
+    // Contamination-detected fields
+    'floorLevel', 'floor_level', 'floor', 'floorNo',
+    'parking', 'parkingSpaces', 'parking_spaces', 'covered', 'open',
+    'possessionStatus', 'possession_status',
+    'authorizedToMarket', 'authorized_to_market',
+    // Media / image fields (common in scraped data, safely ignored during import)
+    'imageUrl', 'image_url', 'imageUrls', 'image_urls', 'images', 'photos',
+    'coverImage', 'cover_image', 'coverPhoto', 'cover_photo',
+    'mediaUrl', 'media_url', 'mediaUrls', 'media_urls',
+    'galleryUrls', 'gallery_urls', 'gallery', 'photoUrls', 'photo_urls',
+    'thumbnail', 'thumbnailUrl', 'thumbnail_url',
+    // Metadata fields
+    'scrapedAt', 'scraped_at', 'createdAt', 'created_at', 'updatedAt', 'updated_at',
+    'description', 'shortdescription',
   ])
 
   const unsupported: string[] = []
