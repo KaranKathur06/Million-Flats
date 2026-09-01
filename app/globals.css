@@ -231,6 +231,20 @@ html[data-admin-sidebar='collapsed'] .admin-project-name-cell .admin-project-nam
   animation: mf-admin-drawer-in 300ms ease-out;
 }
 
+.mf-admin-row-action {
+  position: relative;
+  isolation: isolate;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.mf-admin-row-action:focus-visible,
+.mf-admin-row-action:hover {
+  transform: translateZ(0);
+  filter: none;
+}
+
 /* Dark color scheme for date inputs */
 input[type="date"].bg-white {
   color-scheme: light;

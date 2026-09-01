@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import toast, { Toaster } from 'react-hot-toast'
+import GlobalDropdown from '@/components/ui/GlobalDropdown'
 import { buildManualPropertyPath } from '@/lib/manualPropertyRoutes'
 
 interface PropertyItem {
@@ -263,7 +263,7 @@ export default function AdminPropertiesPage() {
 
             {/* Search + Filters */}
             <div className="flex flex-wrap items-center gap-3 mb-5">
-                <div className="relative flex-1 min-w-[200px] max-w-md">
+                <div className="relative flex-1 min-w-[220px] max-w-md">
                     <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/25" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
@@ -275,22 +275,32 @@ export default function AdminPropertiesPage() {
                         className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] pl-10 pr-4 py-2.5 text-sm text-white/80 placeholder:text-white/20 outline-none focus:border-amber-400/30 focus:ring-1 focus:ring-amber-400/10"
                     />
                 </div>
-                <select
-                    value={cityFilter}
-                    onChange={e => setCityFilter(e.target.value)}
-                    className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-sm text-white/60 outline-none cursor-pointer"
-                >
-                    <option value="">All Cities</option>
-                    {cities.map(c => <option key={c} value={c!}>{c}</option>)}
-                </select>
-                <select
-                    value={typeFilter}
-                    onChange={e => setTypeFilter(e.target.value)}
-                    className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-sm text-white/60 outline-none cursor-pointer"
-                >
-                    <option value="">All Types</option>
-                    {types.map(t => <option key={t} value={t!}>{t}</option>)}
-                </select>
+                <div className="w-full max-w-[200px]">
+                    <GlobalDropdown
+                        label="City"
+                        value={cityFilter}
+                        onChange={value => setCityFilter(String(value))}
+                        options={cities.filter((city): city is string => Boolean(city)).map(city => ({ value: city, label: city }))}
+                        appearance="admin-dark"
+                        searchable
+                        showLabel={false}
+                        placeholder="All Cities"
+                        className="w-full"
+                    />
+                </div>
+                <div className="w-full max-w-[200px]">
+                    <GlobalDropdown
+                        label="Type"
+                        value={typeFilter}
+                        onChange={value => setTypeFilter(String(value))}
+                        options={types.filter((type): type is string => Boolean(type)).map(type => ({ value: type, label: type }))}
+                        appearance="admin-dark"
+                        searchable
+                        showLabel={false}
+                        placeholder="All Types"
+                        className="w-full"
+                    />
+                </div>
             </div>
 
             {/* Bulk Actions Toolbar */}
@@ -391,20 +401,17 @@ export default function AdminPropertiesPage() {
                                 <div className="col-span-2">
                                     <p className="text-sm text-white/50 truncate">{p.agent?.user?.name || 'System'}</p>
                                 </div>
-                                <div className="col-span-1 flex items-center gap-1">
-                                    <Link href={buildManualPropertyPath({ id: p.id, title: p.title || 'property', intent: p.intent }) || `/properties/${p.id}`} target="_blank" className="rounded-lg p-1.5 text-white/30 hover:text-white/70 hover:bg-white/[0.06] transition-all" title="Preview">
-                                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                                    </Link>
-                                    {p.status !== 'PUBLISHED' && (
-                                        <button onClick={() => runLifecycleAction(p.id, p.status === 'ARCHIVED' || p.status === 'SOLD' ? 'restore_published' : 'publish')} className="rounded-lg p-1.5 text-emerald-400/50 hover:text-emerald-300 hover:bg-emerald-500/10 transition-all cursor-pointer" title="Publish">
-                                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                        </button>
-                                    )}
-                                    <button onClick={() => setDeleteTarget(p)} className="rounded-lg p-1.5 text-red-400/40 hover:text-red-300 hover:bg-red-500/10 transition-all cursor-pointer" title="Delete">
-                                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                    </button>
-                                    <button onClick={() => setActionDrawerTarget(p)} className="rounded-lg p-1.5 text-white/35 hover:text-white/75 hover:bg-white/[0.06] transition-all cursor-pointer" title="Actions">
-                                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6h.01M12 12h.01M12 18h.01" /></svg>
+                                <div className="col-span-1 flex items-center justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActionDrawerTarget(p)}
+                                        aria-label={`Actions for ${p.title || 'property'}`}
+                                        className="mf-admin-row-action inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-white/60 transition-all duration-200 hover:border-amber-400/20 hover:bg-amber-400/[0.1] hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/35"
+                                        title="Actions"
+                                    >
+                                        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 4a2 2 0 110-4 2 2 0 010 4zm0 4a2 2 0 110-4 2 2 0 010 4z" />
+                                        </svg>
                                     </button>
                                 </div>
                             </div>
@@ -459,7 +466,7 @@ export default function AdminPropertiesPage() {
             )}
 
             {actionDrawerTarget && (
-                <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm">
+                <div className="fixed inset-0 z-50 flex justify-end bg-black/60">
                     <button type="button" className="flex-1" aria-label="Close actions" onClick={() => setActionDrawerTarget(null)} />
                     <aside className="h-full w-full max-w-md border-l border-white/[0.08] bg-[#071328] p-6 shadow-2xl overflow-y-auto">
                         <div className="flex items-start justify-between gap-4">
