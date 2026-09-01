@@ -43,6 +43,10 @@ const modeOptions = [
     { value: 'PARTIAL', label: 'Partial · commit valid records' },
     { value: 'STRICT', label: 'Strict · resolve every issue' },
 ]
+const propertyIntentOptions = [
+    { value: 'SALE', label: 'Sale' },
+    { value: 'RENT', label: 'Rent' },
+]
 
 async function parseJsonResponse(response: Response) {
     const contentType = response.headers.get('content-type') || ''
@@ -68,6 +72,7 @@ export default function ImportCenterPage() {
     const [entity, setEntity] = useState('PROPERTY')
     const [operation, setOperation] = useState('CREATE')
     const [mode, setMode] = useState('PARTIAL')
+    const [propertyIntent, setPropertyIntent] = useState<'SALE' | 'RENT'>('SALE')
     const [category, setCategory] = useState('')
     const [approvedAgents, setApprovedAgents] = useState<Array<{ id: string; name: string | null; email: string; company: string | null }>>([])
     const [ownerMode, setOwnerMode] = useState<'select' | 'other'>('select')
@@ -196,6 +201,7 @@ export default function ImportCenterPage() {
             form.append('operation', operation)
             form.append('mode', mode)
             form.append('sourceProvider', 'ADMIN_IMPORT')
+            if (entity === 'PROPERTY') form.append('propertyIntent', propertyIntent)
             if (category) form.append('category', category)
             const response = await fetch('/api/admin/bulk-import', { method: 'POST', body: form })
             const payload = await parseJsonResponse(response)
@@ -288,6 +294,7 @@ export default function ImportCenterPage() {
                                 <GlobalDropdown label="Entity" value={entity} onChange={value => setEntity(value as string)} options={entityOptions} appearance="admin-dark" />
                                 <GlobalDropdown label="Operation" value={operation} onChange={value => setOperation(value as string)} options={operationOptions} appearance="admin-dark" />
                                 <GlobalDropdown label="Import mode" value={mode} onChange={value => setMode(value as string)} options={modeOptions} appearance="admin-dark" />
+                                {entity === 'PROPERTY' && <GlobalDropdown label="Property section" value={propertyIntent} onChange={(value) => setPropertyIntent(value as 'SALE' | 'RENT')} options={propertyIntentOptions} appearance="admin-dark" />}
                                 {entity === 'ECOSYSTEM_PARTNER' && <GlobalDropdown label="Partner category" value={category} onChange={value => setCategory(value as string)} options={ecosystemCategoryOptions} appearance="admin-dark" />}
                                 {entity === 'PROPERTY' && (
                                     <div className="space-y-3">

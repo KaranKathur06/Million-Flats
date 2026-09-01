@@ -1,4 +1,5 @@
 import { canonicalizePropertyImport, getCityOptions, getCommunityOptions, getCountryOptions, normalizeLocationPair } from '../../lib/propertyCanonical'
+import { resolvePropertyImportIntent } from '../../lib/imports/adapters/property/adapter'
 
 describe('property canonical model', () => {
   it('exposes India and UAE as supported countries', () => {
@@ -49,5 +50,11 @@ describe('property canonical model', () => {
 
     expect(result.ok).toBe(false)
     expect(result.errors).toContain('Unsupported field: imageUrl')
+  })
+
+  it('applies the selected bulk-import intent when the source record has no explicit intent', () => {
+    expect(resolvePropertyImportIntent({ title: 'Sample property' }, 'RENT')).toBe('RENT')
+    expect(resolvePropertyImportIntent({ title: 'Sample property', intent: 'SALE' }, 'RENT')).toBe('SALE')
+    expect(resolvePropertyImportIntent({ title: 'Sample property', listingType: 'For Rent' }, 'SALE')).toBe('RENT')
   })
 })

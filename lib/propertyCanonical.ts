@@ -199,12 +199,6 @@ export function canonicalizePropertyImport(payload: unknown) {
     'parking', 'parkingSpaces', 'parking_spaces', 'covered', 'open',
     'possessionStatus', 'possession_status',
     'authorizedToMarket', 'authorized_to_market',
-    // Media / image fields (common in scraped data, safely ignored during import)
-    'imageUrl', 'image_url', 'imageUrls', 'image_urls', 'images', 'photos',
-    'coverImage', 'cover_image', 'coverPhoto', 'cover_photo',
-    'mediaUrl', 'media_url', 'mediaUrls', 'media_urls',
-    'galleryUrls', 'gallery_urls', 'gallery', 'photoUrls', 'photo_urls',
-    'thumbnail', 'thumbnailUrl', 'thumbnail_url',
     // Metadata fields
     'scrapedAt', 'scraped_at', 'createdAt', 'created_at', 'updatedAt', 'updated_at',
     'description', 'shortdescription',

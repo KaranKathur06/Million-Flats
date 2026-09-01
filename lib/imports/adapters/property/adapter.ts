@@ -28,6 +28,39 @@ import { resolveOwnership, validateAgentIsApproved } from '@/lib/imports/relatio
 
 const SQUAREYARDS_SOURCE_PROFILE_KEY = 'squareyards-property-v1'
 
+export function resolvePropertyImportIntent(raw: Record<string, unknown> | null | undefined, fallbackIntent?: string | null): 'SALE' | 'RENT' | null {
+  const source = raw && typeof raw === 'object' ? raw : {}
+
+  const normalizeIntentValue = (value: unknown): 'SALE' | 'RENT' | null => {
+    if (value === null || value === undefined) return null
+    const text = String(value).trim().toLowerCase()
+    if (!text) return null
+    const saleTokens = ['sale', 'sell', 'selling', 'for sale', 'buy', 'purchase']
+    const rentTokens = ['rent', 'rental', 'lease', 'for rent', 'letting', 'to let', 'tenancy']
+    if (saleTokens.some((token) => text.includes(token))) return 'SALE'
+    if (rentTokens.some((token) => text.includes(token))) return 'RENT'
+    return null
+  }
+
+  const intentCandidates = [
+    source.intent,
+    source.transactionType,
+    source.transaction_type,
+    source.listingType,
+    source.listing_type,
+    source.purpose,
+    source.type,
+  ]
+
+  for (const candidate of intentCandidates) {
+    const resolved = normalizeIntentValue(candidate)
+    if (resolved) return resolved
+  }
+
+  const fallback = normalizeIntentValue(fallbackIntent)
+  return fallback
+}
+
 function normalizeKey(value: string) {
   return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
 }
@@ -205,6 +238,7 @@ export const propertyImportAdapter: ImportAdapter<CanonicalManualPropertyInput> 
     }
 
     const value = canonicalized.normalized as Record<string, unknown>
+    const resolvedIntent = resolvePropertyImportIntent({ ...normalized, ...value }, typeof value.intent === 'string' ? String(value.intent) : null)
     const canonical: CanonicalManualPropertyInput = {
       title: String(value.title || '').trim(),
       agentId: String(value.agentId || '').trim(),
@@ -212,7 +246,7 @@ export const propertyImportAdapter: ImportAdapter<CanonicalManualPropertyInput> 
       sourceUrl: asText(value.sourceUrl),
       sourceListingId: asText(value.sourceListingId),
       propertyType: asText(value.propertyType),
-      intent: value.intent === 'RENT' ? 'RENT' : value.intent === 'SALE' ? 'SALE' : null,
+      intent: resolvedIntent,
       price: typeof value.price === 'number' ? value.price : null,
       currency: asText(value.priceCurrency || value.currency),
       constructionStatus: value.constructionStatus === 'OFF_PLAN' ? 'OFF_PLAN' : value.constructionStatus === 'READY' ? 'READY' : null,

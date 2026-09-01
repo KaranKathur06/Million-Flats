@@ -4,6 +4,7 @@ import { requireAdminSession } from '@/lib/adminAuth'
 import { createImportBatch, stageImportRecordsBatch, type ImportEntityType } from '@/lib/imports/core'
 import { getImportAdapterForEntity, listImportAdapters } from '@/lib/imports/registry'
 import { csvParser, detectFormat, jsonParser, xlsxParser } from '@/lib/imports/parser'
+import { resolvePropertyImportIntent } from '@/lib/imports/adapters/property/adapter'
 
 const MAX_BYTES = Number(process.env.IMPORT_MAX_FILE_SIZE || 10 * 1024 * 1024)
 const MAX_RECORDS = Number(process.env.IMPORT_MAX_RECORDS || 5000)
@@ -74,6 +75,7 @@ export async function POST(req: Request) {
     }
 
     const entityType = String(form.get('entity') || 'PROPERTY').trim().toUpperCase() as ImportEntityType
+    const propertyIntentOverride = entityType === 'PROPERTY' ? String(form.get('propertyIntent') || '').trim().toUpperCase() : ''
     const adapter = getImportAdapterForEntity(entityType)
     if (!adapter) return NextResponse.json({ success: false, message: `No import adapter is registered for ${entityType}.` }, { status: 400 })
 
@@ -134,12 +136,23 @@ export async function POST(req: Request) {
     }> = []
 
     for (const record of allRecords) {
+      const rawRecord = record && typeof record === 'object' && 'raw' in record ? (record.raw as Record<string, unknown> | null) : record
+      const propertyIntentValue = entityType === 'PROPERTY' && rawRecord && typeof rawRecord === 'object'
+        ? resolvePropertyImportIntent(rawRecord, propertyIntentOverride || null)
+        : null
+      const sourcePayload = entityType === 'PROPERTY' && rawRecord && typeof rawRecord === 'object'
+        ? {
+            ...rawRecord,
+            ...(propertyIntentValue ? { intent: propertyIntentValue } : {}),
+          }
+        : rawRecord
+
       stagingBatch.push({
         batchId: batch.id,
         sourceRecordId: record.sourceRecordId,
         sourceRow: record.sourceRow,
         sourcePath: record.sourcePath,
-        raw: record.raw,
+        raw: sourcePayload,
         sourceProvider: String(form.get('sourceProvider') || '').trim() || null,
       })
 
