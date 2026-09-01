@@ -61,6 +61,30 @@ export function resolvePropertyImportIntent(raw: Record<string, unknown> | null 
   return fallback
 }
 
+export function resolvePropertyCurrency(raw: Record<string, unknown> | null | undefined): string | null {
+  const source = raw && typeof raw === 'object' ? raw : {}
+  const explicitCurrency = typeof source.currency === 'string' && source.currency.trim()
+    ? source.currency.trim().toUpperCase()
+    : typeof source.priceCurrency === 'string' && source.priceCurrency.trim()
+      ? source.priceCurrency.trim().toUpperCase()
+      : typeof source.currencyCode === 'string' && source.currencyCode.trim()
+        ? source.currencyCode.trim().toUpperCase()
+        : null
+
+  if (explicitCurrency) return explicitCurrency
+
+  const location = typeof source.location === 'object' && source.location !== null ? source.location as Record<string, unknown> : {}
+  const countryCode = String((source.countryCode ?? source.country ?? source.countryIso2 ?? '') || '').trim().toUpperCase()
+  const countryIso2 = String((source.countryIso2 ?? '') || '').trim().toUpperCase()
+  const city = String((source.city ?? location.city ?? '') || '').trim().toLowerCase()
+  const community = String((source.community ?? location.community ?? '') || '').trim().toLowerCase()
+
+  if (countryCode === 'INDIA' || countryCode === 'IN' || countryIso2 === 'IN' || /(india|mumbai|navi mumbai|delhi|bengaluru|pune|hyderabad|chennai|kolkata|gurugram|noida|thane|lucknow)/i.test(`${city} ${community}`)) return 'INR'
+  if (countryCode === 'UAE' || countryCode === 'AE' || countryIso2 === 'AE' || /(uae|dubai|abu dhabi|sharjah|ajman|ras al khaimah|fujairah|umm al quwain|al ain)/i.test(`${city} ${community}`)) return 'AED'
+
+  return null
+}
+
 function normalizeKey(value: string) {
   return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
 }
@@ -239,6 +263,7 @@ export const propertyImportAdapter: ImportAdapter<CanonicalManualPropertyInput> 
 
     const value = canonicalized.normalized as Record<string, unknown>
     const resolvedIntent = resolvePropertyImportIntent({ ...normalized, ...value }, typeof value.intent === 'string' ? String(value.intent) : null)
+    const resolvedCurrency = resolvePropertyCurrency({ ...normalized, ...value }) || asText(value.priceCurrency || value.currency)
     const canonical: CanonicalManualPropertyInput = {
       title: String(value.title || '').trim(),
       agentId: String(value.agentId || '').trim(),
@@ -248,7 +273,7 @@ export const propertyImportAdapter: ImportAdapter<CanonicalManualPropertyInput> 
       propertyType: asText(value.propertyType),
       intent: resolvedIntent,
       price: typeof value.price === 'number' ? value.price : null,
-      currency: asText(value.priceCurrency || value.currency),
+      currency: resolvedCurrency,
       constructionStatus: value.constructionStatus === 'OFF_PLAN' ? 'OFF_PLAN' : value.constructionStatus === 'READY' ? 'READY' : null,
       shortDescription: asText(value.shortDescription),
       bedrooms: typeof value.bedrooms === 'number' ? value.bedrooms : 0,

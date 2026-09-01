@@ -1,5 +1,5 @@
 import { canonicalizePropertyImport, getCityOptions, getCommunityOptions, getCountryOptions, normalizeLocationPair } from '../../lib/propertyCanonical'
-import { resolvePropertyImportIntent } from '../../lib/imports/adapters/property/adapter'
+import { resolvePropertyCurrency, resolvePropertyImportIntent } from '../../lib/imports/adapters/property/adapter'
 
 describe('property canonical model', () => {
   it('exposes India and UAE as supported countries', () => {
@@ -56,5 +56,11 @@ describe('property canonical model', () => {
     expect(resolvePropertyImportIntent({ title: 'Sample property' }, 'RENT')).toBe('RENT')
     expect(resolvePropertyImportIntent({ title: 'Sample property', intent: 'SALE' }, 'RENT')).toBe('SALE')
     expect(resolvePropertyImportIntent({ title: 'Sample property', listingType: 'For Rent' }, 'SALE')).toBe('RENT')
+  })
+
+  it('uses the country/city to derive the correct default currency for imported properties', () => {
+    expect(resolvePropertyCurrency({ city: 'Mumbai', countryCode: 'INDIA' })).toBe('INR')
+    expect(resolvePropertyCurrency({ city: 'Dubai', countryCode: 'UAE' })).toBe('AED')
+    expect(resolvePropertyCurrency({ city: 'Chembur', countryIso2: 'IN' })).toBe('INR')
   })
 })

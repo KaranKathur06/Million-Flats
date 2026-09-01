@@ -81,7 +81,7 @@ export async function createManualProperty(
       propertyType: input.propertyType || null,
       intent: input.intent || null,
       price: input.price ?? null,
-      currency: input.currency || undefined,
+      currency: input.currency || (input.countryCode === 'INDIA' ? 'INR' : 'AED'),
       constructionStatus: input.constructionStatus || null,
       shortDescription: input.shortDescription || null,
       bedrooms: input.bedrooms ?? 0,
