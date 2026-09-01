@@ -7,6 +7,7 @@ export const propertyFieldDefinitions: ImportFieldDefinition[] = [
   { field: 'intent', label: 'Intent', type: 'enum', requiredness: 'recommended', aliases: ['listing_type', 'purpose'] },
   { field: 'price', label: 'Price', type: 'number', requiredness: 'recommended', aliases: ['asking_price', 'amount'] },
   { field: 'currency', label: 'Currency', type: 'string', requiredness: 'recommended', aliases: ['price_currency'] },
+  { field: 'shortDescription', label: 'Description', type: 'string', requiredness: 'recommended', aliases: ['description', 'short_description', 'shortdescription'] },
   { field: 'bedrooms', label: 'Bedrooms', type: 'number', requiredness: 'recommended', aliases: ['bhk', 'beds', 'bedrooms_count'] },
   { field: 'bathrooms', label: 'Bathrooms', type: 'number', requiredness: 'recommended', aliases: ['baths', 'bathrooms_count'] },
   { field: 'squareFeet', label: 'Area', type: 'number', requiredness: 'recommended', aliases: ['square_feet', 'built_up_area', 'area', 'size'] },

@@ -241,6 +241,8 @@ export const propertyImportAdapter: ImportAdapter<CanonicalManualPropertyInput> 
       possessionStatus: possession.extracted,
       possessionContaminated: possession.contaminated,
       authorizedToMarket: normalizeBoolean(readValue(raw, ['authorizedToMarket', 'authorized_to_market'])),
+      shortDescription: readValue(raw, ['shortDescription', 'short_description', 'description', 'shortdescription']),
+      description: readValue(raw, ['description', 'shortDescription', 'short_description', 'shortdescription']),
       city: readValue(raw, ['city', 'city_name', 'location.city']),
       community: readValue(raw, ['community', 'locality', 'neighborhood', 'location.community']),
       sourceProvider: readValue(raw, ['sourceProvider', 'source_provider', 'provider', 'source']),

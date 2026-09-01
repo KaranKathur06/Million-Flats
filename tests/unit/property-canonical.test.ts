@@ -63,4 +63,25 @@ describe('property canonical model', () => {
     expect(resolvePropertyCurrency({ city: 'Dubai', countryCode: 'UAE' })).toBe('AED')
     expect(resolvePropertyCurrency({ city: 'Chembur', countryIso2: 'IN' })).toBe('INR')
   })
+
+  it('keeps the property description from the XLSX import payload', () => {
+    const result = canonicalizePropertyImport({
+      schemaVersion: 'property-import-v1',
+      property: {
+        title: 'Luxury apartment in Navi Mumbai',
+        propertyType: 'Apartment',
+        intent: 'RENT',
+        price: 45000,
+        currency: 'INR',
+        description: 'Spacious 2 BHK apartment with sea-facing balcony and clubhouse access in Navi Mumbai.',
+        city: 'Navi Mumbai',
+        community: 'Kharghar',
+        country: 'India',
+      },
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.normalized?.description).toBe('Spacious 2 BHK apartment with sea-facing balcony and clubhouse access in Navi Mumbai.')
+    expect(result.normalized?.shortDescription).toBeUndefined()
+  })
 })
