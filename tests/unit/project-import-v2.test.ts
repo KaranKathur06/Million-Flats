@@ -1,4 +1,5 @@
 import { buildProjectImportPreview, buildCanonicalProjectCreatePayload } from '../../lib/projectImportV2'
+import { projectImportAdapter } from '../../lib/imports/adapters/project/adapter'
 
 describe('project import v2', () => {
   it('accepts a valid V2 envelope with default draft status and false flags', () => {
@@ -156,5 +157,63 @@ describe('project import v2', () => {
 
     expect(result.ok).toBe(true)
     expect(result.summary.totalProjects).toBe(250)
+  })
+
+  it('persists nested unit data when importing a project payload', async () => {
+    const db = {
+      developer: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'dev_123', name: 'Example Developer' }),
+        findFirst: jest.fn(),
+      },
+      project: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({ id: 'project_123', slug: 'approved-project' }),
+        update: jest.fn(),
+      },
+      projectPaymentPlan: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
+      projectAmenity: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
+      projectNearbyPlace: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
+      projectLocation: { create: jest.fn().mockResolvedValue({ id: 'loc_1' }) },
+      projectVideo: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
+      projectUnitType: { create: jest.fn().mockResolvedValue({ id: 'ut_1' }) },
+      projectUnitVariant: { create: jest.fn().mockResolvedValue({ id: 'uv_1' }) },
+      projectFloorPlan: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
+      unitMedia: { deleteMany: jest.fn() },
+    }
+
+    const payload = {
+      name: 'Approved Project',
+      slug: 'approved-project',
+      developerId: 'dev_123',
+      developerName: 'Example Developer',
+      countryIso2: 'IN',
+      city: 'Navi Mumbai',
+      community: 'Ulwe',
+      startingPrice: 9200000,
+      unitTypes: [{
+        name: '1 BHK',
+        bedrooms: 1,
+        variants: [{
+          title: 'Type A',
+          size: 500,
+          price: '1.2M',
+          floorPlans: [{ title: 'Plan A', imageUrl: 'https://example.com/floorplan.jpg' }],
+        }],
+      }],
+      floorPlans: [{ unitType: '1 BHK', imageUrl: 'https://example.com/project-plan.jpg' }],
+      amenities: [{ name: 'Pool', icon: 'pool', category: 'Recreation' }],
+    }
+
+    const result = await projectImportAdapter.commit({
+      canonical: payload,
+      operation: 'CREATE',
+      sourceRecordId: 'source-1',
+      db,
+    })
+
+    expect(result.status).toBe('created')
+    expect(db.projectUnitType.create).toHaveBeenCalledTimes(1)
+    expect(db.projectUnitVariant.create).toHaveBeenCalledTimes(1)
+    expect(db.projectFloorPlan.createMany).toHaveBeenCalledTimes(2)
   })
 })

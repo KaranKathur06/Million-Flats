@@ -62,8 +62,26 @@ const read = readImportField
 const number = (value: unknown) => { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : null }
 const leadingNumber = (value: unknown) => {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null
-  const match = String(value ?? '').trim().match(/^\d+(?:\.\d+)?/)
+  const match = String(value ?? '').trim().match(/\d+(?:\.\d+)?/)
   return match ? number(match[0]) : null
+}
+const parseYearsExperience = (value: unknown): number | null => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  const raw = String(value ?? '').trim()
+  if (!raw) return null
+  const explicitMatch = raw.match(/(?:^|\s|\()(?:(?:for|over|about|more than|approx(?:imately)?)\s+)?(\d+(?:\.\d+)?)\s*years?\b/i)
+  if (explicitMatch) return number(explicitMatch[1])
+  const fallbackMatch = raw.match(/(\d+(?:\.\d+)?)\s*years?\b/i)
+  return fallbackMatch ? number(fallbackMatch[1]) : null
+}
+const parseFoundedYear = (value: unknown): number | null => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  const raw = String(value ?? '').trim()
+  if (!raw) return null
+  const match = raw.match(/\bFounded\s+(\d{4})\b|\bEstablished\s+(\d{4})\b|\bSince\s+(\d{4})\b|\b(\d{4})\b/i)
+  if (!match) return null
+  const year = match.slice(1).find((part) => part && /\d{4}/.test(part))
+  return year ? number(year) : null
 }
 const list = (value: unknown) => String(value || '').split(/[;,]/).map((item) => item.trim()).filter(Boolean)
 const mappings = (input: { fields: string[] }): MappingSuggestion[] => suggestImportMappings(input.fields, fields)
@@ -83,8 +101,10 @@ export const ecosystemPartnerImportAdapter: ImportAdapter<CanonicalEcosystemPart
       ...categoryFieldDefinitions.flatMap((field) => [field.name, field.label, ...categoryFieldAliases(field.label)]),
     ].map(normalizeImportField))
     const categoryData = Object.fromEntries(Object.entries(raw).filter(([key]) => !known.has(normalizeImportField(key))))
-    const yearsExperience = leadingNumber(read(raw, ['yearsExperience', 'years_experience', 'Years of Experience']))
-    const experienceDisplay = text(read(raw, ['experienceDisplay', 'experience_display', 'Years of Experience']))
+    const rawExperience = read(raw, ['yearsExperience', 'years_experience', 'Years of Experience'])
+    const yearsExperience = parseYearsExperience(rawExperience) ?? leadingNumber(rawExperience)
+    const partnerSince = parseFoundedYear(rawExperience) ?? number(read(raw, ['partnerSince', 'partner_since']))
+    const experienceDisplay = text(read(raw, ['experienceDisplay', 'experience_display', 'Years of Experience'])) || text(rawExperience)
     for (const field of categoryFieldDefinitions) {
       const value = read(raw, [field.name, ...categoryFieldAliases(field.label)])
       if (value === undefined || value === null || String(value).trim() === '') continue
@@ -92,7 +112,7 @@ export const ecosystemPartnerImportAdapter: ImportAdapter<CanonicalEcosystemPart
       else if (field.type === 'number') categoryData[field.name] = number(value)
       else categoryData[field.name] = text(value)
     }
-    return { normalized: { ...raw, name, categoryId: text(read(raw, ['categoryId', 'category_id'])), categorySlug, slug: text(read(raw, ['slug'])) || (name ? slugifyPartnerName(name) : null), tagline: text(read(raw, ['tagline'])), shortDescription: text(read(raw, ['shortDescription', 'short_description'])), description: text(read(raw, ['description', 'business_description', 'Business Description'])), logo: text(read(raw, ['logo'])), coverImage: text(read(raw, ['coverImage', 'cover_image'])), rating: number(read(raw, ['rating'])), yearsExperience, experienceDisplay, projectsCompleted: number(read(raw, ['projectsCompleted', 'projects_completed'])), teamSize: number(read(raw, ['teamSize', 'team_size'])), partnerSince: number(read(raw, ['partnerSince', 'partner_since'])), locationCoverage: text(read(raw, ['locationCoverage', 'location_coverage', 'service_areas', 'locations'])), pricingRange: text(read(raw, ['pricingRange', 'pricing_range'])), contactPerson: text(read(raw, ['contactPerson', 'contact_person', 'Contact Person'])), contactEmail: text(read(raw, ['contactEmail', 'contact_email', 'email']))?.toLowerCase(), contactPhone: text(read(raw, ['contactPhone', 'contact_phone', 'phone'])), website: text(read(raw, ['website', 'website_url', 'url'])), status: String(read(raw, ['status']) || 'PENDING').toUpperCase(), categoryData }, warnings: [], errors: [] }
+    return { normalized: { ...raw, name, categoryId: text(read(raw, ['categoryId', 'category_id'])), categorySlug, slug: text(read(raw, ['slug'])) || (name ? slugifyPartnerName(name) : null), tagline: text(read(raw, ['tagline'])), shortDescription: text(read(raw, ['shortDescription', 'short_description'])), description: text(read(raw, ['description', 'business_description', 'Business Description'])), logo: text(read(raw, ['logo'])), coverImage: text(read(raw, ['coverImage', 'cover_image'])), rating: number(read(raw, ['rating'])), yearsExperience, experienceDisplay, projectsCompleted: number(read(raw, ['projectsCompleted', 'projects_completed'])), teamSize: number(read(raw, ['teamSize', 'team_size'])), partnerSince, locationCoverage: text(read(raw, ['locationCoverage', 'location_coverage', 'service_areas', 'locations'])), pricingRange: text(read(raw, ['pricingRange', 'pricing_range'])), contactPerson: text(read(raw, ['contactPerson', 'contact_person', 'Contact Person'])), contactEmail: text(read(raw, ['contactEmail', 'contact_email', 'email']))?.toLowerCase(), contactPhone: text(read(raw, ['contactPhone', 'contact_phone', 'phone'])), website: text(read(raw, ['website', 'website_url', 'url'])), status: String(read(raw, ['status']) || 'PENDING').toUpperCase(), categoryData }, warnings: [], errors: [] }
   },
   mapCanonical(input: { raw: unknown; normalized: unknown; mappings: MappingSuggestion[] }): CanonicalPayloadResult<CanonicalEcosystemPartner> {
     const value = (input.normalized || {}) as Record<string, unknown>

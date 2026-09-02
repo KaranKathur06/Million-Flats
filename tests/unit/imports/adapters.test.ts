@@ -170,4 +170,33 @@ describe('universal entity adapters', () => {
       expect(mapped.canonical?.categoryData).toMatchObject(expected)
     })
   })
+
+  it('normalizes technology partner CSV rows with founded-year and years-experience fields correctly', () => {
+    const normalized = ecosystemPartnerImportAdapter.normalize({
+      raw: {
+        'Business Name': 'Searce Inc. / Searce Technologies',
+        'Contact Person': 'Hardik Parekh (Founder & CEO)',
+        Email: 'sales@searce.com',
+        Phone: '+91-20-6725-6600',
+        Website: 'https://www.searce.com',
+        'Years of Experience': 'Founded 2004 (22 years)',
+        'Pricing Range': '$50 - $99 / hr',
+        'Business Description': 'Searce is a modern technology consulting firm.',
+        'Service Areas': 'Cloud Migration, Data Engineering',
+        Solutions: 'GenAI & ML Workflows, Enterprise Data Lakehouse',
+        'Integration or Product Type': 'Google Cloud Premier Partner, AWS Advanced Tier Services Partner',
+        categorySlug: 'technology-partners',
+      },
+      sourcePath: null,
+      mappings: [],
+    })
+
+    expect(normalized.normalized.yearsExperience).toBe(22)
+    expect(normalized.normalized.partnerSince).toBe(2004)
+    expect(normalized.normalized.locationCoverage).toBe('Cloud Migration, Data Engineering')
+    expect(normalized.normalized.categoryData).toMatchObject({
+      solutions: ['GenAI & ML Workflows', 'Enterprise Data Lakehouse'],
+      integrationType: 'Google Cloud Premier Partner, AWS Advanced Tier Services Partner',
+    })
+  })
 })

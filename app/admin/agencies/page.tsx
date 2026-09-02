@@ -71,6 +71,75 @@ export default async function AdminAgenciesPage({
     throw error
   }
 
+  let importedAgencyRows: any[] = []
+  try {
+    importedAgencyRows = await (prisma as any).agency.findMany({
+      where: {
+        ...(country ? {
+          countryCode: country === 'UAE' ? 'UAE' : country === 'INDIA' ? 'INDIA' : undefined,
+        } : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        countryCode: true,
+        countryIso2: true,
+        isFeatured: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (pageNum - 1) * limit,
+      take: limit,
+    })
+  } catch {
+    importedAgencyRows = []
+  }
+
+  const importedProfiles = importedAgencyRows.map((agency) => ({
+    id: agency.id,
+    agencyName: agency.name,
+    slug: null,
+    logo: null,
+    banner: null,
+    country: agency.countryCode || agency.countryIso2 || null,
+    city: null,
+    email: null,
+    user: null,
+    onboardingStatus: 'APPROVED',
+    kycStatus: 'VERIFIED',
+    profileCompletion: 100,
+    linkedAgency: null,
+    createdAt: agency.createdAt,
+    _source: 'agency-table',
+  }))
+
+  const mergedProfiles = [...profiles, ...importedProfiles].reduce((acc: any[], profile) => {
+    const key = `${(profile.agencyName || 'agency').trim().toLowerCase()}|${String(profile.country || 'unknown').trim().toLowerCase()}`
+    const existingIndex = acc.findIndex((entry) => {
+      const entryKey = `${(entry.agencyName || 'agency').trim().toLowerCase()}|${String(entry.country || 'unknown').trim().toLowerCase()}`
+      return entryKey === key
+    })
+
+    if (existingIndex === -1) {
+      acc.push(profile)
+      return acc
+    }
+
+    const existing = acc[existingIndex]
+    const shouldReplace =
+      (!existing.slug && profile.slug) ||
+      (!existing.shortDescription && profile.shortDescription) ||
+      (!existing.logo && profile.logo) ||
+      (!existing.country && profile.country) ||
+      (!existing.city && profile.city) ||
+      (existing.onboardingStatus !== 'APPROVED' && profile.onboardingStatus === 'APPROVED')
+
+    if (shouldReplace) acc[existingIndex] = profile
+    return acc
+  }, [])
+
+  const mergedTotal = mergedProfiles.length
+
   const countMap: Record<string, number> = {}
   for (const s of statusCounts) countMap[s.onboardingStatus] = s._count._all
 
@@ -80,7 +149,10 @@ export default async function AdminAgenciesPage({
     (prisma as any).agencyProfile.count({ where: { ...scopeWhere, onboardingStatus: { not: 'APPROVED' } } }),
   ])
 
-  const normalizedProfiles = profiles.map((profile) => ({
+  const importedScopeCount = await (prisma as any).agency.count({ where: scopeWhere }).catch(() => 0)
+  const importedActiveCount = await (prisma as any).agency.count({ where: { ...scopeWhere, isFeatured: true } }).catch(() => 0)
+
+  const normalizedProfiles = mergedProfiles.map((profile) => ({
     ...profile,
     logo: buildAssetUrl(profile.logo),
     banner: buildAssetUrl(profile.banner),
@@ -89,13 +161,18 @@ export default async function AdminAgenciesPage({
   return (
     <AgenciesListClient
       profiles={normalizedProfiles}
-      total={total}
+      total={mergedTotal}
       status={status}
       page={pageNum}
       q={q}
       country={country}
       statusCounts={countMap}
-      metrics={{ total: scopeTotal, active, inactive, deleted: 0 }}
+      metrics={{
+        total: scopeTotal + importedScopeCount,
+        active: active + importedActiveCount,
+        inactive: inactive + Math.max(0, importedScopeCount - importedActiveCount),
+        deleted: 0,
+      }}
     />
   )
 }

@@ -129,10 +129,20 @@ export async function GET(req: Request) {
         const status = safeString(searchParams.get('status'))
         const lifecycle = safeString(searchParams.get('lifecycle')).toLowerCase()
         const developerId = safeString(searchParams.get('developerId'))
+        const search = safeString(searchParams.get('search'))
 
         const where: any = {}
         if (status) where.status = status
         if (developerId) where.developerId = developerId
+        if (search) {
+            where.OR = [
+                { name: { contains: search, mode: 'insensitive' } },
+                { slug: { contains: search, mode: 'insensitive' } },
+                { city: { contains: search, mode: 'insensitive' } },
+                { community: { contains: search, mode: 'insensitive' } },
+                { developer: { is: { name: { contains: search, mode: 'insensitive' } } } },
+            ]
+        }
         if (lifecycle === 'deleted') {
             where.isDeleted = true
         } else if (lifecycle === 'archived') {

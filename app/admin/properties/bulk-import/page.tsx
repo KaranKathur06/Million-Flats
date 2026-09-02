@@ -33,7 +33,20 @@ const statusTone: Record<string, string> = {
 }
 
 const fallbackEntityOptions = [{ value: 'PROPERTY', label: 'Properties' }, { value: 'PROJECT', label: 'Projects' }, { value: 'DEVELOPER', label: 'Developers' }]
-const fallbackEcosystemCategoryOptions = [{ value: 'home-loans-finance', label: 'Home Loans & Finance' }, { value: 'legal-documentation', label: 'Legal & Documentation' }, { value: 'property-insurance', label: 'Property Insurance' }, { value: 'interior-design-renovation', label: 'Interior Design & Renovation' }]
+const fallbackEcosystemCategoryOptions = [
+    { value: 'home-loans-finance', label: 'Home Loans & Finance' },
+    { value: 'legal-documentation', label: 'Legal & Documentation' },
+    { value: 'property-insurance', label: 'Property Insurance' },
+    { value: 'interior-design-renovation', label: 'Interior Design & Renovation' },
+    { value: 'packers-movers', label: 'Packers & Movers' },
+    { value: 'property-management', label: 'Property Management' },
+    { value: 'vastu-feng-shui', label: 'Vastu / Feng Shui Consultants' },
+    { value: 'tiles-surface-finishing', label: 'Tiles & Surface Finishing' },
+    { value: 'hardware-architectural-fittings', label: 'Hardware & Architectural Fittings' },
+    { value: 'cement-structural', label: 'Cement & Structural' },
+    { value: 'smart-home-automation', label: 'Smart Home & Automation' },
+    { value: 'technology-partners', label: 'Technology Partners' },
+]
 const operationOptions = [
     { value: 'CREATE', label: 'Create' },
     { value: 'UPSERT', label: 'Upsert' },

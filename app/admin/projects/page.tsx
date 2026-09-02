@@ -61,6 +61,7 @@ export default function AdminProjectsPage() {
   const [projects, setProjects] = useState<ProjectItem[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
   const [lifecycleFilter, setLifecycleFilter] = useState<LifecycleFilter>('active')
   const [publishing, setPublishing] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -82,6 +83,7 @@ export default function AdminProjectsPage() {
     try {
       const params = new URLSearchParams()
       if (statusFilter) params.set('status', statusFilter)
+      if (searchQuery.trim()) params.set('search', searchQuery.trim())
       params.set('lifecycle', lifecycleFilter)
       const query = params.toString() ? `?${params.toString()}` : ''
       const res = await fetch(`/api/admin/projects${query}`)
@@ -95,7 +97,7 @@ export default function AdminProjectsPage() {
     } finally {
       setLoading(false)
     }
-  }, [lifecycleFilter, statusFilter])
+  }, [lifecycleFilter, searchQuery, statusFilter])
 
   useEffect(() => { load() }, [load])
 
@@ -418,20 +420,22 @@ export default function AdminProjectsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="w-[170px]">
-            <SelectDropdown
+          <div className="w-[210px]">
+            <GlobalDropdown
               label="Status"
               showLabel={false}
               dense
-              variant="dark"
+              appearance="admin-dark"
               value={statusFilter}
-              onChange={setStatusFilter}
+              onChange={(value) => setStatusFilter(Array.isArray(value) ? value[0] ?? '' : value)}
               options={[
                 { value: '', label: 'All Statuses' },
                 { value: 'DRAFT', label: 'Draft' },
                 { value: 'PUBLISHED', label: 'Published' },
                 { value: 'ARCHIVED', label: 'Archived' },
               ]}
+              placeholder="All Statuses"
+              searchable={false}
             />
           </div>
 
@@ -446,6 +450,18 @@ export default function AdminProjectsPage() {
       </div>
 
       <div className="mb-4 space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="w-full max-w-md">
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search project name, slug, city, developer..."
+              className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none transition-colors focus:border-amber-400/40"
+            />
+          </div>
+        </div>
+
         <AdminFilterChips
           chips={[
             { value: 'all', label: 'All', count: stats.total },

@@ -2,7 +2,28 @@ import { normalizePrice } from '@/lib/imports/normalization'
 import type { CanonicalPayloadResult, CommitPreparation, DuplicateSignalDefinition, ImportAdapter, ImportFieldDefinition, MappingSuggestion, NormalizationInput, NormalizationResult, RelationInput, RelationResolution, ValidationInput, ValidationResult } from '@/lib/imports/core/types'
 import { readImportField, suggestImportMappings } from '@/lib/imports/field-utils'
 
-interface CanonicalProject { name: string; slug?: string | null; developerId?: string | null; developerName?: string | null; countryIso2?: string | null; city?: string | null; community?: string | null; description?: string | null; overview?: string | null; completionYear?: number | null; startingPrice?: number | null; goldenVisa?: boolean; coverImage?: string | null }
+interface CanonicalProject {
+  name: string
+  slug?: string | null
+  developerId?: string | null
+  developerName?: string | null
+  countryIso2?: string | null
+  city?: string | null
+  community?: string | null
+  description?: string | null
+  overview?: string | null
+  completionYear?: number | null
+  startingPrice?: number | null
+  goldenVisa?: boolean
+  coverImage?: string | null
+  unitTypes?: any[]
+  floorPlans?: any[]
+  amenities?: any[]
+  paymentPlans?: any[]
+  nearbyPlaces?: any[]
+  location?: any
+  videos?: any[]
+}
 const fields: ImportFieldDefinition[] = [
   { field: 'name', label: 'Name', type: 'string', requiredness: 'required', aliases: ['project_name', 'project_title'] },
   { field: 'developerId', label: 'Developer', type: 'string', requiredness: 'required', aliases: ['developer_id'] },
@@ -42,15 +63,177 @@ export const projectImportAdapter: ImportAdapter<CanonicalProject> = {
   prepareCommit: (): CommitPreparation => ({ identity: { sourceRecordId: null, sourceUrl: null, provider: null } }),
   async commit(input) {
     const db = input.db as any
-    const value = input.canonical
+    const value = input.canonical as any
     let developer = value.developerId ? await db.developer.findUnique({ where: { id: value.developerId } }) : null
     if (!developer && value.developerName) developer = await db.developer.findFirst({ where: { name: value.developerName } })
     if (!developer) throw new Error(`Developer "${value.developerName || value.developerId || 'unknown'}" could not be resolved.`)
+
     const slug = value.slug || slugify(value.name)
     const existing = await db.project.findUnique({ where: { slug }, select: { id: true, slug: true } })
     if (existing && input.operation === 'CREATE') return { status: 'skipped', entityId: existing.id, affectedPaths: [], reason: 'Matching project already exists.' }
-    const data = { name: value.name, slug, developerId: developer.id, countryIso2: value.countryIso2 || null, city: value.city || null, community: value.community || null, description: value.description || null, overview: value.overview || null, completionYear: value.completionYear ?? null, startingPrice: value.startingPrice ?? null, goldenVisa: Boolean(value.goldenVisa), coverImage: value.coverImage || null, status: 'DRAFT' }
-    const project = existing ? await db.project.update({ where: { id: existing.id }, data }) : await db.project.create({ data })
+
+    const baseData = {
+      name: value.name,
+      slug,
+      developerId: developer.id,
+      countryIso2: value.countryIso2 || null,
+      city: value.city || null,
+      community: value.community || null,
+      description: value.description || null,
+      overview: value.overview || null,
+      completionYear: value.completionYear ?? null,
+      startingPrice: value.startingPrice ?? null,
+      goldenVisa: Boolean(value.goldenVisa),
+      coverImage: value.coverImage || null,
+      status: 'DRAFT',
+    }
+
+    const project = existing ? await db.project.update({ where: { id: existing.id }, data: baseData }) : await db.project.create({ data: baseData })
+
+    if (existing && (input.operation === 'UPDATE' || input.operation === 'UPSERT')) {
+      await db.projectPaymentPlan.deleteMany({ where: { projectId: project.id } })
+      await db.projectAmenity.deleteMany({ where: { projectId: project.id } })
+      await db.projectNearbyPlace.deleteMany({ where: { projectId: project.id } })
+      await db.projectVideo.deleteMany({ where: { projectId: project.id } })
+      await db.projectLocation.deleteMany({ where: { projectId: project.id } })
+      await db.unitMedia.deleteMany({ where: { unitVariant: { projectId: project.id } } })
+      await db.projectUnitVariant.deleteMany({ where: { projectId: project.id } })
+      await db.projectUnitType.deleteMany({ where: { projectId: project.id } })
+      await db.projectFloorPlan.deleteMany({ where: { projectId: project.id } })
+    }
+
+    if (Array.isArray(value.paymentPlans) && value.paymentPlans.length > 0) {
+      await db.projectPaymentPlan.createMany({
+        data: value.paymentPlans.map((pp: any, index: number) => ({
+          projectId: project.id,
+          itemType: String(pp.itemType || 'BASE_PRICE').toUpperCase() === 'FEE' ? 'FEE' : 'BASE_PRICE',
+          label: String(pp.label || '').trim() || `Payment Plan ${index + 1}`,
+          amount: Number(pp.amount ?? 0),
+          currency: String(pp.currency || 'AED').trim().toUpperCase() || 'AED',
+          milestone: pp.milestone ? String(pp.milestone).trim() : null,
+          sortOrder: Number.isFinite(Number(pp.sortOrder)) ? Number(pp.sortOrder) : index,
+        })),
+      })
+    }
+
+    if (Array.isArray(value.amenities) && value.amenities.length > 0) {
+      await db.projectAmenity.createMany({
+        data: value.amenities.map((item: any) => ({
+          projectId: project.id,
+          name: String(item.name || '').trim(),
+          icon: item.icon ? String(item.icon).trim() : null,
+          category: item.category ? String(item.category).trim() : null,
+        })).filter((item: any) => item.name),
+      })
+    }
+
+    if (Array.isArray(value.nearbyPlaces) && value.nearbyPlaces.length > 0) {
+      await db.projectNearbyPlace.createMany({
+        data: value.nearbyPlaces.map((item: any, index: number) => ({
+          projectId: project.id,
+          name: String(item.name || '').trim(),
+          category: item.category ? String(item.category).trim() : null,
+          distance: item.distance ? String(item.distance).trim() : null,
+          sortOrder: Number.isFinite(Number(item.sortOrder)) ? Number(item.sortOrder) : index,
+        })).filter((item: any) => item.name),
+      })
+    }
+
+    if (value.location && typeof value.location === 'object') {
+      await db.projectLocation.create({
+        data: {
+          projectId: project.id,
+          latitude: value.location.latitude ?? null,
+          longitude: value.location.longitude ?? null,
+          address: value.location.address ? String(value.location.address).trim() : null,
+          mapUrl: value.location.mapUrl ? String(value.location.mapUrl).trim() : null,
+        },
+      })
+    }
+
+    if (Array.isArray(value.videos) && value.videos.length > 0) {
+      await db.projectVideo.createMany({
+        data: value.videos.map((video: any, index: number) => ({
+          projectId: project.id,
+          videoUrl: String(video.videoUrl || '').trim(),
+          title: video.title ? String(video.title).trim() : null,
+          thumbnail: video.thumbnail ? String(video.thumbnail).trim() : null,
+          sortOrder: Number.isFinite(Number(video.sortOrder)) ? Number(video.sortOrder) : index,
+        })).filter((video: any) => video.videoUrl),
+      })
+    }
+
+    if (Array.isArray(value.unitTypes) && value.unitTypes.length > 0) {
+      for (const [unitIndex, unitType] of value.unitTypes.entries()) {
+        const createdType = await db.projectUnitType.create({
+          data: {
+            projectId: project.id,
+            unitType: String(unitType.name || unitType.unitType || `Unit Type ${unitIndex + 1}`).trim(),
+            bedrooms: unitType.bedrooms ?? null,
+            bathrooms: unitType.bathrooms ?? null,
+            sizeFrom: unitType.sizeFrom ?? unitType.sizeMin ?? null,
+            sizeTo: unitType.sizeTo ?? unitType.sizeMax ?? null,
+            priceFrom: unitType.priceFrom != null ? Number(unitType.priceFrom) || null : null,
+            sortOrder: unitIndex,
+          },
+          select: { id: true },
+        })
+
+        const variantRows = Array.isArray(unitType.variants) ? unitType.variants : []
+        for (const [variantIndex, variant] of variantRows.entries()) {
+          const createdVariant = await db.projectUnitVariant.create({
+            data: {
+              projectId: project.id,
+              unitTypeId: createdType.id,
+              title: String(variant.title || 'Unit Variant').trim(),
+              size: variant.size != null ? Number(variant.size) || null : null,
+              price: variant.price != null ? Number(variant.price) || null : null,
+              pricePerSqft: variant.size != null && variant.price != null && Number(variant.size) > 0 ? Number(variant.price) / Number(variant.size) : null,
+              availabilityStatus: variant.availabilityStatus || ((variant.availableUnitsCount ?? 1) === 0 ? 'SOLD_OUT' : 'AVAILABLE'),
+              availableUnitsCount: variant.availableUnitsCount ?? null,
+              priceOnRequest: variant.priceOnRequest ?? (variant.price == null || String(variant.price).trim() === ''),
+              sortOrder: variantIndex,
+            },
+            select: { id: true },
+          })
+
+          const floorPlans = Array.isArray(variant.floorPlans) ? variant.floorPlans.filter((fp: any) => String(fp.imageUrl || '').trim()) : []
+          if (floorPlans.length > 0) {
+            await db.projectFloorPlan.createMany({
+              data: floorPlans.map((fp: any) => ({
+                projectId: project.id,
+                unitTypeId: createdType.id,
+                unitVariantId: createdVariant.id,
+                unitType: String(fp.title || variant.title || createdType.unitType || '').trim() || String(unitType.name || unitType.unitType || 'Floor Plan').trim(),
+                bedrooms: fp.bedrooms ?? unitType.bedrooms ?? null,
+                bathrooms: fp.bathrooms ?? unitType.bathrooms ?? null,
+                size: fp.size ? String(fp.size).trim() : null,
+                price: fp.price ? String(fp.price).trim() : null,
+                imageUrl: fp.imageUrl ? String(fp.imageUrl).trim() : null,
+              })),
+            })
+          }
+        }
+      }
+    }
+
+    const topLevelFloorPlans = Array.isArray(value.floorPlans) ? value.floorPlans.filter((fp: any) => String(fp.imageUrl || '').trim()) : []
+    if (topLevelFloorPlans.length > 0) {
+      await db.projectFloorPlan.createMany({
+        data: topLevelFloorPlans.map((fp: any) => ({
+          projectId: project.id,
+          unitTypeId: null,
+          unitVariantId: null,
+          unitType: String(fp.unitType || '').trim() || 'Floor Plan',
+          bedrooms: fp.bedrooms ?? null,
+          bathrooms: fp.bathrooms ?? null,
+          size: fp.size ? String(fp.size).trim() : null,
+          price: fp.price ? String(fp.price).trim() : null,
+          imageUrl: fp.imageUrl ? String(fp.imageUrl).trim() : null,
+        })),
+      })
+    }
+
     return { status: existing ? 'updated' : 'created', entityId: project.id, affectedPaths: ['/projects', '/admin/projects', `/projects/${project.slug}`] }
   },
 }
