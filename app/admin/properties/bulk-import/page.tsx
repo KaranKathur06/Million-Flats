@@ -131,8 +131,9 @@ export default function ImportCenterPage() {
     useEffect(() => {
         if (entity !== 'ECOSYSTEM_PARTNER') return
         fetch('/api/admin/ecosystem-partners/categories', { cache: 'no-store' }).then((response) => response.json()).then((payload) => {
-            if (Array.isArray(payload.data) && payload.data.length) setEcosystemCategoryOptions(payload.data.map((item: any) => ({ value: item.slug, label: item.title })))
-        }).catch(() => undefined)
+            const options = Array.isArray(payload.data) && payload.data.length ? payload.data.map((item: any) => ({ value: item.slug, label: item.title })) : fallbackEcosystemCategoryOptions
+            setEcosystemCategoryOptions(options)
+        }).catch(() => setEcosystemCategoryOptions(fallbackEcosystemCategoryOptions))
     }, [entity])
 
     const currentIndex = steps.findIndex((item) => item.id === step)
