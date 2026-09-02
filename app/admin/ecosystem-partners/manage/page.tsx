@@ -65,6 +65,21 @@ export default function AdminEcosystemPartnersManagePage() {
 
   const allSelected = partners.length > 0 && partners.every((partner) => selectedIds.includes(partner.id))
 
+  const submitBulkAction = async (action: string, ids: string[]) => {
+    const failures: Array<{ id: string; message: string }> = []
+    for (let start = 0; start < ids.length; start += 100) {
+      const response = await fetch('/api/admin/bulk-approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entity: 'ecosystem-partners', action, ids: ids.slice(start, start + 100) }),
+      })
+      const json = await response.json().catch(() => null)
+      if (!response.ok || !json?.success) throw new Error(json?.message || 'Partner action failed')
+      if (Array.isArray(json.failures)) failures.push(...json.failures)
+    }
+    return failures
+  }
+
   const toggleSelectAll = () => {
     setSelectedIds(allSelected ? [] : partners.map((partner) => partner.id))
   }
@@ -77,15 +92,10 @@ export default function AdminEcosystemPartnersManagePage() {
     if (!selectedIds.length) return
     setBulkApproving(true)
     try {
-      const response = await fetch('/api/admin/bulk-approve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entity: 'ecosystem-partners', ids: selectedIds }),
-      })
-      const json = await response.json().catch(() => null)
-      if (!response.ok || !json?.success) throw new Error(json?.message || 'Bulk approval failed')
+      const failures = await submitBulkAction('approve', selectedIds)
       setSelectedIds([])
       await load()
+      if (failures.length) window.alert(`${failures.length} partner(s) could not be approved.`)
     } catch (error) {
       window.alert(error instanceof Error ? error.message : 'Bulk approval failed')
     } finally {
@@ -105,11 +115,10 @@ export default function AdminEcosystemPartnersManagePage() {
 
     setBulkApproving(true)
     try {
-      const response = await fetch('/api/admin/bulk-approve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'ecosystem-partners', action, ids: selectedIds }) })
-      const json = await response.json().catch(() => null)
-      if (!response.ok || !json?.success) throw new Error(json?.message || 'Partner action failed')
+      const failures = await submitBulkAction(action, selectedIds)
       setSelectedIds([])
       await load()
+      if (failures.length) window.alert(`${failures.length} partner(s) could not be processed.`)
     } catch (error) {
       window.alert(error instanceof Error ? error.message : 'Partner action failed')
     } finally {
@@ -123,20 +132,14 @@ export default function AdminEcosystemPartnersManagePage() {
 
     setBulkApproving(true)
     try {
-      const response = await fetch('/api/admin/bulk-approve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entity: 'ecosystem-partners', action: 'permanent_delete', ids: bulkPermanentDeleteIds }),
-      })
-
-      const json = await response.json().catch(() => null)
-      if (!response.ok || !json?.success) throw new Error(json?.message || 'Partner permanent delete failed')
+      const failures = await submitBulkAction('permanent_delete', bulkPermanentDeleteIds)
 
       setSelectedIds([])
       setBulkPermanentDeleteIds([])
       setBulkPermanentDeleteConfirmation('')
       setBulkPermanentDeleteModalOpen(false)
       await load()
+      if (failures.length) window.alert(`${failures.length} partner(s) could not be deleted.`)
     } catch (error) {
       window.alert(error instanceof Error ? error.message : 'Partner permanent delete failed')
     } finally {
