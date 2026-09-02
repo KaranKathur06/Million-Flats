@@ -18,6 +18,10 @@ function normalizeRows(rows: string[][]) {
   return rows.map((row) => trimTrailingEmptyColumns(row))
 }
 
+function normalizeHeaderToken(value: unknown) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
 function parseRows(input: ParserInput) {
   const text = decodeInput(input.content)
   const delimiter = input.delimiter || detectDelimiter(text)
@@ -34,16 +38,19 @@ function parseRows(input: ParserInput) {
 function findHeaderRow(rows: string[][], explicitHeaderRow?: number) {
   if (explicitHeaderRow !== undefined && rows[explicitHeaderRow]) return explicitHeaderRow
   const knownFields = new Set([
-    'title', 'property_name', 'listing_title', 'price', 'asking_price', 'city',
+    'title', 'propertyname', 'listingtitle', 'price', 'askingprice', 'city',
     'community', 'location', 'bedrooms', 'bhk', 'bathrooms', 'squarefeet',
-    'square_feet', 'built_up_area', 'source_url', 'source_listing_id',
+    'builtuparea', 'sourceurl', 'sourcelistingid', 'businessname',
+    'contactperson', 'email', 'phone', 'website', 'yearsofexperience',
+    'pricingrange', 'businessdescription', 'serviceareas', 'solutions',
+    'integrationorproducttype', 'supportedbrands', 'amcavailable',
   ])
   let bestIndex = 0
   let bestScore = -1
   rows.slice(0, 20).forEach((row, index) => {
     const nonEmpty = row.filter((cell) => String(cell || '').trim()).length
-    const unique = new Set(row.map((cell) => String(cell || '').trim().toLowerCase()).filter(Boolean)).size
-    const known = row.filter((cell) => knownFields.has(String(cell || '').trim().toLowerCase())).length
+    const unique = new Set(row.map((cell) => normalizeHeaderToken(cell)).filter(Boolean)).size
+    const known = row.filter((cell) => knownFields.has(normalizeHeaderToken(cell))).length
     const score = known * 10 + nonEmpty + unique * 0.25
     if (score > bestScore) {
       bestScore = score

@@ -68,6 +68,17 @@ describe('universal import parsers', () => {
     expect(Object.keys(rawRecord)).not.toEqual(expect.arrayContaining([expect.stringMatching(/^column_/)]))
   })
 
+  it('detects human-readable technology partner headers instead of the first data row', async () => {
+    const content = 'Business Name,Contact Person,Email,Phone,Website,Years of Experience,Pricing Range,Business Description,Service Areas,Solutions,Integration or Product Type,\nSearce Inc.,Hardik Parekh,sales@searce.com,-13254,https://www.searce.com,Founded 2004 (22 years),$50 - $99 / hr,Cloud consulting,India,"AI, Cloud",Google Cloud Partner,\n'
+    const discovery = await csvParser.inspect({ content, fileName: 'Technology Partners.csv' })
+
+    expect(discovery.headerRow).toBe(0)
+    expect(discovery.fields).toEqual([
+      'Business Name', 'Contact Person', 'Email', 'Phone', 'Website', 'Years of Experience',
+      'Pricing Range', 'Business Description', 'Service Areas', 'Solutions', 'Integration or Product Type',
+    ])
+  })
+
   it('discovers nested JSON collections and preserves source paths', async () => {
     const content = JSON.stringify({ data: { results: [{ id: 'p-1', title: 'Villa' }] } })
     const discovery = await jsonParser.inspect({ content, fileName: 'properties.json' })
