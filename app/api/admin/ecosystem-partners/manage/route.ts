@@ -66,17 +66,19 @@ export async function GET(req: Request) {
       ]
     }
 
-    const partners = await (prisma as any).ecosystemPartner.findMany({
-      where,
-      orderBy: [{ isFeatured: 'desc' }, { priorityOrder: 'asc' }, { createdAt: 'desc' }],
-      include: {
-        category: { select: { slug: true, title: true } },
-        _count: { select: { portfolios: true, reviews: true, leads: true } },
-      },
-      take: 200,
-    })
+    const [partners, total] = await Promise.all([
+      (prisma as any).ecosystemPartner.findMany({
+        where,
+        orderBy: [{ isFeatured: 'desc' }, { priorityOrder: 'asc' }, { createdAt: 'desc' }],
+        include: {
+          category: { select: { slug: true, title: true } },
+          _count: { select: { portfolios: true, reviews: true, leads: true } },
+        },
+      }),
+      (prisma as any).ecosystemPartner.count({ where }),
+    ])
 
-    return NextResponse.json({ success: true, data: partners })
+    return NextResponse.json({ success: true, data: partners, total })
   } catch (e) {
     console.error('Admin ecosystem partners list error:', e)
     return NextResponse.json({ success: false, message: 'Failed to load partners' }, { status: 500 })

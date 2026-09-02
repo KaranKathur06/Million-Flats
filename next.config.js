@@ -28,7 +28,6 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   images: {
-    domains: Array.from(new Set(defaultDomains)),
     formats: ['image/avif', 'image/webp'],
     remotePatterns: defaultRemotePatterns,
     deviceSizes: [640, 828, 1200, 1920],

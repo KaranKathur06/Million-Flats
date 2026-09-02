@@ -23,6 +23,7 @@ type Partner = {
 
 export default function AdminEcosystemPartnersManagePage() {
   const [partners, setPartners] = useState<Partner[]>([])
+  const [totalPartners, setTotalPartners] = useState(0)
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [categoryFilter, setCategoryFilter] = useState('')
@@ -44,7 +45,10 @@ export default function AdminEcosystemPartnersManagePage() {
 
       const partnersRes = await fetch(`/api/admin/ecosystem-partners/manage?${params}`, { cache: 'no-store' })
       const partnersJson = await partnersRes.json()
-      if (partnersJson.success) setPartners(partnersJson.data)
+      if (partnersJson.success) {
+        setPartners(Array.isArray(partnersJson.data) ? partnersJson.data : [])
+        setTotalPartners(typeof partnersJson.total === 'number' ? partnersJson.total : partnersJson.data?.length || 0)
+      }
 
       const catList = await fetch('/api/admin/ecosystem-partners/categories', { cache: 'no-store' })
         .then((r) => r.json())
@@ -218,7 +222,7 @@ export default function AdminEcosystemPartnersManagePage() {
       <div className="overflow-hidden rounded-2xl border border-white/10">
         {selectedIds.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-400/20 bg-amber-500/10 px-4 py-3">
-            <span className="text-sm font-semibold text-amber-200/80">{selectedIds.length} partner(s) selected</span>
+            <span className="text-sm font-semibold text-amber-200/80">{selectedIds.length} of {totalPartners} partner(s) selected</span>
             <div className="flex gap-2">
               <button type="button" onClick={() => handleBulkAction('approve')} disabled={bulkApproving} className="rounded-lg border border-emerald-400/20 bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-300 disabled:opacity-50">{bulkApproving ? 'Working...' : 'Approve & Publish'}</button>
               <button type="button" onClick={() => handleBulkAction('unpublish')} disabled={bulkApproving} className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/70 disabled:opacity-50">Unpublish</button>

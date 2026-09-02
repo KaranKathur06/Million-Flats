@@ -76,6 +76,7 @@ export async function POST(req: Request) {
 
     const entityType = String(form.get('entity') || 'PROPERTY').trim().toUpperCase() as ImportEntityType
     const propertyIntentOverride = entityType === 'PROPERTY' ? String(form.get('propertyIntent') || '').trim().toUpperCase() : ''
+    const category = String(form.get('category') || '').trim() || null
     const adapter = getImportAdapterForEntity(entityType)
     if (!adapter) return NextResponse.json({ success: false, message: `No import adapter is registered for ${entityType}.` }, { status: 400 })
 
@@ -114,7 +115,7 @@ export async function POST(req: Request) {
       adapterVersion: adapter.adapterVersion,
       sourceProvider,
       sourceProfileKey,
-      category: String(form.get('category') || '').trim() || null,
+      category,
     })
 
     // Stage all cached records in batches
@@ -145,7 +146,14 @@ export async function POST(req: Request) {
             ...rawRecord,
             ...(propertyIntentValue ? { intent: propertyIntentValue } : {}),
           }
-        : rawRecord
+        : entityType === 'ECOSYSTEM_PARTNER' && rawRecord && typeof rawRecord === 'object' && category
+          ? {
+              ...rawRecord,
+              ...(Object.keys(rawRecord).some((key) => ['category', 'categorySlug', 'category_slug', 'partner_category'].includes(key))
+                ? {}
+                : { categorySlug: category }),
+            }
+          : rawRecord
 
       stagingBatch.push({
         batchId: batch.id,
