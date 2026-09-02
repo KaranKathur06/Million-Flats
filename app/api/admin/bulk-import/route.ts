@@ -77,6 +77,9 @@ export async function POST(req: Request) {
     const entityType = String(form.get('entity') || 'PROPERTY').trim().toUpperCase() as ImportEntityType
     const propertyIntentOverride = entityType === 'PROPERTY' ? String(form.get('propertyIntent') || '').trim().toUpperCase() : ''
     const category = String(form.get('category') || '').trim() || null
+    if (entityType === 'ECOSYSTEM_PARTNER' && !category) {
+      return NextResponse.json({ success: false, message: 'Select an ecosystem partner category before uploading.' }, { status: 400 })
+    }
     const adapter = getImportAdapterForEntity(entityType)
     if (!adapter) return NextResponse.json({ success: false, message: `No import adapter is registered for ${entityType}.` }, { status: 400 })
 

@@ -111,6 +111,16 @@ const CATEGORIES = [
     metaDescription:
       'Explore verified smart home and automation partners—supported brands, installation, and AMC options with clear proposals on MillionFlats.',
   },
+  {
+    slug: 'technology-partners',
+    title: 'Technology Partners',
+    description:
+      'Connect with trusted technology partners for cloud, data, AI, automation, and property technology solutions.',
+    heroImage: '/images/ecosystem/technology.jpg',
+    metaTitle: 'Technology Partners | Ecosystem Partners | MillionFlats',
+    metaDescription:
+      'Connect with trusted technology partners for cloud, data, AI, automation, and property technology solutions.',
+  },
 ]
 
 async function main() {

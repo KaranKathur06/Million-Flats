@@ -148,9 +148,14 @@ async function performBackgroundAnalysis(batchId: string, ownerAgentId: string |
       // Only 15 parallel queries per batch, sequential batches
       const batchResults = await Promise.all(
         recordsBatch.map(async (record: any) => {
-          const raw = batch.category && batch.entityType === 'ECOSYSTEM_PARTNER' && record.rawPayload && typeof record.rawPayload === 'object' && !('category' in (record.rawPayload as object)) && !('categorySlug' in (record.rawPayload as object))
-            ? { ...(record.rawPayload as Record<string, unknown>), categorySlug: batch.category }
-            : record.rawPayload || {}
+          const rawPayload = record.rawPayload && typeof record.rawPayload === 'object'
+            ? record.rawPayload as Record<string, unknown>
+            : {}
+          const hasCategory = ['category', 'categorySlug', 'category_slug', 'partner_category']
+            .some((key) => String(rawPayload[key] || '').trim())
+          const raw = batch.category && batch.entityType === 'ECOSYSTEM_PARTNER' && !hasCategory
+            ? { ...rawPayload, categorySlug: batch.category }
+            : rawPayload
 
           const mappings = adapter.suggestMappings({ fields: Object.keys(raw) })
           const normalized = adapter.normalize({ raw, sourcePath: record.sourcePath, mappings })
