@@ -57,11 +57,18 @@ export async function analyzeImportBatch(input: { batchId: string; ownerAgentId?
 
   const adapter = getImportAdapterForEntity(batch.entityType)
   if (!adapter) throw new Error(`No import adapter is registered for ${batch.entityType}.`)
+  const currentState = String(batch.status || 'UPLOADED')
   if (batch.adapterVersion != null && adapter.adapterVersion !== batch.adapterVersion) {
-    throw new Error(`Import adapter version mismatch for ${batch.entityType}: batch ${batch.adapterVersion}, runtime ${adapter.adapterVersion}.`)
+    const canUpgradeForAnalysis = ['UPLOADED', 'READY_FOR_REVIEW', 'MAPPING_REVIEW', 'NORMALIZING', 'VALIDATING', 'DUPLICATE_REVIEW', 'FAILED', 'RETRYING'].includes(currentState)
+    if (!canUpgradeForAnalysis) {
+      throw new Error(`Import adapter version mismatch for ${batch.entityType}: batch ${batch.adapterVersion}, runtime ${adapter.adapterVersion}.`)
+    }
+    await (prisma as any).importBatch.update({
+      where: { id: batch.id },
+      data: { adapterVersion: adapter.adapterVersion },
+    })
   }
 
-  const currentState = String(batch.status || 'UPLOADED')
   if (currentState === 'READY_TO_COMMIT') {
     return {
       batchId: batch.id,

@@ -1,6 +1,7 @@
 import { normalizePrice } from '@/lib/imports/normalization'
 import type { CanonicalPayloadResult, CommitPreparation, DuplicateSignalDefinition, ImportAdapter, ImportFieldDefinition, MappingSuggestion, NormalizationInput, NormalizationResult, RelationInput, RelationResolution, ValidationInput, ValidationResult } from '@/lib/imports/core/types'
 import { readImportField, suggestImportMappings } from '@/lib/imports/field-utils'
+import { INDIA_CITIES } from '@/lib/country'
 
 interface CanonicalProject {
   name: string
@@ -35,11 +36,25 @@ const fields: ImportFieldDefinition[] = [
 ]
 const text = (value: unknown) => value == null ? null : String(value).trim() || null
 const slugify = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120)
+const normalizeCity = (value: unknown) => String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ')
+const INDIA_CITY_ALIASES: Record<string, string> = {
+  bengaluru: 'Bangalore',
+  bangalore: 'Bangalore',
+  gurugram: 'Gurgaon',
+  thiruvananthapuram: 'Trivandrum',
+}
+const inferCountryIso2 = (countryInput: string, city: unknown) => {
+  if (countryInput === 'IN' || countryInput === 'INDIA') return 'IN'
+  if (countryInput === 'AE' || countryInput === 'UAE') return 'AE'
+  const normalizedCity = normalizeCity(city)
+  const canonicalCity = INDIA_CITY_ALIASES[normalizedCity] || normalizedCity
+  return INDIA_CITIES.some((knownCity) => knownCity.toLowerCase() === canonicalCity) ? 'IN' : null
+}
 const read = readImportField
 const mappings = (input: { fields: string[] }): MappingSuggestion[] => suggestImportMappings(input.fields, fields)
 
 export const projectImportAdapter: ImportAdapter<CanonicalProject> = {
-  key: 'project', displayName: 'Projects', adapterVersion: 1, supportedFormats: ['csv', 'json', 'xlsx'], supportedOperations: ['CREATE', 'UPDATE', 'UPSERT'],
+  key: 'project', displayName: 'Projects', adapterVersion: 2, supportedFormats: ['csv', 'json', 'xlsx'], supportedOperations: ['CREATE', 'UPDATE', 'UPSERT'],
   getFieldDefinitions: () => fields,
   suggestMappings: mappings,
   normalize(input: NormalizationInput): NormalizationResult {
@@ -48,8 +63,10 @@ export const projectImportAdapter: ImportAdapter<CanonicalProject> = {
     const price = normalizePrice(read(raw, ['startingPrice', 'starting_price', 'price', 'price_from']), read(raw, ['currency']))
     const developer = read(raw, ['developerName', 'developer_name', 'developer'])
     const countryInput = text(read(raw, ['countryIso2', 'country_iso2', 'country_code', 'country']))?.toUpperCase() || ''
-    const countryIso2 = countryInput === 'IN' || countryInput === 'INDIA' ? 'IN' : countryInput === 'AE' || countryInput === 'UAE' ? 'AE' : null
-    const normalized = { ...raw, name, slug: text(read(raw, ['slug'])) || (name ? slugify(name) : null), developerId: text(read(raw, ['developerId', 'developer_id'])), developerName: developer && typeof developer === 'object' ? text((developer as any).name) : text(developer), countryIso2, city: text(read(raw, ['city', 'city_name'])), community: text(read(raw, ['community', 'locality', 'neighborhood'])), description: text(read(raw, ['description'])), overview: text(read(raw, ['overview'])), completionYear: Number(read(raw, ['completionYear', 'completion_year'])) || null, startingPrice: price.amount, startingPriceDisplay: price.display, startingPriceUnresolved: price.unresolved, goldenVisa: Boolean(read(raw, ['goldenVisa', 'golden_visa'])), coverImage: text(read(raw, ['coverImage', 'cover_image'])) }
+    const currencyInput = text(read(raw, ['currency', 'priceCurrency', 'price_currency']))?.toUpperCase() || ''
+    const city = text(read(raw, ['city', 'city_name']))
+    const countryIso2 = inferCountryIso2(countryInput || (currencyInput === 'INR' ? 'IN' : currencyInput === 'AED' ? 'AE' : ''), city)
+    const normalized = { ...raw, name, slug: text(read(raw, ['slug'])) || (name ? slugify(name) : null), developerId: text(read(raw, ['developerId', 'developer_id'])), developerName: developer && typeof developer === 'object' ? text((developer as any).name) : text(developer), countryIso2, city, community: text(read(raw, ['community', 'locality', 'neighborhood'])), description: text(read(raw, ['description'])), overview: text(read(raw, ['overview'])), completionYear: Number(read(raw, ['completionYear', 'completion_year'])) || null, startingPrice: price.amount, startingPriceDisplay: price.display, startingPriceUnresolved: price.unresolved, goldenVisa: Boolean(read(raw, ['goldenVisa', 'golden_visa'])), coverImage: text(read(raw, ['coverImage', 'cover_image'])) }
     return { normalized, warnings: price.unresolved ? ['Starting price could not be normalized.'] : [], errors: [] }
   },
   mapCanonical(input: { raw: unknown; normalized: unknown; mappings: MappingSuggestion[] }): CanonicalPayloadResult<CanonicalProject> {
@@ -117,7 +134,7 @@ export const projectImportAdapter: ImportAdapter<CanonicalProject> = {
         data: {
           name: developerName,
           slug: developerSlug,
-          countryCode: value.countryIso2 === 'IN' ? 'INDIA' : 'UAE',
+          countryCode: value.countryIso2 === 'IN' ? 'INDIA' : value.countryIso2 === 'AE' ? 'UAE' : undefined,
           countryIso2: value.countryIso2 || null,
           city: value.city || null,
           status: 'ACTIVE',

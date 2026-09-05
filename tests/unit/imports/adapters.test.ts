@@ -30,6 +30,26 @@ describe('universal entity adapters', () => {
     expect(relations.ready).toBe(true)
   })
 
+  it('infers India for Chennai projects when the source omits country', () => {
+    const normalized = projectImportAdapter.normalize({
+      raw: { name: 'Chennai Heights', developer: 'Example Homes', city: 'Chennai' },
+      sourcePath: null,
+      mappings: [],
+    })
+
+    expect(normalized.normalized).toMatchObject({ countryIso2: 'IN', city: 'Chennai' })
+  })
+
+  it('uses INR as an India fallback when country and city are missing', () => {
+    const normalized = projectImportAdapter.normalize({
+      raw: { name: 'India Project', developer: 'Example Homes', priceCurrency: 'INR' },
+      sourcePath: null,
+      mappings: [],
+    })
+
+    expect(normalized.normalized).toMatchObject({ countryIso2: 'IN' })
+  })
+
   it('resolves a project developer name to its database relationship', async () => {
     const canonical = {
       name: 'Brigade Stellaris',
@@ -58,7 +78,7 @@ describe('universal entity adapters', () => {
   })
 
   it('allows a named developer to be provisioned during commit', async () => {
-    const create = jest.fn().mockResolvedValue({ id: 'developer-2', name: 'Vishranthi Homes', slug: 'vishranthi-homes' })
+    let createdData: Record<string, unknown> | null = null
     const canonical = {
       name: 'Vishranthi Tejas',
       slug: 'vishranthi-tejas',
@@ -68,21 +88,22 @@ describe('universal entity adapters', () => {
     }
     const db = {
       developer: {
-        findUnique: jest.fn().mockResolvedValue(null),
-        findFirst: jest.fn().mockResolvedValue(null),
-        create,
+        findUnique: async () => null,
+        findFirst: async () => null,
+        create: async ({ data }: { data: Record<string, unknown> }) => {
+          createdData = data
+          return { id: 'developer-2', name: 'Vishranthi Homes', slug: 'vishranthi-homes' }
+        },
       },
       project: {
-        findUnique: jest.fn().mockResolvedValue(null),
-        create: jest.fn().mockResolvedValue({ id: 'project-1' }),
+        findUnique: async () => null,
+        create: async () => ({ id: 'project-1' }),
       },
     }
 
     const result = await projectImportAdapter.commit({ canonical, operation: 'CREATE', sourceRecordId: 'row-1', db })
 
-    expect(create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ name: 'Vishranthi Homes', countryCode: 'INDIA', countryIso2: 'IN' }),
-    }))
+    expect(createdData).toMatchObject({ name: 'Vishranthi Homes', countryCode: 'INDIA', countryIso2: 'IN' })
     expect(result.status).toBe('created')
   })
 
