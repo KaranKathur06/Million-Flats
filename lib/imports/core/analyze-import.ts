@@ -27,6 +27,30 @@ type AnalysisSummary = {
 // Global analysis queue to prevent concurrent analysis of same batch
 const analysisQueue = new Map<string, Promise<AnalysisSummary>>()
 
+function compactProjectText(value: unknown) {
+  return String(value ?? '')
+    .toLowerCase()
+    .replace(/l\s*(?:and|&)\s*t/g, 'lnt')
+    .replace(/[^a-z0-9]/g, '')
+    .replace(/and/g, '')
+}
+
+function inferProjectDeveloper(raw: Record<string, unknown>, records: any[]) {
+  const existingDeveloperNames = Array.from(new Set(
+    records
+      .map((record) => record.rawPayload && typeof record.rawPayload === 'object' ? record.rawPayload as Record<string, unknown> : {})
+      .map((payload) => payload.developerName ?? payload.developer_name ?? payload.developer)
+      .map((value) => String(value ?? '').trim())
+      .filter(Boolean),
+  ))
+  const projectName = compactProjectText(raw.name ?? raw.project_name ?? raw.project_title)
+  const matches = existingDeveloperNames.filter((developerName) => {
+    const compactDeveloper = compactProjectText(developerName)
+    return compactDeveloper.length >= 4 && projectName.includes(compactDeveloper)
+  })
+  return matches.length === 1 ? matches[0] : null
+}
+
 export async function analyzeImportBatch(input: { batchId: string; ownerAgentId?: string | null; waitForCompletion?: boolean }): Promise<AnalysisSummary> {
   const batch = await (prisma as any).importBatch.findUnique({ where: { id: input.batchId } })
   if (!batch) throw new Error('Import batch not found.')
@@ -156,10 +180,13 @@ async function performBackgroundAnalysis(batchId: string, ownerAgentId: string |
           const raw = batch.category && batch.entityType === 'ECOSYSTEM_PARTNER' && !hasCategory
             ? { ...rawPayload, categorySlug: batch.category }
             : rawPayload
+          const analysisRaw = batch.entityType === 'PROJECT' && !String(rawPayload.developer ?? rawPayload.developerName ?? rawPayload.developer_name ?? '').trim()
+            ? { ...raw, developer: inferProjectDeveloper(rawPayload, records) }
+            : raw
 
-          const mappings = adapter.suggestMappings({ fields: Object.keys(raw) })
-          const normalized = adapter.normalize({ raw, sourcePath: record.sourcePath, mappings })
-          const canonicalResult = adapter.mapCanonical({ raw, normalized: normalized.normalized, mappings })
+          const mappings = adapter.suggestMappings({ fields: Object.keys(analysisRaw) })
+          const normalized = adapter.normalize({ raw: analysisRaw, sourcePath: record.sourcePath, mappings })
+          const canonicalResult = adapter.mapCanonical({ raw: analysisRaw, normalized: normalized.normalized, mappings })
           const canonical = canonicalResult.canonical as any
           if (canonical && !canonical.agentId && ownerAgentId) canonical.agentId = ownerAgentId
 
@@ -168,7 +195,7 @@ async function performBackgroundAnalysis(batchId: string, ownerAgentId: string |
             : { ready: false, warnings: [], errors: canonicalResult.errors }
 
           const relations = canonical
-            ? await adapter.resolveRelations({ canonical, raw })
+            ? await adapter.resolveRelations({ canonical, raw: analysisRaw, db: prisma })
             : { ready: false, warnings: [], errors: [] }
 
           const recordWarnings = [...normalized.warnings, ...canonicalResult.warnings, ...validation.warnings, ...relations.warnings]

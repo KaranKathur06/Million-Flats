@@ -35,7 +35,15 @@ function canOptimizeUrl(src: string) {
    Component
    ───────────────────────────────────────────── */
 
-export default function FeaturedProjects({ market }: { market: CountryCode }) {
+export default function FeaturedProjects({
+  market,
+  title,
+  description,
+}: {
+  market: CountryCode
+  title: string
+  description: string
+}) {
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -79,10 +87,10 @@ export default function FeaturedProjects({ market }: { market: CountryCode }) {
             SIGNATURE DEVELOPMENTS
           </p>
           <h2 className="text-4xl md:text-5xl font-serif font-bold text-dark-blue mb-4">
-            Featured Projects
+            {title}
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Carefully selected landmark developments in this market.
+            {description}
           </p>
         </div>
 

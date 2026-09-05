@@ -59,7 +59,41 @@ export const projectImportAdapter: ImportAdapter<CanonicalProject> = {
   },
   validate(input: ValidationInput<CanonicalProject>): ValidationResult { const errors = input.canonical.name ? [] : ['Project name is required.']; const warnings = input.canonical.developerId || input.canonical.developerName ? [] : ['Developer relationship requires review.']; return { ready: errors.length === 0, errors, warnings } },
   getDuplicateSignals: (): DuplicateSignalDefinition[] => [{ key: 'slug', strength: 'deterministic' }, { key: 'name+city', strength: 'strong' }],
-  resolveRelations: async (input: RelationInput<CanonicalProject>): Promise<RelationResolution> => ({ ready: Boolean(input.canonical.developerId || input.canonical.developerName), warnings: [], errors: input.canonical.developerId || input.canonical.developerName ? [] : ['Developer relationship is required.'], metadata: {} }),
+  resolveRelations: async (input: RelationInput<CanonicalProject>): Promise<RelationResolution> => {
+    const developerId = text(input.canonical.developerId)
+    const developerName = text(input.canonical.developerName)
+    if (!developerId && !developerName) {
+      return { ready: false, warnings: [], errors: ['Developer relationship is required.'], metadata: {} }
+    }
+
+    const db = input.db as any
+    if (!db?.developer?.findFirst && !db?.developer?.findUnique) {
+      return { ready: true, warnings: [], errors: [], metadata: {} }
+    }
+
+    let developer = developerId
+      ? await db.developer.findUnique({ where: { id: developerId }, select: { id: true, name: true } })
+      : null
+    if (!developer && developerName) {
+      developer = await db.developer.findFirst({
+        where: { name: { equals: developerName, mode: 'insensitive' } },
+        select: { id: true, name: true },
+      })
+    }
+
+    if (!developer) {
+      return {
+        ready: false,
+        warnings: [],
+        errors: [`Developer "${developerName || developerId}" could not be resolved.`],
+        metadata: { developerName, developerId },
+      }
+    }
+
+    input.canonical.developerId = developer.id
+    input.canonical.developerName = developer.name
+    return { ready: true, warnings: [], errors: [], metadata: { developerId: developer.id, developerName: developer.name } }
+  },
   prepareCommit: (): CommitPreparation => ({ identity: { sourceRecordId: null, sourceUrl: null, provider: null } }),
   async commit(input) {
     const db = input.db as any

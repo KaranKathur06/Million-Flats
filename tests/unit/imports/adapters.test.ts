@@ -30,6 +30,33 @@ describe('universal entity adapters', () => {
     expect(relations.ready).toBe(true)
   })
 
+  it('resolves a project developer name to its database relationship', async () => {
+    const canonical = {
+      name: 'Brigade Stellaris',
+      developerName: 'brigade',
+    }
+    const relations = await projectImportAdapter.resolveRelations({
+      canonical,
+      raw: {},
+      db: {
+        developer: {
+          findUnique: async () => null,
+          findFirst: async () => ({ id: 'developer-1', name: 'Brigade' }),
+        },
+      },
+    })
+
+    expect(relations.ready).toBe(true)
+    expect(canonical).toMatchObject({ developerId: 'developer-1', developerName: 'Brigade' })
+  })
+
+  it('blocks projects with no developer relationship', async () => {
+    const relations = await projectImportAdapter.resolveRelations({ canonical: { name: 'Unknown Project' }, raw: {} })
+
+    expect(relations.ready).toBe(false)
+    expect(relations.errors).toEqual(['Developer relationship is required.'])
+  })
+
   it('preserves unmapped ecosystem fields as category data', () => {
     const normalized = ecosystemPartnerImportAdapter.normalize({ raw: { company_name: 'Legal Co', category: 'legal-documentation', license_number: 'LIC-1', contact_email: 'INFO@LEGAL.EXAMPLE' }, sourcePath: null, mappings: [] })
     const mapped = ecosystemPartnerImportAdapter.mapCanonical({ raw: {}, normalized: normalized.normalized, mappings: [] })

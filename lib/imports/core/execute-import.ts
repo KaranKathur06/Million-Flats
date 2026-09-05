@@ -36,6 +36,11 @@ export async function executeImport(input: { batchId: string; idempotencyKey: st
         const payload = record.canonicalPayload as any
         if (!payload) throw new Error('Canonical payload is missing.')
 
+        const relations = await adapter.resolveRelations({ canonical: payload, raw: record.rawPayload, db: prisma })
+        if (!relations.ready || relations.errors.length > 0) {
+          throw new Error(relations.errors[0] || 'Required relationships could not be resolved.')
+        }
+
         const committed = await (prisma as any).$transaction(async (tx: any) => {
           const created = await adapter.commit({ canonical: payload, operation: batch.operation, sourceRecordId: record.sourceRecordId, db: tx })
           await tx.importRecord.update({

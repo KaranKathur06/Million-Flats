@@ -420,25 +420,6 @@ export default function AdminProjectsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="w-[210px]">
-            <GlobalDropdown
-              label="Status"
-              showLabel={false}
-              dense
-              appearance="admin-dark"
-              value={statusFilter}
-              onChange={(value) => setStatusFilter(Array.isArray(value) ? value[0] ?? '' : value)}
-              options={[
-                { value: '', label: 'All Statuses' },
-                { value: 'DRAFT', label: 'Draft' },
-                { value: 'PUBLISHED', label: 'Published' },
-                { value: 'ARCHIVED', label: 'Archived' },
-              ]}
-              placeholder="All Statuses"
-              searchable={false}
-            />
-          </div>
-
           <Link href="/admin/projects/bulk-import" className="inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white/70 hover:bg-white/[0.08] hover:text-white/90 transition-all">
             Bulk Import
           </Link>
@@ -449,19 +430,7 @@ export default function AdminProjectsPage() {
         </div>
       </div>
 
-      <div className="mb-4 space-y-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="w-full max-w-md">
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Search project name, slug, city, developer..."
-              className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none transition-colors focus:border-amber-400/40"
-            />
-          </div>
-        </div>
-
+      <div className="mb-5 space-y-5">
         <AdminFilterChips
           chips={[
             { value: 'all', label: 'All', count: stats.total },
@@ -472,51 +441,69 @@ export default function AdminProjectsPage() {
           value={lifecycleFilter}
           onChange={(v) => setLifecycleFilter(v as LifecycleFilter)}
         />
-        <AdminFilterChips
-          size="sm"
-          chips={[
-            { value: '', label: 'Any status' },
-            { value: 'PUBLISHED', label: 'Published' },
-            { value: 'DRAFT', label: 'Draft' },
-            { value: 'ARCHIVED', label: 'Archived' },
-          ]}
-          value={statusFilter}
-          onChange={setStatusFilter}
-        />
-        {(cityOptions.length > 0 || developerOptions.length > 0) && (
-          <div className="flex flex-wrap gap-3 sm:gap-4">
-            {cityOptions.length > 0 && (
-              <div className="w-full sm:w-64">
-                <GlobalDropdown
-                  label="Cities"
-                  value={cityFilter}
-                  onChange={handleCityFilterChange}
-                  options={cityOptions.map((c) => ({ value: c, label: c }))}
-                  mode="multi"
-                  searchable
-                  appearance="admin-dark"
-                  placeholder="Select cities"
-                  showLabel={true}
-                />
-              </div>
-            )}
-            {developerOptions.length > 1 && (
-              <div className="w-full sm:w-64">
-                <GlobalDropdown
-                  label="Developers"
-                  value={developerFilter}
-                  onChange={handleDeveloperFilterChange}
-                  options={developerOptions.map((d) => ({ value: d, label: d }))}
-                  mode="multi"
-                  searchable
-                  appearance="admin-dark"
-                  placeholder="Select developers"
-                  showLabel={true}
-                />
-              </div>
-            )}
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-[240px] flex-1">
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search project name, slug, city, developer..."
+              className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2.5 text-sm text-white/80 placeholder:text-white/25 outline-none transition-colors focus:border-amber-400/40 focus:ring-1 focus:ring-amber-400/10"
+            />
           </div>
-        )}
+
+          <div className="w-full sm:w-[170px]">
+            <GlobalDropdown
+              label="Status"
+              value={statusFilter}
+              onChange={(value) => setStatusFilter(Array.isArray(value) ? value[0] ?? '' : value)}
+              options={[
+                { value: '', label: 'All Statuses' },
+                { value: 'DRAFT', label: 'Draft' },
+                { value: 'PUBLISHED', label: 'Published' },
+                { value: 'ARCHIVED', label: 'Archived' },
+              ]}
+              appearance="admin-dark"
+              showLabel={false}
+              searchable={false}
+              placeholder="All Statuses"
+              className="w-full"
+            />
+          </div>
+
+          <div className="w-full sm:w-[190px]">
+            <GlobalDropdown
+              label="Cities"
+              value={cityFilter}
+              onChange={handleCityFilterChange}
+              options={cityOptions.map((city) => ({ value: city, label: city }))}
+              mode="multi"
+              searchable
+              appearance="admin-dark"
+              placeholder="All Cities"
+              showLabel={false}
+              className="w-full"
+            />
+          </div>
+
+          {developerOptions.length > 1 && (
+            <div className="w-full sm:w-[210px]">
+              <GlobalDropdown
+                label="Developers"
+                value={developerFilter}
+                onChange={handleDeveloperFilterChange}
+                options={developerOptions.map((developer) => ({ value: developer, label: developer }))}
+                mode="multi"
+                searchable
+                appearance="admin-dark"
+                placeholder="All Developers"
+                showLabel={false}
+                className="w-full"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <AdminBulkToolbar

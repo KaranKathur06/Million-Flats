@@ -5,7 +5,6 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import HeroSearch from '@/components/HeroSearch'
 import RealtimeBadge from '@/components/analytics/RealtimeBadge'
-import { DEFAULT_COUNTRY, isCountryCode, type CountryCode } from '@/lib/country'
 import { authOptions } from '@/lib/auth'
 import { isAdminPanelRole } from '@/lib/roleHomeRoute'
 import MetaDologyVideoSection from '@/components/MetaDologyVideoSection'
@@ -14,18 +13,14 @@ import { getBaseUrl } from '@/lib/auth/routes'
 export const dynamic = 'force-dynamic'
 
 const TrustStats = dynamicImport(() => import('@/components/analytics/TrustStats'), { loading: () => null })
-const GlobalMarketSelectorBar = dynamicImport(() => import('@/components/GlobalMarketSelectorBar'), { loading: () => null })
 const FeaturedProjects = dynamicImport(() => import('@/components/FeaturedProjects'), { loading: () => null })
-const FeaturedAgencies = dynamicImport(() => import('@/components/FeaturedAgencies'), { loading: () => null })
 const FeaturedDevelopers = dynamicImport(() => import('@/components/FeaturedDevelopers'), { loading: () => null })
 
 type HomeSectionType =
   | 'trust-stats'
   | 'meta-dology-video'
-  | 'market-selector'
   | 'featured-projects'
   | 'featured-properties'
-  | 'featured-agencies'
   | 'featured-developers'
   | 'featured-agents'
   | 'cta'
@@ -33,10 +28,8 @@ type HomeSectionType =
 const HOME_SECTIONS: ReadonlyArray<{ type: HomeSectionType; enabled: boolean }> = [
   { type: 'trust-stats', enabled: true },
   { type: 'meta-dology-video', enabled: true },
-  { type: 'market-selector', enabled: true },
   { type: 'featured-projects', enabled: true },
   { type: 'featured-properties', enabled: false },
-  { type: 'featured-agencies', enabled: true },
   { type: 'featured-developers', enabled: true },
   { type: 'featured-agents', enabled: false },
   { type: 'cta', enabled: true },
@@ -60,12 +53,6 @@ export async function generateMetadata({
     },
     robots: hasMarketParam ? { index: false, follow: true } : undefined,
   }
-}
-
-function resolveMarket(searchParams?: { [key: string]: string | string[] | undefined }): CountryCode {
-  const raw = typeof searchParams?.market === 'string' ? searchParams?.market : ''
-  if (raw && isCountryCode(raw)) return raw
-  return DEFAULT_COUNTRY
 }
 
 function buildProjectDiscoveryJsonLd() {
@@ -96,18 +83,12 @@ function buildProjectDiscoveryJsonLd() {
   }
 }
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | string[] | undefined }
-}) {
+export default async function Home() {
   const session = await getServerSession(authOptions)
   const role = String((session?.user as any)?.role || '').toUpperCase()
   if (session?.user && isAdminPanelRole(role)) {
     redirect('/admin')
   }
-
-  const market = resolveMarket(searchParams)
 
   return (
     <div className="min-h-screen">
@@ -163,21 +144,23 @@ export default async function Home({
       {isHomeSectionEnabled('trust-stats') ? <TrustStats /> : null}
       {isHomeSectionEnabled('meta-dology-video') ? <MetaDologyVideoSection /> : null}
 
-      {isHomeSectionEnabled('market-selector') ? (
-        <div className="bg-white pt-10">
-          <GlobalMarketSelectorBar market={market} />
-        </div>
-      ) : null}
-
       {isHomeSectionEnabled('featured-projects') ? (
         <>
           <div className="border-t border-gray-200" />
-          <FeaturedProjects market={market} />
+          <FeaturedProjects
+            market="UAE"
+            title="Dubai Properties"
+            description="Carefully selected landmark developments across Dubai and the UAE."
+          />
+          <FeaturedProjects
+            market="INDIA"
+            title="India Properties"
+            description="Carefully selected landmark developments across India's leading markets."
+          />
         </>
       ) : null}
 
-      {isHomeSectionEnabled('featured-agencies') ? <FeaturedAgencies market={market} /> : null}
-      {isHomeSectionEnabled('featured-developers') ? <FeaturedDevelopers market={market} /> : null}
+      {isHomeSectionEnabled('featured-developers') ? <FeaturedDevelopers market="UAE" /> : null}
 
       {isHomeSectionEnabled('cta') ? (
         <section className="bg-dark-blue section-spacing">

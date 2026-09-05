@@ -73,6 +73,7 @@ export interface DuplicateCandidate {
 export interface RelationInput<T> {
   canonical: T
   raw: unknown
+  db?: unknown
 }
 
 export interface RelationResolution {
