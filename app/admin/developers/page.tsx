@@ -491,7 +491,7 @@ export default function AdminDevelopersPage() {
       <ConfirmModal
         isOpen={repairIndiaOpen}
         title="Repair India Developer Countries"
-        message="This will move only developers currently marked UAE whose linked projects are all in India. Developers with mixed India/UAE projects will be left unchanged. Continue?"
+        message="This checks city, community, and import location evidence before correcting developers incorrectly marked UAE. India-only developers will be repaired; mixed India/UAE portfolios remain unchanged. Continue?"
         confirmLabel="Repair India Developers"
         onConfirm={handleRepairIndiaDevelopers}
         onCancel={() => setRepairIndiaOpen(false)}

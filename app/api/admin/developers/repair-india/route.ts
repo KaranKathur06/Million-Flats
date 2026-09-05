@@ -1,16 +1,13 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
+import { resolveLocationCountry } from '@/lib/locationResolver'
 
-const INDIA_CITIES = new Set([
-  'bangalore', 'bengaluru', 'pune', 'hyderabad', 'chennai', 'mumbai', 'ahmedabad',
-  'gurgaon', 'gurugram', 'noida', 'kochi', 'trivandrum', 'thiruvananthapuram',
-  'coimbatore', 'rajkot', 'surat', 'vadodara', 'indore', 'jaipur', 'lucknow',
-  'chandigarh', 'kolkata', 'nagpur',
-])
-
-function isIndiaProject(project: { countryIso2: string | null; city: string | null }) {
-  return project.countryIso2 === 'IN' || INDIA_CITIES.has(String(project.city || '').trim().toLowerCase())
+function resolveProjectCountry(project: { countryIso2: string | null; city: string | null; community?: string | null }) {
+  // Location evidence wins over a stale country value, then explicit country is used as fallback.
+  const fromLocation = resolveLocationCountry({ city: project.city, community: project.community })
+  if (fromLocation.countryIso2) return fromLocation.countryIso2
+  return resolveLocationCountry({ country: project.countryIso2 }).countryIso2
 }
 
 function normalizeName(value: unknown) {
@@ -23,28 +20,37 @@ export async function POST() {
 
   try {
     const developers = await (prisma as any).developer.findMany({
-      where: { countryCode: 'UAE', projects: { some: {} } },
+      where: { countryCode: 'UAE' },
       select: {
         id: true,
         name: true,
-        projects: { select: { id: true, city: true, countryIso2: true } },
+        city: true,
+        address: true,
+        projects: { select: { id: true, city: true, community: true, countryIso2: true } },
       },
     })
 
     const projectImports = await (prisma as any).importBatch.findMany({
       where: { entityType: 'PROJECT' },
       orderBy: { createdAt: 'desc' },
-      take: 25,
       select: { records: { select: { rawPayload: true } } },
     })
     const importedIndiaDeveloperNames = new Set<string>()
     for (const batch of projectImports) {
       for (const record of batch.records || []) {
         const payload = record.rawPayload && typeof record.rawPayload === 'object' ? record.rawPayload as Record<string, unknown> : {}
-        const city = String(payload.city || payload.city_name || '').trim().toLowerCase()
-        const country = String(payload.countryIso2 || payload.country || payload.country_code || '').trim().toUpperCase()
-        if (country === 'IN' || country === 'INDIA' || INDIA_CITIES.has(city)) {
-          const developerName = payload.developerName || payload.developer_name || payload.developer
+        const fromLocation = resolveLocationCountry({
+          city: payload.city || payload.city_name,
+          community: payload.community || payload.locality || payload.neighborhood,
+          currency: payload.currency,
+          address: payload.address || payload.location,
+        })
+        const country = fromLocation.countryIso2 || resolveLocationCountry({ country: payload.countryIso2 || payload.country || payload.country_code }).countryIso2
+        if (country === 'IN') {
+          const developerValue = payload.developerName || payload.developer_name || payload.developer
+          const developerName = developerValue && typeof developerValue === 'object'
+            ? (developerValue as Record<string, unknown>).name || (developerValue as Record<string, unknown>).developerName
+            : developerValue
           if (developerName) importedIndiaDeveloperNames.add(normalizeName(developerName))
         }
       }
@@ -52,9 +58,12 @@ export async function POST() {
 
     const candidates = developers.filter((developer: any) => {
       const projects = developer.projects || []
-      const hasIndiaOnlyProjects = projects.length > 0 && projects.some(isIndiaProject) && projects.every(isIndiaProject)
+      const developerLocation = resolveLocationCountry({ city: developer.city, address: developer.address })
+      const projectCountries = projects.map((project: any) => resolveProjectCountry(project)).filter(Boolean)
+      const hasIndiaOnlyProjects = projects.length > 0 && projectCountries.length === projects.length && projectCountries.every((country: string) => country === 'IN')
       const hasIndiaImportProvenance = importedIndiaDeveloperNames.has(normalizeName(developer.name))
-      return (hasIndiaOnlyProjects || (projects.length === 0 && hasIndiaImportProvenance))
+      const hasIndiaDeveloperLocation = projects.length === 0 && developerLocation.countryIso2 === 'IN'
+      return hasIndiaOnlyProjects || (projects.length === 0 && (hasIndiaImportProvenance || hasIndiaDeveloperLocation))
     })
 
     const skippedMixed = developers
@@ -68,7 +77,7 @@ export async function POST() {
           data: { countryCode: 'INDIA', countryIso2: 'IN' },
         }),
         (prisma as any).project.updateMany({
-          where: { developerId: developer.id, countryIso2: null },
+          where: { developerId: developer.id },
           data: { countryIso2: 'IN' },
         }),
       ])
