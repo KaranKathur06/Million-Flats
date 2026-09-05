@@ -75,6 +75,7 @@ export default function AdminProjectsPage() {
   const [bulkActionLoading, setBulkActionLoading] = useState<null | 'delete' | 'archive' | 'publish' | 'unpublish'>(null)
   const [cityFilter, setCityFilter] = useState<string[]>([])
   const [developerFilter, setDeveloperFilter] = useState<string[]>([])
+  const [availableCityOptions, setAvailableCityOptions] = useState<string[]>([])
   const [detailsProject, setDetailsProject] = useState<ProjectItem | null>(null)
   const [stats, setStats] = useState({ total: 0, active: 0, archived: 0, deleted: 0 })
 
@@ -90,10 +91,12 @@ export default function AdminProjectsPage() {
       const json = await res.json()
       if (!json.success) throw new Error(json.message || 'Failed to load projects')
       setProjects(json.items || [])
+      setAvailableCityOptions(Array.isArray(json.cityOptions) ? json.cityOptions : [])
       setStats(json.lifecycleStats || { total: 0, active: 0, archived: 0, deleted: 0 })
     } catch (err: any) {
       toast.error(err.message || 'Failed to load projects')
       setProjects([])
+      setAvailableCityOptions([])
     } finally {
       setLoading(false)
     }
@@ -106,12 +109,14 @@ export default function AdminProjectsPage() {
   }, [projects])
 
   const cityOptions = useMemo(() => {
+    if (availableCityOptions.length > 0) return availableCityOptions
+
     const cities = new Set<string>()
     for (const p of projects) {
       if (p.city?.trim()) cities.add(p.city.trim())
     }
     return Array.from(cities).sort((a, b) => a.localeCompare(b))
-  }, [projects])
+  }, [availableCityOptions, projects])
 
   const developerOptions = useMemo(() => {
     const names = new Map<string, string>()
@@ -293,19 +298,28 @@ export default function AdminProjectsPage() {
     if (!selectedIds.length) return
     setBulkActionLoading(action === 'publish' ? 'publish' : 'unpublish')
     try {
-      const res = await fetch(action === 'publish' ? '/api/admin/bulk-approve' : '/api/admin/projects/bulk-publish', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: action === 'publish'
-          ? JSON.stringify({ entity: 'projects', ids: selectedIds })
-          : JSON.stringify({ projectIds: selectedIds, action }),
-      })
-      const json = await res.json()
-      if (!json.success) throw new Error(json.message || 'Bulk update failed')
-      const result = json.result || { success: json.approved || [], failed: json.failures || [] }
-      toast.success(`${action === 'publish' ? 'Published' : 'Unpublished'} ${(result.success || []).length} project(s)`)
-      if ((result.failed || []).length || (result.failures || []).length) {
-        toast.error(`Failed: ${(result.failed || result.failures || []).length} project(s)`)
+      const successfulIds: string[] = []
+      const failedIds: string[] = []
+
+      for (let index = 0; index < selectedIds.length; index += 100) {
+        const batchIds = selectedIds.slice(index, index + 100)
+        const res = await fetch(action === 'publish' ? '/api/admin/bulk-approve' : '/api/admin/projects/bulk-publish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: action === 'publish'
+            ? JSON.stringify({ entity: 'projects', action: 'publish', ids: batchIds })
+            : JSON.stringify({ projectIds: batchIds, action }),
+        })
+        const json = await res.json()
+        if (!json.success) throw new Error(json.message || 'Bulk update failed')
+        const result = json.result || { success: json.approved || [], failed: json.failures || [] }
+        successfulIds.push(...(result.success || []))
+        failedIds.push(...(result.failed || result.failures || []))
+      }
+
+      toast.success(`${action === 'publish' ? 'Published' : 'Unpublished'} ${successfulIds.length} project(s)`)
+      if (failedIds.length) {
+        toast.error(`Failed: ${failedIds.length} project(s)`)
       }
       setSelectedIds([])
       await load()

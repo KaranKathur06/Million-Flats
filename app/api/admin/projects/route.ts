@@ -156,7 +156,8 @@ export async function GET(req: Request) {
             if (!status) where.status = { in: ['DRAFT', 'PUBLISHED'] }
         }
 
-        const items = await (prisma as any).project.findMany({
+        const [items, cityRows] = await Promise.all([
+            (prisma as any).project.findMany({
             where,
             orderBy: [{ createdAt: 'desc' }],
             take: 500,
@@ -185,7 +186,14 @@ export async function GET(req: Request) {
                 },
                 _count: { select: { media: true, unitTypes: true, leads: true } },
             },
-        })
+            }),
+            (prisma as any).project.findMany({
+                where,
+                select: { city: true },
+                distinct: ['city'],
+                orderBy: { city: 'asc' },
+            }),
+        ])
         const normalizedItems = await Promise.all((items || []).map(async (item: any) => {
             const hero = (item.media || []).find((m: any) => {
                 const mt = String(m.mediaType || '').toLowerCase()
@@ -213,6 +221,9 @@ export async function GET(req: Request) {
         return NextResponse.json({
             success: true,
             items: normalizedItems,
+            cityOptions: (cityRows || [])
+                .map((row: any) => safeString(row.city))
+                .filter(Boolean),
             lifecycleStats: { total, active, archived, deleted },
         })
     } catch (err: any) {
