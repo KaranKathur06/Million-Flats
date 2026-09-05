@@ -9,6 +9,7 @@ export type GetPublicAgenciesParams = {
   search?: string
   sort?: PublicAgencySort
   limit?: number
+  page?: number
 }
 
 export type PublicAgencyListItem = {
@@ -159,6 +160,8 @@ function normalizeAgencyDirectoryRow(row: Record<string, unknown>): PublicAgency
 export async function getPublicAgencies(params: GetPublicAgenciesParams = {}) {
   const sort = params.sort ?? 'featured'
   const take = Math.min(Math.max(params.limit ?? 50, 1), 200)
+  const page = Math.max(params.page ?? 1, 1)
+  const skip = (page - 1) * take
   const where = buildWhere(params)
   const orderBy = buildOrderBy(sort)
 
@@ -192,6 +195,7 @@ export async function getPublicAgencies(params: GetPublicAgenciesParams = {}) {
       const rows = await (prisma as any).agencyProfile.findMany({
         where: cleanWhere,
         orderBy,
+        skip,
         take,
         select: attempt.select,
       })
@@ -216,12 +220,23 @@ export async function getPublicAgencies(params: GetPublicAgenciesParams = {}) {
         isFeatured: true,
       },
       orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+      skip,
       take,
     })
 
     const merged = mergeAgencyDirectoryRows(profileRows, importedRows as Record<string, unknown>[])
     if (merged.length > 0) {
-      return { agencies: merged.slice(0, take), total: merged.length }
+      let total = merged.length
+      try {
+        const [profileTotal, importedTotal] = await Promise.all([
+          (prisma as any).agencyProfile.count({ where }),
+          (prisma as any).agency.count({ where: { isFeatured: params.sort === 'featured' ? true : undefined } }),
+        ])
+        total = Number(profileTotal || 0) + Number(importedTotal || 0)
+      } catch {
+        // Keep the page usable when a legacy table cannot be counted.
+      }
+      return { agencies: merged.slice(0, take), total, page, limit: take, totalPages: Math.ceil(total / take) }
     }
   } catch (err) {
     console.warn('[getPublicAgencies] agency table fallback query failed', err)
@@ -230,6 +245,9 @@ export async function getPublicAgencies(params: GetPublicAgenciesParams = {}) {
   return {
     agencies: profileRows.map((row) => normalizeAgencyDirectoryRow(row)).slice(0, take),
     total: profileRows.length,
+    page,
+    limit: take,
+    totalPages: Math.ceil(profileRows.length / take),
   }
 }
 

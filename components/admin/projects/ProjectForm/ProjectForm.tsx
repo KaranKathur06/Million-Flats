@@ -8,7 +8,7 @@ import GlobalDropdown from '@/components/ui/GlobalDropdown'
 import { ProjectMediaManager } from './ProjectMediaManager'
 import { ProjectBrochureManager } from './ProjectBrochureManager'
 import type { ProjectFormMode, ProjectFormData, DevOption, MediaItem, UnitTypeRow, FloorPlanRow, AmenityRow, NearbyPlaceRow, PaymentPlanRow, LocationData, VideoRow, VariantRow } from './ProjectFormSchema'
-import { buildProjectPayload, DEFAULT_FORM_DATA, PROJECT_COUNTRY_OPTIONS, PROJECT_FLOOR_PLAN_ALLOWED_EXTENSIONS, PROJECT_FLOOR_PLAN_ALLOWED_TYPES, PROJECT_FLOOR_PLAN_MAX_SIZE, PROJECT_BROCHURE_ALLOWED_TYPE, slugify } from './ProjectFormSchema'
+import { buildProjectPayload, DEFAULT_FORM_DATA, PROJECT_CITY_OPTIONS, PROJECT_COMMUNITY_OPTIONS, PROJECT_COUNTRY_OPTIONS, PROJECT_FLOOR_PLAN_ALLOWED_EXTENSIONS, PROJECT_FLOOR_PLAN_ALLOWED_TYPES, PROJECT_FLOOR_PLAN_MAX_SIZE, PROJECT_BROCHURE_ALLOWED_TYPE, slugify } from './ProjectFormSchema'
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/20',
@@ -76,7 +76,7 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
         name: p.name || '',
         slug: p.slug || '',
         developerId: p.developerId || '',
-        countryIso2: p.countryIso2 || 'AE',
+        countryIso2: p.countryIso2 || '',
         city: p.city || '',
         community: p.community || '',
         description: p.description || '',
@@ -329,7 +329,7 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/40">Country</label>
               <GlobalDropdown
                 value={formData.countryIso2}
-                onChange={(v) => updateField('countryIso2', v as string)}
+                onChange={(v) => setFormData((prev) => ({ ...prev, countryIso2: v as string, city: '', community: '' }))}
                 options={PROJECT_COUNTRY_OPTIONS}
                 showLabel={false}
                 className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-amber-400/30"
@@ -337,11 +337,29 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
             </div>
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/40">City</label>
-              <input value={formData.city} onChange={(e) => updateField('city', e.target.value)} className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30" />
+              <GlobalDropdown
+                value={formData.city}
+                onChange={(v) => updateField('city', v as string)}
+                options={[...(PROJECT_CITY_OPTIONS[formData.countryIso2] || []), ...(formData.city && !(PROJECT_CITY_OPTIONS[formData.countryIso2] || []).some((option) => option.value === formData.city) ? [{ value: formData.city, label: `${formData.city} (existing)` }] : [])]}
+                placeholder="Select city"
+                searchable
+                showLabel={false}
+                disabled={!formData.countryIso2}
+                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm text-white outline-none focus:border-amber-400/30"
+              />
             </div>
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/40">Community</label>
-              <input value={formData.community} onChange={(e) => updateField('community', e.target.value)} className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white/70 outline-none focus:border-amber-400/30" />
+              <GlobalDropdown
+                value={formData.community}
+                onChange={(v) => updateField('community', v as string)}
+                options={[...(PROJECT_COMMUNITY_OPTIONS[formData.countryIso2] || []), ...(formData.community && !(PROJECT_COMMUNITY_OPTIONS[formData.countryIso2] || []).some((option) => option.value === formData.community) ? [{ value: formData.community, label: `${formData.community} (existing)` }] : [])]}
+                placeholder="Select community"
+                searchable
+                showLabel={false}
+                disabled={!formData.city}
+                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm text-white outline-none focus:border-amber-400/30"
+              />
             </div>
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/40">Completion Year</label>

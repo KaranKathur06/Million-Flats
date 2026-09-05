@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
+import ServerDirectoryPagination from '@/components/directory/ServerDirectoryPagination'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,10 +29,6 @@ function slugify(input: string) {
     .replace(/(^-|-$)/g, '')
 }
 
-function normalize(s: string) {
-  return s.trim().toLowerCase()
-}
-
 export async function generateMetadata(): Promise<Metadata> {
   const canonical = absoluteUrl('/agents')
   return {
@@ -54,13 +51,24 @@ type Props = {
 export default async function AgentsDirectoryPage({ searchParams }: Props) {
   const qRaw = typeof searchParams?.q === 'string' ? searchParams?.q : Array.isArray(searchParams?.q) ? searchParams?.q[0] : ''
   const q = safeString(qRaw)
+  const pageRaw = typeof searchParams?.page === 'string' ? searchParams.page : Array.isArray(searchParams?.page) ? searchParams.page[0] : '1'
+  const page = Math.max(Number.parseInt(pageRaw || '1', 10) || 1, 1)
+  const limit = 20
+  const where = { profileStatus: 'LIVE', user: { status: 'ACTIVE', emailVerified: true }, ...(q ? { OR: [{ company: { contains: q, mode: 'insensitive' } }, { user: { name: { contains: q, mode: 'insensitive' } } }] } : {}) } as any
 
+  const totalAgents = await (prisma as any).agent.count({ where }).catch((error: unknown) => {
+    console.error('Agents directory: failed to count agents', error)
+    return 0
+  })
+  const totalPages = Math.max(1, Math.ceil(totalAgents / limit))
+  const safePage = Math.min(page, totalPages)
   const agents = await prisma.agent
     .findMany({
       include: { user: true },
-      where: { profileStatus: 'LIVE', user: { status: 'ACTIVE', emailVerified: true } } as any,
+      where,
       orderBy: { createdAt: 'desc' },
-      take: 500,
+      skip: (safePage - 1) * limit,
+      take: limit,
     })
     .catch((error: unknown) => {
       console.error('Agents directory: failed to load agents', error)
@@ -104,13 +112,7 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
   for (const row of listingCounts) countMap.set(String(row.agentId), (countMap.get(String(row.agentId)) || 0) + (row._count?._all || 0))
   for (const row of manualCounts) countMap.set(String(row.agentId), (countMap.get(String(row.agentId)) || 0) + (row._count?._all || 0))
 
-  const filtered = agents.filter((a: any) => {
-    if (!q) return true
-    const name = safeString(a.user?.name)
-    const company = safeString(a.company)
-    const hay = `${name} ${company}`
-    return normalize(hay).includes(normalize(q))
-  })
+  const filtered = agents
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -135,7 +137,7 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
         </div>
 
         <div className="mt-6 text-sm text-gray-600">
-          Showing {filtered.length} of {agents.length} agents
+          Showing {filtered.length} of {totalAgents} agents
         </div>
 
         {agents.length === 0 ? (
@@ -225,6 +227,8 @@ export default async function AgentsDirectoryPage({ searchParams }: Props) {
             })}
           </div>
         )}
+
+        <ServerDirectoryPagination page={safePage} totalPages={totalPages} query={q} />
       </div>
     </div>
   )

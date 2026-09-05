@@ -30,9 +30,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AgenciesDirectoryPage() {
-  const [stats, { agencies: initialAgencies }] = await Promise.all([
+  const [stats, initialResult] = await Promise.all([
     getPublicAgencyStats(),
-    getPublicAgencies({ sort: 'featured', limit: 100 }),
+    getPublicAgencies({ sort: 'featured', limit: 20, page: 1 }),
   ])
 
   return (
@@ -100,7 +100,7 @@ export default async function AgenciesDirectoryPage() {
       </section>
 
       {/* ═══════ AGENCY DIRECTORY ═══════ */}
-      <AgenciesDirectoryClient initialAgencies={initialAgencies} />
+      <AgenciesDirectoryClient initialAgencies={initialResult.agencies} initialPagination={initialResult} />
 
       {/* ═══════ JSON-LD ═══════ */}
       <script
@@ -122,7 +122,7 @@ export default async function AgenciesDirectoryPage() {
             mainEntity: {
               '@type': 'ItemList',
               numberOfItems: stats.total,
-              itemListElement: initialAgencies.slice(0, 10).map((agency: any, index: number) => ({
+              itemListElement: initialResult.agencies.slice(0, 10).map((agency: any, index: number) => ({
                 '@type': 'ListItem',
                 position: index + 1,
                 item: {

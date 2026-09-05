@@ -1,3 +1,5 @@
+import { CITIES_BY_COUNTRY } from '@/lib/country'
+
 export type ProjectFormMode = 'create' | 'edit'
 
 export interface DevOption { id: string; name: string; slug: string | null }
@@ -86,6 +88,15 @@ export const PROJECT_COUNTRY_OPTIONS = [
   { value: 'IN', label: 'India' },
 ]
 
+export const PROJECT_CITY_OPTIONS = Object.fromEntries(
+  Object.entries(CITIES_BY_COUNTRY).map(([country, cities]) => [country === 'INDIA' ? 'IN' : 'AE', cities.map((value) => ({ value, label: value }))])
+)
+
+export const PROJECT_COMMUNITY_OPTIONS: Record<string, Array<{ value: string; label: string }>> = {
+  IN: ['Gachibowli', 'Hitech City', 'Kokapet', 'Nanakramguda', 'Nallagandla', 'Golf Course Road', 'New Gurgaon', 'Dwarka Expressway', 'Whitefield', 'Sarjapur Road', 'Electronic City', 'Koramangala', 'Hinjewadi', 'Wakad', 'Noida Extension'].map((value) => ({ value, label: value })),
+  AE: ['Downtown Dubai', 'Dubai Marina', 'Business Bay', 'Jumeirah Village Circle', 'Palm Jumeirah', 'Dubai Hills', 'Dubai Creek Harbour', 'Arabian Ranches', 'Al Reem Island', 'Yas Island', 'Saadiyat Island', 'Masdar City', 'Jumeirah', 'Emirates Hills'].map((value) => ({ value, label: value })),
+}
+
 export const MEDIA_CATEGORY_OPTIONS = [
   { value: 'hero', label: 'Hero' },
   { value: 'other', label: 'Other' },
@@ -112,7 +123,7 @@ export const DEFAULT_FORM_DATA: ProjectFormData = {
   name: '',
   slug: '',
   developerId: '',
-  countryIso2: 'AE',
+  countryIso2: '',
   city: '',
   community: '',
   description: '',

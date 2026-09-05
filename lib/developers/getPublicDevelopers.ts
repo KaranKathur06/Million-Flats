@@ -14,6 +14,7 @@ export type GetPublicDevelopersParams = {
   search?: string
   sort?: PublicDeveloperSort
   limit?: number
+  page?: number
 }
 
 export type PublicDeveloperListItem = {
@@ -124,6 +125,8 @@ function normalizeRow(row: Record<string, unknown>): PublicDeveloperListItem {
 export async function getPublicDevelopers(params: GetPublicDevelopersParams = {}) {
   const sort = params.sort || 'featured'
   const take = Math.min(Math.max(params.limit ?? 50, 1), 200)
+  const page = Math.max(params.page ?? 1, 1)
+  const skip = (page - 1) * take
   const where = buildWhere(params)
   const orderBy = buildOrderBy(sort)
 
@@ -175,19 +178,29 @@ export async function getPublicDevelopers(params: GetPublicDevelopersParams = {}
       const rows = await (prisma as any).developer.findMany({
         where: cleanWhere,
         orderBy,
+        skip,
         take,
         select: attempt.select,
       })
+      let total = rows.length
+      try {
+        total = await (prisma as any).developer.count({ where: cleanWhere })
+      } catch {
+        // Legacy database fallbacks may not support the complete count filter.
+      }
       return {
         developers: (rows as Record<string, unknown>[]).map(normalizeRow),
-        total: rows.length,
+        total,
+        page,
+        limit: take,
+        totalPages: Math.ceil(total / take),
       }
     } catch (err) {
       console.warn('[getPublicDevelopers] query attempt failed', { sort, err })
     }
   }
 
-  return { developers: [] as PublicDeveloperListItem[], total: 0 }
+  return { developers: [] as PublicDeveloperListItem[], total: 0, page, limit: take, totalPages: 0 }
 }
 
 export async function getPublicDeveloperStats() {

@@ -30,9 +30,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function DeveloperDirectoryPage() {
-  const [stats, { developers: initialDevelopers }] = await Promise.all([
+  const [stats, initialResult] = await Promise.all([
     getPublicDeveloperStats(),
-    getPublicDevelopers({ sort: 'featured', limit: 100 }),
+    getPublicDevelopers({ sort: 'featured', limit: 20, page: 1 }),
   ])
 
   return (
@@ -106,7 +106,7 @@ export default async function DeveloperDirectoryPage() {
       {/* Stats bar is now inline in hero — remove duplicate section */}
 
       {/* ═══════ DEVELOPER DIRECTORY ═══════ */}
-      <DeveloperDirectoryClient initialDevelopers={initialDevelopers} />
+      <DeveloperDirectoryClient initialDevelopers={initialResult.developers} initialPagination={initialResult} />
 
       {/* ═══════ JSON-LD ═══════ */}
       <script
@@ -127,7 +127,7 @@ export default async function DeveloperDirectoryPage() {
             mainEntity: {
               '@type': 'ItemList',
               numberOfItems: stats.developers,
-              itemListElement: initialDevelopers.slice(0, 10).map((developer: any, index: number) => ({
+              itemListElement: initialResult.developers.slice(0, 10).map((developer: any, index: number) => ({
                 '@type': 'ListItem',
                 position: index + 1,
                 item: {

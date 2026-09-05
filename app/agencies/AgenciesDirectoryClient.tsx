@@ -5,11 +5,13 @@ import Link from "next/link";
 import ResolvedImage from "@/components/media/ResolvedImage";
 import type { PublicAgencyListItem } from "@/lib/agencies/getPublicAgencies";
 import { MEDIA_FALLBACKS } from "@/lib/media/resolveMedia";
+import DirectoryPagination from "@/components/directory/DirectoryPagination";
 
 type SortOption = "featured" | "newest" | "most_active" | "alphabetical";
 
 type Props = {
   initialAgencies?: PublicAgencyListItem[];
+  initialPagination?: { page: number; limit: number; total: number; totalPages: number };
 };
 
 const SORT_OPTIONS: { key: SortOption; label: string }[] = [
@@ -54,6 +56,7 @@ function AgencyCardSkeleton() {
 
 export default function AgenciesDirectoryClient({
   initialAgencies = [],
+  initialPagination = { page: 1, limit: 20, total: initialAgencies.length, totalPages: 1 },
 }: Props) {
   const [agencies, setAgencies] = useState<PublicAgencyListItem[]>(initialAgencies);
   const [loading, setLoading] = useState(false);
@@ -62,6 +65,9 @@ export default function AgenciesDirectoryClient({
   const [search, setSearch] = useState("");
   const [searchDebounced, setSearchDebounced] = useState("");
   const [sort, setSort] = useState<SortOption>("featured");
+  const [page, setPage] = useState(initialPagination.page);
+  const [totalPages, setTotalPages] = useState(initialPagination.totalPages);
+  const [total, setTotal] = useState(initialPagination.total);
 
   const isDefaultFilters = !country && !searchDebounced && sort === "featured";
 
@@ -72,8 +78,10 @@ export default function AgenciesDirectoryClient({
   }, [search]);
 
   const load = useCallback(async () => {
-    if (isDefaultFilters && initialAgencies.length > 0) {
+    if (isDefaultFilters && page === 1 && initialAgencies.length > 0) {
       setAgencies(initialAgencies);
+      setTotalPages(initialPagination.totalPages);
+      setTotal(initialPagination.total);
       setFetchError(null);
       setLoading(false);
       return;
@@ -83,7 +91,8 @@ export default function AgenciesDirectoryClient({
     setFetchError(null);
     try {
       const params = new URLSearchParams();
-      params.set("limit", "100");
+      params.set("limit", "20");
+      params.set("page", String(page));
       if (country) params.set("country", country);
       if (searchDebounced) params.set("search", searchDebounced);
       if (sort) params.set("sort", sort);
@@ -94,6 +103,8 @@ export default function AgenciesDirectoryClient({
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         setAgencies(json.data);
+        setTotalPages(Number(json.pagination?.totalPages || 1));
+        setTotal(Number(json.pagination?.total || json.data.length));
       } else {
         setFetchError(json.message || "Unable to load agencies right now.");
         if (!isDefaultFilters) setAgencies([]);
@@ -105,11 +116,15 @@ export default function AgenciesDirectoryClient({
     } finally {
       setLoading(false);
     }
-  }, [country, searchDebounced, sort, initialAgencies, isDefaultFilters]);
+  }, [country, searchDebounced, sort, page, initialAgencies, initialPagination, isDefaultFilters]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [country, searchDebounced, sort]);
 
   return (
     <div
@@ -124,7 +139,7 @@ export default function AgenciesDirectoryClient({
         <p className="mt-1 text-sm text-gray-500">
           {loading
             ? "Loading..."
-            : `${agencies.length} agenc${agencies.length !== 1 ? "ies" : "y"} found`}
+            : `${total.toLocaleString()} agenc${total !== 1 ? "ies" : "y"} found`}
         </p>
         {fetchError ? (
           <p className="mt-2 text-sm text-amber-700">{fetchError}</p>
@@ -241,6 +256,8 @@ export default function AgenciesDirectoryClient({
           ))}
         </div>
       )}
+
+      <DirectoryPagination page={page} totalPages={totalPages} loading={loading} onPageChange={setPage} />
 
       {/* ═══════ JOIN CTA ═══════ */}
       <div className="mt-16 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-8 text-center">

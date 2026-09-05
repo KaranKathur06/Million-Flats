@@ -304,7 +304,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
         })
         .filter(Boolean) as Property[]
 
-      setProperties((prev) => (page > 1 ? [...prev, ...mapped] : mapped))
+      setProperties(mapped)
       setTotalCount(total)
     } catch (e) {
       setProperties([])
