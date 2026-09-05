@@ -50,6 +50,27 @@ describe('universal entity adapters', () => {
     expect(normalized.normalized).toMatchObject({ countryIso2: 'IN' })
   })
 
+  it('maps Dubai spreadsheet title and nested header aliases', () => {
+    const normalized = projectImportAdapter.normalize({
+      raw: {
+        title: 'Virella at The Valley',
+        'developer/name': 'Emaar Properties',
+        'location/fullName': 'Dubai,The Valley',
+        startingPrice: '3500000',
+      },
+      sourcePath: null,
+      mappings: projectImportAdapter.suggestMappings({ fields: ['title', 'developer/name', 'location/fullName', 'startingPrice'] }),
+    })
+
+    expect(normalized.normalized).toMatchObject({
+      name: 'Virella at The Valley',
+      developerName: 'Emaar Properties',
+      countryIso2: 'AE',
+      city: 'Dubai',
+      community: 'The Valley',
+    })
+  })
+
   it('resolves a project developer name to its database relationship', async () => {
     const canonical = {
       name: 'Brigade Stellaris',

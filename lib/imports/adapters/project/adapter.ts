@@ -26,12 +26,12 @@ interface CanonicalProject {
   videos?: any[]
 }
 const fields: ImportFieldDefinition[] = [
-  { field: 'name', label: 'Name', type: 'string', requiredness: 'required', aliases: ['project_name', 'project_title'] },
+  { field: 'name', label: 'Name', type: 'string', requiredness: 'required', aliases: ['project_name', 'project_title', 'title'] },
   { field: 'developerId', label: 'Developer', type: 'string', requiredness: 'required', aliases: ['developer_id'] },
   { field: 'developerName', label: 'Developer name', type: 'string', requiredness: 'recommended', aliases: ['developer', 'developer_name'] },
   { field: 'countryIso2', label: 'Country', type: 'string', requiredness: 'recommended', aliases: ['country', 'country_code'] },
-  { field: 'city', label: 'City', type: 'string', requiredness: 'recommended', aliases: ['city_name'] },
-  { field: 'community', label: 'Community', type: 'string', requiredness: 'optional', aliases: ['locality', 'neighborhood'] },
+  { field: 'city', label: 'City', type: 'string', requiredness: 'recommended', aliases: ['city_name', 'location/fullName'] },
+  { field: 'community', label: 'Community', type: 'string', requiredness: 'optional', aliases: ['locality', 'neighborhood', 'location/fullName'] },
   { field: 'startingPrice', label: 'Starting price', type: 'number', requiredness: 'optional', aliases: ['price', 'starting_price', 'price_from'] },
 ]
 const text = (value: unknown) => value == null ? null : String(value).trim() || null
@@ -43,30 +43,34 @@ const INDIA_CITY_ALIASES: Record<string, string> = {
   gurugram: 'Gurgaon',
   thiruvananthapuram: 'Trivandrum',
 }
+const UAE_CITIES = new Set(['dubai', 'abu dhabi', 'sharjah', 'ajman', 'ras al khaimah', 'fujairah', 'umm al quwain'])
 const inferCountryIso2 = (countryInput: string, city: unknown) => {
   if (countryInput === 'IN' || countryInput === 'INDIA') return 'IN'
   if (countryInput === 'AE' || countryInput === 'UAE') return 'AE'
   const normalizedCity = normalizeCity(city)
   const canonicalCity = INDIA_CITY_ALIASES[normalizedCity] || normalizedCity
+  if (UAE_CITIES.has(canonicalCity)) return 'AE'
   return INDIA_CITIES.some((knownCity) => knownCity.toLowerCase() === canonicalCity) ? 'IN' : null
 }
 const read = readImportField
 const mappings = (input: { fields: string[] }): MappingSuggestion[] => suggestImportMappings(input.fields, fields)
 
 export const projectImportAdapter: ImportAdapter<CanonicalProject> = {
-  key: 'project', displayName: 'Projects', adapterVersion: 2, supportedFormats: ['csv', 'json', 'xlsx'], supportedOperations: ['CREATE', 'UPDATE', 'UPSERT'],
+  key: 'project', displayName: 'Projects', adapterVersion: 3, supportedFormats: ['csv', 'json', 'xlsx'], supportedOperations: ['CREATE', 'UPDATE', 'UPSERT'],
   getFieldDefinitions: () => fields,
   suggestMappings: mappings,
   normalize(input: NormalizationInput): NormalizationResult {
     const raw = (input.raw && typeof input.raw === 'object' ? input.raw : {}) as Record<string, unknown>
-    const name = text(read(raw, ['name', 'project_name', 'project_title']))
+    const name = text(read(raw, ['name', 'project_name', 'project_title', 'title']))
     const price = normalizePrice(read(raw, ['startingPrice', 'starting_price', 'price', 'price_from']), read(raw, ['currency']))
     const developer = read(raw, ['developerName', 'developer_name', 'developer'])
     const countryInput = text(read(raw, ['countryIso2', 'country_iso2', 'country_code', 'country']))?.toUpperCase() || ''
     const currencyInput = text(read(raw, ['currency', 'priceCurrency', 'price_currency']))?.toUpperCase() || ''
-    const city = text(read(raw, ['city', 'city_name']))
+    const locationFullName = text(read(raw, ['location/fullName', 'location_full_name', 'location']))
+    const city = text(read(raw, ['city', 'city_name'])) || (locationFullName ? locationFullName.split(',')[0]?.trim() || null : null)
+    const community = text(read(raw, ['community', 'locality', 'neighborhood'])) || (locationFullName ? locationFullName.split(',').slice(1).join(',').trim() || null : null)
     const countryIso2 = inferCountryIso2(countryInput || (currencyInput === 'INR' ? 'IN' : currencyInput === 'AED' ? 'AE' : ''), city)
-    const normalized = { ...raw, name, slug: text(read(raw, ['slug'])) || (name ? slugify(name) : null), developerId: text(read(raw, ['developerId', 'developer_id'])), developerName: developer && typeof developer === 'object' ? text((developer as any).name) : text(developer), countryIso2, city, community: text(read(raw, ['community', 'locality', 'neighborhood'])), description: text(read(raw, ['description'])), overview: text(read(raw, ['overview'])), completionYear: Number(read(raw, ['completionYear', 'completion_year'])) || null, startingPrice: price.amount, startingPriceDisplay: price.display, startingPriceUnresolved: price.unresolved, goldenVisa: Boolean(read(raw, ['goldenVisa', 'golden_visa'])), coverImage: text(read(raw, ['coverImage', 'cover_image'])) }
+    const normalized = { ...raw, name, slug: text(read(raw, ['slug'])) || (name ? slugify(name) : null), developerId: text(read(raw, ['developerId', 'developer_id'])), developerName: developer && typeof developer === 'object' ? text((developer as any).name) : text(developer), countryIso2, city, community, description: text(read(raw, ['description'])), overview: text(read(raw, ['overview'])), completionYear: Number(read(raw, ['completionYear', 'completion_year'])) || null, startingPrice: price.amount, startingPriceDisplay: price.display, startingPriceUnresolved: price.unresolved, goldenVisa: Boolean(read(raw, ['goldenVisa', 'golden_visa'])), coverImage: text(read(raw, ['coverImage', 'cover_image'])) }
     return { normalized, warnings: price.unresolved ? ['Starting price could not be normalized.'] : [], errors: [] }
   },
   mapCanonical(input: { raw: unknown; normalized: unknown; mappings: MappingSuggestion[] }): CanonicalPayloadResult<CanonicalProject> {
