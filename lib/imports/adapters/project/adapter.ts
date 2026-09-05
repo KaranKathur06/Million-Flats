@@ -83,10 +83,10 @@ export const projectImportAdapter: ImportAdapter<CanonicalProject> = {
 
     if (!developer) {
       return {
-        ready: false,
-        warnings: [],
-        errors: [`Developer "${developerName || developerId}" could not be resolved.`],
-        metadata: { developerName, developerId },
+        ready: true,
+        warnings: [`Developer "${developerName || developerId}" was not found and will be created as a draft relationship during commit.`],
+        errors: [],
+        metadata: { developerName, developerId, provision: 'CREATE_DRAFT_DEVELOPER' },
       }
     }
 
@@ -99,7 +99,31 @@ export const projectImportAdapter: ImportAdapter<CanonicalProject> = {
     const db = input.db as any
     const value = input.canonical as any
     let developer = value.developerId ? await db.developer.findUnique({ where: { id: value.developerId } }) : null
-    if (!developer && value.developerName) developer = await db.developer.findFirst({ where: { name: value.developerName } })
+    if (!developer && value.developerName) {
+      developer = await db.developer.findFirst({
+        where: { name: { equals: value.developerName, mode: 'insensitive' } },
+      })
+    }
+    if (!developer && value.developerName) {
+      const developerName = String(value.developerName).trim()
+      const baseSlug = slugify(developerName) || 'developer'
+      let developerSlug = baseSlug
+      let suffix = 2
+      while (await db.developer.findUnique({ where: { slug: developerSlug }, select: { id: true } })) {
+        developerSlug = `${baseSlug}-${suffix}`
+        suffix += 1
+      }
+      developer = await db.developer.create({
+        data: {
+          name: developerName,
+          slug: developerSlug,
+          countryCode: value.countryIso2 === 'IN' ? 'INDIA' : 'UAE',
+          countryIso2: value.countryIso2 || null,
+          city: value.city || null,
+          status: 'ACTIVE',
+        },
+      })
+    }
     if (!developer) throw new Error(`Developer "${value.developerName || value.developerId || 'unknown'}" could not be resolved.`)
 
     const slug = value.slug || slugify(value.name)

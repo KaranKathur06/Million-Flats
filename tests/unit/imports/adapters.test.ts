@@ -57,6 +57,35 @@ describe('universal entity adapters', () => {
     expect(relations.errors).toEqual(['Developer relationship is required.'])
   })
 
+  it('allows a named developer to be provisioned during commit', async () => {
+    const create = jest.fn().mockResolvedValue({ id: 'developer-2', name: 'Vishranthi Homes', slug: 'vishranthi-homes' })
+    const canonical = {
+      name: 'Vishranthi Tejas',
+      slug: 'vishranthi-tejas',
+      developerName: 'Vishranthi Homes',
+      countryIso2: 'IN',
+      city: 'Chennai',
+    }
+    const db = {
+      developer: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        findFirst: jest.fn().mockResolvedValue(null),
+        create,
+      },
+      project: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({ id: 'project-1' }),
+      },
+    }
+
+    const result = await projectImportAdapter.commit({ canonical, operation: 'CREATE', sourceRecordId: 'row-1', db })
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ name: 'Vishranthi Homes', countryCode: 'INDIA', countryIso2: 'IN' }),
+    }))
+    expect(result.status).toBe('created')
+  })
+
   it('preserves unmapped ecosystem fields as category data', () => {
     const normalized = ecosystemPartnerImportAdapter.normalize({ raw: { company_name: 'Legal Co', category: 'legal-documentation', license_number: 'LIC-1', contact_email: 'INFO@LEGAL.EXAMPLE' }, sourcePath: null, mappings: [] })
     const mapped = ecosystemPartnerImportAdapter.mapCanonical({ raw: {}, normalized: normalized.normalized, mappings: [] })
