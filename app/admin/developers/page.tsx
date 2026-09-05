@@ -225,6 +225,8 @@ export default function AdminDevelopersPage() {
   const [bulkDeleteModeLoading, setBulkDeleteModeLoading] = useState<'soft' | 'hard' | null>(null)
   const [bulkRestoring, setBulkRestoring] = useState(false)
   const [bulkApproving, setBulkApproving] = useState(false)
+  const [repairIndiaOpen, setRepairIndiaOpen] = useState(false)
+  const [repairingIndia, setRepairingIndia] = useState(false)
 
   const [toastMsg, setToastMsg] = useState('')
 
@@ -430,6 +432,23 @@ export default function AdminDevelopersPage() {
     }
   }
 
+  const handleRepairIndiaDevelopers = async () => {
+    setRepairingIndia(true)
+    try {
+      const res = await fetch('/api/admin/developers/repair-india', { method: 'POST' })
+      const json = await res.json().catch(() => null)
+      if (!res.ok || !json?.success) throw new Error(json?.message || 'Developer country repair failed')
+
+      showToast(json.message || 'India developer countries repaired')
+      setRepairIndiaOpen(false)
+      await load()
+    } catch (err: any) {
+      showToast(err?.message || 'Developer country repair failed')
+    } finally {
+      setRepairingIndia(false)
+    }
+  }
+
   return (
     <div>
       {toastMsg && (
@@ -469,6 +488,16 @@ export default function AdminDevelopersPage() {
         loading={bulkRestoring}
       />
 
+      <ConfirmModal
+        isOpen={repairIndiaOpen}
+        title="Repair India Developer Countries"
+        message="This will move only developers currently marked UAE whose linked projects are all in India. Developers with mixed India/UAE projects will be left unchanged. Continue?"
+        confirmLabel="Repair India Developers"
+        onConfirm={handleRepairIndiaDevelopers}
+        onCancel={() => setRepairIndiaOpen(false)}
+        loading={repairingIndia}
+      />
+
       <div className="flex items-start justify-between mb-8">
         <div>
           <div className="flex items-center gap-2 mb-2">
@@ -479,12 +508,21 @@ export default function AdminDevelopersPage() {
           <h1 className="text-2xl font-bold tracking-tight text-white/95">Developer Management</h1>
           <p className="mt-1 text-sm text-white/40">Lifecycle-safe management for active, inactive, and deleted developers.</p>
         </div>
-        <Link
-          href="/admin/developers/new"
-          className="inline-flex items-center gap-2 rounded-xl bg-amber-400/90 px-5 py-2.5 text-sm font-semibold text-black hover:bg-amber-300"
-        >
-          Add Developer
-        </Link>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setRepairIndiaOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl border border-sky-400/25 bg-sky-500/10 px-4 py-2.5 text-sm font-semibold text-sky-200 hover:bg-sky-500/20"
+          >
+            Repair India Countries
+          </button>
+          <Link
+            href="/admin/developers/new"
+            className="inline-flex items-center gap-2 rounded-xl bg-amber-400/90 px-5 py-2.5 text-sm font-semibold text-black hover:bg-amber-300"
+          >
+            Add Developer
+          </Link>
+        </div>
       </div>
 
       <ManagementMetricCards metrics={[
