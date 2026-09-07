@@ -7,6 +7,7 @@ import AppProviders from '@/components/AppProviders'
 import AppShell from '@/components/AppShell'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import AnalyticsTracker from '@/components/AnalyticsTracker'
+import VideoServiceDesk from '@/components/integrations/VideoServiceDesk'
 import { authOptions } from '@/lib/auth'
 
 const publicSans = Public_Sans({
@@ -74,6 +75,7 @@ export default async function RootLayout({
         <Suspense fallback={null}>
           <GoogleAnalytics />
         </Suspense>
+        <VideoServiceDesk />
         <AppProviders session={session}>
           <Suspense fallback={null}>
             <AnalyticsTracker />
