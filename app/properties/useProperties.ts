@@ -75,8 +75,8 @@ export default function useProperties(forcedPurpose?: Purpose) {
     location: getParam('location'),
     community: getParam('locality') || getParam('community'),
     type: getParam('type'),
-    minPrice: getParam('minPrice') || COUNTRY_META[initialCountry].minPrice.toString(),
-    maxPrice: getParam('maxPrice') || COUNTRY_META[initialCountry].maxPrice.toString(),
+    minPrice: getParam('minPrice'),
+    maxPrice: getParam('maxPrice'),
     bedrooms: getParam('bedrooms'),
     bathrooms: getParam('bathrooms'),
     sortBy: getParam('sortBy') || 'recommended',
@@ -320,8 +320,8 @@ export default function useProperties(forcedPurpose?: Purpose) {
         region: '',
         location: '',
         community: '',
-        minPrice: COUNTRY_META[nextCountry].minPrice.toString(),
-        maxPrice: COUNTRY_META[nextCountry].maxPrice.toString(),
+        minPrice: '',
+        maxPrice: '',
       })
       return
     }
@@ -358,8 +358,8 @@ export default function useProperties(forcedPurpose?: Purpose) {
       location: '',
       community: '',
       type: '',
-      minPrice: COUNTRY_META[nextCountry].minPrice.toString(),
-      maxPrice: COUNTRY_META[nextCountry].maxPrice.toString(),
+      minPrice: '',
+      maxPrice: '',
       bedrooms: '',
       bathrooms: '',
       sortBy: 'featured',
