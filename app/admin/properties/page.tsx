@@ -75,7 +75,7 @@ export default function AdminPropertiesPage() {
     const [cityFilter, setCityFilter] = useState('')
     const [typeFilter, setTypeFilter] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
-    const [selectedIds, setSelectedIds] = useState<string[]>([])
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     const [bulkActionLoading, setBulkActionLoading] = useState<null | string>(null)
     const [stats, setStats] = useState({ total: 0, active: 0, pending: 0, rejected: 0, sold: 0, archived: 0 })
     const [deleteTarget, setDeleteTarget] = useState<PropertyItem | null>(null)
@@ -110,21 +110,22 @@ export default function AdminPropertiesPage() {
 
     // Bulk actions
     const runBulkAction = useCallback(async (action: string) => {
-        if (selectedIds.length === 0) return
+        if (selectedIds.size === 0) return
         setBulkActionLoading(action)
         try {
-            const res = await fetch(action === 'approve' ? '/api/admin/bulk-approve' : '/api/admin/properties/bulk-approve', {
+            const res = await fetch('/api/admin/properties/bulk-action', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: action === 'approve'
-                    ? JSON.stringify({ entity: 'properties', ids: selectedIds })
-                    : JSON.stringify({ ids: selectedIds, action }),
+                body: JSON.stringify({ ids: Array.from(selectedIds), action: action === 'approve' ? 'PUBLISH' : action.toUpperCase() }),
             })
             const json = await res.json()
-            if (!json.success) throw new Error(json.message || 'Bulk action failed')
-            toast.success(`${json.updated} properties ${action === 'approve' ? 'published' : `${action}d`}`)
-            setSelectedIds([])
-            load()
+                if (!res.ok && !json.partial) throw new Error(json.message || 'Bulk action failed')
+                const successful = Array.isArray(json.successful) ? json.successful : []
+                const failed = Array.isArray(json.failed) ? json.failed : []
+                if (successful.length) toast.success(`${successful.length} propert${successful.length === 1 ? 'y' : 'ies'} processed`)
+                if (failed.length) toast.error(`${failed.length} propert${failed.length === 1 ? 'y' : 'ies'} could not be processed`)
+                setSelectedIds(new Set(failed.map((item: { id: string }) => item.id)))
+                await load()
         } catch (err: any) {
             toast.error(err.message)
         } finally {
@@ -190,11 +191,11 @@ export default function AdminPropertiesPage() {
     }, [permanentDeleteTarget, permanentDeleteConfirmation, load])
 
     const permanentDeleteSelected = useCallback(async () => {
-        if (selectedIds.length === 0 || permanentDeleteConfirmation !== 'DELETE') return
+        if (selectedIds.size === 0 || permanentDeleteConfirmation !== 'DELETE') return
         setBulkActionLoading('permanent_delete')
         try {
             const results = await Promise.allSettled(
-                selectedIds.map(async (id) => {
+                Array.from(selectedIds).map(async (id) => {
                     const response = await fetch(`/api/admin/properties/${id}?permanent=true`, { method: 'DELETE' })
                     const payload = await response.json()
                     if (!response.ok || !payload.success) throw new Error(payload.message || 'Permanent delete failed')
@@ -207,7 +208,7 @@ export default function AdminPropertiesPage() {
             if (failed.length > 0) toast.error(`${failed.length} propert${failed.length === 1 ? 'y' : 'ies'} could not be permanently deleted`)
             setBulkPermanentDeleteOpen(false)
             setPermanentDeleteConfirmation('')
-            setSelectedIds([])
+            setSelectedIds(new Set())
             await load()
         } catch (err: any) {
             toast.error(err.message || 'Permanent delete failed')
@@ -218,12 +219,22 @@ export default function AdminPropertiesPage() {
 
     // Select helpers
     const toggleSelect = (id: string) => {
-        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+        setSelectedIds(prev => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
+            return next
+        })
     }
     const toggleAll = () => {
-        setSelectedIds(prev => prev.length === properties.length ? [] : properties.map(p => p.id))
+        setSelectedIds(prev => {
+            const next = new Set(prev)
+            const allSelected = properties.length > 0 && properties.every((property) => next.has(property.id))
+            properties.forEach((property) => allSelected ? next.delete(property.id) : next.add(property.id))
+            return next
+        })
     }
-    const selectedCount = selectedIds.length
+    const selectedCount = selectedIds.size
 
     // Unique values for filters
     const cities = useMemo(() => {
@@ -276,7 +287,7 @@ export default function AdminPropertiesPage() {
                 {lifecycleTabs.map(tab => (
                     <button
                         key={tab.key}
-                        onClick={() => { setLifecycleFilter(tab.key); setSelectedIds([]) }}
+                        onClick={() => { setLifecycleFilter(tab.key); setSelectedIds(new Set()) }}
                         className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-all whitespace-nowrap cursor-pointer ${lifecycleFilter === tab.key
                             ? 'bg-white/[0.10] text-white border border-white/[0.15]'
                             : 'text-white/40 hover:text-white/70 hover:bg-white/[0.04] border border-transparent'}`}
@@ -352,7 +363,7 @@ export default function AdminPropertiesPage() {
                         <button onClick={() => runBulkAction('restore')} disabled={bulkActionLoading !== null} className="rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-300 hover:bg-blue-500/20 disabled:opacity-50 cursor-pointer">Restore</button>
                         <button onClick={() => runBulkAction('delete')} disabled={bulkActionLoading !== null} className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-300 hover:bg-red-500/20 disabled:opacity-50 cursor-pointer">Delete</button>
                         <button onClick={() => { setPermanentDeleteConfirmation(''); setBulkPermanentDeleteOpen(true) }} disabled={bulkActionLoading !== null} className="rounded-lg border border-red-500/40 bg-red-500/20 px-3 py-1.5 text-xs font-semibold text-red-200 hover:bg-red-500/30 disabled:opacity-50 cursor-pointer">Permanent Delete</button>
-                        <button onClick={() => setSelectedIds([])} className="rounded-lg px-3 py-1.5 text-xs text-white/40 hover:text-white/70 cursor-pointer">
+                        <button onClick={() => setSelectedIds(new Set())} className="rounded-lg px-3 py-1.5 text-xs text-white/40 hover:text-white/70 cursor-pointer">
                             Clear
                         </button>
                     </div>
@@ -377,7 +388,7 @@ export default function AdminPropertiesPage() {
                     {/* Table Header */}
                     <div className="grid grid-cols-12 gap-3 px-4 py-3 border-b border-white/[0.06] text-[11px] font-semibold text-white/30 uppercase tracking-wider">
                         <div className="col-span-1 flex items-center">
-                            <input type="checkbox" checked={selectedIds.length === properties.length && properties.length > 0} onChange={toggleAll} className="rounded border-white/20 bg-white/5 cursor-pointer" />
+                            <input type="checkbox" checked={properties.length > 0 && properties.every((property) => selectedIds.has(property.id))} onChange={toggleAll} className="rounded border-white/20 bg-white/5 cursor-pointer" />
                         </div>
                         <div className="col-span-3">Property</div>
                         <div className="col-span-2">Location</div>
@@ -391,9 +402,9 @@ export default function AdminPropertiesPage() {
                     {/* Table Rows */}
                     <div className="divide-y divide-white/[0.04]">
                         {properties.map(p => (
-                            <div key={p.id} className={`grid grid-cols-12 gap-3 px-4 py-3 items-center hover:bg-white/[0.02] transition-colors ${selectedIds.includes(p.id) ? 'bg-amber-400/[0.03]' : ''}`}>
+                            <div key={p.id} className={`grid grid-cols-12 gap-3 px-4 py-3 items-center hover:bg-white/[0.02] transition-colors ${selectedIds.has(p.id) ? 'bg-amber-400/[0.03]' : ''}`}>
                                 <div className="col-span-1 flex items-center">
-                                    <input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => toggleSelect(p.id)} className="rounded border-white/20 bg-white/5 cursor-pointer" />
+                                    <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => toggleSelect(p.id)} className="rounded border-white/20 bg-white/5 cursor-pointer" />
                                 </div>
                                 <div className="col-span-3 flex items-center gap-3 min-w-0">
                                     <div className="h-10 w-10 rounded-lg bg-white/[0.06] flex-shrink-0 overflow-hidden">
@@ -498,7 +509,7 @@ export default function AdminPropertiesPage() {
                     <div className="w-full max-w-lg rounded-2xl border border-red-500/35 bg-[#071328] p-6 shadow-2xl">
                         <h3 className="text-xl font-semibold text-white">Permanently Delete Properties?</h3>
                         <p className="mt-3 text-sm text-white/70 leading-relaxed">
-                            This will permanently remove {selectedIds.length} selected propert{selectedIds.length === 1 ? 'y' : 'ies'} and all associated media. This action cannot be undone.
+                            This will permanently remove {selectedIds.size} selected propert{selectedIds.size === 1 ? 'y' : 'ies'} and all associated media. This action cannot be undone.
                         </p>
                         <label className="mt-5 block text-sm font-medium text-white/75">
                             Type DELETE to confirm

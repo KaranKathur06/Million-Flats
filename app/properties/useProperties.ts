@@ -65,8 +65,8 @@ export default function useProperties(forcedPurpose?: Purpose) {
   const initialCountry = useMemo(() => {
     const fromUrl = getParam('country')
     if (fromUrl && isCountryCode(fromUrl)) return fromUrl
-    return country || DEFAULT_COUNTRY
-  }, [country, getParam])
+    return DEFAULT_COUNTRY
+  }, [getParam])
 
   const [filters, setFilters] = useState<Filters>({
     country: initialCountry,
@@ -176,20 +176,6 @@ export default function useProperties(forcedPurpose?: Purpose) {
       setCountry(fromUrl)
     }
   }, [country, getParam, setCountry])
-
-  useEffect(() => {
-    if (filters.country !== country) {
-      setFilters((prev) => ({
-        ...prev,
-        country,
-        search: '',
-        location: '',
-        community: '',
-        minPrice: COUNTRY_META[country].minPrice.toString(),
-        maxPrice: COUNTRY_META[country].maxPrice.toString(),
-      }))
-    }
-  }, [country, filters.country])
 
   useEffect(() => {
     setDraftFilters(filters)
@@ -364,7 +350,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
   }
 
   const resetFilters = () => {
-    const nextCountry = country || DEFAULT_COUNTRY
+    const nextCountry = DEFAULT_COUNTRY
     const next: Filters = {
       country: nextCountry,
       search: '',
@@ -383,7 +369,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
       features: [],
     }
 
-    setPurpose('buy')
+    setPurpose(forcedPurpose ?? 'buy')
     if (nextCountry !== country) setCountry(nextCountry)
     setFilters(next)
     setDraftFilters(next)

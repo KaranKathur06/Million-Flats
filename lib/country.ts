@@ -1,6 +1,6 @@
 export type CountryCode = 'UAE' | 'INDIA'
 
-export const DEFAULT_COUNTRY: CountryCode = 'UAE'
+export const DEFAULT_COUNTRY: CountryCode = 'INDIA'
 
 export const INR_PER_AED = 22.5
 

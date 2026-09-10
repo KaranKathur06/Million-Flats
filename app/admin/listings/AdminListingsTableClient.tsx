@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getAdminCapabilities } from '@/lib/adminCapabilities'
@@ -49,7 +49,10 @@ export default function AdminListingsTableClient({
   const router = useRouter()
   const { runAction } = useAdminAction()
   const [busyId, setBusyId] = useState('')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkActionLoading, setBulkActionLoading] = useState('')
   const [error, setError] = useState('')
+  const selectAllRef = useRef<HTMLInputElement>(null)
 
   const capabilities = useMemo(() => getAdminCapabilities(currentRole), [currentRole])
 
@@ -61,6 +64,114 @@ export default function AdminListingsTableClient({
     }
     return counts
   }, [items])
+
+  const displayedIds = useMemo(() => items.map((item) => item.id), [items])
+  const selectedDisplayedCount = displayedIds.filter((id) => selectedIds.has(id)).length
+  const allDisplayedSelected = displayedIds.length > 0 && selectedDisplayedCount === displayedIds.length
+  const someDisplayedSelected = selectedDisplayedCount > 0 && !allDisplayedSelected
+
+  useEffect(() => {
+    if (selectAllRef.current) selectAllRef.current.indeterminate = someDisplayedSelected
+  }, [someDisplayedSelected])
+
+  useEffect(() => {
+    setSelectedIds((previous) => {
+      const next = new Set(Array.from(previous).filter((id) => displayedIds.includes(id)))
+      if (next.size === previous.size) return previous
+      return next
+    })
+  }, [displayedIds])
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((previous) => {
+      const next = new Set(previous)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleDisplayedSelection = () => {
+    setSelectedIds((previous) => {
+      const next = new Set(previous)
+      if (allDisplayedSelected || someDisplayedSelected) displayedIds.forEach((id) => next.delete(id))
+      else displayedIds.forEach((id) => next.add(id))
+      return next
+    })
+  }
+
+  const runBulkAction = async (action: 'PUBLISH' | 'REJECT' | 'ARCHIVE' | 'UNPUBLISH' | 'SOLD' | 'RESTORE', reason?: string) => {
+    const ids = Array.from(selectedIds)
+    if (!ids.length || bulkActionLoading) return
+    setBulkActionLoading(action)
+    setError('')
+    try {
+      const response = await fetch('/api/admin/properties/bulk-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, action, reason }),
+      })
+      const json = await response.json().catch(() => null)
+      if (!response.ok && !json?.partial) throw new Error(safeString(json?.message) || 'Bulk action failed')
+      const failedIds = Array.isArray(json?.failed) ? json.failed.map((item: { id: string }) => item.id) : []
+      if (failedIds.length) setError(`${failedIds.length} selected listing${failedIds.length === 1 ? '' : 's'} could not be processed.`)
+      setSelectedIds(new Set(failedIds))
+      router.refresh()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Bulk action failed')
+    } finally {
+      setBulkActionLoading('')
+    }
+  }
+
+  const confirmBulkAction = async (action: 'REJECT' | 'SOLD' | 'ARCHIVE') => {
+    let reason = ''
+    const labels = { REJECT: 'reject', SOLD: 'mark sold', ARCHIVE: 'archive' }
+    const confirmed = await runAction({
+      title: `${labels[action]} ${selectedIds.size} listings?`,
+      description: action === 'REJECT' ? 'Provide a reason for the selected listings.' : 'This action will update every selected listing.',
+      confirmLabel: labels[action],
+      variant: action === 'SOLD' || action === 'ARCHIVE' ? 'danger' : 'default',
+      input: action === 'REJECT' ? { label: 'Reason', placeholder: 'Enter at least 3 characters.', required: true, onChange: (value) => { reason = value } } : undefined,
+      loadingTitle: 'Processing listings',
+      successTitle: 'Listings processed',
+      errorMessage: 'Unable to process the selected listings.',
+      mutation: async () => {
+        if (action === 'REJECT' && reason.trim().length < 3) throw new Error('Rejection reason is required.')
+        await runBulkAction(action, reason.trim() || undefined)
+      },
+    })
+    return confirmed
+  }
+
+  const permanentlyDeleteSelected = async () => {
+    const ids = Array.from(selectedIds)
+    if (!ids.length || bulkActionLoading) return
+    const confirmed = await runAction({
+      title: `Permanently delete ${ids.length} listings?`,
+      description: 'This action cannot be undone and removes associated media, inquiries, and moderation records.',
+      confirmLabel: 'Delete permanently',
+      variant: 'danger',
+      loadingTitle: 'Deleting listings',
+      successTitle: 'Listings deleted',
+      errorMessage: 'Unable to permanently delete the selected listings.',
+      mutation: async () => {
+        setBulkActionLoading('PERMANENT_DELETE')
+        const results = await Promise.allSettled(ids.map(async (id) => {
+          const response = await fetch(`/api/admin/properties/${encodeURIComponent(id)}?permanent=true`, { method: 'DELETE' })
+          const json = await response.json().catch(() => null)
+          if (!response.ok || !json?.success) throw new Error(safeString(json?.message) || 'Delete failed')
+          return id
+        }))
+        const failedIds = results.flatMap((result, index) => result.status === 'rejected' ? [ids[index]] : [])
+        setSelectedIds(new Set(failedIds))
+        if (failedIds.length) setError(`${failedIds.length} selected listing${failedIds.length === 1 ? '' : 's'} could not be deleted.`)
+        router.refresh()
+        setBulkActionLoading('')
+      },
+    })
+    return confirmed
+  }
 
   const doAction = async (id: string, fn: () => Promise<void>) => {
     if (busyId) return
@@ -112,6 +223,21 @@ export default function AdminListingsTableClient({
           </span>
         ))}
       </div>
+
+      {selectedIds.size > 0 ? (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3">
+          <span className="mr-auto text-sm font-semibold text-amber-200">{selectedIds.size} selected</span>
+          <button type="button" onClick={() => runBulkAction('PUBLISH')} disabled={Boolean(bulkActionLoading)} className="rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-semibold text-[#0b1220] disabled:opacity-50">{bulkActionLoading === 'PUBLISH' ? 'Publishing...' : 'Publish'}</button>
+          <button type="button" onClick={() => confirmBulkAction('REJECT')} disabled={Boolean(bulkActionLoading)} className="rounded-lg border border-red-400/30 px-3 py-1.5 text-xs font-semibold text-red-200 disabled:opacity-50">Reject</button>
+          <button type="button" onClick={() => confirmBulkAction('ARCHIVE')} disabled={Boolean(bulkActionLoading)} className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/70 disabled:opacity-50">Archive</button>
+          <button type="button" onClick={() => runBulkAction('UNPUBLISH')} disabled={Boolean(bulkActionLoading)} className="rounded-lg border border-amber-400/30 px-3 py-1.5 text-xs font-semibold text-amber-200 disabled:opacity-50">Unpublish</button>
+          <button type="button" onClick={() => confirmBulkAction('SOLD')} disabled={Boolean(bulkActionLoading)} className="rounded-lg border border-purple-400/30 px-3 py-1.5 text-xs font-semibold text-purple-200 disabled:opacity-50">Sold</button>
+          <button type="button" onClick={() => runBulkAction('RESTORE')} disabled={Boolean(bulkActionLoading)} className="rounded-lg border border-sky-400/30 px-3 py-1.5 text-xs font-semibold text-sky-200 disabled:opacity-50">Restore</button>
+          <button type="button" onClick={() => confirmBulkAction('ARCHIVE')} disabled={Boolean(bulkActionLoading)} className="rounded-lg border border-red-400/30 px-3 py-1.5 text-xs font-semibold text-red-200 disabled:opacity-50">Delete</button>
+          <button type="button" onClick={permanentlyDeleteSelected} disabled={Boolean(bulkActionLoading)} className="rounded-lg border border-red-500/50 px-3 py-1.5 text-xs font-semibold text-red-100 disabled:opacity-50">Permanent Delete</button>
+          <button type="button" onClick={() => setSelectedIds(new Set())} disabled={Boolean(bulkActionLoading)} className="rounded-lg px-3 py-1.5 text-xs text-white/50 disabled:opacity-50">Clear Selection</button>
+        </div>
+      ) : null}
 
       <div className="md:hidden space-y-3">
         {items.map((it) => {
@@ -165,10 +291,19 @@ export default function AdminListingsTableClient({
           return (
             <div key={it.id} className="rounded-2xl border border-white/10 bg-[#0f1a2e] p-4">
               <div className="flex items-start justify-between gap-3">
-                <div>
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(it.id)}
+                    onChange={() => toggleSelected(it.id)}
+                    aria-label={`Select ${it.title}`}
+                    className="mt-1"
+                  />
+                  <div>
                   <div className="text-white font-semibold">{it.title}</div>
                   <div className="mt-1 text-xs text-white/70">{it.location}</div>
                   <div className="mt-1 text-xs text-white/60 break-all">Agent: {it.agentName} ({it.agentEmail})</div>
+                  </div>
                 </div>
                 <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold text-white/90">
                   {it.status || '—'}
@@ -334,6 +469,7 @@ export default function AdminListingsTableClient({
         <table className="min-w-full text-sm">
           <thead>
             <tr className="text-left text-white/70 border-b border-white/10">
+              <th className="py-3 pr-4"><input ref={selectAllRef} type="checkbox" checked={allDisplayedSelected} onChange={toggleDisplayedSelection} aria-label="Select all displayed listings" /></th>
               <th className="py-3 pr-4">Title</th>
               <th className="py-3 pr-4">Agent</th>
               <th className="py-3 pr-4">Location</th>
@@ -394,7 +530,15 @@ export default function AdminListingsTableClient({
                   : ''
 
               return (
-                <tr key={it.id} className="border-b border-white/5">
+                <tr key={it.id} className={`border-b border-white/5 ${selectedIds.has(it.id) ? 'bg-amber-400/[0.03]' : ''}`}>
+                  <td className="py-4 pr-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(it.id)}
+                      onChange={() => toggleSelected(it.id)}
+                      aria-label={`Select ${it.title}`}
+                    />
+                  </td>
                   <td className="py-4 pr-4">
                     <div className="font-semibold text-white">{it.title}</div>
                     {it.rejectionReason ? <div className="mt-1 text-xs text-red-300">Rejected: {it.rejectionReason}</div> : null}
@@ -549,7 +693,7 @@ export default function AdminListingsTableClient({
 
             {items.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-10 text-center text-white/60">
+                <td colSpan={9} className="py-10 text-center text-white/60">
                   No listings found.
                 </td>
               </tr>

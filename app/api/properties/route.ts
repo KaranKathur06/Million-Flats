@@ -99,7 +99,7 @@ export async function GET(req: Request) {
 
     const parsed = QuerySchema.safeParse({
       purpose: (searchParams.get('purpose') || '').toLowerCase() || undefined,
-      country: (searchParams.get('country') || '').trim() || undefined,
+      country: (searchParams.get('country') || '').trim().toUpperCase() || 'INDIA',
       q: searchParams.get('q') || undefined,
       state: searchParams.get('state') || searchParams.get('region') || undefined,
       city: searchParams.get('city') || undefined,
