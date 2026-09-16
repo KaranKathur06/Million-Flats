@@ -289,10 +289,11 @@ describe('universal entity adapters', () => {
       mappings: [],
     })
 
-    expect(normalized.normalized.yearsExperience).toBe(22)
-    expect(normalized.normalized.partnerSince).toBe(2004)
-    expect(normalized.normalized.locationCoverage).toBe('Cloud Migration, Data Engineering')
-    expect(normalized.normalized.categoryData).toMatchObject({
+    const normalizedPartner = normalized.normalized as Record<string, unknown>
+    expect(normalizedPartner.yearsExperience).toBe(22)
+    expect(normalizedPartner.partnerSince).toBe(2004)
+    expect(normalizedPartner.locationCoverage).toBe('Cloud Migration, Data Engineering')
+    expect(normalizedPartner.categoryData).toMatchObject({
       solutions: ['GenAI & ML Workflows', 'Enterprise Data Lakehouse'],
       integrationType: 'Google Cloud Premier Partner, AWS Advanced Tier Services Partner',
     })

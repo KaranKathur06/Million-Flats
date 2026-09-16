@@ -6,6 +6,7 @@ import { buildAssetUrl } from '@/lib/assetUrl'
 import { createSignedPutUrl, s3ObjectExists } from '@/lib/s3'
 import { PROPERTY_FLOOR_PLAN_ALLOWED_TYPES, PROPERTY_MEDIA_ALLOWED_TYPES, PROPERTY_MEDIA_CATEGORIES, PROPERTY_MEDIA_MAX_IMAGE_BYTES, isPropertyMediaCategory, propertyMediaCategory, propertyMediaStorageCategory } from '@/lib/propertyMedia'
 import { revalidatePath } from 'next/cache'
+import { validateStoredMediaSignature } from '@/lib/media/validateMedia'
 
 const maxBytes = Number(process.env.PROJECT_IMAGE_MAX_SIZE_BYTES) || PROPERTY_MEDIA_MAX_IMAGE_BYTES
 
@@ -53,6 +54,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   const data = parsed.data
   if (!data.s3Key.startsWith(`public/properties/${params.id}/images/`)) return NextResponse.json({ success: false, message: 'Storage key is not authorized for this property' }, { status: 403 })
   if (!await propertyExists(params.id) || !await s3ObjectExists({ key: data.s3Key })) return NextResponse.json({ success: false, message: 'Property or uploaded object not found' }, { status: 404 })
+  const signature = await validateStoredMediaSignature(data.s3Key, data.contentType)
+  if (!signature.ok) return NextResponse.json({ success: false, message: signature.error || 'Image processing failed' }, { status: 400 })
   const category = propertyMediaStorageCategory(data.category as typeof PROPERTY_MEDIA_CATEGORIES[number])
   const media = await (prisma as any).$transaction(async (tx: any) => {
     if (category === 'COVER') await tx.manualPropertyMedia.updateMany({ where: { propertyId: params.id, category: 'COVER' }, data: { category: 'EXTERIOR' } })

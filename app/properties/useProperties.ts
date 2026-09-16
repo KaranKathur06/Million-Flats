@@ -48,6 +48,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
   const [locationOptions, setLocationOptions] = useState<{ states: string[]; cities: string[]; localities: string[] }>({ states: [], cities: [], localities: [] })
   const [locationLoading, setLocationLoading] = useState(false)
   const [locationError, setLocationError] = useState('')
+  const [locationRequestVersion, setLocationRequestVersion] = useState(0)
 
   const [purposeState, setPurposeState] = useState<Purpose>(() => {
     if (forcedPurpose) return forcedPurpose
@@ -129,9 +130,12 @@ export default function useProperties(forcedPurpose?: Purpose) {
   useEffect(() => {
     const restoreFromUrl = () => {
       const params = new URLSearchParams(window.location.search)
+      const urlCountry = params.get('country')
+      const restoredCountry = urlCountry && isCountryCode(urlCountry) ? urlCountry : DEFAULT_COUNTRY
       restoringUrlRef.current = true
       setFilters((previous) => ({
         ...previous,
+        country: restoredCountry,
         search: params.get('q') || '',
         region: params.get('state') || params.get('region') || '',
         location: params.get('location') || params.get('city') || '',
@@ -145,6 +149,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
       }))
       setDraftFilters((previous) => ({
         ...previous,
+        country: restoredCountry,
         search: params.get('q') || '',
         region: params.get('state') || params.get('region') || '',
         location: params.get('location') || params.get('city') || '',
@@ -156,12 +161,13 @@ export default function useProperties(forcedPurpose?: Purpose) {
         bathrooms: params.get('bathrooms') || '',
         sortBy: params.get('sortBy') || 'recommended',
       }))
+      if (restoredCountry !== country) setCountry(restoredCountry)
       setPage(1)
     }
 
     window.addEventListener('popstate', restoreFromUrl)
     return () => window.removeEventListener('popstate', restoreFromUrl)
-  }, [])
+  }, [country, setCountry])
 
   useEffect(() => {
     syncUrl(filters, purpose)
@@ -217,7 +223,9 @@ export default function useProperties(forcedPurpose?: Purpose) {
       })
 
     return () => controller.abort()
-  }, [filters.country, filters.region, filters.location])
+  }, [filters.country, filters.region, filters.location, locationRequestVersion])
+
+  const retryLocations = useCallback(() => setLocationRequestVersion((version) => version + 1), [])
 
   const fetchProperties = useCallback(async () => {
     setLoading(true)
@@ -437,5 +445,6 @@ export default function useProperties(forcedPurpose?: Purpose) {
     states: locationOptions.states,
     locationLoading,
     locationError,
+    retryLocations,
   }
 }

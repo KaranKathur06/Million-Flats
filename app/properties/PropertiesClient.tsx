@@ -104,6 +104,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
     states,
     locationLoading,
     locationError,
+    retryLocations,
   } = useProperties(forcedPurpose)
 
   // Data and URL sync handled by `useProperties` hook
@@ -404,7 +405,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
                   </svg>
                 </button>
               </div>
-              {locationError ? <p className="px-1 pt-2 text-xs font-medium text-red-600">{locationError} <button type="button" onClick={() => window.location.reload()} className="underline">Retry</button></p> : null}
+              {locationError ? <p className="px-1 pt-2 text-xs font-medium text-red-600">{locationError} <button type="button" onClick={retryLocations} className="underline">Retry</button></p> : null}
             </div>
           </div>
         </div>

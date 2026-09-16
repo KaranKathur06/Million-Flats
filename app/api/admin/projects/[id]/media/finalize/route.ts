@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { buildCdnAssetUrl, deleteFromS3, s3ObjectExists } from '@/lib/s3'
 import { PROJECT_MEDIA_CATEGORY_VALUES, projectMediaCategoryToEnum } from '@/lib/projectMediaTaxonomy'
 import { revalidatePath } from 'next/cache'
+import { validateStoredMediaSignature } from '@/lib/media/validateMedia'
 
 export const runtime = 'nodejs'
 
@@ -102,6 +103,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!await s3ObjectExists({ key: s3Key })) {
       return NextResponse.json({ success: false, message: 'Uploaded storage object was not found. Please upload again.' }, { status: 404 })
     }
+    const signature = await validateStoredMediaSignature(s3Key, String(contentType || '').toLowerCase())
+    if (!signature.ok) return NextResponse.json({ success: false, message: signature.error || 'Image processing failed' }, { status: 400 })
 
     const categoryEnum = projectMediaCategoryToEnum(category)
     if (categoryEnum === 'HERO') {
