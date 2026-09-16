@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { deleteFromS3, buildCdnAssetUrl } from '@/lib/s3'
+import { revalidatePath } from 'next/cache'
 
 import { PROJECT_MEDIA_CATEGORY_VALUES, projectMediaCategoryToEnum } from '@/lib/projectMediaTaxonomy'
 
@@ -86,6 +87,11 @@ export async function PUT(
             data: updateData,
         })
 
+        const project = await (prisma as any).project.findUnique({ where: { id: params.id }, select: { slug: true } })
+        revalidatePath('/projects')
+        if (project?.slug) revalidatePath(`/projects/${project.slug}`)
+        revalidatePath(`/admin/projects/${params.id}`)
+
         return NextResponse.json({
             success: true,
             media: {
@@ -162,6 +168,11 @@ export async function DELETE(
         } else if (floorPlan) {
             await (prisma as any).projectFloorPlan.delete({ where: { id: params.mediaId } })
         }
+
+        const project = await (prisma as any).project.findUnique({ where: { id: params.id }, select: { slug: true } })
+        revalidatePath('/projects')
+        if (project?.slug) revalidatePath(`/projects/${project.slug}`)
+        revalidatePath(`/admin/projects/${params.id}`)
 
         return NextResponse.json({ success: true })
     } catch (err: any) {

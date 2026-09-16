@@ -46,6 +46,8 @@ export default function useProperties(forcedPurpose?: Purpose) {
   const [totalCount, setTotalCount] = useState<number | null>(null)
   const restoringUrlRef = useRef(false)
   const [locationOptions, setLocationOptions] = useState<{ states: string[]; cities: string[]; localities: string[] }>({ states: [], cities: [], localities: [] })
+  const [locationLoading, setLocationLoading] = useState(false)
+  const [locationError, setLocationError] = useState('')
 
   const [purposeState, setPurposeState] = useState<Purpose>(() => {
     if (forcedPurpose) return forcedPurpose
@@ -187,18 +189,32 @@ export default function useProperties(forcedPurpose?: Purpose) {
     if (filters.region) params.set('region', filters.region)
     if (filters.location) params.set('city', filters.location)
 
+    setLocationLoading(true)
+    setLocationError('')
     fetch(`/api/properties/locations?${params.toString()}`, { signal: controller.signal })
-      .then((response) => response.json())
-      .then((json) => {
-        if (!controller.signal.aborted && json?.success) {
+      .then(async (response) => ({ response, json: await response.json().catch(() => null) }))
+      .then(({ response, json }) => {
+        if (controller.signal.aborted) return
+        if (response.ok && json?.success) {
           setLocationOptions({
             states: Array.isArray(json.states) ? json.states : [],
             cities: Array.isArray(json.cities) ? json.cities : [],
             localities: Array.isArray(json.localities) ? json.localities : [],
           })
+        } else {
+          setLocationOptions({ states: [], cities: [], localities: [] })
+          setLocationError(json?.message || 'Unable to load locations. Please retry.')
         }
       })
-      .catch(() => {})
+      .catch((error) => {
+        if (!controller.signal.aborted && error?.name !== 'AbortError') {
+          setLocationOptions({ states: [], cities: [], localities: [] })
+          setLocationError('Unable to load locations. Please retry.')
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLocationLoading(false)
+      })
 
     return () => controller.abort()
   }, [filters.country, filters.region, filters.location])
@@ -419,5 +435,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
     cities,
     communities,
     states: locationOptions.states,
+    locationLoading,
+    locationError,
   }
 }

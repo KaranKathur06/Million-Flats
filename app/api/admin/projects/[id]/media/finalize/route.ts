@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { prisma } from '@/lib/prisma'
-import { buildCdnAssetUrl, deleteFromS3 } from '@/lib/s3'
+import { buildCdnAssetUrl, deleteFromS3, s3ObjectExists } from '@/lib/s3'
 import { PROJECT_MEDIA_CATEGORY_VALUES, projectMediaCategoryToEnum } from '@/lib/projectMediaTaxonomy'
+import { revalidatePath } from 'next/cache'
 
 export const runtime = 'nodejs'
 
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   try {
-    const { s3Key, fileName, fileSizeBytes, contentType, category, label, unitTypeId } = await req.json()
+    const { s3Key, fileName, fileSizeBytes, contentType, category, label, unitTypeId, sortOrder } = await req.json()
 
     // Validate inputs
     if (!s3Key || typeof s3Key !== 'string') {
@@ -92,6 +93,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         { success: false, message: 'Project not found' },
         { status: 404 }
       )
+    }
+
+    const projectSlug = String(project.slug || '').trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-')
+    if (!s3Key.startsWith('public/projects/') || !s3Key.includes(`/${projectSlug}/`)) {
+      return NextResponse.json({ success: false, message: 'Storage key is not authorized for this project' }, { status: 403 })
+    }
+    if (!await s3ObjectExists({ key: s3Key })) {
+      return NextResponse.json({ success: false, message: 'Uploaded storage object was not found. Please upload again.' }, { status: 404 })
     }
 
     const categoryEnum = projectMediaCategoryToEnum(category)
@@ -185,7 +194,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           category: categoryEnum,
           label: label?.trim() || null,
           s3Key,
-          sortOrder: 0,
+          sortOrder: Number.isInteger(sortOrder) && sortOrder >= 0 ? sortOrder : 0,
         },
       })
     }
@@ -197,6 +206,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         data: { coverImage: publicUrl },
       })
     }
+
+    revalidatePath('/projects')
+    revalidatePath(`/projects/${project.slug}`)
+    revalidatePath(`/admin/projects/${params.id}`)
 
     return NextResponse.json({
       success: true,

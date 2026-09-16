@@ -333,7 +333,8 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
 
         {floorPlanCards.length === 0 ? (
           <div className="rounded-xl border border-dashed border-white/[0.08] bg-black/10 p-6 text-sm text-white/50">
-            No Unit Types have been configured yet. Add Unit Types first to upload their floor plans.
+            <p>No Unit Types have been configured yet. Create a Unit Type first to upload its floor plan.</p>
+            <a href="#unit-types" className="mt-4 inline-flex rounded-lg bg-amber-400/20 px-3 py-2 text-sm font-medium text-amber-300 hover:bg-amber-400/30">+ Add Unit Type</a>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

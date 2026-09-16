@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { deleteFromS3 } from '@/lib/s3'
 import { isPropertyMediaCategory, propertyMediaCategory, propertyMediaStorageCategory } from '@/lib/propertyMedia'
+import { revalidatePath } from 'next/cache'
 
 async function findOwnedMedia(propertyId: string, mediaId: string) {
   const media = await (prisma as any).manualPropertyMedia.findUnique({ where: { id: mediaId } })
@@ -35,6 +36,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string; me
     if (update.category === 'COVER') await tx.manualPropertyMedia.updateMany({ where: { propertyId: params.id, category: 'COVER', id: { not: media.id } }, data: { category: 'EXTERIOR' } })
     return tx.manualPropertyMedia.update({ where: { id: media.id }, data: update })
   })
+  revalidatePath('/properties')
+  revalidatePath('/buy')
+  revalidatePath('/rent')
+  revalidatePath(`/admin/properties/${params.id}/edit`)
   return NextResponse.json({ success: true, media: { ...updated, category: propertyMediaCategory(updated.category) } })
 }
 
@@ -45,5 +50,9 @@ export async function DELETE(_req: Request, { params }: { params: { id: string; 
   if (!media) return NextResponse.json({ success: false, message: 'Media not found' }, { status: 404 })
   if (media.s3Key) await deleteFromS3(media.s3Key).catch((err) => console.error('[property media delete] storage cleanup failed', err))
   await (prisma as any).manualPropertyMedia.delete({ where: { id: media.id } })
+  revalidatePath('/properties')
+  revalidatePath('/buy')
+  revalidatePath('/rent')
+  revalidatePath(`/admin/properties/${params.id}/edit`)
   return NextResponse.json({ success: true })
 }

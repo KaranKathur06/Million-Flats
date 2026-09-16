@@ -5,9 +5,6 @@ import { ProjectPageSkeleton } from '@/components/skeletons/ProjectPageSkeletons
 import ProjectDetailClient from './ProjectDetailClient'
 import { getRecommendationsForContext } from '@/lib/ecosystem/getRecommendedPartners'
 import { getPublicProjectBySlug } from '@/lib/projects/getPublicProjectBySlug'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { isSearchBot } from '@/lib/botDetection'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -60,14 +57,8 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         notFound()
     }
 
-    const session = await getServerSession(authOptions)
-    const isBot = isSearchBot()
-    const isAuthenticated = !!session?.user
-    
-    // Determine lock state: Guest users (non-bots) get gated content
-    const isLocked = !isAuthenticated && !isBot
-
-    // Strict Server-Side Data Splitting
+    // Public project content is deliberately available to every visitor. Admin and
+    // agent permissions remain enforced by their own protected routes.
     const publicData = {
         id: project.id,
         name: project.name,
@@ -100,8 +91,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         developer: project.developer ? { name: project.developer.name, slug: project.developer.slug } : null
     };
 
-    // Private Data is strictly null for guests
-    const privateData = isLocked ? null : {
+    const privateData = {
         description: project.description,
         developer: project.developer, // full developer data with logo, rating, etc.
         media: project.media, // full gallery
@@ -122,7 +112,6 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
                publicData={publicData}
                privateData={privateData}
                ecosystemRecommendations={ecosystemRecommendations} 
-               isLocked={isLocked}
             />
         </Suspense>
     )

@@ -179,18 +179,14 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
 /* ═══════════════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════════════ */
-import PremiumLock from './_components/PremiumLock'
-
 export default function ProjectDetailClient({
     publicData,
     privateData,
     ecosystemRecommendations = [],
-    isLocked = false,
 }: {
     publicData: any
     privateData: any | null
     ecosystemRecommendations?: RecommendationGroup[]
-    isLocked?: boolean
 }) {
     const project = {
         ...publicData,
@@ -610,7 +606,7 @@ export default function ProjectDetailClient({
             <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
                 <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <nav className="flex gap-1 overflow-x-auto scrollbar-none -mb-px">
-                        {(['overview', 'amenities', 'plans', ...(isLocked ? [] : ['gallery', 'location'])] as const).map((tab) => (
+                        {(['overview', 'amenities', 'plans', 'gallery', 'location'] as const).map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => {
@@ -633,7 +629,7 @@ export default function ProjectDetailClient({
             <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 lg:py-16">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 lg:gap-12">
                     {/* ─── MAIN COLUMN ─── */}
-                    <div className={`${isLocked ? 'lg:col-span-3 max-w-4xl mx-auto w-full' : 'lg:col-span-2'} space-y-12`}>
+                    <div className="lg:col-span-2 space-y-12">
 
                         {/* OVERVIEW SECTION */}
                         <section id="section-overview">
@@ -1378,8 +1374,6 @@ export default function ProjectDetailClient({
                         )}
                             </>
                         )}
-                        {/* PREMIUM LOCK OVERLAY */}
-                        {isLocked && <PremiumLock />}
                     </div>
 
                     {/* ─── SIDEBAR ─── */}

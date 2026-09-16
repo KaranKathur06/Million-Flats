@@ -102,6 +102,8 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
     cities,
     communities,
     states,
+    locationLoading,
+    locationError,
   } = useProperties(forcedPurpose)
 
   // Data and URL sync handled by `useProperties` hook
@@ -271,7 +273,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
                   showLabel={false}
                   value={draftFilters.region}
                   onChange={(v) => changeFilter({ region: singleDropdownValue(v) })}
-                  options={[{ value: '', label: 'All States / Emirates' }, ...states.map((value) => ({ value, label: value }))]}
+                  options={[{ value: '', label: locationLoading ? 'Loading states…' : locationError ? 'Unable to load states' : states.length ? 'All States / Emirates' : 'No states available' }, ...states.map((value) => ({ value, label: value }))]}
                   disabled={!draftFilters.country}
                   appearance="admin-light"
                   dense
@@ -283,7 +285,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
                   showLabel={false}
                   value={draftFilters.location}
                   onChange={(v) => changeFilter({ location: singleDropdownValue(v) })}
-                  options={[{ value: '', label: draftFilters.region ? 'All Cities' : 'Select State / Emirate' }, ...cities.map((value) => ({ value, label: value }))]}
+                  options={[{ value: '', label: locationLoading ? 'Loading cities…' : locationError ? 'Unable to load cities' : draftFilters.region ? (cities.length ? 'All Cities' : 'No cities available') : 'Select State / Emirate' }, ...cities.map((value) => ({ value, label: value }))]}
                   disabled={!draftFilters.region}
                   appearance="admin-light"
                   dense
@@ -402,6 +404,7 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
                   </svg>
                 </button>
               </div>
+              {locationError ? <p className="px-1 pt-2 text-xs font-medium text-red-600">{locationError} <button type="button" onClick={() => window.location.reload()} className="underline">Retry</button></p> : null}
             </div>
           </div>
         </div>

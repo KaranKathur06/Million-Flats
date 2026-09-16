@@ -184,13 +184,28 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
     for (const [category, files] of uploads) {
       for (let index = 0; index < files.length; index += 1) {
         const file = files[index]
-        const fd = new FormData()
-        fd.append('file', file)
-        fd.append('category', category)
-        fd.append('sortOrder', String(index + 1))
-        const res = await fetch(`/api/admin/projects/${projectIdValue}/media`, { method: 'POST', body: fd })
-        const json = await res.json()
-        if (!res.ok || !json.success) throw new Error(json.message || `Media upload failed for ${file.name}`)
+        const presignRes = await fetch(`/api/admin/projects/${projectIdValue}/media/presign`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: file.name, fileSizeBytes: file.size, contentType: file.type, category }),
+        })
+        const presign = await presignRes.json().catch(() => null)
+        if (!presignRes.ok || !presign?.success) throw new Error(presign?.message || `Could not prepare ${file.name} for upload`)
+
+        const uploadRes = await fetch(presign.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type || 'application/octet-stream' },
+          body: file,
+        })
+        if (!uploadRes.ok) throw new Error(`Storage upload failed for ${file.name}`)
+
+        const finalizeRes = await fetch(`/api/admin/projects/${projectIdValue}/media/finalize`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ s3Key: presign.s3Key, fileName: file.name, fileSizeBytes: file.size, contentType: file.type, category, sortOrder: index + 1 }),
+        })
+        const finalized = await finalizeRes.json().catch(() => null)
+        if (!finalizeRes.ok || !finalized?.success) throw new Error(finalized?.message || `Could not save ${file.name}`)
       }
     }
   }
@@ -412,7 +427,7 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
           </div>
         )}
 
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-5">
+        <div id="unit-types" className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-5">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-white/70">Unit Types</h2>
             <button type="button" onClick={addUnitType} className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-300">+ Add Unit Type</button>

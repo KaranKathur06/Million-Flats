@@ -13,6 +13,20 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp
 const ALLOWED_FLOOR_PLAN_TYPES = [...ALLOWED_IMAGE_TYPES, 'image/svg+xml', 'application/pdf']
 const VALID_CATEGORIES = PROJECT_MEDIA_CATEGORY_VALUES
 
+function extensionMatchesContentType(fileName: string, contentType: string) {
+  const extension = String(fileName || '').trim().toLowerCase().split('.').pop() || ''
+  const allowed: Record<string, string[]> = {
+    'image/jpeg': ['jpg', 'jpeg'],
+    'image/jpg': ['jpg', 'jpeg'],
+    'image/png': ['png'],
+    'image/webp': ['webp'],
+    'image/avif': ['avif'],
+    'image/svg+xml': ['svg'],
+    'application/pdf': ['pdf'],
+  }
+  return Boolean(extension && allowed[contentType.toLowerCase()]?.includes(extension))
+}
+
 /**
  * POST /api/admin/projects/[id]/media/presign
  *
@@ -65,6 +79,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         },
         { status: 400 }
       )
+    }
+    if (!extensionMatchesContentType(fileName, contentType)) {
+      return NextResponse.json({ success: false, message: 'File extension does not match its declared media type' }, { status: 400 })
     }
 
     if (!fileSizeBytes || typeof fileSizeBytes !== 'number' || fileSizeBytes <= 0) {

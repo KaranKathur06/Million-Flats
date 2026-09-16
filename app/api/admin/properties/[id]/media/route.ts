@@ -5,6 +5,7 @@ import { requireAdminSession } from '@/lib/adminAuth'
 import { buildAssetUrl } from '@/lib/assetUrl'
 import { createSignedPutUrl, s3ObjectExists } from '@/lib/s3'
 import { PROPERTY_FLOOR_PLAN_ALLOWED_TYPES, PROPERTY_MEDIA_ALLOWED_TYPES, PROPERTY_MEDIA_CATEGORIES, PROPERTY_MEDIA_MAX_IMAGE_BYTES, isPropertyMediaCategory, propertyMediaCategory, propertyMediaStorageCategory } from '@/lib/propertyMedia'
+import { revalidatePath } from 'next/cache'
 
 const maxBytes = Number(process.env.PROJECT_IMAGE_MAX_SIZE_BYTES) || PROPERTY_MEDIA_MAX_IMAGE_BYTES
 
@@ -58,5 +59,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const last = await tx.manualPropertyMedia.aggregate({ where: { propertyId: params.id }, _max: { position: true } })
     return tx.manualPropertyMedia.create({ data: { propertyId: params.id, category, url: buildAssetUrl(data.s3Key) || data.s3Key, s3Key: data.s3Key, mimeType: data.contentType, sizeBytes: data.fileSizeBytes, altText: data.altText || null, floorPlanTitle: category === 'FLOOR_PLANS' ? data.floorPlanTitle || null : null, floorPlanBedroomCount: category === 'FLOOR_PLANS' ? data.floorPlanBedroomCount ?? null : null, position: (last._max.position ?? -1) + 1 } })
   })
+  revalidatePath('/properties')
+  revalidatePath('/buy')
+  revalidatePath('/rent')
+  revalidatePath(`/admin/properties/${params.id}/edit`)
   return NextResponse.json({ success: true, media: { ...media, category: propertyMediaCategory(media.category) } }, { status: 201 })
 }
