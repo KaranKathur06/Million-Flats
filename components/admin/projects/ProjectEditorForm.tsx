@@ -45,7 +45,7 @@ interface FloorPlanRow {
 }
 interface AmenityRow { id?: string; name: string; icon: string; category: string }
 interface NearbyPlaceRow { id?: string; name: string; category: string; distance: string }
-interface PaymentPlanRow { id?: string; itemType: 'BASE_PRICE' | 'FEE'; label: string; amount: string; currency: string; milestone: string }
+interface PaymentPlanRow { id?: string; itemType: 'BASE_PRICE' | 'FEE'; label: string; basis: 'PERCENTAGE' | 'FIXED_AMOUNT'; amount: string; currency: string; milestone: string }
 interface LocationData { latitude: string; longitude: string; address: string; mapUrl: string }
 interface VideoRow { id?: string; videoUrl: string; title: string; thumbnail: string }
 interface ProjectEditorFormProps {
@@ -95,7 +95,7 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
   const [highlights, setHighlights] = useState<string[]>([''])
   const [amenities, setAmenities] = useState<AmenityRow[]>([{ name: '', icon: '', category: '' }])
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlaceRow[]>([{ name: '', category: '', distance: '' }])
-  const [paymentPlans, setPaymentPlans] = useState<PaymentPlanRow[]>([{ itemType: 'BASE_PRICE', label: '', amount: '', currency: 'AED', milestone: '' }])
+  const [paymentPlans, setPaymentPlans] = useState<PaymentPlanRow[]>([{ itemType: 'BASE_PRICE', label: '', basis: 'PERCENTAGE', amount: '', currency: 'AED', milestone: '' }])
   const [location, setLocation] = useState<LocationData>({ latitude: '', longitude: '', address: '', mapUrl: '' })
   const [videos, setVideos] = useState<VideoRow[]>([{ videoUrl: '', title: '', thumbnail: '' }])
   const [brochureData, setBrochureData] = useState<{ id: string; fileUrl: string; fileName: string; fileSize: number | null } | null>(null)
@@ -185,7 +185,10 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
       }
       setAmenities((p.amenities || []).map((a: any) => ({ id: a.id, name: a.name || '', icon: a.icon || '', category: a.category || '' })))
       setNearbyPlaces((p.nearbyPlaces || []).map((np: any) => ({ id: np.id, name: np.name || '', category: np.category || '', distance: np.distance || '' })))
-      setPaymentPlans((p.paymentPlans || []).map((pp: any) => ({ id: pp.id, itemType: String(pp.itemType || '').toUpperCase() === 'FEE' ? 'FEE' : 'BASE_PRICE', label: pp.label || '', amount: pp.amount !== null && pp.amount !== undefined ? String(pp.amount) : '', currency: pp.currency || 'AED', milestone: pp.milestone || '' })))
+      const structuredStages = Array.isArray(p.paymentPlan?.stages) ? p.paymentPlan.stages : null
+      setPaymentPlans(structuredStages
+        ? structuredStages.map((stage: any) => ({ id: stage.id, itemType: 'BASE_PRICE', basis: stage.basis === 'FIXED_AMOUNT' ? 'FIXED_AMOUNT' : 'PERCENTAGE', label: stage.label || '', amount: String(stage.basis === 'FIXED_AMOUNT' ? stage.fixedAmount ?? '' : stage.percentage ?? ''), currency: p.countryIso2 === 'IN' ? 'INR' : 'AED', milestone: stage.milestone || stage.timingType || '' }))
+        : (p.paymentPlans || []).map((pp: any) => ({ id: pp.id, itemType: String(pp.itemType || '').toUpperCase() === 'FEE' ? 'FEE' : 'BASE_PRICE', basis: 'FIXED_AMOUNT', label: pp.label || '', amount: pp.amount !== null && pp.amount !== undefined ? String(pp.amount) : '', currency: pp.currency || 'AED', milestone: pp.milestone || '' })))
       if (p.location) {
         setLocation({ latitude: p.location.latitude != null ? String(p.location.latitude) : '', longitude: p.location.longitude != null ? String(p.location.longitude) : '', address: p.location.address || '', mapUrl: p.location.mapUrl || '' })
       }
@@ -227,7 +230,7 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
   const addNearbyPlace = () => setNearbyPlaces((prev) => [...prev, { name: '', category: '', distance: '' }])
   const updateNearbyPlace = (idx: number, field: keyof NearbyPlaceRow, value: string) => setNearbyPlaces((prev) => prev.map((row, i) => i === idx ? { ...row, [field]: value } : row))
   const removeNearbyPlace = (idx: number) => setNearbyPlaces((prev) => prev.filter((_, i) => i !== idx))
-  const addPaymentPlan = () => setPaymentPlans((prev) => [...prev, { itemType: 'BASE_PRICE', label: '', amount: '', currency: 'AED', milestone: '' }])
+  const addPaymentPlan = () => setPaymentPlans((prev) => [...prev, { itemType: 'BASE_PRICE', label: '', basis: 'PERCENTAGE', amount: '', currency: 'AED', milestone: '' }])
   const updatePaymentPlan = (idx: number, field: keyof PaymentPlanRow, value: string) => setPaymentPlans((prev) => prev.map((row, i) => i === idx ? { ...row, [field]: value } : row))
   const removePaymentPlan = (idx: number) => setPaymentPlans((prev) => prev.filter((_, i) => i !== idx))
   const addVideo = () => setVideos((prev) => [...prev, { videoUrl: '', title: '', thumbnail: '' }])
@@ -322,6 +325,7 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
         amenities: amenities.filter((a) => a.name.trim()).map((a) => ({ name: a.name.trim(), icon: a.icon.trim() || null, category: a.category.trim() || null })),
         nearbyPlaces: nearbyPlaces.filter((np) => np.name.trim()).map((np, idx) => ({ name: np.name.trim(), category: np.category.trim() || null, distance: np.distance.trim() || null, sortOrder: idx })),
         paymentPlans: paymentPlans.filter((pp) => pp.label.trim() && pp.amount.trim()).map((pp, idx) => ({ itemType: pp.itemType, label: pp.label.trim(), amount: pp.amount.trim(), currency: pp.currency.trim() || 'AED', milestone: pp.milestone.trim() || null, sortOrder: idx })),
+        paymentPlan: { version: 2, mode: paymentPlans.some((pp) => pp.basis === 'PERCENTAGE') && paymentPlans.some((pp) => pp.basis === 'FIXED_AMOUNT') ? 'MIXED' : paymentPlans.some((pp) => pp.basis === 'PERCENTAGE') ? 'PERCENTAGE' : 'FIXED', stages: paymentPlans.filter((pp) => pp.itemType === 'BASE_PRICE' && pp.label.trim() && pp.amount.trim()).map((pp, idx) => ({ id: pp.id || `stage-${idx + 1}`, type: idx === 0 ? 'BOOKING' : idx === paymentPlans.length - 1 ? 'HANDOVER' : 'CONSTRUCTION_MILESTONE', label: pp.label.trim(), basis: pp.basis, ...(pp.basis === 'PERCENTAGE' ? { percentage: Number(pp.amount) } : { fixedAmount: Number(pp.amount) }), timingType: idx === 0 ? 'AT_BOOKING' : idx === paymentPlans.length - 1 ? 'AT_HANDOVER' : 'AT_CONSTRUCTION_MILESTONE', milestone: pp.milestone.trim() || null, order: idx })) },
         location: location.address.trim() || location.latitude || location.longitude ? {
           latitude: location.latitude ? parseFloat(location.latitude) : null,
           longitude: location.longitude ? parseFloat(location.longitude) : null,
@@ -651,7 +655,8 @@ export default function ProjectEditorForm({ mode, projectId: propProjectId }: Pr
                   className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70"
                 />
                 <input value={pp.label} onChange={(e) => updatePaymentPlan(idx, 'label', e.target.value)} placeholder="Item label" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
-                <input value={pp.amount} onChange={(e) => updatePaymentPlan(idx, 'amount', e.target.value)} placeholder="Amount" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
+                <GlobalDropdown value={pp.basis} onChange={(v) => updatePaymentPlan(idx, 'basis', String(v) as PaymentPlanRow['basis'])} options={[{ value: 'PERCENTAGE', label: 'Percentage' }, { value: 'FIXED_AMOUNT', label: 'Fixed amount' }]} showLabel={false} className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
+                <input value={pp.amount} onChange={(e) => updatePaymentPlan(idx, 'amount', e.target.value)} placeholder={pp.basis === 'PERCENTAGE' ? 'Percentage' : 'Amount'} className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
                 <input value={pp.currency} onChange={(e) => updatePaymentPlan(idx, 'currency', e.target.value)} placeholder="Currency" className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />
                 <div className="flex items-center justify-between gap-2">
                   <input value={pp.milestone} onChange={(e) => updatePaymentPlan(idx, 'milestone', e.target.value)} placeholder="Milestone" className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/70" />

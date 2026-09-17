@@ -95,7 +95,7 @@ export default function SmartSearch({
           }}
           aria-label="Search properties"
           placeholder="Search properties, projects, localities..."
-          className="w-full h-12 px-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-dark-blue/30"
+          className="w-full h-12 px-4 rounded-xl border border-gray-200 bg-white text-slate-900 caret-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-dark-blue/30"
         />
         {(suggestionsLoading || suggestions.length > 0 || (draftFilters.search && !suggestionsLoading)) ? (
           <div className="absolute left-0 right-0 top-full z-[80] mt-2 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl" role="listbox" aria-label="Property search results">

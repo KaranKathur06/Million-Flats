@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { buildAssetUrl } from '@/lib/assetUrl'
+import { calculateProjectPricingSummary } from '@/lib/projectPricing'
 const FALLBACK_IMAGE = '/images/default-property.jpg'
 
 function normalizeMediaType(v: unknown) {
@@ -63,6 +64,7 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
                 highlights: true,
                 completionYear: true,
                 startingPrice: true,
+                paymentPlan: true,
                 goldenVisa: true,
                 coverImage: true,
                 status: true,
@@ -154,6 +156,7 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
                         highlights: true,
                         completionYear: true,
                         startingPrice: true,
+                        paymentPlan: true,
                         goldenVisa: true,
                         coverImage: true,
                         status: true,
@@ -244,6 +247,7 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
                             highlights: true,
                             completionYear: true,
                             startingPrice: true,
+                            paymentPlan: true,
                             goldenVisa: true,
                             coverImage: true,
                             status: true,
@@ -346,6 +350,7 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
                 city: true,
                 community: true,
                 startingPrice: true,
+                paymentPlan: true,
                 goldenVisa: true,
                 coverImage: true,
                 developer: { select: { name: true } },
@@ -420,6 +425,12 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
             success: true,
             project: {
                 ...project,
+                pricing: calculateProjectPricingSummary({
+                    basePrice: project.startingPrice,
+                    paymentPlans: project.paymentPlans,
+                    paymentPlan: project.paymentPlan,
+                    additionalCharges: [],
+                }),
                 coverImage: heroFallback,
                 highlights,
                 similarProjects: resolvedSimilar,

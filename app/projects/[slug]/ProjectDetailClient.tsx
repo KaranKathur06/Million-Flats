@@ -52,6 +52,7 @@ interface ProjectData {
     highlights: string[]
     completionYear: number | null
     startingPrice: number | null
+    paymentPlan?: unknown
     goldenVisa: boolean
     coverImage: string | null
     status: string
@@ -91,7 +92,8 @@ interface ProjectData {
         }[]
     }[]
     amenities: { id: string; name: string; icon: string | null; category: string | null }[]
-    paymentPlans: { id: string; itemType: 'BASE_PRICE' | 'FEE'; label: string; amount: number; currency: string; milestone: string | null; sortOrder: number | null }[]
+    paymentPlans: { id: string; itemType: 'BASE_PRICE' | 'FEE'; label: string; amount: number; currency: string; milestone: string | null; sortOrder: number | null; basis?: 'PERCENTAGE' | 'FIXED_AMOUNT' | string | null; percentage?: number | null; fixedAmount?: number | null; calculatedAmount?: number | null }[]
+    pricing?: ReturnType<typeof calculateProjectPricingSummary>
     floorPlans: { id: string; unitTypeId?: string | null; unitType: string; bedrooms: number | null; bathrooms: number | null; size: string | null; price: string | null; imageUrl: string | null }[]
     videos: { id: string; videoUrl: string; title: string | null; thumbnail: string | null; sortOrder: number | null }[]
     location: { id: string; latitude: number | null; longitude: number | null; address: string | null; mapUrl: string | null } | null
@@ -143,9 +145,9 @@ function extractImageName(input: string): string {
 /* ═══════════════════════════════════════════════
    HELPERS
    ═══════════════════════════════════════════════ */
-function formatPrice(price: number | null | undefined) {
+function formatPrice(price: number | null | undefined, currency: 'AED' | 'INR' = 'AED') {
     if (!price) return 'TBD'
-    return <CurrencyPrice amount={price} sourceCurrency="AED" />
+    return <CurrencyPrice amount={price} sourceCurrency={currency} />
 }
 
 /* Amenity Icon Component */
@@ -194,6 +196,7 @@ export default function ProjectDetailClient({
         videos: privateData?.videos || [],
         similarProjects: privateData?.similarProjects || []
     } as ProjectData
+    const projectCurrency = project.countryIso2 === 'IN' ? 'INR' : 'AED'
 
     const searchParams = useSearchParams()
     const fallbackImage = '/images/default-property.jpg'
@@ -213,11 +216,12 @@ export default function ProjectDetailClient({
     const [modalImgIndex, setModalImgIndex] = useState(0)
     const [modalSource, setModalSource] = useState<'featured' | 'tab'>('tab')
 
-    const pricingSummary = useMemo(() => calculateProjectPricingSummary({
+    const pricingSummary = useMemo(() => project.pricing || calculateProjectPricingSummary({
         basePrice: project.startingPrice ?? 0,
         paymentPlans: project.paymentPlans,
         additionalCharges: [],
-    }), [project.startingPrice, project.paymentPlans])
+        paymentPlan: project.paymentPlan,
+    }), [project.pricing, project.startingPrice, project.paymentPlans, project.paymentPlan])
 
     // Recognised gallery media types (tab-specific + legacy ones)
     const GALLERY_MEDIA_TYPES = useMemo(() => new Set(['gallery', 'cover', 'image', 'IMAGE', 'featured', 'exterior', 'amenities', 'other', 'lifestyle']), [])
@@ -567,7 +571,7 @@ export default function ProjectDetailClient({
                             {project.startingPrice && (
                                 <span className="flex items-center gap-1.5 text-amber-300 font-bold text-sm">
                                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                    From {formatPrice(project.startingPrice)}
+                                    From {formatPrice(project.startingPrice, projectCurrency)}
                                 </span>
                             )}
                             {project.completionYear && (
@@ -711,7 +715,7 @@ export default function ProjectDetailClient({
                                 {project.startingPrice && (
                                     <div className="rounded-xl border border-gray-200 bg-white p-4 hover:shadow-md transition-shadow">
                                         <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Starting From</p>
-                                        <p className="text-sm font-semibold text-amber-600">{formatPrice(project.startingPrice)}</p>
+                                        <p className="text-sm font-semibold text-amber-600">{formatPrice(project.startingPrice, projectCurrency)}</p>
                                     </div>
                                 )}
                                 {project.goldenVisa && (
@@ -760,29 +764,30 @@ export default function ProjectDetailClient({
                                     <div className="grid gap-3 sm:grid-cols-3">
                                         <div>
                                             <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-amber-700">Base price</p>
-                                            <p className="mt-2 text-lg font-bold text-gray-900">{formatPrice(pricingSummary.paymentScheduleTotal)}</p>
+                                            <p className="mt-2 text-lg font-bold text-gray-900">{formatPrice(pricingSummary.basePrice, projectCurrency)}</p>
                                         </div>
                                         <div>
                                             <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-amber-700">Additional fees</p>
-                                            <p className="mt-2 text-lg font-bold text-gray-900">{formatPrice(pricingSummary.additionalChargesTotal)}</p>
+                                            <p className="mt-2 text-lg font-bold text-gray-900">{pricingSummary.additionalChargesConfigured ? formatPrice(pricingSummary.additionalChargesTotal, projectCurrency) : 'TBD'}</p>
                                         </div>
                                         <div>
                                             <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-amber-700">Total cost</p>
-                                            <p className="mt-2 text-lg font-bold text-amber-700">{formatPrice(pricingSummary.totalAcquisitionCost)}</p>
+                                            <p className="mt-2 text-lg font-bold text-amber-700">{formatPrice(pricingSummary.totalAcquisitionCost, projectCurrency)}</p>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
                                     <div className="grid gap-1 md:grid-cols-2">
-                                        {project.paymentPlans.map((pp) => (
-                                            <div key={pp.id} className="p-5 border-b border-gray-100 last:border-b-0">
+                                        {pricingSummary.paymentPlanRows.concat(pricingSummary.additionalChargeRows).map((pp, index) => (
+                                            <div key={`${pp.label || 'payment'}-${index}`} className="p-5 border-b border-gray-100 last:border-b-0">
                                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                                     <div>
                                                         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-500">{pp.itemType === 'FEE' ? 'Fee' : 'Base price'}</p>
                                                         <p className="text-lg font-semibold text-gray-900">{pp.label}</p>
                                                     </div>
                                                     <div className="text-right">
-                                                        <p className="text-2xl font-bold text-amber-600">{pp.currency || 'AED'} {pp.amount?.toLocaleString()}</p>
+                                                        {String(pp.basis || '').toUpperCase() === 'PERCENTAGE' ? <p className="text-lg font-semibold text-gray-700">{pp.percentage ?? pp.amount}%</p> : null}
+                                                        <p className="text-2xl font-bold text-amber-600">{formatPrice(pp.calculatedAmount ?? pp.amount, projectCurrency)}</p>
                                                         {pp.milestone && <p className="text-xs text-gray-500">{pp.milestone}</p>}
                                                     </div>
                                                 </div>

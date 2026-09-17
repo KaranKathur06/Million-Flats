@@ -37,6 +37,7 @@ const createProjectSchema = z.object({
     overview: z.string().max(20000).optional().nullable(),
     completionYear: z.number().int().min(2000).max(2100).optional().nullable(),
     startingPrice: z.union([z.number(), z.string()]).optional().nullable(),
+    paymentPlan: z.unknown().optional().nullable(),
     goldenVisa: z.boolean().optional(),
     isFeatured: z.boolean().optional(),
     featuredOrder: z.number().int().min(0).optional().nullable(),
@@ -249,6 +250,15 @@ export async function POST(req: Request) {
         }
 
         const data = parsed.data
+        if (data.paymentPlan && typeof data.paymentPlan === 'object' && !Array.isArray(data.paymentPlan)) {
+            const stages = Array.isArray((data.paymentPlan as any).stages) ? (data.paymentPlan as any).stages : []
+            const percentageTotal = stages.filter((stage: any) => stage?.basis === 'PERCENTAGE').reduce((sum: number, stage: any) => sum + Number(stage?.percentage || 0), 0)
+            const hasPercentage = stages.some((stage: any) => stage?.basis === 'PERCENTAGE')
+            const hasFixed = stages.some((stage: any) => stage?.basis === 'FIXED_AMOUNT')
+            if ((hasPercentage && hasFixed) || (hasPercentage && Math.abs(percentageTotal - 100) > 0.01)) {
+                return NextResponse.json({ success: false, message: hasPercentage && hasFixed ? 'Percentage and fixed payment stages cannot be mixed.' : `Payment schedule totals ${percentageTotal}%. Expected 100%.` }, { status: 400 })
+            }
+        }
         const slug = data.slug || slugify(data.name)
         const normalizedStartingPrice = parseAEDInput(data.startingPrice)
         if (data.startingPrice !== undefined && data.startingPrice !== null && normalizedStartingPrice === null) {
@@ -288,6 +298,7 @@ export async function POST(req: Request) {
                 overview: data.overview || null,
                 completionYear: data.completionYear ?? null,
                 startingPrice: normalizedStartingPrice ?? derivedStartingPrice,
+                paymentPlan: data.paymentPlan ?? undefined,
                 goldenVisa: data.goldenVisa || false,
                 isFeatured: data.isFeatured || false,
                 featuredOrder: data.isFeatured ? (data.featuredOrder ?? 0) : null,

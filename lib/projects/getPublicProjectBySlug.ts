@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { buildAssetUrl } from '@/lib/assetUrl'
 import { resolveDeveloperLogo, resolveProjectImage, resolveProjectMediaUrl } from '@/lib/media/resolveMedia'
+import { calculateProjectPricingSummary } from '@/lib/projectPricing'
 
 /** Shared select shape — matches GET /api/projects/[slug] (production-verified). */
 export const publicProjectDetailSelect = {
@@ -14,6 +15,7 @@ export const publicProjectDetailSelect = {
   highlights: true,
   completionYear: true,
   startingPrice: true,
+  paymentPlan: true,
   goldenVisa: true,
   coverImage: true,
   brochureUrl: true,
@@ -248,6 +250,12 @@ export async function getPublicProjectBySlug(rawSlug: string) {
 
     return {
       ...project,
+      pricing: calculateProjectPricingSummary({
+        basePrice: project.startingPrice,
+        paymentPlans: project.paymentPlans,
+        paymentPlan: project.paymentPlan,
+        additionalCharges: [],
+      }),
       coverImage: resolvedCover || coverReference,
       media: resolvedMedia,
       highlights: parseHighlights(project.highlights),

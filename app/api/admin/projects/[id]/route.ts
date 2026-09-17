@@ -37,6 +37,7 @@ const updateProjectSchema = z.object({
     overview: z.string().max(20000).optional().nullable(),
     completionYear: z.number().int().min(2000).max(2100).optional().nullable(),
     startingPrice: z.union([z.number(), z.string()]).optional().nullable(),
+    paymentPlan: z.unknown().optional().nullable(),
     goldenVisa: z.boolean().optional(),
     isFeatured: z.boolean().optional(),
     featuredOrder: z.number().int().min(0).optional().nullable(),
@@ -334,6 +335,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         if (data.isPinned !== undefined) updateData.isPinned = data.isPinned
         if (data.pinPriority !== undefined) updateData.pinPriority = data.pinPriority
         if (data.coverImage !== undefined) updateData.coverImage = data.coverImage
+        if (data.paymentPlan !== undefined) updateData.paymentPlan = data.paymentPlan
 
         let derivedMinVariantPrice: number | null = null
         // Handle unit types + variants: replace all if provided
@@ -629,6 +631,17 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
                         `INSERT INTO "project_payment_plans" (${columnNames.map((column) => `"${column}"`).join(', ')}) VALUES ${insertValues}`
                     )
                 }
+            }
+        }
+
+        if (data.paymentPlan && typeof data.paymentPlan === 'object' && !Array.isArray(data.paymentPlan)) {
+            const structured = data.paymentPlan as any
+            const stages = Array.isArray(structured.stages) ? structured.stages : []
+            const percentageTotal = stages.filter((stage: any) => stage?.basis === 'PERCENTAGE').reduce((sum: number, stage: any) => sum + Number(stage?.percentage || 0), 0)
+            const hasPercentage = stages.some((stage: any) => stage?.basis === 'PERCENTAGE')
+            const hasFixed = stages.some((stage: any) => stage?.basis === 'FIXED_AMOUNT')
+            if ((hasPercentage && hasFixed) || (hasPercentage && Math.abs(percentageTotal - 100) > 0.01)) {
+                return NextResponse.json({ success: false, message: hasPercentage && hasFixed ? 'Percentage and fixed payment stages cannot be mixed.' : `Payment schedule totals ${percentageTotal}%. Expected 100%.` }, { status: 400 })
             }
         }
 

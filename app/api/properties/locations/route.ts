@@ -50,16 +50,18 @@ export async function GET(req: Request) {
     const canonicalCountry = normalizeCountryCode(country)
     const canonicalCityRows = await (prisma as any).city.findMany({
       where: { countryCode: canonicalCountry === 'AE' ? 'UAE' : 'INDIA' },
-      select: { name: true },
+      select: { id: true, name: true },
       orderBy: { name: 'asc' },
-    }).catch(() => [])
+    })
 
-    const canonicalCommunityRows = canonicalCityRows.length
-      ? await (prisma as any).community.findMany({
-          where: { city: { name: { in: canonicalCityRows.map((row: any) => row.name) } } },
-          select: { name: true, city: { select: { name: true } } },
-        }).catch(() => [])
-      : []
+    const selectedCanonicalCity = city
+      ? canonicalCityRows.find((row: any) => String(row.name).toLowerCase() === city.toLowerCase())
+      : null
+    const canonicalCommunityRows = await (prisma as any).community.findMany({
+      where: selectedCanonicalCity ? { cityId: selectedCanonicalCity.id } : {},
+      select: { name: true, city: { select: { name: true } } },
+      orderBy: { name: 'asc' },
+    })
 
     const fallbackCities = uniqueSorted([
       ...cities,
@@ -67,7 +69,9 @@ export async function GET(req: Request) {
     ])
     const fallbackLocalities = uniqueSorted([
       ...localities,
-      ...canonicalCommunityRows.map((row: any) => row.name),
+      ...canonicalCommunityRows
+        .filter((row: any) => !city || String(row.city?.name || '').toLowerCase() === city.toLowerCase())
+        .map((row: any) => row.name),
     ])
 
     return NextResponse.json({
@@ -77,7 +81,7 @@ export async function GET(req: Request) {
       cities: fallbackCities,
       localities: fallbackLocalities,
       hasOptions: states.length > 0 || fallbackCities.length > 0 || fallbackLocalities.length > 0,
-    })
+    }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     console.error('Property locations: failed', error)
     return NextResponse.json({ success: false, message: 'Unable to load locations' }, { status: 500 })

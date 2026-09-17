@@ -54,4 +54,49 @@ describe('project pricing summary', () => {
     expect(summary.totalAcquisitionCost).toBe(1260000)
     expect(summary.paymentSchedulePercent).toBe(25)
   })
+
+  it('calculates structured percentage stages from the canonical project price', () => {
+    const summary = calculateProjectPricingSummary({
+      basePrice: 2100000,
+      paymentPlan: {
+        version: 2,
+        mode: 'PERCENTAGE',
+        stages: [
+          { id: 'down', label: 'Down payment', basis: 'PERCENTAGE', percentage: 20, timingType: 'AT_BOOKING', order: 0 },
+          { id: 'construction', label: 'Construction', basis: 'PERCENTAGE', percentage: 30, timingType: 'AT_CONSTRUCTION_MILESTONE', order: 1 },
+          { id: 'handover', label: 'Handover', basis: 'PERCENTAGE', percentage: 50, timingType: 'AT_HANDOVER', order: 2 },
+        ],
+      },
+    })
+
+    expect(summary.paymentPlanRows.map((row) => row.basis)).toEqual(['PERCENTAGE', 'PERCENTAGE', 'PERCENTAGE'])
+    expect(summary.paymentPlanRows.map((row) => row.calculatedAmount)).toEqual([420000, 630000, 1050000])
+    expect(summary.paymentScheduleTotal).toBe(2100000)
+    expect(summary.paymentSchedulePercentageTotal).toBe(100)
+    expect(summary.paymentScheduleValid).toBe(true)
+  })
+
+  it('rejects incomplete percentage schedules and preserves fixed amounts', () => {
+    const percentageSummary = calculateProjectPricingSummary({
+      basePrice: 1000000,
+      paymentPlan: {
+        version: 2,
+        mode: 'PERCENTAGE',
+        stages: [{ id: 'booking', label: 'Booking', basis: 'PERCENTAGE', percentage: 90, timingType: 'AT_BOOKING', order: 0 }],
+      },
+    })
+    const fixedSummary = calculateProjectPricingSummary({
+      basePrice: 1000000,
+      paymentPlan: {
+        version: 2,
+        mode: 'FIXED',
+        stages: [{ id: 'booking', label: 'Booking', basis: 'FIXED_AMOUNT', fixedAmount: 20, timingType: 'AT_BOOKING', order: 0 }],
+      },
+    })
+
+    expect(percentageSummary.paymentScheduleValid).toBe(false)
+    expect(percentageSummary.paymentScheduleValidationMessage).toContain('90%')
+    expect(fixedSummary.paymentPlanRows[0].calculatedAmount).toBe(20)
+    expect(fixedSummary.paymentScheduleValid).toBe(true)
+  })
 })

@@ -197,7 +197,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
 
     setLocationLoading(true)
     setLocationError('')
-    fetch(`/api/properties/locations?${params.toString()}`, { signal: controller.signal })
+    fetch(`/api/properties/locations?${params.toString()}`, { signal: controller.signal, cache: 'no-store' })
       .then(async (response) => ({ response, json: await response.json().catch(() => null) }))
       .then(({ response, json }) => {
         if (controller.signal.aborted) return

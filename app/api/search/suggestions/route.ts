@@ -93,10 +93,15 @@ export async function GET(req: Request) {
         })
 
         // ── 3. Location matches (distinct cities + communities) ────────────
+        const country = (searchParams.get('country') || '').trim().toUpperCase()
+        const projectLocationWhere = {
+            status: 'PUBLISHED',
+            isDeleted: false,
+            ...(country ? { countryIso2: country === 'INDIA' ? 'IN' : 'AE' } : {}),
+        }
         const cityRows = await db.project.findMany({
             where: {
-                status: 'PUBLISHED',
-                isDeleted: false,
+                ...projectLocationWhere,
                 city: { contains: q, mode: 'insensitive' },
             },
             select: { city: true },
@@ -106,13 +111,28 @@ export async function GET(req: Request) {
 
         const communityRows = await db.project.findMany({
             where: {
-                status: 'PUBLISHED',
-                isDeleted: false,
+                ...projectLocationWhere,
                 community: { contains: q, mode: 'insensitive' },
             },
             select: { community: true, city: true },
             distinct: ['community'],
             take: 5,
+        })
+
+        const propertyLocationRows = await db.manualProperty.findMany({
+            where: {
+                status: 'PUBLISHED',
+                sourceType: 'MANUAL',
+                ...(country ? { countryCode: country } : {}),
+                agent: { approved: true, user: { status: 'ACTIVE' } },
+                OR: [
+                    { city: { contains: q, mode: 'insensitive' } },
+                    { locality: { contains: q, mode: 'insensitive' } },
+                    { community: { contains: q, mode: 'insensitive' } },
+                ],
+            },
+            select: { city: true, locality: true, community: true },
+            take: 10,
         })
 
         // De-duplicate locations
@@ -133,6 +153,16 @@ export async function GET(req: Request) {
             if (com && !locationSet.has(com.toLowerCase())) {
                 locationSet.add(com.toLowerCase())
                 locations.push({ label: com, type: 'community', city: city || undefined })
+            }
+        }
+
+        for (const r of propertyLocationRows) {
+            for (const value of [r.city, r.locality, r.community]) {
+                const label = String(value || '').trim()
+                if (label && !locationSet.has(label.toLowerCase())) {
+                    locationSet.add(label.toLowerCase())
+                    locations.push({ label, type: label === r.city ? 'city' : 'community', city: String(r.city || '').trim() || undefined })
+                }
             }
         }
 
