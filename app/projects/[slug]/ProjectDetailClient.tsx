@@ -145,9 +145,10 @@ function extractImageName(input: string): string {
 /* ═══════════════════════════════════════════════
    HELPERS
    ═══════════════════════════════════════════════ */
-function formatPrice(price: number | null | undefined, currency: 'AED' | 'INR' = 'AED') {
-    if (!price) return 'TBD'
-    return <CurrencyPrice amount={price} sourceCurrency={currency} />
+function formatPrice(price: number | string | null | undefined, currency: 'AED' | 'INR' = 'AED') {
+    const amount = typeof price === 'number' ? price : Number(price)
+    if (!Number.isFinite(amount) || amount <= 0) return 'TBD'
+    return <CurrencyPrice amount={amount} sourceCurrency={currency} />
 }
 
 /* Amenity Icon Component */
