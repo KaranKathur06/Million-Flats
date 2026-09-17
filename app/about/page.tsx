@@ -69,6 +69,154 @@ export default function AboutPage() {
       {/* Mission & Vision */}
       <MissionVision />
 
+      <section className="section-spacing bg-[#061d3d] text-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-10 text-center">
+              <div className="mx-auto mb-4 h-px max-w-[420px] bg-[#d7b369]" />
+              <h2 className="font-serif text-4xl font-bold tracking-tight text-[#f2d799] md:text-6xl">
+                Our Credentials
+              </h2>
+              <div className="mt-5 flex items-center justify-center gap-4 text-[11px] font-semibold uppercase tracking-[0.32em] text-[#f2d799]">
+                <span>Compliant</span>
+                <span className="text-[#f2d799]/70">•</span>
+                <span>Recognized</span>
+                <span className="text-[#f2d799]/70">•</span>
+                <span>Trusted</span>
+              </div>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="rounded-[22px] border border-[#d7b369]/80 bg-[#0c2345] p-6 shadow-[0_0_0_1px_rgba(215,179,105,0.15)]">
+                <div className="flex items-center gap-5">
+                  <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-[#d7b369] bg-[#071a31] text-xl font-bold text-[#f2d799]">
+                    <span className="flex flex-col items-center leading-none">
+                      <span className="text-[11px] tracking-[0.28em]">🇮🇳</span>
+                      <span className="mt-2 text-[10px]">CIN</span>
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-serif text-3xl font-bold text-[#f2d799] md:text-[2.15rem]">
+                      Corporate Identity (CIN)
+                    </h3>
+                    <div className="mt-5 space-y-3">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#d7b369]">
+                          Identifier / Status
+                        </p>
+                        <p className="mt-2 text-2xl font-bold text-white md:text-3xl">U62099GJ2026PTC173224</p>
+                      </div>
+                      <div className="h-px w-full bg-[#d7b369]/50" />
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#d7b369]">
+                          Authority
+                        </p>
+                        <p className="mt-2 text-xl text-white md:text-2xl">Ministry of Corporate Affairs<br className="hidden md:block" />(RoC Ahmedabad)</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-[#d7b369]/80 bg-[#0c2345] p-6 shadow-[0_0_0_1px_rgba(215,179,105,0.15)]">
+                <div className="flex items-center gap-5">
+                  <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-[#d7b369] bg-[#071a31] text-sm font-bold text-[#f2d799]">
+                    <span className="flex flex-col items-center leading-tight">
+                      <span className="text-xl">#</span>
+                      <span className="text-[10px] tracking-[0.12em]">startup</span>
+                      <span className="text-[10px] tracking-[0.12em]">india</span>
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-serif text-3xl font-bold text-[#f2d799] md:text-[2.15rem]">
+                      DPIIT Recognition
+                    </h3>
+                    <div className="mt-5 space-y-3">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#d7b369]">
+                          Identifier / Status
+                        </p>
+                        <p className="mt-2 text-2xl font-bold text-white md:text-3xl">DIPP249451</p>
+                      </div>
+                      <div className="h-px w-full bg-[#d7b369]/50" />
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#d7b369]">
+                          Authority
+                        </p>
+                        <p className="mt-2 text-xl text-white md:text-2xl">Startup India /<br className="hidden md:block" />Ministry of Commerce &amp; Industry</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-[#d7b369]/80 bg-[#0c2345] p-6 shadow-[0_0_0_1px_rgba(215,179,105,0.15)]">
+                <div className="flex items-center gap-5">
+                  <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-[#d7b369] bg-[#071a31] text-2xl font-bold text-[#f2d799]">
+                    GST
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-serif text-3xl font-bold text-[#f2d799] md:text-[2.15rem]">
+                      Goods &amp; Services Tax (GST)
+                    </h3>
+                    <div className="mt-5 space-y-3">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#d7b369]">
+                          Identifier / Status
+                        </p>
+                        <p className="mt-2 text-2xl font-bold text-white md:text-3xl">24AAUCM4853G1Z3</p>
+                      </div>
+                      <div className="h-px w-full bg-[#d7b369]/50" />
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#d7b369]">
+                          Authority
+                        </p>
+                        <p className="mt-2 text-xl text-white md:text-2xl">Government of India</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-[#d7b369]/80 bg-[#0c2345] p-6 shadow-[0_0_0_1px_rgba(215,179,105,0.15)]">
+                <div className="flex items-center gap-5">
+                  <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-[#d7b369] bg-[#071a31] text-xl font-bold text-[#f2d799]">
+                    <span className="flex flex-col items-center leading-none">
+                      <span className="text-[11px] tracking-[0.2em]">🇮🇳</span>
+                      <span className="mt-2 text-[10px]">DGFT</span>
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-serif text-3xl font-bold text-[#f2d799] md:text-[2.15rem]">
+                      Importer-Exporter Code (IEC)
+                    </h3>
+                    <div className="mt-5 space-y-3">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#d7b369]">
+                          Identifier / Status
+                        </p>
+                        <p className="mt-2 text-2xl font-bold text-white md:text-3xl">AAUCM4853G</p>
+                      </div>
+                      <div className="h-px w-full bg-[#d7b369]/50" />
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#d7b369]">
+                          Authority
+                        </p>
+                        <p className="mt-2 text-xl text-white md:text-2xl">Directorate General of Foreign Trade<br className="hidden md:block" />(DGFT)</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-12 flex items-center justify-center">
+              <div className="h-px w-full max-w-[760px] bg-[#d7b369]" />
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="section-spacing bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">

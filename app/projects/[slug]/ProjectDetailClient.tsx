@@ -1,9 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import { useAuthConfig } from '@/components/auth/AuthConfigProvider'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import CurrencyPrice from '@/components/CurrencyPrice'
@@ -197,10 +195,7 @@ export default function ProjectDetailClient({
         similarProjects: privateData?.similarProjects || []
     } as ProjectData
 
-    const router = useRouter()
     const searchParams = useSearchParams()
-    const { data: session } = useSession()
-    const authConfig = useAuthConfig()
     const fallbackImage = '/images/default-property.jpg'
     const [selectedImg, setSelectedImg] = useState(0)
     const [formData, setFormData] = useState({ name: '', email: '', phone: '', message: '' })
@@ -247,18 +242,8 @@ export default function ProjectDetailClient({
         return mediaBrochure?.mediaUrl || null
     }, [project.brochure?.file, project.media])
 
-    // Auth-gated brochure download handler
+    // Public project content remains accessible without a login wall.
     const handleBrochureDownload = useCallback(async () => {
-        if (!session?.user) {
-            // Redirect to login with return url
-            const currentPath = `/projects/${project.slug}?download=brochure`
-            if (authConfig?.allowWhatsapp) {
-                router.push(`/auth/login?auth=whatsapp&next=${encodeURIComponent(currentPath)}`)
-                return
-            }
-            router.push(`/auth/login?next=${encodeURIComponent(currentPath)}`)
-            return
-        }
         setBrochureDownloading(true)
         try {
             const res = await fetch(`/api/projects/${project.slug}/brochure/download`, {
@@ -266,12 +251,6 @@ export default function ProjectDetailClient({
             })
             const json = await res.json()
             if (!res.ok || !json.success) {
-                if (json.loginRequired) {
-                    const currentPath = `/projects/${project.slug}?download=brochure`
-                    const authQuery = authConfig?.allowWhatsapp ? 'auth=whatsapp&' : ''
-                    router.push(`/auth/login?${authQuery}next=${encodeURIComponent(currentPath)}`)
-                    return
-                }
                 throw new Error(json.message || 'Download failed')
             }
             // Trigger download
@@ -288,11 +267,11 @@ export default function ProjectDetailClient({
         } finally {
             setBrochureDownloading(false)
         }
-    }, [session, project.slug, router])
+    }, [project.slug])
 
-    // Auto-download brochure after login redirect
+    // Preserve direct brochure links from existing URLs.
     useEffect(() => {
-        if (searchParams?.get('download') === 'brochure' && session?.user && brochureLink) {
+        if (searchParams?.get('download') === 'brochure' && brochureLink) {
             // Small delay to let page settle
             const timer = setTimeout(() => {
                 handleBrochureDownload()
@@ -304,7 +283,7 @@ export default function ProjectDetailClient({
             }, 800)
             return () => clearTimeout(timer)
         }
-    }, [searchParams, session, brochureLink, handleBrochureDownload])
+    }, [searchParams, brochureLink, handleBrochureDownload])
 
     // Client-side scroll restoration
     useEffect(() => {
@@ -700,12 +679,6 @@ export default function ProjectDetailClient({
                                                         </>
                                                     )}
                                                 </button>
-                                                {!session?.user && (
-                                                    <p className="text-[11px] text-gray-400 text-center mt-2 flex items-center justify-center gap-1">
-                                                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                                                        Login required for download
-                                                    </p>
-                                                )}
                                             </div>
                                         </div>
                                     </div>

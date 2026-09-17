@@ -33,11 +33,21 @@ export default function SmartSearch({
     setSuggestionsLoading(true)
     const timer = window.setTimeout(async () => {
       try {
-        const params = new URLSearchParams({ q: query, purpose, limit: '6' })
+        if (query.length < 1) return
+        const params = new URLSearchParams({ q: query, purpose })
         if (country) params.set('country', country)
-        const response = await fetch(`/api/properties?${params.toString()}`, { signal: controller.signal })
+        const response = await fetch(`/api/search/suggestions?${params.toString()}`, { signal: controller.signal })
         const json = await response.json()
-        if (!controller.signal.aborted) setSuggestions(Array.isArray(json?.items) ? json.items : [])
+        if (!controller.signal.aborted) {
+          const propertySuggestions = Array.isArray(json?.properties) ? json.properties : []
+          const projectSuggestions = Array.isArray(json?.projects) ? json.projects : []
+          const locationSuggestions = Array.isArray(json?.locations) ? json.locations : []
+          setSuggestions([
+            ...propertySuggestions.map((item: any) => ({ ...item, kind: 'Property', label: item.title })),
+            ...projectSuggestions.map((item: any) => ({ ...item, kind: 'Project', label: item.name })),
+            ...locationSuggestions.map((item: any) => ({ ...item, kind: item.type === 'community' ? 'Locality' : 'City', label: item.label })),
+          ].slice(0, 8))
+        }
       } catch {
         if (!controller.signal.aborted) setSuggestions([])
       } finally {
@@ -104,7 +114,7 @@ export default function SmartSearch({
                 }}
                 className={`block w-full px-4 py-3 text-left ${index === activeIndex ? 'bg-gray-50' : 'hover:bg-gray-50'}`}
               >
-                <span className="block truncate text-sm font-semibold text-dark-blue">{suggestion.title || 'Property'}</span>
+                <span className="block truncate text-sm font-semibold text-dark-blue">{suggestion.label || suggestion.title || 'Property'}</span>
                 <span className="mt-1 block truncate text-xs text-gray-500">{[suggestion.community, suggestion.city, suggestion.country].filter(Boolean).join(' · ')}</span>
               </button>
             ))}

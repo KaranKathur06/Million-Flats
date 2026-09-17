@@ -340,7 +340,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
       setFilters({
         ...filters,
         ...newFilters,
-        search: '',
+        search: newFilters.search ?? filters.search,
         region: '',
         location: '',
         community: '',

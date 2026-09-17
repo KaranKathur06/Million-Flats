@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
+import { normalizeCountryCode } from '@/lib/propertyCanonical'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,7 +47,37 @@ export async function GET(req: Request) {
     const cities = uniqueSorted(rows.map((row: any) => row.city))
     const localities = uniqueSorted(rows.flatMap((row: any) => [row.locality, row.community]))
 
-    return NextResponse.json({ success: true, country, states, cities, localities })
+    const canonicalCountry = normalizeCountryCode(country)
+    const canonicalCityRows = await (prisma as any).city.findMany({
+      where: { countryCode: canonicalCountry === 'AE' ? 'UAE' : 'INDIA' },
+      select: { name: true },
+      orderBy: { name: 'asc' },
+    }).catch(() => [])
+
+    const canonicalCommunityRows = canonicalCityRows.length
+      ? await (prisma as any).community.findMany({
+          where: { city: { name: { in: canonicalCityRows.map((row: any) => row.name) } } },
+          select: { name: true, city: { select: { name: true } } },
+        }).catch(() => [])
+      : []
+
+    const fallbackCities = uniqueSorted([
+      ...cities,
+      ...canonicalCityRows.map((row: any) => row.name),
+    ])
+    const fallbackLocalities = uniqueSorted([
+      ...localities,
+      ...canonicalCommunityRows.map((row: any) => row.name),
+    ])
+
+    return NextResponse.json({
+      success: true,
+      country,
+      states,
+      cities: fallbackCities,
+      localities: fallbackLocalities,
+      hasOptions: states.length > 0 || fallbackCities.length > 0 || fallbackLocalities.length > 0,
+    })
   } catch (error) {
     console.error('Property locations: failed', error)
     return NextResponse.json({ success: false, message: 'Unable to load locations' }, { status: 500 })

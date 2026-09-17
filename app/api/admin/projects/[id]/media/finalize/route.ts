@@ -34,6 +34,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
   }
 
+  let uploadedKeyForCleanup = ''
   try {
     const { s3Key, fileName, fileSizeBytes, contentType, category, label, unitTypeId, sortOrder } = await req.json()
 
@@ -103,6 +104,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!await s3ObjectExists({ key: s3Key })) {
       return NextResponse.json({ success: false, message: 'Uploaded storage object was not found. Please upload again.' }, { status: 404 })
     }
+    uploadedKeyForCleanup = s3Key
     const signature = await validateStoredMediaSignature(s3Key, String(contentType || '').toLowerCase())
     if (!signature.ok) return NextResponse.json({ success: false, message: signature.error || 'Image processing failed' }, { status: 400 })
 
@@ -225,6 +227,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       },
     })
   } catch (err: any) {
+    if (uploadedKeyForCleanup) {
+      try {
+        await deleteFromS3(uploadedKeyForCleanup)
+      } catch (cleanupError) {
+        console.error('[finalize] Uploaded object cleanup failed', { key: uploadedKeyForCleanup, error: cleanupError instanceof Error ? cleanupError.message : 'unknown' })
+      }
+    }
     console.error('[POST /api/admin/projects/[id]/media/finalize]', err)
     return NextResponse.json(
       { success: false, message: 'Failed to finalize media upload' },

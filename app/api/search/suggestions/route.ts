@@ -11,14 +11,14 @@ export const dynamic = 'force-dynamic'
  *   - developers (name matches)
  *   - locations  (city / community matches)
  *
- * Triggered client-side after 2+ characters.
+ * Triggered client-side after 1+ character.
  */
 export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url)
         const q = (searchParams.get('q') || '').trim()
 
-        if (!q || q.length < 2) {
+        if (!q || q.length < 1) {
             return NextResponse.json({
                 success: true,
                 projects: [],
@@ -71,6 +71,25 @@ export async function GET(req: Request) {
                 slug: true,
                 logo: true,
             },
+        })
+
+        const propertyRows = await db.manualProperty.findMany({
+            where: {
+                status: 'PUBLISHED',
+                sourceType: 'MANUAL',
+                ...(searchParams.get('country') ? { countryCode: String(searchParams.get('country')).toUpperCase() } : {}),
+                agent: { approved: true, user: { status: 'ACTIVE' } },
+                OR: [
+                    { title: { contains: q, mode: 'insensitive' } },
+                    { projectName: { contains: q, mode: 'insensitive' } },
+                    { city: { contains: q, mode: 'insensitive' } },
+                    { locality: { contains: q, mode: 'insensitive' } },
+                    { community: { contains: q, mode: 'insensitive' } },
+                ],
+            },
+            orderBy: { updatedAt: 'desc' },
+            take: 5,
+            select: { id: true, title: true, projectName: true, city: true, community: true, countryCode: true },
         })
 
         // ── 3. Location matches (distinct cities + communities) ────────────
@@ -129,6 +148,13 @@ export async function GET(req: Request) {
                     coverImage: p.coverImage,
                     developer: p.developer?.name || null,
                     isFeatured: p.isFeatured,
+                })),
+                properties: propertyRows.map((p: any) => ({
+                    id: p.id,
+                    title: p.title || p.projectName || 'Property',
+                    city: p.city,
+                    community: p.community,
+                    country: p.countryCode,
                 })),
                 developers: developerRows.map((d: any) => ({
                     id: d.id,

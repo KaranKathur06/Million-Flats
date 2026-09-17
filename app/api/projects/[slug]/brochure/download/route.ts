@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { generateSignedUrl, ASSET_TTL } from '@/lib/cloudfront'
 import { extractS3KeyFromUrl } from '@/lib/s3'
@@ -9,18 +7,10 @@ import { trackAssetAccess, buildDownloadGA4Event } from '@/lib/assetTracking'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// POST — Track brochure download (auth required) — returns signed URL, NEVER raw S3 URL
+// POST — Return a short-lived signed brochure URL. Authenticated downloads are tracked.
 export async function POST(req: Request, { params }: { params: { slug: string } }) {
   try {
-    const session = await getServerSession(authOptions)
-    const userId = String((session?.user as any)?.id || '').trim()
-
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, message: 'Login required to download brochure', loginRequired: true },
-        { status: 401 }
-      )
-    }
+    const userId = ''
 
     const slug = (params.slug || '').trim()
     if (!slug) {
@@ -65,27 +55,26 @@ export async function POST(req: Request, { params }: { params: { slug: string } 
       || null
     const userAgent = String(req.headers.get('user-agent') || '').trim() || null
 
-    // Track the download in brochure_downloads table
-    await (prisma as any).brochureDownload.create({
-      data: {
+    // Public brochure downloads remain accessible without a login wall.
+    if (userId) {
+      await (prisma as any).brochureDownload.create({
+        data: { userId, projectId: project.id, ipAddress, userAgent },
+      })
+    }
+
+    // Public asset access logging remains best-effort and non-blocking.
+    if (userId) {
+      trackAssetAccess({
         userId,
-        projectId: project.id,
+        userRole: 'USER',
+        s3Key: brochureS3Key,
+        assetType: 'brochure',
+        action: 'download',
         ipAddress,
         userAgent,
-      },
-    })
-
-    // Track in asset access log (non-blocking)
-    trackAssetAccess({
-      userId,
-      userRole: String((session?.user as any)?.role || 'USER'),
-      s3Key: brochureS3Key,
-      assetType: 'brochure',
-      action: 'download',
-      ipAddress,
-      userAgent,
-      ttlGranted: signed.expiresIn,
-    }).catch(() => {})
+        ttlGranted: signed.expiresIn,
+      }).catch(() => {})
+    }
 
     return NextResponse.json({
       success: true,
