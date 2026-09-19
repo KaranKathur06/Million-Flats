@@ -8,8 +8,8 @@ const mockProjectFindFirst = jest.fn()
 const mockBrochureDownloadCreate = jest.fn()
 const mockManualPropertyFindMany = jest.fn()
 const mockCityFindMany = jest.fn()
-const mockStateFindMany = jest.fn()
 const mockCommunityFindMany = jest.fn()
+const mockManualPropertyCount = jest.fn()
 
 jest.mock('next/server', () => {
   class MockNextResponse {
@@ -37,13 +37,16 @@ jest.mock('@/lib/auth', () => ({
   authOptions: {},
 }))
 
+jest.mock('@/lib/adminAuth', () => ({
+  requireAdminSession: async () => ({ ok: true, session: { user: { role: 'ADMIN' } } }),
+}))
+
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     project: { findFirst: mockProjectFindFirst },
     brochureDownload: { create: mockBrochureDownloadCreate },
-    manualProperty: { findMany: mockManualPropertyFindMany },
+    manualProperty: { findMany: mockManualPropertyFindMany, count: mockManualPropertyCount },
     city: { findMany: mockCityFindMany },
-    state: { findMany: mockStateFindMany },
     community: { findMany: mockCommunityFindMany },
   },
 }))
@@ -100,10 +103,30 @@ describe('public access regressions', () => {
     expect(response.body.downloadUrl).toBe('https://signed.example/brochure.pdf')
   })
 
+  it('returns paginated admin properties and city options independently of the current page', async () => {
+    mockGetServerSession.mockResolvedValue({ user: { role: 'ADMIN' } })
+    mockManualPropertyFindMany
+      .mockResolvedValueOnce([{ id: 'property-1', city: 'Lucknow' }])
+      .mockResolvedValueOnce([{ city: 'Lucknow' }, { city: 'Rajkot' }])
+    mockManualPropertyCount
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(7984)
+      .mockResolvedValue(0)
+    mockCityFindMany.mockResolvedValue([{ name: 'Ahmedabad' }])
+
+    const { GET: adminProperties } = await import('@/app/api/admin/properties/route')
+    const response = await adminProperties(new Request('http://localhost/api/admin/properties?page=2&pageSize=50'))
+
+    expect(response.status).toBe(200)
+    expect(response.body.page).toBe(2)
+    expect(response.body.pageSize).toBe(50)
+    expect(response.body.totalCount).toBe(1)
+    expect(response.body.cityOptions).toEqual(['Ahmedabad', 'Lucknow', 'Rajkot'])
+  })
+
   it('falls back to canonical city and community records when no manual property matches exist', async () => {
     mockManualPropertyFindMany.mockResolvedValue([])
     mockCityFindMany.mockResolvedValue([{ id: 'city-1', name: 'Dubai' }])
-    mockStateFindMany.mockResolvedValue([{ id: 'state-dubai', name: 'Dubai' }])
     mockCommunityFindMany.mockResolvedValue([{ id: 'community-1', name: 'Downtown Dubai', cityId: 'city-1' }])
 
     const response = await propertyLocations(
@@ -116,16 +139,14 @@ describe('public access regressions', () => {
     expect(response.body.localities).toContain('Downtown Dubai')
   })
 
-  it('returns canonical state records before legacy property regions', async () => {
+  it('returns canonical cities when no public property rows match', async () => {
     mockManualPropertyFindMany.mockResolvedValue([])
-    mockStateFindMany.mockResolvedValue([{ id: 'state-gujarat', name: 'Gujarat' }])
-    mockCityFindMany.mockResolvedValue([{ id: 'city-rajkot', name: 'Rajkot', stateId: 'state-gujarat' }])
+    mockCityFindMany.mockResolvedValue([{ id: 'city-rajkot', name: 'Rajkot' }])
     mockCommunityFindMany.mockResolvedValue([])
 
     const response = await propertyLocations(new Request('http://localhost/api/properties/locations?country=INDIA'))
 
     expect(response.status).toBe(200)
-    expect(response.body.states).toContain('Gujarat')
     expect(response.body.cities).toContain('Rajkot')
   })
 })

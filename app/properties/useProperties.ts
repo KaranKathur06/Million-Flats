@@ -13,7 +13,6 @@ type Property = any
 type Filters = {
   country: CountryCode
   search: string
-  region: string
   location: string
   community: string
   type: string
@@ -45,7 +44,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
   const [limit, setLimit] = useState<number>(24)
   const [totalCount, setTotalCount] = useState<number | null>(null)
   const restoringUrlRef = useRef(false)
-  const [locationOptions, setLocationOptions] = useState<{ states: string[]; cities: string[]; localities: string[] }>({ states: [], cities: [], localities: [] })
+  const [locationOptions, setLocationOptions] = useState<{ cities: string[]; localities: string[] }>({ cities: [], localities: [] })
   const [locationLoading, setLocationLoading] = useState(false)
   const [locationError, setLocationError] = useState('')
   const [locationRequestVersion, setLocationRequestVersion] = useState(0)
@@ -74,7 +73,6 @@ export default function useProperties(forcedPurpose?: Purpose) {
   const [filters, setFilters] = useState<Filters>({
     country: initialCountry,
     search: getParam('q'),
-    region: getParam('state') || getParam('region'),
     location: getParam('location'),
     community: getParam('locality') || getParam('community'),
     type: getParam('type'),
@@ -100,8 +98,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
     else params.delete('q')
     if (nextFilters.location) params.set('location', nextFilters.location)
     else params.delete('location')
-    if (nextFilters.region) params.set('state', nextFilters.region)
-    else params.delete('state')
+    params.delete('state')
     params.delete('region')
     if (nextFilters.community) params.set('community', nextFilters.community)
     else params.delete('community')
@@ -137,7 +134,6 @@ export default function useProperties(forcedPurpose?: Purpose) {
         ...previous,
         country: restoredCountry,
         search: params.get('q') || '',
-        region: params.get('state') || params.get('region') || '',
         location: params.get('location') || params.get('city') || '',
         community: params.get('community') || '',
         type: params.get('type') || params.get('propertyType') || '',
@@ -151,7 +147,6 @@ export default function useProperties(forcedPurpose?: Purpose) {
         ...previous,
         country: restoredCountry,
         search: params.get('q') || '',
-        region: params.get('state') || params.get('region') || '',
         location: params.get('location') || params.get('city') || '',
         community: params.get('community') || '',
         type: params.get('type') || params.get('propertyType') || '',
@@ -192,7 +187,6 @@ export default function useProperties(forcedPurpose?: Purpose) {
   useEffect(() => {
     const controller = new AbortController()
     const params = new URLSearchParams({ country: filters.country })
-    if (filters.region) params.set('region', filters.region)
     if (filters.location) params.set('city', filters.location)
 
     setLocationLoading(true)
@@ -203,18 +197,17 @@ export default function useProperties(forcedPurpose?: Purpose) {
         if (controller.signal.aborted) return
         if (response.ok && json?.success) {
           setLocationOptions({
-            states: Array.isArray(json.states) ? json.states : [],
             cities: Array.isArray(json.cities) ? json.cities : [],
             localities: Array.isArray(json.localities) ? json.localities : [],
           })
         } else {
-          setLocationOptions({ states: [], cities: [], localities: [] })
+          setLocationOptions({ cities: [], localities: [] })
           setLocationError(json?.message || 'Unable to load locations. Please retry.')
         }
       })
       .catch((error) => {
         if (!controller.signal.aborted && error?.name !== 'AbortError') {
-          setLocationOptions({ states: [], cities: [], localities: [] })
+          setLocationOptions({ cities: [], localities: [] })
           setLocationError('Unable to load locations. Please retry.')
         }
       })
@@ -223,7 +216,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
       })
 
     return () => controller.abort()
-  }, [filters.country, filters.region, filters.location, locationRequestVersion])
+  }, [filters.country, filters.location, locationRequestVersion])
 
   const retryLocations = useCallback(() => setLocationRequestVersion((version) => version + 1), [])
 
@@ -237,7 +230,6 @@ export default function useProperties(forcedPurpose?: Purpose) {
       if (filters.search.trim()) params.set('q', filters.search.trim())
       if (filters.location) params.set('city', filters.location)
       if (filters.community) params.set('community', filters.community)
-      if (filters.region) params.set('state', filters.region)
       if (filters.type) params.set('type', filters.type)
       if (filters.minPrice) params.set('minPrice', filters.minPrice)
       if (filters.maxPrice) params.set('maxPrice', filters.maxPrice)
@@ -322,7 +314,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
     } finally {
       setLoading(false)
     }
-  }, [filters.bathrooms, filters.bedrooms, filters.community, filters.country, filters.location, filters.region, filters.maxPrice, filters.minPrice, filters.type, filters.search, filters.offPlanOnly, filters.readyHomesOnly, filters.sortBy, purpose, page, limit])
+  }, [filters.bathrooms, filters.bedrooms, filters.community, filters.country, filters.location, filters.maxPrice, filters.minPrice, filters.type, filters.search, filters.offPlanOnly, filters.readyHomesOnly, filters.sortBy, purpose, page, limit])
 
   useEffect(() => {
     fetchProperties()
@@ -331,7 +323,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
   useEffect(() => {
     // when filters or purpose change, reset pagination
     setPage(1)
-  }, [filters.country, filters.region, filters.location, filters.community, filters.type, filters.minPrice, filters.maxPrice, filters.bedrooms, filters.bathrooms, filters.sortBy, purpose])
+  }, [filters.country, filters.location, filters.community, filters.type, filters.minPrice, filters.maxPrice, filters.bedrooms, filters.bathrooms, filters.sortBy, purpose])
 
   const handleFilterChange = (newFilters: Partial<Filters>) => {
     if (newFilters.country && newFilters.country !== country && isCountryCode(newFilters.country)) {
@@ -341,7 +333,6 @@ export default function useProperties(forcedPurpose?: Purpose) {
         ...filters,
         ...newFilters,
         search: newFilters.search ?? filters.search,
-        region: '',
         location: '',
         community: '',
         minPrice: '',
@@ -350,13 +341,12 @@ export default function useProperties(forcedPurpose?: Purpose) {
       return
     }
 
-    const didRegionChange = newFilters.region !== undefined && newFilters.region !== filters.region
     const didLocationChange = newFilters.location !== undefined && newFilters.location !== filters.location
     const next: Filters = {
       ...filters,
       ...newFilters,
-      location: didRegionChange ? '' : newFilters.location ?? filters.location,
-      community: didRegionChange || didLocationChange ? '' : newFilters.community ?? filters.community,
+      location: newFilters.location ?? filters.location,
+      community: didLocationChange ? '' : newFilters.community ?? filters.community,
     }
     setFilters(next)
   }
@@ -378,7 +368,6 @@ export default function useProperties(forcedPurpose?: Purpose) {
     const next: Filters = {
       country: nextCountry,
       search: '',
-      region: '',
       location: '',
       community: '',
       type: '',
@@ -442,7 +431,6 @@ export default function useProperties(forcedPurpose?: Purpose) {
     maxPriceDrawerOptions,
     cities,
     communities,
-    states: locationOptions.states,
     locationLoading,
     locationError,
     retryLocations,

@@ -75,6 +75,11 @@ export default function AdminPropertiesPage() {
     const [cityFilter, setCityFilter] = useState('')
     const [typeFilter, setTypeFilter] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
+    const [page, setPage] = useState(1)
+    const [pageSize] = useState(50)
+    const [totalCount, setTotalCount] = useState(0)
+    const [totalPages, setTotalPages] = useState(1)
+    const [cityOptions, setCityOptions] = useState<string[]>([])
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     const [bulkActionLoading, setBulkActionLoading] = useState<null | string>(null)
     const [stats, setStats] = useState({ total: 0, active: 0, pending: 0, rejected: 0, sold: 0, archived: 0 })
@@ -93,10 +98,15 @@ export default function AdminPropertiesPage() {
             if (cityFilter) params.set('city', cityFilter)
             if (typeFilter) params.set('propertyType', typeFilter)
             if (searchQuery) params.set('search', searchQuery)
+            params.set('page', String(page))
+            params.set('pageSize', String(pageSize))
             const res = await fetch(`/api/admin/properties?${params.toString()}`)
             const json = await res.json()
             if (!json.success) throw new Error(json.message || 'Failed to load properties')
             setProperties(json.items || [])
+            setTotalCount(Number(json.totalCount || 0))
+            setTotalPages(Math.max(1, Number(json.totalPages || 1)))
+            setCityOptions(Array.isArray(json.cityOptions) ? json.cityOptions : [])
             setStats(json.lifecycleStats || { total: 0, active: 0, pending: 0, rejected: 0, sold: 0, archived: 0 })
         } catch (err: any) {
             toast.error(err.message || 'Failed to load properties')
@@ -104,7 +114,7 @@ export default function AdminPropertiesPage() {
         } finally {
             setLoading(false)
         }
-    }, [lifecycleFilter, cityFilter, typeFilter, searchQuery])
+    }, [lifecycleFilter, cityFilter, typeFilter, searchQuery, page, pageSize])
 
     useEffect(() => { load() }, [load])
 
@@ -237,10 +247,7 @@ export default function AdminPropertiesPage() {
     const selectedCount = selectedIds.size
 
     // Unique values for filters
-    const cities = useMemo(() => {
-        const set = new Set(properties.map(p => p.city).filter(Boolean))
-        return Array.from(set).sort()
-    }, [properties])
+    const cities = cityOptions
 
     const types = useMemo(() => {
         const set = new Set(properties.map(p => p.propertyType).filter(Boolean))
@@ -310,7 +317,7 @@ export default function AdminPropertiesPage() {
                         type="text"
                         placeholder="Search by title, city, community..."
                         value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
+                        onChange={e => { setSearchQuery(e.target.value); setPage(1) }}
                         className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] pl-10 pr-4 py-2.5 text-sm text-white/80 placeholder:text-white/20 outline-none focus:border-amber-400/30 focus:ring-1 focus:ring-amber-400/10"
                     />
                 </div>
@@ -318,7 +325,7 @@ export default function AdminPropertiesPage() {
                     <GlobalDropdown
                         label="City"
                         value={cityFilter}
-                        onChange={value => setCityFilter(String(value))}
+                        onChange={value => { setCityFilter(String(value)); setPage(1) }}
                         options={cities.filter((city): city is string => Boolean(city)).map(city => ({ value: city, label: city }))}
                         appearance="admin-dark"
                         searchable
@@ -331,7 +338,7 @@ export default function AdminPropertiesPage() {
                     <GlobalDropdown
                         label="Type"
                         value={typeFilter}
-                        onChange={value => setTypeFilter(String(value))}
+                        onChange={value => { setTypeFilter(String(value)); setPage(1) }}
                         options={types.filter((type): type is string => Boolean(type)).map(type => ({ value: type, label: type }))}
                         appearance="admin-dark"
                         searchable
@@ -455,6 +462,17 @@ export default function AdminPropertiesPage() {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                </div>
+            )}
+
+            {!loading && totalCount > 0 && (
+                <div className="mt-4 flex flex-col gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-sm text-white/50 sm:flex-row sm:items-center sm:justify-between">
+                    <span>Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, totalCount)} of {totalCount.toLocaleString()}</span>
+                    <div className="flex items-center gap-2">
+                        <button type="button" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} className="rounded-lg border border-white/[0.1] px-3 py-1.5 text-xs font-semibold text-white/70 disabled:cursor-not-allowed disabled:opacity-30">Previous</button>
+                        <span className="min-w-20 text-center text-xs text-white/40">Page {page} of {totalPages}</span>
+                        <button type="button" disabled={page >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} className="rounded-lg border border-white/[0.1] px-3 py-1.5 text-xs font-semibold text-white/70 disabled:cursor-not-allowed disabled:opacity-30">Next</button>
                     </div>
                 </div>
             )}

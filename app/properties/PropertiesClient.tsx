@@ -101,7 +101,6 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
     maxPriceDrawerOptions,
     cities,
     communities,
-    states,
     locationLoading,
     locationError,
     retryLocations,
@@ -270,24 +269,12 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
                 />
 
                 <GlobalDropdown
-                  label="State / Emirate"
-                  showLabel={false}
-                  value={draftFilters.region}
-                  onChange={(v) => changeFilter({ region: singleDropdownValue(v) })}
-                  options={[{ value: '', label: locationLoading ? 'Loading states…' : locationError ? 'Unable to load states' : states.length ? 'All States / Emirates' : 'No states available' }, ...states.map((value) => ({ value, label: value }))]}
-                  disabled={!draftFilters.country}
-                  appearance="admin-light"
-                  dense
-                  className="min-w-[190px]"
-                />
-
-                <GlobalDropdown
                   label="City"
                   showLabel={false}
                   value={draftFilters.location}
                   onChange={(v) => changeFilter({ location: singleDropdownValue(v) })}
-                  options={[{ value: '', label: locationLoading ? 'Loading cities…' : locationError ? 'Unable to load cities' : draftFilters.region ? (cities.length ? 'All Cities' : 'No cities available') : 'Select State / Emirate' }, ...cities.map((value) => ({ value, label: value }))]}
-                  disabled={!draftFilters.region}
+                  options={[{ value: '', label: locationLoading ? 'Loading cities…' : locationError ? 'Unable to load cities' : cities.length ? 'All Cities' : 'No cities available' }, ...cities.map((value) => ({ value, label: value }))]}
+                  disabled={!draftFilters.country}
                   appearance="admin-light"
                   dense
                   className="min-w-[160px]"

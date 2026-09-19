@@ -22,6 +22,8 @@ export async function GET(req: Request) {
         const intent = searchParams.get('intent') || ''
         const agentId = searchParams.get('agentId') || ''
         const search = searchParams.get('search') || ''
+        const page = Math.max(1, Number(searchParams.get('page') || 1) || 1)
+        const pageSize = Math.min(100, Math.max(10, Number(searchParams.get('pageSize') || 50) || 50))
 
         const where: any = {}
 
@@ -65,7 +67,7 @@ export async function GET(req: Request) {
             ]
         }
 
-        const [items, total, active, pending, rejected, sold, archived] = await Promise.all([
+        const [items, filteredTotal, total, active, pending, rejected, sold, archived, cityRows] = await Promise.all([
             (prisma as any).manualProperty.findMany({
                 where,
                 orderBy: { updatedAt: 'desc' },
@@ -73,19 +75,33 @@ export async function GET(req: Request) {
                     agent: { select: { id: true, user: { select: { name: true, email: true, image: true } } } },
                     _count: { select: { media: true, inquiries: true } },
                 },
-                take: 200,
+                skip: (page - 1) * pageSize,
+                take: pageSize,
             }),
+            (prisma as any).manualProperty.count({ where }),
             (prisma as any).manualProperty.count({}),
             (prisma as any).manualProperty.count({ where: { status: MANUAL_PROPERTY_PUBLIC_STATUS, archivedAt: null } }),
             (prisma as any).manualProperty.count({ where: { status: { in: ['DRAFT', 'PENDING_REVIEW'] } } }),
             (prisma as any).manualProperty.count({ where: { status: 'REJECTED' } }),
             (prisma as any).manualProperty.count({ where: { status: 'SOLD' } }),
             (prisma as any).manualProperty.count({ where: { status: 'ARCHIVED' } }),
+            (prisma as any).manualProperty.findMany({ where: { city: { not: null } }, select: { city: true }, distinct: ['city'], orderBy: { city: 'asc' } }),
         ])
+
+        const canonicalCities = await (prisma as any).city.findMany({ select: { name: true }, orderBy: { name: 'asc' } }).catch(() => [])
+        const cityOptions = Array.from(new Set([
+            ...cityRows.map((row: any) => String(row.city || '').trim()),
+            ...canonicalCities.map((row: any) => String(row.name || '').trim()),
+        ].filter(Boolean))).sort((a, b) => a.localeCompare(b))
 
         return NextResponse.json({
             success: true,
             items,
+            totalCount: filteredTotal,
+            page,
+            pageSize,
+            totalPages: Math.max(1, Math.ceil(filteredTotal / pageSize)),
+            cityOptions,
             lifecycleStats: { total, active, pending, rejected, sold, archived },
         })
     } catch (err: any) {

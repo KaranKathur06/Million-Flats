@@ -55,7 +55,6 @@ const QuerySchema = z.object({
   purpose: z.enum(['rent', 'buy']).optional(),
   country: z.enum(['UAE', 'INDIA']).optional(),
   q: z.string().trim().max(120).optional(),
-  state: z.string().trim().min(1).max(120).optional(),
   city: z.string().trim().min(1).max(120).optional(),
   community: z.string().trim().min(1).max(120).optional(),
   locality: z.string().trim().min(1).max(120).optional(),
@@ -101,7 +100,6 @@ export async function GET(req: Request) {
       purpose: (searchParams.get('purpose') || '').toLowerCase() || undefined,
       country: (searchParams.get('country') || '').trim().toUpperCase() || 'INDIA',
       q: searchParams.get('q') || undefined,
-      state: searchParams.get('state') || searchParams.get('region') || undefined,
       city: searchParams.get('city') || undefined,
       community: searchParams.get('community') || undefined,
       locality: searchParams.get('locality') || undefined,
@@ -155,7 +153,6 @@ export async function GET(req: Request) {
         { propertyType: { contains: q.q, mode: 'insensitive' } },
       ]
     }
-    if (q.state) where.region = { contains: q.state, mode: 'insensitive' }
     if (q.city) where.city = { contains: q.city, mode: 'insensitive' }
     if (q.community) where.community = { contains: q.community, mode: 'insensitive' }
     if (q.locality) where.locality = { contains: q.locality, mode: 'insensitive' }
@@ -169,22 +166,6 @@ export async function GET(req: Request) {
       })
       if (!masterCommunity) {
         return NextResponse.json({ success: false, message: 'Community does not belong to the selected city' }, { status: 400 })
-      }
-    }
-    if (q.state && q.city) {
-      const validRegionCity = await (prisma as any).manualProperty.findFirst({
-        where: {
-          status: MANUAL_PROPERTY_PUBLIC_STATUS,
-          sourceType: 'MANUAL',
-          countryCode: q.country,
-          agent: { approved: true, user: { status: 'ACTIVE' } },
-          region: { equals: q.state, mode: 'insensitive' },
-          city: { equals: q.city, mode: 'insensitive' },
-        },
-        select: { id: true },
-      })
-      if (!validRegionCity) {
-        return NextResponse.json({ success: false, message: 'City does not belong to the selected state or emirate' }, { status: 400 })
       }
     }
     if (q.city && q.locality) {

@@ -25,7 +25,7 @@ export async function GET(req: Request) {
 
     if (!parsed.success) return NextResponse.json({ success: false, message: 'Invalid location filters' }, { status: 400 })
 
-    const { country, region, city } = parsed.data
+    const { country, city } = parsed.data
     const propertyWhere: any = {
       status: MANUAL_PROPERTY_PUBLIC_STATUS,
       sourceType: 'MANUAL',
@@ -76,7 +76,7 @@ export async function GET(req: Request) {
       country,
       cities: fallbackCities,
       localities: fallbackLocalities,
-      hasOptions: states.length > 0 || fallbackCities.length > 0 || fallbackLocalities.length > 0,
+      hasOptions: fallbackCities.length > 0 || fallbackLocalities.length > 0,
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     console.error('Property locations: failed', error)
