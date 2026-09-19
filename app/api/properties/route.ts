@@ -172,6 +172,19 @@ export async function GET(req: Request) {
       }
     }
     if (q.state && q.city) {
+      const canonicalState = await (prisma as any).state.findFirst({
+        where: { countryCode: q.country, name: { equals: q.state, mode: 'insensitive' } },
+        select: { id: true },
+      })
+      const canonicalCity = canonicalState
+        ? await (prisma as any).city.findFirst({
+            where: { countryCode: q.country, stateId: canonicalState.id, name: { equals: q.city, mode: 'insensitive' } },
+            select: { id: true },
+          })
+        : null
+      if (canonicalState && !canonicalCity) {
+        return NextResponse.json({ success: false, message: 'City does not belong to the selected state or emirate' }, { status: 400 })
+      }
       const validRegionCity = await (prisma as any).manualProperty.findFirst({
         where: {
           status: MANUAL_PROPERTY_PUBLIC_STATUS,

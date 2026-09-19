@@ -136,6 +136,7 @@ export async function POST(req: Request) {
                     ...(location ? {
                         countryCode: location.countryCode,
                         countryIso2: location.countryIso2,
+                        region: body.region || null,
                         city: location.city,
                         community: location.community,
                     } : {}),

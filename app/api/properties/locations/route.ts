@@ -48,11 +48,22 @@ export async function GET(req: Request) {
     const localities = uniqueSorted(rows.flatMap((row: any) => [row.locality, row.community]))
 
     const canonicalCountry = normalizeCountryCode(country)
-    const canonicalCityRows = await (prisma as any).city.findMany({
-      where: { countryCode: canonicalCountry === 'AE' ? 'UAE' : 'INDIA' },
+    const canonicalCountryCode = canonicalCountry === 'AE' ? 'UAE' : 'INDIA'
+    const canonicalStateRows = await (prisma as any).state.findMany({
+      where: { countryCode: canonicalCountryCode },
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
     })
+    const selectedState = region
+      ? canonicalStateRows.find((row: any) => String(row.name).toLowerCase() === region.toLowerCase())
+      : null
+    const canonicalCityRows = await (prisma as any).city.findMany({
+      where: { countryCode: canonicalCountryCode, ...(selectedState ? { stateId: selectedState.id } : {}) },
+      select: { id: true, name: true, stateId: true },
+      orderBy: { name: 'asc' },
+    })
+
+    const canonicalStates = canonicalStateRows.map((row: any) => row.name)
 
     const selectedCanonicalCity = city
       ? canonicalCityRows.find((row: any) => String(row.name).toLowerCase() === city.toLowerCase())
@@ -77,7 +88,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       success: true,
       country,
-      states,
+      states: uniqueSorted([...states, ...canonicalStates]),
       cities: fallbackCities,
       localities: fallbackLocalities,
       hasOptions: states.length > 0 || fallbackCities.length > 0 || fallbackLocalities.length > 0,

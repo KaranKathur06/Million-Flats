@@ -8,6 +8,7 @@ const mockProjectFindFirst = jest.fn()
 const mockBrochureDownloadCreate = jest.fn()
 const mockManualPropertyFindMany = jest.fn()
 const mockCityFindMany = jest.fn()
+const mockStateFindMany = jest.fn()
 const mockCommunityFindMany = jest.fn()
 
 jest.mock('next/server', () => {
@@ -42,6 +43,7 @@ jest.mock('@/lib/prisma', () => ({
     brochureDownload: { create: mockBrochureDownloadCreate },
     manualProperty: { findMany: mockManualPropertyFindMany },
     city: { findMany: mockCityFindMany },
+    state: { findMany: mockStateFindMany },
     community: { findMany: mockCommunityFindMany },
   },
 }))
@@ -101,6 +103,7 @@ describe('public access regressions', () => {
   it('falls back to canonical city and community records when no manual property matches exist', async () => {
     mockManualPropertyFindMany.mockResolvedValue([])
     mockCityFindMany.mockResolvedValue([{ id: 'city-1', name: 'Dubai' }])
+    mockStateFindMany.mockResolvedValue([{ id: 'state-dubai', name: 'Dubai' }])
     mockCommunityFindMany.mockResolvedValue([{ id: 'community-1', name: 'Downtown Dubai', cityId: 'city-1' }])
 
     const response = await propertyLocations(
@@ -111,5 +114,18 @@ describe('public access regressions', () => {
     expect(response.body.success).toBe(true)
     expect(response.body.cities).toContain('Dubai')
     expect(response.body.localities).toContain('Downtown Dubai')
+  })
+
+  it('returns canonical state records before legacy property regions', async () => {
+    mockManualPropertyFindMany.mockResolvedValue([])
+    mockStateFindMany.mockResolvedValue([{ id: 'state-gujarat', name: 'Gujarat' }])
+    mockCityFindMany.mockResolvedValue([{ id: 'city-rajkot', name: 'Rajkot', stateId: 'state-gujarat' }])
+    mockCommunityFindMany.mockResolvedValue([])
+
+    const response = await propertyLocations(new Request('http://localhost/api/properties/locations?country=INDIA'))
+
+    expect(response.status).toBe(200)
+    expect(response.body.states).toContain('Gujarat')
+    expect(response.body.cities).toContain('Rajkot')
   })
 })

@@ -27,14 +27,15 @@ export async function GET(req: Request) {
   const countryIso2 = normalizeCountryCode(country)
   const countryCode = countryIso2 === 'IN' ? 'INDIA' : countryIso2 === 'AE' ? 'UAE' : null
   if (!countryCode) return NextResponse.json({ success: true, cities: [] })
-  const dbCities = await (prisma as any).city.findMany({ where: { countryCode }, select: { id: true, name: true }, orderBy: { name: 'asc' } }).catch(() => [])
+  const states = await (prisma as any).state.findMany({ where: { countryCode }, select: { id: true, code: true, name: true }, orderBy: { name: 'asc' } })
+  const dbCities = await (prisma as any).city.findMany({ where: { countryCode }, select: { id: true, name: true, stateId: true, state: { select: { id: true, name: true, code: true } } }, orderBy: { name: 'asc' } }).catch(() => [])
   const cities = dbCities.length ? dbCities : fallbackCities(countryIso2)
-  if (!city) return NextResponse.json({ success: true, cities })
+  if (!city) return NextResponse.json({ success: true, states, cities })
   const selectedCity = cities.find((item: any) => item.id === city || item.name.toLowerCase() === city.toLowerCase())
   if (!selectedCity) return NextResponse.json({ success: true, cities, communities: fallbackCommunities(countryIso2, city) })
   const dbCommunities = dbCities.length
     ? await (prisma as any).community.findMany({ where: { cityId: selectedCity.id }, select: { id: true, name: true }, orderBy: { name: 'asc' } }).catch(() => [])
     : []
   const communities = dbCommunities.length ? dbCommunities : fallbackCommunities(countryIso2, selectedCity.name)
-  return NextResponse.json({ success: true, cities, communities })
+  return NextResponse.json({ success: true, states, cities, communities })
 }

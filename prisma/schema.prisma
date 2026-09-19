@@ -1500,7 +1500,9 @@ model UserPreference {
 model City {
   id          String      @id @default(uuid())
   countryCode CountryCode @map("country")
+  stateId     String?     @map("state_id")
   name        String
+  state       State?      @relation(fields: [stateId], references: [id], onDelete: SetNull)
   communities Community[]
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -1508,7 +1510,24 @@ model City {
 
   @@unique([countryCode, name])
   @@index([countryCode])
+  @@index([stateId])
   @@map("cities")
+}
+
+model State {
+  id          String      @id @default(uuid())
+  countryCode CountryCode @map("country")
+  code        String
+  name        String
+  cities      City[]
+
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  @@unique([countryCode, code])
+  @@unique([countryCode, name])
+  @@index([countryCode])
+  @@map("states")
 }
 
 model Community {
