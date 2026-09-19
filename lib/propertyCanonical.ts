@@ -105,9 +105,20 @@ export function getCommunityOptions(countryCode: string, city: string): Communit
 
 export function normalizeCanonicalCity(countryCode: string, city: string | null | undefined) {
   const code = normalizeCountryCode(countryCode)
-  const normalized = normalizeText(city).toLowerCase()
-  const known = (CITY_DATA[code] || []).find((name) => name.toLowerCase() === normalized)
-  return known || normalizeTitleCase(String(city || ''))
+  const normalized = normalizeText(city).toLowerCase().replace(/\s+/g, ' ')
+  const known = (CITY_DATA[code] || []).find((name) => normalizeText(name).toLowerCase() === normalized)
+  if (known) return known
+
+  const aliasMap: Record<string, string> = {
+    'navi mumbai': 'Navi Mumbai',
+    'navi-mumbai': 'Navi Mumbai',
+    'navi_mumbai': 'Navi Mumbai',
+    'new delhi': 'Delhi',
+    'new-delhi': 'Delhi',
+    'new_delhi': 'Delhi',
+  }
+
+  return aliasMap[normalized] || normalizeTitleCase(String(city || ''))
 }
 
 export function isSupportedCanonicalCity(countryCode: string, city: string | null | undefined) {
@@ -117,7 +128,10 @@ export function isSupportedCanonicalCity(countryCode: string, city: string | nul
 }
 
 export function normalizeText(value: string | null | undefined): string {
-  return String(value || '').trim().replace(/\s+/g, ' ')
+  return String(value || '')
+    .trim()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
 }
 
 export function normalizeCountryCode(country: string | null | undefined): CanonicalCountryCode {
@@ -136,7 +150,8 @@ export function normalizeLocationPair(countryInput: unknown, cityInput: unknown,
   const countryCode = normalizeCountryCode(countryName || String(countryInput || ''))
   const country = COUNTRY_MAP[countryCode] || 'India'
 
-  const city = normalizeTitleCase(String(cityInput || ''))
+  const rawCity = normalizeText(String(cityInput || ''))
+  const city = normalizeCanonicalCity(countryCode, rawCity) || normalizeTitleCase(rawCity) || (countryCode === 'IN' ? 'Navi Mumbai' : 'Dubai')
   const community = normalizeTitleCase(String(communityInput || ''))
 
   return {
@@ -166,6 +181,7 @@ export function normalizeTitleCase(value: string): string {
     .replace(/\bNavi\b/g, 'Navi')
     .replace(/\bKharghar\b/g, 'Kharghar')
     .replace(/\bJvc\b/g, 'JVC')
+    .replace(/\bNavi Mumbai\b/g, 'Navi Mumbai')
 }
 
 export function canonicalizePropertyImport(payload: unknown) {

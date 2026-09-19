@@ -1,5 +1,6 @@
-import { canonicalizePropertyImport, getCityOptions, getCommunityOptions, getCountryOptions, normalizeLocationPair } from '../../lib/propertyCanonical'
+import { canonicalizePropertyImport, getCityOptions, getCommunityOptions, getCountryOptions, normalizeCanonicalCity, normalizeLocationPair } from '../../lib/propertyCanonical'
 import { resolvePropertyCurrency, resolvePropertyImportIntent } from '../../lib/imports/adapters/property/adapter'
+import { normalizePhoneForCountry } from '../../lib/auth/phone-crypto'
 
 describe('property canonical model', () => {
   it('exposes India and UAE as supported countries', () => {
@@ -15,6 +16,20 @@ describe('property canonical model', () => {
       city: 'Navi Mumbai',
       community: 'Kharghar',
     })
+
+    expect(normalizeLocationPair('India', 'Navi-mumbai', 'Kharghar')).toEqual({
+      country: 'India',
+      countryCode: 'IN',
+      city: 'Navi Mumbai',
+      community: 'Kharghar',
+    })
+
+    expect(normalizeCanonicalCity('IN', 'navi-mumbai')).toBe('Navi Mumbai')
+  })
+
+  it('formats Indian phone numbers using the selected country dial code and national number', () => {
+    expect(normalizePhoneForCountry('IN', '9876543210')).toBe('+919876543210')
+    expect(normalizePhoneForCountry('AE', '501234567')).toBe('+971501234567')
   })
 
   it('returns canonical city and community options for the supported locations', () => {

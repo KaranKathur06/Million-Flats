@@ -67,6 +67,44 @@ async function seedMarketAndCityPriorities() {
   console.log('✓ Market and City Priorities seeded')
 }
 
+async function seedGoRamPartner() {
+  const category = await (prisma as any).ecosystemCategory.findUnique({ where: { slug: 'technology-partners' } })
+  if (!category) {
+    console.warn('technology-partners category not found — skip GoRam seed')
+    return
+  }
+
+  const data = {
+    categoryId: category.id,
+    name: 'GoRam',
+    slug: 'goram',
+    tagline: 'Digital growth platform for property discovery and customer engagement.',
+    shortDescription: 'Technology partner helping developers and real-estate teams simplify discovery, CRM, and customer journeys.',
+    description: 'GoRam is a verified MillionFlats technology partner powering digital discovery, automation, and buyer engagement workflows across real-estate teams.',
+    logo: '/partners/goran.jpeg',
+    coverImage: '/partners/goran.jpeg',
+    rating: 4.8,
+    yearsExperience: 6,
+    projectsCompleted: 18,
+    locationCoverage: 'India, UAE',
+    pricingRange: 'Custom',
+    status: 'APPROVED',
+    isActive: true,
+    isFeatured: true,
+    isVerified: true,
+    contactEmail: 'hello@goram.io',
+    website: 'https://goram.io',
+  }
+
+  await (prisma as any).ecosystemPartner.upsert({
+    where: { categoryId_slug: { categoryId: category.id, slug: 'goram' } },
+    update: data,
+    create: data,
+  })
+
+  console.log('✓ GoRam ecosystem partner seeded')
+}
+
 async function main() {
   // Seed market and city priorities first
   await seedMarketAndCityPriorities()
@@ -96,6 +134,7 @@ async function main() {
   }
 
   await seedInteriorDesignPartners()
+  await seedGoRamPartner()
 }
 
 main()

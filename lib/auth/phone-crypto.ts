@@ -100,11 +100,59 @@ export function decryptPhone(encrypted: string): string {
 
 // ─── Phone Utilities ─────────────────────────────────────────────────────────
 
+const COUNTRY_DIAL_CODES: Record<string, string> = {
+  IN: '+91',
+  AE: '+971',
+  US: '+1',
+  GB: '+44',
+  SA: '+966',
+  QA: '+974',
+  KW: '+965',
+  BH: '+973',
+  OM: '+968',
+  SG: '+65',
+  AU: '+61',
+  CA: '+1',
+  PK: '+92',
+  BD: '+880',
+  LK: '+94',
+  NP: '+977',
+  PH: '+63',
+  EG: '+20',
+}
+
+export function getCountryDialCode(countryIso2: string): string {
+  const iso2 = String(countryIso2 || '').trim().toUpperCase()
+  const dial = COUNTRY_DIAL_CODES[iso2] || ''
+  if (!dial) return ''
+  return dial.startsWith('+') ? dial : `+${dial}`
+}
+
+export function normalizePhoneForCountry(countryIso2: string, nationalNumber: string): string {
+  const countryCode = String(countryIso2 || '').trim().toUpperCase()
+  const rawNumber = String(nationalNumber || '').trim()
+
+  if (!rawNumber) return ''
+  if (rawNumber.startsWith('+')) {
+    return normalizePhone(rawNumber)
+  }
+
+  const dial = getCountryDialCode(countryCode)
+  if (!dial) {
+    return normalizePhone(rawNumber)
+  }
+
+  const digits = rawNumber.replace(/\D/g, '')
+  if (!digits) return ''
+  return `${dial}${digits}`
+}
+
 /**
  * Normalizes phone to E.164 format: strips spaces/dashes, ensures starts with +
  */
 export function normalizePhone(phone: string): string {
   let cleaned = phone.replace(/[\s\-()]/g, '').trim()
+  if (!cleaned) return ''
   if (!cleaned.startsWith('+')) {
     cleaned = '+' + cleaned
   }

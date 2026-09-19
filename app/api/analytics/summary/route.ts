@@ -21,6 +21,8 @@ export async function GET() {
       cities: summary.cities > 0 ? summary.cities : 40,
       buyProperties: Number.isFinite(summary.buyProperties) ? summary.buyProperties : 0,
       rentProperties: Number.isFinite(summary.rentProperties) ? summary.rentProperties : 0,
+      totalProjects: Number.isFinite(summary.totalProjects) ? summary.totalProjects : 0,
+      ecosystemPartners: Number.isFinite(summary.ecosystemPartners) ? summary.ecosystemPartners : 0,
     }
 
     if (summary.cities <= 0) {

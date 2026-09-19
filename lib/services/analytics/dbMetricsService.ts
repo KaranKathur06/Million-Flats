@@ -17,6 +17,8 @@ export async function getDBMetrics(): Promise<DBMetrics> {
     toursResult,
     salePropertiesResult,
     rentPropertiesResult,
+    totalProjectsResult,
+    totalPartnersResult,
   ] = await Promise.all([
     // Published blogs / investment guides
     prisma.blog.count({
@@ -67,6 +69,22 @@ export async function getDBMetrics(): Promise<DBMetrics> {
         intent: 'RENT',
       },
     }),
+
+    // Published projects in the public catalog
+    prisma.project.count({
+      where: {
+        status: 'PUBLISHED',
+        isDeleted: false,
+      },
+    }),
+
+    // Publicly visible ecosystem partners
+    prisma.ecosystemPartner.count({
+      where: {
+        status: 'APPROVED',
+        isActive: true,
+      },
+    }),
   ])
 
   return {
@@ -77,5 +95,7 @@ export async function getDBMetrics(): Promise<DBMetrics> {
     totalAgents,
     totalSaleProperties: salePropertiesResult,
     totalRentProperties: rentPropertiesResult,
+    totalProjects: totalProjectsResult,
+    totalPartners: totalPartnersResult,
   }
 }
