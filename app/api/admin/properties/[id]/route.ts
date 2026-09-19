@@ -36,7 +36,6 @@ const PropertyPatchSchema = z.object({
     squareFeet: z.number().finite().min(0).max(200000).optional(),
     countryCode: z.enum(['UAE', 'INDIA']).optional(),
     countryIso2: z.enum(['IN', 'AE']).optional().nullable(),
-    region: z.string().trim().max(120).optional().nullable(),
     city: z.string().trim().max(80).optional().nullable(),
     community: z.string().trim().max(120).optional().nullable(),
     address: z.string().trim().max(200).optional().nullable(),
@@ -132,7 +131,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         const allowedFields = [
             'title', 'propertyType', 'intent', 'price', 'currency',
             'constructionStatus', 'shortDescription', 'bedrooms', 'bathrooms',
-            'squareFeet', 'countryCode', 'countryIso2', 'region', 'city', 'community',
+            'squareFeet', 'countryCode', 'countryIso2', 'city', 'community',
             'address', 'latitude', 'longitude', 'developerName',
             'amenities', 'customAmenities', 'paymentPlan', 'paymentPlanText', 'emiNote',
             'tour3dUrl', 'status',

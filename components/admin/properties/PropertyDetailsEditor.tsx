@@ -21,7 +21,6 @@ type EditableProperty = {
   bathrooms: number | null
   squareFeet: number | null
   countryIso2: string | null
-  region?: string | null
   city: string | null
   community: string | null
   address: string | null
@@ -70,7 +69,6 @@ export function PropertyDetailsEditor({ property }: { property: EditableProperty
     bathrooms: toText(property.bathrooms),
     squareFeet: toText(property.squareFeet),
     countryIso2: toText(property.countryIso2 || 'IN'),
-    region: toText(property.region),
     city: toText(property.city),
     community: toText(property.community),
     address: toText(property.address),
@@ -141,13 +139,11 @@ export function PropertyDetailsEditor({ property }: { property: EditableProperty
 
       <CanonicalLocationFields
         country={form.countryIso2}
-        state={form.region}
         city={form.city}
         community={form.community}
         onChange={(patch) => setForm(prev => ({
           ...prev,
           countryIso2: patch.country ?? prev.countryIso2,
-          region: patch.state ?? prev.region,
           city: patch.city ?? prev.city,
           community: patch.community ?? prev.community,
           currency: (patch.country ?? prev.countryIso2) === 'AE' ? 'AED' : prev.currency,

@@ -8,7 +8,6 @@ export const dynamic = 'force-dynamic'
 
 const QuerySchema = z.object({
   country: z.enum(['UAE', 'INDIA']),
-  region: z.string().trim().max(120).optional(),
   city: z.string().trim().max(120).optional(),
 })
 
@@ -21,7 +20,6 @@ export async function GET(req: Request) {
     const url = new URL(req.url)
     const parsed = QuerySchema.safeParse({
       country: (url.searchParams.get('country') || '').trim().toUpperCase(),
-      region: url.searchParams.get('region') || undefined,
       city: url.searchParams.get('city') || undefined,
     })
 
@@ -34,7 +32,6 @@ export async function GET(req: Request) {
       countryCode: country,
       agent: { approved: true, user: { status: 'ACTIVE' } },
     }
-    if (region) propertyWhere.region = { equals: region, mode: 'insensitive' }
     if (city) propertyWhere.city = { equals: city, mode: 'insensitive' }
 
     const rows = await (prisma as any).manualProperty.findMany({
@@ -43,27 +40,16 @@ export async function GET(req: Request) {
       distinct: ['region', 'city', 'locality', 'community'],
     })
 
-    const states = uniqueSorted(rows.map((row: any) => row.region))
     const cities = uniqueSorted(rows.map((row: any) => row.city))
     const localities = uniqueSorted(rows.flatMap((row: any) => [row.locality, row.community]))
 
     const canonicalCountry = normalizeCountryCode(country)
     const canonicalCountryCode = canonicalCountry === 'AE' ? 'UAE' : 'INDIA'
-    const canonicalStateRows = await (prisma as any).state.findMany({
+    const canonicalCityRows = await (prisma as any).city.findMany({
       where: { countryCode: canonicalCountryCode },
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
     })
-    const selectedState = region
-      ? canonicalStateRows.find((row: any) => String(row.name).toLowerCase() === region.toLowerCase())
-      : null
-    const canonicalCityRows = await (prisma as any).city.findMany({
-      where: { countryCode: canonicalCountryCode, ...(selectedState ? { stateId: selectedState.id } : {}) },
-      select: { id: true, name: true, stateId: true },
-      orderBy: { name: 'asc' },
-    })
-
-    const canonicalStates = canonicalStateRows.map((row: any) => row.name)
 
     const selectedCanonicalCity = city
       ? canonicalCityRows.find((row: any) => String(row.name).toLowerCase() === city.toLowerCase())
@@ -88,7 +74,6 @@ export async function GET(req: Request) {
     return NextResponse.json({
       success: true,
       country,
-      states: uniqueSorted([...states, ...canonicalStates]),
       cities: fallbackCities,
       localities: fallbackLocalities,
       hasOptions: states.length > 0 || fallbackCities.length > 0 || fallbackLocalities.length > 0,

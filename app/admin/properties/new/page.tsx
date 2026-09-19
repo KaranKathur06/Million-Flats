@@ -33,7 +33,6 @@ export default function AdminAddPropertyPage() {
         squareFeet: '0',
         countryCode: 'INDIA',
         countryIso2: 'IN',
-        state: '',
         city: '',
         community: '',
         address: '',
@@ -83,7 +82,6 @@ export default function AdminAddPropertyPage() {
                 squareFeet: parseFloat(form.squareFeet) || 0,
                 countryCode: canonical.country === 'India' ? 'INDIA' : 'UAE',
                 countryIso2: canonical.countryCode,
-                region: form.state || null,
                 city: canonical.city,
                 community: canonical.community,
                 address: form.address.trim() || null,
@@ -111,7 +109,7 @@ export default function AdminAddPropertyPage() {
             setForm({
                 title: '', propertyType: 'Apartment', intent: 'SALE', price: '', currency: 'INR',
                 constructionStatus: '', shortDescription: '', bedrooms: '0', bathrooms: '0',
-                squareFeet: '0', countryCode: 'INDIA', countryIso2: 'IN', state: '', city: '', community: '',
+                squareFeet: '0', countryCode: 'INDIA', countryIso2: 'IN', city: '', community: '',
                 address: '', latitude: '', longitude: '', developerName: '', amenities: [],
                 customAmenity: '', paymentPlanText: '', emiNote: '', tour3dUrl: '', status: 'PUBLISHED',
             })
@@ -150,7 +148,7 @@ export default function AdminAddPropertyPage() {
                             <label className={labelClass}>Title *</label>
                             <input value={form.title} onChange={e => update('title', e.target.value)} placeholder="e.g. Lodha Alibaug 3 BHK Apartment" className={inputClass} />
                         </div>
-                        <CanonicalLocationFields country={form.countryIso2} state={form.state} city={form.city} community={form.community} onChange={({ country, state, city, community }) => { update('countryIso2', country); update('countryCode', country === 'AE' ? 'UAE' : 'INDIA'); update('currency', country === 'AE' ? 'AED' : 'INR'); update('state', state); update('city', city); update('community', community) }} />
+                        <CanonicalLocationFields country={form.countryIso2} city={form.city} community={form.community} onChange={({ country, city, community }) => { update('countryIso2', country); update('countryCode', country === 'AE' ? 'UAE' : 'INDIA'); update('currency', country === 'AE' ? 'AED' : 'INR'); update('city', city); update('community', community) }} />
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className={labelClass}>Property Type</label>
