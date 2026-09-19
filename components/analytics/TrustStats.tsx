@@ -142,10 +142,12 @@ export default function TrustStats() {
     { id: 'monthly-visitors', value: data.monthlyVisitors, suffix: '+', label: 'Monthly Visitors', icon: <IconUsers />, accent: 'amber' as const },
     { id: 'cities-covered', value: data.cities || 40, suffix: '+', label: 'Cities Covered', icon: <IconMapPin />, accent: 'blue' as const },
     { id: 'countries-reached', value: data.countries || 22, suffix: '+', label: 'Countries Reached', icon: <IconGlobe />, accent: 'rose' as const },
-    { id: 'projects', value: data.tours || 280, suffix: '+', label: '3D Tours', icon: <IconCompass />, accent: 'emerald' as const },
+    { id: 'buy-properties', value: data.buyProperties || 0, suffix: '+', label: 'Buy Listings', icon: <IconCompass />, accent: 'emerald' as const },
+    { id: 'rent-properties', value: data.rentProperties || 0, suffix: '+', label: 'Rent Listings', icon: <IconBuilding />, accent: 'violet' as const },
     { id: 'developers', value: data.developers || 110, suffix: '+', label: 'Developers', icon: <IconBuilding />, accent: 'violet' as const },
     { id: 'agents', value: data.agents || 75, suffix: '+', label: 'Agents', icon: <IconUsers />, accent: 'amber' as const },
     { id: 'investment-insights', value: data.blogs || 55, suffix: '+', label: 'Insights', icon: <IconBook />, accent: 'emerald' as const },
+    { id: 'tours', value: data.tours || 0, suffix: '+', label: '3D Tours', icon: <IconCompass />, accent: 'blue' as const },
   ]
 
   return (

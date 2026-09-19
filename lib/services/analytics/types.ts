@@ -18,6 +18,8 @@ export interface DBMetrics {
   totalDevelopers: number
   total3DTours: number
   totalAgents: number
+  totalSaleProperties: number
+  totalRentProperties: number
 }
 
 /* ── Combined Summary ───────────────────────────────────── */
@@ -30,6 +32,8 @@ export interface AnalyticsSummary {
   developers: number
   tours: number
   agents: number
+  buyProperties: number
+  rentProperties: number
   updatedAt: string           // ISO timestamp of last aggregation
 }
 

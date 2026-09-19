@@ -26,7 +26,40 @@ const FALLBACK_SUMMARY: AnalyticsSummary = {
   developers: 110,
   tours: 280,
   agents: 75,
+  buyProperties: 1280,
+  rentProperties: 690,
   updatedAt: new Date().toISOString(),
+}
+
+export function buildAnalyticsSummary(input: Partial<AnalyticsSummary> & {
+  monthlyVisitors: number
+  realtimeUsers: number
+  countries: number
+  cities: number
+  blogs: number
+  developers: number
+  tours: number
+  agents: number
+  buyProperties?: number
+  saleProperties?: number
+  rentProperties: number
+  updatedAt: string
+}): AnalyticsSummary {
+  const buyProperties = input.buyProperties ?? input.saleProperties ?? 0
+
+  return {
+    monthlyVisitors: input.monthlyVisitors || 0,
+    realtimeUsers: input.realtimeUsers || 0,
+    countries: input.countries || 0,
+    blogs: input.blogs || 0,
+    cities: input.cities || 0,
+    developers: input.developers || 0,
+    tours: input.tours || 0,
+    agents: input.agents || 0,
+    buyProperties,
+    rentProperties: input.rentProperties || 0,
+    updatedAt: input.updatedAt || new Date().toISOString(),
+  }
 }
 
 /* ── Public API ─────────────────────────────────────────── */
@@ -63,6 +96,8 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
         developers: db.totalDevelopers,
         tours: db.total3DTours,
         agents: db.totalAgents,
+        buyProperties: db.totalSaleProperties,
+        rentProperties: db.totalRentProperties,
         updatedAt: new Date().toISOString(),
       }
     })

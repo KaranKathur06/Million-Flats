@@ -15,6 +15,8 @@ export interface AnalyticsSummaryData {
   developers: number
   tours: number
   agents: number
+  buyProperties: number
+  rentProperties: number
   updatedAt: string
 }
 
@@ -27,6 +29,8 @@ const FALLBACK: AnalyticsSummaryData = {
   developers: 110,
   tours: 280,
   agents: 75,
+  buyProperties: 1280,
+  rentProperties: 690,
   updatedAt: new Date().toISOString(),
 }
 

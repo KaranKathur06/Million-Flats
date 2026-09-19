@@ -19,6 +19,8 @@ export async function GET() {
     const safeSummary = {
       ...summary,
       cities: summary.cities > 0 ? summary.cities : 40,
+      buyProperties: Number.isFinite(summary.buyProperties) ? summary.buyProperties : 0,
+      rentProperties: Number.isFinite(summary.rentProperties) ? summary.rentProperties : 0,
     }
 
     if (summary.cities <= 0) {
