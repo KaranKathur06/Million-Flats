@@ -22,19 +22,19 @@ export interface AnalyticsSummaryData {
   updatedAt: string
 }
 
-const FALLBACK: AnalyticsSummaryData = {
-  monthlyVisitors: 12_400,
-  realtimeUsers: 45,
-  countries: 22,
-  blogs: 55,
-  cities: 40,
-  developers: 110,
-  tours: 280,
-  agents: 75,
-  buyProperties: 1280,
-  rentProperties: 690,
-  totalProjects: 320,
-  ecosystemPartners: 18,
+const EMPTY_SUMMARY: AnalyticsSummaryData = {
+  monthlyVisitors: 0,
+  realtimeUsers: 0,
+  countries: 0,
+  blogs: 0,
+  cities: 0,
+  developers: 0,
+  tours: 0,
+  agents: 0,
+  buyProperties: 0,
+  rentProperties: 0,
+  totalProjects: 0,
+  ecosystemPartners: 0,
   updatedAt: new Date().toISOString(),
 }
 
@@ -42,7 +42,7 @@ export function useAnalyticsSummary(refreshMs = 0): {
   data: AnalyticsSummaryData
   loading: boolean
 } {
-  const [data, setData] = useState<AnalyticsSummaryData>(FALLBACK)
+  const [data, setData] = useState<AnalyticsSummaryData>(EMPTY_SUMMARY)
   const [loading, setLoading] = useState(true)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -56,7 +56,7 @@ export function useAnalyticsSummary(refreshMs = 0): {
         const json = await res.json()
         if (!cancelled) setData(json)
       } catch {
-        // Keep existing data (fallback)
+        // Keep the last successful response. Do not replace it with editorial counts.
       } finally {
         if (!cancelled) setLoading(false)
       }

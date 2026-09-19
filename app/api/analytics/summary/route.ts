@@ -16,25 +16,7 @@ export const revalidate = 0
 export async function GET() {
   try {
     const summary = await getAnalyticsSummary()
-    const safeSummary = {
-      ...summary,
-      cities: summary.cities > 0 ? summary.cities : 40,
-      buyProperties: Number.isFinite(summary.buyProperties) ? summary.buyProperties : 0,
-      rentProperties: Number.isFinite(summary.rentProperties) ? summary.rentProperties : 0,
-      totalProjects: Number.isFinite(summary.totalProjects) ? summary.totalProjects : 0,
-      ecosystemPartners: Number.isFinite(summary.ecosystemPartners) ? summary.ecosystemPartners : 0,
-    }
-
-    if (summary.cities <= 0) {
-      console.error('[API /analytics/summary] Invalid cities value from upstream, applying fallback:', {
-        received: summary.cities,
-        fallback: safeSummary.cities,
-      })
-    }
-
-    console.log('[API /analytics/summary] FINAL API RESPONSE:', safeSummary)
-
-    return NextResponse.json(safeSummary, {
+    return NextResponse.json(summary, {
       status: 200,
       headers: {
         'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',

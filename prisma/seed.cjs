@@ -147,6 +147,62 @@ async function main() {
       },
     })
   }
+
+  const technologyCategory = await prisma.ecosystemCategory.findUnique({
+    where: { slug: 'technology-partners' },
+    select: { id: true },
+  })
+
+  if (technologyCategory) {
+    await prisma.ecosystemPartner.upsert({
+      where: {
+        categoryId_slug: {
+          categoryId: technologyCategory.id,
+          slug: 'goram',
+        },
+      },
+      update: {
+        name: 'GoRam',
+        tagline: 'Digital growth platform for property discovery and customer engagement.',
+        shortDescription: 'Technology partner helping developers and real-estate teams simplify discovery, CRM, and customer journeys.',
+        description: 'GoRam is a verified MillionFlats technology partner powering digital discovery, automation, and buyer engagement workflows across real-estate teams.',
+        logo: '/partners/goran.jpeg',
+        coverImage: '/partners/goran.jpeg',
+        rating: 4.8,
+        yearsExperience: 6,
+        projectsCompleted: 18,
+        locationCoverage: 'India, UAE',
+        pricingRange: 'Custom',
+        status: 'APPROVED',
+        isActive: true,
+        isFeatured: true,
+        isVerified: true,
+        contactEmail: 'hello@goram.io',
+        website: 'https://goram.io',
+      },
+      create: {
+        categoryId: technologyCategory.id,
+        name: 'GoRam',
+        slug: 'goram',
+        tagline: 'Digital growth platform for property discovery and customer engagement.',
+        shortDescription: 'Technology partner helping developers and real-estate teams simplify discovery, CRM, and customer journeys.',
+        description: 'GoRam is a verified MillionFlats technology partner powering digital discovery, automation, and buyer engagement workflows across real-estate teams.',
+        logo: '/partners/goran.jpeg',
+        coverImage: '/partners/goran.jpeg',
+        rating: 4.8,
+        yearsExperience: 6,
+        projectsCompleted: 18,
+        locationCoverage: 'India, UAE',
+        pricingRange: 'Custom',
+        status: 'APPROVED',
+        isActive: true,
+        isFeatured: true,
+        isVerified: true,
+        contactEmail: 'hello@goram.io',
+        website: 'https://goram.io',
+      },
+    })
+  }
 }
 
 main()

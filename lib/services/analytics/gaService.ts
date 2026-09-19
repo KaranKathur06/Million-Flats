@@ -70,22 +70,15 @@ function isMockMode(): boolean {
   return !getClient() || !propertyId
 }
 
-const MOCK: GAMetrics = {
-  monthlyVisitors: 14_200,
-  realtimeUsers: 47,
-  countries: 28,
-  cities: 40,
-}
-
 const lastValid = {
-  monthlyVisitors: MOCK.monthlyVisitors,
-  realtimeUsers: MOCK.realtimeUsers,
-  countries: MOCK.countries,
-  cities: MOCK.cities,
+  monthlyVisitors: 0,
+  realtimeUsers: 0,
+  countries: 0,
+  cities: 0,
 }
 
 export async function getMonthlyUsers(): Promise<number> {
-  if (isMockMode()) return MOCK.monthlyVisitors
+  if (isMockMode()) return 0
 
   try {
     const client = getClient()!
@@ -101,15 +94,15 @@ export async function getMonthlyUsers(): Promise<number> {
       lastValid.monthlyVisitors = parsed
       return parsed
     }
-    return lastValid.monthlyVisitors || MOCK.monthlyVisitors
+    return lastValid.monthlyVisitors
   } catch (err) {
     console.error('[GAService] getMonthlyUsers failed:', err)
-    return lastValid.monthlyVisitors || MOCK.monthlyVisitors
+    return lastValid.monthlyVisitors
   }
 }
 
 export async function getRealtimeUsers(): Promise<number> {
-  if (isMockMode()) return MOCK.realtimeUsers
+  if (isMockMode()) return 0
 
   try {
     const client = getClient()!
@@ -124,18 +117,17 @@ export async function getRealtimeUsers(): Promise<number> {
       lastValid.realtimeUsers = parsed
       return parsed
     }
-    return lastValid.realtimeUsers || MOCK.realtimeUsers
+    return lastValid.realtimeUsers
   } catch (err) {
     console.error('[GAService] getRealtimeUsers failed:', err)
-    return lastValid.realtimeUsers || MOCK.realtimeUsers
+    return lastValid.realtimeUsers
   }
 }
 
 async function getUniqueDimensionCount(
   dimension: 'country' | 'city',
-  fallback: number,
 ): Promise<number> {
-  if (isMockMode()) return fallback
+  if (isMockMode()) return 0
 
   try {
     const client = getClient()!
@@ -162,24 +154,24 @@ async function getUniqueDimensionCount(
 
     const last = dimension === 'country' ? lastValid.countries : lastValid.cities
     console.warn(`[GAService] Empty ${dimension} response, using fallback path.`)
-    return last || fallback
+    return last
   } catch (err) {
     console.error(`[GAService] getUniqueDimensionCount(${dimension}) failed:`, err)
     const last = dimension === 'country' ? lastValid.countries : lastValid.cities
-    return last || fallback
+    return last
   }
 }
 
 export async function getUsersByCountry(): Promise<number> {
-  return getUniqueDimensionCount('country', MOCK.countries)
+  return getUniqueDimensionCount('country')
 }
 
 export async function getUsersByCity(): Promise<number> {
-  return getUniqueDimensionCount('city', MOCK.cities)
+  return getUniqueDimensionCount('city')
 }
 
 export async function getPageViews(pagePath: string): Promise<number> {
-  if (isMockMode()) return 820
+  if (isMockMode()) return 0
 
   try {
     const client = getClient()!

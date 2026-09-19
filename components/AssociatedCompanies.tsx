@@ -11,8 +11,8 @@ const associatedCompanies = [
 
 export default function AssociatedCompanies() {
   return (
-    <section className="relative overflow-hidden bg-[#f4f5f7] py-16 sm:py-20">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="relative overflow-hidden bg-[#f4f5f7] py-16 sm:py-20 lg:py-24">
+      <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
             Ecosystem
@@ -21,7 +21,7 @@ export default function AssociatedCompanies() {
             Associated Companies
           </h2>
           <p className="mt-4 text-base text-slate-600 sm:text-lg">
-            MillionFlats operates within a broader ecosystem of developers, innovators, and industry partners.
+            Companies associated with the MillionFlats ecosystem.
           </p>
         </div>
 
@@ -29,7 +29,7 @@ export default function AssociatedCompanies() {
           {associatedCompanies.map((company, index) => (
             <div
               key={company.id}
-              className="mf-animate-fade-up group flex min-h-[150px] items-center justify-center rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
+              className="mf-animate-fade-up group flex min-h-[156px] items-center justify-center rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
               style={{ animationDelay: `${index * 80}ms` }}
             >
               <div className="flex h-[110px] w-full items-center justify-center overflow-hidden rounded-xl bg-white">

@@ -1,7 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { useAnalyticsSummary } from './useAnalyticsSummary'
+import { useAnalyticsSummary, type AnalyticsSummaryData } from './useAnalyticsSummary'
 
 const compactValue = (value: number, suffix = '') => {
   if (value >= 1000) {
@@ -69,9 +69,9 @@ function StatCard({
   const accent = accentStyles[accentColor]
 
   return (
-    <div className="group relative min-h-[168px] overflow-hidden rounded-[26px] border border-white/15 bg-white/[0.04] p-4 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/25 hover:bg-white/[0.06]">
+    <div className="group relative flex min-h-[168px] items-center justify-center overflow-hidden rounded-[26px] border border-white/15 bg-white/[0.04] p-4 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/25 hover:bg-white/[0.06]">
       <div className={`absolute inset-x-4 top-0 h-px bg-gradient-to-r ${accent.bg}`} />
-      <div className="flex h-full items-center gap-4">
+      <div className="flex w-full items-center justify-center gap-4">
         <div className={[
           'flex h-14 w-14 shrink-0 items-center justify-center rounded-full border',
           accent.iconBg,
@@ -135,21 +135,37 @@ const IconCompass = () => (
   </svg>
 )
 
+type MetricAccent = keyof typeof accentStyles
+type NumericAnalyticsKey = {
+  [Key in keyof AnalyticsSummaryData]: AnalyticsSummaryData[Key] extends number ? Key : never
+}[keyof AnalyticsSummaryData]
+
+type TrustMetricDefinition = {
+  id: string
+  valueKey: NumericAnalyticsKey
+  label: string
+  icon: ReactNode
+  accent: MetricAccent
+}
+
+const trustMetricDefinitions: readonly TrustMetricDefinition[] = [
+  { id: 'monthly-visitors', valueKey: 'monthlyVisitors', label: 'Monthly Visitors', icon: <IconUsers />, accent: 'amber' },
+  { id: 'cities-covered', valueKey: 'cities', label: 'Cities Covered', icon: <IconMapPin />, accent: 'blue' },
+  { id: 'countries-reached', valueKey: 'countries', label: 'Countries Reached', icon: <IconGlobe />, accent: 'rose' },
+  { id: 'buy-properties', valueKey: 'buyProperties', label: 'Buy Listings', icon: <IconCompass />, accent: 'emerald' },
+  { id: 'rent-properties', valueKey: 'rentProperties', label: 'Rent Listings', icon: <IconBuilding />, accent: 'violet' },
+  { id: 'total-projects', valueKey: 'totalProjects', label: 'Total Projects', icon: <IconBuilding />, accent: 'amber' },
+  { id: 'ecosystem-partners', valueKey: 'ecosystemPartners', label: 'Ecosystem Partners', icon: <IconBook />, accent: 'emerald' },
+  { id: 'developers', valueKey: 'developers', label: 'Developers', icon: <IconBuilding />, accent: 'violet' },
+  { id: 'agents', valueKey: 'agents', label: 'Agents', icon: <IconUsers />, accent: 'amber' },
+  { id: 'investment-insights', valueKey: 'blogs', label: 'Insights', icon: <IconBook />, accent: 'rose' },
+]
+
 export default function TrustStats() {
   const { data, loading } = useAnalyticsSummary()
-
-  const metrics = [
-    { id: 'monthly-visitors', value: data.monthlyVisitors, suffix: '+', label: 'Monthly Visitors', icon: <IconUsers />, accent: 'amber' as const },
-    { id: 'cities-covered', value: data.cities || 40, suffix: '+', label: 'Cities Covered', icon: <IconMapPin />, accent: 'blue' as const },
-    { id: 'countries-reached', value: data.countries || 22, suffix: '+', label: 'Countries Reached', icon: <IconGlobe />, accent: 'rose' as const },
-    { id: 'buy-properties', value: data.buyProperties || 0, suffix: '+', label: 'Buy Listings', icon: <IconCompass />, accent: 'emerald' as const },
-    { id: 'rent-properties', value: data.rentProperties || 0, suffix: '+', label: 'Rent Listings', icon: <IconBuilding />, accent: 'violet' as const },
-    { id: 'total-projects', value: data.totalProjects || 0, suffix: '+', label: 'Total Projects', icon: <IconBuilding />, accent: 'amber' as const },
-    { id: 'ecosystem-partners', value: data.ecosystemPartners || 0, suffix: '+', label: 'Ecosystem Partners', icon: <IconBook />, accent: 'emerald' as const },
-    { id: 'developers', value: data.developers || 110, suffix: '+', label: 'Developers', icon: <IconBuilding />, accent: 'violet' as const },
-    { id: 'agents', value: data.agents || 75, suffix: '+', label: 'Agents', icon: <IconUsers />, accent: 'amber' as const },
-    { id: 'investment-insights', value: data.blogs || 55, suffix: '+', label: 'Insights', icon: <IconBook />, accent: 'rose' as const },
-  ]
+  const metrics = trustMetricDefinitions
+    .map((metric) => ({ ...metric, value: data[metric.valueKey] }))
+    .filter((metric) => Number.isFinite(metric.value) && metric.value > 0)
 
   return (
     <section className="relative isolate overflow-hidden bg-[#071b2e] py-16 sm:py-20 lg:py-24">
@@ -169,19 +185,27 @@ export default function TrustStats() {
           </p>
         </div>
 
-        <div className={['grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5', loading ? 'animate-pulse' : ''].join(' ')}>
-          {metrics.map((metric, index) => (
-            <div key={metric.id} className="mf-animate-fade-up" style={{ animationDelay: `${index * 70}ms` }}>
-              <StatCard
-                icon={metric.icon}
-                value={metric.value}
-                suffix={metric.suffix}
-                label={metric.label}
-                accentColor={metric.accent}
-              />
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-1 gap-4 min-[380px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" aria-label="Loading trust metrics">
+            {Array.from({ length: 5 }, (_, index) => (
+              <div key={index} className="min-h-[168px] animate-pulse rounded-[26px] border border-white/10 bg-white/[0.04]" />
+            ))}
+          </div>
+        ) : metrics.length > 0 ? (
+          <div className="grid grid-cols-1 gap-4 min-[380px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {metrics.map((metric, index) => (
+              <div key={metric.id} className="mf-animate-fade-up" style={{ animationDelay: `${index * 70}ms` }}>
+                <StatCard
+                  icon={metric.icon}
+                  value={metric.value}
+                  suffix="+"
+                  label={metric.label}
+                  accentColor={metric.accent}
+                />
+              </div>
+            ))}
+          </div>
+        ) : null}
       </div>
     </section>
   )

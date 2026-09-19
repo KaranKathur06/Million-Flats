@@ -16,20 +16,20 @@ const KEY_REALTIME = 'analytics:realtime'
 const KEY_GA       = 'analytics:ga'
 const KEY_DB       = 'analytics:db'
 
-/* ── Default / fallback values ──────────────────────────── */
+/* ── Empty summary when analytics data is unavailable ───── */
 const FALLBACK_SUMMARY: AnalyticsSummary = {
-  monthlyVisitors: 12_400,
-  realtimeUsers: 45,
-  countries: 22,
-  blogs: 55,
-  cities: 40,
-  developers: 110,
-  tours: 280,
-  agents: 75,
-  buyProperties: 1280,
-  rentProperties: 690,
-  totalProjects: 320,
-  ecosystemPartners: 18,
+  monthlyVisitors: 0,
+  realtimeUsers: 0,
+  countries: 0,
+  blogs: 0,
+  cities: 0,
+  developers: 0,
+  tours: 0,
+  agents: 0,
+  buyProperties: 0,
+  rentProperties: 0,
+  totalProjects: 0,
+  ecosystemPartners: 0,
   updatedAt: new Date().toISOString(),
 }
 
@@ -91,7 +91,7 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
           ? ga.cities
           : previous?.cities && previous.cities > 0
             ? previous.cities
-            : FALLBACK_SUMMARY.cities
+            : 0
 
       return {
         monthlyVisitors: ga.monthlyVisitors,
