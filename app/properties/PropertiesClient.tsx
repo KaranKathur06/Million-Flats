@@ -100,7 +100,6 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
     minPriceDrawerOptions,
     maxPriceDrawerOptions,
     cities,
-    communities,
     locationLoading,
     locationError,
     retryLocations,
@@ -278,18 +277,6 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
                   appearance="admin-light"
                   dense
                   className="min-w-[160px]"
-                />
-
-                <GlobalDropdown
-                  label="Locality"
-                  showLabel={false}
-                  value={draftFilters.community}
-                  onChange={(v) => changeFilter({ community: singleDropdownValue(v) })}
-                  options={[{ value: '', label: draftFilters.location ? 'All Localities' : 'Select City' }, ...communities.map((value) => ({ value, label: value }))]}
-                  disabled={!draftFilters.location}
-                  appearance="admin-light"
-                  dense
-                  className="min-w-[170px]"
                 />
 
                 <GlobalDropdown

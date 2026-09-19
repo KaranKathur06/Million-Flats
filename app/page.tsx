@@ -8,6 +8,7 @@ import RealtimeBadge from '@/components/analytics/RealtimeBadge'
 import { authOptions } from '@/lib/auth'
 import { isAdminPanelRole } from '@/lib/roleHomeRoute'
 import MetaDologyVideoSection from '@/components/MetaDologyVideoSection'
+import AssociatedCompanies from '@/components/AssociatedCompanies'
 import { getBaseUrl } from '@/lib/auth/routes'
 
 export const dynamic = 'force-dynamic'
@@ -142,6 +143,7 @@ export default async function Home() {
       </section>
 
       {isHomeSectionEnabled('trust-stats') ? <TrustStats /> : null}
+      <AssociatedCompanies />
       {isHomeSectionEnabled('meta-dology-video') ? <MetaDologyVideoSection /> : null}
 
       {isHomeSectionEnabled('featured-projects') ? (

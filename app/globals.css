@@ -65,6 +65,31 @@ textarea {
   font-size: max(16px, 1em);
 }
 
+.mf-animate-fade-up {
+  opacity: 0;
+  transform: translateY(15px);
+  animation: mfFadeUp 0.5s ease-out forwards;
+}
+
+@keyframes mfFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mf-animate-fade-up {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}
+
 .mf-phone {
   display: flex;
   align-items: center;

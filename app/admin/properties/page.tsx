@@ -467,9 +467,9 @@ export default function AdminPropertiesPage() {
             )}
 
             {!loading && totalCount > 0 && (
-                <div className="mt-4 flex flex-col gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-sm text-white/50 sm:flex-row sm:items-center sm:justify-between">
-                    <span>Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, totalCount)} of {totalCount.toLocaleString()}</span>
-                    <div className="flex items-center gap-2">
+                <div className="mt-4 flex flex-col items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-4 text-sm text-white/50">
+                    <span className="text-center">Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, totalCount)} of {totalCount.toLocaleString()}</span>
+                    <div className="flex items-center justify-center gap-2">
                         <button type="button" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} className="rounded-lg border border-white/[0.1] px-3 py-1.5 text-xs font-semibold text-white/70 disabled:cursor-not-allowed disabled:opacity-30">Previous</button>
                         <span className="min-w-20 text-center text-xs text-white/40">Page {page} of {totalPages}</span>
                         <button type="button" disabled={page >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} className="rounded-lg border border-white/[0.1] px-3 py-1.5 text-xs font-semibold text-white/70 disabled:cursor-not-allowed disabled:opacity-30">Next</button>

@@ -1,18 +1,58 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { useAnalyticsSummary } from './useAnalyticsSummary'
 
-/* ── Animated counter ───────────────────────────────────── */
-function AnimatedNumber({ value, suffix = '' }: { value: number; suffix?: string }) {
-  return (
-    <span className="tabular-nums">
-      {value.toLocaleString('en-US')}
-      {suffix}
-    </span>
-  )
+const compactValue = (value: number, suffix = '') => {
+  if (value >= 1000) {
+    const compact = Intl.NumberFormat('en-US', {
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(value)
+    return `${compact}${suffix}`
+  }
+
+  return `${value.toLocaleString('en-US')}${suffix}`
 }
 
-/* ── Stat card ──────────────────────────────────────────── */
+const accentStyles = {
+  amber: {
+    bg: 'bg-amber-400/10',
+    iconBg: 'bg-amber-400/10',
+    text: 'text-amber-300',
+    border: 'border-amber-300/35',
+    glow: 'shadow-[0_0_0_1px_rgba(251,191,36,0.2)]',
+  },
+  blue: {
+    bg: 'bg-sky-400/10',
+    iconBg: 'bg-sky-400/10',
+    text: 'text-sky-300',
+    border: 'border-sky-300/35',
+    glow: 'shadow-[0_0_0_1px_rgba(96,165,250,0.2)]',
+  },
+  emerald: {
+    bg: 'bg-emerald-400/10',
+    iconBg: 'bg-emerald-400/10',
+    text: 'text-emerald-300',
+    border: 'border-emerald-300/35',
+    glow: 'shadow-[0_0_0_1px_rgba(52,211,153,0.2)]',
+  },
+  rose: {
+    bg: 'bg-rose-400/10',
+    iconBg: 'bg-rose-400/10',
+    text: 'text-rose-300',
+    border: 'border-rose-300/35',
+    glow: 'shadow-[0_0_0_1px_rgba(251,113,133,0.2)]',
+  },
+  violet: {
+    bg: 'bg-violet-400/10',
+    iconBg: 'bg-violet-400/10',
+    text: 'text-violet-300',
+    border: 'border-violet-300/35',
+    glow: 'shadow-[0_0_0_1px_rgba(167,139,250,0.2)]',
+  },
+} as const
+
 function StatCard({
   icon,
   value,
@@ -20,146 +60,124 @@ function StatCard({
   label,
   accentColor = 'amber',
 }: {
-  icon: React.ReactNode
+  icon: ReactNode
   value: number
   suffix?: string
   label: string
-  accentColor?: 'amber' | 'blue' | 'emerald' | 'rose'
+  accentColor?: keyof typeof accentStyles
 }) {
-  const colorMap = {
-    amber: { ring: 'ring-amber-400/20', bg: 'bg-amber-400/10', text: 'text-amber-400', glow: 'shadow-amber-400/10' },
-    blue: { ring: 'ring-blue-400/20', bg: 'bg-blue-400/10', text: 'text-blue-400', glow: 'shadow-blue-400/10' },
-    emerald: { ring: 'ring-emerald-400/20', bg: 'bg-emerald-400/10', text: 'text-emerald-400', glow: 'shadow-emerald-400/10' },
-    rose: { ring: 'ring-rose-400/20', bg: 'bg-rose-400/10', text: 'text-rose-400', glow: 'shadow-rose-400/10' },
-  }
-  const c = colorMap[accentColor]
+  const accent = accentStyles[accentColor]
 
   return (
-    <div
-      className={[
-        'group relative flex flex-col items-center justify-center text-center',
-        'rounded-2xl border border-white/[0.06] p-6 sm:p-8',
-        'bg-white/[0.03] hover:bg-white/[0.06]',
-        'transition-all duration-300 hover:scale-[1.02]',
-        `hover:shadow-xl ${c.glow}`,
-      ].join(' ')}
-    >
-      {/* Icon badge */}
-      <div
-        className={[
-          'w-12 h-12 rounded-xl flex items-center justify-center mb-4',
-          `${c.bg} ring-1 ${c.ring}`,
-          'group-hover:scale-110 transition-transform duration-300',
-        ].join(' ')}
-      >
-        <span className={`${c.text}`}>{icon}</span>
+    <div className="group relative min-h-[168px] overflow-hidden rounded-[26px] border border-white/15 bg-white/[0.04] p-4 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/25 hover:bg-white/[0.06]">
+      <div className={`absolute inset-x-4 top-0 h-px bg-gradient-to-r ${accent.bg}`} />
+      <div className="flex h-full items-center gap-4">
+        <div className={[
+          'flex h-14 w-14 shrink-0 items-center justify-center rounded-full border',
+          accent.iconBg,
+          accent.border,
+          accent.glow,
+        ].join(' ')}>
+          <span className={`${accent.text}`}>{icon}</span>
+        </div>
+
+        <div className="min-w-0 flex-1 text-left">
+          <div className="text-[2.1rem] font-black tracking-[-0.08em] leading-none text-white tabular-nums sm:text-[2.3rem]">
+            {compactValue(value, suffix)}
+          </div>
+          <div className="mt-2 text-[0.7rem] font-bold uppercase tracking-[0.18em] text-white/80 sm:text-[0.75rem]">
+            {label}
+          </div>
+        </div>
       </div>
-
-      {/* Number */}
-      <p className="text-3xl sm:text-4xl font-bold text-white tracking-tight leading-none mb-1.5">
-        <AnimatedNumber value={value} suffix={suffix} />
-      </p>
-
-      {/* Label */}
-      <p className="text-xs sm:text-sm font-medium text-white/50 uppercase tracking-widest">
-        {label}
-      </p>
     </div>
   )
 }
 
-/* ── Icon SVGs ──────────────────────────────────────────── */
 const IconUsers = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
   </svg>
 )
 const IconGlobe = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M2 12h20" />
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
   </svg>
 )
 const IconBook = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
   </svg>
 )
 const IconMapPin = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+    <circle cx="12" cy="10" r="3" />
+  </svg>
+)
+const IconBuilding = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M3 21h18" />
+    <path d="M5 21V7l7-4 7 4v14" />
+    <path d="M9 9h.01M15 9h.01M9 13h.01M15 13h.01M9 17h.01M15 17h.01" />
+  </svg>
+)
+const IconCompass = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <path d="m14.5 9.5-2.5 7-7-2.5 2.5-7 7 2.5z" />
   </svg>
 )
 
-/* ── Main Component ─────────────────────────────────────── */
 export default function TrustStats() {
   const { data, loading } = useAnalyticsSummary()
-  const safeCities = data.cities > 0 ? data.cities : 40
+
+  const metrics = [
+    { id: 'monthly-visitors', value: data.monthlyVisitors, suffix: '+', label: 'Monthly Visitors', icon: <IconUsers />, accent: 'amber' as const },
+    { id: 'cities-covered', value: data.cities || 40, suffix: '+', label: 'Cities Covered', icon: <IconMapPin />, accent: 'blue' as const },
+    { id: 'countries-reached', value: data.countries || 22, suffix: '+', label: 'Countries Reached', icon: <IconGlobe />, accent: 'rose' as const },
+    { id: 'projects', value: data.tours || 280, suffix: '+', label: '3D Tours', icon: <IconCompass />, accent: 'emerald' as const },
+    { id: 'developers', value: data.developers || 110, suffix: '+', label: 'Developers', icon: <IconBuilding />, accent: 'violet' as const },
+    { id: 'agents', value: data.agents || 75, suffix: '+', label: 'Agents', icon: <IconUsers />, accent: 'amber' as const },
+    { id: 'investment-insights', value: data.blogs || 55, suffix: '+', label: 'Insights', icon: <IconBook />, accent: 'emerald' as const },
+  ]
 
   return (
-    <section
-      className="relative w-full overflow-hidden -mt-[1px] bg-[#0d1f38]"
-      style={{
-        background: 'linear-gradient(135deg, #0d1f38 0%, #152d4f 50%, #0d1f38 100%)',
-      }}
-    >
-      {/* Subtle grid pattern overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-        }}
-      />
+    <section className="relative isolate overflow-hidden bg-[#071b2e] py-16 sm:py-20 lg:py-24">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.12),transparent_26%),radial-gradient(circle_at_bottom,_rgba(251,191,36,0.06),transparent_32%)]" />
+      <div className="absolute inset-0 opacity-[0.04] [background-image:linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] [background-size:36px_36px]" />
 
-      <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
-        {/* Section header */}
-        <div className="text-center mb-12">
-          <p className="text-amber-400 font-semibold text-xs uppercase tracking-[0.2em] mb-3">
+      <div className="relative mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
+        <div className="mb-10 text-center sm:mb-12">
+          <p className="mb-3 text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-amber-300/90">
             Trusted Platform
           </p>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-white mb-4 tracking-tight">
+          <h2 className="text-4xl font-black tracking-[-0.06em] text-white sm:text-5xl lg:text-[4.1rem]">
             Why MillionFlats
           </h2>
-          <p className="text-base sm:text-lg text-white/60 max-w-2xl mx-auto leading-relaxed">
+          <p className="mx-auto mt-4 max-w-3xl text-base text-white/70 sm:text-xl">
             Real numbers. Real trust. Connecting global investors with premium properties.
           </p>
         </div>
 
-        {/* Stats grid */}
-        <div
-          className={[
-            'grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-5xl mx-auto',
-            loading ? 'animate-pulse' : '',
-          ].join(' ')}
-        >
-          <StatCard
-            icon={<IconUsers />}
-            value={data.monthlyVisitors}
-            suffix="+"
-            label="Monthly Visitors"
-            accentColor="amber"
-          />
-          <StatCard
-            icon={<IconMapPin />}
-            value={safeCities}
-            suffix="+"
-            label="Cities Covered"
-            accentColor="blue"
-          />
-          <StatCard
-            icon={<IconBook />}
-            value={data.blogs}
-            label="Investment Insights"
-            accentColor="emerald"
-          />
-          <StatCard
-            icon={<IconGlobe />}
-            value={data.countries}
-            suffix="+"
-            label="Countries Reached"
-            accentColor="rose"
-          />
+        <div className={['grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5', loading ? 'animate-pulse' : ''].join(' ')}>
+          {metrics.map((metric, index) => (
+            <div key={metric.id} className="mf-animate-fade-up" style={{ animationDelay: `${index * 70}ms` }}>
+              <StatCard
+                icon={metric.icon}
+                value={metric.value}
+                suffix={metric.suffix}
+                label={metric.label}
+                accentColor={metric.accent}
+              />
+            </div>
+          ))}
         </div>
       </div>
     </section>
