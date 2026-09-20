@@ -149,4 +149,22 @@ describe('public access regressions', () => {
     expect(response.status).toBe(200)
     expect(response.body.cities).toContain('Rajkot')
   })
+
+  it('keeps canonical city options independent of the selected city and removes spelling duplicates', async () => {
+    mockManualPropertyFindMany.mockResolvedValue([{ city: 'Navi-mumbai', locality: 'Kharghar' }])
+    mockCityFindMany.mockResolvedValue([
+      { id: 'city-navi-1', name: 'Navi Mumbai' },
+      { id: 'city-navi-2', name: 'Navi-mumbai' },
+      { id: 'city-hyd', name: 'Hyderabad' },
+    ])
+    mockCommunityFindMany.mockResolvedValue([])
+
+    const response = await propertyLocations(
+      new Request('http://localhost/api/properties/locations?country=INDIA&city=Hyderabad'),
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.body.cities).toEqual(['Hyderabad', 'Navi Mumbai'])
+    expect(response.body.cities.filter((city: string) => city === 'Navi Mumbai')).toHaveLength(1)
+  })
 })

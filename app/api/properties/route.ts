@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
 import { buildManualPropertyPath } from '@/lib/manualPropertyRoutes'
+import { normalizeCanonicalCity, normalizeCountryCode, normalizeText } from '@/lib/propertyCanonical'
 
 type RateEntry = { count: number; resetAt: number }
 
@@ -153,7 +154,14 @@ export async function GET(req: Request) {
         { propertyType: { contains: q.q, mode: 'insensitive' } },
       ]
     }
-    if (q.city) where.city = { contains: q.city, mode: 'insensitive' }
+    if (q.city) {
+      const canonicalCity = normalizeCanonicalCity(normalizeCountryCode(q.country || 'INDIA'), q.city)
+      const cityValues = Array.from(new Set([q.city, canonicalCity, canonicalCity.replace(/\s+/g, '-'), canonicalCity.replace(/\s+/g, '_')]))
+      where.AND = [
+        ...(where.AND || []),
+        { OR: cityValues.map((value) => ({ city: { contains: normalizeText(value), mode: 'insensitive' as const } })) },
+      ]
+    }
     if (q.community) where.community = { contains: q.community, mode: 'insensitive' }
     if (q.locality) where.locality = { contains: q.locality, mode: 'insensitive' }
     if (q.city && q.community) {

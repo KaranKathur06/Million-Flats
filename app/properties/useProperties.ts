@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useCountry } from '@/components/CountryProvider'
 import { COUNTRY_META, DEFAULT_COUNTRY, isCountryCode, type CountryCode } from '@/lib/country'
+import { normalizeCanonicalCity, normalizeCountryCode } from '@/lib/propertyCanonical'
 import {
   priceFilterOptions,
 } from '@/lib/filters/dropdownOptions'
@@ -73,7 +74,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
   const [filters, setFilters] = useState<Filters>({
     country: initialCountry,
     search: getParam('q'),
-    location: getParam('location'),
+    location: normalizeCanonicalCity(normalizeCountryCode(initialCountry), getParam('location')),
     community: getParam('locality') || getParam('community'),
     type: getParam('type'),
     minPrice: getParam('minPrice'),
@@ -129,12 +130,13 @@ export default function useProperties(forcedPurpose?: Purpose) {
       const params = new URLSearchParams(window.location.search)
       const urlCountry = params.get('country')
       const restoredCountry = urlCountry && isCountryCode(urlCountry) ? urlCountry : DEFAULT_COUNTRY
+      const restoredLocation = normalizeCanonicalCity(normalizeCountryCode(restoredCountry), params.get('location') || params.get('city') || '')
       restoringUrlRef.current = true
       setFilters((previous) => ({
         ...previous,
         country: restoredCountry,
         search: params.get('q') || '',
-        location: params.get('location') || params.get('city') || '',
+        location: restoredLocation,
         community: params.get('community') || '',
         type: params.get('type') || params.get('propertyType') || '',
         minPrice: params.get('minPrice') || '',
@@ -147,7 +149,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
         ...previous,
         country: restoredCountry,
         search: params.get('q') || '',
-        location: params.get('location') || params.get('city') || '',
+        location: restoredLocation,
         community: params.get('community') || '',
         type: params.get('type') || params.get('propertyType') || '',
         minPrice: params.get('minPrice') || '',
@@ -187,7 +189,6 @@ export default function useProperties(forcedPurpose?: Purpose) {
   useEffect(() => {
     const controller = new AbortController()
     const params = new URLSearchParams({ country: filters.country })
-    if (filters.location) params.set('city', filters.location)
 
     setLocationLoading(true)
     setLocationError('')
@@ -216,7 +217,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
       })
 
     return () => controller.abort()
-  }, [filters.country, filters.location, locationRequestVersion])
+  }, [filters.country, locationRequestVersion])
 
   const retryLocations = useCallback(() => setLocationRequestVersion((version) => version + 1), [])
 
