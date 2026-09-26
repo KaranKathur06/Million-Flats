@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CountryCode } from '@/lib/country'
 import useProperties from '@/app/properties/useProperties'
 import PropertiesHero from '@/components/properties/PropertiesHero'
+import type { ResolvedHeroBanner } from '@/lib/heroBanners'
 import SmartSearch from '@/components/properties/SmartSearch'
 import GlobalDropdown from '@/components/ui/GlobalDropdown'
 import { singleDropdownValue } from '@/components/ui/dropdownUtils'
@@ -68,7 +69,7 @@ function safePurpose(v: unknown): Purpose {
   return v === 'rent' ? 'rent' : 'buy'
 }
 
-export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Purpose }) {
+export default function PropertiesClient({ forcedPurpose, initialBanner }: { forcedPurpose?: Purpose; initialBanner?: ResolvedHeroBanner }) {
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false)
   const [moreFiltersVisible, setMoreFiltersVisible] = useState(false)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
@@ -199,7 +200,8 @@ export default function PropertiesClient({ forcedPurpose }: { forcedPurpose?: Pu
       <PropertiesHero
         title={heroTitle}
         subtitle={heroSubtitle}
-        image={{ src: '/HOMEPAGE.jpg', alt: heroTitle }}
+        image={{ src: '/HOMEPAGE.jpeg', alt: heroTitle }}
+        banner={initialBanner}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: breadcrumbLabel, href: breadcrumbHref }]}
         search={<SmartSearch draftFilters={draftFilters} setDraftFilters={setDraftFilters} onSearch={applyDraft} purpose={purpose} country={draftFilters.country} />}
       />

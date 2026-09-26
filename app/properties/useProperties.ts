@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useCountry } from '@/components/CountryProvider'
 import { COUNTRY_META, DEFAULT_COUNTRY, isCountryCode, type CountryCode } from '@/lib/country'
 import { normalizeCanonicalCity, normalizeCountryCode } from '@/lib/propertyCanonical'
@@ -36,6 +36,7 @@ function safePurpose(v: unknown): Purpose {
 
 export default function useProperties(forcedPurpose?: Purpose) {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const { country, setCountry } = useCountry()
 
   const [properties, setProperties] = useState<Property[]>([])
@@ -74,7 +75,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
   const [filters, setFilters] = useState<Filters>({
     country: initialCountry,
     search: getParam('q'),
-    location: normalizeCanonicalCity(normalizeCountryCode(initialCountry), getParam('location')),
+    location: normalizeCanonicalCity(normalizeCountryCode(initialCountry), getParam('location') || getParam('city')),
     community: getParam('locality') || getParam('community'),
     type: getParam('type'),
     minPrice: getParam('minPrice'),
@@ -93,6 +94,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
   const syncUrl = useCallback((nextFilters: Filters, nextPurpose: Purpose) => {
     const params = new URLSearchParams(window.location.search)
     params.set('purpose', nextPurpose)
+    params.delete('city')
 
     params.set('country', nextFilters.country)
     if (nextFilters.search) params.set('q', nextFilters.search)
@@ -121,9 +123,9 @@ export default function useProperties(forcedPurpose?: Purpose) {
     if (restoringUrlRef.current) {
       restoringUrlRef.current = false
     } else if (`${window.location.pathname}${window.location.search}` !== nextUrl) {
-      window.history.pushState(null, '', nextUrl)
+      router.push(nextUrl, { scroll: false })
     }
-  }, [])
+  }, [router])
 
   useEffect(() => {
     const restoreFromUrl = () => {

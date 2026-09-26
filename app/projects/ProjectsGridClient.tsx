@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import PremiumDropdown from '@/components/PremiumDropdown'
 import CurrencyPrice from '@/components/CurrencyPrice'
+import HeroBannerBackdrop from '@/components/HeroBannerBackdrop'
+import type { ResolvedHeroBanner } from '@/lib/heroBanners'
 
 /* ─── Types ─── */
 interface ProjectItem {
@@ -90,7 +92,7 @@ function CloseIcon({ className }: { className?: string }) {
 /* ═══════════════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════════════ */
-export default function ProjectsGridClient() {
+export default function ProjectsGridClient({ initialBanner }: { initialBanner: ResolvedHeroBanner }) {
     const searchParams = useSearchParams()
     const router = useRouter()
 
@@ -274,6 +276,7 @@ export default function ProjectsGridClient() {
         <div className="min-h-screen bg-gray-50">
             {/* ─── Hero Banner ─── */}
             <section className="relative overflow-hidden bg-gradient-to-br from-[#0c1d37] via-[#162d50] to-[#1e3a5f] pt-8 pb-12 sm:pt-10 sm:pb-14 lg:pt-12 lg:pb-16">
+                <HeroBannerBackdrop desktopImage={initialBanner.desktopImage} mobileImage={initialBanner.mobileImage} desktopAlt={initialBanner.desktopAlt} mobileAlt={initialBanner.mobileAlt} className="h-full w-full object-cover opacity-25" />
                 {/* Decorative grid pattern */}
                 <div className="pointer-events-none absolute inset-0 opacity-[0.04]" style={{
                     backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
@@ -287,13 +290,9 @@ export default function ProjectsGridClient() {
                         <StarIcon className="h-3 w-3" />
                         Off-Plan Developments
                     </span>
-                    <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white tracking-tight leading-tight">
-                        Discover Premium <br className="hidden sm:block" />
-                        <span className="bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">Projects</span>
-                    </h1>
+                    <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white tracking-tight leading-tight">{initialBanner.headline}</h1>
                     <p className="mt-5 text-base sm:text-lg text-white/60 max-w-2xl mx-auto leading-relaxed">
-                        Browse exclusive off-plan developments from the UAE&apos;s top developers.
-                        Golden Visa eligible properties, luxury towers, and waterfront residences.
+                        {initialBanner.subheadline}
                     </p>
 
                     {/* Search Bar */}

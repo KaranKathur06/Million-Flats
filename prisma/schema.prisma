@@ -128,6 +128,28 @@ enum AgentProfileStatus {
   SUSPENDED
 }
 
+enum LeadPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum LeadActivityType {
+  CREATED
+  STATUS_CHANGED
+  ASSIGNED
+  NOTE_ADDED
+  FOLLOW_UP_SCHEDULED
+  WHATSAPP_INITIATED
+  DOCUMENTS_REQUESTED
+  DOCUMENTS_SUBMITTED
+  DOCUMENTS_VERIFIED
+  CONVERTED
+  CLOSED
+  REOPENED
+}
+
 enum BlogStatus {
   DRAFT
   PUBLISHED
@@ -671,6 +693,8 @@ model Agent {
   approved Boolean @default(false)
   profileStatus AgentProfileStatus? @map("profile_status")
   verificationStatus AgentVerificationStatus? @map("verification_status")
+  documentsRequiredAt DateTime? @map("documents_required_at")
+  verificationReason String? @db.Text @map("verification_reason")
 
   status AgentStatus @default(REGISTERED) @map("status")
 
@@ -686,6 +710,7 @@ model Agent {
   user  User @relation(fields: [userId], references: [id], onDelete: Cascade)
   agency Agency? @relation(fields: [agencyId], references: [id], onDelete: SetNull)
   leads PropertyLead[]
+  crmLeads Lead[] @relation("LeadAgent")
   listings AgentListing[]
   manualProperties ManualProperty[]
 
@@ -1097,6 +1122,7 @@ model ManualProperty {
   agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
   developer Developer? @relation(fields: [developerId], references: [id], onDelete: SetNull)
   inquiries Inquiry[]
+  crmLeads Lead[]
   media ManualPropertyMedia[]
   verificationDocuments ManualPropertyVerificationDocument[]
   duplicateOverrideLogs ManualDuplicateOverrideLog[]
@@ -1176,6 +1202,7 @@ enum AuditEntityType {
   MANUAL_PROPERTY
   AGENT
   USER
+  HERO_BANNER
   ECOSYSTEM_PARTNER
   ECOSYSTEM_PARTNER_APPLICATION
   PROJECT
@@ -1253,6 +1280,10 @@ enum AuditAction {
   ADMIN_ECOSYSTEM_PARTNER_MEDIA_UPLOADED
   ADMIN_ECOSYSTEM_PARTNER_MEDIA_REPLACED
   ADMIN_ECOSYSTEM_PARTNER_MEDIA_DELETED
+  ADMIN_HERO_BANNER_CREATED
+  ADMIN_HERO_BANNER_UPDATED
+  ADMIN_HERO_BANNER_STATUS_CHANGED
+  ADMIN_HERO_BANNER_IMAGE_REMOVED
 }
 
 model AuditLog {
@@ -1502,6 +1533,7 @@ model City {
   countryCode CountryCode @map("country")
   name        String
   communities Community[]
+  heroBanners HeroBanner[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -1622,6 +1654,58 @@ enum EcosystemBannerStatus {
   PROCESSING
   FAILED
   ARCHIVED
+}
+
+enum HeroBannerScope {
+  CITY
+  COUNTRY
+  GLOBAL
+}
+
+enum HeroBannerCategory {
+  BUY
+  RENT
+  PROJECTS
+  GENERIC
+}
+
+model HeroBanner {
+  id              String             @id @default(cuid())
+  scope           HeroBannerScope
+  scopeKey        String             @map("scope_key")
+  category        HeroBannerCategory
+  cityId          String?            @map("city_id")
+  countryCode     CountryCode?       @map("country")
+  headline        String?            @db.Text
+  subheadline     String?            @db.Text
+  desktopImageKey String?            @map("desktop_image_key") @db.Text
+  desktopImageUrl String?            @map("desktop_image_url") @db.Text
+  desktopImageAlt String?            @map("desktop_image_alt") @db.VarChar(300)
+  desktopWidth    Int?               @map("desktop_width")
+  desktopHeight   Int?               @map("desktop_height")
+  desktopFileSize Int?               @map("desktop_file_size")
+  desktopMimeType String?            @map("desktop_mime_type")
+  mobileImageKey  String?            @map("mobile_image_key") @db.Text
+  mobileImageUrl  String?            @map("mobile_image_url") @db.Text
+  mobileImageAlt  String?            @map("mobile_image_alt") @db.VarChar(300)
+  mobileWidth     Int?               @map("mobile_width")
+  mobileHeight    Int?               @map("mobile_height")
+  mobileFileSize  Int?               @map("mobile_file_size")
+  mobileMimeType  String?            @map("mobile_mime_type")
+  isActive        Boolean            @default(true) @map("is_active")
+  priority        Int                @default(0)
+  createdBy       String?            @map("created_by")
+  updatedBy       String?            @map("updated_by")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  city City? @relation(fields: [cityId], references: [id], onDelete: Cascade)
+
+  @@unique([scopeKey, category], map: "hero_banners_scope_key_category_key")
+  @@index([scope, category, isActive, priority], map: "hero_banners_resolution_idx")
+  @@index([cityId, category, isActive], map: "hero_banners_city_category_idx")
+  @@index([countryCode, category, isActive], map: "hero_banners_country_category_idx")
+  @@map("hero_banners")
 }
 
 model EcosystemBanner {
@@ -1986,11 +2070,25 @@ model Lead {
   developerProfileId String?   @map("developer_profile_id")
   leadSubType        String?   @map("lead_sub_type")  // PROPERTY_INQUIRY | PROJECT_INQUIRY | DEVELOPER_CONTACT | BROCHURE_REQUEST | SITE_VISIT_REQUEST | CALL_BACK | THREE_D_TOUR_REQUEST
   crmStage           String?   @map("crm_stage")      // NEW | CONTACTED | QUALIFIED | SITE_VISIT | NEGOTIATION | BOOKED | CLOSED | LOST
+  priority           LeadPriority @default(MEDIUM)
+  propertyId         String?   @map("property_id")
+  agentId            String?   @map("agent_id")
+  sourceUrl          String?   @map("source_url")
+  sourceType         String?   @map("source_type")
+  displayPriceAtInquiry Float? @map("display_price_at_inquiry")
+  basePriceAtInquiry Float?   @map("base_price_at_inquiry")
+  baseCurrencyAtInquiry String? @map("base_currency_at_inquiry")
+  displayCurrencyAtInquiry String? @map("display_currency_at_inquiry")
 
   project          Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
   developer        Developer?       @relation(fields: [developerId], references: [id], onDelete: SetNull)
   ecosystemPartner EcosystemPartner? @relation(fields: [ecosystemPartnerId], references: [id], onDelete: SetNull)
   developerProfile DeveloperProfile? @relation(fields: [developerProfileId], references: [id], onDelete: SetNull)
+  property         ManualProperty?   @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  agent            Agent?            @relation("LeadAgent", fields: [agentId], references: [id], onDelete: SetNull)
+  activities       LeadActivity[]
+  notes            LeadNote[]
+  followUps        LeadFollowUp[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -2003,12 +2101,60 @@ model Lead {
   @@index([projectId])
   @@index([developerId])
   @@index([developerProfileId])
+  @@index([propertyId])
+  @@index([agentId])
   @@index([crmStage])
   @@index([assignedTo])
   @@index([createdAt])
   @@index([leadType, status])
   @@index([leadType, createdAt])
   @@map("leads")
+}
+
+model LeadActivity {
+  id        String @id @default(cuid())
+  leadId    String @map("lead_id")
+  type      LeadActivityType
+  summary   String
+  metadata  Json?
+  actorId   String? @map("actor_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
+  @@map("lead_activities")
+}
+
+model LeadNote {
+  id        String @id @default(cuid())
+  leadId    String @map("lead_id")
+  authorId  String? @map("author_id")
+  text      String @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
+  @@map("lead_notes")
+}
+
+model LeadFollowUp {
+  id          String @id @default(cuid())
+  leadId      String @map("lead_id")
+  action      String
+  scheduledAt DateTime @map("scheduled_at")
+  assignedTo  String? @map("assigned_to")
+  notes       String? @db.Text
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, scheduledAt])
+  @@index([assignedTo, scheduledAt])
+  @@map("lead_follow_ups")
 }
 
 model AnalyticsEvent {
@@ -2174,6 +2320,7 @@ model Project {
 
   completionYear  Int?     @map("completion_year")
   startingPrice   Float?   @map("starting_price")
+  startingPriceCurrency String @default("AED") @map("starting_price_currency")
 
   goldenVisa      Boolean  @default(false) @map("golden_visa")
 

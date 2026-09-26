@@ -63,7 +63,11 @@ export async function GET(req: Request) {
       orderBy: { name: 'asc' },
     })
 
-    const cities = canonicalCityNames(country, canonicalCityRows.length ? canonicalCityRows.map((row: any) => row.name) : getCityOptions(canonicalCountry).map((row) => row.name))
+    const cityNames = [
+      ...canonicalCityRows.map((row: any) => row.name),
+      ...getCityOptions(canonicalCountry).map((row) => row.name),
+    ]
+    const cities = canonicalCityNames(country, cityNames)
 
     const selectedCanonicalName = city ? normalizeCanonicalCity(canonicalCountry, city) : ''
     const selectedCanonicalCity = selectedCanonicalName

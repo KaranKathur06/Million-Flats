@@ -1,6 +1,14 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import PropertiesClient from '@/app/properties/PropertiesClient'
+import { resolveHeroBanner } from '@/lib/heroBanners'
+import PropertiesHero from '@/components/properties/PropertiesHero'
+
+type SearchParams = Record<string, string | string[] | undefined>
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] || '' : value || ''
+}
 
 function siteUrl() {
   const base = (process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || '').trim()
@@ -36,18 +44,23 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default function PropertiesPage() {
+export default async function PropertiesPage({ searchParams = {} }: { searchParams?: SearchParams }) {
+  const purpose = firstParam(searchParams.purpose).toLowerCase() === 'rent' ? 'RENT' : 'BUY'
+  const city = firstParam(searchParams.location) || firstParam(searchParams.city)
+  const country = firstParam(searchParams.country) || 'INDIA'
+  const initialBanner = await resolveHeroBanner({ category: purpose, city, country })
   return (
     <Suspense
       fallback={
         <div className="min-h-screen bg-gray-50 py-16">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <PropertiesHero title={initialBanner.headline} subtitle={initialBanner.subheadline} banner={initialBanner} />
+            <div className="container mx-auto px-4 py-10 sm:px-6 lg:px-8">
             <p className="text-gray-600">Loading...</p>
           </div>
         </div>
       }
     >
-      <PropertiesClient />
+      <PropertiesClient initialBanner={initialBanner} />
     </Suspense>
   )
 }

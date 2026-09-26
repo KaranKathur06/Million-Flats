@@ -8,6 +8,7 @@ import { buildManualPropertyPath } from '@/lib/manualPropertyRoutes'
 import { PROPERTY_MEDIA_CATEGORIES, propertyMediaCategory, type PropertyMediaCategory } from '@/lib/propertyMedia'
 import { orderManualPropertyMedia } from '@/lib/manualPropertyForm'
 import { PaymentPlan } from '@/components/PaymentPlan'
+import PropertyInquiryButton from '@/components/PropertyInquiryButton'
 
 function safeString(v: unknown) {
   return typeof v === 'string' ? v : ''
@@ -139,7 +140,7 @@ export default function ManualPropertyPreview({ manual, related = [], previewMod
                 <p className="mt-2 text-white/85 text-sm sm:text-base">{locationLabel || 'Location available on request'}</p>
                 <p className="mt-4 text-2xl sm:text-3xl font-semibold text-white">{priceLabel}</p>
               </div>
-              {previewMode ? <button type="button" disabled className="inline-flex h-12 px-6 rounded-xl bg-white/70 text-dark-blue font-semibold items-center justify-center cursor-not-allowed">Contact Agent</button> : <a href={whatsappHref || (phone ? `tel:${phone}` : email ? `mailto:${email}` : '/contact')} target={whatsappHref ? '_blank' : undefined} rel={whatsappHref ? 'noreferrer' : undefined} className="inline-flex h-12 px-6 rounded-xl bg-white text-dark-blue font-semibold items-center justify-center shadow-sm hover:bg-white/95">Contact Agent</a>}
+              {previewMode ? <button type="button" disabled className="inline-flex h-12 px-6 rounded-xl bg-white/70 text-dark-blue font-semibold items-center justify-center cursor-not-allowed">Contact Agent</button> : <PropertyInquiryButton property={{ id: String(manual?.id || ''), title, location: locationLabel || 'Location available on request', priceLabel, propertyType: safeString(manual?.propertyType) || 'Property', bedrooms: safeNumber(manual?.bedrooms) }} whatsappHref={whatsappHref} />}
             </div>
           </div>
         </div>
@@ -265,7 +266,7 @@ export default function ManualPropertyPreview({ manual, related = [], previewMod
                   <p className="text-xs text-gray-600">Listing Agent</p>
                 </div>
               </div>
-              {previewMode ? <button type="button" disabled className="inline-flex h-11 px-5 rounded-xl bg-dark-blue/50 text-white font-semibold items-center justify-center cursor-not-allowed">Contact</button> : <a href={whatsappHref || (phone ? `tel:${phone}` : email ? `mailto:${email}` : '/contact')} target={whatsappHref ? '_blank' : undefined} rel={whatsappHref ? 'noreferrer' : undefined} className="inline-flex h-11 px-5 rounded-xl bg-dark-blue text-white font-semibold items-center justify-center shadow-sm">Contact</a>}
+              {previewMode ? <button type="button" disabled className="inline-flex h-11 px-5 rounded-xl bg-dark-blue/50 text-white font-semibold items-center justify-center cursor-not-allowed">Contact</button> : <PropertyInquiryButton property={{ id: String(manual?.id || ''), title, location: locationLabel || 'Location available on request', priceLabel, propertyType: safeString(manual?.propertyType) || 'Property', bedrooms: safeNumber(manual?.bedrooms) }} whatsappHref={whatsappHref} label="Contact" className="inline-flex h-11 px-5 rounded-xl bg-dark-blue text-white font-semibold items-center justify-center shadow-sm" />}
             </div>
             {!previewMode ? <div className="mt-6">
               <Link href={`/agents/${encodeURIComponent(String(manual?.agentId || ''))}`} className="text-sm font-semibold text-dark-blue hover:underline">

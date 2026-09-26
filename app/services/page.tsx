@@ -1,5 +1,11 @@
-export const metadata = {
-  title: 'Services - MillionFlats',
+import Link from 'next/link'
+import type { Metadata } from 'next'
+import { SERVICE_NAV_ITEMS } from '@/lib/services/serviceNavigation'
+
+export const metadata: Metadata = {
+  title: 'Services | MillionFlats',
+  description: 'Explore MillionFlats growth infrastructure for developers, agencies, agents, and ecosystem partners, alongside 3D Tours.',
+  alternates: { canonical: '/services' },
 }
 
 export default function ServicesIndexPage() {
@@ -18,38 +24,12 @@ export default function ServicesIndexPage() {
       <section className="bg-white">
         <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                title: '3D Immersive Tours',
-                desc: 'Interactive walkthrough tours, HDR photos, and floor plans.',
-                href: '/services/3d-tours',
-              },
-              {
-                title: 'AI Analytics (AI™)',
-                desc: 'Pricing fairness, investment potential, risk signals, and trust scores.',
-                href: '/services/ai-analytics',
-              },
-              {
-                title: 'Featured Listings',
-                desc: 'Premium placement and boosted visibility for serious buyers.',
-                href: '/services/featured-listings',
-              },
-              {
-                title: 'Premium Ads',
-                desc: 'Targeted campaigns to reach high-intent property buyers.',
-                href: '/services/advertising',
-              },
-              {
-                title: 'Partnerships',
-                desc: 'Join our ecosystem and receive qualified lead flow.',
-                href: '/services/partnerships',
-              },
-            ].map((s) => (
-              <a key={s.href} href={s.href} className="rounded-3xl border border-gray-200 bg-white shadow-sm p-7 hover:shadow-md transition-shadow">
-                <div className="text-dark-blue font-semibold">{s.title}</div>
-                <div className="mt-2 text-sm text-gray-600">{s.desc}</div>
-                <div className="mt-5 text-sm font-semibold text-dark-blue">View</div>
-              </a>
+            {SERVICE_NAV_ITEMS.map((service) => (
+              <Link key={service.href} href={service.href} className="border border-gray-200 bg-white p-7 shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dark-blue/40">
+                <div className="text-dark-blue font-semibold">{service.label}</div>
+                <div className="mt-2 text-sm text-gray-600">{service.label === '3D Tours' ? 'Interactive property walkthroughs and spatial experiences.' : 'Explore dedicated growth infrastructure for this MillionFlats ecosystem segment.'}</div>
+                <div className="mt-5 text-sm font-semibold text-dark-blue">Explore <span aria-hidden="true">→</span></div>
+              </Link>
             ))}
           </div>
         </div>

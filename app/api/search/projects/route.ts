@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { MEDIA_FALLBACKS, resolveDeveloperLogo, resolveProjectImage } from '@/lib/media/resolveMedia'
 import { getProjectListing } from '@/lib/services/ProjectListingService'
+import { resolveCanonicalSearchCity } from '@/lib/heroBanners'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,6 +37,13 @@ export async function GET(req: Request) {
         const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '24', 10) || 24))
 
         const db = prisma as any
+        const searchCountryCode = country === 'uae' || country === 'ae'
+            ? 'UAE'
+            : country === 'india' || country === 'in'
+                ? 'INDIA'
+                : null
+        const canonicalCity = city ? await resolveCanonicalSearchCity(city, searchCountryCode) : null
+        const searchCity = canonicalCity?.name || city
 
         // ── Build WHERE clause using AND array for safe composition ─────────
         const conditions: any[] = [
@@ -58,7 +66,7 @@ export async function GET(req: Request) {
 
         // City filter
         if (city) {
-            conditions.push({ city: { contains: city, mode: 'insensitive' } })
+            conditions.push({ city: { contains: searchCity, mode: 'insensitive' } })
         }
 
         // Developer filter (separate AND condition to avoid conflict with OR)

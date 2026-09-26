@@ -17,6 +17,18 @@ const TourShowcase = dynamic(() => import('@/components/3DTourShowcase'), {
 export const metadata = {
   title: '3D Development Solutions - MillionFlats x Meta-dology',
   description: "The world's most advanced 3D development platform for property developers.",
+  alternates: { canonical: '/services/3d-tours' },
+  openGraph: {
+    title: '3D Tours | MillionFlats',
+    description: "Explore immersive 3D property tours and digital development experiences with MillionFlats.",
+    url: '/services/3d-tours',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '3D Tours | MillionFlats',
+    description: "Explore immersive 3D property tours and digital development experiences with MillionFlats.",
+  },
 }
 
 export default function Service3DToursPage() {

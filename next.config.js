@@ -48,6 +48,8 @@ const nextConfig = {
       { source: '/AI/index', destination: '/ai/index', permanent: true },
       { source: '/AI/title', destination: '/ai/title', permanent: true },
       { source: '/AI/pro', destination: '/ai/pro', permanent: true },
+      { source: '/services/partnerships', destination: '/ecosystem-partners', permanent: true },
+      { source: '/partnerships', destination: '/ecosystem-partners', permanent: true },
     ]
   },
   async rewrites() {

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import ResolvedImage from '@/components/media/ResolvedImage'
 import { MEDIA_FALLBACKS } from '@/lib/media/resolveMedia'
 import type { DeveloperProjectCard, DeveloperProfileData } from './types'
+import CurrencyPrice from '@/components/CurrencyPrice'
 
 const INITIAL_VISIBLE = 4
 
@@ -49,8 +50,8 @@ function ProjectCard({ project }: { project: DeveloperProjectCard }) {
         ) : null}
 
         <div className="mt-3 space-y-1">
-          {project.startingPrice ? (
-            <p className="text-sm font-bold text-amber-600">From {project.startingPrice}</p>
+          {project.startingPriceAmount ? (
+            <p className="text-sm font-bold text-amber-600">From <CurrencyPrice amount={project.startingPriceAmount} sourceCurrency={project.startingPriceCurrency === 'INR' ? 'INR' : 'AED'} /></p>
           ) : null}
           {project.status ? (
             <p className="text-xs font-medium text-gray-500">{project.status}</p>
@@ -81,7 +82,7 @@ export default function DeveloperProjects({
       projects
         .map((p) => {
           const match = p.startingPrice?.replace(/[^0-9]/g, '')
-          return match ? Number(match) : 0
+          return p.startingPriceAmount || 0
         })
         .filter((v) => v > 0),
     [projects]
@@ -118,10 +119,10 @@ export default function DeveloperProjects({
               <p className="text-xs font-medium text-gray-500">Total Projects</p>
               <p className="text-lg font-bold text-dark-blue">{projects.length}</p>
             </div>
-            {avgPrice ? (
+            {avgPrice && projects[0]?.startingPriceCurrency ? (
               <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
                 <p className="text-xs font-medium text-gray-500">Avg. Starting Price</p>
-                <p className="text-lg font-bold text-amber-600">AED {avgPrice.toLocaleString()}</p>
+                <p className="text-lg font-bold text-amber-600"><CurrencyPrice amount={avgPrice} sourceCurrency={projects[0].startingPriceCurrency === 'INR' ? 'INR' : 'AED'} /></p>
               </div>
             ) : null}
             {stats && stats.cities > 0 ? (
@@ -130,10 +131,10 @@ export default function DeveloperProjects({
                 <p className="text-lg font-bold text-dark-blue">{stats.cities}</p>
               </div>
             ) : null}
-            {stats?.startingPriceRange ? (
+            {stats?.startingPriceMin ? (
               <div className="col-span-2 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 sm:col-span-1">
                 <p className="text-xs font-medium text-gray-500">Price Range</p>
-                <p className="text-sm font-bold text-dark-blue">{stats.startingPriceRange}</p>
+                <p className="text-sm font-bold text-dark-blue"><CurrencyPrice amount={stats.startingPriceMin} sourceCurrency={stats.startingPriceCurrency === 'INR' ? 'INR' : 'AED'} /> - <CurrencyPrice amount={stats.startingPriceMax || stats.startingPriceMin} sourceCurrency={stats.startingPriceCurrency === 'INR' ? 'INR' : 'AED'} /></p>
               </div>
             ) : null}
           </div>

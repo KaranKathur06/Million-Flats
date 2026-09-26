@@ -249,6 +249,20 @@ const navEntries: NavEntry[] = [
     ],
   },
 
+  /* ---- WEBSITE CONTENT GROUP ---- */
+  {
+    label: "Website",
+    basePath: "/admin/hero-banners",
+    icon: (
+      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 5h18M5 5v14h14V5M8 9h8M8 13h5" />
+      </svg>
+    ),
+    children: [
+      { href: "/admin/hero-banners", label: "Hero Banners" },
+    ],
+  },
+
 
   /* ---- ECOSYSTEM PARTNERS GROUP ---- */
   {

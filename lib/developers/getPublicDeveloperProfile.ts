@@ -9,11 +9,6 @@ import {
 } from '@/lib/media/resolveMedia'
 import { buildAssetUrl } from '@/lib/assetUrl'
 
-function formatAED(value: number | null | undefined) {
-  if (!value || value <= 0) return null
-  return `AED ${Math.round(value).toLocaleString('en-US')}`
-}
-
 function mapCountry(code?: string | null) {
   if (code === 'INDIA') return 'India'
   return 'UAE'
@@ -29,6 +24,7 @@ const PUBLISHED_PROJECTS_SELECT = {
     city: true,
     community: true,
     startingPrice: true,
+    startingPriceCurrency: true,
     completionYear: true,
     coverImage: true,
     goldenVisa: true,
@@ -78,7 +74,9 @@ function mapDeveloperToProfile(developer: any, slug: string): DeveloperProfileDa
       slug: project.slug,
       image,
       location: [project.city, project.community, country].filter(Boolean).join(', '),
-      startingPrice: formatAED(project.startingPrice),
+      startingPrice: project.startingPrice && project.startingPrice > 0 ? String(project.startingPrice) : null,
+      startingPriceAmount: project.startingPrice && project.startingPrice > 0 ? project.startingPrice : null,
+      startingPriceCurrency: String(project.startingPriceCurrency || 'AED').toUpperCase(),
       status: project.completionYear ? `Handover ${project.completionYear}` : 'New Launch',
       completionYear: project.completionYear ?? null,
       goldenVisa: Boolean(project.goldenVisa),
@@ -137,12 +135,10 @@ From design-led communities to strategic launch locations, ${developer.name} con
       projects: projects.length,
       cities: citySet.size || 1,
       experience,
-      startingPriceRange:
-        minPrice && maxPrice
-          ? `${formatAED(minPrice)} - ${formatAED(maxPrice)}`
-          : minPrice
-            ? `${formatAED(minPrice)}+`
-            : null,
+      startingPriceRange: null,
+      startingPriceMin: minPrice,
+      startingPriceMax: maxPrice,
+      startingPriceCurrency: String(projects[0]?.startingPriceCurrency || 'AED').toUpperCase(),
     },
     projects: resolvedProjectCards,
     achievements: (developer.achievements || []).map((a: any) => ({

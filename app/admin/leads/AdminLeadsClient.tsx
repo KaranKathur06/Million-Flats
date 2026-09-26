@@ -273,7 +273,7 @@ export default function AdminLeadsClient({
     }
   }
 
-  const updateLead = async (patch: { status?: string; onboard?: boolean }) => {
+  const updateLead = async (patch: { status?: string; priority?: string; onboard?: boolean }) => {
     if (!detail?.id) return
     setBusy(true)
     setDetailError('')
@@ -384,6 +384,19 @@ export default function AdminLeadsClient({
                   <dd className="text-white">{detail.status}</dd>
                 </div>
                 <div>
+                  <dt className="text-white/45">Priority</dt>
+                  <dd>
+                    <select
+                      value={detail.priority}
+                      disabled={!canModerate || busy}
+                      onChange={(event) => updateLead({ priority: event.target.value })}
+                      className="mt-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-white"
+                    >
+                      {['LOW', 'MEDIUM', 'HIGH', 'URGENT'].map((value) => <option key={value} value={value} className="bg-slate-900">{value}</option>)}
+                    </select>
+                  </dd>
+                </div>
+                <div>
                   <dt className="text-white/45">Assigned to</dt>
                   <dd className="text-white">{detail.assignedTo || '—'}</dd>
                 </div>
@@ -429,6 +442,54 @@ export default function AdminLeadsClient({
                   <div>Medium: {detail.utmMedium || '—'}</div>
                   <div>Campaign: {detail.utmCampaign || '—'}</div>
                 </dl>
+              </section>
+            ) : null}
+
+            {(detail.property || detail.propertyName || detail.basePriceAtInquiry) ? (
+              <section className="space-y-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-white/35">Inquiry context</h3>
+                <dl className="grid gap-2 text-sm">
+                  <div><dt className="text-white/45">Property</dt><dd className="text-white">{detail.property?.title || detail.propertyName || '—'}</dd></div>
+                  <div><dt className="text-white/45">Property ID</dt><dd className="break-all font-mono text-xs text-white">{detail.propertyId || '—'}</dd></div>
+                  <div><dt className="text-white/45">Original price</dt><dd className="text-white">{detail.basePriceAtInquiry && detail.baseCurrencyAtInquiry ? `${detail.baseCurrencyAtInquiry} ${detail.basePriceAtInquiry.toLocaleString()}` : '—'}</dd></div>
+                  <div><dt className="text-white/45">At inquiry</dt><dd className="text-white">{detail.displayPriceAtInquiry && detail.displayCurrencyAtInquiry ? `${detail.displayCurrencyAtInquiry} ${detail.displayPriceAtInquiry.toLocaleString()}` : '—'}</dd></div>
+                  <div><dt className="text-white/45">Agent</dt><dd className="text-white">{detail.agent?.name || 'MillionFlats Team'}</dd></div>
+                </dl>
+              </section>
+            ) : null}
+
+            {(detail.sourceType || detail.sourceUrl || detail.referrer || detail.utmTerm || detail.utmContent) ? (
+              <section className="space-y-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-white/35">Source & attribution</h3>
+                <dl className="grid gap-1 text-sm text-white/80">
+                  <div>Type: {detail.sourceType || '—'}</div>
+                  <div className="break-all">URL: {detail.sourceUrl || detail.sourcePage || '—'}</div>
+                  <div>Referrer: {detail.referrer || '—'}</div>
+                  <div>Content: {detail.utmContent || '—'}</div>
+                  <div>Term: {detail.utmTerm || '—'}</div>
+                </dl>
+              </section>
+            ) : null}
+
+            {detail.activities.length > 0 ? (
+              <section className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-white/35">Timeline</h3>
+                <ol className="space-y-3 border-l border-white/10 pl-4">
+                  {detail.activities.map((activity) => (
+                    <li key={activity.id} className="relative text-sm text-white/80">
+                      <span className="absolute -left-[21px] top-1 h-2 w-2 rounded-full bg-amber-400" />
+                      <p>{activity.summary}</p>
+                      <time className="text-xs text-white/40">{new Date(activity.createdAt).toLocaleString()}</time>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ) : null}
+
+            {detail.followUps.length > 0 ? (
+              <section className="space-y-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-white/35">Next actions</h3>
+                {detail.followUps.map((followUp) => <div key={followUp.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-3 text-sm text-white/80"><p className="font-semibold">{followUp.action}</p><p className="text-xs text-white/45">{new Date(followUp.scheduledAt).toLocaleString()}</p>{followUp.notes ? <p className="mt-1 text-xs">{followUp.notes}</p> : null}</div>)}
               </section>
             ) : null}
 

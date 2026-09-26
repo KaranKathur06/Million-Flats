@@ -88,10 +88,12 @@ export function getAgentLifecycleUx(input: { status: unknown }): AgentLifecycleU
     case 'EMAIL_VERIFIED':
       return {
         ...BASE,
-        title: 'Complete basic onboarding',
-        message: 'Add your license number and company details to activate your Basic plan.',
-        ctaLabel: 'Start onboarding',
-        ctaHref: '/agent/onboarding',
+        canAccessDashboard: true,
+        canListProperties: true,
+        title: 'Email verified',
+        message: 'Your email is verified. You can create and publish properties on MillionFlats. Additional verification may be requested when a lead arrives.',
+        ctaLabel: 'Go to Dashboard',
+        ctaHref: '/agent/dashboard',
         progress: 25,
       }
 
@@ -190,22 +192,22 @@ export type AgentDashboardModule =
   | 'settings'
 
 export function agentModuleAccessMap(status: AgentStatus): Record<AgentDashboardModule, boolean> {
-  const approved = status === 'APPROVED'
   const hasBasicAccess =
+    status === 'EMAIL_VERIFIED' ||
     status === 'PROFILE_INCOMPLETE' ||
     status === 'PROFILE_COMPLETED' ||
     status === 'DOCUMENTS_UPLOADED' ||
     status === 'UNDER_REVIEW' ||
-    approved
+    status === 'APPROVED'
 
   return {
     overview: hasBasicAccess,
-    properties: approved,
-    add_property: approved,
-    leads: approved,
-    clients: approved,
-    deals: approved,
-    analytics: approved,
+    properties: hasBasicAccess,
+    add_property: hasBasicAccess,
+    leads: hasBasicAccess,
+    clients: hasBasicAccess,
+    deals: hasBasicAccess,
+    analytics: hasBasicAccess,
     subscription: hasBasicAccess,
     profile: hasBasicAccess,
     verification: hasBasicAccess,

@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react'
 
@@ -16,6 +18,8 @@ type ButtonProps = BaseProps & ButtonHTMLAttributes<HTMLButtonElement> & {
   href?: undefined
 }
 
+type ButtonLikeProps = AnchorProps | ButtonProps
+
 const variantStyles: Record<NonNullable<BaseProps['variant']>, string> = {
   primary:
     'bg-dark-blue text-white shadow-[0_18px_45px_rgba(15,23,42,0.18)] hover:bg-[#25476f] hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(30,58,95,0.24)] active:translate-y-0 active:scale-[0.98]',
@@ -32,7 +36,7 @@ function cx(...classes: Array<string | undefined>) {
   return classes.filter(Boolean).join(' ')
 }
 
-export default function MillionFlatsButton(props: AnchorProps | ButtonProps) {
+export default function MillionFlatsButton(props: ButtonLikeProps) {
   const { variant = 'primary', size = 'lg', className, children, ...rest } = props as BaseProps & Record<string, unknown>
   const classes = cx(
     'inline-flex items-center justify-center rounded-full text-center leading-tight transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dark-blue/30 disabled:cursor-not-allowed disabled:opacity-60',

@@ -25,6 +25,17 @@ export type CreateLeadInput = {
   country?: LeadCountry
   status?: string
   projectId?: string | null
+  developerId?: string | null
+  propertyId?: string | null
+  agentId?: string | null
+  leadSubType?: string | null
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
+  sourceUrl?: string | null
+  sourceType?: string | null
+  displayPriceAtInquiry?: number | null
+  basePriceAtInquiry?: number | null
+  baseCurrencyAtInquiry?: string | null
+  displayCurrencyAtInquiry?: string | null
   assignedTo?: string | null
   userId?: string | null
   propertyType?: string | null
@@ -81,6 +92,7 @@ export async function createLead(input: CreateLeadInput) {
 
   const data: Prisma.LeadCreateInput = {
     leadType: input.leadType,
+    leadSubType: input.leadSubType || null,
     name: input.name.trim(),
     email,
     phone: input.phone?.trim() || null,
@@ -112,6 +124,16 @@ export async function createLead(input: CreateLeadInput) {
     referralCode: input.referralCode || null,
     referralPartnerId: input.referralPartnerId || null,
     ...(input.projectId ? { project: { connect: { id: input.projectId } } } : {}),
+    ...(input.developerId ? { developer: { connect: { id: input.developerId } } } : {}),
+    ...(input.propertyId ? { property: { connect: { id: input.propertyId } } } : {}),
+    ...(input.agentId ? { agent: { connect: { id: input.agentId } } } : {}),
+    priority: input.priority || 'MEDIUM',
+    sourceUrl: input.sourceUrl || null,
+    sourceType: input.sourceType || null,
+    displayPriceAtInquiry: input.displayPriceAtInquiry ?? null,
+    basePriceAtInquiry: input.basePriceAtInquiry ?? null,
+    baseCurrencyAtInquiry: input.baseCurrencyAtInquiry || null,
+    displayCurrencyAtInquiry: input.displayCurrencyAtInquiry || null,
   }
 
   const database = input.db || prisma

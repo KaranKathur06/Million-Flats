@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MillionFlats | Real Estate Agency Growth Packages</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #07111E;
+      --bg-card: rgba(11, 25, 44, 0.85);
+      --bg-card-highlight: rgba(14, 34, 61, 0.95);
+      --gold-primary: #E5B869;
+      --gold-light: #F7D794;
+      --gold-dark: #B8860B;
+      --gold-gradient: linear-gradient(135deg, #F9E7B9 0%, #D4A359 50%, #AA7728 100%);
+      --text-main: #FFFFFF;
+      --text-muted: #94A3B8;
+      --text-dim: #64748B;
+      --accent-blue: #38BDF8;
+      --accent-green: #34D399;
+      --border-subtle: rgba(229, 184, 105, 0.25);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(22, 51, 89, 0.6) 0%, transparent 60%),
+        radial-gradient(circle at 100% 50%, rgba(184, 134, 11, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 0% 80%, rgba(56, 189, 248, 0.05) 0%, transparent 40%),
+        linear-gradient(to bottom, #07111E, #040911);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .bg-grid {
+      position: absolute;
+      inset: 0;
+      background-size: 50px 50px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      padding: 20px 0;
+      border-bottom: 1px solid rgba(229, 184, 105, 0.15);
+      position: sticky;
+      top: 0;
+      background: rgba(7, 17, 30, 0.94);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+
+    .nav-wrapper {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .logo-symbol {
+      width: 40px;
+      height: 40px;
+      background: var(--gold-gradient);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Cinzel', serif;
+      font-weight: 800;
+      font-size: 20px;
+      color: #07111E;
+      box-shadow: 0 4px 15px rgba(212, 163, 89, 0.3);
+    }
+
+    .brand-name {
+      font-family: 'Cinzel', serif;
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--gold-light);
+    }
+
+    .brand-tagline {
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      display: block;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 60px 0 40px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 16px;
+      background: rgba(229, 184, 105, 0.1);
+      border: 1px solid rgba(229, 184, 105, 0.3);
+      border-radius: 50px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      color: var(--gold-light);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 700;
+      line-height: 1.25;
+      color: #F8FAFC;
+      margin-bottom: 16px;
+    }
+
+    .hero h1 span {
+      background: var(--gold-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: block;
+    }
+
+    .hero p {
+      max-width: 720px;
+      margin: 0 auto;
+      font-size: 15px;
+      color: var(--text-muted);
+    }
+
+    /* Target Segment Selector Tabs */
+    .tab-switcher {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 36px 0 48px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      background: rgba(11, 25, 44, 0.8);
+      border: 1px solid rgba(229, 184, 105, 0.3);
+      color: var(--text-muted);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 28px;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tab-btn:hover {
+      border-color: var(--gold-primary);
+      color: #FFFFFF;
+    }
+
+    .tab-btn.active {
+      background: var(--gold-gradient);
+      color: #07111E;
+      border-color: var(--gold-primary);
+      box-shadow: 0 4px 18px rgba(212, 163, 89, 0.35);
+      font-weight: 700;
+    }
+
+    /* Pricing Section */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 36px;
+      align-items: stretch;
+      margin-bottom: 60px;
+    }
+
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(229, 184, 105, 0.3);
+      border-radius: 18px;
+      padding: 44px 34px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+
+    .pricing-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 25px rgba(229, 184, 105, 0.15);
+      border-color: rgba(229, 184, 105, 0.6);
+    }
+
+    .pricing-card.flagship {
+      background: var(--bg-card-highlight);
+      border: 2px solid var(--gold-primary);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35), 0 0 30px rgba(229, 184, 105, 0.2);
+    }
+
+    .flagship-badge {
+      position: absolute;
+      top: -16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--gold-gradient);
+      color: #07111E;
+      font-family: 'Cinzel', serif;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      padding: 6px 18px;
+      border-radius: 20px;
+      box-shadow: 0 4px 15px rgba(212, 163, 89, 0.4);
+      white-space: nowrap;
+    }
+
+    .package-header {
+      text-align: center;
+      border-bottom: 1px solid rgba(229, 184, 105, 0.15);
+      padding-bottom: 22px;
+      margin-bottom: 26px;
+    }
+
+    .package-label {
+      font-family: 'Cinzel', serif;
+      font-size: 14px;
+      letter-spacing: 2px;
+      color: var(--gold-light);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .package-title {
+      font-family: 'Cinzel', serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-bottom: 4px;
+    }
+
+    .package-subtitle {
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+
+    .features-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      margin-bottom: 34px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .feature-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+      line-height: 1.2;
+    }
+
+    .feature-content h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #F1F5F9;
+      margin-bottom: 2px;
+    }
+
+    .feature-content p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .price-box {
+      background: linear-gradient(180deg, rgba(229, 184, 105, 0.12) 0%, rgba(229, 184, 105, 0.04) 100%);
+      border: 1px solid rgba(229, 184, 105, 0.4);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 18px;
+      text-align: center;
+    }
+
+    .price-sub {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--gold-light);
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .price-amount {
+      font-size: 32px;
+      font-weight: 800;
+      color: #FFFFFF;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .price-currency { color: var(--gold-primary); }
+    .price-period { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+    .tax-note { font-size: 11px; color: var(--gold-light); font-weight: 600; }
+
+    .cta-btn {
+      width: 100%;
+      padding: 15px 22px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: none;
+      display: inline-block;
+      text-align: center;
+    }
+
+    .cta-btn.primary {
+      background: var(--gold-gradient);
+      color: #07111E;
+      box-shadow: 0 4px 20px rgba(212, 163, 89, 0.35);
+    }
+
+    .cta-btn.primary:hover {
+      box-shadow: 0 6px 25px rgba(212, 163, 89, 0.6);
+      transform: translateY(-2px);
+    }
+
+    .cta-btn.secondary {
+      background: rgba(229, 184, 105, 0.12);
+      border: 1px solid var(--gold-primary);
+      color: var(--gold-light);
+    }
+
+    .cta-btn.secondary:hover {
+      background: var(--gold-primary);
+      color: #07111E;
+      transform: translateY(-2px);
+    }
+
+    /* 12 Partner Category Badges */
+    .partner-categories-section {
+      background: rgba(11, 25, 44, 0.6);
+      border: 1px solid rgba(229, 184, 105, 0.2);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 50px;
+      text-align: center;
+    }
+
+    .partner-categories-section h3 {
+      font-family: 'Cinzel', serif;
+      font-size: 20px;
+      color: var(--gold-light);
+      margin-bottom: 12px;
+    }
+
+    .partner-categories-section p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .categories-chips {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .category-chip {
+      background: rgba(229, 184, 105, 0.08);
+      border: 1px solid rgba(229, 184, 105, 0.25);
+      border-radius: 30px;
+      padding: 8px 16px;
+      font-size: 13px;
+      color: #E2E8F0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Modal Form */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 9, 17, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.active { display: flex; }
+    .modal-card {
+      background: #0B192C;
+      border: 1px solid var(--gold-primary);
+      border-radius: 16px;
+      max-width: 500px;
+      width: 100%;
+      padding: 34px;
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 18px; right: 18px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .modal-title {
+      font-family: 'Cinzel', serif;
+      font-size: 22px;
+      color: var(--gold-light);
+      margin-bottom: 6px;
+    }
+
+    .modal-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 22px;
+    }
+
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #E2E8F0;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      background: rgba(7, 17, 30, 0.8);
+      border: 1px solid rgba(229, 184, 105, 0.3);
+      padding: 12px 14px;
+      border-radius: 8px;
+      color: #FFFFFF;
+      font-family: inherit;
+      font-size: 14px;
+    }
+
+    .bottom-cta-banner {
+      background: linear-gradient(135deg, rgba(14, 34, 61, 0.9) 0%, rgba(7, 17, 30, 0.95) 100%);
+      border: 1px solid rgba(229, 184, 105, 0.3);
+      border-radius: 16px;
+      padding: 36px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 50px;
+    }
+
+    .bottom-cta-content h2 {
+      font-family: 'Cinzel', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-bottom: 6px;
+    }
+
+    .bottom-cta-content p { color: var(--text-muted); font-size: 14px; }
+    .contact-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      padding: 24px 0 40px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 14px;
+      color: var(--text-muted);
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="container nav-wrapper">
+      <a href="https://millionflats.com" class="logo-container">
+        <div class="logo-symbol">田</div>
+        <div>
+          <span class="brand-name">MILLIONFLATS</span>
+          <span class="brand-tagline">Your Architecture of Trust</span>
+        </div>
+      </a>
+      <div>
+             </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero container">
+    <div class="hero-badge">AI-Powered Real Estate Growth Engine</div>
+    <h1>
+      EMPOWER YOUR REAL ESTATE BUSINESS.
+      <span>SCALE WITH THE MILLIONFLATS ECOSYSTEM.</span>
+    </h1>
+    <p>
+      Whether you are an independent property consultant, an expanding agency, or an ecosystem service specialist—leverage proprietary AI qualification, verified credentials, and high-net-worth investor reach.
+    </p>
+
+    <!-- Segment Switcher Tabs -->
+    <div class="tab-switcher">
+         <button class="tab-btn active" onclick="switchTab('agencies', this)">
+        🏢 Real Estate Agencies
+      </button>
+        </div>
+  </section>
+
+  <div class="container">
+      <!-- TAB 2: REAL ESTATE AGENCIES -->
+    <div id="tab-agencies" class="tab-content active">
+      <div class="pricing-grid">
+        <!-- AGENCY PACKAGE A -->
+        <div class="pricing-card">
+          <div>
+            <div class="package-header">
+              <div class="package-label">Package A</div>
+              <h3 class="package-title">Boutique Agency Suite</h3>
+              <div class="package-subtitle">For Growing Firms (Up to 10 Agents)</div>
+            </div>
+            <ul class="features-list">
+              <li class="feature-item">
+                <span class="feature-icon">🏢</span>
+                <div class="feature-content">
+                  <h4>Agency Hub + 10 Agent Accounts</h4>
+                  <p>Centralized firm profile with individual AIPro™ verified agent roster sub-accounts.</p>
+                </div>
+              </li>
+              <li class="feature-item">
+                <span class="feature-icon">📦</span>
+                <div class="feature-content">
+                  <h4>75 Active Verified Listings</h4>
+                  <p>Pooled firm listing quota with shared branding and consolidated analytics.</p>
+                </div>
+              </li>
+              <li class="feature-item">
+                <span class="feature-icon">🤖</span>
+                <div class="feature-content">
+                  <h4>Agency AI Calling Agent + 2,000 Mins</h4>
+                  <p>Central lead screening with automated routing based on property budget and locality.</p>
+                </div>
+              </li>
+              <li class="feature-item">
+                <span class="feature-icon">🎬</span>
+                <div class="feature-content">
+                  <h4>24 AI Property Videos Annually</h4>
+                  <p>6 videos per quarter branded with your agency watermark, phone, and website.</p>
+                </div>
+              </li>
+              <li class="feature-item">
+                <span class="feature-icon">📨</span>
+                <div class="feature-content">
+                  <h4>1 City-Wide HNI Email Blast</h4>
+                  <p>Dispatched to 5 Lakh verified investors spotlighting your agency's prime portfolio.</p>
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="pricing-bottom">
+            <div class="price-box">
+              <div class="price-sub">Quote Price</div>
+              <div class="price-amount"><span class="price-currency">₹</span>89,000 <span class="price-period">/ YEAR</span></div>
+              <div class="tax-note">+ GST Applicable</div>
+            </div>
+            <button class="cta-btn secondary" onclick="openModal('Agency: Boutique Suite (₹89,000/yr)')">Buy Now Securely</button>
+          </div>
+        </div>
+
+        <!-- AGENCY PACKAGE B (FLAGSHIP) -->
+        <div class="pricing-card flagship">
+          <div class="flagship-badge">RECOMMENDED FLAGSHIP</div>
+          <div>
+            <div class="package-header">
+              <div class="package-label">Package B</div>
+              <h3 class="package-title">Enterprise AI Powerhouse</h3>
+              <div class="package-subtitle">Full-Scale Growth Engine for Premier Brokerages</div>
+            </div>
+            <ul class="features-list">
+              <li class="feature-item">
+                <span class="feature-icon">🏛️</span>
+                <div class="feature-content">
+                  <h4>Unlimited Agent Roster + AIShield™ Corporate</h4>
+                  <p>Enterprise agency portal with unlimited agent logins and company trust badge.</p>
+                </div>
+              </li>
+              <li class="feature-item">
+                <span class="feature-icon">🌐</span>
+                <div class="feature-content">
+                  <h4>Unlimited Inventory & Priority Search Feed</h4>
+                  <p>All active listings receive top algorithmic indexing and international buyer exposure.</p>
+                </div>
+              </li>
+              <li class="feature-item">
+                <span class="feature-icon">⚡</span>
+                <div class="feature-content">
+                  <h4>Custom AI Voice Agent + 5,000 Mins</h4>
+                  <p>Custom trained AI agent with multi-lingual support (English/Hindi) & round-robin routing.</p>
+                </div>
+              </li>
+              <li class="feature-item">
+                <span class="feature-icon">🎥</span>
+                <div class="feature-content">
+                  <h4>64 AI Property Walkthrough Videos</h4>
+                  <p>16 cinematic reels per quarter covering major launches, resale exclusives, and penthouses.</p>
+                </div>
+              </li>
+              <li class="feature-item">
+                <span class="feature-icon">📬</span>
+                <div class="feature-content">
+                  <h4>2 Mega Email Blasts to 10 Lakh Database</h4>
+                  <p>High-conversion investor dispatches timed for pre-launch momentum and festival season.</p>
+                </div>
+              </li>
+              <li class="feature-item">
+                <span class="feature-icon">🏙️</span>
+                <div class="feature-content">
+                  <h4>12 Months Prime City Homepage Banner</h4>
+                  <p>Continuous year-round exposure on MillionFlats city portal and Agency Directory.</p>
+                </div>
+              </li>
+              <li class="feature-item">
+                <span class="feature-icon">💬</span>
+                <div class="feature-content">
+                  <h4>Full WhatsApp API & Webhook Integration</h4>
+                  <p>Syncs instantly with your existing CRM (Salesforce, LeadSquared, HubSpot, or Zoho).</p>
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="pricing-bottom">
+            <div class="price-box">
+              <div class="price-sub">Quote Price</div>
+              <div class="price-amount"><span class="price-currency">₹</span>1,49,000 <span class="price-period">/ YEAR</span></div>
+              <div class="tax-note">+ GST Applicable</div>
+            </div>
+            <button class="cta-btn primary" onclick="openModal('Agency: Enterprise Powerhouse (₹1,49,000/yr)')">Buy Now Securely</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+ 
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Banner -->
+    <div class="bottom-cta-banner">
+      <div class="bottom-cta-content">
+        <h2>JOIN INDIA & UAE'S INTELLIGENT REAL ESTATE ECOSYSTEM.</h2>
+        <p>Connect with verified buyers, developers, and investors at the precise moment they need your expertise.</p>
+      </div>
+    </div>
+
+    <!-- Contact Strip -->
+    <div class="contact-strip">
+      <div>📞 +91 95101 55835</div>
+      <div>🏢 Partner Relations: partners@millionflats.com</div>
+      <div>🌐 <a href="https://millionflats.com/services/partnerships" target="_blank" style="color: var(--gold-light); text-decoration: none;">millionflats.com/services/partnerships</a></div>
+    </div>
+  </div>
+
+
+  <script>
+    function switchTab(tabKey, element) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      element.classList.add('active');
+      document.getElementById('tab-' + tabKey).classList.add('active');
+    }
+
+    function openModal(packageName) {
+      document.getElementById('selectedPackage').value = packageName;
+      document.getElementById('partnerModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('partnerModal').classList.remove('active');
+    }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      alert('Thank you! Your partnership inquiry has been received. Our team will review your credentials and contact you shortly.');
+      closeModal();
+    }
+
+    document.getElementById('partnerModal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+  </script>
+</body>
+</html>

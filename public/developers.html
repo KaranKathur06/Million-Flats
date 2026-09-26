@@ -1,0 +1,829 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MillionFlats | Developer Outreach & AI Growth Packages</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #07111E;
+      --bg-card: rgba(11, 25, 44, 0.85);
+      --bg-card-highlight: rgba(14, 34, 61, 0.95);
+      --gold-primary: #E5B869;
+      --gold-light: #F7D794;
+      --gold-dark: #B8860B;
+      --gold-gradient: linear-gradient(135deg, #F9E7B9 0%, #D4A359 50%, #AA7728 100%);
+      --gold-border: linear-gradient(135deg, rgba(229, 184, 105, 0.6), rgba(229, 184, 105, 0.15));
+      --text-main: #FFFFFF;
+      --text-muted: #94A3B8;
+      --text-dim: #64748B;
+      --accent-blue: #38BDF8;
+      --accent-green: #34D399;
+      --border-subtle: rgba(229, 184, 105, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(22, 51, 89, 0.6) 0%, transparent 60%),
+        radial-gradient(circle at 100% 50%, rgba(184, 134, 11, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 0% 80%, rgba(56, 189, 248, 0.05) 0%, transparent 40%),
+        linear-gradient(to bottom, #07111E, #040911);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .bg-grid {
+      position: absolute;
+      inset: 0;
+      background-size: 50px 50px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      padding: 24px 0;
+      border-bottom: 1px solid rgba(229, 184, 105, 0.15);
+      position: sticky;
+      top: 0;
+      background: rgba(7, 17, 30, 0.92);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+
+    .nav-wrapper {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .logo-symbol {
+      width: 42px;
+      height: 42px;
+      background: var(--gold-gradient);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Cinzel', serif;
+      font-weight: 800;
+      font-size: 22px;
+      color: #07111E;
+      box-shadow: 0 4px 15px rgba(212, 163, 89, 0.3);
+    }
+
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-name {
+      font-family: 'Cinzel', serif;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--gold-light);
+    }
+
+    .brand-tagline {
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    nav ul {
+      display: flex;
+      list-style: none;
+      gap: 32px;
+      align-items: center;
+    }
+
+    nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      letter-spacing: 0.5px;
+    }
+
+    nav a:hover, nav a.active {
+      color: var(--gold-light);
+    }
+
+    .nav-cta {
+      padding: 8px 18px;
+      border: 1px solid var(--gold-primary);
+      border-radius: 6px;
+      color: var(--gold-light) !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      transition: all 0.3s ease;
+    }
+
+    .nav-cta:hover {
+      background: var(--gold-primary);
+      color: #07111E !important;
+      box-shadow: 0 0 15px rgba(229, 184, 105, 0.4);
+    }
+
+    .hero {
+      text-align: center;
+      padding: 72px 0 54px;
+      position: relative;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(229, 184, 105, 0.1);
+      border: 1px solid rgba(229, 184, 105, 0.3);
+      border-radius: 50px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      color: var(--gold-light);
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .hero h1 {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(32px, 4.5vw, 52px);
+      font-weight: 700;
+      line-height: 1.25;
+      letter-spacing: 1px;
+      color: #F8FAFC;
+      margin-bottom: 16px;
+    }
+
+    .hero h1 span {
+      background: var(--gold-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: block;
+    }
+
+    .hero p {
+      max-width: 680px;
+      margin: 0 auto;
+      font-size: 16px;
+      color: var(--text-muted);
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 36px;
+      padding: 24px 0 72px;
+      align-items: stretch;
+    }
+
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(229, 184, 105, 0.3);
+      border-radius: 18px;
+      padding: 44px 36px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      backdrop-filter: blur(10px);
+      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+
+    .pricing-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 25px rgba(229, 184, 105, 0.15);
+      border-color: rgba(229, 184, 105, 0.6);
+    }
+
+    .pricing-card.flagship {
+      background: var(--bg-card-highlight);
+      border: 2px solid var(--gold-primary);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35), 0 0 30px rgba(229, 184, 105, 0.2);
+    }
+
+    .flagship-badge {
+      position: absolute;
+      top: -16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--gold-gradient);
+      color: #07111E;
+      font-family: 'Cinzel', serif;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      padding: 6px 20px;
+      border-radius: 20px;
+      box-shadow: 0 4px 15px rgba(212, 163, 89, 0.4);
+      white-space: nowrap;
+    }
+
+    .package-header {
+      text-align: center;
+      border-bottom: 1px solid rgba(229, 184, 105, 0.15);
+      padding-bottom: 24px;
+      margin-bottom: 28px;
+    }
+
+    .package-label {
+      font-family: 'Cinzel', serif;
+      font-size: 15px;
+      letter-spacing: 2px;
+      color: var(--gold-light);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .package-title {
+      font-family: 'Cinzel', serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .package-subtitle {
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+
+    .features-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-bottom: 36px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .feature-icon-wrapper {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: rgba(229, 184, 105, 0.1);
+      border: 1px solid rgba(229, 184, 105, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--gold-light);
+      font-size: 20px;
+    }
+
+    .feature-content h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #F1F5F9;
+      margin-bottom: 2px;
+    }
+
+    .feature-content p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .pricing-bottom {
+      margin-top: auto;
+      text-align: center;
+    }
+
+    .price-box {
+      background: linear-gradient(180deg, rgba(229, 184, 105, 0.12) 0%, rgba(229, 184, 105, 0.04) 100%);
+      border: 1px solid rgba(229, 184, 105, 0.4);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .price-sub {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--gold-light);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .price-amount {
+      font-size: 34px;
+      font-weight: 800;
+      color: #FFFFFF;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 4px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    .price-currency {
+      color: var(--gold-primary);
+    }
+
+    .price-period {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .tax-note {
+      font-size: 11px;
+      color: var(--gold-light);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .cta-btn {
+      width: 100%;
+      padding: 16px 24px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      border: none;
+    }
+
+    .cta-btn.primary {
+      background: var(--gold-gradient);
+      color: #07111E;
+      box-shadow: 0 4px 20px rgba(212, 163, 89, 0.35);
+    }
+
+    .cta-btn.primary:hover {
+      box-shadow: 0 6px 25px rgba(212, 163, 89, 0.6);
+      transform: translateY(-2px);
+    }
+
+    .cta-btn.secondary {
+      background: rgba(229, 184, 105, 0.12);
+      border: 1px solid var(--gold-primary);
+      color: var(--gold-light);
+    }
+
+    .cta-btn.secondary:hover {
+      background: var(--gold-primary);
+      color: #07111E;
+      transform: translateY(-2px);
+    }
+
+    .bottom-cta-banner {
+      background: linear-gradient(135deg, rgba(14, 34, 61, 0.9) 0%, rgba(7, 17, 30, 0.95) 100%);
+      border: 1px solid rgba(229, 184, 105, 0.3);
+      border-radius: 16px;
+      padding: 40px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 32px;
+      margin-bottom: 60px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bottom-cta-banner::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 6px;
+      height: 100%;
+      background: var(--gold-gradient);
+    }
+
+    .bottom-cta-content {
+      max-width: 640px;
+    }
+
+    .bottom-cta-content h2 {
+      font-family: 'Cinzel', serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-bottom: 8px;
+    }
+
+    .bottom-cta-content p {
+      color: var(--text-muted);
+      font-size: 15px;
+    }
+
+    .contact-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      padding: 24px 0 48px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 14px;
+      color: var(--text-muted);
+      justify-content: center;
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 9, 17, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-card {
+      background: #0B192C;
+      border: 1px solid var(--gold-primary);
+      border-radius: 16px;
+      max-width: 500px;
+      width: 100%;
+      padding: 36px;
+      position: relative;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(229, 184, 105, 0.2);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .modal-title {
+      font-family: 'Cinzel', serif;
+      font-size: 22px;
+      color: var(--gold-light);
+      margin-bottom: 8px;
+    }
+
+    .modal-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #E2E8F0;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-input {
+      width: 100%;
+      background: rgba(7, 17, 30, 0.8);
+      border: 1px solid rgba(229, 184, 105, 0.3);
+      padding: 12px 14px;
+      border-radius: 8px;
+      color: #FFFFFF;
+      font-family: inherit;
+      font-size: 14px;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--gold-primary);
+      box-shadow: 0 0 10px rgba(229, 184, 105, 0.25);
+    }
+
+    @media (max-width: 768px) {
+      nav ul {
+        display: none;
+      }
+      .bottom-cta-banner {
+        padding: 24px;
+        flex-direction: column;
+        text-align: center;
+      }
+      .pricing-card {
+        padding: 32px 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+
+  <!-- Header Navigation -->
+  <header>
+    <div class="container nav-wrapper">
+      <a href="#" class="logo-container">
+        <div class="logo-symbol">田</div>
+        <div class="logo-text">
+          <span class="brand-name">MILLIONFLATS</span>
+          <span class="brand-tagline">Your Architecture of Trust</span>
+        </div>
+      </a>
+      </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero" id="home">
+    <div class="container">
+      <div class="hero-badge">Next-Gen Real Estate Marketing</div>
+      <h1>
+        MAXIMIZE YOUR DEVELOPER OUTREACH.
+        <span>POWER YOUR PROJECTS WITH AI.</span>
+      </h1>
+      <p>
+        Accelerate inventory absorption and connect directly with high-intent buyers, HNIs, and NRI investors through automated AI calling, verified listings, and multi-channel outreach campaigns.
+      </p>
+    </div>
+  </section>
+
+  <!-- Pricing Cards Section -->
+  <section class="container" id="pricing">
+    <div class="pricing-grid">
+
+      <!-- PACKAGE A: Annual Essential -->
+      <div class="pricing-card">
+        <div>
+          <div class="package-header">
+            <div class="package-label">Package A</div>
+            <h3 class="package-title">Annual Essential</h3>
+            <div class="package-subtitle">For Small / Single Projects</div>
+          </div>
+
+          <ul class="features-list">
+            <li class="feature-item">
+              <div class="feature-icon-wrapper">📍</div>
+              <div class="feature-content">
+                <h4>1 Year Verified Project Listing</h4>
+                <p>Official verified listing badge and dedicated project profile on MillionFlats.</p>
+              </div>
+            </li>
+            <li class="feature-item">
+              <div class="feature-icon-wrapper">⭐</div>
+              <div class="feature-content">
+                <h4>Top Category Banner</h4>
+                <p>3 Months prime category visibility to capture active home-seekers.</p>
+              </div>
+            </li>
+            <li class="feature-item">
+              <div class="feature-icon-wrapper">🤖</div>
+              <div class="feature-content">
+                <h4>AI Calling Agent Setup + 1,000 Mins</h4>
+                <p>Conversational AI agent setup with 1,000 minutes of automated lead qualification.</p>
+              </div>
+            </li>
+            <li class="feature-item">
+              <div class="feature-icon-wrapper">🎬</div>
+              <div class="feature-content">
+                <h4>2 AI Property Videos</h4>
+                <p>1–2 min high-converting AI walkthrough reels highlighting amenities and floor plans.</p>
+              </div>
+            </li>
+            <li class="feature-item">
+              <div class="feature-icon-wrapper">✉️</div>
+              <div class="feature-content">
+                <h4>1 Mega Email Blast</h4>
+                <p>Targeted dispatch to 10 Lakh verified HNI and NRI real estate investors.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="pricing-bottom">
+          <div class="price-box">
+            <div class="price-sub">Quote Price</div>
+            <div class="price-amount">
+              <span class="price-currency">₹</span>99,000 <span class="price-period">/ YEAR</span>
+            </div>
+            <div class="tax-note">+ GST Applicable</div>
+          </div>
+          <button class="cta-btn secondary" onclick="openModal('Package A: Annual Essential')">
+            Buy Now Securely
+          </button>
+        </div>
+      </div>
+
+      <!-- PACKAGE B: 360° AI Growth Suite -->
+      <div class="pricing-card flagship">
+        <div class="flagship-badge">RECOMMENDED FLAGSHIP</div>
+        <div>
+          <div class="package-header">
+            <div class="package-label">Package B</div>
+            <h3 class="package-title">360° AI Growth Suite</h3>
+            <div class="package-subtitle">Full-Scale Sales & Outreach Engine</div>
+          </div>
+
+          <ul class="features-list">
+            <li class="feature-item">
+              <div class="feature-icon-wrapper">🛡️</div>
+              <div class="feature-content">
+                <h4>1 Year Verified Priority Listing</h4>
+                <p>Premium placement featuring the prestigious AIShield™ trust badge.</p>
+              </div>
+            </li>
+            <li class="feature-item">
+              <div class="feature-icon-wrapper">🏙️</div>
+              <div class="feature-content">
+                <h4>12 Months Prime City / Homepage Banner</h4>
+                <p>Year-round top-tier prominence on city portals and the MillionFlats homepage.</p>
+              </div>
+            </li>
+            <li class="feature-item">
+              <div class="feature-icon-wrapper">⚡</div>
+              <div class="feature-content">
+                <h4>AI Calling Agent + 2,500 Mins</h4>
+                <p>Enterprise AI calling workflow with 2,500 minutes of automated calls and live transfers.</p>
+              </div>
+            </li>
+            <li class="feature-item">
+              <div class="feature-icon-wrapper">🎥</div>
+              <div class="feature-content">
+                <h4>4 AI Property Videos</h4>
+                <p>1 video per quarter (1–2 min each) aligned with new phase launches and festive offers.</p>
+              </div>
+            </li>
+            <li class="feature-item">
+              <div class="feature-icon-wrapper">📬</div>
+              <div class="feature-content">
+                <h4>2 Mega Email Blasts</h4>
+                <p>Dispatched to 10 Lakh database timed for pre-launch momentum & festive peaks.</p>
+              </div>
+            </li>
+            <li class="feature-item">
+              <div class="feature-icon-wrapper">💬</div>
+              <div class="feature-content">
+                <h4>Direct WhatsApp Lead CRM Integration</h4>
+                <p>Real-time instant lead routing into your sales team's WhatsApp and CRM dashboards.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="pricing-bottom">
+          <div class="price-box">
+            <div class="price-sub">Quote Price</div>
+            <div class="price-amount">
+              <span class="price-currency">₹</span>1,75,000 <span class="price-period">/ YEAR</span>
+            </div>
+            <div class="tax-note">+ GST Applicable</div>
+          </div>
+          <button class="cta-btn primary" onclick="openModal('Package B: 360° AI Growth Suite')">
+            Buy Now Securely
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Banner -->
+    <div class="bottom-cta-banner">
+      <div class="bottom-cta-content">
+        <h2>UNLOCK YOUR DEVELOPMENT'S FULL POTENTIAL.</h2>
+        <p>Partner with MillionFlats to scale lead velocity, automate buyer engagement, and sell out inventory faster.</p>
+      </div>
+    </div>
+
+    <!-- Contact Details Strip -->
+    <div class="contact-strip" id="contact">
+      <div class="contact-item">
+        <span>📞</span> +91 95101 55835
+      </div>
+      <div class="contact-item">
+        <span>🏢</span> Developer Relations: contact@millionflats.com
+      </div>
+      <div class="contact-item">
+        <span>🌐</span> www.millionflats.com
+      </div>
+    </div>
+  </section>
+
+  <!-- Lead Capture Modal -->
+  <div class="modal-overlay" id="contactModal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+      <h3 class="modal-title">Elevate Your Real Estate Outreach</h3>
+      <p class="modal-desc">Share your project specifications and our developer relations team will get in touch within 24 hours.</p>
+      
+      <form id="leadForm" onsubmit="handleFormSubmit(event)">
+        <div class="form-group">
+          <label class="form-label">Selected Package</label>
+          <input type="text" id="selectedPackage" class="form-input" readonly>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Developer / Company Name</label>
+          <input type="text" class="form-input" placeholder="e.g. Skyline Developers Pvt Ltd" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Project Name & City</label>
+          <input type="text" class="form-input" placeholder="e.g. Royal Heights, Mumbai / Rajkot" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Official Phone / WhatsApp</label>
+          <input type="tel" class="form-input" placeholder="+91 98..." required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Official Email</label>
+          <input type="email" class="form-input" placeholder="sales@skyline.com" required>
+        </div>
+        <button type="submit" class="cta-btn primary" style="width: 100%; margin-top: 10px;">
+          Confirm & Submit Request
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openModal(packageName) {
+      document.getElementById('selectedPackage').value = packageName;
+      document.getElementById('contactModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('contactModal').classList.remove('active');
+    }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      alert('Thank you! Your inquiry has been received. Our Developer Relations team will contact you shortly.');
+      closeModal();
+    }
+
+    document.getElementById('contactModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeModal();
+      }
+    });
+  </script>
+</body>
+</html>

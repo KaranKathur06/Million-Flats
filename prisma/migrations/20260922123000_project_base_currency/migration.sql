@@ -1,0 +1,1 @@
+ALTER TABLE "projects" ADD COLUMN IF NOT EXISTS "starting_price_currency" TEXT NOT NULL DEFAULT 'AED';

@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { canCreateListing, normalizePlan, normalizeSubscriptionStatus } from '@/lib/subscriptionPlans'
 import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
-import { resolveAgentStatus } from '@/lib/agentLifecycle'
+import { buildAgentPropertyGuardPayload } from '@/lib/agentPropertyGuard'
 
 /**
  * POST /api/agent/properties/guard
@@ -33,6 +32,7 @@ export async function GET() {
           approved: true,
           profileStatus: true,
           verificationStatus: true,
+          documentsRequiredAt: true,
           subscription: {
             select: { plan: true, status: true },
           },
@@ -52,45 +52,10 @@ export async function GET() {
     return NextResponse.json({ allowed: false, reason: 'Agent profile not found.', code: 'NO_AGENT' }, { status: 403 })
   }
 
-  const { agent } = user
-  const effectiveStatus = resolveAgentStatus(agent)
-
-  // ── Gate 1: Agent must be APPROVED ──
-  if (effectiveStatus !== 'APPROVED') {
-    const statusMessages: Record<string, string> = {
-      REGISTERED: 'Please verify your email to continue.',
-      EMAIL_VERIFIED: 'Please complete your onboarding.',
-      PROFILE_INCOMPLETE: 'Please complete your agent profile before listing properties.',
-      PROFILE_COMPLETED: 'Please upload your verification documents.',
-      DOCUMENTS_UPLOADED: 'Your documents are awaiting review. You can list properties once approved.',
-      UNDER_REVIEW: 'Your profile is under review. You can list properties once approved.',
-      REJECTED: 'Your application was rejected. Contact support to resolve this.',
-      SUSPENDED: 'Your account is suspended. Contact support.',
-    }
-    return NextResponse.json({
-      allowed: false,
-      reason: statusMessages[effectiveStatus] ?? 'Account not approved.',
-      code: 'NOT_APPROVED',
-      agentStatus: effectiveStatus,
-    }, { status: 403 })
+  const result = buildAgentPropertyGuardPayload({ agent: user.agent })
+  if (result.allowed) {
+    return NextResponse.json(result)
   }
 
-  // ── Gate 2: Subscription check ──
-  const plan = normalizePlan(agent.subscription?.plan)
-  const subStatus = normalizeSubscriptionStatus(agent.subscription?.status)
-  const currentCount = agent._count.manualProperties
-
-  const { allowed, reason } = canCreateListing(plan, subStatus, currentCount)
-
-  if (!allowed) {
-    return NextResponse.json({
-      allowed: false,
-      reason,
-      code: 'SUBSCRIPTION_LIMIT',
-      plan,
-      currentCount,
-    }, { status: 403 })
-  }
-
-  return NextResponse.json({ allowed: true, plan, currentCount })
+  return NextResponse.json(result, { status: 403 })
 }

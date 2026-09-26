@@ -5,6 +5,8 @@ export type DeveloperProjectCard = {
   image: string
   location: string
   startingPrice?: string | null
+  startingPriceAmount?: number | null
+  startingPriceCurrency?: 'AED' | 'INR' | string | null
   status?: string | null
   completionYear?: number | null
   goldenVisa?: boolean
@@ -75,6 +77,9 @@ export type DeveloperProfileData = {
     cities: number
     experience: number
     startingPriceRange?: string | null
+    startingPriceMin?: number | null
+    startingPriceMax?: number | null
+    startingPriceCurrency?: 'AED' | 'INR' | string | null
     totalInquiries?: number
   }
 

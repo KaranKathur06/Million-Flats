@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MobileOffCanvasPanel } from "@/components/responsive";
 import { useSession } from "next-auth/react";
 import { getHomeRouteForRole, isAdminPanelRole } from "@/lib/roleHomeRoute";
@@ -11,6 +11,8 @@ import { useAuthConfig } from "@/components/auth/AuthConfigProvider";
 import WhatsAppLoginModal from "@/components/auth/WhatsAppLoginModal";
 import DualAuthModal from "@/components/auth/DualAuthModal";
 import { useCurrency } from "@/components/CurrencyProvider";
+import { SERVICE_NAV_ITEMS } from "@/lib/services/serviceNavigation";
+import { trackEvent } from "@/lib/tracking";
 
 
 type NavItem = { href: string; label: React.ReactNode };
@@ -30,6 +32,9 @@ export default function Header() {
   const { data: session, status } = useSession();
 
   const [mobileEl, setMobileEl] = useState<HTMLDivElement | null>(null);
+  const [servicesOpen, setServicesOpen] = useState(false);
+  const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
+  const servicesMenuRef = useRef<HTMLDivElement>(null);
   const [waModalOpen, setWaModalOpen] = useState(false);
   const [dualModalOpen, setDualModalOpen] = useState(false);
   const authConfig = useAuthConfig();
@@ -42,7 +47,7 @@ export default function Header() {
 
   const isAgent = isAuthed && role === "AGENT";
   const isAdminOrHigher = isAuthed && isAdminPanelRole(role);
-  const showServices = !isAuthed || role === "USER";
+  const showServices = !isAdminOrHigher;
 
   const showVerfix = !isAuthed || role === "USER";
   const verfixHref = !isAuthed
@@ -90,14 +95,7 @@ export default function Header() {
     { href: "/market-analysis", label: "Market Analysis" },
   ];
 
-  const servicesLinks: NavItem[] = showServices
-    ? [
-        { href: "/services/3d-tours", label: "3D Tours" },
-        { href: "/services/featured-listings", label: "Featured Listings" },
-        { href: "/services/advertising", label: "Premium Ads" },
-        { href: "/services/partnerships", label: "Partnerships" },
-      ]
-    : [];
+  const servicesLinks = showServices ? SERVICE_NAV_ITEMS : [];
 
   const agentLinks: NavItem[] = [
     { href: "/agent/dashboard", label: "Agent Dashboard" },
@@ -122,6 +120,35 @@ export default function Header() {
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!servicesOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!servicesMenuRef.current?.contains(event.target as Node)) {
+        setServicesOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setServicesOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [servicesOpen]);
+
+  const openServicesMenu = () => {
+    if (!servicesOpen) trackEvent("services_menu_open");
+    setServicesOpen(true);
+  };
+
+  const trackServiceClick = (eventName: string) => {
+    trackEvent(eventName);
+    setServicesOpen(false);
+    setMobileOpen(false);
+  };
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -207,15 +234,27 @@ export default function Header() {
               ))}
 
               {servicesLinks.length > 0 ? (
-                <div className="relative group">
+                <div
+                  ref={servicesMenuRef}
+                  className="relative"
+                  onMouseEnter={openServicesMenu}
+                  onMouseLeave={() => setServicesOpen(false)}
+                  onFocus={openServicesMenu}
+                >
                   <button
                     type="button"
+                    onClick={() => {
+                      if (servicesOpen) setServicesOpen(false);
+                      else openServicesMenu();
+                    }}
                     className={`text-sm font-medium transition-colors inline-flex items-center gap-1 ${
                       servicesLinks.some((l) => isActive(l.href))
                         ? "text-dark-blue"
                         : "text-gray-600 hover:text-dark-blue"
                     }`}
                     aria-haspopup="menu"
+                    aria-expanded={servicesOpen}
+                    aria-controls="desktop-services-menu"
                   >
                     Services
                     <svg
@@ -232,12 +271,22 @@ export default function Header() {
                       />
                     </svg>
                   </button>
-                  <div className="absolute left-0 top-full pt-3 hidden group-hover:block">
-                    <div className="w-56 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden">
+                  <div
+                    id="desktop-services-menu"
+                    role="menu"
+                    className={`absolute left-0 top-full z-50 w-72 pt-3 transition-[opacity,transform] duration-200 ease-out ${
+                      servicesOpen
+                        ? "visible translate-y-0 opacity-100"
+                        : "invisible -translate-y-1 opacity-0"
+                    }`}
+                  >
+                    <div className="rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden">
                       {servicesLinks.map((s) => (
                         <Link
                           key={s.href}
                           href={s.href}
+                          role="menuitem"
+                          onClick={() => trackServiceClick(s.eventName)}
                           className={`block px-4 py-3 text-sm transition-colors ${
                             isActive(s.href)
                               ? "bg-gray-50 text-dark-blue font-medium"
@@ -416,20 +465,40 @@ export default function Header() {
 
             {servicesLinks.length > 0 ? (
               <div className="pt-2">
-                <div className="px-4 pt-3 pb-2 text-xs font-semibold tracking-wide text-gray-500 uppercase">
+                <button
+                  type="button"
+                  className="flex min-h-11 w-full items-center justify-between rounded-xl px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dark-blue/30"
+                  aria-expanded={mobileServicesOpen}
+                  aria-controls="mobile-services-menu"
+                  onClick={() => {
+                    setMobileServicesOpen((open) => {
+                      if (!open) trackEvent("services_menu_open");
+                      return !open;
+                    });
+                  }}
+                >
                   Services
-                </div>
-                <div className="space-y-2">
+                  <svg
+                    className={`h-4 w-4 transition-transform duration-200 ${mobileServicesOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <div id="mobile-services-menu" className={mobileServicesOpen ? "space-y-1" : "hidden"}>
                   {servicesLinks.map((s) => (
                     <Link
                       key={s.href}
                       href={s.href}
-                      className={`block px-4 py-3 rounded-xl text-sm font-medium ${
+                      className={`block min-h-11 rounded-xl px-4 py-3 pl-7 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dark-blue/30 ${
                         isActive(s.href)
                           ? "bg-gray-100 text-dark-blue"
-                          : "text-gray-700"
+                          : "text-gray-700 hover:bg-gray-50"
                       }`}
-                      onClick={() => setMobileOpen(false)}
+                      onClick={() => trackServiceClick(s.eventName)}
                     >
                       {s.label}
                     </Link>

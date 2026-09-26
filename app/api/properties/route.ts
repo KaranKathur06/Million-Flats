@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
 import { buildManualPropertyPath } from '@/lib/manualPropertyRoutes'
 import { normalizeCanonicalCity, normalizeCountryCode, normalizeText } from '@/lib/propertyCanonical'
+import { resolveCanonicalSearchCity } from '@/lib/heroBanners'
 
 type RateEntry = { count: number; resetAt: number }
 
@@ -132,6 +133,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, message: 'Minimum area cannot exceed maximum area' }, { status: 400 })
     }
 
+    let canonicalSearchCity = q.city || ''
+
     const where: any = {
       status: MANUAL_PROPERTY_PUBLIC_STATUS,
       sourceType: 'MANUAL',
@@ -155,8 +158,9 @@ export async function GET(req: Request) {
       ]
     }
     if (q.city) {
-      const canonicalCity = normalizeCanonicalCity(normalizeCountryCode(q.country || 'INDIA'), q.city)
-      const cityValues = Array.from(new Set([q.city, canonicalCity, canonicalCity.replace(/\s+/g, '-'), canonicalCity.replace(/\s+/g, '_')]))
+      const canonicalLocation = await resolveCanonicalSearchCity(q.city, q.country || 'INDIA')
+      canonicalSearchCity = canonicalLocation?.name || normalizeCanonicalCity(normalizeCountryCode(q.country || 'INDIA'), q.city)
+      const cityValues = Array.from(new Set([q.city, canonicalSearchCity, canonicalSearchCity.replace(/\s+/g, '-'), canonicalSearchCity.replace(/\s+/g, '_')]))
       where.AND = [
         ...(where.AND || []),
         { OR: cityValues.map((value) => ({ city: { contains: normalizeText(value), mode: 'insensitive' as const } })) },
@@ -168,7 +172,7 @@ export async function GET(req: Request) {
       const masterCommunity = await (prisma as any).community.findFirst({
         where: {
           name: { equals: q.community, mode: 'insensitive' },
-          city: { name: { equals: q.city, mode: 'insensitive' } },
+          city: { name: { equals: canonicalSearchCity, mode: 'insensitive' } },
         },
         select: { id: true },
       })
@@ -183,7 +187,7 @@ export async function GET(req: Request) {
           sourceType: 'MANUAL',
           countryCode: q.country,
           agent: { approved: true, user: { status: 'ACTIVE' } },
-          city: { equals: q.city, mode: 'insensitive' },
+          city: { equals: canonicalSearchCity, mode: 'insensitive' },
           OR: [
             { locality: { equals: q.locality, mode: 'insensitive' } },
             { community: { equals: q.locality, mode: 'insensitive' } },

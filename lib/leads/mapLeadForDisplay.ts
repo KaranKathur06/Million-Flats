@@ -75,6 +75,8 @@ export type LeadForDisplay = {
   utmSource: string | null
   utmMedium: string | null
   utmCampaign: string | null
+  utmTerm: string | null
+  utmContent: string | null
   referrer: string | null
   landingUrl: string | null
   metadata: Record<string, unknown> | null
@@ -82,6 +84,21 @@ export type LeadForDisplay = {
   project: { id: string; name: string; slug: string } | null
   ecosystemPartner: { id: string; name: string; status: string } | null
   developerId: string | null
+  priority: string
+  leadSubType: string | null
+  sourceType: string | null
+  sourceUrl: string | null
+  propertyId: string | null
+  agentId: string | null
+  displayPriceAtInquiry: number | null
+  basePriceAtInquiry: number | null
+  baseCurrencyAtInquiry: string | null
+  displayCurrencyAtInquiry: string | null
+  activities: Array<{ id: string; type: string; summary: string; createdAt: Date | string }>
+  notesHistory: Array<{ id: string; authorId: string | null; text: string; createdAt: Date | string }>
+  followUps: Array<{ id: string; action: string; scheduledAt: Date | string; assignedTo: string | null; notes: string | null; completedAt: Date | string | null }>
+  property: { id: string; title: string | null; slug: string | null } | null
+  agent: { id: string; name: string | null; status: string } | null
 }
 
 type RawLead = {
@@ -109,12 +126,29 @@ type RawLead = {
   utmSource?: string | null
   utmMedium?: string | null
   utmCampaign?: string | null
+  utmTerm?: string | null
+  utmContent?: string | null
   referrer?: string | null
   landingUrl?: string | null
   metadata?: unknown
   developerId?: string | null
   project?: { id: string; name: string; slug: string } | null
   ecosystemPartner?: { id: string; name: string; status: string } | null
+  priority?: string | null
+  leadSubType?: string | null
+  sourceType?: string | null
+  sourceUrl?: string | null
+  propertyId?: string | null
+  agentId?: string | null
+  displayPriceAtInquiry?: number | null
+  basePriceAtInquiry?: number | null
+  baseCurrencyAtInquiry?: string | null
+  displayCurrencyAtInquiry?: string | null
+  activities?: Array<{ id: string; type: string; summary: string; createdAt: Date | string }>
+  notes?: Array<{ id: string; authorId: string | null; text: string; createdAt: Date | string }>
+  followUps?: Array<{ id: string; action: string; scheduledAt: Date | string; assignedTo: string | null; notes: string | null; completedAt: Date | string | null }>
+  property?: { id: string; title: string | null; slug?: string | null } | null
+  agent?: { id: string; status: string; user?: { name: string | null } | null } | null
 }
 
 function toIso(d: Date | string): string {
@@ -170,6 +204,8 @@ export function mapLeadForDisplay(lead: RawLead): LeadForDisplay {
     utmSource: lead.utmSource ?? null,
     utmMedium: lead.utmMedium ?? null,
     utmCampaign: lead.utmCampaign ?? null,
+    utmTerm: lead.utmTerm ?? null,
+    utmContent: lead.utmContent ?? null,
     referrer: lead.referrer ?? null,
     landingUrl: lead.landingUrl ?? null,
     metadata: meta,
@@ -177,5 +213,24 @@ export function mapLeadForDisplay(lead: RawLead): LeadForDisplay {
     project: lead.project ?? null,
     ecosystemPartner: lead.ecosystemPartner ?? null,
     developerId: lead.developerId ?? null,
+    priority: lead.priority || 'MEDIUM',
+    leadSubType: lead.leadSubType ?? null,
+    sourceType: lead.sourceType ?? null,
+    sourceUrl: lead.sourceUrl ?? null,
+    propertyId: lead.propertyId ?? null,
+    agentId: lead.agentId ?? null,
+    displayPriceAtInquiry: lead.displayPriceAtInquiry ?? null,
+    basePriceAtInquiry: lead.basePriceAtInquiry ?? null,
+    baseCurrencyAtInquiry: lead.baseCurrencyAtInquiry ?? null,
+    displayCurrencyAtInquiry: lead.displayCurrencyAtInquiry ?? null,
+    activities: (lead.activities || []).map((activity) => ({ ...activity, createdAt: toIso(activity.createdAt) })),
+    notesHistory: (lead.notes || []).map((note) => ({ ...note, createdAt: toIso(note.createdAt) })),
+    followUps: (lead.followUps || []).map((followUp) => ({
+      ...followUp,
+      scheduledAt: toIso(followUp.scheduledAt),
+      completedAt: followUp.completedAt ? toIso(followUp.completedAt) : null,
+    })),
+    property: lead.property ? { ...lead.property, slug: lead.property.slug ?? null } : null,
+    agent: lead.agent ? { id: lead.agent.id, name: lead.agent.user?.name ?? null, status: lead.agent.status } : null,
   }
 }
