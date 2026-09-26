@@ -8,7 +8,7 @@ The existing property and project queries still store/filter city names as strin
 
 ## Admin Workflow
 
-Open **Admin → Website → Hero Banners**. Choose a city/category, country default, or global category. The city picker reads canonical database cities; use its add-city control to create another city in the existing City table. Save the text and scope, then upload desktop and optional mobile images. New configurations are inactive until activated from the list after preview.
+Open **Admin → Website → Hero Banners**. The list filters use the shared GlobalDropdown control. Create and edit banners on dedicated pages at `/admin/hero-banners/new` and `/admin/hero-banners/[id]/edit`; the editor has a full-width responsive layout with a live desktop/mobile composition preview. Choose a city/category, country default, or global category. The searchable city picker unions persisted canonical cities with cities found in public property inventory and published projects, and labels each city with its source. Selecting an inventory-only city creates/resolves that city in the existing City table before the banner is saved. Save the text and scope, then upload desktop and optional mobile images. New configurations are inactive until activated from the list after review.
 
 Images are uploaded directly to the existing public S3/CDN flow using admin-only presigned URLs. The server verifies upload ownership, file size, MIME type, and decoded image dimensions with Sharp before storing the CDN URL and metadata. Unsupported/corrupt files are rejected. Aspect ratio differences are advisory, not blocking.
 

@@ -69,13 +69,13 @@ export async function POST(req: Request) {
   try {
     const existing = await db.city.findFirst({
       where: { countryCode, name: { equals: name, mode: 'insensitive' } },
-      select: { id: true, name: true },
+      select: { id: true, name: true, countryCode: true },
     })
-    if (existing) return NextResponse.json({ success: false, message: 'That city is already configured.', city: existing }, { status: 409 })
+    if (existing) return NextResponse.json({ success: true, city: existing, created: false })
 
     const city = await db.city.create({ data: { countryCode, name }, select: { id: true, name: true, countryCode: true } })
     revalidateCanonicalCities()
-    return NextResponse.json({ success: true, city }, { status: 201 })
+    return NextResponse.json({ success: true, city, created: true }, { status: 201 })
   } catch (error) {
     console.error('[admin-locations] city create failed', error)
     return NextResponse.json({ success: false, message: 'Could not add this city.' }, { status: 500 })

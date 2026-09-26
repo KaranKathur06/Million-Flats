@@ -11,6 +11,22 @@ export const runtime = 'nodejs'
 
 type RouteContext = { params: { id: string } }
 
+export async function GET(_req: Request, { params }: RouteContext) {
+  const auth = await requireAdminSession()
+  if (!auth.ok) return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
+  try {
+    const banner = await (prisma as any).heroBanner.findUnique({
+      where: { id: params.id },
+      include: { city: { select: { id: true, name: true, countryCode: true } } },
+    })
+    if (!banner) return NextResponse.json({ success: false, message: 'Hero banner not found.' }, { status: 404 })
+    return NextResponse.json({ success: true, data: banner }, { headers: { 'Cache-Control': 'private, no-store, max-age=0' } })
+  } catch (error) {
+    console.error('[admin-hero-banners] detail failed', error)
+    return NextResponse.json({ success: false, message: 'Could not load this hero banner.' }, { status: 500 })
+  }
+}
+
 export async function PATCH(req: Request, { params }: RouteContext) {
   const auth = await requireAdminSession()
   if (!auth.ok) return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
