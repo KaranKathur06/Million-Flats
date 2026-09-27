@@ -184,10 +184,11 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
     for (const [category, files] of uploads) {
       for (let index = 0; index < files.length; index += 1) {
         const file = files[index]
+        const uploadId = crypto.randomUUID()
         const presignRes = await fetch(`/api/admin/projects/${projectIdValue}/media/presign`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fileName: file.name, fileSizeBytes: file.size, contentType: file.type, category }),
+          body: JSON.stringify({ fileName: file.name, fileSizeBytes: file.size, contentType: file.type, category, uploadId }),
         })
         const presign = await presignRes.json().catch(() => null)
         if (!presignRes.ok || !presign?.success) throw new Error(presign?.message || `Could not prepare ${file.name} for upload`)
@@ -202,7 +203,7 @@ export default function ProjectForm({ mode, projectId: propProjectId }: ProjectF
         const finalizeRes = await fetch(`/api/admin/projects/${projectIdValue}/media/finalize`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ s3Key: presign.s3Key, fileName: file.name, fileSizeBytes: file.size, contentType: file.type, category, sortOrder: index + 1 }),
+          body: JSON.stringify({ s3Key: presign.s3Key, fileName: file.name, fileSizeBytes: file.size, contentType: file.type, category, sortOrder: index + 1, uploadId }),
         })
         const finalized = await finalizeRes.json().catch(() => null)
         if (!finalizeRes.ok || !finalized?.success) throw new Error(finalized?.message || `Could not save ${file.name}`)

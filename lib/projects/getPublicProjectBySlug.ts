@@ -71,6 +71,9 @@ export const publicProjectDetailSelect = {
               size: true,
               price: true,
               imageUrl: true,
+              fileName: true,
+              mimeType: true,
+              fileSize: true,
             },
           },
           media: {
@@ -98,6 +101,9 @@ export const publicProjectDetailSelect = {
       size: true,
       price: true,
       imageUrl: true,
+      fileName: true,
+      mimeType: true,
+      fileSize: true,
     },
   },
   videos: {
@@ -247,6 +253,12 @@ export async function getPublicProjectBySlug(rawSlug: string) {
         mediaUrl: await resolveProjectMediaUrl(media.mediaUrl) || media.mediaUrl,
       }))),
     ])
+    const resolvedFloorPlans = await Promise.all((project.floorPlans || []).map(async (floorPlan: any) => ({
+      ...floorPlan,
+      imageUrl: floorPlan.imageUrl
+        ? await resolveProjectMediaUrl(floorPlan.imageUrl) || buildAssetUrl(floorPlan.imageUrl) || floorPlan.imageUrl
+        : null,
+    })))
 
     return {
       ...project,
@@ -258,6 +270,7 @@ export async function getPublicProjectBySlug(rawSlug: string) {
       }),
       coverImage: resolvedCover || coverReference,
       media: resolvedMedia,
+      floorPlans: resolvedFloorPlans,
       highlights: parseHighlights(project.highlights),
       mediaStructured: null,
       brochure,

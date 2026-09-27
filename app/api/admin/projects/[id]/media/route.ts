@@ -69,6 +69,10 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
                 label: true,
                 sortOrder: true,
                 s3Key: true,
+                fileName: true,
+                mimeType: true,
+                fileSize: true,
+                uploadId: true,
                 createdAt: true,
             },
             orderBy: sortBy === 'name' ? { label: sortOrder } : { createdAt: sortOrder },
@@ -104,6 +108,10 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
             label: m.label,
             sortOrder: m.sortOrder,
             s3Key: m.s3Key,
+                        fileName: m.fileName,
+                        mimeType: m.mimeType,
+                        fileSize: m.fileSize,
+                        uploadId: m.uploadId,
             createdAt: m.createdAt,
                     }))),
           counts,
@@ -136,6 +144,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
             }
 
             const data = parsed.data
+            if (data.category === 'floor_plan') return NextResponse.json({ success: false, message: 'Floor plans must use the verified project upload flow' }, { status: 400 })
             
             if (data.category === 'hero') {
                 const existingHero = await (prisma as any).projectMedia.findFirst({
@@ -210,9 +219,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         if (!CATEGORY_VALUES.includes(category as any)) {
             return NextResponse.json({ success: false, message: 'Invalid category' }, { status: 400 })
         }
-        if (category === 'floor_plan' && !unitTypeId) {
-            return NextResponse.json({ success: false, message: 'unitTypeId is required for floor plan uploads' }, { status: 400 })
-        }
+        if (category === 'floor_plan') return NextResponse.json({ success: false, message: 'Floor plans must use the verified project upload flow' }, { status: 400 })
         if (file.size > 50 * 1024 * 1024) {
             return NextResponse.json({ success: false, message: 'File too large (max 50MB)' }, { status: 400 })
         }

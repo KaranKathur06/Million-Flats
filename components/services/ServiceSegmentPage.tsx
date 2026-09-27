@@ -1,16 +1,30 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import MillionFlatsButton from '@/components/ui/MillionFlatsButton'
 import ServicePageAnalytics from '@/components/services/ServicePageAnalytics'
-import TrackedServiceLink from '@/components/services/TrackedServiceLink'
+import { PackageBuyNowButton } from '@/components/services/PackageBuyNowButton'
 import type { ServiceSegment } from '@/lib/services/segmentContent'
 
-function PackageCard({ segment, packageInfo, index }: {
+type PackageQuote = { pricePaise: number; taxAmountPaise: number; totalAmountPaise: number }
+
+function slugify(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
+function formatRupees(paise: number) {
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(paise / 100)
+}
+
+function PackageCard({ segment, packageInfo, index, quote, taxConfigured }: {
   segment: ServiceSegment
   packageInfo: ServiceSegment['packages'][number]
   index: number
+  quote: PackageQuote | null
+  taxConfigured: boolean
 }) {
+  const packageId = `${segment.key}:${slugify(packageInfo.name)}`
   return (
     <article className={`flex h-full flex-col border bg-white p-6 shadow-sm sm:p-8 ${packageInfo.featured ? 'border-dark-blue/50 ring-1 ring-dark-blue/10' : 'border-gray-200'}`}>
       {packageInfo.featured ? <p className="mb-3 text-xs font-bold uppercase tracking-wide text-dark-blue">Recommended</p> : null}
@@ -26,22 +40,46 @@ function PackageCard({ segment, packageInfo, index }: {
         ))}
       </ul>
       <div className="mt-6">
-        <p className="text-2xl font-bold text-dark-blue">{packageInfo.price}<span className="ml-1 text-sm font-medium text-gray-500">/ YEAR</span></p>
-        <p className="mt-1 text-xs font-medium text-gray-500">{packageInfo.taxNote}</p>
-        <TrackedServiceLink
-          href={`${segment.registrationHref}${segment.registrationHref.includes('?') ? '&' : '?'}package=${encodeURIComponent(packageInfo.name)}`}
-          eventName="subscription_cta_click"
-          eventParams={{ segment: segment.key, package: packageInfo.name }}
-          className={`mt-5 inline-flex w-full items-center justify-center rounded-full text-center text-sm font-semibold leading-tight transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dark-blue/30 ${packageInfo.featured ? 'bg-dark-blue text-white shadow-[0_18px_45px_rgba(15,23,42,0.18)] hover:bg-[#25476f] hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(30,58,95,0.24)] active:translate-y-0 active:scale-[0.98]' : 'border border-dark-blue/40 bg-white text-dark-blue shadow-sm hover:bg-slate-100 hover:border-dark-blue hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(15,23,42,0.10)] active:translate-y-0 active:scale-[0.98]'} min-h-12 px-6 py-2.5`}
-        >
-          Continue to registration
-        </TrackedServiceLink>
+        <p className="text-2xl font-bold text-dark-blue">{quote ? formatRupees(quote.pricePaise) : packageInfo.price}<span className="ml-1 text-sm font-medium text-gray-500">/ YEAR</span></p>
+        {quote ? (
+          <dl className="mt-3 space-y-1 text-xs text-gray-600">
+            <div className="flex justify-between gap-3"><dt>GST</dt><dd>{formatRupees(quote.taxAmountPaise)}</dd></div>
+            <div className="flex justify-between gap-3 font-semibold text-dark-blue"><dt>Total payable</dt><dd>{formatRupees(quote.totalAmountPaise)}</dd></div>
+          </dl>
+        ) : <p className="mt-2 text-xs font-medium text-gray-500">{taxConfigured ? 'Price quote unavailable.' : 'Tax details are being loaded.'}</p>}
+        <PackageBuyNowButton
+          packageId={packageId}
+          packageName={packageInfo.name}
+          audience={segment.key.toUpperCase()}
+          quote={quote}
+          disabledReason={!quote ? 'Checkout is unavailable until the full payable amount can be shown.' : undefined}
+        />
       </div>
     </article>
   )
 }
 
 export default function ServiceSegmentPage({ segment }: { segment: ServiceSegment }) {
+  const [quotes, setQuotes] = useState<Record<string, PackageQuote>>({})
+  const [taxConfigured, setTaxConfigured] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/packages/catalog')
+      .then((response) => response.json())
+      .then((data) => {
+        if (!active || !data.success) return
+        setTaxConfigured(Boolean(data.taxConfigured))
+        const next: Record<string, PackageQuote> = {}
+        for (const entry of data.packages || []) {
+          if (entry.quote) next[entry.id] = entry.quote
+        }
+        setQuotes(next)
+      })
+      .catch(() => { if (active) setTaxConfigured(false) })
+    return () => { active = false }
+  }, [])
+
   return (
     <main className="min-h-screen bg-white text-gray-900">
       <ServicePageAnalytics segment={segment.key} />
@@ -53,14 +91,6 @@ export default function ServiceSegmentPage({ segment }: { segment: ServiceSegmen
               <p className="mt-6 max-w-2xl text-base leading-7 text-gray-600">{segment.key === 'developers' ? 'Accelerate inventory absorption and connect directly with high-intent buyers, HNIs, and NRI investors through automated AI calling, verified listings, and multi-channel outreach campaigns.' : segment.description}</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <MillionFlatsButton href="#plans" variant="primary" size="md" className="w-full sm:w-auto">View {segment.key === 'developers' ? 'Developer' : segment.key === 'agencies' ? 'Agency' : 'Agent'} Plans</MillionFlatsButton>
-                <TrackedServiceLink
-                  href={segment.registrationHref}
-                  eventName="subscription_cta_click"
-                  eventParams={{ segment: segment.key, action: 'registration_start' }}
-                  className="inline-flex w-full items-center justify-center rounded-full border border-dark-blue/40 bg-white px-6 py-2.5 text-sm font-semibold text-dark-blue shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-dark-blue hover:bg-slate-100 hover:shadow-[0_18px_45px_rgba(15,23,42,0.10)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dark-blue/30 sm:w-auto"
-                >
-                  {segment.registrationLabel}
-                </TrackedServiceLink>
             </div>
           </div>
           <div className="border-l-2 border-amber-500 pl-6 lg:ml-auto lg:max-w-sm">
@@ -77,10 +107,13 @@ export default function ServiceSegmentPage({ segment }: { segment: ServiceSegmen
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">Growth packages</p>
             <h2 className="mt-2 text-3xl font-bold text-dark-blue">Choose your growth infrastructure</h2>
           </div>
-          <p className="max-w-lg text-sm leading-6 text-gray-600">Package rates shown from the supplied commercial reference. Registration continues through MillionFlats; these prices do not initiate checkout or activate a subscription.</p>
+          <p className="max-w-lg text-sm leading-6 text-gray-600">Choose a package and complete secure payment. Account creation is optional and can happen after purchase.</p>
         </div>
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          {segment.packages.map((packageInfo, index) => <PackageCard key={packageInfo.name} segment={segment} packageInfo={packageInfo} index={index} />)}
+          {segment.packages.map((packageInfo, index) => {
+            const packageId = `${segment.key}:${slugify(packageInfo.name)}`
+            return <PackageCard key={packageInfo.name} segment={segment} packageInfo={packageInfo} index={index} quote={quotes[packageId] || null} taxConfigured={taxConfigured} />
+          })}
         </div>
       </section>
 

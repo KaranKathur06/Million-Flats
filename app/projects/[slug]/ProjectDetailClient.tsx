@@ -88,13 +88,13 @@ interface ProjectData {
             availabilityStatus?: 'AVAILABLE' | 'SOLD_OUT' | null
             availableUnitsCount?: number | null
             priceOnRequest?: boolean | null
-            floorPlans?: { id: string; unitType: string; bedrooms: number | null; bathrooms: number | null; size: string | null; price: string | null; imageUrl: string | null }[]
+              floorPlans?: { id: string; unitType: string; bedrooms: number | null; bathrooms: number | null; size: string | null; price: string | null; imageUrl: string | null; fileName?: string | null; mimeType?: string | null; fileSize?: number | null }[]
         }[]
     }[]
     amenities: { id: string; name: string; icon: string | null; category: string | null }[]
     paymentPlans: { id: string; itemType: 'BASE_PRICE' | 'FEE'; label: string; amount: number; currency: string; milestone: string | null; sortOrder: number | null; basis?: 'PERCENTAGE' | 'FIXED_AMOUNT' | string | null; percentage?: number | null; fixedAmount?: number | null; calculatedAmount?: number | null }[]
     pricing?: ReturnType<typeof calculateProjectPricingSummary>
-    floorPlans: { id: string; unitTypeId?: string | null; unitType: string; bedrooms: number | null; bathrooms: number | null; size: string | null; price: string | null; imageUrl: string | null }[]
+    floorPlans: { id: string; unitTypeId?: string | null; unitType: string; bedrooms: number | null; bathrooms: number | null; size: string | null; price: string | null; imageUrl: string | null; fileName?: string | null; mimeType?: string | null; fileSize?: number | null }[]
     videos: { id: string; videoUrl: string; title: string | null; thumbnail: string | null; sortOrder: number | null }[]
     location: { id: string; latitude: number | null; longitude: number | null; address: string | null; mapUrl: string | null } | null
     nearbyPlaces: { id: string; name: string; category: string | null; distance: string | null; sortOrder: number | null }[]
@@ -854,21 +854,18 @@ export default function ProjectDetailClient({
                                         .filter((fp: any) => !activeUnitType || !fp.unitTypeId || fp.unitTypeId === activeUnitType.id)
                                         .map((fp) => (
                                         <div key={fp.id} className="rounded-2xl border border-gray-200 bg-white overflow-hidden group">
-                                            <div className="relative aspect-square bg-white flex items-center justify-center p-4 cursor-pointer" onClick={() => {
-                                                // Open floor plan in modal for full view
-                                                const modal = document.createElement('div')
-                                                modal.className = 'fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-6 cursor-pointer'
-                                                modal.onclick = () => modal.remove()
-                                                modal.innerHTML = `<img src="${fp.imageUrl || fallbackImage}" alt="${fp.unitType} floor plan" class="max-w-full max-h-full object-contain bg-white rounded-xl p-4" onerror="this.src='/images/default-property.jpg'" />`
-                                                document.body.appendChild(modal)
-                                            }}>
-                                                <img src={fp.imageUrl || fallbackImage} alt={`${fp.unitType} floor plan`} className="w-full h-full object-contain" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).src = fallbackImage }} />
-                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center">
-                                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold text-gray-600 bg-white/90 px-3 py-1.5 rounded-full shadow-sm">
-                                                        🔍 Click to enlarge
-                                                    </span>
+                                            {fp.mimeType === 'application/pdf' || fp.fileName?.toLowerCase().endsWith('.pdf') ? (
+                                                <div className="flex aspect-square flex-col items-center justify-center gap-3 bg-gray-50 p-5 text-center">
+                                                    <span className="text-sm font-bold tracking-wide text-gray-500">PDF</span>
+                                                    <p className="max-w-full truncate text-sm font-semibold text-gray-800">{fp.fileName || `${fp.unitType} floor plan`}</p>
+                                                    {fp.imageUrl ? <a href={fp.imageUrl} target="_blank" rel="noreferrer" className="rounded-lg bg-dark-blue px-4 py-2 text-xs font-bold text-white">Open PDF</a> : null}
+                                                    {fp.imageUrl ? <a href={`/api/projects/${project.slug}/floor-plans/${fp.id}/download`} className="text-xs font-semibold text-dark-blue underline">Download</a> : null}
                                                 </div>
-                                            </div>
+                                            ) : (
+                                                <div className="relative aspect-square cursor-pointer bg-white p-4" onClick={() => window.open(fp.imageUrl || fallbackImage, '_blank', 'noopener,noreferrer')}>
+                                                    <img src={fp.imageUrl || fallbackImage} alt={`${fp.unitType} floor plan`} className="h-full w-full object-contain" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).src = fallbackImage }} />
+                                                </div>
+                                            )}
                                             <div className="p-4">
                                                 <h3 className="text-sm font-bold text-gray-900">{fp.unitType}</h3>
                                                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs">

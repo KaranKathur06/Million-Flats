@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { buildProjectBrochureKey } from '@/lib/s3'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { prisma } from '@/lib/prisma'
+import { getS3Client } from '@/lib/s3'
 
 export const runtime = 'nodejs'
+const MAX_BROCHURE_SIZE = 300 * 1024 * 1024
 
 /**
  * POST /api/admin/projects/[id]/brochure/presign
@@ -38,11 +40,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       )
     }
 
+    if (!/\.pdf$/i.test(fileName)) {
+      return NextResponse.json({ success: false, message: 'PDF file extension is required' }, { status: 400 })
+    }
+
     if (!fileSizeBytes || typeof fileSizeBytes !== 'number' || fileSizeBytes <= 0) {
       return NextResponse.json(
         { success: false, message: 'fileSizeBytes must be a positive number' },
         { status: 400 }
       )
+    }
+    if (fileSizeBytes > MAX_BROCHURE_SIZE) {
+      return NextResponse.json({ success: false, message: 'Brochure exceeds the maximum size of 300MB' }, { status: 413 })
     }
 
     // Verify project exists and get developer/project info for S3 key
@@ -67,14 +76,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     })
 
     // Create S3 client and generate presigned URL
-    const s3 = new S3Client({
-      region: process.env.AWS_REGION || 'ap-south-1',
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-      },
-    })
-
     const command = new PutObjectCommand({
       Bucket: process.env.AWS_S3_BUCKET!,
       Key: s3Key,
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       },
     })
 
-    const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 600 }) // 10 min expiry
+    const uploadUrl = await getSignedUrl(getS3Client(), command, { expiresIn: 600 })
 
     return NextResponse.json({
       success: true,

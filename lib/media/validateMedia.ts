@@ -1,4 +1,5 @@
 import { GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
+import sharp from 'sharp'
 import { getS3Client } from '@/lib/s3'
 import { buildAssetUrl } from '@/lib/assetUrl'
 
@@ -37,12 +38,19 @@ export async function validateStoredMediaSignature(key: string, contentType: str
   if (!bucket) return { ok: false, error: 'Storage configuration is incomplete' }
 
   try {
-    const result = await getS3Client().send(new GetObjectCommand({ Bucket: bucket, Key: key, Range: 'bytes=0-511' }))
+    const isPdf = String(contentType || '').toLowerCase() === 'application/pdf'
+    const result = await getS3Client().send(new GetObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ...(isPdf ? { Range: 'bytes=0-511' } : {}),
+    }))
     const bytes = result.Body && 'transformToByteArray' in result.Body
       ? await (result.Body as any).transformToByteArray() as Uint8Array
       : new Uint8Array()
+    if (bytes.length === 0) return { ok: false, error: 'Uploaded file is empty or unreadable' }
     const type = String(contentType || '').toLowerCase()
-    const ascii = new TextDecoder().decode(bytes).trimStart().toLowerCase()
+    const header = bytes.subarray(0, 65536)
+    const ascii = new TextDecoder().decode(header).trimStart().toLowerCase()
     const starts = (...expected: number[]) => expected.every((value, index) => bytes[index] === value)
     const valid =
       (type === 'image/jpeg' || type === 'image/jpg') ? starts(0xff, 0xd8, 0xff) :
@@ -52,7 +60,29 @@ export async function validateStoredMediaSignature(key: string, contentType: str
       type === 'application/pdf' ? starts(0x25, 0x50, 0x44, 0x46, 0x2d) :
       type === 'image/svg+xml' ? ascii.startsWith('<svg') || ascii.startsWith('<?xml') && ascii.includes('<svg') :
       false
-    return valid ? { ok: true } : { ok: false, error: 'The uploaded file content does not match its declared media type' }
+    if (!valid) return { ok: false, error: 'The uploaded file content does not match its declared media type' }
+
+    if (type.startsWith('image/')) {
+      const metadata = await sharp(Buffer.from(bytes), { limitInputPixels: 100_000_000 }).metadata()
+      const expectedFormats: Record<string, string[]> = {
+        'image/jpeg': ['jpeg'],
+        'image/jpg': ['jpeg'],
+        'image/png': ['png'],
+        'image/webp': ['webp'],
+        'image/avif': ['avif'],
+        'image/svg+xml': ['svg'],
+      }
+      const width = Number(metadata.width || 0)
+      const height = Number(metadata.height || 0)
+      if (!expectedFormats[type]?.includes(String(metadata.format || '').toLowerCase())) {
+        return { ok: false, error: 'The uploaded image could not be decoded as the declared format' }
+      }
+      if (width < 1 || height < 1 || width > 40000 || height > 40000 || width * height > 100_000_000) {
+        return { ok: false, error: 'The uploaded image has invalid or unsupported dimensions' }
+      }
+    }
+
+    return { ok: true }
   } catch (error) {
     console.error('[media signature validation] failed', { key, contentType, error: error instanceof Error ? error.message : 'unknown' })
     return { ok: false, error: 'Unable to validate uploaded file content' }

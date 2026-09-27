@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useBrochureUpload } from '@/hooks/useMediaUpload'
 import { useAdminAction } from '@/components/admin/AdminActionProvider'
 
@@ -21,29 +21,15 @@ export function ProjectBrochureManager({ projectId, initialBrochure }: ProjectBr
   const { runAction } = useAdminAction()
   const [brochure, setBrochure] = useState<Brochure | null>(initialBrochure || null)
   const [isDragging, setIsDragging] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { state, progress, error, uploadBrochure, reset } = useBrochureUpload({
+  const { state, progress, error, uploadBrochure, retry, reset } = useBrochureUpload({
     projectId,
-    onSuccess: async (s3Key, fileName, fileSize) => {
-      // Reload brochure data
-      await loadBrochure()
+    onSuccess: (savedBrochure) => {
+      setBrochure(savedBrochure)
       reset()
     },
     onError: () => {},
   })
-
-  const loadBrochure = async () => {
-    try {
-      setIsLoading(true)
-      // Brochure is loaded as part of project, we just display it
-      // In real app, might fetch separately if needed
-    } catch (err) {
-      console.error('Failed to load brochure:', err)
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault()
@@ -115,7 +101,7 @@ export function ProjectBrochureManager({ projectId, initialBrochure }: ProjectBr
         <div className="space-y-4">
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-sm text-white/70">Uploading...</p>
+              <p className="text-sm text-white/70">{state === 'finalizing' ? 'Finalizing brochure record…' : state === 'completed' ? 'Uploaded' : state === 'finalization_failed' ? 'Upload complete; registration failed' : 'Uploading PDF…'}</p>
               <span className="text-xs text-white/40">{progress}%</span>
             </div>
             <div className="h-2 bg-white/[0.1] rounded-full overflow-hidden">
@@ -130,13 +116,10 @@ export function ProjectBrochureManager({ projectId, initialBrochure }: ProjectBr
           {(state === 'upload_failed' || state === 'finalization_failed') && (
             <div className="flex gap-2">
               <button
-                onClick={() => {
-                  reset()
-                  if (fileInputRef.current) fileInputRef.current.click()
-                }}
+                onClick={retry}
                 className="flex-1 rounded-lg bg-amber-400/20 px-4 py-2 text-xs font-medium text-amber-300 hover:bg-amber-400/30"
               >
-                Retry
+                {state === 'finalization_failed' ? 'Retry registration' : 'Retry upload'}
               </button>
               <button
                 onClick={reset}

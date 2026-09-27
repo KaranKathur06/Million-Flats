@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { MediaUploadDialog } from './MediaUploadDialog'
 import { useAdminAction } from '@/components/admin/AdminActionProvider'
 import { MediaCard } from '@/components/media/MediaCard'
+import { useMediaUpload } from '@/hooks/useMediaUpload'
+import { isValidFloorPlanFile, PROJECT_FLOOR_PLAN_MAX_SIZE } from './ProjectFormSchema'
 
 interface Media {
   id: string
@@ -39,6 +41,9 @@ interface FloorPlanAsset {
   price?: string | null
   imageUrl?: string | null
   s3Key?: string | null
+  fileName?: string | null
+  mimeType?: string | null
+  fileSize?: number | null
 }
 
 interface FloorPlanStatusCard {
@@ -47,6 +52,13 @@ interface FloorPlanStatusCard {
   sortOrder?: number | null
   isUploaded: boolean
   plan: FloorPlanAsset | null
+}
+
+function formatFileSize(size?: number | null) {
+  if (!size || size <= 0) return 'File size unavailable'
+  return size < 1024 * 1024
+    ? `${Math.max(1, Math.round(size / 1024))} KB`
+    : `${(size / (1024 * 1024)).toFixed(1)} MB`
 }
 
 export function buildFloorPlanStatusCards(unitTypes: any[] = [], floorPlans: any[] = []): FloorPlanStatusCard[] {
@@ -65,7 +77,7 @@ export function buildFloorPlanStatusCards(unitTypes: any[] = [], floorPlans: any
     sortOrder: unitType.sortOrder ?? 0,
     isUploaded: Boolean(planByUnitTypeId.get(unitType.id)),
     plan: planByUnitTypeId.get(unitType.id) || null,
-  })).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+  })).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)).slice(0, 2)
 }
 
 export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
@@ -76,7 +88,6 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const [floorPlanCards, setFloorPlanCards] = useState<FloorPlanStatusCard[]>([])
-  const [uploadingUnitTypeId, setUploadingUnitTypeId] = useState<string | null>(null)
 
   const loadMedia = useCallback(async () => {
     try {
@@ -113,6 +124,12 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
       console.error('Failed to load floor plans:', err)
     }
   }, [projectId])
+
+  const floorPlanUploader = useMediaUpload({
+    projectId,
+    category: 'floor_plan',
+    onSuccess: () => { void loadFloorPlanCards() },
+  })
 
   useEffect(() => {
     void loadMedia()
@@ -172,69 +189,18 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
     }
   }
 
-  const handleFloorPlanUpload = async (unitTypeId: string, file: File) => {
-    try {
-      setUploadingUnitTypeId(unitTypeId)
-
-      const presignRes = await fetch(`/api/admin/projects/${projectId}/media/presign`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileSizeBytes: file.size,
-          contentType: file.type,
-          category: 'floor_plan',
-          unitTypeId,
-        }),
-      })
-
-      const presignData = await presignRes.json()
-      if (!presignRes.ok || !presignData.success) {
-        throw new Error(presignData.message || 'Failed to prepare upload')
-      }
-
-      const uploadRes = await fetch(presignData.uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type || 'application/octet-stream' },
-        body: file,
-      })
-
-      if (!uploadRes.ok) {
-        throw new Error('Floor plan upload failed')
-      }
-
-      const finalizeRes = await fetch(`/api/admin/projects/${projectId}/media/finalize`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          s3Key: presignData.s3Key,
-          fileName: file.name,
-          fileSizeBytes: file.size,
-          contentType: file.type,
-          category: 'floor_plan',
-          unitTypeId,
-        }),
-      })
-
-      const finalizeData = await finalizeRes.json()
-      if (!finalizeRes.ok || !finalizeData.success) {
-        throw new Error(finalizeData.message || 'Failed to finalize upload')
-      }
-
-      await loadFloorPlanCards()
-    } catch (err) {
-      console.error('Failed to upload floor plan:', err)
+  const handleFloorPlanUpload = (unitTypeId: string, file: File) => {
+    if (!isValidFloorPlanFile(file)) {
       void runAction({
-        title: 'Floor plan upload failed',
-        description: 'The floor plan was not saved. Review the error and try again.',
+        title: 'Unsupported floor plan file',
+        description: `Choose a supported image or PDF under ${Math.round(PROJECT_FLOOR_PLAN_MAX_SIZE / 1024 / 1024)} MB.`,
         confirmLabel: 'Close',
         requiresConfirmation: false,
-        errorMessage: err instanceof Error ? err.message : 'Failed to upload floor plan',
-        mutation: async () => { throw err },
+        mutation: async () => undefined,
       })
-    } finally {
-      setUploadingUnitTypeId(null)
+      return
     }
+    floorPlanUploader.addFiles([file], { category: 'floor_plan', unitTypeId })
   }
 
   const filteredMedia = selectedCategory
@@ -251,9 +217,8 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
   ]
 
   const floorPlanSummary = {
-    configured: floorPlanCards.length,
+    configured: 2,
     uploaded: floorPlanCards.filter((card) => card.isUploaded).length,
-    missing: floorPlanCards.filter((card) => !card.isUploaded).length,
   }
 
   return (
@@ -338,44 +303,71 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {floorPlanCards.map((card) => (
-              <div key={card.unitTypeId} className={`rounded-xl border ${uploadingUnitTypeId === card.unitTypeId ? 'border-amber-400/40 animate-pulse' : 'border-white/[0.08]'} bg-black/10 p-4`}>
+            {floorPlanCards.map((card) => {
+              const upload = [...floorPlanUploader.files].reverse().find((item) => item.unitTypeId === card.unitTypeId)
+              const isUploading = upload && !['completed', 'upload_failed', 'validation_failed', 'finalization_failed'].includes(upload.state)
+              const isPdf = card.plan?.mimeType === 'application/pdf' || Boolean(card.plan?.fileName?.match(/\.pdf$/i)) || Boolean(card.plan?.imageUrl?.match(/\.pdf(?:$|\?)/i))
+              const atLimit = floorPlanSummary.uploaded >= floorPlanSummary.configured && !card.plan
+              const status = upload?.state === 'uploading'
+                ? `Uploading ${upload.progress}%`
+                : upload?.state === 'finalizing'
+                  ? 'Finalizing media record'
+                  : upload?.state === 'requesting' || upload?.state === 'authorized'
+                    ? 'Preparing upload'
+                    : upload?.state === 'uploaded'
+                      ? 'Upload complete'
+                      : upload?.state === 'completed'
+                        ? 'Uploaded'
+                        : upload?.state === 'selected'
+                          ? 'Queued'
+                          : upload?.state === 'finalization_failed'
+                            ? 'Upload complete; registration failed'
+                            : upload?.state === 'validation_failed'
+                              ? 'Could not prepare upload'
+                              : upload?.state === 'upload_failed'
+                                ? 'Storage upload failed'
+                                : ''
+
+              return (
+              <div key={card.unitTypeId} className={`rounded-xl border ${isUploading ? 'border-amber-400/40' : 'border-white/[0.08]'} bg-black/10 p-4`}>
                 <h4 className="mb-4 text-sm font-semibold text-white">{card.title}</h4>
 
-                {uploadingUnitTypeId === card.unitTypeId ? (
+                {upload && upload.state !== 'completed' ? (
                   <div className="space-y-3">
-                    <div className="flex h-36 items-center justify-center rounded-lg border border-amber-400/20 bg-amber-400/5">
-                      <div className="text-center">
-                        <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-amber-400/40 border-t-amber-400"></div>
-                        <p className="mt-2 text-xs text-amber-300/70">Uploading...</p>
+                    <div className="rounded-lg border border-white/[0.08] bg-white/[0.03] p-3">
+                      <div className="flex items-center justify-between gap-3 text-xs">
+                        <span className="min-w-0 truncate text-white/70">{upload.file.name}</span>
+                        <span className={upload.error ? 'shrink-0 text-red-300' : 'shrink-0 text-amber-300'}>{status}</span>
                       </div>
+                      <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
+                        <div className="h-full bg-amber-400 transition-[width]" style={{ width: `${upload.progress}%` }} />
+                      </div>
+                      {upload.error ? <p className="mt-2 text-xs text-red-300">{upload.error}</p> : null}
+                      {upload.error ? <button type="button" onClick={() => floorPlanUploader.retryFile(upload.id)} className="mt-2 text-xs text-amber-300">Retry</button> : null}
+                      <button type="button" onClick={() => floorPlanUploader.removeFile(upload.id)} className="ml-3 mt-2 text-xs text-white/50">Remove</button>
                     </div>
                   </div>
                 ) : card.plan ? (
                   <div className="space-y-3">
                     <div className="overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.03]">
-                      {card.plan.imageUrl && !String(card.plan.imageUrl || '').match(/\.pdf$/i) ? (
+                      {!isPdf && card.plan.imageUrl ? (
                         <img src={card.plan.imageUrl} alt={card.title} className="h-36 w-full object-contain bg-white/5" />
                       ) : (
                         <div className="flex h-36 items-center justify-center text-sm text-white/40">
                           <div className="text-center">
-                            <span className="text-2xl">📄</span>
-                            <p className="mt-1 text-xs">{String(card.plan.imageUrl || '').match(/\.pdf$/i) ? 'PDF Blueprint' : 'Floor Plan'}</p>
+                            <span className="text-2xl">PDF</span>
+                            <p className="mt-1 text-xs">Floor plan document</p>
                           </div>
                         </div>
                       )}
                     </div>
                     <div className="space-y-1 text-xs text-white/60">
-                      <p className="truncate">{card.plan.imageUrl?.split('/').pop() || 'floor-plan'}</p>
+                      <p className="truncate">{card.plan.fileName || card.plan.imageUrl?.split('/').pop() || 'floor-plan'}</p>
+                      <p>{formatFileSize(card.plan.fileSize)}</p>
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => card.plan?.imageUrl && window.open(card.plan.imageUrl, '_blank')}
-                        className="rounded-lg border border-white/[0.08] px-2 py-1.5 text-xs text-white/70 hover:bg-white/[0.04]"
-                      >
-                        Preview
-                      </button>
+                      {card.plan.imageUrl ? <a href={card.plan.imageUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/[0.08] px-2 py-1.5 text-xs text-white/70 hover:bg-white/[0.04]">{isPdf ? 'Open PDF' : 'Preview'}</a> : null}
+                      {isPdf && card.plan.imageUrl ? <a href={card.plan.imageUrl} download={card.plan.fileName || undefined} className="rounded-lg border border-white/[0.08] px-2 py-1.5 text-xs text-white/70 hover:bg-white/[0.04]">Download</a> : null}
                       <label className="cursor-pointer rounded-lg border border-amber-400/20 bg-amber-400/10 px-2 py-1.5 text-xs font-medium text-amber-300 hover:bg-amber-400/20">
                         Replace
                         <input
@@ -400,16 +392,16 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <label className="flex h-36 cursor-pointer items-center justify-center rounded-lg border border-dashed border-white/[0.12] bg-white/[0.02] hover:bg-white/[0.04] hover:border-amber-400/30 transition-colors">
+                    <label className={`flex h-36 items-center justify-center rounded-lg border border-dashed border-white/[0.12] bg-white/[0.02] transition-colors ${atLimit ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-white/[0.04] hover:border-amber-400/30'}`}>
                       <div className="text-center">
-                        <span className="text-2xl">📐</span>
-                        <p className="mt-2 text-xs text-white/50">Drag & drop or click to upload</p>
-                        <p className="mt-1 text-[10px] text-white/30">JPG, PNG, WebP, SVG, PDF</p>
+                        <span className="text-sm font-semibold text-white/70">{atLimit ? 'Maximum of 2 floor plans reached' : 'Choose floor plan file'}</span>
+                        {!atLimit ? <p className="mt-2 text-xs text-white/50">JPG, PNG, WebP, SVG, PDF</p> : null}
                       </div>
                       <input
                         type="file"
                         accept="image/jpeg,image/png,image/webp,image/svg+xml,application/pdf"
                         className="hidden"
+                        disabled={atLimit}
                         onChange={(event) => {
                           const file = event.target.files?.[0]
                           if (file) void handleFloorPlanUpload(card.unitTypeId, file)
@@ -420,7 +412,8 @@ export function ProjectMediaManager({ projectId }: ProjectMediaManagerProps) {
                   </div>
                 )}
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

@@ -37,4 +37,14 @@ describe('buildFloorPlanStatusCards', () => {
     expect(cards[1].isUploaded).toBe(false)
     expect(cards[1].plan).toBeNull()
   })
+
+  it('exposes no more than two floor-plan slots', () => {
+    const unitTypes = [1, 2, 3].map((number) => ({
+      id: `ut-${number}`,
+      unitType: `${number} Bedroom`,
+      sortOrder: number,
+    }))
+
+    expect(buildFloorPlanStatusCards(unitTypes, [])).toHaveLength(2)
+  })
 })

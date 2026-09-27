@@ -4,6 +4,7 @@ import MillionFlatsButton from '@/components/ui/MillionFlatsButton'
 import TrackedServiceLink from '@/components/services/TrackedServiceLink'
 import { ECOSYSTEM_CATEGORIES, categoryHref, partnerRegistrationHref } from '@/lib/ecosystemPartners'
 import { ECOSYSTEM_PACKAGES } from '@/lib/services/segmentContent'
+import EcosystemPackageCards from './_components/EcosystemPackageCards'
 
 export const metadata: Metadata = {
   title: 'MillionFlats | Ecosystem Partners',
@@ -121,23 +122,9 @@ export default function EcosystemPartnersLandingPage() {
           <div className="mb-8">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">Partner growth packages</p>
             <h2 className="mt-2 text-3xl font-bold text-dark-blue">Choose your growth path</h2>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-600">Rates are shown as informational figures from the supplied commercial reference. The current MillionFlats partner program describes a performance-based, no-fee listing model; package purchases are not offered or activated by this page.</p>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-600">Compare the available partner packages and complete secure payment directly. Account creation remains optional.</p>
           </div>
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            {ECOSYSTEM_PACKAGES.map((pkg) => (
-              <article key={pkg.name} className={`flex flex-col border bg-white p-6 sm:p-8 ${pkg.featured ? 'border-dark-blue/50 ring-1 ring-dark-blue/10' : 'border-gray-200'}`}>
-                {pkg.featured ? <p className="text-xs font-bold uppercase tracking-wide text-dark-blue">Recommended</p> : null}
-                <p className="mt-2 text-xs font-bold uppercase tracking-wide text-gray-500">{pkg.subtitle}</p>
-                <h3 className="mt-2 text-2xl font-bold text-dark-blue">{pkg.name}</h3>
-                <ul className="mt-5 flex-1 divide-y divide-gray-100 border-y border-gray-100">
-                  {pkg.features.map((feature) => <li key={feature} className="py-3 text-sm font-medium text-gray-700">{feature}</li>)}
-                </ul>
-                <p className="mt-5 text-2xl font-bold text-dark-blue">{pkg.price}</p>
-                <p className="mt-1 text-xs font-medium text-gray-500">{pkg.taxNote}</p>
-                <MillionFlatsButton href="#categories" variant={pkg.featured ? 'primary' : 'secondary'} size="md" className="mt-5 w-full">Select a category to apply</MillionFlatsButton>
-              </article>
-            ))}
-          </div>
+          <EcosystemPackageCards packages={ECOSYSTEM_PACKAGES} />
         </div>
       </section>
 

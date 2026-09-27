@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { buildProjectMediaTypeKey } from '@/lib/s3'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { prisma } from '@/lib/prisma'
 import { PROJECT_MEDIA_CATEGORY_VALUES } from '@/lib/projectMediaTaxonomy'
+import { getS3Client } from '@/lib/s3'
 
 export const runtime = 'nodejs'
 
@@ -50,7 +51,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   try {
-    const { fileName, fileSizeBytes, contentType, category, unitTypeId } = await req.json()
+    const { fileName, fileSizeBytes, contentType, category, unitTypeId, uploadId } = await req.json()
+
+    if (typeof uploadId !== 'string' || !/^[0-9a-f-]{36}$/i.test(uploadId)) {
+      return NextResponse.json({ success: false, message: 'A valid upload ID is required' }, { status: 400 })
+    }
 
     // Validate inputs
     if (!fileName || typeof fileName !== 'string' || fileName.trim() === '') {
@@ -97,7 +102,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json(
         {
           success: false,
-          message: `Image exceeds maximum size of ${maxMB}MB (attempted: ${Math.floor(fileSizeBytes / 1024 / 1024)}MB)`,
+          message: `File exceeds the maximum size of ${maxMB}MB`,
         },
         { status: 413 }
       )
@@ -128,6 +133,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       if (!unitType) {
         return NextResponse.json({ success: false, message: 'Unit type not found for this project' }, { status: 400 })
       }
+
+      const existingFloorPlan = await (prisma as any).projectFloorPlan.findFirst({
+        where: { projectId: params.id, unitTypeId: normalizedUnitTypeId },
+        select: { id: true },
+      })
+      const floorPlanCount = await (prisma as any).projectFloorPlan.count({ where: { projectId: params.id } })
+      if (!existingFloorPlan && floorPlanCount >= 2) {
+        return NextResponse.json({ success: false, message: 'A project can have at most 2 floor plans' }, { status: 409 })
+      }
     }
 
     // Verify project exists and get developer/project info for S3 key
@@ -147,20 +161,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const s3Key = buildProjectMediaTypeKey({
       developerSlug: project.developer?.slug,
       projectSlug: project.slug,
-      originalName: fileName,
+      originalName: `${uploadId}-${fileName}`,
       contentType,
       mediaType: category.toLowerCase(),
     })
 
     // Create S3 client and generate presigned URL
-    const s3 = new S3Client({
-      region: process.env.AWS_REGION || 'ap-south-1',
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-      },
-    })
-
     const command = new PutObjectCommand({
       Bucket: process.env.AWS_S3_BUCKET!,
       Key: s3Key,
@@ -169,13 +175,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       Metadata: {
         'uploaded-by': auth.userId || 'admin',
         'project-id': params.id,
+        'upload-id': uploadId,
         'original-name': fileName,
         'media-category': category.toLowerCase(),
         ...(String(category).toLowerCase() === 'floor_plan' ? { 'unit-type-id': String(unitTypeId || '') } : {}),
       },
     })
 
-    const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 600 }) // 10 min expiry
+    const uploadUrl = await getSignedUrl(getS3Client(), command, { expiresIn: 600 })
 
     return NextResponse.json({
       success: true,

@@ -1,8 +1,8 @@
-import PricingClient from './PricingClient'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
 export default function AgentPricingPage() {
-  return <PricingClient />
+  redirect('/services/agents')
 }

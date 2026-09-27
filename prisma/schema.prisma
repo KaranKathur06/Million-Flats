@@ -297,6 +297,8 @@ model User {
   inquiries Inquiry[]
   leadMagnetDownloads LeadMagnetDownload[]
   brochureDownloads BrochureDownload[]
+  packagePurchases PackagePurchase[]
+  packageEntitlements PackageEntitlement[]
   manualPropertyVerificationUploads ManualPropertyVerificationDocument[] @relation("ManualPropertyVerificationUploader")
   manualPropertyVerificationReviews ManualPropertyVerificationDocument[] @relation("ManualPropertyVerificationReviewer")
 
@@ -2396,10 +2398,15 @@ model ProjectMedia {
   label     String?
   category  ProjectImageCategory?
   s3Key     String?  @map("s3_key")
+  uploadId  String?  @map("upload_id")
+  fileName  String?  @map("file_name")
+  mimeType  String?  @map("mime_type")
+  fileSize  Int?     @map("file_size")
   sortOrder Int?     @map("sort_order")
 
   createdAt DateTime @default(now()) @map("created_at")
 
+  @@unique([projectId, uploadId])
   @@index([projectId])
   @@map("project_media")
 }
@@ -2527,6 +2534,7 @@ model ProjectFloorPlan {
   price     String?
   imageUrl  String?  @map("image_url")
   s3Key     String?  @map("s3_key")
+  fileName  String?  @map("file_name")
   mimeType  String?  @map("mime_type")
   fileSize  Int?     @map("file_size")
 
@@ -2686,6 +2694,83 @@ enum PaymentType {
   ADDON
 }
 
+enum PackageAudience {
+  DEVELOPERS
+  AGENCIES
+  AGENTS
+  ECOSYSTEM_PARTNERS
+}
+
+enum PackagePurchaseStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+}
+
+enum PackageEntitlementStatus {
+  ACTIVE
+  REVOKED
+}
+
+model PackagePurchase {
+  id                    String   @id @default(uuid())
+  packageId             String   @map("package_id")
+  packageName           String   @map("package_name")
+  audience              PackageAudience
+  purchaserName         String   @map("purchaser_name")
+  purchaserEmail        String   @map("purchaser_email")
+  userId                String?  @map("user_id")
+  price                 Int      // Base amount in paise
+  taxAmount             Int      @default(0) @map("tax_amount")
+  totalAmount           Int      @map("total_amount")
+  taxRateBps            Int      @default(0) @map("tax_rate_bps")
+  currency              String   @default("INR")
+  status                PackagePurchaseStatus @default(PENDING)
+  razorpayOrderId       String?  @unique @map("razorpay_order_id")
+  razorpayPaymentId     String?  @unique @map("razorpay_payment_id")
+  razorpaySignature     String?  @map("razorpay_signature")
+  idempotencyKey        String   @unique @map("idempotency_key")
+  orderLeaseUntil       DateTime? @map("order_lease_until")
+  notes                 Json?
+  paidAt                DateTime? @map("paid_at")
+  claimedAt             DateTime? @map("claimed_at")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  user                  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  webhooks              PaymentWebhook[]
+  entitlement           PackageEntitlement?
+
+  @@index([purchaserEmail])
+  @@index([userId])
+  @@index([audience, status])
+  @@index([createdAt])
+  @@map("package_purchases")
+}
+
+model PackageEntitlement {
+  id            String   @id @default(uuid())
+  purchaseId    String   @unique @map("purchase_id")
+  packageId     String   @map("package_id")
+  packageName   String   @map("package_name")
+  audience      PackageAudience
+  purchaserEmail String  @map("purchaser_email")
+  userId        String?  @map("user_id")
+  status        PackageEntitlementStatus @default(ACTIVE)
+  activatedAt   DateTime @default(now()) @map("activated_at")
+  claimedAt     DateTime? @map("claimed_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  purchase      PackagePurchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  user          User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([purchaserEmail, status])
+  @@map("package_entitlements")
+}
+
 model SubscriptionPlanPrice {
   id              String @id @default(uuid())
   plan            AgentSubscriptionPlan
@@ -2756,6 +2841,7 @@ model Payment {
 model PaymentWebhook {
   id                  String @id @default(uuid())
   paymentId           String? @map("payment_id")
+  packagePurchaseId   String? @map("package_purchase_id")
 
   // Webhook data
   razorpayEventId     String? @unique @map("razorpay_event_id")
@@ -2776,6 +2862,7 @@ model PaymentWebhook {
   updatedAt           DateTime @updatedAt @map("updated_at")
 
   payment             Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  packagePurchase     PackagePurchase? @relation(fields: [packagePurchaseId], references: [id], onDelete: SetNull)
 
   @@index([eventType])
   @@index([processed])

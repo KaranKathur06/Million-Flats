@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyWebhookSignature } from '@/lib/razorpay'
 import { PLAN_LIMITS } from '@/lib/subscriptionPlans'
+import { activatePackagePurchase } from '@/lib/packagePurchaseActivation'
 
 export const runtime = 'nodejs'
 
@@ -65,6 +66,8 @@ interface WebhookEvent {
   created_at: number
 }
 
+type PaymentProcessingResult = { paymentId: string | null; packagePurchaseId: string | null }
+
 /**
  * Generate idempotency key from event
  */
@@ -118,45 +121,36 @@ export async function POST(req: Request) {
     // Generate idempotency key
     const idempotencyKey = generateIdempotencyKey(event)
 
-    // Check if event already processed (idempotency)
-    const existingWebhook = await (prisma as any).paymentWebhook.findUnique({
+    const webhookRecord = await (prisma as any).paymentWebhook.upsert({
       where: { idempotencyKey },
-      select: { id: true, processed: true },
-    })
-
-    if (existingWebhook?.processed) {
-      console.log(`Webhook already processed: ${idempotencyKey}`)
-      return NextResponse.json({
-        success: true,
-        message: 'Event already processed',
-        idempotencyKey,
-      })
-    }
-
-    // Create webhook record
-    const webhookRecord = await (prisma as any).paymentWebhook.create({
-      data: {
-        razorpayEventId: event.account_id,
+      create: {
+        razorpayEventId: idempotencyKey,
         eventType: event.event,
         payload: event.payload as any,
         signature,
         idempotencyKey,
         processed: false,
       },
+      update: {},
+      select: { id: true, processed: true },
     })
+    if (webhookRecord.processed) {
+      return NextResponse.json({ success: true, message: 'Event already processed', idempotencyKey })
+    }
 
     // Process event based on type
     let processingError: string | null = null
     let paymentId: string | null = null
+    let packagePurchaseId: string | null = null
 
     try {
       switch (event.event) {
         case 'payment.captured':
-          paymentId = await handlePaymentCaptured(event, webhookRecord.id)
+          ({ paymentId, packagePurchaseId } = await handlePaymentCaptured(event, webhookRecord.id))
           break
 
         case 'payment.failed':
-          paymentId = await handlePaymentFailed(event, webhookRecord.id)
+          ({ paymentId, packagePurchaseId } = await handlePaymentFailed(event, webhookRecord.id))
           break
 
         case 'payment.refunded':
@@ -164,7 +158,7 @@ export async function POST(req: Request) {
           break
 
         case 'order.paid':
-          paymentId = await handleOrderPaid(event, webhookRecord.id)
+          ({ paymentId, packagePurchaseId } = await handleOrderPaid(event, webhookRecord.id))
           break
 
         default:
@@ -178,6 +172,7 @@ export async function POST(req: Request) {
           processed: true,
           processedAt: new Date(),
           paymentId,
+          packagePurchaseId,
         },
       })
     } catch (error) {
@@ -220,9 +215,9 @@ export async function POST(req: Request) {
 /**
  * Handle payment.captured event
  */
-async function handlePaymentCaptured(event: WebhookEvent, webhookId: string): Promise<string | null> {
+async function handlePaymentCaptured(event: WebhookEvent, webhookId: string): Promise<PaymentProcessingResult> {
   const payment = event.payload.payment?.entity
-  if (!payment) return null
+  if (!payment) return { paymentId: null, packagePurchaseId: null }
 
   // Find payment record
   const paymentRecord = await (prisma as any).payment.findFirst({
@@ -231,13 +226,31 @@ async function handlePaymentCaptured(event: WebhookEvent, webhookId: string): Pr
   })
 
   if (!paymentRecord) {
-    console.error(`Payment record not found for order: ${payment.order_id}`)
-    return null
+    const packagePurchase = await (prisma as any).packagePurchase.findUnique({
+      where: { razorpayOrderId: payment.order_id },
+    })
+    if (!packagePurchase) {
+      console.error(`Payment record not found for order: ${payment.order_id}`)
+      return { paymentId: null, packagePurchaseId: null }
+    }
+    if (payment.amount !== packagePurchase.totalAmount || payment.currency !== packagePurchase.currency) {
+      throw new Error('Captured package payment does not match the stored amount and currency')
+    }
+    await (prisma as any).packagePurchase.update({
+      where: { id: packagePurchase.id },
+      data: { notes: { ...(packagePurchase.notes || {}), webhook_captured: new Date().toISOString(), payment_method: payment.method } },
+    })
+    await activatePackagePurchase({
+      purchaseId: packagePurchase.id,
+      paymentId: payment.id,
+      paidAt: new Date(payment.created_at * 1000),
+    })
+    return { paymentId: null, packagePurchaseId: packagePurchase.id }
   }
 
   // Skip if already captured
   if (paymentRecord.status === 'CAPTURED') {
-    return paymentRecord.id
+    return { paymentId: paymentRecord.id, packagePurchaseId: null }
   }
 
   const now = new Date()
@@ -320,21 +333,29 @@ async function handlePaymentCaptured(event: WebhookEvent, webhookId: string): Pr
     return updatedPayment.id
   })
 
-  return result
+  return { paymentId: result, packagePurchaseId: null }
 }
 
 /**
  * Handle payment.failed event
  */
-async function handlePaymentFailed(event: WebhookEvent, webhookId: string): Promise<string | null> {
+async function handlePaymentFailed(event: WebhookEvent, webhookId: string): Promise<PaymentProcessingResult> {
   const payment = event.payload.payment?.entity
-  if (!payment) return null
+  if (!payment) return { paymentId: null, packagePurchaseId: null }
 
   const paymentRecord = await (prisma as any).payment.findFirst({
     where: { razorpayOrderId: payment.order_id },
   })
 
-  if (!paymentRecord) return null
+  if (!paymentRecord) {
+    const packagePurchase = await (prisma as any).packagePurchase.findUnique({ where: { razorpayOrderId: payment.order_id } })
+    if (!packagePurchase) return { paymentId: null, packagePurchaseId: null }
+    await (prisma as any).packagePurchase.update({
+      where: { id: packagePurchase.id },
+      data: { notes: { ...(packagePurchase.notes || {}), last_failure_reason: payment.error_description, last_failure_code: payment.error_code } },
+    })
+    return { paymentId: null, packagePurchaseId: packagePurchase.id }
+  }
 
   await (prisma as any).payment.update({
     where: { id: paymentRecord.id },
@@ -351,7 +372,7 @@ async function handlePaymentFailed(event: WebhookEvent, webhookId: string): Prom
     },
   })
 
-  return paymentRecord.id
+  return { paymentId: paymentRecord.id, packagePurchaseId: null }
 }
 
 /**
@@ -387,12 +408,12 @@ async function handlePaymentRefunded(event: WebhookEvent, webhookId: string): Pr
 /**
  * Handle order.paid event (alternative to payment.captured)
  */
-async function handleOrderPaid(event: WebhookEvent, webhookId: string): Promise<string | null> {
+async function handleOrderPaid(event: WebhookEvent, webhookId: string): Promise<PaymentProcessingResult> {
   const order = event.payload.order?.entity
-  if (!order) return null
+  if (!order) return { paymentId: null, packagePurchaseId: null }
 
   const payment = event.payload.payment?.entity
-  if (!payment) return null
+  if (!payment) return { paymentId: null, packagePurchaseId: null }
 
   // Treat same as payment.captured
   return handlePaymentCaptured({
