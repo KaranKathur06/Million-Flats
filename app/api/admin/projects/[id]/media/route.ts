@@ -176,27 +176,6 @@ export async function POST(req: Request, { params }: { params: { id: string } })
                     data: { coverImage: data.url },
                 })
             }
-            if (data.category === 'floor_plan') {
-                const linkedVariant = data.unitVariantId
-                    ? await (prisma as any).projectUnitVariant.findFirst({
-                        where: { id: data.unitVariantId, projectId: params.id },
-                        select: { id: true, title: true, unitType: { select: { bedrooms: true, bathrooms: true } } },
-                    })
-                    : null
-
-                await (prisma as any).projectFloorPlan.create({
-                    data: {
-                        projectId: params.id,
-                        unitVariantId: linkedVariant?.id || null,
-                        unitType: data.label?.trim() || linkedVariant?.title || 'Floor Plan',
-                        bedrooms: linkedVariant?.unitType?.bedrooms ?? null,
-                        bathrooms: linkedVariant?.unitType?.bathrooms ?? null,
-                        imageUrl: data.url,
-                        s3Key: data.s3Key || null,
-                    },
-                })
-            }
-
             return NextResponse.json({ success: true, media }, { status: 201 })
         }
 
