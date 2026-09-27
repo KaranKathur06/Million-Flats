@@ -1,13 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import MillionFlatsButton from '@/components/ui/MillionFlatsButton'
 import ServicePageAnalytics from '@/components/services/ServicePageAnalytics'
 import { PackageBuyNowButton } from '@/components/services/PackageBuyNowButton'
+import { PackageCatalogStatus } from '@/components/services/PackageCatalogStatus'
+import { usePackageCatalog } from '@/hooks/usePackageCatalog'
 import type { ServiceSegment } from '@/lib/services/segmentContent'
-
-type PackageQuote = { pricePaise: number; taxAmountPaise: number; totalAmountPaise: number }
 
 function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -17,12 +16,11 @@ function formatRupees(paise: number) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(paise / 100)
 }
 
-function PackageCard({ segment, packageInfo, index, quote, taxConfigured }: {
+function PackageCard({ segment, packageInfo, index, quote }: {
   segment: ServiceSegment
   packageInfo: ServiceSegment['packages'][number]
   index: number
-  quote: PackageQuote | null
-  taxConfigured: boolean
+  quote: { pricePaise: number; taxAmountPaise: number; totalAmountPaise: number } | null
 }) {
   const packageId = `${segment.key}:${slugify(packageInfo.name)}`
   return (
@@ -46,13 +44,13 @@ function PackageCard({ segment, packageInfo, index, quote, taxConfigured }: {
             <div className="flex justify-between gap-3"><dt>GST</dt><dd>{formatRupees(quote.taxAmountPaise)}</dd></div>
             <div className="flex justify-between gap-3 font-semibold text-dark-blue"><dt>Total payable</dt><dd>{formatRupees(quote.totalAmountPaise)}</dd></div>
           </dl>
-        ) : <p className="mt-2 text-xs font-medium text-gray-500">{taxConfigured ? 'Price quote unavailable.' : 'Tax details are being loaded.'}</p>}
+        ) : null}
         <PackageBuyNowButton
           packageId={packageId}
           packageName={packageInfo.name}
           audience={segment.key.toUpperCase()}
           quote={quote}
-          disabledReason={!quote ? 'Checkout is unavailable until the full payable amount can be shown.' : undefined}
+          disabledReason={!quote ? 'A verified tax-inclusive total is required before payment.' : undefined}
         />
       </div>
     </article>
@@ -60,25 +58,9 @@ function PackageCard({ segment, packageInfo, index, quote, taxConfigured }: {
 }
 
 export default function ServiceSegmentPage({ segment }: { segment: ServiceSegment }) {
-  const [quotes, setQuotes] = useState<Record<string, PackageQuote>>({})
-  const [taxConfigured, setTaxConfigured] = useState(false)
-
-  useEffect(() => {
-    let active = true
-    fetch('/api/packages/catalog')
-      .then((response) => response.json())
-      .then((data) => {
-        if (!active || !data.success) return
-        setTaxConfigured(Boolean(data.taxConfigured))
-        const next: Record<string, PackageQuote> = {}
-        for (const entry of data.packages || []) {
-          if (entry.quote) next[entry.id] = entry.quote
-        }
-        setQuotes(next)
-      })
-      .catch(() => { if (active) setTaxConfigured(false) })
-    return () => { active = false }
-  }, [])
+  const packageIds = segment.packages.map((packageInfo) => `${segment.key}:${slugify(packageInfo.name)}`)
+  const { state: packageCatalog, retry } = usePackageCatalog(packageIds)
+  const quotes = packageCatalog.status === 'ready' ? packageCatalog.quotes : {}
 
   return (
     <main className="min-h-screen bg-white text-gray-900">
@@ -109,10 +91,11 @@ export default function ServiceSegmentPage({ segment }: { segment: ServiceSegmen
           </div>
           <p className="max-w-lg text-sm leading-6 text-gray-600">Choose a package and complete secure payment. Account creation is optional and can happen after purchase.</p>
         </div>
+        <div className="mb-5"><PackageCatalogStatus state={packageCatalog} onRetry={retry} /></div>
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {segment.packages.map((packageInfo, index) => {
             const packageId = `${segment.key}:${slugify(packageInfo.name)}`
-            return <PackageCard key={packageInfo.name} segment={segment} packageInfo={packageInfo} index={index} quote={quotes[packageId] || null} taxConfigured={taxConfigured} />
+            return <PackageCard key={packageInfo.name} segment={segment} packageInfo={packageInfo} index={index} quote={quotes[packageId] || null} />
           })}
         </div>
       </section>

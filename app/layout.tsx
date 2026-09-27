@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     'global luxury real estate, premium villas India, penthouses Dubai, off-plan projects, LRS FEMA routing, 3D digital twins',
   icons: {
     icon: '/FAVICON.jpeg',
-    apple: '/LOGO.jpeg',
+    apple: '/FAVICON.jpeg',
   },
   alternates: {
     canonical: 'https://www.millionflats.com/',
