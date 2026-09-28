@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { signIn } from 'next-auth/react';
+import { getPhoneCountryOptions, normalizeRegistrationPhone } from '@/lib/auth/registrationPhone';
 
 type Tab = 'login' | 'register';
 type PasswordStrength = 'weak' | 'medium' | 'strong';
@@ -39,6 +40,11 @@ const BENEFITS = [
     desc: 'Showcase your profile to investors across key markets.',
   },
 ];
+
+const PHONE_COUNTRIES = getPhoneCountryOptions().map((country) => ({
+  value: country.iso2,
+  label: `${country.name} (${country.dialCode})`,
+}));
 
 export default function AgentAuthClient({ defaultTab }: { defaultTab: Tab }) {
   const router = useRouter();
@@ -343,6 +349,7 @@ function RegisterTab({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
     fullName: '',
     email: '',
     phone: '',
+    phoneCountryIso2: 'IN',
     password: '',
     confirmPassword: '',
     acceptedTerms: false,
@@ -375,6 +382,16 @@ function RegisterTab({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
       return;
     }
 
+    const normalizedPhone = normalizeRegistrationPhone({
+      phoneRaw: form.phone,
+      phoneCountryIso2Raw: form.phoneCountryIso2,
+    });
+    if (!normalizedPhone.ok) {
+      setError(normalizedPhone.message);
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -383,7 +400,8 @@ function RegisterTab({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
           name: form.fullName,
           email: form.email,
           password: form.password,
-          phone: form.phone || undefined,
+          phone: form.phone,
+          phoneCountryIso2: form.phoneCountryIso2,
           acceptedTerms: form.acceptedTerms,
           type: 'agent',
               referenceSource: 'executive',
@@ -437,14 +455,38 @@ function RegisterTab({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
       </div>
 
       <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Phone</label>
-        <input
-          type="tel"
-          value={form.phone}
-          onChange={field('phone')}
-          placeholder="Optional phone number"
-          className="w-full h-12 px-4 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-dark-blue/15 focus:border-dark-blue focus:bg-white transition-all outline-none"
-        />
+        <label htmlFor="agent-phone" className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Phone <span aria-hidden="true">*</span></label>
+        <div className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-2">
+          <div>
+            <label htmlFor="agent-phone-country-code" className="sr-only">Country calling code</label>
+            <GlobalDropdown
+              id="agent-phone-country-code"
+              value={form.phoneCountryIso2}
+              onChange={(value) => {
+                if (typeof value === 'string') {
+                  setForm((current) => ({ ...current, phoneCountryIso2: value }));
+                }
+              }}
+              options={PHONE_COUNTRIES}
+              placeholder="Select country"
+              searchable
+              showLabel={false}
+              appearance="admin-light"
+              zIndex={30}
+            />
+          </div>
+          <input
+            id="agent-phone"
+            required
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel-national"
+            value={form.phone}
+            onChange={field('phone')}
+            placeholder="Phone number"
+            className="h-12 min-w-0 w-full border-2 border-gray-100 rounded-xl bg-gray-50 px-3 text-sm focus:ring-2 focus:ring-dark-blue/15 focus:border-dark-blue focus:bg-white transition-all outline-none sm:px-4"
+          />
+        </div>
       </div>
 
       <div>

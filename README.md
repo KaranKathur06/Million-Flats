@@ -72,6 +72,10 @@ millionflats/
    RAZORPAY_KEY_ID=rzp_test_...
    RAZORPAY_KEY_SECRET=...
    RAZORPAY_WEBHOOK_SECRET=...
+
+   # Package checkout requires a finance-approved GST rate in basis points.
+   # For example, 1800 represents 18%; leave unset until the applicable rate is confirmed.
+   # PACKAGE_GST_RATE_BPS=
    ```
 
 4. **Run the development server**
@@ -187,6 +191,7 @@ For production, set these environment variables:
 
 - `JWT_SECRET` - Secret key for JWT tokens
 - `NEXT_PUBLIC_BASE_URL` - Base URL of your application
+- `PACKAGE_GST_RATE_BPS` - Required for package checkout; finance-approved GST rate in basis points (for example, `1800` = 18%). If missing or invalid, package checkout remains disabled. Set this in the local and deployment environments after confirming the applicable rate.
 - Database connection strings (when implementing real database)
 
 ## Notes

@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
-import { parsePhoneNumberFromString } from 'libphonenumber-js'
 import crypto from 'crypto'
 import { VerificationService } from '@/lib/auth/verification-service'
+import { normalizeRegistrationPhone } from '@/lib/auth/registrationPhone'
 import { normalizeReferralSource } from '@/lib/referrals'
 
 export const runtime = 'nodejs'
@@ -36,24 +36,6 @@ function getRoleScopedLoginRedirect(type: string, email?: string) {
 
 // OTP generation now handled by VerificationService.sendRegistrationOtp()
 
-function normalizePhone(input: string) {
-  return String(input || '')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .replace(/[^0-9+ ]/g, '')
-}
-
-function normalizeIso2(v: unknown) {
-  const s = String(v || '').trim().toUpperCase()
-  if (!/^[A-Z]{2}$/.test(s)) return ''
-  return s
-}
-
-function normalizeNationalNumber(v: unknown) {
-  const digits = String(v || '').replace(/\D/g, '')
-  return digits
-}
-
 async function validateAndNormalizePhone(params: {
   phoneRaw: string
   phoneCountryIso2Raw?: unknown
@@ -68,29 +50,10 @@ async function validateAndNormalizePhone(params: {
     phoneNationalNumber: string
   }
 > {
-  const phoneE164 = normalizePhone(params.phoneRaw)
-  if (!phoneE164.startsWith('+') || phoneE164.replace(/[^0-9]/g, '').length < 8) {
-    return { ok: false, message: 'Invalid phone number format.' }
-  }
+  const normalized = normalizeRegistrationPhone(params)
+  if (!normalized.ok) return normalized
 
-  const parsed = parsePhoneNumberFromString(phoneE164)
-  if (!parsed?.isValid()) {
-    return { ok: false, message: 'Invalid phone number format.' }
-  }
-
-  const parsedIso2 = String(parsed.country || '').toUpperCase()
-  const parsedNational = String(parsed.nationalNumber || '')
-
-  const suppliedIso2 = normalizeIso2(params.phoneCountryIso2Raw)
-  const suppliedNational = normalizeNationalNumber(params.phoneNationalNumberRaw)
-
-  const phoneCountryIso2 = suppliedIso2 || parsedIso2
-  const phoneNationalNumber = suppliedNational || parsedNational
-
-  if (!phoneCountryIso2) {
-    return { ok: false, message: 'Phone country is required.' }
-  }
-
+  const { phoneE164, phoneCountryIso2, phoneNationalNumber, phoneCallingCode } = normalized
   const country = await (prisma as any).country
     ?.findUnique({ where: { iso2: phoneCountryIso2 }, select: { iso2: true, dialCode: true, isActive: true } })
     .catch(() => null)
@@ -101,14 +64,9 @@ async function validateAndNormalizePhone(params: {
     }
 
     const countryDial = String(country.dialCode || '')
-    const parsedDial = `+${String(parsed.countryCallingCode || '')}`
-    if (countryDial && parsedDial && countryDial !== parsedDial) {
+    if (countryDial && phoneCallingCode && countryDial !== phoneCallingCode) {
       return { ok: false, message: 'Phone country does not match dial code.' }
     }
-  }
-
-  if (phoneNationalNumber !== parsedNational) {
-    return { ok: false, message: 'Phone number does not match selected country.' }
   }
 
   return {
@@ -135,9 +93,9 @@ export async function POST(req: Request) {
     const name = safeString(body?.name)
     const email = safeString(body?.email).toLowerCase()
     const password = safeString(body?.password)
-    const phone = normalizePhone(safeString(body?.phone))
-    const phoneCountryIso2 = normalizeIso2(body?.phoneCountryIso2)
-    const phoneNationalNumber = normalizeNationalNumber(body?.phoneNationalNumber)
+    const phone = safeString(body?.phone)
+    const phoneCountryIso2 = safeString(body?.phoneCountryIso2)
+    const phoneNationalNumber = safeString(body?.phoneNationalNumber)
     const type = safeString(body?.type)
     const acceptedTerms = Boolean(body?.acceptedTerms)
     const referenceSource = safeString(body?.referenceSource)

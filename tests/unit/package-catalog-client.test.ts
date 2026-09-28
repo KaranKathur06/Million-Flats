@@ -52,6 +52,16 @@ describe('package catalog client contract', () => {
     expect(fetcher).toHaveBeenCalledTimes(2)
   })
 
+  it('turns a stalled catalog request into a retryable error state', async () => {
+    const fetcher = jest.fn<typeof fetch>().mockImplementation((_input, init) => new Promise((_resolve, reject) => {
+      init?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true })
+    }))
+
+    await expect(loadPackageCatalog([packageId], fetcher, 5)).resolves.toEqual({ status: 'error' })
+    expect(fetcher).toHaveBeenCalledTimes(1)
+    expect(fetcher.mock.calls[0][1]?.signal?.aborted).toBe(true)
+  })
+
   it('retries the catalog request when the hook retry action is called', async () => {
     const originalFetch = globalThis.fetch
     const actEnvironment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }

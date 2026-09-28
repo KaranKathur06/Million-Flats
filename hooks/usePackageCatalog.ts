@@ -52,13 +52,19 @@ export function mapPackageCatalogResponse(data: unknown, packageIds: string[]): 
 export async function loadPackageCatalog(
   packageIds: string[],
   fetcher: typeof fetch = fetch,
+  timeoutMs = 10_000,
 ): Promise<PackageCatalogState> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+
   try {
-    const response = await fetcher('/api/packages/catalog', { cache: 'no-store' })
+    const response = await fetcher('/api/packages/catalog', { cache: 'no-store', signal: controller.signal })
     if (!response.ok) return { status: 'error' }
     return mapPackageCatalogResponse(await response.json(), packageIds)
   } catch {
     return { status: 'error' }
+  } finally {
+    clearTimeout(timeout)
   }
 }
 
