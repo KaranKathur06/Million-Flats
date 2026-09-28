@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 
 export type GlobalDropdownOption = {
   value: string
@@ -196,6 +196,47 @@ export default function GlobalDropdown({
 
   const isDark = variant === 'dark'
 
+  const handleDropdownKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (disabled) return
+
+    if (!open && ['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Enter', ' '].includes(event.key)) {
+      event.preventDefault()
+      setOpen(true)
+      return
+    }
+    if (!open) return
+
+    if (['ArrowDown', 'ArrowRight'].includes(event.key)) {
+      event.preventDefault()
+      setActiveIndex((index) => filteredOptions.length
+        ? Math.min((index < 0 ? 0 : index) + 1, filteredOptions.length - 1)
+        : -1)
+    } else if (['ArrowUp', 'ArrowLeft'].includes(event.key)) {
+      event.preventDefault()
+      setActiveIndex((index) => filteredOptions.length
+        ? Math.max((index < 0 ? filteredOptions.length : index) - 1, 0)
+        : -1)
+    } else if (event.key === 'Home') {
+      event.preventDefault()
+      setActiveIndex(filteredOptions.length ? 0 : -1)
+    } else if (event.key === 'End') {
+      event.preventDefault()
+      setActiveIndex(filteredOptions.length - 1)
+    } else if (event.key === 'Enter') {
+      event.preventDefault()
+      const option = filteredOptions[activeIndex]
+      if (option) pickOption(option.value)
+    } else if (event.key === 'Escape') {
+      event.preventDefault()
+      setOpen(false)
+      buttonRef.current?.focus()
+    } else if (event.key === 'Tab') {
+      setOpen(false)
+    } else if (event.target === buttonRef.current && event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey && !searchable) {
+      setTypeahead((current) => current + event.key)
+    }
+  }
+
   const triggerClass = premium
     ? [
         'w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-left text-sm font-medium transition-all duration-200 focus:outline-none',
@@ -242,6 +283,7 @@ export default function GlobalDropdown({
   return (
     <div
       ref={rootRef}
+      onKeyDown={handleDropdownKeyDown}
       className={`${open ? 'relative z-50' : 'relative z-0'}${className ? ` ${className}` : ''}`}
       style={{ zIndex: open ? 999 : zIndex }}
     >
@@ -271,40 +313,6 @@ export default function GlobalDropdown({
           onClick={() => {
             if (disabled) return
             setOpen((v) => !v)
-          }}
-          onKeyDown={(e) => {
-            if (disabled) return
-            if (!open && (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ')) {
-              e.preventDefault()
-              setOpen(true)
-              return
-            }
-            if (!open) return
-            if (e.key === 'ArrowDown') {
-              e.preventDefault()
-              setActiveIndex((i) => Math.min(i + 1, filteredOptions.length - 1))
-            } else if (e.key === 'ArrowUp') {
-              e.preventDefault()
-              setActiveIndex((i) => Math.max(i - 1, 0))
-            } else if (e.key === 'Home') {
-              e.preventDefault()
-              setActiveIndex(0)
-            } else if (e.key === 'End') {
-              e.preventDefault()
-              setActiveIndex(filteredOptions.length - 1)
-            } else if (e.key === 'Enter') {
-              e.preventDefault()
-              const opt = filteredOptions[activeIndex]
-              if (opt) pickOption(opt.value)
-            } else if (e.key === 'Escape') {
-              e.preventDefault()
-              setOpen(false)
-              buttonRef.current?.focus()
-            } else if (e.key === 'Tab') {
-              setOpen(false)
-            } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && !searchable) {
-              setTypeahead((s) => s + e.key)
-            }
           }}
           className={triggerClass}
         >
