@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 
 export type GlobalDropdownOption = {
   value: string
@@ -196,7 +196,7 @@ export default function GlobalDropdown({
 
   const isDark = variant === 'dark'
 
-  const handleDropdownKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+  const handleDropdownKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (disabled) return
 
     if (!open && ['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Enter', ' '].includes(event.key)) {
