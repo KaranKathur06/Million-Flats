@@ -4,7 +4,7 @@ import { generateSignedUrl } from '@/lib/cloudfront'
 
 /** Platform-wide media fallbacks — single source of truth */
 export const MEDIA_FALLBACKS = {
-  project: '/images/default-property.jpg',
+  project: '/image-placeholder.svg',
   developerLogo: '/LOGO.jpeg',
   developerBanner: '/HOMEPAGE.jpg',
   placeholder: '/image-placeholder.svg',
