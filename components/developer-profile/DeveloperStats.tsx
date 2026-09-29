@@ -1,3 +1,5 @@
+'use client'
+
 import { useCurrency } from '@/components/CurrencyProvider'
 import { buildDeveloperPriceRange } from '@/lib/developers/developerPricing'
 import type { DeveloperProfileData } from './types'
