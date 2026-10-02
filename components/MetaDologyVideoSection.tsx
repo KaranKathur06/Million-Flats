@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import Image from 'next/image'
+import { Play } from 'lucide-react'
 import { trackEvent } from '@/lib/tracking'
 
 declare global {
@@ -19,23 +21,12 @@ export default function MetaDologyVideoSection({
   ariaLabel = 'Meta-dology presentation video',
 }: Props) {
   const wistiaEmbed = useMemo(() => '29zdny70mp', [])
+  const [videoRequested, setVideoRequested] = useState(false)
   const [videoLoaded, setVideoLoaded] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
 
   useEffect(() => {
-    const onLoaded = () => {
-      if (!videoLoaded) {
-        setVideoLoaded(true)
-        trackEvent('video_loaded', { video_source: 'meta_dology_wistia' })
-      }
-    }
-
-    // Fire "loaded" on next tick as we are using lazy iframe; this is lightweight
-    const t = window.setTimeout(onLoaded, 50)
-    return () => window.clearTimeout(t)
-  }, [videoLoaded])
-
-  useEffect(() => {
+    if (!videoRequested) return
     const iframe = iframeRef.current
     if (!iframe) return
 
@@ -56,7 +47,7 @@ export default function MetaDologyVideoSection({
 
     window.addEventListener('message', handler)
     return () => window.removeEventListener('message', handler)
-  }, [])
+  }, [videoRequested])
 
   const wistiaSrc = `https://fast.wistia.net/embed/iframe/${wistiaEmbed}`
 
@@ -67,41 +58,50 @@ export default function MetaDologyVideoSection({
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-18 lg:py-20">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-2 mb-6 backdrop-blur-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent-yellow" />
-            <span className="text-accent-yellow/90 text-[10px] sm:text-[11px] font-bold tracking-[0.18em] uppercase">
-              Meta-dology™
-            </span>
-          </div>
-
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-white tracking-tight leading-[1.1] mb-4">
-            See how MillionFlats combines AI, Digital Twins, Verification, and Data Intelligence to transform modern real estate.
+            MillionFlats unifies AI, verified digital twins, and data intelligence through Meta-dology™.
           </h2>
-
-          <p className="text-white/70 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed mb-10">
-            Meta-dology™ — a premium proof-first presentation experience built for enterprise real estate workflows.
-          </p>
         </div>
 
         <div className="max-w-5xl mx-auto">
-          <div className="rounded-2xl overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.35)] border border-white/10 bg-black">
-            <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+          <div className="relative aspect-video overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
+            {videoRequested ? (
               <iframe
                 ref={iframeRef}
                 title={title}
                 aria-label={ariaLabel}
                 src={wistiaSrc}
-                loading="lazy"
-                allow="fullscreen; picture-in-picture; autoplay; encrypted-media"
+                allow="picture-in-picture; autoplay; encrypted-media"
                 allowFullScreen
                 referrerPolicy="strict-origin-when-cross-origin"
-                className="absolute inset-0 w-full h-full"
+                onLoad={() => {
+                  if (videoLoaded) return
+                  setVideoLoaded(true)
+                  trackEvent('video_loaded', { video_source: 'meta_dology_wistia' })
+                }}
+                className="absolute inset-0 h-full w-full"
               />
-            </div>
-          </div>
-
-          <div className="mt-6 text-center text-white/50 text-xs sm:text-sm">
-            Learn more with the full Meta-dology presentation.
+            ) : (
+              <button
+                type="button"
+                aria-label="Load Meta-dology presentation video"
+                onClick={() => setVideoRequested(true)}
+                className="absolute inset-0 flex items-center justify-center bg-black"
+              >
+                <Image
+                  src="/meta-dology-poster.webp"
+                  alt=""
+                  fill
+                  sizes="(max-width: 768px) 100vw, 1024px"
+                  quality={80}
+                  className="object-cover"
+                />
+                <span className="absolute inset-0 bg-black/25 transition-colors hover:bg-black/10" />
+                <span className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-white text-[#0d1f38] shadow-xl">
+                  <Play size={26} fill="currentColor" aria-hidden="true" />
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </div>

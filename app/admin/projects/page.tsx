@@ -30,7 +30,7 @@ interface ProjectItem {
   _count: { media: number; unitTypes: number; leads: number }
 }
 
-type LifecycleFilter = 'all' | 'active' | 'archived' | 'deleted'
+type LifecycleFilter = 'all' | 'active' | 'draft' | 'archived' | 'deleted'
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/20',
@@ -77,7 +77,7 @@ export default function AdminProjectsPage() {
   const [developerFilter, setDeveloperFilter] = useState<string[]>([])
   const [availableCityOptions, setAvailableCityOptions] = useState<string[]>([])
   const [detailsProject, setDetailsProject] = useState<ProjectItem | null>(null)
-  const [stats, setStats] = useState({ total: 0, active: 0, archived: 0, deleted: 0 })
+  const [stats, setStats] = useState({ total: 0, active: 0, draft: 0, archived: 0, deleted: 0 })
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -92,7 +92,7 @@ export default function AdminProjectsPage() {
       if (!json.success) throw new Error(json.message || 'Failed to load projects')
       setProjects(json.items || [])
       setAvailableCityOptions(Array.isArray(json.cityOptions) ? json.cityOptions : [])
-      setStats(json.lifecycleStats || { total: 0, active: 0, archived: 0, deleted: 0 })
+      setStats(json.lifecycleStats || { total: 0, active: 0, draft: 0, archived: 0, deleted: 0 })
     } catch (err: any) {
       toast.error(err.message || 'Failed to load projects')
       setProjects([])
@@ -135,6 +135,7 @@ export default function AdminProjectsPage() {
   }, [projects, cityFilter, developerFilter])
 
   const selectedCount = selectedIds.length
+  const selectedProjects = filteredProjects.filter((project) => selectedIds.includes(project.id))
   const allSelectableIds = useMemo(() => filteredProjects.map((p) => p.id), [filteredProjects])
   const allSelected = allSelectableIds.length > 0 && allSelectableIds.every((id) => selectedIds.includes(id))
 
@@ -449,11 +450,15 @@ export default function AdminProjectsPage() {
           chips={[
             { value: 'all', label: 'All', count: stats.total },
             { value: 'active', label: 'Active', count: stats.active },
+            { value: 'draft', label: 'Draft', count: stats.draft },
             { value: 'archived', label: 'Archived', count: stats.archived },
             { value: 'deleted', label: 'Deleted', count: stats.deleted },
           ]}
           value={lifecycleFilter}
-          onChange={(v) => setLifecycleFilter(v as LifecycleFilter)}
+          onChange={(v) => {
+            setLifecycleFilter(v as LifecycleFilter)
+            setStatusFilter('')
+          }}
         />
 
         <div className="flex flex-wrap items-center gap-3">
@@ -535,7 +540,7 @@ export default function AdminProjectsPage() {
           {
             key: 'unpublish',
             label: bulkActionLoading === 'unpublish' ? 'Unpublishing…' : 'Unpublish',
-            disabled: bulkActionLoading !== null,
+            disabled: bulkActionLoading !== null || !selectedProjects.some((project) => project.status === 'PUBLISHED'),
             onClick: () => runBulkPublish('unpublish'),
           },
           {
@@ -561,15 +566,23 @@ export default function AdminProjectsPage() {
             key: 'permanent-delete',
             label: 'Permanent Delete',
             variant: 'danger',
-            disabled: bulkActionLoading !== null,
+            disabled: bulkActionLoading !== null || !selectedProjects.length || selectedProjects.some((project) => !project.isDeleted),
             onClick: async () => {
-              if (!window.confirm('Permanently delete the selected projects? This cannot be undone.')) return
+              const confirmation = window.prompt(`Permanently delete ${selectedIds.length} project(s)? Type DELETE to continue.`)
+              if (confirmation !== 'DELETE') return
               setBulkActionLoading('delete')
               try {
-                const res = await fetch('/api/admin/bulk-approve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'projects', action: 'permanent_delete', ids: selectedIds }) })
+                const res = await fetch('/api/admin/projects/bulk-permanent-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: selectedIds, confirmation }) })
                 const json = await res.json()
-                if (!res.ok || !json.success) throw new Error(json.message || 'Permanent delete failed')
-                setSelectedIds([])
+                if (!res.ok && !json.partial) throw new Error(json.message || 'Permanent delete failed')
+                const successfulIds = Array.isArray(json.successful) ? json.successful as string[] : []
+                const failedIds = Array.isArray(json.failed) ? json.failed as Array<{ id: string; message: string }> : []
+                toast.success(`Permanently deleted ${successfulIds.length} project(s)`)
+                if (failedIds.length) toast.error(`Failed: ${failedIds.length} project(s)`)
+                if (Array.isArray(json.pendingCleanup) && json.pendingCleanup.length) {
+                  toast(`Media cleanup queued for ${json.pendingCleanup.length} project(s)`)
+                }
+                setSelectedIds(failedIds.map((failure) => failure.id))
                 await load()
               } catch (err: any) { toast.error(err.message || 'Permanent delete failed') } finally { setBulkActionLoading(null) }
             },

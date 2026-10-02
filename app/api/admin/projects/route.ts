@@ -133,7 +133,6 @@ export async function GET(req: Request) {
         const search = safeString(searchParams.get('search'))
 
         const where: any = {}
-        if (status) where.status = status
         if (developerId) where.developerId = developerId
         if (search) {
             where.OR = [
@@ -149,12 +148,22 @@ export async function GET(req: Request) {
         } else if (lifecycle === 'archived') {
             where.isDeleted = false
             where.status = 'ARCHIVED'
+        } else if (lifecycle === 'draft') {
+            where.isDeleted = false
+            where.status = 'DRAFT'
         } else if (lifecycle === 'all') {
             // include all records
         } else {
-            // default: active = non-deleted
+            // Active projects are published and not soft-deleted.
             where.isDeleted = false
-            if (!status) where.status = { in: ['DRAFT', 'PUBLISHED'] }
+            where.status = 'PUBLISHED'
+        }
+        if (status) {
+            if (where.status && where.status !== status) {
+                where.AND = [{ status }]
+            } else {
+                where.status = status
+            }
         }
 
         const [items, cityRows] = await Promise.all([
@@ -212,9 +221,10 @@ export async function GET(req: Request) {
             }
         }))
 
-        const [total, active, archived, deleted] = await Promise.all([
+        const [total, active, draft, archived, deleted] = await Promise.all([
             (prisma as any).project.count(),
-            (prisma as any).project.count({ where: { isDeleted: false, status: { in: ['DRAFT', 'PUBLISHED'] } } }),
+            (prisma as any).project.count({ where: { isDeleted: false, status: 'PUBLISHED' } }),
+            (prisma as any).project.count({ where: { isDeleted: false, status: 'DRAFT' } }),
             (prisma as any).project.count({ where: { isDeleted: false, status: 'ARCHIVED' } }),
             (prisma as any).project.count({ where: { isDeleted: true } }),
         ])
@@ -225,7 +235,7 @@ export async function GET(req: Request) {
             cityOptions: (cityRows || [])
                 .map((row: any) => safeString(row.city))
                 .filter(Boolean),
-            lifecycleStats: { total, active, archived, deleted },
+            lifecycleStats: { total, active, draft, archived, deleted },
         })
     } catch (err: any) {
         console.error('[GET /api/admin/projects]', err)

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
-import { writeAuditLog } from '@/lib/audit'
-import { deleteFolderFromS3, deleteFromS3 } from '@/lib/s3'
-import { collectProjectOwnedS3Keys, getPermanentDeleteStatus, validatePermanentDeleteConfirmation } from '@/lib/projectPermanentDelete'
+import { checkAdminRateLimit } from '@/lib/adminRateLimit'
+import { validatePermanentDeleteConfirmation } from '@/lib/projectPermanentDelete'
+import { permanentlyDeleteProject } from '@/lib/projectPermanentDeleteService'
+import { processStorageCleanupJobs } from '@/lib/storageCleanup'
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const auth = await requireAdminSession()
@@ -23,70 +23,32 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
       return NextResponse.json({ success: false, message: confirmationValidation.message }, { status: 400 })
     }
 
-    const project = await (prisma as any).project.findUnique({
-      where: { id: params.id },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        status: true,
-        isDeleted: true,
-        deletedAt: true,
-        developer: { select: { slug: true } },
-        media: { select: { s3Key: true, mediaUrl: true } },
-        floorPlans: { select: { s3Key: true, imageUrl: true } },
-        brochure: { select: { s3Key: true, fileUrl: true } },
-      },
-    })
+    const limit = await checkAdminRateLimit({ performedByUserId: auth.userId, action: 'PROJECT_HARD_DELETED', windowMs: 60_000, max: 10 })
+    if (!limit.ok) return NextResponse.json({ success: false, message: 'Too many permanent-delete requests' }, { status: 429 })
 
-    if (!project) {
-      return NextResponse.json({ success: false, message: 'Project not found' }, { status: 404 })
-    }
+    const result = await permanentlyDeleteProject(params.id, auth.userId)
+    if (!result.ok) return NextResponse.json({ success: false, message: result.message }, { status: result.status })
 
-    const deleteGuard = getPermanentDeleteStatus(project)
-    if (!deleteGuard.ok) {
-      return NextResponse.json({ success: false, message: deleteGuard.reason }, { status: 409 })
-    }
-
-    const developerSlug = String(project.developer?.slug || '').trim().toLowerCase()
-    const projectSlug = String(project.slug || '').trim().toLowerCase()
-    const ownedS3Keys = collectProjectOwnedS3Keys(project)
-
-    if (developerSlug && projectSlug) {
-      const prefix = `public/projects/${developerSlug}/${projectSlug}`
-      await deleteFolderFromS3(prefix)
-    }
-
-    for (const key of ownedS3Keys) {
+    if (result.cleanupJobId) {
       try {
-         await deleteFromS3(key)
+        await processStorageCleanupJobs(1, [result.cleanupJobId])
       } catch (error) {
-        console.warn('[permanent project delete] S3 object cleanup skipped', { key, error })
+        console.error('[DELETE /api/admin/projects/[id]/permanent] cleanup processing failed', error)
       }
     }
 
-    await (prisma as any).project.delete({ where: { id: params.id } })
+    let cleanupPending = Boolean(result.cleanupJobId)
+    if (result.cleanupJobId) {
+      try {
+        cleanupPending = await (prisma as any).storageCleanupJob.count({
+          where: { id: result.cleanupJobId, status: { not: 'COMPLETED' } },
+        }) > 0
+      } catch (error) {
+        console.error('[DELETE /api/admin/projects/[id]/permanent] cleanup status lookup failed', error)
+      }
+    }
 
-    await writeAuditLog({
-      entityType: 'PROJECT',
-      entityId: params.id,
-      action: 'PROJECT_HARD_DELETED',
-      performedByUserId: auth.userId,
-      beforeState: { name: project.name, slug: project.slug, status: project.status, isDeleted: project.isDeleted, deletedAt: project.deletedAt },
-      afterState: null,
-      meta: {
-        mode: 'hard',
-        s3Prefix: developerSlug && projectSlug ? `public/projects/${developerSlug}/${projectSlug}/` : null,
-        ownedS3Keys,
-      },
-    })
-
-    revalidatePath('/')
-    revalidatePath('/projects')
-    revalidatePath('/admin/projects')
-    if (project.slug) revalidatePath(`/projects/${project.slug}`)
-
-    return NextResponse.json({ success: true, mode: 'hard' })
+    return NextResponse.json({ success: true, mode: 'hard', cleanupPending })
   } catch (err: any) {
     console.error('[DELETE /api/admin/projects/[id]/permanent]', err)
     return NextResponse.json({ success: false, message: 'Permanent delete failed' }, { status: 500 })

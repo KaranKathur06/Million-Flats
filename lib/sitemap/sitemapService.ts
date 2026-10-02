@@ -23,7 +23,7 @@ import fs from 'fs'
 import path from 'path'
 import { getBaseUrl } from '@/lib/auth/routes'
 import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
-import { buildManualPropertyPath } from '@/lib/manualPropertyRoutes'
+import { buildManualPropertyPath, propertyPurposeFromIntent } from '@/lib/manualPropertyRoutes'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 export interface SitemapUrl {
@@ -63,6 +63,9 @@ const BASE_URL = getBaseUrl()
 const CACHE_DIR = path.join(process.cwd(), '.sitemap-cache')
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
 const MAX_URLS_PER_SITEMAP = 50000 // Google's limit
+const SITEMAP_INDEX_VERSION = '2026-10-02-1'
+
+type IntentPropertyUrl = SitemapUrl & { purpose: 'buy' | 'rent' }
 
 // ─── Static Pages ───────────────────────────────────────────────────────────
 const STATIC_PAGES: SitemapUrl[] = [
@@ -71,8 +74,6 @@ const STATIC_PAGES: SitemapUrl[] = [
   { loc: '/contact', lastmod: new Date().toISOString().split('T')[0], changefreq: 'monthly', priority: 0.7 },
   { loc: '/projects', lastmod: new Date().toISOString().split('T')[0], changefreq: 'daily', priority: 0.9 },
   { loc: '/blogs', lastmod: new Date().toISOString().split('T')[0], changefreq: 'daily', priority: 0.8 },
-  { loc: '/buy', lastmod: new Date().toISOString().split('T')[0], changefreq: 'daily', priority: 0.9 },
-  { loc: '/rent', lastmod: new Date().toISOString().split('T')[0], changefreq: 'daily', priority: 0.9 },
   { loc: '/sell', lastmod: new Date().toISOString().split('T')[0], changefreq: 'weekly', priority: 0.7 },
   { loc: '/agents', lastmod: new Date().toISOString().split('T')[0], changefreq: 'weekly', priority: 0.7 },
   { loc: '/developers', lastmod: new Date().toISOString().split('T')[0], changefreq: 'weekly', priority: 0.7 },
@@ -109,7 +110,12 @@ function isCacheValid(type: string): boolean {
     const cachePath = getCachePath(type)
     if (!fs.existsSync(cachePath)) return false
     const stat = fs.statSync(cachePath)
-    return Date.now() - stat.mtimeMs < CACHE_TTL_MS
+    if (Date.now() - stat.mtimeMs >= CACHE_TTL_MS) return false
+    if (type === 'index') {
+      const cachedIndex = fs.readFileSync(cachePath, 'utf-8')
+      return cachedIndex.includes(`sitemap-index-version:${SITEMAP_INDEX_VERSION}`)
+    }
+    return true
   } catch {
     return false
   }
@@ -186,7 +192,11 @@ function generateSitemapIndexXml(sitemapTypes: string[], generatedAt: string): s
     )
     .join('\n')
 
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</sitemapindex>`
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<!-- sitemap-index-version:${SITEMAP_INDEX_VERSION} -->\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</sitemapindex>`
+}
+
+function countUrlEntries(xml: string) {
+  return xml.match(/<url>/g)?.length || 0
 }
 
 // ─── Data Fetchers ──────────────────────────────────────────────────────────
@@ -306,7 +316,7 @@ async function fetchDeveloperUrls(): Promise<SitemapUrl[]> {
   }
 }
 
-async function fetchPropertyUrls(): Promise<SitemapUrl[]> {
+async function fetchPropertyUrls(): Promise<IntentPropertyUrl[]> {
   try {
     const properties = await (prisma as any).manualProperty.findMany({
       where: {
@@ -325,14 +335,15 @@ async function fetchPropertyUrls(): Promise<SitemapUrl[]> {
     return properties
       .map((p: any) => ({
         loc: buildManualPropertyPath({ id: p.id, title: p.title, intent: p.intent }),
+        purpose: propertyPurposeFromIntent(p.intent),
         lastmod: p.updatedAt ? new Date(p.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         changefreq: 'weekly' as const,
         priority: 0.8,
       }))
-      .filter((p: SitemapUrl) => Boolean(p.loc))
+      .filter((property: IntentPropertyUrl) => Boolean(property.loc))
   } catch (err) {
     console.error('[Sitemap] Error fetching property URLs:', err)
-    return []
+    throw err
   }
 }
 
@@ -345,6 +356,24 @@ function deduplicateUrls(urls: SitemapUrl[]): SitemapUrl[] {
     seen.add(normalized)
     return true
   })
+}
+
+export function buildIntentSitemapUrls(propertyUrls: IntentPropertyUrl[], generatedAt: string) {
+  const urlsForPurpose = (purpose: 'buy' | 'rent') => propertyUrls
+    .filter((property) => property.purpose === purpose)
+    .map(({ purpose: _purpose, ...url }) => url)
+
+  return {
+    properties: deduplicateUrls(propertyUrls),
+    buy: deduplicateUrls([
+      { loc: '/buy', lastmod: generatedAt, changefreq: 'daily', priority: 0.9 },
+      ...urlsForPurpose('buy'),
+    ]),
+    rent: deduplicateUrls([
+      { loc: '/rent', lastmod: generatedAt, changefreq: 'daily', priority: 0.9 },
+      ...urlsForPurpose('rent'),
+    ]),
+  }
 }
 
 // ─── Main Generation Pipeline ───────────────────────────────────────────────
@@ -363,7 +392,7 @@ export async function generateAllSitemaps(): Promise<SitemapGenerationResult> {
     }),
     fetchPropertyUrls().catch((err) => {
       errors.push({ type: 'properties', message: String(err), timestamp: new Date().toISOString() })
-      return [] as SitemapUrl[]
+      return [] as IntentPropertyUrl[]
     }),
     fetchBlogUrls().catch((err) => {
       errors.push({ type: 'blogs', message: String(err), timestamp: new Date().toISOString() })
@@ -384,16 +413,18 @@ export async function generateAllSitemaps(): Promise<SitemapGenerationResult> {
 
   // Deduplicate per type
   const dedupedProjects = deduplicateUrls(projectUrls)
-  const dedupedProperties = deduplicateUrls(propertyUrls)
+  const intentSitemaps = buildIntentSitemapUrls(propertyUrls, generatedAt)
   const dedupedBlogs = deduplicateUrls(blogUrls)
   const dedupedDevelopers = deduplicateUrls(developerUrls)
   const dedupedEcosystemPartners = deduplicateUrls(ecosystemPartnerUrls)
 
   // Generate XML for each type
-  const sitemapTypes: { type: string; urls: SitemapUrl[] }[] = [
+  const sitemapTypes: { type: string; urls: SitemapUrl[]; indexed?: boolean }[] = [
     { type: 'pages', urls: staticUrls },
     { type: 'projects', urls: dedupedProjects },
-    { type: 'properties', urls: dedupedProperties },
+    { type: 'buy', urls: intentSitemaps.buy },
+    { type: 'rent', urls: intentSitemaps.rent },
+    { type: 'properties', urls: intentSitemaps.properties, indexed: false },
     { type: 'blogs', urls: dedupedBlogs },
     { type: 'developers', urls: dedupedDevelopers },
     { type: 'ecosystem-partners', urls: dedupedEcosystemPartners },
@@ -401,16 +432,31 @@ export async function generateAllSitemaps(): Promise<SitemapGenerationResult> {
 
   const sitemapResults: { type: string; urlCount: number }[] = []
   const activeSitemapTypes: string[] = []
+  const propertyQueryFailed = errors.some((error) => error.type === 'properties')
 
-  for (const { type, urls } of sitemapTypes) {
-    if (urls.length === 0) {
+  for (const { type, urls, indexed = true } of sitemapTypes) {
+    if (propertyQueryFailed && ['buy', 'rent', 'properties'].includes(type)) {
+      const previous = readCache(type)
+      if (previous) {
+        sitemapResults.push({ type, urlCount: countUrlEntries(previous) })
+        if (indexed) activeSitemapTypes.push(type)
+        console.warn(`[Sitemap] Preserving the previous ${type} sitemap after a property query failure`)
+        continue
+      }
+      if (type === 'properties') {
+        console.warn('[Sitemap] No properties cache is available after a property query failure')
+        continue
+      }
+    }
+
+    if (urls.length === 0 && type !== 'properties') {
       console.log(`[Sitemap] Skipping ${type} — no URLs`)
       continue
     }
 
     const xml = generateUrlsetXml(urls)
     writeCache(type, xml)
-    activeSitemapTypes.push(type)
+    if (indexed) activeSitemapTypes.push(type)
     sitemapResults.push({ type, urlCount: urls.length })
 
     console.log(`[Sitemap] Generated sitemap-${type}.xml with ${urls.length} URLs`)
@@ -479,7 +525,7 @@ export interface SitemapDashboardData {
 export async function getSitemapDashboardData(): Promise<SitemapDashboardData> {
   const meta = readMeta()
 
-  const cacheTypes = ['index', 'pages', 'projects', 'properties', 'blogs', 'developers', 'ecosystem-partners']
+  const cacheTypes = ['index', 'pages', 'projects', 'buy', 'rent', 'properties', 'blogs', 'developers', 'ecosystem-partners']
   const cacheStatus = cacheTypes.map((type) => {
     const cachePath = getCachePath(type)
     let valid = false

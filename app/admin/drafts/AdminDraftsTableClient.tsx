@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getAdminCapabilities } from '@/lib/adminCapabilities'
@@ -35,16 +35,62 @@ async function postJson(url: string) {
 export default function AdminDraftsTableClient({
   items,
   currentRole,
+  totalCount,
 }: {
   items: DraftItem[]
   currentRole: AppRole
+  totalCount: number
 }) {
   const router = useRouter()
   const { runAction } = useAdminAction()
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [bulkActionLoading, setBulkActionLoading] = useState('')
 
   const capabilities = useMemo(() => getAdminCapabilities(currentRole), [currentRole])
+  const allSelected = items.length > 0 && items.every((item) => selectedIds.includes(item.id))
+
+  useEffect(() => {
+    setSelectedIds((selected) => selected.filter((id) => items.some((item) => item.id === id)))
+  }, [items])
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((selected) => selected.includes(id) ? selected.filter((value) => value !== id) : [...selected, id])
+  }
+
+  const runBulkAction = async (action: 'PUBLISH' | 'ARCHIVE' | 'PERMANENT_DELETE') => {
+    if (!selectedIds.length || bulkActionLoading) return
+    if (action === 'PERMANENT_DELETE' && !window.confirm(`Permanently delete ${selectedIds.length} selected draft(s)? This cannot be undone.`)) return
+
+    setBulkActionLoading(action)
+    setError('')
+    setNotice('')
+    try {
+      const res = await fetch('/api/admin/drafts/bulk-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds, action }),
+      })
+      const json = await res.json()
+      if (!res.ok && !json.partial) throw new Error(json.message || 'Bulk draft action failed')
+
+      const successful = Array.isArray(json.successful) ? json.successful as string[] : []
+      const failed = Array.isArray(json.failed) ? json.failed as Array<{ id: string; message: string }> : []
+      const pendingCleanup = Array.isArray(json.pendingCleanup) ? json.pendingCleanup as string[] : []
+      const label = action === 'PUBLISH' ? 'Published' : action === 'ARCHIVE' ? 'Archived' : 'Permanently deleted'
+
+      setNotice(`${label} ${successful.length} draft(s).${pendingCleanup.length ? ` Media cleanup pending for ${pendingCleanup.length}.` : ''}`)
+      setError(failed.length ? `${failed.length} draft(s) could not be processed: ${failed.map((item) => item.message).join('; ')}` : '')
+      setSelectedIds(failed.map((item) => item.id))
+      router.refresh()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Bulk draft action failed')
+    } finally {
+      setBulkActionLoading('')
+    }
+  }
 
   const doAction = async (id: string, fn: () => Promise<void>) => {
     if (busyId) return
@@ -63,6 +109,31 @@ export default function AdminDraftsTableClient({
   return (
     <div>
       {error ? <p className="mb-4 text-sm font-semibold text-red-300">{error}</p> : null}
+      {notice ? <p className="mb-4 text-sm font-semibold text-emerald-300">{notice}</p> : null}
+
+      {items.length > 0 ? (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <label className="mr-auto inline-flex items-center gap-2 text-xs font-semibold text-white/70">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={() => setSelectedIds(allSelected ? [] : items.map((item) => item.id))}
+              aria-label="Select all visible drafts"
+              className="h-4 w-4 accent-amber-400"
+            />
+            Select visible ({selectedIds.length} selected of {totalCount})
+          </label>
+          <button type="button" disabled={!selectedIds.length || !!bulkActionLoading || !capabilities.listings.approve} onClick={() => void runBulkAction('PUBLISH')} className="h-9 rounded-lg bg-amber-400 px-3 text-xs font-bold text-black hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-40">
+            {bulkActionLoading === 'PUBLISH' ? 'Publishing...' : 'Publish'}
+          </button>
+          <button type="button" disabled={!selectedIds.length || !!bulkActionLoading || !capabilities.listings.archive} onClick={() => void runBulkAction('ARCHIVE')} className="h-9 rounded-lg border border-white/15 px-3 text-xs font-semibold text-white/75 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40">
+            {bulkActionLoading === 'ARCHIVE' ? 'Archiving...' : 'Archive'}
+          </button>
+          <button type="button" disabled={!selectedIds.length || !!bulkActionLoading || !capabilities.drafts.delete} onClick={() => void runBulkAction('PERMANENT_DELETE')} className="h-9 rounded-lg border border-red-400/30 px-3 text-xs font-semibold text-red-200 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40">
+            {bulkActionLoading === 'PERMANENT_DELETE' ? 'Deleting...' : 'Delete permanently'}
+          </button>
+        </div>
+      ) : null}
 
       <div className="md:hidden space-y-3">
         {items.map((it) => {
@@ -73,6 +144,7 @@ export default function AdminDraftsTableClient({
           return (
             <div key={it.id} className="rounded-2xl border border-white/10 bg-[#0f1a2e] p-4">
               <div className="flex gap-3">
+                <input type="checkbox" checked={selectedIds.includes(it.id)} onChange={() => toggleSelected(it.id)} aria-label={`Select ${it.title}`} className="mt-1 h-4 w-4 shrink-0 accent-amber-400" />
                 <div className="h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-white/5">
                   {it.coverImage ? <img src={it.coverImage} alt={`${it.title} cover`} className="h-full w-full object-cover" /> : null}
                 </div>
@@ -146,6 +218,9 @@ export default function AdminDraftsTableClient({
         <table className="min-w-full text-sm">
           <thead>
             <tr className="text-left text-white/70 border-b border-white/10">
+              <th className="py-3 pr-3">
+                <input type="checkbox" checked={allSelected} onChange={() => setSelectedIds(allSelected ? [] : items.map((item) => item.id))} aria-label="Select all visible drafts" className="h-4 w-4 accent-amber-400" />
+              </th>
               <th className="py-3 pr-4">Title</th>
               <th className="py-3 pr-4">Agent</th>
               <th className="py-3 pr-4">Location</th>
@@ -162,6 +237,9 @@ export default function AdminDraftsTableClient({
 
               return (
                 <tr key={it.id} className="border-b border-white/5">
+                  <td className="py-4 pr-3">
+                    <input type="checkbox" checked={selectedIds.includes(it.id)} onChange={() => toggleSelected(it.id)} aria-label={`Select ${it.title}`} className="h-4 w-4 accent-amber-400" />
+                  </td>
                   <td className="py-4 pr-4">
                     <div className="flex items-center gap-3">
                       <div className="h-12 w-16 shrink-0 overflow-hidden rounded-md bg-white/5">
@@ -221,7 +299,7 @@ export default function AdminDraftsTableClient({
 
             {items.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-10 text-center text-white/60">
+                <td colSpan={7} className="py-10 text-center text-white/60">
                   No drafts found.
                 </td>
               </tr>

@@ -22,7 +22,7 @@ export default function VideoServiceDesk() {
       id="videoservicedesk-script"
       src={VIDEO_SERVICE_DESK_SRC}
       data-token={token}
-      strategy="afterInteractive"
+      strategy="lazyOnload"
       onLoad={() => {
         window.dispatchEvent(new Event('videoservicedesk:loaded'))
       }}

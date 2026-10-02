@@ -2,7 +2,7 @@ import { formatCurrencyAmount, INR_PER_AED } from "@/lib/country";
 
 export type DisplayCurrency = "AED" | "INR";
 
-export const DEFAULT_DISPLAY_CURRENCY: DisplayCurrency = "AED";
+export const DEFAULT_DISPLAY_CURRENCY: DisplayCurrency = "INR";
 
 export function isDisplayCurrency(value: unknown): value is DisplayCurrency {
   return value === "AED" || value === "INR";

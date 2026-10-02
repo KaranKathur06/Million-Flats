@@ -1,16 +1,13 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
-import { deleteFromS3 } from '@/lib/s3'
-import { writeAuditLog } from '@/lib/audit'
+import { prisma } from '@/lib/prisma'
 import { checkAdminRateLimit } from '@/lib/adminRateLimit'
+import { hasMinRole } from '@/lib/rbac'
+import { deleteManualPropertyDraft } from '@/lib/manualPropertyDraftDeletion'
+import { processStorageCleanupJobs } from '@/lib/storageCleanup'
 
 function bad(message: string, status = 400) {
   return NextResponse.json({ success: false, message }, { status })
-}
-
-function safeString(v: unknown) {
-  return typeof v === 'string' ? v.trim() : ''
 }
 
 function getIp(req: Request) {
@@ -23,6 +20,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const auth = await requireAdminSession()
   if (!auth.ok) {
     return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
+  }
+  if (!hasMinRole(auth.role, 'ADMIN')) {
+    return bad('You do not have permission to manage drafts', 403)
   }
 
   const limit = await checkAdminRateLimit({
@@ -38,42 +38,27 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const id = String(params?.id || '').trim()
   if (!id) return bad('Not found', 404)
 
-  const existing = await (prisma as any).manualProperty.findFirst({
-    where: { id, sourceType: 'MANUAL' },
-    include: { media: true },
-  })
+  const result = await deleteManualPropertyDraft({ propertyId: id, actorUserId: auth.userId, ipAddress: getIp(req) })
+  if (!result.ok) return bad(result.message, result.status)
 
-  if (!existing) return bad('Not found', 404)
-
-  const status = String(existing.status)
-  if (status !== 'DRAFT') {
-    return bad('Only drafts can be deleted using this endpoint.')
+  if (result.cleanupJobId) {
+    try {
+      await processStorageCleanupJobs(1, [result.cleanupJobId])
+    } catch (error) {
+      console.error('[POST /api/admin/drafts/[id]/delete] cleanup processing failed', error)
+    }
   }
 
-  const media = Array.isArray(existing.media) ? existing.media : []
-  const keys = media.map((m: any) => safeString(m?.s3Key)).filter(Boolean)
-
-  const beforeState = {
-    status: String(existing.status || 'DRAFT'),
-    mediaCount: media.length,
+  let cleanupPending = Boolean(result.cleanupJobId)
+  if (result.cleanupJobId) {
+    try {
+      cleanupPending = await (prisma as any).storageCleanupJob.count({
+        where: { id: result.cleanupJobId, status: { not: 'COMPLETED' } },
+      }) > 0
+    } catch (error) {
+      console.error('[POST /api/admin/drafts/[id]/delete] cleanup status lookup failed', error)
+    }
   }
 
-  await (prisma as any).manualProperty.delete({ where: { id } })
-
-  await writeAuditLog({
-    entityType: 'MANUAL_PROPERTY',
-    entityId: id,
-    action: 'DRAFT_DELETED',
-    performedByUserId: auth.userId,
-    ipAddress: getIp(req),
-    beforeState,
-    afterState: { deleted: true },
-    meta: { actor: 'admin', deletedMediaCount: keys.length },
-  })
-
-  for (const k of keys) {
-    await deleteFromS3(k).catch(() => null)
-  }
-
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ success: true, cleanupPending })
 }

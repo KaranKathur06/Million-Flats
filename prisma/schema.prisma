@@ -1288,6 +1288,12 @@ enum AuditAction {
   ADMIN_HERO_BANNER_IMAGE_REMOVED
 }
 
+enum StorageCleanupStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+}
+
 model AuditLog {
   id         String @id @default(uuid())
   entityType AuditEntityType @map("entity_type")
@@ -1307,6 +1313,22 @@ model AuditLog {
   @@index([action])
   @@index([performedByUserId])
   @@map("audit_logs")
+}
+
+model StorageCleanupJob {
+  id          String               @id @default(uuid())
+  storageItems Json                @map("storage_items")
+  status      StorageCleanupStatus @default(PENDING)
+  attempts    Int                  @default(0)
+  availableAt DateTime             @default(now()) @map("available_at")
+  lockedUntil DateTime?            @map("locked_until")
+  lastError   String?              @map("last_error") @db.Text
+  completedAt DateTime?            @map("completed_at")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+
+  @@index([status, availableAt])
+  @@map("storage_cleanup_jobs")
 }
 
  model ModerationCase {

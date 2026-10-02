@@ -101,12 +101,12 @@ export default async function Home() {
       <section className="relative w-full flex flex-col justify-end min-h-[400px] sm:min-h-[480px] lg:min-h-[430px] overflow-hidden">
         <div className="absolute inset-0">
           <Image
-            src="/HOMEPAGE.jpeg"
+            src="/HOMEPAGE.webp"
             alt="Luxury Dubai Property"
             fill
             className="object-cover object-[center_70%]"
             priority
-            quality={100}
+            quality={85}
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1920px"
           />
           <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/40 to-[#1e3a5f]/60" />

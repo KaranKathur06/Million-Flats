@@ -41,6 +41,12 @@ export async function POST(req: Request) {
   if (!ids.length) {
     return NextResponse.json({ success: false, message: 'No records selected' }, { status: 400 })
   }
+  if (entity === 'projects' && action === 'permanent_delete') {
+    return NextResponse.json({
+      success: false,
+      message: 'Use the guarded project permanent-delete endpoint.',
+    }, { status: 400 })
+  }
 
   try {
     const success: string[] = []
@@ -123,10 +129,8 @@ export async function POST(req: Request) {
     }
 
     if (entity === 'projects') {
-      if (action === 'delete' || action === 'permanent_delete') {
-        const result = action === 'permanent_delete'
-          ? await (prisma as any).project.deleteMany({ where: { id: { in: ids } } })
-          : await (prisma as any).project.updateMany({ where: { id: { in: ids, isDeleted: false } }, data: { isDeleted: true, deletedAt: new Date(), deletedBy: auth.userId, isFeatured: false, featuredOrder: null } })
+      if (action === 'delete') {
+        const result = await (prisma as any).project.updateMany({ where: { id: { in: ids, isDeleted: false } }, data: { isDeleted: true, deletedAt: new Date(), deletedBy: auth.userId, isFeatured: false, featuredOrder: null } })
         success.push(...ids.slice(0, result.count))
       } else {
       const rows = await (prisma as any).project.findMany({

@@ -23,27 +23,31 @@ export default async function AdminDraftsPage() {
     redirect(`${getHomeRouteForRole(role)}?error=admin_only`)
   }
 
-  const rows = await (prisma as any).manualProperty.findMany({
-    where: { sourceType: 'MANUAL', status: 'DRAFT' },
-    orderBy: [{ updatedAt: 'desc' }],
-    take: 500,
-    select: {
-      id: true,
-      title: true,
-      city: true,
-      community: true,
-      lastCompletedStep: true,
-      createdAt: true,
-      updatedAt: true,
-      media: {
-        where: { category: 'COVER' },
-        orderBy: [{ position: 'asc' }, { createdAt: 'desc' }],
-        take: 1,
-        select: { url: true },
+  const draftWhere = { sourceType: 'MANUAL', status: 'DRAFT' }
+  const [rows, totalCount] = await Promise.all([
+    (prisma as any).manualProperty.findMany({
+      where: draftWhere,
+      orderBy: [{ updatedAt: 'desc' }],
+      take: 500,
+      select: {
+        id: true,
+        title: true,
+        city: true,
+        community: true,
+        lastCompletedStep: true,
+        createdAt: true,
+        updatedAt: true,
+        media: {
+          where: { category: 'COVER' },
+          orderBy: [{ position: 'asc' }, { createdAt: 'desc' }],
+          take: 1,
+          select: { url: true },
+        },
+        agent: { select: { id: true, user: { select: { name: true, email: true } } } },
       },
-      agent: { select: { id: true, user: { select: { name: true, email: true } } } },
-    },
-  })
+    }),
+    (prisma as any).manualProperty.count({ where: draftWhere }),
+  ])
 
   const items = (rows as any[]).map((d) => {
     const title = safeString(d?.title) || 'Untitled draft'
@@ -74,7 +78,7 @@ export default async function AdminDraftsPage() {
               Admin
             </span>
           </div>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">Drafts</h1>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight">Drafts <span className="text-white/45">({totalCount})</span></h1>
         </div>
         <Link href="/admin" className="mt-2 inline-flex items-center gap-1 text-[13px] font-semibold text-white/50 hover:text-white/80 transition-colors">
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,7 +90,7 @@ export default async function AdminDraftsPage() {
 
       {/* Table */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-        <AdminDraftsTableClient items={items} currentRole={role} />
+        <AdminDraftsTableClient items={items} currentRole={role} totalCount={totalCount} />
       </div>
     </div>
   )

@@ -106,4 +106,16 @@ describe('admin bulk approval', () => {
       data: applyApprovalDefaults({ status: 'APPROVED' }),
     })
   })
+
+  it('rejects project permanent deletes that bypass the guarded endpoint', async () => {
+    const response = await POST(new Request('http://localhost/api/admin/bulk-approve', {
+      method: 'POST',
+      body: JSON.stringify({ entity: 'projects', action: 'permanent_delete', ids: ['project-1'] }),
+      headers: { 'Content-Type': 'application/json' },
+    }))
+
+    expect(response.status).toBe(400)
+    expect((await response.json()).message).toContain('guarded project permanent-delete endpoint')
+    expect(db.project.deleteMany).toBeUndefined()
+  })
 })

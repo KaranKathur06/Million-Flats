@@ -20,12 +20,20 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrency] = useState<DisplayCurrency>(DEFAULT_DISPLAY_CURRENCY);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (isDisplayCurrency(saved)) setCurrency(saved);
+    try {
+      const saved = window.localStorage.getItem(STORAGE_KEY);
+      if (isDisplayCurrency(saved)) setCurrency(saved);
+    } catch {
+      setCurrency(DEFAULT_DISPLAY_CURRENCY);
+    }
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, currency);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, currency);
+    } catch {
+      // Display currency remains available for this session when storage is disabled.
+    }
   }, [currency]);
 
   const value = useMemo(() => ({ currency, setCurrency }), [currency]);
