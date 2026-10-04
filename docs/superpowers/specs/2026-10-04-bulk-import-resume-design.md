@@ -1,0 +1,86 @@
+# Bulk Import Recovery from History
+
+## Context and problem
+
+The shared admin import center stages Property and Project records as `ImportBatch` and `ImportRecord` rows. The same batch review UI is used by `/admin/properties/bulk-import/[batchId]`, with `/admin/bulk-import/[batchId]` as a compatibility route. History is served at `/admin/properties/bulk-import/history`, with `/admin/bulk-import/history` as an alias. The history API already includes the batch entity type, but the page does not display it or offer a continuation action.
+
+The commit executor persists each successful record as `COMMITTED` in an individual database transaction. A failed record is marked `ERROR`. At the end of a normal request the batch becomes `COMMITTED`, `PARTIALLY_COMMITTED`, or `FAILED`. The commit lock only accepts `READY_TO_COMMIT` and `READY_FOR_REVIEW`, while `PARTIALLY_COMMITTED` and `FAILED` are terminal in the state machine. Thus remaining eligible or failed rows cannot be retried from history. If the process ends while the batch is `COMMITTING`, that state also cannot be reclaimed. Closing the browser alone does not necessarily stop server processing, but a server/process interruption can leave the persisted batch lock behind.
+
+## Goals and boundaries
+
+- Let admins continue interrupted shared import batches for properties and projects from history.
+- Preserve per-record durability: completed records are never processed again, and only remaining eligible or failed rows are attempted.
+- Recover a truly abandoned `COMMITTING` batch without allowing concurrent commit attempts.
+- Make progress and cumulative outcomes understandable in history and batch review.
+- Preserve authorization, idempotency, strict-mode behavior, adapter version checks, and entity-specific commit behavior.
+
+This change does not add recovery to the separate legacy `/admin/projects/bulk-import` JSON preview/approve flow, which has no persisted import history. It does not add a durable background job queue, change import validation or mappings, allow cancelled batches to resume, or change publication/moderation behavior. The history recovery CTA is limited to Property and Project batches.
+
+## Chosen approach
+
+Keep the shared import engine and commit endpoint. Extend the existing commit lock into a resumable, attempt-owned lock instead of introducing another project/property import path or a job queue. Each attempt has a unique server-generated ID and a persisted heartbeat. A normal active attempt refreshes its heartbeat as it makes per-record progress. A batch in `COMMITTING` may be reclaimed only when its last heartbeat is at least 10 minutes old. The claim must be atomic; only one attempt can acquire it. Each record transaction verifies and refreshes the attempt ownership before committing the entity and marking that record `COMMITTED`, so a superseded attempt cannot continue committing rows.
+
+Historical batches with no heartbeat use their existing `startedAt`/`updatedAt` timestamp as the fallback when deciding whether a `COMMITTING` batch is stale. A missing timestamp is not enough evidence to reclaim a batch and must not bypass the stale guard.
+
+## State and record behavior
+
+The commit core continues to accept `READY_FOR_REVIEW` and `READY_TO_COMMIT`. It also permits a resumable Property or Project batch in `PARTIALLY_COMMITTED` or `FAILED` to be claimed when it has records to attempt. When resuming, the executor selects `READY`, `WARNING`, `STAGED`, and `ERROR` records, subject to existing mode rules:
+
+- `COMMITTED` records are always excluded, including records whose `commitAction` is `skipped`.
+- In `PARTIAL` mode, eligible warning records retain current behavior.
+- In `STRICT` mode, unresolved warnings continue to block commit.
+- `ERROR` records are retried on the admin's explicit resume action. If a row fails again, it remains `ERROR` with the latest failure reason available in batch review.
+- A batch with no retryable or eligible records does not run an empty commit that appears successful; review explains why no continuation is available.
+- `CANCELLED` and successfully `COMMITTED` batches are not recoverable.
+
+When an unexpected error or process interruption occurs, already committed row transactions remain durable. An attempt may be retried only after the ordinary lock becomes available or the stale heartbeat guard permits an atomic reclaim. Existing request idempotency remains in force per attempt.
+
+## Admin experience
+
+The shared Import History table displays the entity type so Property and Project batches are distinguishable. Eligible Property/Project rows expose a `Continue import` action that navigates to the existing batch review page; history never commits records directly. The batch review shows separate counts for already committed, remaining eligible, failed/retryable, and blocked records. The admin explicitly confirms the retry/continue action before it starts.
+
+An active `COMMITTING` batch is presented as in progress and does not offer recovery. Once its persisted heartbeat has exceeded the 10-minute cutoff, history/detail may offer `Recover & continue`. Status and counts refresh from the server; a fresh page load must not rely on stale client-side batch state. If the backend reports a concurrent active attempt or a heartbeat that is no longer stale, the UI reports that state and refreshes rather than showing success.
+
+The same history and detail views remain compatible with the existing route aliases. Other entity types remain visible in history, but this requested continuation action is scoped to Property and Project batches.
+
+## Counts and reporting
+
+Batch outcome counters must represent cumulative persisted record outcomes across attempts, not only the most recent retry. Recalculate or otherwise derive `createdCount`, `updatedCount`, `skippedCount`, and `failedCount` from the persisted record outcomes after each attempt. Keep initial source and analysis counts available for context, but show current remaining/retryable counts separately so the initial `readyCount` is not mistaken for work left.
+
+Record-level status and target entity writes remain in the same transaction. A lost client response does not roll back successful rows; refreshing history/detail reveals the persisted outcome. An unsuccessful retry updates the failure count/reason without changing already committed rows.
+
+## API and persistence changes
+
+- Extend `ImportBatch` with nullable commit-attempt ownership and heartbeat fields, with a migration that preserves existing batches.
+- Update commit-lock acquisition to atomically claim initial, partial, failed, or sufficiently stale `COMMITTING` batches under the attempt rules.
+- Keep the authenticated `POST /api/admin/bulk-import/[batchId]/commit` endpoint and required `Idempotency-Key`; create/validate attempt ownership server-side.
+- Update the batch progress/history responses to expose the status and current outcome counts needed by the admin UI, without exposing internal sensitive payload data.
+- Preserve current adapter selection and version validation for both Property and Project.
+- Report lock conflict, not-yet-stale state, missing batch, and import failures as explicit non-success responses.
+
+## Failure handling and safety
+
+- Concurrent history clicks cannot start multiple commit attempts; the database compare-and-set is authoritative.
+- A recovered attempt cannot commit after another attempt has taken ownership; attempt ownership is checked in the record transaction.
+- A row committed immediately before process failure is excluded on retry.
+- An `ERROR` row may fail again; the batch remains resumable only if retryable work remains, and the failure is visible rather than represented as success.
+- A fresh `COMMITTING` batch remains locked even if another admin opens it.
+- Strict-mode warning blocks, adapter-version mismatch, unavailable database, and malformed/stale request behavior remain explicit.
+- The non-blocking route aliases continue to render the same shared history and detail pages.
+
+## Verification and acceptance criteria
+
+Focused unit coverage must verify:
+
+1. Existing ready batches commit successfully with unchanged adapter behavior.
+2. A partial/failed batch retries eligible and `ERROR` rows.
+3. Previously `COMMITTED` rows are excluded on every attempt.
+4. Cumulative created/updated/skipped/failed counts remain correct across multiple attempts.
+5. Strict-mode unresolved warnings still prevent commit.
+6. A fresh `COMMITTING` batch cannot be reclaimed; a heartbeat at least 10 minutes old can be claimed atomically.
+7. Concurrent claims yield exactly one owner, and a displaced attempt cannot commit another record.
+8. Property and Project batches both use the shared resume path and retain their adapters.
+9. The history action is shown only for supported recoverable Property/Project batches, opens review, and never directly commits.
+10. Existing aliases, authorization, and idempotency requirements remain intact.
+
+Run the focused import unit tests and the applicable type-check/build validation after implementation.
