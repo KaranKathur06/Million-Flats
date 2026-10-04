@@ -6,13 +6,27 @@ The shared import history page at `/admin/bulk-import/history` re-exports the pr
 
 ## Design
 
-Add a visible `Review batch` link for every history row. It navigates to the existing shared batch detail route and does not initiate a commit or recovery. Keep the existing filename link as a useful shortcut and leave the row itself non-clickable to avoid conflicting with the separate recovery action.
+Add a visible, keyboard-focusable `Review batch` anchor link in the outcome/action column of every history row. It navigates to `/admin/bulk-import/[batchId]`, the existing compatibility route that re-exports the shared property/project batch detail page, and does not initiate a commit or recovery. Keep the existing filename link as a shortcut and leave the row itself non-clickable to avoid conflicting with the separate recovery action.
 
-Continue/recover/finalize remains a distinct action and is shown only when the server reports the batch is eligible. Analyzing, active committing, and terminal completed batches therefore remain reviewable without exposing an invalid resume control. Both history URL aliases use the same component and must lead to the same batch review route.
+Continue/recover/finalize remains a distinct action and is shown only when the server reports the batch is eligible. The supported history entry points `/admin/bulk-import/history` and `/admin/properties/bulk-import/history` use the same component.
+
+### Batch-state behavior
+
+| Batch state | Review batch | Continue/recover action |
+| --- | --- | --- |
+| `UPLOADED`, `ANALYZING`, `MAPPING_REVIEW`, `NORMALIZING`, `VALIDATING`, `DUPLICATE_REVIEW` | Always shown | Not shown |
+| `READY_FOR_REVIEW`, `READY_TO_COMMIT` | Always shown | Keep the existing regular commit action on batch detail; history recovery CTA is not required |
+| `COMMITTING` with fresh heartbeat | Always shown | Not shown |
+| `COMMITTING` with stale heartbeat and eligible recoverable work | Always shown | Keep the existing `Recover & continue` history action |
+| `PARTIALLY_COMMITTED` or `FAILED` with eligible/retryable work | Always shown | Keep the existing continue/retry history action |
+| `COMMITTED`, `CANCELLED`, or no recoverable work | Always shown | Not shown |
+
+The history link must be a semantic `<Link>`/anchor, not a button that invokes mutation logic. It must remain visible at mobile and desktop breakpoints and must not be nested inside another interactive element.
 
 ## Validation
 
-- Verify the shared history page renders an explicit detail link for each row regardless of status.
-- Verify that review navigation does not issue a commit request.
-- Retain the existing conditional recovery CTA behavior and route aliases.
-- Run focused lint/type checks for the modified page.
+- Render or inspect history fixtures for `ANALYZING`, fresh `COMMITTING`, stale `COMMITTING`, `PARTIALLY_COMMITTED`, `FAILED`, `COMMITTED`, and `CANCELLED`; assert every row has exactly one `Review batch` link pointing to its own batch detail route.
+- Assert review navigation only follows the detail route and does not call the commit endpoint or change batch status.
+- Assert the recovery action remains limited to the existing eligible states and does not appear for active, committed, cancelled, or no-work batches.
+- Verify both `/admin/bulk-import/history` and `/admin/properties/bulk-import/history` resolve to the shared page and retain the same detail destination.
+- Run focused lint and type diagnostics for the changed history component.
