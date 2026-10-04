@@ -25,8 +25,9 @@ The history link must be a semantic `<Link>`/anchor, not a button that invokes m
 
 ## Validation
 
-- Render or inspect history fixtures for `ANALYZING`, fresh `COMMITTING`, stale `COMMITTING`, `PARTIALLY_COMMITTED`, `FAILED`, `COMMITTED`, and `CANCELLED`; assert every row has exactly one `Review batch` link pointing to its own batch detail route.
+- Render or inspect a history fixture for every state row in the matrix, including a separate fresh and stale `COMMITTING` case; assert every row has exactly one `Review batch` link pointing to its own batch detail route.
 - Assert review navigation only follows the detail route and does not call the commit endpoint or change batch status.
-- Assert the recovery action remains limited to the existing eligible states and does not appear for active, committed, cancelled, or no-work batches.
+- Assert no recovery CTA for `UPLOADED`, `ANALYZING`, `MAPPING_REVIEW`, `NORMALIZING`, `VALIDATING`, `DUPLICATE_REVIEW`, fresh `COMMITTING`, `READY_FOR_REVIEW`, `READY_TO_COMMIT`, `COMMITTED`, `CANCELLED`, or any no-work batch. Assert recovery CTA for stale `COMMITTING` with eligible recoverable work and for `PARTIALLY_COMMITTED`/`FAILED` with eligible or retryable work.
+- Verify `Review batch` is a semantic anchor reachable by keyboard tab navigation, remains visible at mobile and desktop breakpoints, and is not nested within an interactive element.
 - Verify both `/admin/bulk-import/history` and `/admin/properties/bulk-import/history` resolve to the shared page and retain the same detail destination.
 - Run focused lint and type diagnostics for the changed history component.
