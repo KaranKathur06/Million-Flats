@@ -23,7 +23,7 @@ export async function acquireImportCommitLock(batchId: string, attemptId: string
               OR (
                 "status" = 'COMMITTING'
                 AND COALESCE("commit_heartbeat_at", "started_at", "updated_at")
-                  <= clock_timestamp() - make_interval(mins => ${IMPORT_COMMIT_STALE_AFTER_MINUTES})
+                  <= clock_timestamp() - (${IMPORT_COMMIT_STALE_AFTER_MINUTES} * INTERVAL '1 minute')
               )
             )
           )
