@@ -1,4 +1,5 @@
 export * from './types'
+export * from './constants'
 export * from './state-machine'
 export * from './batch-service'
 export * from './commit-lock'

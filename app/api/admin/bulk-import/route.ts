@@ -5,6 +5,7 @@ import { createImportBatch, stageImportRecordsBatch, type ImportEntityType } fro
 import { getImportAdapterForEntity, listImportAdapters } from '@/lib/imports/registry'
 import { csvParser, detectFormat, jsonParser, xlsxParser } from '@/lib/imports/parser'
 import { resolvePropertyImportIntent } from '@/lib/imports/adapters/property/adapter'
+import { IMPORT_COMMIT_STALE_AFTER_MINUTES } from '@/lib/imports/core/constants'
 
 const MAX_BYTES = Number(process.env.IMPORT_MAX_FILE_SIZE || 10 * 1024 * 1024)
 const MAX_RECORDS = Number(process.env.IMPORT_MAX_RECORDS || 5000)
@@ -14,10 +15,9 @@ export async function GET() {
   const auth = await requireAdminSession()
   if (!auth.ok) return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
 
-  let batches: unknown[] = []
   try {
     const { prisma } = await import('@/lib/prisma')
-    batches = await (prisma as any).importBatch.findMany({
+    const batches = await (prisma as any).importBatch.findMany({
       orderBy: { createdAt: 'desc' },
       take: 100,
       select: {
@@ -30,19 +30,78 @@ export async function GET() {
         warningCount: true,
         errorCount: true,
         createdCount: true,
+        updatedCount: true,
         skippedCount: true,
         failedCount: true,
         createdAt: true,
+        startedAt: true,
+        updatedAt: true,
+        commitHeartbeatAt: true,
         entityType: true,
         operation: true,
         sourceProvider: true,
         category: true,
       },
     })
+    const batchIds = batches.map((batch: any) => batch.id)
+    const recordGroups = batchIds.length > 0
+      ? await (prisma as any).importRecord.groupBy({
+          by: ['batchId', 'status', 'commitAction'],
+          where: { batchId: { in: batchIds } },
+          _count: { _all: true },
+        })
+      : []
+    const groupsByBatch = new Map<string, any[]>()
+    for (const group of recordGroups) {
+      const groups = groupsByBatch.get(group.batchId) || []
+      groups.push(group)
+      groupsByBatch.set(group.batchId, groups)
+    }
+    const history = batches.map((batch: any) => {
+      const groups = groupsByBatch.get(batch.id) || []
+      const legacyCommitErrorsCanRetry =
+        batch.errorCount === 0 &&
+        ['PARTIALLY_COMMITTED', 'FAILED', 'COMMITTING'].includes(batch.status)
+      const remainingCount = groups
+        .filter((group) => ['READY', 'WARNING', 'STAGED'].includes(group.status))
+        .reduce((total, group) => total + group._count._all, 0)
+      const retryableCount = groups
+        .filter((group) =>
+          group.status === 'ERROR' &&
+          (group.commitAction === 'COMMIT_FAILED' || legacyCommitErrorsCanRetry),
+        )
+        .reduce((total, group) => total + group._count._all, 0)
+      const recordCount = groups.reduce((total, group) => total + group._count._all, 0)
+      const committedCount = groups
+        .filter((group) => group.status === 'COMMITTED')
+        .reduce((total, group) => total + group._count._all, 0)
+      const fullyCommitted = recordCount > 0 && committedCount === recordCount
+      const hasUnresolvedStrictWarnings =
+        batch.mode === 'STRICT' &&
+        groups.some((group) => group.status === 'WARNING' && group._count._all > 0)
+      const heartbeat = batch.commitHeartbeatAt || batch.startedAt || batch.updatedAt
+      const staleCommit = batch.status === 'COMMITTING' &&
+        heartbeat instanceof Date &&
+        Date.now() - heartbeat.getTime() >= IMPORT_COMMIT_STALE_AFTER_MINUTES * 60 * 1000
+      const resumableStatus = ['READY_TO_COMMIT', 'READY_FOR_REVIEW', 'PARTIALLY_COMMITTED', 'FAILED'].includes(batch.status)
+      return {
+        ...batch,
+        remainingCount,
+        retryableCount,
+        committedCount,
+        fullyCommitted,
+        staleCommit,
+        canContinue:
+          ['PROPERTY', 'PROJECT'].includes(batch.entityType) &&
+          (resumableStatus || staleCommit) &&
+          ((remainingCount + retryableCount > 0 && !hasUnresolvedStrictWarnings) || fullyCommitted),
+      }
+    })
+    return NextResponse.json({ success: true, batches: history, adapters: listImportAdapters() })
   } catch (error) {
     console.error('[GET /api/admin/bulk-import] history unavailable:', error)
+    return NextResponse.json({ success: false, message: 'Unable to load import history.' }, { status: 500 })
   }
-  return NextResponse.json({ success: true, batches, adapters: listImportAdapters() })
 }
 
 export async function POST(req: Request) {

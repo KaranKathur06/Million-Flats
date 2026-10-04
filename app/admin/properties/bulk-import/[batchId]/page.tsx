@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
+import { IMPORT_COMMIT_STALE_AFTER_MINUTES } from '@/lib/imports/core/constants'
 
 type ImportRecord = {
     id: string
@@ -11,6 +12,7 @@ type ImportRecord = {
     sourceRow: number | null
     status: string
     commitAction?: string | null
+    commitFailureReason?: string | null
     rawPayload: unknown
     normalizedPayload: unknown
     canonicalPayload: unknown
@@ -32,6 +34,9 @@ type ImportBatch = {
     updatedCount?: number
     skippedCount?: number
     createdAt: string
+    startedAt?: string | null
+    updatedAt?: string
+    commitHeartbeatAt?: string | null
     records: ImportRecord[]
     issues: Array<{ id: string; severity: string; stage: string; message: string; resolutionState: string }>
 }
@@ -78,8 +83,13 @@ export default function ImportBatchDetailPage() {
                 headers: { 'Idempotency-Key': `admin-${Date.now()}` },
             })
             const payload = await response.json()
-            if (!response.ok || !payload.success) throw new Error(payload.message || 'Commit failed.')
-            toast.success(`Batch committed: ${payload.created} created, ${payload.failed} failed`)
+            if (!response.ok || !payload.success) {
+                if (response.status === 409) await loadBatch()
+                throw new Error(payload.message || 'Commit failed.')
+            }
+            toast.success(payload.reconciled
+                ? 'Batch finalized from its persisted committed records.'
+                : `Import processed: ${payload.created} created, ${payload.updated} updated, ${payload.failed} failed`)
             await loadBatch()
         } catch (error: any) {
             toast.error(error.message || 'Commit failed.')
@@ -146,6 +156,37 @@ export default function ImportBatchDetailPage() {
 
     const canCommit = batch.status === 'READY_TO_COMMIT' || batch.status === 'READY_FOR_REVIEW'
     const entityLabel = batch.entityType === 'DEVELOPER' ? 'developer' : batch.entityType === 'PROJECT' ? 'project' : batch.entityType === 'ECOSYSTEM_PARTNER' ? 'ecosystem partner' : batch.entityType === 'AGENCY' ? 'agency' : batch.entityType === 'AGENT' ? 'agent' : batch.entityType === 'LEAD' ? 'lead' : 'property'
+    const isSupportedResumeEntity = batch.entityType === 'PROPERTY' || batch.entityType === 'PROJECT'
+    const legacyCommitErrorsCanRetry =
+        batch.errorCount === 0 &&
+        ['PARTIALLY_COMMITTED', 'FAILED', 'COMMITTING'].includes(batch.status)
+    const remainingCount = batch.records.filter((record) => ['READY', 'WARNING', 'STAGED'].includes(record.status)).length
+    const hasUnresolvedStrictWarnings =
+        batch.mode === 'STRICT' &&
+        batch.records.some((record) => record.status === 'WARNING')
+    const retryableCount = batch.records.filter((record) =>
+        record.status === 'ERROR' &&
+        (record.commitAction === 'COMMIT_FAILED' || legacyCommitErrorsCanRetry),
+    ).length
+    const committedCount = batch.records.filter((record) => record.status === 'COMMITTED').length
+    const fullyCommitted = batch.records.length > 0 && committedCount === batch.records.length
+    const heartbeat = batch.commitHeartbeatAt || batch.startedAt || batch.updatedAt
+    const isStaleCommit = batch.status === 'COMMITTING' &&
+        !!heartbeat &&
+        Date.now() - new Date(heartbeat).getTime() >= IMPORT_COMMIT_STALE_AFTER_MINUTES * 60 * 1000
+    const canResume = isSupportedResumeEntity &&
+        ['PARTIALLY_COMMITTED', 'FAILED'].includes(batch.status) &&
+        ((remainingCount + retryableCount > 0 && !hasUnresolvedStrictWarnings) || fullyCommitted)
+    const canRecoverStaleCommit = isSupportedResumeEntity &&
+        isStaleCommit &&
+        ((remainingCount + retryableCount > 0 && !hasUnresolvedStrictWarnings) || fullyCommitted)
+    const continueImport = () => {
+        const confirmation = fullyCommitted
+            ? `All ${committedCount} records are already committed. Finalize this batch from persisted results without re-importing records?`
+            : `Continue this ${entityLabel} import? ${committedCount} already committed record(s) will be left untouched; ${remainingCount} eligible and ${retryableCount} failed record(s) will be attempted.`
+        if (!window.confirm(confirmation)) return
+        void commitBatch()
+    }
     const recordLabel = (record: ImportRecord) => {
         const value = record.canonicalPayload as any || record.normalizedPayload as any || record.rawPayload as any || {}
         return String(value.name || value.title || value.company_name || value['Developer  Name'] || value.email || record.sourceRecordId)
@@ -168,7 +209,7 @@ export default function ImportBatchDetailPage() {
                             {resetting ? 'Resetting...' : 'Reset analysis'}
                         </button>
                     )}
-                    {batch.status !== 'COMMITTED' && batch.status !== 'PARTIALLY_COMMITTED' && batch.status !== 'FAILED' && batch.status !== 'CANCELLED' && (
+                    {batch.status !== 'COMMITTED' && batch.status !== 'PARTIALLY_COMMITTED' && batch.status !== 'FAILED' && batch.status !== 'COMMITTING' && batch.status !== 'CANCELLED' && (
                         <button type="button" onClick={() => void cancelBatch()} disabled={cancelling || committing} className="rounded-lg border border-red-400/20 px-3 py-2 text-xs text-red-300 disabled:cursor-not-allowed disabled:opacity-40">
                             {cancelling ? 'Cancelling...' : 'Cancel batch'}
                         </button>
@@ -176,6 +217,11 @@ export default function ImportBatchDetailPage() {
                     {canCommit && (
                         <button type="button" onClick={() => void commitBatch()} disabled={committing || (batch.status !== 'READY_TO_COMMIT' && batch.status !== 'READY_FOR_REVIEW')} className="rounded-lg bg-amber-400 px-4 py-2 text-xs font-semibold text-black disabled:cursor-not-allowed disabled:opacity-40">
                             {committing ? 'Committing...' : 'Commit ready records'}
+                        </button>
+                    )}
+                    {(canResume || canRecoverStaleCommit) && (
+                        <button type="button" onClick={continueImport} disabled={committing} className="rounded-lg bg-amber-400 px-4 py-2 text-xs font-semibold text-black disabled:cursor-not-allowed disabled:opacity-40">
+                            {committing ? 'Continuing...' : fullyCommitted ? 'Finalize completed import' : canRecoverStaleCommit ? 'Recover & continue' : 'Retry failed + continue'}
                         </button>
                     )}
                     {(batch.status === 'COMMITTED' || batch.status === 'PARTIALLY_COMMITTED') && batch.records.some((record) => record.commitAction === 'created') && (
@@ -186,10 +232,28 @@ export default function ImportBatchDetailPage() {
                 </div>
             </div>
 
+            {batch.status === 'COMMITTING' && !isStaleCommit && (
+                <div className="mb-5 rounded-lg border border-sky-400/20 bg-sky-400/[0.05] px-4 py-3 text-xs text-sky-200/80">
+                    This batch is actively committing. Recovery is available only after 10 minutes without progress. Refresh this page to check its status.
+                </div>
+            )}
+            {['PARTIALLY_COMMITTED', 'FAILED'].includes(batch.status) && hasUnresolvedStrictWarnings && (
+                <div className="mb-5 rounded-lg border border-amber-400/20 bg-amber-400/[0.04] px-4 py-3 text-xs text-amber-200/75">
+                    Resolve the remaining warning records before continuing this strict-mode batch.
+                </div>
+            )}
+            {['PARTIALLY_COMMITTED', 'FAILED'].includes(batch.status) && remainingCount + retryableCount === 0 && !fullyCommitted && !hasUnresolvedStrictWarnings && (
+                <div className="mb-5 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-white/55">
+                    There are no eligible or retryable commit records remaining in this batch.
+                </div>
+            )}
+
             <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-7">
                 {[
                     ['Source records', batch.totalRecords],
-                    ['Ready to commit', batch.readyCount],
+                    [canResume || canRecoverStaleCommit ? 'Still ready' : 'Ready to commit', canResume || canRecoverStaleCommit ? remainingCount : batch.readyCount],
+                    ['Already committed', committedCount],
+                    ['Failed · retryable', retryableCount],
                     ['Warnings', batch.warningCount],
                     ['Errors', batch.errorCount],
                     ['Created', batch.createdCount],
@@ -202,7 +266,7 @@ export default function ImportBatchDetailPage() {
                     </div>
                 ))}
             </div>
-            <p className="mb-6 text-xs text-white/40">Ready to commit means the record passed validation. Created counts new {entityLabel}s; updated counts existing records changed; skipped counts duplicates or records intentionally not created.</p>
+            <p className="mb-6 text-xs text-white/40">Created, updated, skipped, and failed counts reflect persisted outcomes across attempts. Already committed records are never included in a retry.</p>
 
             {batch.issues.length > 0 && (
                 <section className="mb-6 rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-5">
@@ -230,6 +294,9 @@ export default function ImportBatchDetailPage() {
                                 <span className={`w-fit rounded-full border px-2 py-1 text-[10px] font-semibold uppercase ${STATUS_STYLES[record.status] || STATUS_STYLES.SKIPPED}`}>{record.status}</span>
                                 <span className="text-xs text-white/35">{record.targetEntityId ? 'Linked' : 'Not linked'}</span>
                             </summary>
+                            {record.commitFailureReason && (
+                                <p className="mt-3 border-l border-red-400/30 pl-3 text-xs text-red-200/75">{record.commitFailureReason}</p>
+                            )}
                             <div className="mt-4 grid gap-4 border-t border-white/[0.06] pt-4 lg:grid-cols-3">
                                 {([ 
                                     ['Source', record.rawPayload],

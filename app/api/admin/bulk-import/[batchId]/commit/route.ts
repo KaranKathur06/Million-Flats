@@ -14,7 +14,11 @@ export async function POST(req: Request, { params }: { params: { batchId: string
     return NextResponse.json({ success: true, ...result })
   } catch (error: any) {
     const message = error?.message || 'Import commit failed.'
-    const status = /not ready|already committing/i.test(message) ? 409 : /not found/i.test(message) ? 404 : 500
+    const status = /not ready|already committing|actively committing|10 minutes|lost ownership|no eligible/i.test(message)
+      ? 409
+      : /not found/i.test(message)
+        ? 404
+        : 500
     return NextResponse.json({ success: false, message }, { status })
   }
 }

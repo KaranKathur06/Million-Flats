@@ -21,6 +21,12 @@ describe('import batch state machine', () => {
     expect(() => transitionBatch('VALIDATING', 'COMMITTING')).toThrow()
   })
 
+  it('allows interrupted commit states to resume', () => {
+    expect(canTransition('PARTIALLY_COMMITTED', 'COMMITTING')).toBe(true)
+    expect(canTransition('FAILED', 'COMMITTING')).toBe(true)
+    expect(canTransition('COMMITTING', 'COMMITTING')).toBe(true)
+  })
+
   it('invalidates stale downstream state after review changes', () => {
     expect(invalidateAfterMappingChange()).toBe('READY_FOR_REVIEW')
     expect(invalidateAfterOwnershipChange()).toBe('VALIDATING')
@@ -28,7 +34,7 @@ describe('import batch state machine', () => {
 
   it('recognizes terminal outcomes', () => {
     expect(isTerminalState('COMMITTED')).toBe(true)
-    expect(isTerminalState('PARTIALLY_COMMITTED')).toBe(true)
+    expect(isTerminalState('PARTIALLY_COMMITTED')).toBe(false)
     expect(isTerminalState('FAILED')).toBe(false)
   })
 })

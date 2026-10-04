@@ -23,10 +23,10 @@ const transitions: Record<ImportBatchState, ImportBatchState[]> = {
   VALIDATING: ['ANALYZING', 'DUPLICATE_REVIEW', 'READY_TO_COMMIT', 'FAILED', 'CANCELLED'],
   DUPLICATE_REVIEW: ['READY_TO_COMMIT', 'VALIDATING', 'CANCELLED'],
   READY_TO_COMMIT: ['COMMITTING', 'CANCELLED'],
-  COMMITTING: ['COMMITTED', 'PARTIALLY_COMMITTED', 'FAILED'],
+  COMMITTING: ['COMMITTING', 'COMMITTED', 'PARTIALLY_COMMITTED', 'FAILED'],
   COMMITTED: [],
-  PARTIALLY_COMMITTED: [],
-  FAILED: ['RETRYING'],
+  PARTIALLY_COMMITTED: ['COMMITTING'],
+  FAILED: ['RETRYING', 'COMMITTING'],
   RETRYING: ['ANALYZING', 'FAILED'],
   CANCELLED: [],
 }
@@ -51,5 +51,5 @@ export function invalidateAfterOwnershipChange(): ImportBatchState {
 }
 
 export function isTerminalState(state: ImportBatchState) {
-  return state === 'COMMITTED' || state === 'PARTIALLY_COMMITTED' || state === 'CANCELLED'
+  return state === 'COMMITTED' || state === 'CANCELLED'
 }

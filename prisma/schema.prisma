@@ -4639,6 +4639,8 @@ model ImportBatch {
   uploadedByUserId    String            @map("uploaded_by_user_id")
   uploadedAt          DateTime          @default(now()) @map("uploaded_at")
   startedAt           DateTime?         @map("started_at")
+  commitAttemptId     String?           @map("commit_attempt_id") @db.VarChar(64)
+  commitHeartbeatAt   DateTime?         @map("commit_heartbeat_at")
   completedAt         DateTime?         @map("completed_at")
   cancelledAt         DateTime?         @map("cancelled_at")
   cancelledByUserId   String?           @map("cancelled_by_user_id")
@@ -4683,6 +4685,7 @@ model ImportRecord {
   targetEntityType    ImportEntityType?  @map("target_entity_type")
   targetEntityId      String?            @map("target_entity_id")
   commitAction        String?            @map("commit_action")
+  commitFailureReason String?            @map("commit_failure_reason") @db.Text
   manualPropertyId    String?            @map("manual_property_id")
   sourceProvider      String?            @map("source_provider")
   sourceUrl           String?            @map("source_url")
@@ -4783,5 +4786,4 @@ model ImportRequestIdempotency {
   @@index([createdAt])
   @@map("import_request_idempotency")
 }
-
 
