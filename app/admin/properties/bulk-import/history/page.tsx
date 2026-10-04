@@ -69,7 +69,7 @@ export default function ImportHistoryPage() {
             </div>
 
             <section className="overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.02]">
-                <div className="hidden grid-cols-[1fr_130px_90px_180px] gap-4 border-b border-white/[0.07] px-5 py-3 text-[10px] uppercase tracking-[0.16em] text-white/35 md:grid">
+                <div className="hidden grid-cols-[1fr_130px_90px_280px] gap-4 border-b border-white/[0.07] px-5 py-3 text-[10px] uppercase tracking-[0.16em] text-white/35 md:grid">
                     <span>Batch</span><span>Status</span><span>Records</span><span>Outcome</span>
                 </div>
                 {loading ? (
@@ -81,14 +81,14 @@ export default function ImportHistoryPage() {
                 ) : (
                     <div className="divide-y divide-white/[0.06]">
                         {batches.map((batch) => (
-                            <div key={batch.id} className="grid gap-3 px-5 py-4 transition-colors hover:bg-white/[0.035] md:grid-cols-[1fr_130px_90px_180px] md:items-center md:gap-4">
+                            <div key={batch.id} className="grid gap-3 px-5 py-4 transition-colors hover:bg-white/[0.035] md:grid-cols-[1fr_130px_90px_280px] md:items-center md:gap-4">
                                 <div className="min-w-0">
                                     <Link href={`/admin/properties/bulk-import/${batch.id}`} className="truncate text-sm text-white/80 hover:text-amber-300">{batch.originalFileName}</Link>
                                     <p className="mt-1 text-[11px] text-white/35">{new Date(batch.createdAt).toLocaleString()} · {batch.entityType.replaceAll('_', ' ')} · {batch.mode}</p>
                                 </div>
                                 <span className={`w-fit rounded-full border px-2 py-1 text-[10px] font-semibold uppercase ${STATUS_STYLES[batch.status] || 'border-white/10 bg-white/[0.05] text-white/50'}`}>{batch.status.replaceAll('_', ' ')}</span>
                                 <span className="text-sm text-white/60">{batch.totalRecords}</span>
-                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex flex-wrap items-center justify-between gap-3">
                                     <div>
                                         <p className="text-xs text-white/45">{batch.createdCount} created · {batch.updatedCount} updated · {batch.skippedCount} skipped · {batch.failedCount} failed</p>
                                         {batch.canContinue && (
@@ -99,14 +99,22 @@ export default function ImportHistoryPage() {
                                             </p>
                                         )}
                                     </div>
-                                    {batch.canContinue && (
+                                    <div className="flex shrink-0 flex-wrap items-center gap-2">
                                         <Link
-                                            href={`/admin/properties/bulk-import/${batch.id}`}
-                                            className="rounded-lg border border-amber-400/25 px-3 py-2 text-xs font-semibold text-amber-200 hover:bg-amber-400/10"
+                                            href={`/admin/bulk-import/${batch.id}`}
+                                            className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-white/75 hover:border-white/30 hover:bg-white/[0.06] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300"
                                         >
-                                            {batch.fullyCommitted ? 'Finalize completed import' : batch.staleCommit ? 'Recover & continue' : 'Continue import'}
+                                            Review batch
                                         </Link>
-                                    )}
+                                        {batch.canContinue && (
+                                            <Link
+                                                href={`/admin/properties/bulk-import/${batch.id}`}
+                                                className="rounded-lg border border-amber-400/25 px-3 py-2 text-xs font-semibold text-amber-200 hover:bg-amber-400/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300"
+                                            >
+                                                {batch.fullyCommitted ? 'Finalize completed import' : batch.staleCommit ? 'Recover & continue' : 'Continue import'}
+                                            </Link>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ))}
