@@ -76,7 +76,7 @@ export default function AdminPropertiesPage() {
     const [typeFilter, setTypeFilter] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
     const [page, setPage] = useState(1)
-    const [pageSize] = useState(50)
+    const [pageSize] = useState(500)
     const [totalCount, setTotalCount] = useState(0)
     const [totalPages, setTotalPages] = useState(1)
     const [cityOptions, setCityOptions] = useState<string[]>([])

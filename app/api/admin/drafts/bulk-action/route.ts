@@ -9,7 +9,7 @@ import { deleteManualPropertyDraft } from '@/lib/manualPropertyDraftDeletion'
 import { processStorageCleanupJobs } from '@/lib/storageCleanup'
 
 const bodySchema = z.object({
-  ids: z.array(z.string().trim().uuid()).min(1).max(100),
+  ids: z.array(z.string().trim().uuid()).min(1).max(500),
   action: z.enum(['PUBLISH', 'ARCHIVE', 'PERMANENT_DELETE']),
 })
 
