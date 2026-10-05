@@ -20,6 +20,8 @@ type AnalysisSummary = {
 }
 
 type AnalysisRequestMode = 'START' | 'RECOVER' | 'RETRY'
+const ANALYSIS_RECORD_TRANSACTION_TIMEOUT_MS = 30_000
+const MAX_ANALYSIS_RECORD_TRANSACTION_RETRIES = 2
 
 export class ImportAnalysisConflictError extends Error {
   constructor(message: string) {
@@ -65,6 +67,10 @@ function summaryFromBatch(batch: any, status = String(batch.status || 'ANALYZING
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Import analysis failed.'
+}
+
+function isPrismaTransactionExpired(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2028'
 }
 
 export async function analyzeImportBatch(input: {
@@ -273,29 +279,44 @@ async function performBackgroundAnalysis(
           })),
         ]
 
-        await (prisma as any).$transaction(async (tx: any) => {
-          await refreshImportAnalysisHeartbeat(tx, batch.id, attemptId, processedCount + 1)
-          await tx.importRecord.update({
-            where: { id: record.id },
-            data: {
-              normalizedPayload: normalized.normalized,
-              canonicalPayload: canonical,
-              status,
-              ownershipPolicy: ownerAgentId && !String((normalized.normalized as any)?.agentId || '').trim()
-                ? 'configured-owner-agent'
-                : 'source-agent',
-              overallConfidence: Object.values(canonicalResult.fieldConfidence || {}).length
-                ? Object.values(canonicalResult.fieldConfidence || {}).reduce((sum: number, value: any) => sum + (typeof value === 'number' ? value : 0), 0) / Object.values(canonicalResult.fieldConfidence || {}).length
-                : null,
-            },
-          })
-          await tx.importIssue.deleteMany({
-            where: { batchId: batch.id, recordId: record.id, stage: 'ANALYSIS', resolutionState: 'OPEN' },
-          })
-          if (issueRows.length) await tx.importIssue.createMany({ data: issueRows })
-        })
+        const targetProcessedCount = processedCount + 1
+        let transactionRetryCount = 0
+        while (true) {
+          try {
+            await (prisma as any).$transaction(async (tx: any) => {
+              await refreshImportAnalysisHeartbeat(tx, batch.id, attemptId, targetProcessedCount)
+              await tx.importRecord.update({
+                where: { id: record.id },
+                data: {
+                  normalizedPayload: normalized.normalized,
+                  canonicalPayload: canonical,
+                  status,
+                  ownershipPolicy: ownerAgentId && !String((normalized.normalized as any)?.agentId || '').trim()
+                    ? 'configured-owner-agent'
+                    : 'source-agent',
+                  overallConfidence: Object.values(canonicalResult.fieldConfidence || {}).length
+                    ? Object.values(canonicalResult.fieldConfidence || {}).reduce((sum: number, value: any) => sum + (typeof value === 'number' ? value : 0), 0) / Object.values(canonicalResult.fieldConfidence || {}).length
+                    : null,
+                },
+              })
+              await tx.importIssue.deleteMany({
+                where: { batchId: batch.id, recordId: record.id, stage: 'ANALYSIS', resolutionState: 'OPEN' },
+              })
+              if (issueRows.length) await tx.importIssue.createMany({ data: issueRows })
+            }, { timeout: ANALYSIS_RECORD_TRANSACTION_TIMEOUT_MS })
+            break
+          } catch (error) {
+            if (!isPrismaTransactionExpired(error) || transactionRetryCount >= MAX_ANALYSIS_RECORD_TRANSACTION_RETRIES) {
+              throw error
+            }
+            transactionRetryCount += 1
+            console.warn(
+              `[Background Analysis] Retrying expired transaction for batch ${batch.id}, record ${record.id} (attempt ${transactionRetryCount}/${MAX_ANALYSIS_RECORD_TRANSACTION_RETRIES}).`,
+            )
+          }
+        }
 
-        processedCount += 1
+        processedCount = targetProcessedCount
       }
 
       for (const result of batchResults) {

@@ -281,4 +281,123 @@ describe('import batch analysis', () => {
       }),
     }))
   })
+
+  it('retries P2028 in a fresh transaction with the same absolute progress checkpoint', async () => {
+    adapter.normalize.mockReturnValue({ normalized: {}, warnings: [], errors: [] })
+    adapter.mapCanonical.mockReturnValue({ canonical: {}, warnings: [], errors: [], fieldConfidence: {} })
+    mockedPrisma.importBatch.findUnique.mockResolvedValue({
+      id: 'batch-1',
+      entityType: 'PROPERTY',
+      status: 'ANALYZING',
+      mode: 'PARTIAL',
+      totalRecords: 1,
+      adapterVersion: 1,
+    })
+    mockedPrisma.importRecord.findMany.mockResolvedValue([
+      { id: 'record-1', sourceRow: 1, sourcePath: null, rawPayload: { title: 'Home' } },
+    ])
+    const expiredTransaction = Object.assign(new Error('Transaction expired'), { code: 'P2028' })
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    mockedPrisma.$transaction
+      .mockImplementationOnce(async (work: (transaction: typeof tx) => unknown) => {
+        await work(tx)
+        throw expiredTransaction
+      })
+      .mockImplementationOnce((work: (transaction: typeof tx) => unknown) => work(tx))
+
+    try {
+      await expect(analyzeImportBatch({
+        batchId: 'batch-1',
+        requestMode: 'RECOVER',
+        waitForCompletion: true,
+      })).resolves.toMatchObject({
+        status: 'READY_TO_COMMIT',
+        total: 1,
+        ready: 1,
+      })
+
+      expect(mockedPrisma.$transaction).toHaveBeenCalledTimes(2)
+      expect(mockedPrisma.$transaction.mock.calls.map((call) => call[1])).toEqual([
+        { timeout: 30_000 },
+        { timeout: 30_000 },
+      ])
+      expect(tx.$executeRaw.mock.calls.map((call) => call[1])).toEqual([1, 1])
+    } finally {
+      warn.mockRestore()
+    }
+  })
+
+  it('rechecks ownership before writes after retrying P2028', async () => {
+    mockedPrisma.importBatch.findUnique.mockResolvedValue({
+      id: 'batch-1',
+      entityType: 'PROPERTY',
+      status: 'ANALYZING',
+      mode: 'PARTIAL',
+      totalRecords: 1,
+      adapterVersion: 1,
+    })
+    mockedPrisma.importRecord.findMany.mockResolvedValue([
+      { id: 'record-1', sourceRow: 1, sourcePath: null, rawPayload: { title: 'Home' } },
+    ])
+    tx.$executeRaw.mockResolvedValueOnce(1).mockResolvedValueOnce(0)
+    const expiredTransaction = Object.assign(new Error('Transaction expired'), { code: 'P2028' })
+    mockedPrisma.$transaction
+      .mockImplementationOnce(async (work: (transaction: typeof tx) => unknown) => {
+        await work(tx)
+        throw expiredTransaction
+      })
+      .mockImplementationOnce((work: (transaction: typeof tx) => unknown) => work(tx))
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+
+    try {
+      await expect(analyzeImportBatch({
+        batchId: 'batch-1',
+        requestMode: 'RECOVER',
+        waitForCompletion: true,
+      })).rejects.toThrow('Import analysis attempt lost ownership.')
+
+      expect(mockedPrisma.$transaction).toHaveBeenCalledTimes(2)
+      expect(tx.importRecord.update).toHaveBeenCalledTimes(1)
+      expect(tx.importIssue.deleteMany).toHaveBeenCalledTimes(1)
+      expect(mockedPrisma.importBatch.updateMany).not.toHaveBeenCalled()
+    } finally {
+      warn.mockRestore()
+    }
+  })
+
+  it('stops after two P2028 retries and records the failure', async () => {
+    mockedPrisma.importBatch.findUnique.mockResolvedValue({
+      id: 'batch-1',
+      entityType: 'PROPERTY',
+      status: 'ANALYZING',
+      mode: 'PARTIAL',
+      totalRecords: 1,
+      adapterVersion: 1,
+    })
+    mockedPrisma.importRecord.findMany.mockResolvedValue([
+      { id: 'record-1', sourceRow: 1, sourcePath: null, rawPayload: { title: 'Home' } },
+    ])
+    const expiredTransaction = Object.assign(new Error('Transaction expired'), { code: 'P2028' })
+    mockedPrisma.$transaction.mockRejectedValue(expiredTransaction)
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+
+    try {
+      await expect(analyzeImportBatch({
+        batchId: 'batch-1',
+        requestMode: 'RECOVER',
+        waitForCompletion: true,
+      })).rejects.toThrow('Transaction expired')
+
+      expect(mockedPrisma.$transaction).toHaveBeenCalledTimes(3)
+      expect(mockedPrisma.importBatch.updateMany).toHaveBeenLastCalledWith(expect.objectContaining({
+        where: { id: 'batch-1', status: 'ANALYZING', analysisAttemptId: expect.any(String) },
+        data: expect.objectContaining({
+          status: 'FAILED',
+          failureSummary: { stage: 'ANALYSIS', message: 'Transaction expired' },
+        }),
+      }))
+    } finally {
+      warn.mockRestore()
+    }
+  })
 })
