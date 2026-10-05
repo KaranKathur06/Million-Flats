@@ -19,7 +19,7 @@ This work does not redesign SEO URL selection, add new sitemap categories, or ch
 
 ## Chosen approach
 
-Add a shared persistent sitemap-artifact store in the existing database. Store one artifact per sitemap type, including XML content, URL count, generation timestamp, and format/version metadata. Store the latest generation outcome, including per-source errors and duration, in persistent metadata so all app instances and the dashboard observe the same result. The local `.sitemap-cache` may remain only as a best-effort stale fallback during migration or temporary database/cache reads; it is never the authoritative success path.
+Add a shared persistent sitemap-artifact store in the existing database. Store immutable artifacts per sitemap type and generation, including XML content, URL count, generation timestamp, and format/version metadata. A persisted current-generation pointer identifies the complete set that public readers may serve. Store each generation's outcome (`COMPLETE`, `PARTIAL`, or `FAILED`), per-source errors, and duration with the generation so all app instances and the dashboard observe the same result. The local `.sitemap-cache` may remain only as a best-effort stale fallback during migration or temporary database/cache reads; it is never the authoritative success path.
 
 Generation continues to fetch the existing URL sets and applies the existing canonical URL, deduplication, and visibility rules. Each source is handled as a distinct result:
 
@@ -27,14 +27,14 @@ Generation continues to fetch the existing URL sets and applies the existing can
 - On source-query failure, retain that source's last known good persisted artifact. If no prior artifact exists, omit it from the index and report it as unavailable.
 - Always generate the static pages sitemap from the current static definitions.
 - Build the index from the exact set of child artifacts available after successful updates and preserved fallbacks. Do not publish an index pointing at missing child artifacts.
-- Commit artifact updates, index membership, and generation metadata together so readers cannot see a newly published index without the corresponding child files.
+- Allocate a monotonic database sequence number for each generation before fetching source URLs. Build the complete candidate snapshot, including retained artifacts for failed sources, before publishing it. In one database transaction, insert the snapshot's artifacts and index and compare-and-swap the current-generation pointer only when the candidate sequence is greater than the published sequence. Readers first resolve that pointer and then read only artifacts belonging to that generation. If publishing fails or a newer generation already published, roll back the candidate artifacts and keep serving the previous complete snapshot. This prevents an older overlapping run from replacing a newer one.
 - Mark the overall run unsuccessful if any source failed, even when some sources were successfully refreshed or safely retained. Return per-source errors and counts to the dashboard.
 
-The public route reads its requested artifact from shared storage. If an artifact is absent or expired, it requests a generation and then reads the persisted result. If generation or the database read fails, it uses a valid local stale artifact only as a last-resort fallback; otherwise it returns an explicit retryable 503. Existing public XML content type and route paths remain unchanged. Public cache headers should use a bounded shared-cache lifetime so CDN/browser copies do not hide a successful regeneration for a full day.
+The public route reads its requested artifact from shared storage. If an artifact is absent, it requests a generation and then reads the persisted result. If the artifact exists, normal public requests serve that complete shared snapshot; freshness is maintained by the regeneration control/cron path and by explicit generation when an artifact is absent, not by rerunning all source queries for every sitemap request. If generation or the database read fails, it uses a valid local stale artifact only as a last-resort fallback; otherwise it returns an explicit retryable 503. Existing public XML content type and route paths remain unchanged. Normal public responses use `Cache-Control: public, max-age=60, s-maxage=300, must-revalidate`, with no stale-while-revalidate allowance. A locally served stale fallback is marked with `X-Sitemap-Stale: true` and `Cache-Control: no-store` so downstream caches do not extend its lifetime. A missing artifact with unavailable generation returns `Retry-After: 300`. Legacy local fallback is accepted only when the XML parses as the expected sitemap type and its file age is no more than seven days.
 
 ## API and admin behavior
 
-`POST /api/system/sitemap/generate` remains available to an authorized admin or cron caller. Complete generation returns 200; a partial or total generation failure returns a non-2xx status while retaining the structured result body. Unauthorized callers remain rejected. The admin dashboard checks both HTTP status and the result's `success` field, shows partial-source errors even when some sitemaps were refreshed, and refreshes its status from persistent metadata.
+`POST /api/system/sitemap/generate` remains available to an authorized admin or cron caller. A complete run is recorded as `COMPLETE` and returns HTTP 200. A run with one or more source errors but at least one available sitemap is recorded as `PARTIAL` and returns HTTP 503. A run unable to publish any usable sitemap is recorded as `FAILED` and returns HTTP 503. In both non-success cases, retain the structured result body, including whether the previous snapshot remains published. Unauthorized callers remain rejected. The admin dashboard checks both HTTP status and the result status, shows partial-source errors even when some sitemaps were refreshed, and refreshes its status from persistent metadata.
 
 `GET /api/system/sitemap/status` reports persisted sitemap artifacts and the latest generation outcome, not per-process filesystem state. Cache health is based on persisted artifact timestamps/version and reports stale, missing, or current explicitly. The public index and all existing child URLs remain valid.
 
@@ -44,27 +44,35 @@ The public route reads its requested artifact from shared storage. If an artifac
 - A stale artifact is preserved per type when only that source fails; successful independent sitemap types may still be refreshed.
 - Index generation is atomic with child-artifact writes and references only persisted, available child artifacts.
 - If no valid artifact exists for a failed source, omit it from the index and surface the source error; do not publish an empty replacement merely to satisfy the index.
-- If shared artifact storage is unavailable, the service may serve a known local stale copy but must report/ log the degraded fallback. Without any cached copy, return 503 and `Retry-After`.
+- If shared artifact storage is unavailable, the service may serve a known local stale copy up to seven days old but must log the degraded fallback. Without any acceptable cached copy, return 503 and `Retry-After: 300`.
 - Public GETs never expose sensitive generation error details; the admin status endpoint receives structured diagnostics.
 - Manual regeneration must not display a success state when any source failed.
 
 ## Persistence and implementation units
 
-- Add a Prisma model and migration for persistent sitemap artifacts keyed by sitemap type, with XML, URL count, generated-at timestamp, and format version.
-- Persist latest generation metadata in a bounded singleton/keyed record that can represent complete, partial, and failed runs, per-source errors, and run duration.
+- Add Prisma models and a migration for immutable sitemap generation snapshots and their artifacts, plus a database sequence for generation start order. Persist a current-generation pointer with compare-and-swap ordering so concurrent runs cannot publish a mixed snapshot or let an older run overwrite a newer one.
+- Persist generation state as `COMPLETE`, `PARTIAL`, or `FAILED`, with per-source errors, run duration, and whether a prior generation remains published. Do not backfill instance-local files: they may differ by process and are not a trustworthy shared snapshot.
 - Update `sitemapService` to read/write shared artifacts, preserve failed-source artifacts, validate generated XML and index membership, and retain the local filesystem only as a best-effort fallback.
 - Update public route handlers to serve the shared artifact, trigger generation when required, return consistent retryable failure responses, and use bounded cache headers.
 - Update generation/status APIs and the admin sitemap dashboard to represent partial and total failures accurately.
 - Add focused unit/API tests for durable reads across cache-directory absence, atomic index/artifact consistency, source-specific failure preservation, all-source failures, missing first-run artifacts, cache expiry, status authorization, and dashboard/API failure signaling.
 
+## Rollout
+
+1. Apply the additive database migration before deploying code that reads the new tables.
+2. Deploy the shared-store reader/writer. It serves only snapshots published through the current-generation pointer; it does not import ignored local files into shared storage.
+3. Trigger an authorized generation after deployment and verify the index and each referenced public child sitemap. Until the first snapshot is published, a public request may trigger generation; if the database/source queries are unavailable and no acceptable local fallback exists, it returns 503 rather than an empty index.
+4. During mixed-version rollout, old instances may continue using their local cache, but new instances use only the database snapshot as authoritative. Complete rollout and one successful generation before treating sitemap state as converged. The five-minute shared-cache freshness lifetime bounds old CDN copies after convergence; `must-revalidate` prevents stale serving beyond that lifetime, and local emergency fallback responses are marked no-store.
+5. Keep local fallback support for up to seven days for temporary shared-store outages; remove it only in a later change after production confirms it is unused.
+
 ## Verification and acceptance criteria
 
-1. A successful run persists every available sitemap and its index so another app process can serve identical XML without access to the generating process's filesystem.
+1. A successful run publishes an immutable snapshot containing every available sitemap and its index so another app process can serve identical XML without access to the generating process's filesystem.
 2. Dynamic query errors never overwrite a previously valid sitemap with an empty or partial file.
 3. A failed source with no prior artifact is omitted from the index and is reported as unavailable.
-4. Partial results are visible as failure/degraded status; the generation API and admin dashboard never label a partial run as fully successful.
-5. The sitemap index references only artifacts present in shared storage after the generation transaction completes.
+4. Partial results are visible as `PARTIAL`; the generation API returns 503 and the admin dashboard never labels the run fully successful.
+5. The sitemap index references only artifacts present in the same published snapshot after the pointer-swap transaction commits.
 6. Public routes serve XML from shared storage with the expected content type; no artifact plus unavailable generation returns 503 with retry guidance.
 7. Existing sitemap types, canonical URLs, route paths, robots.txt sitemap location, and public visibility filtering remain intact.
-8. Cache expiry/regeneration and bounded downstream caching allow successful output to become visible without waiting for the previous 24-hour public-cache lifetime.
+8. Public shared-cache freshness is at most five minutes with no stale-while-revalidate allowance, and local outage fallback is no older than seven days and is not cached downstream.
 9. Focused service/API tests and applicable Prisma, lint, and production build checks pass.
