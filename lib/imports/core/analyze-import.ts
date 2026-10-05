@@ -252,29 +252,29 @@ async function performBackgroundAnalysis(
         }),
       )
 
-      await (prisma as any).$transaction(async (tx: any) => {
-        for (let resultIndex = 0; resultIndex < batchResults.length; resultIndex += 1) {
-          const { record, normalized, canonicalResult, canonical, recordWarnings, recordErrors, status } = batchResults[resultIndex]
-          const issueRows = [
-            ...recordWarnings.map((message: string) => ({
-              batchId: batch.id,
-              recordId: record.id,
-              stage: 'ANALYSIS',
-              severity: 'WARNING',
-              code: NON_BLOCKING_WARNINGS.some((code) => message.includes(code)) ? 'DATA_QUALITY_INFO' : 'QUALITY_WARNING',
-              message,
-            })),
-            ...recordErrors.map((message: string) => ({
-              batchId: batch.id,
-              recordId: record.id,
-              stage: 'ANALYSIS',
-              severity: 'ERROR',
-              code: 'CANONICAL_VALIDATION',
-              message,
-            })),
-          ]
+      for (const result of batchResults) {
+        const { record, normalized, canonicalResult, canonical, recordWarnings, recordErrors, status } = result
+        const issueRows = [
+          ...recordWarnings.map((message: string) => ({
+            batchId: batch.id,
+            recordId: record.id,
+            stage: 'ANALYSIS',
+            severity: 'WARNING',
+            code: NON_BLOCKING_WARNINGS.some((code) => message.includes(code)) ? 'DATA_QUALITY_INFO' : 'QUALITY_WARNING',
+            message,
+          })),
+          ...recordErrors.map((message: string) => ({
+            batchId: batch.id,
+            recordId: record.id,
+            stage: 'ANALYSIS',
+            severity: 'ERROR',
+            code: 'CANONICAL_VALIDATION',
+            message,
+          })),
+        ]
 
-          await refreshImportAnalysisHeartbeat(tx, batch.id, attemptId, processedCount + resultIndex + 1)
+        await (prisma as any).$transaction(async (tx: any) => {
+          await refreshImportAnalysisHeartbeat(tx, batch.id, attemptId, processedCount + 1)
           await tx.importRecord.update({
             where: { id: record.id },
             data: {
@@ -293,15 +293,16 @@ async function performBackgroundAnalysis(
             where: { batchId: batch.id, recordId: record.id, stage: 'ANALYSIS', resolutionState: 'OPEN' },
           })
           if (issueRows.length) await tx.importIssue.createMany({ data: issueRows })
-        }
-      })
+        })
+
+        processedCount += 1
+      }
 
       for (const result of batchResults) {
         if (result.status === 'READY') ready += 1
         if (result.status === 'WARNING') warnings += 1
         if (result.status === 'ERROR') errors += 1
       }
-      processedCount += batchResults.length
     }
 
     const nextStatus = errors > 0 || warnings > 0 ? 'READY_FOR_REVIEW' : 'READY_TO_COMMIT'

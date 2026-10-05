@@ -182,6 +182,7 @@ describe('import batch analysis', () => {
     })
 
     expect(mockedPrisma.$transaction).toHaveBeenCalledTimes(1)
+    expect(tx.$executeRaw.mock.calls[0][1]).toBe(1)
     expect(tx.importRecord.update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: 'record-1' },
       data: expect.objectContaining({
@@ -209,6 +210,74 @@ describe('import batch analysis', () => {
         status: 'READY_FOR_REVIEW',
         analysisAttemptId: null,
         warningCount: 1,
+      }),
+    }))
+  })
+
+  it('checkpoints each analyzed record in its own transaction and advances progress per commit', async () => {
+    adapter.normalize.mockReturnValue({ normalized: {}, warnings: [], errors: [] })
+    adapter.mapCanonical.mockReturnValue({ canonical: {}, warnings: [], errors: [], fieldConfidence: {} })
+    mockedPrisma.importBatch.findUnique.mockResolvedValue({
+      id: 'batch-1',
+      entityType: 'PROPERTY',
+      status: 'ANALYZING',
+      mode: 'PARTIAL',
+      totalRecords: 2,
+      adapterVersion: 1,
+    })
+    mockedPrisma.importRecord.findMany.mockResolvedValue([
+      { id: 'record-1', sourceRow: 1, sourcePath: null, rawPayload: { title: 'First home' } },
+      { id: 'record-2', sourceRow: 2, sourcePath: null, rawPayload: { title: 'Second home' } },
+    ])
+
+    await expect(analyzeImportBatch({
+      batchId: 'batch-1',
+      requestMode: 'RECOVER',
+      waitForCompletion: true,
+    })).resolves.toMatchObject({
+      status: 'READY_TO_COMMIT',
+      total: 2,
+      ready: 2,
+      warnings: 0,
+      errors: 0,
+    })
+
+    expect(mockedPrisma.$transaction).toHaveBeenCalledTimes(2)
+    expect(tx.$executeRaw.mock.calls.map((call) => call[1])).toEqual([1, 2])
+    expect(tx.importRecord.update.mock.calls.map((call) => call[0].where.id)).toEqual(['record-1', 'record-2'])
+    expect(tx.importIssue.deleteMany).toHaveBeenCalledTimes(2)
+  })
+
+  it('fails the analysis when a row checkpoint transaction fails', async () => {
+    mockedPrisma.importBatch.findUnique.mockResolvedValue({
+      id: 'batch-1',
+      entityType: 'PROPERTY',
+      status: 'ANALYZING',
+      mode: 'PARTIAL',
+      totalRecords: 2,
+      adapterVersion: 1,
+    })
+    mockedPrisma.importRecord.findMany.mockResolvedValue([
+      { id: 'record-1', sourceRow: 1, sourcePath: null, rawPayload: { title: 'First home' } },
+      { id: 'record-2', sourceRow: 2, sourcePath: null, rawPayload: { title: 'Second home' } },
+    ])
+    mockedPrisma.$transaction.mockImplementationOnce((work: (transaction: typeof tx) => unknown) => work(tx))
+      .mockImplementationOnce(() => Promise.reject(new Error('Transaction API error: Transaction not found')))
+
+    await expect(analyzeImportBatch({
+      batchId: 'batch-1',
+      requestMode: 'RECOVER',
+      waitForCompletion: true,
+    })).rejects.toThrow('Transaction API error: Transaction not found')
+
+    expect(mockedPrisma.$transaction).toHaveBeenCalledTimes(2)
+    expect(tx.importRecord.update).toHaveBeenCalledTimes(1)
+    expect(tx.$executeRaw.mock.calls.map((call) => call[1])).toEqual([1])
+    expect(mockedPrisma.importBatch.updateMany).toHaveBeenLastCalledWith(expect.objectContaining({
+      where: { id: 'batch-1', status: 'ANALYZING', analysisAttemptId: expect.any(String) },
+      data: expect.objectContaining({
+        status: 'FAILED',
+        failureSummary: { stage: 'ANALYSIS', message: 'Transaction API error: Transaction not found' },
       }),
     }))
   })
