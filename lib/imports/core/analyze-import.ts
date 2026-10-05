@@ -5,7 +5,6 @@ import {
   ImportAnalysisOwnershipError,
   claimImportAnalysisAttempt,
   markImportAnalysisRetrying,
-  refreshImportAnalysisHeartbeat,
   releaseImportAnalysisAttempt,
 } from './analysis-lock'
 import { canTransition } from './state-machine'
@@ -20,7 +19,6 @@ type AnalysisSummary = {
 }
 
 type AnalysisRequestMode = 'START' | 'RECOVER' | 'RETRY'
-const ANALYSIS_RECORD_TRANSACTION_TIMEOUT_MS = 30_000
 const MAX_ANALYSIS_RECORD_TRANSACTION_RETRIES = 2
 
 export class ImportAnalysisConflictError extends Error {
@@ -280,38 +278,97 @@ async function performBackgroundAnalysis(
         ]
 
         const targetProcessedCount = processedCount + 1
-        let transactionRetryCount = 0
+        const normalizedPayloadJson = normalized.normalized == null ? null : JSON.stringify(normalized.normalized)
+        const canonicalPayloadJson = canonical == null ? null : JSON.stringify(canonical)
+        const overallConfidence = Object.values(canonicalResult.fieldConfidence || {}).length
+          ? Object.values(canonicalResult.fieldConfidence || {}).reduce((sum: number, value: any) => sum + (typeof value === 'number' ? value : 0), 0) / Object.values(canonicalResult.fieldConfidence || {}).length
+          : null
+        let checkpointRetryCount = 0
         while (true) {
           try {
-            await (prisma as any).$transaction(async (tx: any) => {
-              await refreshImportAnalysisHeartbeat(tx, batch.id, attemptId, targetProcessedCount)
-              await tx.importRecord.update({
-                where: { id: record.id },
-                data: {
-                  normalizedPayload: normalized.normalized,
-                  canonicalPayload: canonical,
-                  status,
-                  ownershipPolicy: ownerAgentId && !String((normalized.normalized as any)?.agentId || '').trim()
-                    ? 'configured-owner-agent'
-                    : 'source-agent',
-                  overallConfidence: Object.values(canonicalResult.fieldConfidence || {}).length
-                    ? Object.values(canonicalResult.fieldConfidence || {}).reduce((sum: number, value: any) => sum + (typeof value === 'number' ? value : 0), 0) / Object.values(canonicalResult.fieldConfidence || {}).length
-                    : null,
-                },
-              })
-              await tx.importIssue.deleteMany({
-                where: { batchId: batch.id, recordId: record.id, stage: 'ANALYSIS', resolutionState: 'OPEN' },
-              })
-              if (issueRows.length) await tx.importIssue.createMany({ data: issueRows })
-            }, { timeout: ANALYSIS_RECORD_TRANSACTION_TIMEOUT_MS })
+            const checkpoint = await (prisma as any).$queryRaw`
+              /* import_analysis_record_checkpoint */
+              WITH ownership AS MATERIALIZED (
+                SELECT "id"
+                FROM "import_batches"
+                WHERE "id" = ${batch.id}
+                  AND "status" = 'ANALYZING'
+                  AND "analysis_attempt_id" = ${attemptId}
+                FOR UPDATE
+              ),
+              record_updated AS (
+                UPDATE "import_records" AS record
+                SET "normalized_payload" = ${normalizedPayloadJson}::jsonb,
+                    "canonical_payload" = ${canonicalPayloadJson}::jsonb,
+                    "status" = ${status}::"ImportRecordStatus",
+                    "ownership_policy" = ${ownerAgentId && !String((normalized.normalized as any)?.agentId || '').trim()
+                      ? 'configured-owner-agent'
+                      : 'source-agent'},
+                    "overall_confidence" = ${overallConfidence},
+                    "updated_at" = clock_timestamp()
+                FROM ownership
+                WHERE record."id" = ${record.id}
+                  AND record."batch_id" = ${batch.id}
+                RETURNING record."id"
+              ),
+              issues_deleted AS (
+                DELETE FROM "import_issues" AS issue
+                USING record_updated
+                WHERE issue."batch_id" = ${batch.id}
+                  AND issue."record_id" = record_updated."id"
+                  AND issue."stage" = 'ANALYSIS'
+                  AND issue."resolution_state" = 'OPEN'
+                RETURNING issue."id"
+              ),
+              issues_inserted AS (
+                INSERT INTO "import_issues" (
+                  "batch_id", "record_id", "stage", "severity", "code", "message"
+                )
+                SELECT
+                  ${batch.id},
+                  record_updated."id",
+                  issue_row."stage",
+                  issue_row."severity"::"ImportIssueSeverity",
+                  issue_row."code",
+                  issue_row."message"
+                FROM record_updated
+                CROSS JOIN (SELECT count(*) FROM issues_deleted) AS deleted_issues
+                CROSS JOIN LATERAL jsonb_to_recordset(${JSON.stringify(issueRows)}::jsonb)
+                  AS issue_row("stage" text, "severity" text, "code" text, "message" text)
+                RETURNING "id"
+              ),
+              progress_updated AS (
+                UPDATE "import_batches" AS batch_progress
+                SET "analysis_heartbeat_at" = clock_timestamp(),
+                    "analysis_processed_count" = ${targetProcessedCount}
+                WHERE batch_progress."id" = ${batch.id}
+                  AND batch_progress."status" = 'ANALYZING'
+                  AND batch_progress."analysis_attempt_id" = ${attemptId}
+                  AND EXISTS (SELECT 1 FROM record_updated)
+                  AND (SELECT count(*) FROM issues_inserted) >= 0
+                RETURNING batch_progress."id"
+              )
+              SELECT
+                EXISTS (SELECT 1 FROM ownership) AS "ownershipMatched",
+                EXISTS (SELECT 1 FROM record_updated) AS "recordMatched",
+                EXISTS (SELECT 1 FROM progress_updated) AS "progressUpdated"
+            `
+            const checkpointResult = checkpoint[0]
+            if (!checkpointResult?.ownershipMatched) throw new ImportAnalysisOwnershipError()
+            if (!checkpointResult.recordMatched) {
+              throw new Error(`Import analysis record ${record.id} was not found in batch ${batch.id}.`)
+            }
+            if (!checkpointResult.progressUpdated) {
+              throw new Error(`Import analysis progress could not be checkpointed for batch ${batch.id}.`)
+            }
             break
           } catch (error) {
-            if (!isPrismaTransactionExpired(error) || transactionRetryCount >= MAX_ANALYSIS_RECORD_TRANSACTION_RETRIES) {
+            if (!isPrismaTransactionExpired(error) || checkpointRetryCount >= MAX_ANALYSIS_RECORD_TRANSACTION_RETRIES) {
               throw error
             }
-            transactionRetryCount += 1
+            checkpointRetryCount += 1
             console.warn(
-              `[Background Analysis] Retrying expired transaction for batch ${batch.id}, record ${record.id} (attempt ${transactionRetryCount}/${MAX_ANALYSIS_RECORD_TRANSACTION_RETRIES}).`,
+              `[Background Analysis] Retrying expired checkpoint for batch ${batch.id}, record ${record.id} (attempt ${checkpointRetryCount}/${MAX_ANALYSIS_RECORD_TRANSACTION_RETRIES}).`,
             )
           }
         }

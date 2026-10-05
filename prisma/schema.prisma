@@ -4755,6 +4755,7 @@ model ImportIssue {
   record ImportRecord? @relation(fields: [recordId], references: [id], onDelete: Cascade)
 
   @@index([batchId, severity, resolutionState])
+  @@index([batchId, recordId, stage, resolutionState], map: "import_issues_analysis_checkpoint_idx")
   @@index([recordId])
   @@map("import_issues")
 }

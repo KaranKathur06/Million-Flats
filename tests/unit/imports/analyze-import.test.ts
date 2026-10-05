@@ -3,10 +3,8 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals'
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     $queryRaw: jest.fn(),
-    $transaction: jest.fn(),
     importBatch: { findUnique: jest.fn(), update: jest.fn(), updateMany: jest.fn() },
     importRecord: { findMany: jest.fn() },
-    importIssue: { deleteMany: jest.fn(), createMany: jest.fn() },
   },
 }))
 
@@ -25,6 +23,7 @@ import { prisma } from '@/lib/prisma'
 
 const mockedPrisma = prisma as any
 const mockedGetAdapter = getImportAdapterForEntity as jest.MockedFunction<typeof getImportAdapterForEntity>
+let checkpointQuery: (...args: any[]) => Promise<any>
 const adapter = {
   adapterVersion: 1,
   suggestMappings: jest.fn(() => []),
@@ -33,26 +32,22 @@ const adapter = {
   validate: jest.fn(() => ({ ready: true, warnings: [], errors: [] })),
   resolveRelations: jest.fn(async () => ({ ready: true, warnings: [], errors: [] })),
 }
-const tx = {
-  $executeRaw: jest.fn<(...args: any[]) => Promise<number>>(),
-  importRecord: { update: jest.fn<(...args: any[]) => Promise<any>>() },
-  importIssue: {
-    deleteMany: jest.fn<(...args: any[]) => Promise<any>>(),
-    createMany: jest.fn<(...args: any[]) => Promise<any>>(),
-  },
-}
-
 describe('import batch analysis', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockedPrisma.$queryRaw.mockResolvedValue([{ id: 'batch-1' }])
-    mockedPrisma.$transaction.mockImplementation((work: (transaction: typeof tx) => unknown) => work(tx))
+    checkpointQuery = async () => [{
+      ownershipMatched: true,
+      recordMatched: true,
+      progressUpdated: true,
+    }]
+    mockedPrisma.$queryRaw.mockImplementation((strings: TemplateStringsArray, ...values: any[]) => {
+      if (strings.join('').includes('import_analysis_record_checkpoint')) {
+        return checkpointQuery(strings, ...values)
+      }
+      return Promise.resolve([{ id: 'batch-1' }])
+    })
     mockedPrisma.importBatch.updateMany.mockResolvedValue({ count: 1 })
     mockedPrisma.importRecord.findMany.mockResolvedValue([])
-    tx.$executeRaw.mockResolvedValue(1)
-    tx.importRecord.update.mockResolvedValue({})
-    tx.importIssue.deleteMany.mockResolvedValue({ count: 0 })
-    tx.importIssue.createMany.mockResolvedValue({ count: 0 })
     mockedGetAdapter.mockReturnValue(adapter as any)
   })
 
@@ -181,29 +176,22 @@ describe('import batch analysis', () => {
       warnings: 1,
     })
 
-    expect(mockedPrisma.$transaction).toHaveBeenCalledTimes(1)
-    expect(tx.$executeRaw.mock.calls[0][1]).toBe(1)
-    expect(tx.importRecord.update).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: 'record-1' },
-      data: expect.objectContaining({
-        canonicalPayload: { agentId: 'owner-1' },
-        ownershipPolicy: 'configured-owner-agent',
-        status: 'WARNING',
-      }),
-    }))
-    expect(tx.importIssue.deleteMany).toHaveBeenCalledWith({
-      where: { batchId: 'batch-1', recordId: 'record-1', stage: 'ANALYSIS', resolutionState: 'OPEN' },
-    })
-    expect(tx.importIssue.createMany).toHaveBeenCalledWith({
-      data: [{
-        batchId: 'batch-1',
-        recordId: 'record-1',
-        stage: 'ANALYSIS',
-        severity: 'WARNING',
-        code: 'QUALITY_WARNING',
-        message: 'QUALITY_WARNING: verify details',
-      }],
-    })
+    const checkpointCalls = mockedPrisma.$queryRaw.mock.calls.filter((call: any[]) =>
+      call[0].join('').includes('import_analysis_record_checkpoint'),
+    )
+    expect(checkpointCalls).toHaveLength(1)
+    expect(checkpointCalls[0][0].join('')).toContain('"canonical_payload"')
+    expect(checkpointCalls[0][0].join('')).toContain('DELETE FROM "import_issues"')
+    expect(checkpointCalls[0][0].join('')).toContain('INSERT INTO "import_issues"')
+    expect(checkpointCalls[0].slice(1)).toContain(JSON.stringify({ agentId: 'owner-1' }))
+    expect(checkpointCalls[0].slice(1)).toContain(JSON.stringify([{
+      batchId: 'batch-1',
+      recordId: 'record-1',
+      stage: 'ANALYSIS',
+      severity: 'WARNING',
+      code: 'QUALITY_WARNING',
+      message: 'QUALITY_WARNING: verify details',
+    }]))
     expect(mockedPrisma.importBatch.updateMany).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: 'batch-1', status: 'ANALYZING', analysisAttemptId: expect.any(String) },
       data: expect.objectContaining({
@@ -214,7 +202,7 @@ describe('import batch analysis', () => {
     }))
   })
 
-  it('checkpoints each analyzed record in its own transaction and advances progress per commit', async () => {
+  it('checkpoints each analyzed record with its own atomic statement and absolute progress value', async () => {
     adapter.normalize.mockReturnValue({ normalized: {}, warnings: [], errors: [] })
     adapter.mapCanonical.mockReturnValue({ canonical: {}, warnings: [], errors: [], fieldConfidence: {} })
     mockedPrisma.importBatch.findUnique.mockResolvedValue({
@@ -242,13 +230,17 @@ describe('import batch analysis', () => {
       errors: 0,
     })
 
-    expect(mockedPrisma.$transaction).toHaveBeenCalledTimes(2)
-    expect(tx.$executeRaw.mock.calls.map((call) => call[1])).toEqual([1, 2])
-    expect(tx.importRecord.update.mock.calls.map((call) => call[0].where.id)).toEqual(['record-1', 'record-2'])
-    expect(tx.importIssue.deleteMany).toHaveBeenCalledTimes(2)
+    const checkpointCalls = mockedPrisma.$queryRaw.mock.calls.filter((call: any[]) =>
+      call[0].join('').includes('import_analysis_record_checkpoint'),
+    )
+    expect(checkpointCalls).toHaveLength(2)
+    expect(checkpointCalls[0][0].join('')).toContain('FOR UPDATE')
+    expect(checkpointCalls[0][0].join('')).toContain('progress_updated')
+    expect(checkpointCalls[0].slice(1)).toContain(1)
+    expect(checkpointCalls[1].slice(1)).toContain(2)
   })
 
-  it('fails the analysis when a row checkpoint transaction fails', async () => {
+  it('fails the analysis after checkpoint P2028 retries are exhausted', async () => {
     mockedPrisma.importBatch.findUnique.mockResolvedValue({
       id: 'batch-1',
       entityType: 'PROPERTY',
@@ -261,8 +253,11 @@ describe('import batch analysis', () => {
       { id: 'record-1', sourceRow: 1, sourcePath: null, rawPayload: { title: 'First home' } },
       { id: 'record-2', sourceRow: 2, sourcePath: null, rawPayload: { title: 'Second home' } },
     ])
-    mockedPrisma.$transaction.mockImplementationOnce((work: (transaction: typeof tx) => unknown) => work(tx))
-      .mockImplementationOnce(() => Promise.reject(new Error('Transaction API error: Transaction not found')))
+    const expiredTransaction = Object.assign(
+      new Error('Transaction API error: Transaction not found'),
+      { code: 'P2028' },
+    )
+    checkpointQuery = async () => { throw expiredTransaction }
 
     await expect(analyzeImportBatch({
       batchId: 'batch-1',
@@ -270,9 +265,10 @@ describe('import batch analysis', () => {
       waitForCompletion: true,
     })).rejects.toThrow('Transaction API error: Transaction not found')
 
-    expect(mockedPrisma.$transaction).toHaveBeenCalledTimes(2)
-    expect(tx.importRecord.update).toHaveBeenCalledTimes(1)
-    expect(tx.$executeRaw.mock.calls.map((call) => call[1])).toEqual([1])
+    const checkpointCalls = mockedPrisma.$queryRaw.mock.calls.filter((call: any[]) =>
+      call[0].join('').includes('import_analysis_record_checkpoint'),
+    )
+    expect(checkpointCalls).toHaveLength(3)
     expect(mockedPrisma.importBatch.updateMany).toHaveBeenLastCalledWith(expect.objectContaining({
       where: { id: 'batch-1', status: 'ANALYZING', analysisAttemptId: expect.any(String) },
       data: expect.objectContaining({
@@ -282,7 +278,7 @@ describe('import batch analysis', () => {
     }))
   })
 
-  it('retries P2028 in a fresh transaction with the same absolute progress checkpoint', async () => {
+  it('retries P2028 as a fresh atomic statement with the same absolute progress checkpoint', async () => {
     adapter.normalize.mockReturnValue({ normalized: {}, warnings: [], errors: [] })
     adapter.mapCanonical.mockReturnValue({ canonical: {}, warnings: [], errors: [], fieldConfidence: {} })
     mockedPrisma.importBatch.findUnique.mockResolvedValue({
@@ -298,12 +294,12 @@ describe('import batch analysis', () => {
     ])
     const expiredTransaction = Object.assign(new Error('Transaction expired'), { code: 'P2028' })
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
-    mockedPrisma.$transaction
-      .mockImplementationOnce(async (work: (transaction: typeof tx) => unknown) => {
-        await work(tx)
-        throw expiredTransaction
-      })
-      .mockImplementationOnce((work: (transaction: typeof tx) => unknown) => work(tx))
+    let callCount = 0
+    checkpointQuery = async () => {
+      callCount += 1
+      if (callCount === 1) throw expiredTransaction
+      return [{ ownershipMatched: true, recordMatched: true, progressUpdated: true }]
+    }
 
     try {
       await expect(analyzeImportBatch({
@@ -316,12 +312,12 @@ describe('import batch analysis', () => {
         ready: 1,
       })
 
-      expect(mockedPrisma.$transaction).toHaveBeenCalledTimes(2)
-      expect(mockedPrisma.$transaction.mock.calls.map((call) => call[1])).toEqual([
-        { timeout: 30_000 },
-        { timeout: 30_000 },
-      ])
-      expect(tx.$executeRaw.mock.calls.map((call) => call[1])).toEqual([1, 1])
+      const checkpointCalls = mockedPrisma.$queryRaw.mock.calls.filter((call: any[]) =>
+        call[0].join('').includes('import_analysis_record_checkpoint'),
+      )
+      expect(checkpointCalls).toHaveLength(2)
+      expect(checkpointCalls[0].slice(1)).toEqual(checkpointCalls[1].slice(1))
+      expect(checkpointCalls[0][0].join('')).toContain('analysis_processed_count')
     } finally {
       warn.mockRestore()
     }
@@ -339,14 +335,13 @@ describe('import batch analysis', () => {
     mockedPrisma.importRecord.findMany.mockResolvedValue([
       { id: 'record-1', sourceRow: 1, sourcePath: null, rawPayload: { title: 'Home' } },
     ])
-    tx.$executeRaw.mockResolvedValueOnce(1).mockResolvedValueOnce(0)
     const expiredTransaction = Object.assign(new Error('Transaction expired'), { code: 'P2028' })
-    mockedPrisma.$transaction
-      .mockImplementationOnce(async (work: (transaction: typeof tx) => unknown) => {
-        await work(tx)
-        throw expiredTransaction
-      })
-      .mockImplementationOnce((work: (transaction: typeof tx) => unknown) => work(tx))
+    let callCount = 0
+    checkpointQuery = async () => {
+      callCount += 1
+      if (callCount === 1) throw expiredTransaction
+      return [{ ownershipMatched: false, recordMatched: false, progressUpdated: false }]
+    }
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
 
     try {
@@ -356,13 +351,51 @@ describe('import batch analysis', () => {
         waitForCompletion: true,
       })).rejects.toThrow('Import analysis attempt lost ownership.')
 
-      expect(mockedPrisma.$transaction).toHaveBeenCalledTimes(2)
-      expect(tx.importRecord.update).toHaveBeenCalledTimes(1)
-      expect(tx.importIssue.deleteMany).toHaveBeenCalledTimes(1)
+      const checkpointCalls = mockedPrisma.$queryRaw.mock.calls.filter((call: any[]) =>
+        call[0].join('').includes('import_analysis_record_checkpoint'),
+      )
+      expect(checkpointCalls).toHaveLength(2)
       expect(mockedPrisma.importBatch.updateMany).not.toHaveBeenCalled()
     } finally {
       warn.mockRestore()
     }
+  })
+
+  it('fails explicitly when the checkpoint cannot find the analyzed record', async () => {
+    mockedPrisma.importBatch.findUnique.mockResolvedValue({
+      id: 'batch-1',
+      entityType: 'PROPERTY',
+      status: 'ANALYZING',
+      mode: 'PARTIAL',
+      totalRecords: 1,
+      adapterVersion: 1,
+    })
+    mockedPrisma.importRecord.findMany.mockResolvedValue([
+      { id: 'record-1', sourceRow: 1, sourcePath: null, rawPayload: { title: 'Home' } },
+    ])
+    checkpointQuery = async () => [{
+      ownershipMatched: true,
+      recordMatched: false,
+      progressUpdated: false,
+    }]
+
+    await expect(analyzeImportBatch({
+      batchId: 'batch-1',
+      requestMode: 'RECOVER',
+      waitForCompletion: true,
+    })).rejects.toThrow('Import analysis record record-1 was not found in batch batch-1.')
+
+    const checkpointCalls = mockedPrisma.$queryRaw.mock.calls.filter((call: any[]) =>
+      call[0].join('').includes('import_analysis_record_checkpoint'),
+    )
+    expect(checkpointCalls).toHaveLength(1)
+    expect(checkpointCalls[0][0].join('')).toContain('AND EXISTS (SELECT 1 FROM record_updated)')
+    expect(mockedPrisma.importBatch.updateMany).toHaveBeenLastCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        status: 'FAILED',
+        failureSummary: expect.objectContaining({ stage: 'ANALYSIS' }),
+      }),
+    }))
   })
 
   it('stops after two P2028 retries and records the failure', async () => {
@@ -378,7 +411,7 @@ describe('import batch analysis', () => {
       { id: 'record-1', sourceRow: 1, sourcePath: null, rawPayload: { title: 'Home' } },
     ])
     const expiredTransaction = Object.assign(new Error('Transaction expired'), { code: 'P2028' })
-    mockedPrisma.$transaction.mockRejectedValue(expiredTransaction)
+    checkpointQuery = async () => { throw expiredTransaction }
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
 
     try {
@@ -388,7 +421,10 @@ describe('import batch analysis', () => {
         waitForCompletion: true,
       })).rejects.toThrow('Transaction expired')
 
-      expect(mockedPrisma.$transaction).toHaveBeenCalledTimes(3)
+      const checkpointCalls = mockedPrisma.$queryRaw.mock.calls.filter((call: any[]) =>
+        call[0].join('').includes('import_analysis_record_checkpoint'),
+      )
+      expect(checkpointCalls).toHaveLength(3)
       expect(mockedPrisma.importBatch.updateMany).toHaveBeenLastCalledWith(expect.objectContaining({
         where: { id: 'batch-1', status: 'ANALYZING', analysisAttemptId: expect.any(String) },
         data: expect.objectContaining({
