@@ -2,32 +2,36 @@
 
 ## Context and problem
 
-Background import analysis calculates records in groups of 15, then persists all results for a group inside one Prisma interactive transaction. For each record, that transaction conditionally refreshes the attempt heartbeat, updates the record, deletes its open analysis issues, and creates replacement issues. These operations run sequentially. On large imports or a slower database, the transaction can exceed Prisma's default interactive-transaction timeout and expire before a later record update, surfacing `P2028` ("Transaction not found"). Results from the expired transaction roll back together, and the analysis attempt is marked failed.
+Background import analysis calculates records in groups of 15 and checkpoints results one record at a time. Even after bounding transactions to a single record and retrying `P2028`, production still reports the transaction as expired while running `importIssue.deleteMany()`. The checkpoint currently makes several sequential Prisma calls inside an interactive transaction: ownership heartbeat, record update, issue deletion, and replacement issue creation. This leaves a transaction-client lifetime between calls and the issue lookup lacks an index covering its full filter.
 
 ## Goals and boundaries
 
-- Bound the duration of each analysis persistence transaction independently of the number of records in an analysis group.
+- Remove the multi-call Prisma interactive transaction from each analysis checkpoint.
+- Make ownership validation, the record result, and replacement issues atomic.
+- Index the issue replacement filter.
 - Preserve atomicity among an individual record's heartbeat/ownership check, record result, and replacement analysis issues.
 - Preserve attempt ownership enforcement and the existing failure/retry behavior.
 - Keep analysis calculations parallelized in groups of 15.
 
-This change does not alter analysis rules, issue shapes, schema, the stale-attempt threshold, retry UI, or commit behavior. It does not add a general transaction retry mechanism or globally increase Prisma transaction timeouts.
+This change does not alter analysis rules, issue shapes, the stale-attempt threshold, retry UI, or commit behavior. It adds only the database index migration needed for the issue selector; it does not change the data model or globally increase Prisma transaction timeouts.
 
 ## Chosen approach
 
-Continue to calculate each group of up to 15 records concurrently. After calculations complete, persist each result in its own interactive transaction rather than wrapping the entire group in one transaction. Each transaction conditionally refreshes the attempt heartbeat and processed count, writes the `ImportRecord` result, deletes that record's open analysis issues, and inserts its replacement issues. The ownership heartbeat and all writes for that record remain atomic. Configure this transaction with a 30-second timeout so normal database contention does not close a single-record checkpoint at Prisma's default interactive-transaction deadline.
+Continue to calculate each group of up to 15 records concurrently. For each result, execute one parameterized PostgreSQL data-modifying CTE statement through Prisma's raw query API. Explicitly order the dependencies: (1) an ownership CTE conditionally updates the batch heartbeat for the current attempt, acquiring the batch row lock; (2) a record CTE updates the matching batch/record only when the ownership CTE returned a row; (3) an issue-delete CTE deletes that record's open `ANALYSIS` issues only when the record CTE returned a row; (4) an issue-insert CTE inserts replacement issue rows after the delete CTE completes; and (5) a final progress CTE sets the absolute processed count only when ownership and record match are confirmed and after the issue-insert CTE has been consumed. The final CTE must depend on the issue CTE through an aggregate/subquery so it is still evaluated when there are zero replacement issues. Return explicit ownership and record-match indicators for distinct ownership-loss and missing-record handling. A failed ownership condition or a missing record gates all issue writes and the final progress update.
 
-For each result, compute its target processed count once from the last locally committed count, and reuse that same absolute checkpoint value for every attempt. Advance the local processed count only after a transaction reports success. The next record's heartbeat records the number of rows already durably checkpointed. If a transaction fails with Prisma error code `P2028`, retry that record at most twice, each time by starting a new transaction and rerunning its complete atomic checkpoint. Every fresh transaction first conditionally refreshes the heartbeat using the same attempt ID and absolute checkpoint count; if this ownership check fails, it aborts before any record or issue writes. Replacing all open analysis issues for that record makes a repeated checkpoint safe, including when the prior attempt's commit result was ambiguous. Reusing the same absolute count prevents a retry from double-counting progress. Do not retry ownership loss or other errors. Exhausted retries and other persistence errors continue to fail the attempt through the existing failure-recording path. Previously committed row checkpoints remain durable.
+Add a composite index on `import_issues(batch_id, record_id, stage, resolution_state)` for the delete CTE predicate `batch_id = ? AND record_id = ? AND stage = 'ANALYSIS' AND resolution_state = 'OPEN'`. The column order follows the equality-filtered columns and supports the complete lookup.
+
+For each result, compute its target processed count once from the last locally committed count. Retry a `P2028` at most twice by issuing the complete statement again, reusing the same absolute count. A missing-record result is an explicit error: it performs no record mutation, issue deletion/insertion, or progress update, and it is not treated as a successful checkpoint. If a prior statement committed but its result was ambiguous, repeating the same statement rechecks ownership, replaces (rather than duplicates) only that record's open analysis issue set with the same replacement set, and writes the same absolute progress value; it cannot increment progress or add a second copy of those issues. Advance local processed count only after a successful statement result. Every retry rechecks attempt ownership before any row or issue writes; ownership loss is not retried. Exhausted retries and other errors continue through the existing failure-recording path. Already checkpointed records remain durable.
 
 ## Trade-offs
 
-There will be more transaction begin/commit operations than in the current group transaction. In exchange, each transaction performs work for only one record, so unrelated records cannot extend its lifetime. A 30-second timeout and two bounded `P2028` retries add time for database contention and brief transaction-lifecycle failures without making the transaction unbounded. Increasing the timeout on the original group transaction was rejected: it still permits a large or slow group to expire, and a longer-lived transaction holds its database resources longer.
+The checkpoint becomes PostgreSQL-specific, consistent with the repository's configured PostgreSQL datasource and existing use of raw SQL for conditional attempt ownership. A data-modifying CTE must explicitly link its `RETURNING` results so ordering is deterministic: record update depends on the ownership CTE, issue deletion depends on the record update, and issue insertion depends on completion of the delete CTE. The entire checkpoint is one statement and therefore atomic without an interactive Prisma transaction spanning multiple client calls. The composite index adds storage and migration work but targets the exact issue lookup that production reports.
 
 ## Validation
 
-- Update focused analysis tests to assert that each record is persisted in a separate transaction and that each transaction contains its own ownership heartbeat and issue replacement.
-- Verify processed-count checkpoints advance only after successful record transactions.
-- Verify `P2028` starts a fresh transaction, is retried no more than twice, and does not advance progress before commit.
-- Verify ownership loss still aborts without releasing or overwriting another attempt's state.
-- Verify a persistence failure fails the analysis while earlier record transactions remain committed.
-- Run the focused analysis and analysis-lock tests, relevant lint/type validation, and Prisma schema validation if available.
+- Test the generated checkpoint statement's ownership gate, record update, issue deletion and insertion, and absolute progress value.
+- Verify ownership loss gates all record and issue writes and is surfaced as the existing ownership error.
+- Verify a missing record and a failed query do not produce success-shaped results.
+- Verify `P2028` retries the statement no more than twice, reuses the same progress count, and does not advance local progress before a successful result.
+- Verify the composite index exists in the Prisma schema/migration and run Prisma schema validation.
+- Run the focused analysis and analysis-lock tests plus relevant lint/type validation.
