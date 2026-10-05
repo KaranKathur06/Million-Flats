@@ -4639,6 +4639,10 @@ model ImportBatch {
   uploadedByUserId    String            @map("uploaded_by_user_id")
   uploadedAt          DateTime          @default(now()) @map("uploaded_at")
   startedAt           DateTime?         @map("started_at")
+  analysisAttemptId   String?           @map("analysis_attempt_id") @db.VarChar(64)
+  analysisHeartbeatAt DateTime?         @map("analysis_heartbeat_at")
+  analysisProcessedCount Int             @default(0) @map("analysis_processed_count")
+  analysisOwnerAgentId String?          @map("analysis_owner_agent_id")
   commitAttemptId     String?           @map("commit_attempt_id") @db.VarChar(64)
   commitHeartbeatAt   DateTime?         @map("commit_heartbeat_at")
   completedAt         DateTime?         @map("completed_at")
@@ -4786,4 +4790,3 @@ model ImportRequestIdempotency {
   @@index([createdAt])
   @@map("import_request_idempotency")
 }
-

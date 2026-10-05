@@ -24,6 +24,8 @@ describe('import batch state machine', () => {
   it('allows interrupted commit states to resume', () => {
     expect(canTransition('PARTIALLY_COMMITTED', 'COMMITTING')).toBe(true)
     expect(canTransition('FAILED', 'COMMITTING')).toBe(true)
+    expect(canTransition('FAILED', 'RETRYING')).toBe(true)
+    expect(canTransition('RETRYING', 'ANALYZING')).toBe(true)
     expect(canTransition('COMMITTING', 'COMMITTING')).toBe(true)
   })
 

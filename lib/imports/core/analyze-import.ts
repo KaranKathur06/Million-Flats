@@ -1,19 +1,14 @@
+import { randomUUID } from 'node:crypto'
 import { prisma } from '@/lib/prisma'
 import { getImportAdapterForEntity } from '@/lib/imports/registry'
+import {
+  ImportAnalysisOwnershipError,
+  claimImportAnalysisAttempt,
+  markImportAnalysisRetrying,
+  refreshImportAnalysisHeartbeat,
+  releaseImportAnalysisAttempt,
+} from './analysis-lock'
 import { canTransition } from './state-machine'
-
-/**
- * ARCHITECTURAL PATTERN: Async Background Analysis
- * 
- * Problem: 1000+ records with async DB queries can't complete in 100s HTTP timeout
- * Solution: Return immediately with ANALYZING status, process in background
- * 
- * Benefits:
- * - HTTP request completes in <1s (no timeout)
- * - Analysis happens in background with controlled concurrency
- * - Client polls status endpoint for progress
- * - Connection pool managed at 10-15 parallel queries
- */
 
 type AnalysisSummary = {
   batchId: string
@@ -24,8 +19,14 @@ type AnalysisSummary = {
   errors: number
 }
 
-// Global analysis queue to prevent concurrent analysis of same batch
-const analysisQueue = new Map<string, Promise<AnalysisSummary>>()
+type AnalysisRequestMode = 'START' | 'RECOVER' | 'RETRY'
+
+export class ImportAnalysisConflictError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ImportAnalysisConflictError'
+  }
+}
 
 function compactProjectText(value: unknown) {
   return String(value ?? '')
@@ -51,13 +52,34 @@ function inferProjectDeveloper(raw: Record<string, unknown>, records: any[]) {
   return matches.length === 1 ? matches[0] : null
 }
 
-export async function analyzeImportBatch(input: { batchId: string; ownerAgentId?: string | null; waitForCompletion?: boolean }): Promise<AnalysisSummary> {
+function summaryFromBatch(batch: any, status = String(batch.status || 'ANALYZING')): AnalysisSummary {
+  return {
+    batchId: batch.id,
+    status,
+    total: batch.totalRecords || 0,
+    ready: batch.readyCount || 0,
+    warnings: batch.warningCount || 0,
+    errors: batch.errorCount || 0,
+  }
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Import analysis failed.'
+}
+
+export async function analyzeImportBatch(input: {
+  batchId: string
+  ownerAgentId?: string | null
+  waitForCompletion?: boolean
+  requestMode?: AnalysisRequestMode
+}): Promise<AnalysisSummary> {
   const batch = await (prisma as any).importBatch.findUnique({ where: { id: input.batchId } })
   if (!batch) throw new Error('Import batch not found.')
 
   const adapter = getImportAdapterForEntity(batch.entityType)
   if (!adapter) throw new Error(`No import adapter is registered for ${batch.entityType}.`)
   const currentState = String(batch.status || 'UPLOADED')
+  const requestMode = input.requestMode || 'START'
   if (batch.adapterVersion != null && adapter.adapterVersion !== batch.adapterVersion) {
     const canUpgradeForAnalysis = ['UPLOADED', 'READY_FOR_REVIEW', 'MAPPING_REVIEW', 'NORMALIZING', 'VALIDATING', 'DUPLICATE_REVIEW', 'FAILED', 'RETRYING'].includes(currentState)
     if (!canUpgradeForAnalysis) {
@@ -69,50 +91,74 @@ export async function analyzeImportBatch(input: { batchId: string; ownerAgentId?
     })
   }
 
-  if (currentState === 'READY_TO_COMMIT') {
-    return {
-      batchId: batch.id,
-      status: currentState,
-      total: batch.totalRecords || 0,
-      ready: batch.readyCount || 0,
-      warnings: batch.warningCount || 0,
-      errors: batch.errorCount || 0,
-    }
-  }
+  if (currentState === 'READY_TO_COMMIT') return summaryFromBatch(batch, currentState)
 
-  // Check if already analyzing or queued
-  if (currentState === 'ANALYZING' || analysisQueue.has(batch.id)) {
-    return {
-      batchId: batch.id,
-      status: 'ANALYZING',
-      total: batch.totalRecords || 0,
-      ready: batch.readyCount || 0,
-      warnings: batch.warningCount || 0,
-      errors: batch.errorCount || 0,
-    }
+  if (requestMode === 'START' && currentState === 'ANALYZING') {
+    return summaryFromBatch(batch, currentState)
   }
-
-  // Transition to ANALYZING if needed
-  const needsStatusUpdate = currentState !== 'ANALYZING'
-  if (needsStatusUpdate && !canTransition(currentState as any, 'ANALYZING')) {
+  if (requestMode === 'RECOVER' && currentState !== 'ANALYZING') {
+    throw new ImportAnalysisConflictError('This batch is no longer awaiting analysis recovery. Refresh its status.')
+  }
+  if (requestMode === 'RETRY' &&
+    (!['FAILED', 'RETRYING'].includes(currentState) || (batch.failureSummary as any)?.stage !== 'ANALYSIS')) {
+    throw new ImportAnalysisConflictError('This batch does not have a retryable analysis failure. Refresh its status.')
+  }
+  if (requestMode === 'START' && !canTransition(currentState as any, 'ANALYZING')) {
+    throw new Error(`Import batch cannot transition from ${currentState} to ANALYZING.`)
+  }
+  if (requestMode === 'RETRY' && currentState === 'FAILED' &&
+    (!canTransition('FAILED', 'RETRYING') || !canTransition('RETRYING', 'ANALYZING'))) {
+    throw new Error(`Import batch cannot transition from ${currentState} to ANALYZING.`)
+  }
+  if (requestMode === 'RETRY' && currentState === 'RETRYING' && !canTransition('RETRYING', 'ANALYZING')) {
     throw new Error(`Import batch cannot transition from ${currentState} to ANALYZING.`)
   }
 
-  if (needsStatusUpdate) {
-    await (prisma as any).importBatch.update({
-      where: { id: batch.id },
-      data: { status: 'ANALYZING', startedAt: new Date() },
-    })
+  if (requestMode === 'RETRY' && currentState === 'FAILED') {
+    const retrying = await markImportAnalysisRetrying(batch.id)
+    if (!retrying) {
+      throw new ImportAnalysisConflictError('Another request has already started retrying this analysis. Refresh the batch.')
+    }
   }
 
-  // For testing: allow synchronous analysis
+  const attemptId = randomUUID()
+  const claimed = await claimImportAnalysisAttempt({
+    batchId: batch.id,
+    attemptId,
+    ownerAgentId: requestMode === 'START' ? input.ownerAgentId : null,
+    mode: requestMode,
+  })
+  if (!claimed) {
+    if (requestMode === 'RECOVER') {
+      throw new ImportAnalysisConflictError('Another analysis attempt is active or this batch is not stale yet. Refresh the batch before retrying.')
+    }
+    if (requestMode === 'RETRY') {
+      throw new ImportAnalysisConflictError('Another request has already started retrying this analysis. Refresh the batch.')
+    }
+    const latest = await (prisma as any).importBatch.findUnique({ where: { id: batch.id } })
+    if (latest?.status === 'ANALYZING') return summaryFromBatch(latest)
+    throw new ImportAnalysisConflictError('The batch changed before analysis could start. Refresh the batch.')
+  }
+
   if (input.waitForCompletion) {
-    return await performBackgroundAnalysis(batch.id, input.ownerAgentId, batch.mode)
+    const savedOwnerAgentId = requestMode === 'START'
+      ? input.ownerAgentId ?? batch.analysisOwnerAgentId
+      : batch.analysisOwnerAgentId
+    return await performBackgroundAnalysis(batch.id, attemptId, savedOwnerAgentId, batch.mode)
   }
 
-  // Production: start background analysis without waiting
-  const analysisPromise = performBackgroundAnalysis(batch.id, input.ownerAgentId, batch.mode).catch((error) => {
-    console.error(`[Background Analysis] Error analyzing batch ${batch.id}:`, error)
+  const savedOwnerAgentId = requestMode === 'START'
+    ? input.ownerAgentId ?? batch.analysisOwnerAgentId
+    : batch.analysisOwnerAgentId
+  void performBackgroundAnalysis(
+    batch.id,
+    attemptId,
+    savedOwnerAgentId,
+    batch.mode,
+  ).catch((error) => {
+    if (!(error instanceof ImportAnalysisOwnershipError)) {
+      console.error(`[Background Analysis] Error analyzing batch ${batch.id}:`, error)
+    }
     return {
       batchId: batch.id,
       status: 'FAILED',
@@ -123,32 +169,28 @@ export async function analyzeImportBatch(input: { batchId: string; ownerAgentId?
     }
   })
 
-  // Track analysis in queue
-  analysisQueue.set(batch.id, analysisPromise)
-  analysisPromise.finally(() => analysisQueue.delete(batch.id))
-
-  // Return immediately - analysis continues in background
   return {
     batchId: batch.id,
     status: 'ANALYZING',
     total: batch.totalRecords || 0,
-    ready: batch.readyCount || 0,
-    warnings: batch.warningCount || 0,
-    errors: batch.errorCount || 0,
+    ready: 0,
+    warnings: 0,
+    errors: 0,
   }
 }
 
-async function performBackgroundAnalysis(batchId: string, ownerAgentId: string | null | undefined, batchMode: string = 'PARTIAL'): Promise<AnalysisSummary> {
-  const batch = await (prisma as any).importBatch.findUnique({ where: { id: batchId } })
-  if (!batch) throw new Error('Batch not found for background analysis.')
-
-  const adapter = getImportAdapterForEntity(batch.entityType)
-  if (!adapter) throw new Error('Adapter not found for background analysis.')
-
+async function performBackgroundAnalysis(
+  batchId: string,
+  attemptId: string,
+  ownerAgentId: string | null | undefined,
+  batchMode: string = 'PARTIAL',
+): Promise<AnalysisSummary> {
   try {
-    await (prisma as any).importIssue.deleteMany({
-      where: { batchId: batch.id, stage: 'ANALYSIS', resolutionState: 'OPEN' },
-    })
+    const batch = await (prisma as any).importBatch.findUnique({ where: { id: batchId } })
+    if (!batch) throw new Error('Batch not found for background analysis.')
+
+    const adapter = getImportAdapterForEntity(batch.entityType)
+    if (!adapter) throw new Error('Adapter not found for background analysis.')
 
     const records = await (prisma as any).importRecord.findMany({
       where: { batchId: batch.id },
@@ -158,25 +200,19 @@ async function performBackgroundAnalysis(batchId: string, ownerAgentId: string |
     let ready = 0
     let warnings = 0
     let errors = 0
-
-    // Use smaller batch size (10-15) to manage database connection pool
-    // Sequential batches prevent connection pool exhaustion
+    let processedCount = 0
     const BATCH_SIZE = 15
-    const analysisResults: Array<{
-      record: any
-      normalized: any
-      canonicalResult: any
-      canonical: any
-      recordWarnings: string[]
-      recordErrors: string[]
-      status: string
-    }> = []
+    const NON_BLOCKING_WARNINGS = batchMode === 'STRICT' ? [] : [
+      'PARKING_SOURCE_CONTAMINATED',
+      'POSSESSION_SOURCE_CONTAMINATED',
+      'FLOOR_SOURCE_CONTAMINATED',
+      'PARKING_UNPARSEABLE_CONTAMINATION',
+      'POSSESSION_UNPARSEABLE_CONTAMINATION',
+      'FLOOR_UNPARSEABLE_CONTAMINATION',
+    ]
 
-    // Process in sequential batches with controlled parallelism
     for (let i = 0; i < records.length; i += BATCH_SIZE) {
       const recordsBatch = records.slice(i, i + BATCH_SIZE)
-
-      // Only 15 parallel queries per batch, sequential batches
       const batchResults = await Promise.all(
         recordsBatch.map(async (record: any) => {
           const rawPayload = record.rawPayload && typeof record.rawPayload === 'object'
@@ -207,82 +243,65 @@ async function performBackgroundAnalysis(batchId: string, ownerAgentId: string |
 
           const recordWarnings = [...normalized.warnings, ...canonicalResult.warnings, ...validation.warnings, ...relations.warnings]
           const recordErrors = [...normalized.errors, ...canonicalResult.errors, ...validation.errors, ...relations.errors]
-          const status = recordErrors.length > 0 ? 'ERROR' : recordWarnings.length > 0 ? 'WARNING' : 'READY'
+          const blockingWarnings = recordWarnings.filter(
+            (warning: string) => !NON_BLOCKING_WARNINGS.some((code) => warning.includes(code)),
+          )
+          const status = recordErrors.length > 0 ? 'ERROR' : blockingWarnings.length > 0 ? 'WARNING' : 'READY'
 
           return { record, normalized, canonicalResult, canonical, recordWarnings, recordErrors, status }
-        })
+        }),
       )
 
-      analysisResults.push(...batchResults)
-    }
+      await (prisma as any).$transaction(async (tx: any) => {
+        for (let resultIndex = 0; resultIndex < batchResults.length; resultIndex += 1) {
+          const { record, normalized, canonicalResult, canonical, recordWarnings, recordErrors, status } = batchResults[resultIndex]
+          const issueRows = [
+            ...recordWarnings.map((message: string) => ({
+              batchId: batch.id,
+              recordId: record.id,
+              stage: 'ANALYSIS',
+              severity: 'WARNING',
+              code: NON_BLOCKING_WARNINGS.some((code) => message.includes(code)) ? 'DATA_QUALITY_INFO' : 'QUALITY_WARNING',
+              message,
+            })),
+            ...recordErrors.map((message: string) => ({
+              batchId: batch.id,
+              recordId: record.id,
+              stage: 'ANALYSIS',
+              severity: 'ERROR',
+              code: 'CANONICAL_VALIDATION',
+              message,
+            })),
+          ]
 
-    // Non-blocking warnings that don't prevent READY status
-    // In STRICT mode: NOTHING is non-blocking (all warnings block)
-    // In PARTIAL mode: contamination warnings are non-blocking (data is usable)
-    const NON_BLOCKING_WARNINGS = batchMode === 'STRICT' ? [] : [
-      'PARKING_SOURCE_CONTAMINATED',
-      'POSSESSION_SOURCE_CONTAMINATED',
-      'FLOOR_SOURCE_CONTAMINATED',
-      'PARKING_UNPARSEABLE_CONTAMINATION',
-      'POSSESSION_UNPARSEABLE_CONTAMINATION',
-      'FLOOR_UNPARSEABLE_CONTAMINATION',
-    ]
-
-    // Batch update database records (not individual updates)
-    for (const result of analysisResults) {
-      const { record, normalized, canonicalResult, canonical, recordWarnings, recordErrors, status } = result
-
-      // Filter out non-blocking warnings for status determination
-      const blockingWarnings = recordWarnings.filter(
-        (w) => !NON_BLOCKING_WARNINGS.some((code) => w.includes(code)),
-      )
-      const finalStatus = recordErrors.length > 0 ? 'ERROR' : blockingWarnings.length > 0 ? 'WARNING' : 'READY'
-
-      if (finalStatus === 'READY') ready += 1
-      if (finalStatus === 'WARNING') warnings += 1
-      if (finalStatus === 'ERROR') errors += 1
-
-      await (prisma as any).importRecord.update({
-        where: { id: record.id },
-        data: {
-          normalizedPayload: normalized.normalized,
-          canonicalPayload: canonical,
-          status: finalStatus,
-          ownershipPolicy: ownerAgentId && !String((normalized.normalized as any)?.agentId || '').trim()
-            ? 'configured-owner-agent'
-            : 'source-agent',
-          overallConfidence: Object.values(canonicalResult.fieldConfidence || {}).length
-            ? Object.values(canonicalResult.fieldConfidence || {}).reduce((sum: number, value: any) => sum + (typeof value === 'number' ? value : 0), 0) / Object.values(canonicalResult.fieldConfidence || {}).length
-            : null,
-        },
+          await refreshImportAnalysisHeartbeat(tx, batch.id, attemptId, processedCount + resultIndex + 1)
+          await tx.importRecord.update({
+            where: { id: record.id },
+            data: {
+              normalizedPayload: normalized.normalized,
+              canonicalPayload: canonical,
+              status,
+              ownershipPolicy: ownerAgentId && !String((normalized.normalized as any)?.agentId || '').trim()
+                ? 'configured-owner-agent'
+                : 'source-agent',
+              overallConfidence: Object.values(canonicalResult.fieldConfidence || {}).length
+                ? Object.values(canonicalResult.fieldConfidence || {}).reduce((sum: number, value: any) => sum + (typeof value === 'number' ? value : 0), 0) / Object.values(canonicalResult.fieldConfidence || {}).length
+                : null,
+            },
+          })
+          await tx.importIssue.deleteMany({
+            where: { batchId: batch.id, recordId: record.id, stage: 'ANALYSIS', resolutionState: 'OPEN' },
+          })
+          if (issueRows.length) await tx.importIssue.createMany({ data: issueRows })
+        }
       })
 
-      for (const message of recordWarnings) {
-        const isNonBlocking = NON_BLOCKING_WARNINGS.some((code) => message.includes(code))
-        await (prisma as any).importIssue.create({
-          data: {
-            batchId: batch.id,
-            recordId: record.id,
-            stage: 'ANALYSIS',
-            severity: 'WARNING',
-            code: isNonBlocking ? 'DATA_QUALITY_INFO' : 'QUALITY_WARNING',
-            message,
-          },
-        })
+      for (const result of batchResults) {
+        if (result.status === 'READY') ready += 1
+        if (result.status === 'WARNING') warnings += 1
+        if (result.status === 'ERROR') errors += 1
       }
-
-      for (const message of recordErrors) {
-        await (prisma as any).importIssue.create({
-          data: {
-            batchId: batch.id,
-            recordId: record.id,
-            stage: 'ANALYSIS',
-            severity: 'ERROR',
-            code: 'CANONICAL_VALIDATION',
-            message,
-          },
-        })
-      }
+      processedCount += batchResults.length
     }
 
     const nextStatus = errors > 0 || warnings > 0 ? 'READY_FOR_REVIEW' : 'READY_TO_COMMIT'
@@ -290,9 +309,10 @@ async function performBackgroundAnalysis(batchId: string, ownerAgentId: string |
       throw new Error(`Import batch cannot transition from ANALYZING to ${nextStatus}.`)
     }
 
-    await (prisma as any).importBatch.update({
-      where: { id: batch.id },
-      data: { status: nextStatus, readyCount: ready, warningCount: warnings, errorCount: errors, completedAt: new Date() },
+    await releaseImportAnalysisAttempt(batch.id, attemptId, nextStatus, {
+      readyCount: ready,
+      warningCount: warnings,
+      errorCount: errors,
     })
 
     return {
@@ -304,10 +324,16 @@ async function performBackgroundAnalysis(batchId: string, ownerAgentId: string |
       errors,
     }
   } catch (error) {
-    await (prisma as any).importBatch.update({
-      where: { id: batchId },
-      data: { status: 'FAILED', completedAt: new Date() },
-    })
+    if (error instanceof ImportAnalysisOwnershipError) throw error
+
+    try {
+      await releaseImportAnalysisAttempt(batchId, attemptId, 'FAILED', {
+        failureSummary: { stage: 'ANALYSIS', message: getErrorMessage(error) },
+      })
+    } catch (releaseError) {
+      if (releaseError instanceof ImportAnalysisOwnershipError) throw releaseError
+      console.error(`[Background Analysis] Could not record failure for batch ${batchId}:`, releaseError)
+    }
     throw error
   }
 }

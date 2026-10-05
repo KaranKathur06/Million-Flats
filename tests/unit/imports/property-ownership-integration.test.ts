@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals'
 
 jest.mock('@/lib/prisma', () => ({
   prisma: {
+    $queryRaw: jest.fn(),
+    $transaction: jest.fn(),
     agent: { 
       findUnique: jest.fn(),
     },
@@ -11,9 +13,9 @@ jest.mock('@/lib/prisma', () => ({
     agentSpecialization: {
       findMany: jest.fn(),
     },
-    importBatch: { findUnique: jest.fn(), update: jest.fn() },
+    importBatch: { findUnique: jest.fn(), update: jest.fn(), updateMany: jest.fn() },
     importRecord: { findMany: jest.fn(), update: jest.fn() },
-    importIssue: { deleteMany: jest.fn(), create: jest.fn() },
+    importIssue: { deleteMany: jest.fn(), create: jest.fn(), createMany: jest.fn() },
   },
 }))
 
@@ -22,10 +24,25 @@ import { propertyImportAdapter } from '@/lib/imports/adapters/property/adapter'
 import { prisma } from '@/lib/prisma'
 
 const mockedPrisma = prisma as any
+const tx = {
+  $executeRaw: jest.fn<(...args: any[]) => Promise<number>>(),
+  importRecord: { update: jest.fn<(...args: any[]) => Promise<any>>() },
+  importIssue: {
+    deleteMany: jest.fn<(...args: any[]) => Promise<any>>(),
+    createMany: jest.fn<(...args: any[]) => Promise<any>>(),
+  },
+}
 
 describe('property import with ownership resolution', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockedPrisma.$queryRaw.mockResolvedValue([{ id: 'batch-1' }])
+    mockedPrisma.$transaction.mockImplementation((work: (transaction: typeof tx) => unknown) => work(tx))
+    mockedPrisma.importBatch.updateMany.mockResolvedValue({ count: 1 })
+    tx.$executeRaw.mockResolvedValue(1)
+    tx.importRecord.update.mockResolvedValue({})
+    tx.importIssue.deleteMany.mockResolvedValue({ count: 0 })
+    tx.importIssue.createMany.mockResolvedValue({ count: 0 })
     mockedPrisma.importIssue.create.mockResolvedValue({ id: 'issue-1' })
   })
 
@@ -87,10 +104,10 @@ describe('property import with ownership resolution', () => {
     await analyzeImportBatch({ batchId: 'batch-1', waitForCompletion: true })
 
     // Verify that the record was updated
-    expect(mockedPrisma.importRecord.update).toHaveBeenCalled()
+    expect(tx.importRecord.update).toHaveBeenCalled()
     
     // Check the actual call to see what was updated
-    const updateCall = ((mockedPrisma.importRecord.update as jest.Mock).mock.calls[0] || []) as any
+    const updateCall = ((tx.importRecord.update as jest.Mock).mock.calls[0] || []) as any
     const updateData = updateCall[0]?.data as any
     
     // The record should be processed without errors
@@ -137,7 +154,7 @@ describe('property import with ownership resolution', () => {
     await analyzeImportBatch({ batchId: 'batch-1', waitForCompletion: true })
 
     // The record should still be analyzed but may have warnings about ownership
-    expect(mockedPrisma.importRecord.update).toHaveBeenCalled()
+    expect(tx.importRecord.update).toHaveBeenCalled()
   })
 
   it('fails analysis when agent is not approved and no auto-resolution available', async () => {
@@ -180,7 +197,7 @@ describe('property import with ownership resolution', () => {
     await analyzeImportBatch({ batchId: 'batch-1', waitForCompletion: true })
 
     // The record should be marked as ERROR due to unapproved agent
-    const updateCall = ((mockedPrisma.importRecord.update as jest.Mock).mock.calls[0] || []) as any
+    const updateCall = ((tx.importRecord.update as jest.Mock).mock.calls[0] || []) as any
     const updateData = updateCall[0]?.data as any
     
     expect(updateData.status).toBe('ERROR')

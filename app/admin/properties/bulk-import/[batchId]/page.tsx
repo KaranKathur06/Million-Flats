@@ -4,7 +4,10 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
-import { IMPORT_COMMIT_STALE_AFTER_MINUTES } from '@/lib/imports/core/constants'
+import {
+    IMPORT_ANALYSIS_STALE_AFTER_MINUTES,
+    IMPORT_COMMIT_STALE_AFTER_MINUTES,
+} from '@/lib/imports/core/constants'
 
 type ImportRecord = {
     id: string
@@ -37,8 +40,20 @@ type ImportBatch = {
     startedAt?: string | null
     updatedAt?: string
     commitHeartbeatAt?: string | null
+    analysisHeartbeatAt?: string | null
+    analysisProcessedCount?: number
+    failureSummary?: unknown
     records: ImportRecord[]
     issues: Array<{ id: string; severity: string; stage: string; message: string; resolutionState: string }>
+}
+
+type AnalysisProgress = {
+    status: string
+    totalRecords: number
+    analysisProcessedCount: number
+    analysisHeartbeatAt: string | null
+    analysisRecoverable: boolean
+    analysisFailureMessage: string | null
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -57,6 +72,9 @@ export default function ImportBatchDetailPage() {
     const [committing, setCommitting] = useState(false)
     const [cancelling, setCancelling] = useState(false)
     const [resetting, setResetting] = useState(false)
+    const [analysisActionLoading, setAnalysisActionLoading] = useState(false)
+    const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress | null>(null)
+    const [analysisProgressError, setAnalysisProgressError] = useState('')
     const [rollingBack, setRollingBack] = useState(false)
 
     const loadBatch = useCallback(async () => {
@@ -74,6 +92,36 @@ export default function ImportBatchDetailPage() {
     }, [batchId])
 
     useEffect(() => { void loadBatch() }, [loadBatch])
+
+    useEffect(() => {
+        if (batch?.status !== 'ANALYZING') {
+            setAnalysisProgress(null)
+            setAnalysisProgressError('')
+            return
+        }
+
+        let active = true
+        const refreshProgress = async () => {
+            try {
+                const response = await fetch(`/api/admin/bulk-import/${batchId}/progress`, { cache: 'no-store' })
+                const payload = await response.json()
+                if (!response.ok || !payload.success) throw new Error(payload.message || 'Unable to refresh analysis progress.')
+                if (!active) return
+                setAnalysisProgress(payload.progress as AnalysisProgress)
+                setAnalysisProgressError('')
+                if (payload.progress.status !== 'ANALYZING') await loadBatch()
+            } catch (error) {
+                if (active) setAnalysisProgressError(error instanceof Error ? error.message : 'Unable to refresh analysis progress.')
+            }
+        }
+
+        void refreshProgress()
+        const interval = window.setInterval(() => void refreshProgress(), 15000)
+        return () => {
+            active = false
+            window.clearInterval(interval)
+        }
+    }, [batch?.status, batchId, loadBatch])
 
     const commitBatch = async () => {
         setCommitting(true)
@@ -135,6 +183,28 @@ export default function ImportBatchDetailPage() {
         }
     }
 
+    const runAnalysisAction = async (recoveryMode: 'RECOVER' | 'RETRY') => {
+        setAnalysisActionLoading(true)
+        try {
+            const response = await fetch(`/api/admin/bulk-import/${batchId}/analyze`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ recoveryMode }),
+            })
+            const payload = await response.json()
+            if (!response.ok || !payload.success) {
+                if (response.status === 409) await loadBatch()
+                throw new Error(payload.message || 'Unable to resume import analysis.')
+            }
+            toast.success(recoveryMode === 'RECOVER' ? 'Analysis recovered and restarted.' : 'Analysis retry started.')
+            await loadBatch()
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Unable to resume import analysis.')
+        } finally {
+            setAnalysisActionLoading(false)
+        }
+    }
+
     const rollbackBatch = async () => {
         if (!window.confirm(`Rollback newly created ${entityLabel}s from this batch? This cannot be undone.`)) return
         setRollingBack(true)
@@ -157,7 +227,12 @@ export default function ImportBatchDetailPage() {
     const canCommit = batch.status === 'READY_TO_COMMIT' || batch.status === 'READY_FOR_REVIEW'
     const entityLabel = batch.entityType === 'DEVELOPER' ? 'developer' : batch.entityType === 'PROJECT' ? 'project' : batch.entityType === 'ECOSYSTEM_PARTNER' ? 'ecosystem partner' : batch.entityType === 'AGENCY' ? 'agency' : batch.entityType === 'AGENT' ? 'agent' : batch.entityType === 'LEAD' ? 'lead' : 'property'
     const isSupportedResumeEntity = batch.entityType === 'PROPERTY' || batch.entityType === 'PROJECT'
+    const analysisFailure = batch.failureSummary && typeof batch.failureSummary === 'object'
+        ? batch.failureSummary as { stage?: unknown; message?: unknown }
+        : null
+    const hasAnalysisFailure = ['FAILED', 'RETRYING'].includes(batch.status) && analysisFailure?.stage === 'ANALYSIS'
     const legacyCommitErrorsCanRetry =
+        !hasAnalysisFailure &&
         batch.errorCount === 0 &&
         ['PARTIALLY_COMMITTED', 'FAILED', 'COMMITTING'].includes(batch.status)
     const remainingCount = batch.records.filter((record) => ['READY', 'WARNING', 'STAGED'].includes(record.status)).length
@@ -175,6 +250,7 @@ export default function ImportBatchDetailPage() {
         !!heartbeat &&
         Date.now() - new Date(heartbeat).getTime() >= IMPORT_COMMIT_STALE_AFTER_MINUTES * 60 * 1000
     const canResume = isSupportedResumeEntity &&
+        !hasAnalysisFailure &&
         ['PARTIALLY_COMMITTED', 'FAILED'].includes(batch.status) &&
         ((remainingCount + retryableCount > 0 && !hasUnresolvedStrictWarnings) || fullyCommitted)
     const canRecoverStaleCommit = isSupportedResumeEntity &&
@@ -202,11 +278,21 @@ export default function ImportBatchDetailPage() {
                     <h1 className="mt-3 text-2xl font-semibold text-white">Import review</h1>
                     <p className="mt-1 text-sm text-white/45">{batch.originalFileName} · {batch.mode} · {batch.status}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     <button type="button" onClick={() => void loadBatch()} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-white/60 hover:bg-white/[0.06]">Refresh</button>
                     {batch.status === 'READY_FOR_REVIEW' && (
                         <button type="button" onClick={() => void resetAnalysis()} disabled={resetting || committing || cancelling} className="rounded-lg border border-sky-400/20 px-3 py-2 text-xs text-sky-300 disabled:cursor-not-allowed disabled:opacity-40">
                             {resetting ? 'Resetting...' : 'Reset analysis'}
+                        </button>
+                    )}
+                    {batch.status === 'ANALYZING' && analysisProgress?.analysisRecoverable && (
+                        <button type="button" onClick={() => void runAnalysisAction('RECOVER')} disabled={analysisActionLoading} className="rounded-lg bg-amber-400 px-4 py-2 text-xs font-semibold text-black disabled:cursor-not-allowed disabled:opacity-40">
+                            {analysisActionLoading ? 'Recovering...' : 'Recover & analyze'}
+                        </button>
+                    )}
+                    {hasAnalysisFailure && (
+                        <button type="button" onClick={() => void runAnalysisAction('RETRY')} disabled={analysisActionLoading} className="rounded-lg bg-amber-400 px-4 py-2 text-xs font-semibold text-black disabled:cursor-not-allowed disabled:opacity-40">
+                            {analysisActionLoading ? 'Retrying...' : 'Retry analysis'}
                         </button>
                     )}
                     {batch.status !== 'COMMITTED' && batch.status !== 'PARTIALLY_COMMITTED' && batch.status !== 'FAILED' && batch.status !== 'COMMITTING' && batch.status !== 'CANCELLED' && (
@@ -237,12 +323,27 @@ export default function ImportBatchDetailPage() {
                     This batch is actively committing. Recovery is available only after 10 minutes without progress. Refresh this page to check its status.
                 </div>
             )}
+            {batch.status === 'ANALYZING' && (
+                <div className="mb-5 rounded-lg border border-sky-400/20 bg-sky-400/[0.05] px-4 py-3 text-xs text-sky-200/80">
+                    <p>
+                        {analysisProgress?.analysisRecoverable
+                            ? `Analysis has made no saved progress for ${IMPORT_ANALYSIS_STALE_AFTER_MINUTES} minutes. You can recover and safely re-analyze the source rows.`
+                            : `Analyzing ${analysisProgress?.analysisProcessedCount ?? batch.analysisProcessedCount ?? 0} of ${analysisProgress?.totalRecords ?? batch.totalRecords} source records. Progress refreshes automatically.`}
+                    </p>
+                    {analysisProgressError && <p className="mt-2 text-amber-200">{analysisProgressError}</p>}
+                </div>
+            )}
+            {hasAnalysisFailure && (
+                <div className="mb-5 rounded-lg border border-red-400/20 bg-red-400/[0.04] px-4 py-3 text-xs text-red-200/80">
+                    {String(analysisFailure?.message || 'Import analysis failed. Retry analysis to continue.')}
+                </div>
+            )}
             {['PARTIALLY_COMMITTED', 'FAILED'].includes(batch.status) && hasUnresolvedStrictWarnings && (
                 <div className="mb-5 rounded-lg border border-amber-400/20 bg-amber-400/[0.04] px-4 py-3 text-xs text-amber-200/75">
                     Resolve the remaining warning records before continuing this strict-mode batch.
                 </div>
             )}
-            {['PARTIALLY_COMMITTED', 'FAILED'].includes(batch.status) && remainingCount + retryableCount === 0 && !fullyCommitted && !hasUnresolvedStrictWarnings && (
+            {['PARTIALLY_COMMITTED', 'FAILED'].includes(batch.status) && !hasAnalysisFailure && remainingCount + retryableCount === 0 && !fullyCommitted && !hasUnresolvedStrictWarnings && (
                 <div className="mb-5 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-white/55">
                     There are no eligible or retryable commit records remaining in this batch.
                 </div>
