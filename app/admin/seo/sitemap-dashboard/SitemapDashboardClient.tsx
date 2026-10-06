@@ -2,6 +2,19 @@
 
 import { useState, useEffect, useCallback } from 'react'
 
+// ─── Types ───────────────────────────────────────────────────────────────────
+interface SitemapChunk {
+  cacheKey: string
+  publicPath: string
+  urlCount: number
+}
+
+interface SitemapTypeResult {
+  type: string
+  totalUrlCount: number
+  chunks: SitemapChunk[]
+}
+
 interface SitemapEntry {
   type: string
   urlCount: number
@@ -15,26 +28,41 @@ interface SitemapError {
 }
 
 interface CacheEntry {
-  type: string
+  key: string
   valid: boolean
   size: number
+}
+
+interface DataQuality {
+  buyIndexable: number
+  rentIndexable: number
+  excludedMissingSlug: number
+  excludedInvalidIntent: number
+  excludedNonPublicStatus: number
 }
 
 interface DashboardData {
   totalUrls: number
   lastGenerated: string | null
   sitemaps: SitemapEntry[]
+  sitemapTypes: SitemapTypeResult[]
   errors: SitemapError[]
+  dataQuality: DataQuality | null
   cacheStatus: CacheEntry[]
   generationDurationMs: number
 }
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B'
   const k = 1024
   const sizes = ['B', 'KB', 'MB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+}
+
+function formatNumber(n: number): string {
+  return n.toLocaleString()
 }
 
 function timeAgo(dateStr: string): string {
@@ -48,6 +76,118 @@ function timeAgo(dateStr: string): string {
   return `${days}d ago`
 }
 
+function typeLabelMap(type: string): string {
+  const labels: Record<string, string> = {
+    pages: 'Pages',
+    projects: 'Projects',
+    buy: 'Buy',
+    rent: 'Rent',
+    blogs: 'Blogs',
+    developers: 'Developers',
+    'ecosystem-partners': 'Ecosystem Partners',
+  }
+  return labels[type] ?? type.replace(/-/g, ' ')
+}
+
+// ─── Sub-components ──────────────────────────────────────────────────────────
+function TypeBadge({ type }: { type: string }) {
+  const colors: Record<string, string> = {
+    buy: 'bg-emerald-400/10 text-emerald-400',
+    rent: 'bg-sky-400/10 text-sky-400',
+    projects: 'bg-violet-400/10 text-violet-400',
+    pages: 'bg-slate-400/10 text-slate-300',
+    blogs: 'bg-amber-400/10 text-amber-400',
+    developers: 'bg-rose-400/10 text-rose-400',
+    'ecosystem-partners': 'bg-teal-400/10 text-teal-400',
+  }
+  const cls = colors[type] ?? 'bg-white/10 text-white/60'
+  return (
+    <span className={`inline-flex h-5 items-center rounded-md px-2 text-[10px] font-bold uppercase tracking-wider ${cls}`}>
+      {typeLabelMap(type)}
+    </span>
+  )
+}
+
+interface SitemapTypeCardProps {
+  st: SitemapTypeResult
+  cacheStatus: CacheEntry[]
+}
+
+function SitemapTypeCard({ st, cacheStatus }: SitemapTypeCardProps) {
+  const firstChunkCache = cacheStatus.find((c) => c.key === st.chunks[0]?.cacheKey)
+  const allValid = st.chunks.every((ch) =>
+    (cacheStatus.find((c) => c.key === ch.cacheKey)?.valid) === true
+  )
+
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-3">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className={`h-2 w-2 rounded-full ${allValid ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+          <TypeBadge type={st.type} />
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-white/70 font-mono text-[13px] font-semibold">
+            {formatNumber(st.totalUrlCount)} URLs
+          </span>
+          {st.chunks.length > 1 && (
+            <span className="text-[10px] font-bold uppercase tracking-wider text-white/30">
+              {st.chunks.length} files
+            </span>
+          )}
+          <span
+            className={`inline-flex h-5 items-center rounded-full px-2 text-[10px] font-bold uppercase tracking-wider ${
+              allValid ? 'bg-emerald-400/10 text-emerald-400' : 'bg-amber-400/10 text-amber-400'
+            }`}
+          >
+            {allValid ? 'Valid' : 'Stale'}
+          </span>
+        </div>
+      </div>
+
+      {/* Chunk list */}
+      <div className="space-y-1.5">
+        {st.chunks.map((ch) => {
+          const cache = cacheStatus.find((c) => c.key === ch.cacheKey)
+          return (
+            <div key={ch.cacheKey} className="flex items-center justify-between text-[12px]">
+              <a
+                href={ch.publicPath}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-amber-400/70 hover:text-amber-300 transition-colors flex items-center gap-1"
+              >
+                {ch.publicPath}
+                <svg className="h-3 w-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+              <div className="flex items-center gap-2 text-white/40">
+                <span className="font-mono">{formatNumber(ch.urlCount)} URLs</span>
+                {cache && (
+                  <span className="font-mono">{formatBytes(cache.size)}</span>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Summary size */}
+      {firstChunkCache && (
+        <p className="text-[11px] text-white/25 font-mono">
+          {formatBytes(st.chunks.reduce((s, ch) => {
+            const c = cacheStatus.find((cc) => cc.key === ch.cacheKey)
+            return s + (c?.size ?? 0)
+          }, 0))} total on disk
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ─── Main Component ──────────────────────────────────────────────────────────
 export default function SitemapDashboardClient() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -115,6 +255,23 @@ export default function SitemapDashboardClient() {
     )
   }
 
+  // Determine which types to display (use sitemapTypes if available, else fall back to sitemaps)
+  const displayTypes: SitemapTypeResult[] = data?.sitemapTypes?.length
+    ? data.sitemapTypes
+    : (data?.sitemaps ?? []).map((s) => ({
+        type: s.type,
+        totalUrlCount: s.urlCount,
+        chunks: [
+          {
+            cacheKey: s.type,
+            publicPath: `/sitemap-${s.type}.xml`,
+            urlCount: s.urlCount,
+          },
+        ],
+      }))
+
+  const dq = data?.dataQuality
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -157,7 +314,7 @@ export default function SitemapDashboardClient() {
         </button>
       </div>
 
-      {/* Regen result toast */}
+      {/* Regen result */}
       {regenResult && (
         <div className={`rounded-xl border p-4 text-[13px] ${
           regenResult.error
@@ -167,7 +324,10 @@ export default function SitemapDashboardClient() {
           {regenResult.error ? (
             <p>❌ Regeneration failed: {regenResult.error}</p>
           ) : (
-            <p>✅ Sitemap regenerated — {regenResult.totalUrls} URLs across {regenResult.sitemaps?.length || 0} sitemaps in {regenResult.durationMs}ms</p>
+            <p>
+              ✅ Sitemap regenerated — {formatNumber(regenResult.totalUrls)} URLs across{' '}
+              {regenResult.sitemaps?.length || 0} types in {regenResult.durationMs}ms
+            </p>
           )}
         </div>
       )}
@@ -176,7 +336,7 @@ export default function SitemapDashboardClient() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/[0.12] to-blue-600/[0.04] p-5">
           <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">Total URLs</p>
-          <p className="mt-2 text-3xl font-bold text-blue-300">{data?.totalUrls ?? 0}</p>
+          <p className="mt-2 text-3xl font-bold text-blue-300">{formatNumber(data?.totalUrls ?? 0)}</p>
         </div>
         <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.12] to-emerald-600/[0.04] p-5">
           <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">Last Generated</p>
@@ -190,8 +350,13 @@ export default function SitemapDashboardClient() {
           )}
         </div>
         <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/[0.12] to-amber-600/[0.04] p-5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">Sitemaps</p>
-          <p className="mt-2 text-3xl font-bold text-amber-300">{data?.sitemaps?.length ?? 0}</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">Sitemap Types</p>
+          <p className="mt-2 text-3xl font-bold text-amber-300">{displayTypes.length}</p>
+          {displayTypes.length > 0 && (
+            <p className="mt-1 text-[11px] text-white/30">
+              {displayTypes.reduce((s, t) => s + t.chunks.length, 0)} chunk files total
+            </p>
+          )}
         </div>
         <div className={`rounded-2xl border p-5 ${
           (data?.errors?.length ?? 0) > 0
@@ -207,74 +372,72 @@ export default function SitemapDashboardClient() {
 
       {/* Sitemap Breakdown */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
-        <h2 className="text-[13px] font-bold uppercase tracking-wider text-white/40 mb-4">Sitemap Breakdown</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr className="border-b border-white/[0.06]">
-                <th className="text-left py-3 px-4 text-[11px] font-bold uppercase tracking-wider text-white/30">Type</th>
-                <th className="text-left py-3 px-4 text-[11px] font-bold uppercase tracking-wider text-white/30">URLs</th>
-                <th className="text-left py-3 px-4 text-[11px] font-bold uppercase tracking-wider text-white/30">Cache</th>
-                <th className="text-left py-3 px-4 text-[11px] font-bold uppercase tracking-wider text-white/30">File Size</th>
-                <th className="text-left py-3 px-4 text-[11px] font-bold uppercase tracking-wider text-white/30">Public URL</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data?.sitemaps || []).map((s) => {
-                const cache = data?.cacheStatus?.find((c) => c.type === s.type)
-                return (
-                  <tr key={s.type} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
-                    <td className="py-3 px-4">
-                      <span className="inline-flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                        <span className="font-medium text-white/80 capitalize">{s.type}</span>
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-white/60 font-mono">{s.urlCount}</td>
-                    <td className="py-3 px-4">
-                      <span className={`inline-flex h-5 items-center rounded-full px-2 text-[10px] font-bold uppercase tracking-wider ${
-                        cache?.valid
-                          ? 'bg-emerald-400/10 text-emerald-400'
-                          : 'bg-rose-400/10 text-rose-400'
-                      }`}>
-                        {cache?.valid ? 'Valid' : 'Expired'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 font-mono text-white/50 text-[12px]">
-                      {cache ? formatBytes(cache.size) : '—'}
-                    </td>
-                    <td className="py-3 px-4">
-                      <a
-                        href={`/sitemap-${s.type}.xml`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-amber-400/70 hover:text-amber-300 text-[12px] font-medium transition-colors"
-                      >
-                        /sitemap-{s.type}.xml ↗
-                      </a>
-                    </td>
-                  </tr>
-                )
-              })}
-              {(!data?.sitemaps || data.sitemaps.length === 0) && (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-white/30 text-[13px]">
-                    No sitemaps generated yet. Click "Regenerate Now" to create them.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <h2 className="text-[13px] font-bold uppercase tracking-wider text-white/40 mb-4">
+          Sitemap Breakdown
+        </h2>
+
+        {displayTypes.length === 0 ? (
+          <p className="py-8 text-center text-white/30 text-[13px]">
+            No sitemaps generated yet. Click &ldquo;Regenerate Now&rdquo; to create them.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {displayTypes.map((st) => (
+              <SitemapTypeCard
+                key={st.type}
+                st={st}
+                cacheStatus={data?.cacheStatus ?? []}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Cache Status */}
+      {/* Data Quality Report */}
+      {dq && (dq.buyIndexable > 0 || dq.rentIndexable > 0 || dq.excludedMissingSlug > 0 || dq.excludedInvalidIntent > 0) && (
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
+          <h2 className="text-[13px] font-bold uppercase tracking-wider text-white/40 mb-4">
+            Sitemap Data Quality
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/[0.04] p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">Buy Indexable</p>
+              <p className="mt-2 text-xl font-bold text-emerald-300">{formatNumber(dq.buyIndexable)}</p>
+            </div>
+            <div className="rounded-xl border border-sky-500/15 bg-sky-500/[0.04] p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">Rent Indexable</p>
+              <p className="mt-2 text-xl font-bold text-sky-300">{formatNumber(dq.rentIndexable)}</p>
+            </div>
+            <div className={`rounded-xl border p-4 ${dq.excludedMissingSlug > 0 ? 'border-amber-500/15 bg-amber-500/[0.04]' : 'border-white/[0.06] bg-white/[0.02]'}`}>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">Excl. Missing Slug</p>
+              <p className={`mt-2 text-xl font-bold ${dq.excludedMissingSlug > 0 ? 'text-amber-300' : 'text-white/30'}`}>
+                {formatNumber(dq.excludedMissingSlug)}
+              </p>
+            </div>
+            <div className={`rounded-xl border p-4 ${dq.excludedInvalidIntent > 0 ? 'border-rose-500/15 bg-rose-500/[0.04]' : 'border-white/[0.06] bg-white/[0.02]'}`}>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">Excl. Invalid Intent</p>
+              <p className={`mt-2 text-xl font-bold ${dq.excludedInvalidIntent > 0 ? 'text-rose-300' : 'text-white/30'}`}>
+                {formatNumber(dq.excludedInvalidIntent)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">Excl. Non-Public</p>
+              <p className="mt-2 text-xl font-bold text-white/30">
+                {formatNumber(dq.excludedNonPublicStatus)}
+              </p>
+              <p className="mt-1 text-[10px] text-white/20">filtered by DB</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cache Health */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
         <h2 className="text-[13px] font-bold uppercase tracking-wider text-white/40 mb-4">Cache Health</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {(data?.cacheStatus || []).map((c) => (
             <div
-              key={c.type}
+              key={c.key}
               className={`rounded-xl border p-4 transition-all ${
                 c.valid
                   ? 'border-emerald-500/15 bg-emerald-500/[0.04]'
@@ -283,7 +446,7 @@ export default function SitemapDashboardClient() {
                     : 'border-white/[0.06] bg-white/[0.02]'
               }`}
             >
-              <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 capitalize">{c.type}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 font-mono truncate">{c.key}</p>
               <div className="mt-2 flex items-center gap-1.5">
                 <span className={`h-2 w-2 rounded-full ${
                   c.valid ? 'bg-emerald-400' : c.size > 0 ? 'bg-amber-400' : 'bg-white/20'
@@ -329,37 +492,29 @@ export default function SitemapDashboardClient() {
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
         <h2 className="text-[13px] font-bold uppercase tracking-wider text-white/40 mb-4">Quick Links</h2>
         <div className="flex flex-wrap gap-2.5">
-          <a
-            href="/sitemap.xml"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-white/[0.08] bg-white/[0.03] text-[12px] font-semibold text-white/70 hover:bg-white/[0.07] hover:text-white hover:border-white/[0.15] transition-all"
-          >
-            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-            /sitemap.xml
-          </a>
-          <a
-            href="/robots.txt"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-white/[0.08] bg-white/[0.03] text-[12px] font-semibold text-white/70 hover:bg-white/[0.07] hover:text-white hover:border-white/[0.15] transition-all"
-          >
-            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-            /robots.txt
-          </a>
+          {[
+            { href: '/sitemap.xml', label: '/sitemap.xml' },
+            { href: '/sitemap-buy-1.xml', label: '/sitemap-buy-1.xml' },
+            { href: '/sitemap-rent-1.xml', label: '/sitemap-rent-1.xml' },
+            { href: '/sitemap-projects-1.xml', label: '/sitemap-projects-1.xml' },
+            { href: '/robots.txt', label: '/robots.txt' },
+          ].map(({ href, label }) => (
+            <a
+              key={href}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-white/[0.08] bg-white/[0.03] text-[12px] font-semibold text-white/70 hover:bg-white/[0.07] hover:text-white hover:border-white/[0.15] transition-all font-mono"
+            >
+              {label} ↗
+            </a>
+          ))}
           <a
             href="https://search.google.com/search-console"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-white/[0.08] bg-white/[0.03] text-[12px] font-semibold text-white/70 hover:bg-white/[0.07] hover:text-white hover:border-white/[0.15] transition-all"
           >
-            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
             Google Search Console ↗
           </a>
         </div>
@@ -369,7 +524,8 @@ export default function SitemapDashboardClient() {
       {data?.generationDurationMs ? (
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
           <p className="text-[11px] text-white/30">
-            Last generation completed in <span className="font-mono text-white/50">{data.generationDurationMs}ms</span>
+            Last generation completed in{' '}
+            <span className="font-mono text-white/50">{data.generationDurationMs}ms</span>
           </p>
         </div>
       ) : null}

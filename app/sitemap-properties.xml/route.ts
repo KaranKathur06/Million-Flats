@@ -1,23 +1,23 @@
+/**
+ * GET /sitemap-properties.xml — REMOVED
+ *
+ * This sitemap type has been removed from the MillionFlats SEO architecture.
+ * Properties are now represented under their canonical transaction-type sitemaps:
+ *
+ *   /sitemap-buy-1.xml  — individual BUY property URLs
+ *   /sitemap-rent-1.xml — individual RENT property URLs
+ *
+ * Returns 410 Gone so Googlebot/Bingbot can deindex this endpoint permanently.
+ */
+
 import { NextResponse } from 'next/server'
-import { getSitemapXml } from '@/lib/sitemap/sitemapService'
 
 export const dynamic = 'force-dynamic'
-export const revalidate = 86400
 
 export async function GET() {
-  const xml = await getSitemapXml('properties')
-  if (!xml) {
-    return new NextResponse('Sitemap temporarily unavailable', {
-      status: 503,
-      headers: { 'Retry-After': '3600' },
-    })
-  }
-
-  return new NextResponse(xml, {
-    status: 200,
+  return new NextResponse(null, {
+    status: 410,
     headers: {
-      'Content-Type': 'application/xml; charset=utf-8',
-      'Cache-Control': 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=43200',
       'X-Robots-Tag': 'noindex',
     },
   })

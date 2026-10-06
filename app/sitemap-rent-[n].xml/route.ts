@@ -1,11 +1,8 @@
 /**
- * GET /sitemap-rent.xml — Rent Property Sitemap
+ * GET /sitemap-rent-[n].xml — Rent Property Sitemap (chunk n)
  *
- * Backward-compatible entry point. When the rent sitemap fits in one chunk
- * (≤50 000 URLs) this serves it directly. When chunked, the sitemap index
- * references /sitemap-rent-1.xml, /sitemap-rent-2.xml etc. directly.
- *
- * For direct chunk access see /sitemap-rent-[n].xml/route.ts
+ * Serves chunk n of the rent property sitemap.
+ * Cache key: "rent-{n}" (e.g. "rent-1", "rent-2")
  */
 
 import { NextResponse } from 'next/server'
@@ -14,10 +11,13 @@ import { getSitemapXml } from '@/lib/sitemap/sitemapService'
 export const dynamic = 'force-dynamic'
 export const revalidate = 86400
 
-export async function GET() {
-  // Try single-chunk cache key first, then chunk-1 for the multi-chunk case
-  const xml = (await getSitemapXml('rent')) ?? (await getSitemapXml('rent-1'))
+export async function GET(_req: Request, { params }: { params: { n: string } }) {
+  const n = parseInt(params.n, 10)
+  if (!Number.isFinite(n) || n < 1 || n > 999) {
+    return new NextResponse('Not Found', { status: 404 })
+  }
 
+  const xml = await getSitemapXml(`rent-${n}`)
   if (!xml) {
     return new NextResponse('Sitemap temporarily unavailable', {
       status: 503,

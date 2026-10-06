@@ -1138,6 +1138,12 @@ model ManualProperty {
   @@index([developerId])
   @@index([status])
   @@index([sourceType])
+  // Sitemap: eligibility filter (status + sourceType) — avoids full scan
+  @@index([status, sourceType])
+  // Sitemap: buy/rent classification after eligibility filter
+  @@index([status, intent])
+  // Sitemap: cursor pagination ordering (deterministic, stable across concurrent writes)
+  @@index([status, updatedAt, id])
   @@index([sourceProvider, sourceListingId])
   @@index([sourceUrl])
   @@index([countryCode, city])
