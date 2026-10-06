@@ -200,7 +200,7 @@ export default function ProjectDetailClient({
     const projectCurrency = project.countryIso2 === 'IN' ? 'INR' : 'AED'
 
     const searchParams = useSearchParams()
-    const fallbackImage = '/images/default-property.jpg'
+    const fallbackImage = '/image-placeholder.svg'
     const [selectedImg, setSelectedImg] = useState(0)
     const [formData, setFormData] = useState({ name: '', email: '', phone: '', message: '' })
     const [submitting, setSubmitting] = useState(false)
@@ -1449,5 +1449,4 @@ export default function ProjectDetailClient({
         </div>
     )
 }
-
 

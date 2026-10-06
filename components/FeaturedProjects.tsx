@@ -114,7 +114,7 @@ export default function FeaturedProjects({
               ))
             : projects.map((project) => {
                 const img =
-                  project.coverImage || "/images/default-property.jpg";
+                  project.coverImage || "/image-placeholder.svg";
                 const unoptimized =
                   img.startsWith("http") && !canOptimizeUrl(img);
 
@@ -144,8 +144,8 @@ export default function FeaturedProjects({
                           loading="lazy"
                           onError={(event) => {
                             const image = event.currentTarget;
-                            if (image.src.endsWith("/images/default-property.jpg")) return;
-                            image.src = "/images/default-property.jpg";
+                            if (image.src.endsWith("/image-placeholder.svg")) return;
+                            image.src = "/image-placeholder.svg";
                           }}
                         />
                       ) : (

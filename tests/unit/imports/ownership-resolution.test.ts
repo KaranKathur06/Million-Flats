@@ -102,6 +102,43 @@ describe('Ownership Resolution', () => {
   })
 
   describe('Strategy 2: City Matching', () => {
+    it('propagates connection pool timeouts instead of converting them to warnings', async () => {
+      const poolTimeout = Object.assign(
+        new Error('Timed out fetching a new connection from the connection pool.'),
+        { name: 'PrismaClientKnownRequestError', code: 'P2024', clientVersion: '5.22.0' },
+      )
+      ;(mockPrisma.agentServiceArea.findMany as jest.Mock).mockRejectedValue(poolTimeout)
+
+      await expect(resolveOwnership({
+        city: 'Mumbai',
+        sourceProvider: 'squareyards',
+      })).rejects.toBe(poolTimeout)
+    })
+
+    it('propagates Prisma initialization errors instead of converting them to warnings', async () => {
+      const initializationError = Object.assign(
+        new Error('Database connection unavailable'),
+        { name: 'PrismaClientInitializationError', clientVersion: '5.22.0' },
+      )
+      ;(mockPrisma.agentServiceArea.findMany as jest.Mock).mockRejectedValue(initializationError)
+
+      await expect(resolveOwnership({
+        city: 'Mumbai',
+        sourceProvider: 'squareyards',
+      })).rejects.toBe(initializationError)
+    })
+
+    it('keeps ordinary lookup errors as relation warnings', async () => {
+      ;(mockPrisma.agentServiceArea.findMany as jest.Mock).mockRejectedValue(new Error('Invalid lookup input'))
+
+      const result = await resolveOwnership({
+        city: 'Mumbai',
+        sourceProvider: 'squareyards',
+      })
+
+      expect(result.warnings).toContainEqual(expect.stringContaining('Invalid lookup input'))
+    })
+
     it('resolves with locality match when available', async () => {
       (mockPrisma.agentServiceArea.findMany as jest.Mock).mockResolvedValue([
         {
@@ -385,4 +422,3 @@ describe('Ownership Resolution', () => {
     })
   })
 })
-

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { resolveProjectMediaUrl } from '@/lib/media/resolveMedia'
 
 export const dynamic = 'force-dynamic'
-const FALLBACK_IMAGE = '/images/default-property.jpg'
+const FALLBACK_IMAGE = '/image-placeholder.svg'
 
 export async function GET(req: Request) {
     try {

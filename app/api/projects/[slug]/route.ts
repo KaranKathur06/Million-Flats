@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { buildAssetUrl } from '@/lib/assetUrl'
 import { calculateProjectPricingSummary } from '@/lib/projectPricing'
-const FALLBACK_IMAGE = '/images/default-property.jpg'
+const FALLBACK_IMAGE = '/image-placeholder.svg'
 
 function normalizeMediaType(v: unknown) {
     return String(v || '').trim().toLowerCase()
@@ -456,4 +456,3 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
         return NextResponse.json({ success: false, message: 'Internal error' }, { status: 500 })
     }
 }
-

@@ -1,12 +1,14 @@
 import { randomUUID } from 'node:crypto'
 import { prisma } from '@/lib/prisma'
 import { getImportAdapterForEntity } from '@/lib/imports/registry'
+import { withImportAnalysisRelationSlot } from './analysis-concurrency'
 import {
   ImportAnalysisOwnershipError,
   claimImportAnalysisAttempt,
   markImportAnalysisRetrying,
   releaseImportAnalysisAttempt,
 } from './analysis-lock'
+import { withPrismaPoolTimeoutRetry } from './retry-pool-timeout'
 import { canTransition } from './state-machine'
 
 type AnalysisSummary = {
@@ -19,7 +21,6 @@ type AnalysisSummary = {
 }
 
 type AnalysisRequestMode = 'START' | 'RECOVER' | 'RETRY'
-const MAX_ANALYSIS_RECORD_TRANSACTION_RETRIES = 2
 
 export class ImportAnalysisConflictError extends Error {
   constructor(message: string) {
@@ -65,10 +66,6 @@ function summaryFromBatch(batch: any, status = String(batch.status || 'ANALYZING
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Import analysis failed.'
-}
-
-function isPrismaTransactionExpired(error: unknown): boolean {
-  return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2028'
 }
 
 export async function analyzeImportBatch(input: {
@@ -242,7 +239,10 @@ async function performBackgroundAnalysis(
             : { ready: false, warnings: [], errors: canonicalResult.errors }
 
           const relations = canonical
-            ? await adapter.resolveRelations({ canonical, raw: analysisRaw, db: prisma })
+            ? await withImportAnalysisRelationSlot(() => withPrismaPoolTimeoutRetry(
+                () => adapter.resolveRelations({ canonical, raw: analysisRaw, db: prisma }),
+                { batchId: batch.id, recordId: record.id, operation: 'relation resolution' },
+              ))
             : { ready: false, warnings: [], errors: [] }
 
           const recordWarnings = [...normalized.warnings, ...canonicalResult.warnings, ...validation.warnings, ...relations.warnings]
@@ -283,10 +283,16 @@ async function performBackgroundAnalysis(
         const overallConfidence = Object.values(canonicalResult.fieldConfidence || {}).length
           ? Object.values(canonicalResult.fieldConfidence || {}).reduce((sum: number, value: any) => sum + (typeof value === 'number' ? value : 0), 0) / Object.values(canonicalResult.fieldConfidence || {}).length
           : null
-        let checkpointRetryCount = 0
-        while (true) {
-          try {
-            const checkpoint = await (prisma as any).$queryRaw`
+        const checkpoint = await withPrismaPoolTimeoutRetry<Array<{
+          ownershipMatched: boolean
+          recordMatched: boolean
+          progressUpdated: boolean
+        }>>(
+          () => (prisma as any).$queryRaw<Array<{
+            ownershipMatched: boolean
+            recordMatched: boolean
+            progressUpdated: boolean
+          }>>`
               /* import_analysis_record_checkpoint */
               WITH ownership AS MATERIALIZED (
                 SELECT "id"
@@ -352,25 +358,16 @@ async function performBackgroundAnalysis(
                 EXISTS (SELECT 1 FROM ownership) AS "ownershipMatched",
                 EXISTS (SELECT 1 FROM record_updated) AS "recordMatched",
                 EXISTS (SELECT 1 FROM progress_updated) AS "progressUpdated"
-            `
-            const checkpointResult = checkpoint[0]
-            if (!checkpointResult?.ownershipMatched) throw new ImportAnalysisOwnershipError()
-            if (!checkpointResult.recordMatched) {
-              throw new Error(`Import analysis record ${record.id} was not found in batch ${batch.id}.`)
-            }
-            if (!checkpointResult.progressUpdated) {
-              throw new Error(`Import analysis progress could not be checkpointed for batch ${batch.id}.`)
-            }
-            break
-          } catch (error) {
-            if (!isPrismaTransactionExpired(error) || checkpointRetryCount >= MAX_ANALYSIS_RECORD_TRANSACTION_RETRIES) {
-              throw error
-            }
-            checkpointRetryCount += 1
-            console.warn(
-              `[Background Analysis] Retrying expired checkpoint for batch ${batch.id}, record ${record.id} (attempt ${checkpointRetryCount}/${MAX_ANALYSIS_RECORD_TRANSACTION_RETRIES}).`,
-            )
-          }
+            `,
+          { batchId: batch.id, recordId: record.id, operation: 'analysis checkpoint' },
+        )
+        const checkpointResult = checkpoint[0]
+        if (!checkpointResult?.ownershipMatched) throw new ImportAnalysisOwnershipError()
+        if (!checkpointResult.recordMatched) {
+          throw new Error(`Import analysis record ${record.id} was not found in batch ${batch.id}.`)
+        }
+        if (!checkpointResult.progressUpdated) {
+          throw new Error(`Import analysis progress could not be checkpointed for batch ${batch.id}.`)
         }
 
         processedCount = targetProcessedCount

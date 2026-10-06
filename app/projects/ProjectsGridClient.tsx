@@ -582,7 +582,7 @@ export default function ProjectsGridClient({ initialBanner }: { initialBanner: R
    PROJECT CARD
    ═══════════════════════════════════════════════ */
 function ProjectCard({ project }: { project: ProjectItem }) {
-    const fallbackImage = '/images/default-property.jpg'
+    const fallbackImage = '/image-placeholder.svg'
     const [imgSrc, setImgSrc] = useState(project.coverImage || fallbackImage)
 
     const price = formatPrice(project.startingPrice)

@@ -14,7 +14,7 @@ type FeaturedDeveloperItem = {
   shortDescription: string | null;
 };
 
-const FALLBACK_IMAGE = "/images/default-property.jpg";
+const FALLBACK_IMAGE = "/image-placeholder.svg";
 
 export default function FeaturedDevelopers({
   market,

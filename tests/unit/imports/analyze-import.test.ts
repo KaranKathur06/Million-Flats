@@ -23,6 +23,10 @@ import { prisma } from '@/lib/prisma'
 
 const mockedPrisma = prisma as any
 const mockedGetAdapter = getImportAdapterForEntity as jest.MockedFunction<typeof getImportAdapterForEntity>
+const createPoolTimeoutError = () => Object.assign(
+  new Error('Timed out fetching a new connection from the connection pool.'),
+  { name: 'PrismaClientKnownRequestError', code: 'P2024', clientVersion: '5.22.0' },
+)
 let checkpointQuery: (...args: any[]) => Promise<any>
 const adapter = {
   adapterVersion: 1,
@@ -240,7 +244,7 @@ describe('import batch analysis', () => {
     expect(checkpointCalls[1].slice(1)).toContain(2)
   })
 
-  it('fails the analysis after checkpoint P2028 retries are exhausted', async () => {
+  it('fails the analysis after checkpoint P2024 retries are exhausted', async () => {
     mockedPrisma.importBatch.findUnique.mockResolvedValue({
       id: 'batch-1',
       entityType: 'PROPERTY',
@@ -253,32 +257,34 @@ describe('import batch analysis', () => {
       { id: 'record-1', sourceRow: 1, sourcePath: null, rawPayload: { title: 'First home' } },
       { id: 'record-2', sourceRow: 2, sourcePath: null, rawPayload: { title: 'Second home' } },
     ])
-    const expiredTransaction = Object.assign(
-      new Error('Transaction API error: Transaction not found'),
-      { code: 'P2028' },
-    )
-    checkpointQuery = async () => { throw expiredTransaction }
+    const poolTimeout = createPoolTimeoutError()
+    checkpointQuery = async () => { throw poolTimeout }
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
 
-    await expect(analyzeImportBatch({
-      batchId: 'batch-1',
-      requestMode: 'RECOVER',
-      waitForCompletion: true,
-    })).rejects.toThrow('Transaction API error: Transaction not found')
+    try {
+      await expect(analyzeImportBatch({
+        batchId: 'batch-1',
+        requestMode: 'RECOVER',
+        waitForCompletion: true,
+      })).rejects.toThrow('Timed out fetching a new connection from the connection pool.')
 
-    const checkpointCalls = mockedPrisma.$queryRaw.mock.calls.filter((call: any[]) =>
-      call[0].join('').includes('import_analysis_record_checkpoint'),
-    )
-    expect(checkpointCalls).toHaveLength(3)
-    expect(mockedPrisma.importBatch.updateMany).toHaveBeenLastCalledWith(expect.objectContaining({
-      where: { id: 'batch-1', status: 'ANALYZING', analysisAttemptId: expect.any(String) },
-      data: expect.objectContaining({
-        status: 'FAILED',
-        failureSummary: { stage: 'ANALYSIS', message: 'Transaction API error: Transaction not found' },
-      }),
-    }))
+      const checkpointCalls = mockedPrisma.$queryRaw.mock.calls.filter((call: any[]) =>
+        call[0].join('').includes('import_analysis_record_checkpoint'),
+      )
+      expect(checkpointCalls).toHaveLength(3)
+      expect(mockedPrisma.importBatch.updateMany).toHaveBeenLastCalledWith(expect.objectContaining({
+        where: { id: 'batch-1', status: 'ANALYZING', analysisAttemptId: expect.any(String) },
+        data: expect.objectContaining({
+          status: 'FAILED',
+          failureSummary: { stage: 'ANALYSIS', message: 'Timed out fetching a new connection from the connection pool.' },
+        }),
+      }))
+    } finally {
+      warn.mockRestore()
+    }
   })
 
-  it('retries P2028 as a fresh atomic statement with the same absolute progress checkpoint', async () => {
+  it('retries P2024 as a fresh atomic statement with the same absolute progress checkpoint', async () => {
     adapter.normalize.mockReturnValue({ normalized: {}, warnings: [], errors: [] })
     adapter.mapCanonical.mockReturnValue({ canonical: {}, warnings: [], errors: [], fieldConfidence: {} })
     mockedPrisma.importBatch.findUnique.mockResolvedValue({
@@ -292,12 +298,12 @@ describe('import batch analysis', () => {
     mockedPrisma.importRecord.findMany.mockResolvedValue([
       { id: 'record-1', sourceRow: 1, sourcePath: null, rawPayload: { title: 'Home' } },
     ])
-    const expiredTransaction = Object.assign(new Error('Transaction expired'), { code: 'P2028' })
+    const poolTimeout = createPoolTimeoutError()
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
     let callCount = 0
     checkpointQuery = async () => {
       callCount += 1
-      if (callCount === 1) throw expiredTransaction
+      if (callCount === 1) throw poolTimeout
       return [{ ownershipMatched: true, recordMatched: true, progressUpdated: true }]
     }
 
@@ -323,7 +329,7 @@ describe('import batch analysis', () => {
     }
   })
 
-  it('rechecks ownership before writes after retrying P2028', async () => {
+  it('rechecks ownership before writes after retrying P2024', async () => {
     mockedPrisma.importBatch.findUnique.mockResolvedValue({
       id: 'batch-1',
       entityType: 'PROPERTY',
@@ -335,11 +341,11 @@ describe('import batch analysis', () => {
     mockedPrisma.importRecord.findMany.mockResolvedValue([
       { id: 'record-1', sourceRow: 1, sourcePath: null, rawPayload: { title: 'Home' } },
     ])
-    const expiredTransaction = Object.assign(new Error('Transaction expired'), { code: 'P2028' })
+    const poolTimeout = createPoolTimeoutError()
     let callCount = 0
     checkpointQuery = async () => {
       callCount += 1
-      if (callCount === 1) throw expiredTransaction
+      if (callCount === 1) throw poolTimeout
       return [{ ownershipMatched: false, recordMatched: false, progressUpdated: false }]
     }
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
@@ -398,7 +404,7 @@ describe('import batch analysis', () => {
     }))
   })
 
-  it('stops after two P2028 retries and records the failure', async () => {
+  it('fails immediately for non-pool transaction errors without retrying', async () => {
     mockedPrisma.importBatch.findUnique.mockResolvedValue({
       id: 'batch-1',
       entityType: 'PROPERTY',
@@ -410,30 +416,27 @@ describe('import batch analysis', () => {
     mockedPrisma.importRecord.findMany.mockResolvedValue([
       { id: 'record-1', sourceRow: 1, sourcePath: null, rawPayload: { title: 'Home' } },
     ])
-    const expiredTransaction = Object.assign(new Error('Transaction expired'), { code: 'P2028' })
-    checkpointQuery = async () => { throw expiredTransaction }
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    const transactionError = Object.assign(
+      new Error('Transaction not found'),
+      { name: 'PrismaClientKnownRequestError', code: 'P2028', clientVersion: '5.22.0' },
+    )
+    checkpointQuery = async () => { throw transactionError }
 
-    try {
-      await expect(analyzeImportBatch({
-        batchId: 'batch-1',
-        requestMode: 'RECOVER',
-        waitForCompletion: true,
-      })).rejects.toThrow('Transaction expired')
+    await expect(analyzeImportBatch({
+      batchId: 'batch-1',
+      requestMode: 'RECOVER',
+      waitForCompletion: true,
+    })).rejects.toThrow('Transaction not found')
 
-      const checkpointCalls = mockedPrisma.$queryRaw.mock.calls.filter((call: any[]) =>
-        call[0].join('').includes('import_analysis_record_checkpoint'),
-      )
-      expect(checkpointCalls).toHaveLength(3)
-      expect(mockedPrisma.importBatch.updateMany).toHaveBeenLastCalledWith(expect.objectContaining({
-        where: { id: 'batch-1', status: 'ANALYZING', analysisAttemptId: expect.any(String) },
-        data: expect.objectContaining({
-          status: 'FAILED',
-          failureSummary: { stage: 'ANALYSIS', message: 'Transaction expired' },
-        }),
-      }))
-    } finally {
-      warn.mockRestore()
-    }
+    const checkpointCalls = mockedPrisma.$queryRaw.mock.calls.filter((call: any[]) =>
+      call[0].join('').includes('import_analysis_record_checkpoint'),
+    )
+    expect(checkpointCalls).toHaveLength(1)
+    expect(mockedPrisma.importBatch.updateMany).toHaveBeenLastCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        status: 'FAILED',
+        failureSummary: { stage: 'ANALYSIS', message: 'Transaction not found' },
+      }),
+    }))
   })
 })

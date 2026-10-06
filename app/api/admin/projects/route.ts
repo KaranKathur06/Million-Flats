@@ -211,7 +211,7 @@ export async function GET(req: Request) {
                 return mt === 'hero' || cat === 'hero'
             })?.mediaUrl
             const firstMedia = (item.media || []).find((m: any) => String(m.mediaUrl || '').trim())?.mediaUrl
-            const imageReference = hero || item.coverImage || firstMedia || '/images/default-property.jpg'
+            const imageReference = hero || item.coverImage || firstMedia || '/image-placeholder.svg'
             const heroImage = await resolveProjectMediaUrl(imageReference) || imageReference
             return {
                 ...item,

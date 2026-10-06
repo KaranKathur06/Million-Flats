@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { isPrismaInfrastructureError } from '@/lib/imports/core/retry-pool-timeout'
 
 export interface OwnershipSignal {
   type: 'explicit_id' | 'city_match' | 'locality_match' | 'geo_proximity' | 'agent_specialization'
@@ -134,6 +135,7 @@ export async function resolveOwnership(input: OwnershipResolutionInput): Promise
         }
       }
     } catch (error) {
+      if (isPrismaInfrastructureError(error)) throw error
       warnings.push(`Error validating explicit agentId: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
@@ -236,6 +238,7 @@ export async function resolveOwnership(input: OwnershipResolutionInput): Promise
         warnings.push(`No agents found with service area in '${city}'`)
       }
     } catch (error) {
+      if (isPrismaInfrastructureError(error)) throw error
       warnings.push(`Error querying service areas: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
@@ -289,6 +292,7 @@ export async function resolveOwnership(input: OwnershipResolutionInput): Promise
         }
       }
     } catch (error) {
+      if (isPrismaInfrastructureError(error)) throw error
       warnings.push(`Error querying geo-proximity: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
@@ -328,6 +332,7 @@ export async function resolveOwnership(input: OwnershipResolutionInput): Promise
         })
       }
     } catch (error) {
+      if (isPrismaInfrastructureError(error)) throw error
       warnings.push(`Error querying specializations: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
@@ -446,6 +451,7 @@ export async function validateAgentIsApproved(agentId: string): Promise<{ valid:
 
     return { valid: true, reason: 'Agent is approved and active' }
   } catch (error) {
+    if (isPrismaInfrastructureError(error)) throw error
     return { valid: false, reason: `Error validating agent: ${error instanceof Error ? error.message : 'Unknown error'}` }
   }
 }
