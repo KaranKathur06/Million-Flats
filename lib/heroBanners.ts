@@ -50,10 +50,10 @@ const LEGACY_DEFAULTS: Record<HeroBannerCategory, Omit<ResolvedHeroBanner, 'sour
     subheadline: 'Discover rental properties across India and the UAE. Search by location, property type, configuration, rent and lifestyle preferences.',
   },
   PROJECTS: {
-    desktopImage: null,
+    desktopImage: '/HOMEPAGE.jpeg',
     mobileImage: null,
-    desktopAlt: 'Premium off-plan developments',
-    mobileAlt: 'Premium off-plan developments',
+    desktopAlt: 'Premium off-plan developments across the UAE',
+    mobileAlt: 'Premium off-plan developments across the UAE',
     headline: 'Discover Premium Projects',
     subheadline: 'Browse exclusive off-plan developments from the UAE\'s top developers. Golden Visa eligible properties, luxury towers, and waterfront residences.',
   },

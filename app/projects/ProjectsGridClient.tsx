@@ -274,40 +274,61 @@ export default function ProjectsGridClient({ initialBanner }: { initialBanner: R
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* ─── Hero Banner ─── */}
-            <section className="relative overflow-hidden bg-gradient-to-br from-[#0c1d37] via-[#162d50] to-[#1e3a5f] pt-8 pb-12 sm:pt-10 sm:pb-14 lg:pt-12 lg:pb-16">
-                <HeroBannerBackdrop desktopImage={initialBanner.desktopImage} mobileImage={initialBanner.mobileImage} desktopAlt={initialBanner.desktopAlt} mobileAlt={initialBanner.mobileAlt} className="h-full w-full object-cover opacity-25" />
-                {/* Decorative grid pattern */}
-                <div className="pointer-events-none absolute inset-0 opacity-[0.04]" style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-                }} />
 
-                {/* Gradient glow */}
-                <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[900px] rounded-full bg-amber-400/[0.06] blur-3xl" />
+            {/* ─── Hero Banner (image only) ─── */}
+            <section
+                className="relative w-full overflow-hidden bg-[#0c1d37] aspect-[16/9] sm:aspect-[21/7] lg:aspect-[1920/450]"
+                aria-label="Projects hero banner"
+            >
+                <HeroBannerBackdrop
+                    desktopImage={initialBanner.desktopImage}
+                    mobileImage={initialBanner.mobileImage}
+                    desktopAlt={initialBanner.desktopAlt}
+                    mobileAlt={initialBanner.mobileAlt}
+                    fallbackImage="/HOMEPAGE.jpeg"
+                    className="h-full w-full object-cover object-center"
+                />
+                {/* Subtle bottom fade to blend into search section */}
+                <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-50/60 to-transparent" />
+            </section>
 
-                <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center relative z-10">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/10 border border-amber-400/20 px-4 py-1.5 text-xs font-bold text-amber-300 uppercase tracking-widest mb-5">
-                        <StarIcon className="h-3 w-3" />
-                        Off-Plan Developments
-                    </span>
-                    <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white tracking-tight leading-tight">{initialBanner.headline}</h1>
-                    <p className="mt-5 text-base sm:text-lg text-white/60 max-w-2xl mx-auto leading-relaxed">
-                        {initialBanner.subheadline}
-                    </p>
-
-                    {/* Search Bar */}
-                    <div className="mt-8 max-w-xl mx-auto">
-                        <div className="relative group">
-                            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/30 group-focus-within:text-amber-400 transition-colors" />
-                            <input
-                                id="projects-search"
-                                type="text"
-                                placeholder="Search by project, developer, or location..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="w-full rounded-2xl border border-white/10 bg-white/[0.07] backdrop-blur-sm pl-12 pr-5 py-4 text-sm text-white placeholder-white/35 outline-none focus:border-amber-400/40 focus:ring-2 focus:ring-amber-400/10 transition-all"
-                            />
+            {/* ─── Search Section ─── */}
+            <section className="bg-white border-b border-gray-100 shadow-sm" aria-label="Search projects">
+                <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-5 lg:py-6">
+                    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-3">
+                        <div>
+                            <h1 className="text-xl sm:text-2xl font-bold text-dark-blue leading-tight">
+                                {initialBanner.headline}
+                            </h1>
+                            <p className="text-xs text-gray-400 mt-0.5">Browse exclusive off-plan developments across the UAE</p>
                         </div>
+                        {!loading && (
+                            <span className="text-sm text-gray-400 shrink-0">
+                                {totalProjects} project{totalProjects !== 1 ? 's' : ''} found
+                            </span>
+                        )}
+                    </div>
+                    <label htmlFor="projects-search" className="sr-only">Search by project, developer, or location</label>
+                    <div className="relative group max-w-2xl">
+                        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-amber-500 transition-colors" />
+                        <input
+                            id="projects-search"
+                            type="text"
+                            placeholder="Search by project, developer, or location…"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full rounded-xl border border-gray-200 bg-white pl-12 pr-10 py-3.5 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/15 transition-all shadow-sm"
+                        />
+                        {search && (
+                            <button
+                                type="button"
+                                onClick={() => setSearch('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                                aria-label="Clear search"
+                            >
+                                <CloseIcon className="h-4 w-4" />
+                            </button>
+                        )}
                     </div>
                 </div>
             </section>
@@ -402,11 +423,6 @@ export default function ProjectsGridClient({ initialBanner }: { initialBanner: R
                                 Clear all
                             </button>
                         )}
-                        <span className="text-sm text-gray-400">
-                            {!loading && (
-                                <span>{totalProjects} project{totalProjects !== 1 ? 's' : ''} found</span>
-                            )}
-                        </span>
                     </div>
                 </div>
 
