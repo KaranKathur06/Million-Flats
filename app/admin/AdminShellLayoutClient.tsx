@@ -260,6 +260,7 @@ const navEntries: NavEntry[] = [
     ),
     children: [
       { href: "/admin/hero-banners", label: "Hero Banners" },
+      { href: "/admin/team", label: "Team Directory" },
     ],
   },
 

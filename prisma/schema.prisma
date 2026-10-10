@@ -335,6 +335,11 @@ model User {
   onboardingVersion     Int       @default(0) @map("onboarding_version")
   currentOnboardingStep Int       @default(1) @map("current_onboarding_step")
 
+  teamAccess  TeamAccess?
+  teamMember  TeamMember?
+
+  grantedTeamAccesses TeamAccess[] @relation("TeamAccessGrantedBy")
+
   @@map("users")
 }
 
@@ -1216,6 +1221,8 @@ enum AuditEntityType {
   PROJECT
   DEVELOPER_PROFILE
   AGENCY_PROFILE
+  TEAM_MEMBER
+  TEAM_ACCESS
 }
 
 enum AuditAction {
@@ -1292,6 +1299,15 @@ enum AuditAction {
   ADMIN_HERO_BANNER_UPDATED
   ADMIN_HERO_BANNER_STATUS_CHANGED
   ADMIN_HERO_BANNER_IMAGE_REMOVED
+  // Team directory audit actions
+  TEAM_ACCESS_GRANTED
+  TEAM_ACCESS_REVOKED
+  TEAM_MEMBER_CREATED
+  TEAM_MEMBER_UPDATED
+  TEAM_MEMBER_ACTIVATED
+  TEAM_MEMBER_DEACTIVATED
+  TEAM_MEMBER_DELETED
+  TEAM_MEMBER_REORDERED
 }
 
 enum StorageCleanupStatus {
@@ -4796,4 +4812,60 @@ model ImportRequestIdempotency {
   @@unique([batchId, idempotencyKey])
   @@index([createdAt])
   @@map("import_request_idempotency")
+}
+
+// ─── Team Directory ───────────────────────────────────────────────────────────
+
+enum TeamMemberStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+}
+
+/// Explicit per-user team-directory authorization.
+/// A user MUST have a TeamAccess record with isRevoked=false to view /team.
+/// isTeamAdmin=true also grants management permissions.
+model TeamAccess {
+  id             String    @id @default(uuid())
+  userId         String    @unique @map("user_id")
+  isTeamAdmin    Boolean   @default(false) @map("is_team_admin")
+  isRevoked      Boolean   @default(false) @map("is_revoked")
+  grantedByUserId String?  @map("granted_by_user_id")
+  revokedAt      DateTime? @map("revoked_at")
+  revokedNote    String?   @map("revoked_note") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy   User? @relation("TeamAccessGrantedBy", fields: [grantedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isRevoked])
+  @@index([isRevoked])
+  @@index([isTeamAdmin])
+  @@map("team_access")
+}
+
+/// Team member public profile. Separate from TeamAccess so a profile
+/// can be drafted/deactivated without affecting auth.
+model TeamMember {
+  id             String          @id @default(uuid())
+  /// Optional link to a canonical MillionFlats user account.
+  userId         String?         @unique @map("user_id")
+  displayName    String          @map("display_name")
+  designation    String?
+  bio            String?         @db.Text
+  imageUrl       String?         @map("image_url")
+  linkedinUrl    String?         @map("linkedin_url")
+  location       String?
+  displayOrder   Int             @default(0) @map("display_order")
+  status         TeamMemberStatus @default(DRAFT)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, displayOrder])
+  @@index([userId])
+  @@map("team_members")
 }

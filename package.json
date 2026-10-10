@@ -19,7 +19,9 @@
     "verify-schema:full": "node scripts/verify-schema.cjs --profile=full",
     "prisma:seed": "prisma db seed",
     "blogs:migrate-images": "node scripts/migrate-blog-images-to-s3.cjs",
-    "s3:configure-blog-cors": "node scripts/configure-blog-s3-cors.cjs"
+    "s3:configure-blog-cors": "node scripts/configure-blog-s3-cors.cjs",
+    "seed:team": "ts-node --project tsconfig.json scripts/seed-team.ts"
+
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.984.0",

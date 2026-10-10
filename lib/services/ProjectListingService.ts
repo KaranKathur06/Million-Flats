@@ -211,8 +211,8 @@ function buildOrderBy(
  * 4. Applying listing priority if set
  * 5. Falling back to createdAt DESC, id ASC
  *
- * IMPORTANT: This loads all matching projects and sorts in-memory to respect
- * the complex ranking algorithm. For large datasets, consider pagination.
+ * The ranking pass loads only scalar fields for all matches, then loads the
+ * requested page with relations to keep the relation query bounded.
  */
 export async function getProjectListing(options: ProjectListingOptions) {
   const { where, sortBy = 'recommended', take, skip, include } = options
@@ -236,9 +236,17 @@ export async function getProjectListing(options: ProjectListingOptions) {
       ...(include || {}),
     }
 
-    const allProjects = await prisma.project.findMany({
+    const projectsForRanking = await prisma.project.findMany({
       where: baseWhere,
-      include: mergedInclude,
+      select: {
+        id: true,
+        countryIso2: true,
+        city: true,
+        isPinned: true,
+        pinPriority: true,
+        listingPriority: true,
+        createdAt: true,
+      },
     })
 
     // Refresh priority cache
@@ -247,25 +255,23 @@ export async function getProjectListing(options: ProjectListingOptions) {
     }
 
     // Compute effective priority for each project and sort
-    const projectsWithRank = await Promise.all(
-      allProjects.map(async (p) => {
-        const marketPrio = priorityCache!.marketPriorities.get(p.countryIso2 || '') || 999
-        const cityKey = `${p.countryIso2}|${p.city}`
-        const cityPrio = priorityCache!.cityPriorities.get(cityKey) || 999
-        const pinPrio = p.isPinned ? (p.pinPriority ?? 999) : 999
-        const listingPrio = p.listingPriority ?? 999
+    const projectsWithRank = projectsForRanking.map((p) => {
+      const marketPrio = priorityCache!.marketPriorities.get(p.countryIso2 || '') || 999
+      const cityKey = `${p.countryIso2}|${p.city}`
+      const cityPrio = priorityCache!.cityPriorities.get(cityKey) || 999
+      const pinPrio = p.isPinned ? (p.pinPriority ?? 999) : 999
+      const listingPrio = p.listingPriority ?? 999
 
-        return {
-          ...p,
-          _rankMarket: marketPrio,
-          _rankCity: cityPrio,
-          _rankPin: pinPrio,
-          _rankListing: listingPrio,
-          _rankCreatedAt: new Date(p.createdAt).getTime(),
-          _rankId: p.id,
-        }
-      })
-    )
+      return {
+        id: p.id,
+        _rankMarket: marketPrio,
+        _rankCity: cityPrio,
+        _rankPin: pinPrio,
+        _rankListing: listingPrio,
+        _rankCreatedAt: new Date(p.createdAt).getTime(),
+        _rankId: p.id,
+      }
+    })
 
     // Sort by computed priorities
     projectsWithRank.sort((a, b) => {
@@ -280,8 +286,21 @@ export async function getProjectListing(options: ProjectListingOptions) {
     // Apply pagination
     const paginatedProjects = projectsWithRank.slice(offset, offset + pageSize)
 
-    // Strip ranking fields before returning
-    return paginatedProjects.map(({ _rankMarket, _rankCity, _rankPin, _rankListing, _rankCreatedAt, _rankId, ...p }) => p)
+    if (paginatedProjects.length === 0) return []
+
+    const projectsById = await prisma.project.findMany({
+      where: {
+        ...baseWhere,
+        id: { in: paginatedProjects.map((project) => project.id) },
+      },
+      include: mergedInclude,
+    })
+    const projectsByIdMap = new Map(projectsById.map((project) => [project.id, project]))
+
+    return paginatedProjects.flatMap(({ id }) => {
+      const project = projectsByIdMap.get(id)
+      return project ? [project] : []
+    })
   }
 
   // For non-recommended sorts, use standard Prisma query

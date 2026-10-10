@@ -10,6 +10,8 @@ export type AuditEntityType =
   | 'PROJECT'
   | 'PROJECT_LISTING'
   | 'ECOSYSTEM_BANNER'
+  | 'TEAM_MEMBER'
+  | 'TEAM_ACCESS'
 
 export type AuditAction =
   | 'DRAFT_DELETED'
@@ -71,6 +73,15 @@ export type AuditAction =
   | 'ADMIN_HERO_BANNER_UPDATED'
   | 'ADMIN_HERO_BANNER_STATUS_CHANGED'
   | 'ADMIN_HERO_BANNER_IMAGE_REMOVED'
+  // Team directory audit actions
+  | 'TEAM_ACCESS_GRANTED'
+  | 'TEAM_ACCESS_REVOKED'
+  | 'TEAM_MEMBER_CREATED'
+  | 'TEAM_MEMBER_UPDATED'
+  | 'TEAM_MEMBER_ACTIVATED'
+  | 'TEAM_MEMBER_DEACTIVATED'
+  | 'TEAM_MEMBER_DELETED'
+  | 'TEAM_MEMBER_REORDERED'
 
 
 export async function writeAuditLog(input: {
