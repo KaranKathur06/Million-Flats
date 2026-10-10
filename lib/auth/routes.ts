@@ -53,10 +53,9 @@ const PROTECTED_PREFIXES = [
   '/agent',
   '/developer',
   '/agency',
-  '/team',
 ]
 
-const PUBLIC_ROUTE_PREFIXES = ['/about', '/contact', '/blog', '/blogs', '/buy', '/rent', '/sell', '/properties', '/projects', '/agents', '/developers', '/agencies']
+const PUBLIC_ROUTE_PREFIXES = ['/about', '/contact', '/blog', '/blogs', '/buy', '/rent', '/sell', '/properties', '/projects', '/agents', '/developers', '/agencies', '/team']
 
 function normalizePath(pathname: string) {
   if (!pathname || pathname === '/') return '/'

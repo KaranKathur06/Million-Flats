@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MillionFlatsIndex™ — AI Investment Scoring</title>
+  <style>
+    :root {
+      --bg-dark: #0a1128;
+      --bg-surface: #111c38;
+      --bg-surface-elevated: #16224f;
+      --bg-card: #141e3d;
+      --border: #23335d;
+      --border-accent: #3b5087;
+      --gold: #d4af37;
+      --gold-hover: #e5c158;
+      --gold-light: rgba(212, 175, 55, 0.15);
+      --gold-border: rgba(212, 175, 55, 0.35);
+      --text-white: #ffffff;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-dark);
+      color: var(--text-white);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 60px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Suite Top Navigation */
+    .suite-nav {
+      background: rgba(10, 17, 40, 0.95);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .nav-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 70px;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .logo-badge {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #16224f 0%, #1e293b 100%);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gold);
+      box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-white);
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .beta-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      background: var(--gold-light);
+      color: var(--gold);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius-full);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .brand-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .suite-links {
+      display: flex;
+      gap: 8px;
+    }
+
+    .suite-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s ease;
+    }
+
+    .suite-link:hover {
+      color: var(--text-white);
+      background: var(--bg-surface);
+    }
+
+    .suite-link.active {
+      color: var(--gold);
+      background: var(--gold-light);
+      border: 1px solid var(--gold-border);
+    }
+
+    /* Hero Card */
+    .hero-card {
+      margin-top: 32px;
+      background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-card) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px 40px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #10b981, var(--gold), #3b82f6);
+    }
+
+    .hero-title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+      color: var(--text-white);
+    }
+
+    .hero-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 760px;
+      line-height: 1.6;
+    }
+
+    /* Main Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 440px;
+      gap: 32px;
+      margin-top: 32px;
+      align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Panels */
+    .panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-tag {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Property Profile Form */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 640px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full-width {
+      grid-column: span 2;
+    }
+
+    @media (max-width: 640px) {
+      .form-group.full-width {
+        grid-column: span 1;
+      }
+    }
+
+    .form-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .form-input, .form-select {
+      background: var(--bg-dark);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      color: var(--text-white);
+      font-size: 0.92rem;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+    }
+
+    /* Category Sliders Section */
+    .sliders-intro {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      font-style: italic;
+    }
+
+    .category-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: all 0.2s ease;
+    }
+
+    .category-card:hover {
+      border-color: var(--border-accent);
+    }
+
+    .category-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .category-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-white);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .category-weight {
+      font-size: 0.75rem;
+      color: var(--gold);
+      background: var(--gold-light);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      font-weight: 700;
+    }
+
+    .category-score-val {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--gold);
+    }
+
+    .category-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    /* Custom Slider */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 10px;
+    }
+
+    .slider-control {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 8px;
+      border-radius: var(--radius-full);
+      background: #1e293b;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .slider-control::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--gold);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+      border: 2px solid #ffffff;
+      transition: transform 0.1s;
+    }
+
+    .slider-control::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+
+    .category-reasoning {
+      background: rgba(10, 17, 40, 0.6);
+      border-left: 3px solid var(--gold);
+      padding: 8px 12px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      font-size: 0.78rem;
+      color: #cbd5e1;
+      line-height: 1.45;
+    }
+
+    /* Overall Score Dashboard Panel (Right Column) */
+    .score-panel {
+      position: sticky;
+      top: 90px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .score-card {
+      background: linear-gradient(145deg, #111c38 0%, #0d1b2a 100%);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      text-align: center;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+      position: relative;
+    }
+
+    .score-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .score-rating {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--gold);
+      margin-bottom: 24px;
+    }
+
+    /* Circular SVG Gauge */
+    .gauge-wrapper {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      margin: 0 auto 20px auto;
+    }
+
+    .gauge-svg {
+      transform: rotate(-90deg);
+      width: 100%;
+      height: 100%;
+    }
+
+    .gauge-bg {
+      fill: none;
+      stroke: #1e293b;
+      stroke-width: 12;
+    }
+
+    .gauge-fill {
+      fill: none;
+      stroke: url(#goldGradient);
+      stroke-width: 12;
+      stroke-linecap: round;
+      stroke-dasharray: 440;
+      stroke-dashoffset: 88;
+      transition: stroke-dashoffset 0.4s ease;
+    }
+
+    .gauge-center-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .gauge-number {
+      font-size: 3rem;
+      font-weight: 900;
+      color: var(--text-white);
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+
+    .gauge-denom {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Linear Bar */
+    .linear-bar-wrap {
+      margin-bottom: 20px;
+    }
+
+    .linear-bar-track {
+      height: 8px;
+      background: #1e293b;
+      border-radius: var(--radius-full);
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .linear-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #d4af37, #f59e0b);
+      border-radius: var(--radius-full);
+      transition: width 0.3s ease;
+      width: 80%;
+    }
+
+    .score-tagline {
+      font-size: 0.74rem;
+      color: var(--text-subtle);
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      line-height: 1.4;
+    }
+
+    /* Primary Action CTA */
+    .btn-generate {
+      width: 100%;
+      background: linear-gradient(135deg, #d4af37 0%, #b8972e 100%);
+      color: #0a1128;
+      font-size: 1rem;
+      font-weight: 800;
+      padding: 14px 20px;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.35);
+      transition: all 0.2s ease;
+    }
+
+    .btn-generate:hover {
+      background: linear-gradient(135deg, #e5c158 0%, #d4af37 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+    }
+
+    /* Disclaimer Box */
+    .disclaimer-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      font-size: 0.8rem;
+    }
+
+    .disclaimer-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+
+    .disclaimer-body {
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Bottom Architecture & Formula Guide */
+    .doc-section {
+      margin-top: 56px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px;
+    }
+
+    .doc-section h2 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+      color: var(--text-white);
+    }
+
+    .doc-section p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      max-width: 800px;
+    }
+
+    .weights-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 28px;
+      font-size: 0.9rem;
+    }
+
+    .weights-table th {
+      background: var(--bg-card);
+      color: var(--gold);
+      font-weight: 700;
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .weights-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .weights-table tr:hover td {
+      background: rgba(22, 34, 79, 0.4);
+      color: var(--text-white);
+    }
+
+    .formula-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--gold);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .formula-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+
+    .formula-code {
+      font-family: monospace;
+      font-size: 1rem;
+      color: var(--text-white);
+      background: #0a1128;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    /* Modal / Summary popup */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 200;
+      backdrop-filter: blur(6px);
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .modal-content {
+      background: var(--bg-surface);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius-lg);
+      max-width: 650px;
+      width: 100%;
+      padding: 32px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .modal-close:hover {
+      color: var(--text-white);
+    }
+
+    footer {
+      margin-top: 60px;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-subtle);
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Suite Top Navigation -->
+  <header class="suite-nav">
+    <div class="container nav-inner">
+      <a href="#" class="brand-wrap">
+        <div class="logo-badge">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">
+            MillionFlatsIndex™
+            <span class="beta-badge">BETA</span>
+          </div>
+          <div class="brand-subtitle">AI Investment Intelligence</div>
+        </div>
+      </a>
+      <div class="suite-links">
+        <a href="million_flats_shield_demo.html" class="suite-link">Shield™ (Price)</a>
+        <a href="million_flats_index_demo.html" class="suite-link active">Index™ (Scoring)</a>
+        <a href="million_flats_title_demo.html" class="suite-link">Title™ (Legal)</a>
+        <a href="million_flats_pro_demo.html" class="suite-link">Pro™ (Agents)</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Hero Section Inside Card -->
+    <div class="hero-card">
+      <h1 class="hero-title">Invest with greater clarity.</h1>
+      <p class="hero-subtitle">
+        A transparent, weighted scoring framework for evaluating real-estate investment potential across five core categories.
+      </p>
+    </div>
+
+    <!-- Main Workspace -->
+    <div class="main-grid">
+
+      <!-- Left Column: Form & 5 Weighted Categories -->
+      <div class="left-col">
+
+        <!-- Section 01: Property Profile -->
+        <div class="panel" style="margin-bottom: 28px;">
+          <div class="section-header">
+            <div class="section-tag">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              01 / Property profile
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label class="form-label" for="projectDesc">Project / Property Description</label>
+              <input type="text" class="form-input" id="projectDesc" value="Premium waterfront residence">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="location">Location</label>
+              <input type="text" class="form-input" id="location" value="Dubai Marina, Dubai">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="developer">Developer Name / Profile</label>
+              <input type="text" class="form-input" id="developer" value="Established developer">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="propType">Property Type</label>
+              <select class="form-select" id="propType">
+                <option value="Apartment" selected>Apartment</option>
+                <option value="Villa">Villa</option>
+                <option value="Townhouse">Townhouse</option>
+                <option value="Penthouse">Penthouse</option>
+                <option value="Commercial">Commercial</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="horizon">Investment Horizon</label>
+              <select class="form-select" id="horizon">
+                <option value="1–3 years">1–3 years</option>
+                <option value="3–5 years">3–5 years</option>
+                <option value="5–7 years" selected>5–7 years</option>
+                <option value="7–10 years">7–10 years</option>
+                <option value="10+ years">10+ years</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label" for="price">Indicative Purchase Price</label>
+              <input type="number" class="form-input" id="price" value="2500000" step="50000">
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 02: Five Weighted Categories -->
+        <div class="panel">
+          <div class="section-header">
+            <div class="section-tag">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+              02 / Five weighted categories
+            </div>
+            <span style="font-size: 0.8rem; color: var(--gold); font-weight: 700;">Weights Total: 100%</span>
+          </div>
+          <p class="sliders-intro">Adjust each sample score from 0 to 100. Category weights sum to 100%.</p>
+
+          <!-- Category 1: Location & Connectivity (25%) -->
+          <div class="category-card">
+            <div class="category-head">
+              <div class="category-title">
+                1. Location & Connectivity
+                <span class="category-weight">Weight: 25%</span>
+              </div>
+              <div class="category-score-val" id="scoreVal1">85 / 100</div>
+            </div>
+            <div class="category-desc">Access to transit, schools, hospitals, retail and key employment hubs.</div>
+            <div class="slider-row">
+              <input type="range" min="0" max="100" value="85" class="slider-control" id="slider1" oninput="updateScore()">
+            </div>
+            <div class="category-reasoning" id="reason1">
+              ⓘ Strong location profile; verify actual distances and travel times.
+            </div>
+          </div>
+
+          <!-- Category 2: Growth Potential (25%) -->
+          <div class="category-card">
+            <div class="category-head">
+              <div class="category-title">
+                2. Growth Potential
+                <span class="category-weight">Weight: 25%</span>
+              </div>
+              <div class="category-score-val" id="scoreVal2">78 / 100</div>
+            </div>
+            <div class="category-desc">Infrastructure pipeline, area demand, supply levels and development plans.</div>
+            <div class="slider-row">
+              <input type="range" min="0" max="100" value="78" class="slider-control" id="slider2" oninput="updateScore()">
+            </div>
+            <div class="category-reasoning" id="reason2">
+              ⓘ Mixed growth indicators; validate future supply and recent price trends.
+            </div>
+          </div>
+
+          <!-- Category 3: Rental Potential (20%) -->
+          <div class="category-card">
+            <div class="category-head">
+              <div class="category-title">
+                3. Rental Potential
+                <span class="category-weight">Weight: 20%</span>
+              </div>
+              <div class="category-score-val" id="scoreVal3">74 / 100</div>
+            </div>
+            <div class="category-desc">Tenant demand, indicative rental yield and occupancy prospects.</div>
+            <div class="slider-row">
+              <input type="range" min="0" max="100" value="74" class="slider-control" id="slider3" oninput="updateScore()">
+            </div>
+            <div class="category-reasoning" id="reason3">
+              ⓘ Rental prospects appear moderate; verify achievable rent and annual costs.
+            </div>
+          </div>
+
+          <!-- Category 4: Developer Credibility (15%) -->
+          <div class="category-card">
+            <div class="category-head">
+              <div class="category-title">
+                4. Developer Credibility
+                <span class="category-weight">Weight: 15%</span>
+              </div>
+              <div class="category-score-val" id="scoreVal4">88 / 100</div>
+            </div>
+            <div class="category-desc">Delivery record, project approvals, construction progress and disclosures.</div>
+            <div class="slider-row">
+              <input type="range" min="0" max="100" value="88" class="slider-control" id="slider4" oninput="updateScore()">
+            </div>
+            <div class="category-reasoning" id="reason4">
+              ⓘ Positive preliminary developer profile; independently verify approvals and delivery history.
+            </div>
+          </div>
+
+          <!-- Category 5: Risk & Value (15%) -->
+          <div class="category-card">
+            <div class="category-head">
+              <div class="category-title">
+                5. Risk & Value
+                <span class="category-weight">Weight: 15%</span>
+              </div>
+              <div class="category-score-val" id="scoreVal5">72 / 100</div>
+            </div>
+            <div class="category-desc">Price versus comparable properties, legal risks, liquidity and ownership costs.</div>
+            <div class="slider-row">
+              <input type="range" min="0" max="100" value="72" class="slider-control" id="slider5" oninput="updateScore()">
+            </div>
+            <div class="category-reasoning" id="reason5">
+              ⓘ Review comparable prices, ongoing costs, liquidity and legal documentation.
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Right Column: Gauge, Button & Disclaimers -->
+      <div class="score-panel">
+
+        <div class="score-card">
+          <div class="score-label">Illustrative investment score</div>
+          <div class="score-rating" id="ratingLabel">Promising with checks</div>
+
+          <!-- Circular SVG Gauge -->
+          <div class="gauge-wrapper">
+            <svg class="gauge-svg" viewBox="0 0 160 160">
+              <defs>
+                <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#d4af37"/>
+                  <stop offset="100%" stop-color="#f59e0b"/>
+                </linearGradient>
+              </defs>
+              <circle class="gauge-bg" cx="80" cy="80" r="70"/>
+              <circle class="gauge-fill" id="gaugeCircle" cx="80" cy="80" r="70"/>
+            </svg>
+            <div class="gauge-center-text">
+              <div class="gauge-number" id="totalScoreNum">80</div>
+              <div class="gauge-denom">OUT OF 100</div>
+            </div>
+          </div>
+
+          <!-- Linear progress bar -->
+          <div class="linear-bar-wrap">
+            <div class="linear-bar-track">
+              <div class="linear-bar-fill" id="linearFill" style="width: 80%;"></div>
+            </div>
+          </div>
+
+          <div class="score-tagline">
+            Weighted formula · Editable demo scores · Not a financial recommendation
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <button class="btn-generate" onclick="openSummaryModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Generate investment summary
+        </button>
+
+        <!-- Disclaimer Box -->
+        <div class="disclaimer-card">
+          <div class="disclaimer-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Beta — AI-assisted analysis
+          </div>
+          <div class="disclaimer-body">
+            This demo uses manually adjustable sample scores. It does not call Google Maps, Walk Score, OpenAI, Claude or Numbeo APIs, and it does not verify live property data.
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Explanatory Content & Documentation Section -->
+    <div class="doc-section">
+      <h2>How the MVP Calculates the Score</h2>
+      <p>
+        MillionFlatsIndex™ combines five weighted criteria to yield a balanced, explainable composite index score. Each pillar is assigned a fixed weight reflecting historical risk and yield drivers.
+      </p>
+
+      <table class="weights-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Weight</th>
+            <th>Evidence to Use in Production</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Location & connectivity</strong></td>
+            <td>25%</td>
+            <td>Google Maps distances, transit hubs, schools, and local amenities</td>
+          </tr>
+          <tr>
+            <td><strong>Growth potential</strong></td>
+            <td>25%</td>
+            <td>Infrastructure pipeline, upcoming supply, historical price trajectory</td>
+          </tr>
+          <tr>
+            <td><strong>Rental potential</strong></td>
+            <td>20%</td>
+            <td>Comparable rental yields, historical occupancy rates, net cash-flow yield</td>
+          </tr>
+          <tr>
+            <td><strong>Developer credibility</strong></td>
+            <td>15%</td>
+            <td>Delivery track record, escrow compliance, regulatory disclosures</td>
+          </tr>
+          <tr>
+            <td><strong>Risk & value</strong></td>
+            <td>15%</td>
+            <td>Comparable sales deeds, title encumbrance check, liquidity indicators</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="formula-box">
+        <div class="formula-title">Scoring Mathematical Formula</div>
+        <div class="formula-code">
+          Index Score = (Location × 0.25) + (Growth × 0.25) + (Rental × 0.20) + (Developer × 0.15) + (Risk × 0.15)
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0;">
+          <strong>Default Evaluation:</strong> (85 × 0.25) + (78 × 0.25) + (74 × 0.20) + (88 × 0.15) + (72 × 0.15) = <strong>21.25 + 19.50 + 14.80 + 13.20 + 10.80 = 80.0 / 100</strong>
+        </p>
+      </div>
+
+      <div style="background: var(--bg-card); border-radius: var(--radius-sm); padding: 20px; border: 1px solid var(--border);">
+        <h4 style="color: var(--gold); font-size: 1rem; margin-bottom: 8px;">Suggested Production Architecture</h4>
+        <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0;">
+          Integrate the Google Maps Platform for radius search and transit access, Walk Score where coverage and commercial licensing permit, institutional land records and rental benchmarks (e.g., Propstack, REIDIN, DLD) for financial metrics, and fine-tuned LLMs strictly for synthesizing multi-variable qualitative reasoning—never as the primary source of factual real-estate numbers.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Summary Modal Popup -->
+  <div class="modal-overlay" id="summaryModal" onclick="closeSummaryModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeSummaryModal()">&times;</button>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+        <div class="logo-badge" style="width: 32px; height: 32px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <h3 style="font-size: 1.3rem; color: var(--text-white);">MillionFlatsIndex™ Dossier</h3>
+      </div>
+
+      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 18px; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div>
+            <div style="font-weight: 800; font-size: 1.1rem; color: var(--text-white);" id="modalPropTitle">Premium waterfront residence</div>
+            <div style="font-size: 0.85rem; color: var(--text-muted);" id="modalPropSub">Dubai Marina, Dubai · Apartment</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 1.6rem; font-weight: 900; color: var(--gold);" id="modalScoreDisplay">80 / 100</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;" id="modalRatingDisplay">PROMISING WITH CHECKS</div>
+          </div>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 10px;" id="modalPriceHorizon">
+          Indicative Value: AED 2,500,000 · Horizon: 5–7 years
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <h4 style="font-size: 0.9rem; text-transform: uppercase; color: var(--gold); letter-spacing: 0.05em; margin-bottom: 10px;">Category Breakdown Summary</h4>
+        <div id="modalBreakdownList" style="font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 8px;">
+          <!-- Dynamically filled -->
+        </div>
+      </div>
+
+      <div style="text-align: right;">
+        <button class="btn-generate" style="display: inline-flex; width: auto; padding: 10px 24px;" onclick="window.print()">
+          Print / Export Report
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>© 2026 MillionFlatsIndex™ · Investment Intelligence Platform · MillionFlats Ecosystem</p>
+  </footer>
+
+  <script>
+    // Weights
+    const weights = [0.25, 0.25, 0.20, 0.15, 0.15];
+
+    function updateScore() {
+      const s1 = parseInt(document.getElementById("slider1").value) || 0;
+      const s2 = parseInt(document.getElementById("slider2").value) || 0;
+      const s3 = parseInt(document.getElementById("slider3").value) || 0;
+      const s4 = parseInt(document.getElementById("slider4").value) || 0;
+      const s5 = parseInt(document.getElementById("slider5").value) || 0;
+
+      // Update text values
+      document.getElementById("scoreVal1").innerText = `${s1} / 100`;
+      document.getElementById("scoreVal2").innerText = `${s2} / 100`;
+      document.getElementById("scoreVal3").innerText = `${s3} / 100`;
+      document.getElementById("scoreVal4").innerText = `${s4} / 100`;
+      document.getElementById("scoreVal5").innerText = `${s5} / 100`;
+
+      // Dynamic reasoning text
+      updateReasoning(1, s1);
+      updateReasoning(2, s2);
+      updateReasoning(3, s3);
+      updateReasoning(4, s4);
+      updateReasoning(5, s5);
+
+      // Total weighted score
+      const total = Math.round(
+        (s1 * weights[0]) +
+        (s2 * weights[1]) +
+        (s3 * weights[2]) +
+        (s4 * weights[3]) +
+        (s5 * weights[4])
+      );
+
+      // Update gauge & UI
+      document.getElementById("totalScoreNum").innerText = total;
+      document.getElementById("linearFill").style.width = `${total}%`;
+
+      // SVG circle circumference for r=70 is 2 * PI * 70 ≈ 440
+      const circumference = 440;
+      const offset = circumference - (total / 100) * circumference;
+      document.getElementById("gaugeCircle").style.strokeDashoffset = offset;
+
+      // Update rating label
+      const ratingEl = document.getElementById("ratingLabel");
+      if (total >= 85) {
+        ratingEl.innerText = "Exceptional Potential";
+        ratingEl.style.color = "#10b981";
+      } else if (total >= 75) {
+        ratingEl.innerText = "Promising with checks";
+        ratingEl.style.color = "#d4af37";
+      } else if (total >= 60) {
+        ratingEl.innerText = "Moderate / Cautious";
+        ratingEl.style.color = "#f59e0b";
+      } else {
+        ratingEl.innerText = "High Risk / Speculative";
+        ratingEl.style.color = "#ef4444";
+      }
+    }
+
+    function updateReasoning(catIndex, val) {
+      const reasonEl = document.getElementById(`reason${catIndex}`);
+      if (catIndex === 1) {
+        reasonEl.innerText = val >= 80 
+          ? "ⓘ Strong location profile; verify actual distances and travel times."
+          : val >= 60 ? "ⓘ Moderate accessibility; review transit connections and peak congestion."
+          : "ⓘ Remote or developing corridor; higher commute risk.";
+      } else if (catIndex === 2) {
+        reasonEl.innerText = val >= 80
+          ? "ⓘ Robust capital appreciation pipeline; major infrastructure projects confirmed."
+          : val >= 60 ? "ⓘ Mixed growth indicators; validate future supply and recent price trends."
+          : "ⓘ Saturated inventory or low infrastructure momentum.";
+      } else if (catIndex === 3) {
+        reasonEl.innerText = val >= 80
+          ? "ⓘ High rental liquidity with strong tenant occupancy prospects."
+          : val >= 60 ? "ⓘ Rental prospects appear moderate; verify achievable rent and annual costs."
+          : "ⓘ Low rental yields; potential vacancy periods anticipated.";
+      } else if (catIndex === 4) {
+        reasonEl.innerText = val >= 80
+          ? "ⓘ Positive preliminary developer profile; independently verify approvals and delivery history."
+          : val >= 60 ? "ⓘ Moderate delivery history; check past delay records."
+          : "ⓘ Limited track record or pending regulatory actions.";
+      } else if (catIndex === 5) {
+        reasonEl.innerText = val >= 80
+          ? "ⓘ Highly favorable pricing vs comps; minimal legal exposure."
+          : val >= 60 ? "ⓘ Review comparable prices, ongoing costs, liquidity and legal documentation."
+          : "ⓘ Expensive relative to comps; liquidity risk upon exit.";
+      }
+    }
+
+    function openSummaryModal() {
+      const title = document.getElementById("projectDesc").value || "Property";
+      const loc = document.getElementById("location").value || "Location";
+      const type = document.getElementById("propType").value;
+      const price = parseFloat(document.getElementById("price").value) || 0;
+      const horizon = document.getElementById("horizon").value;
+      const score = document.getElementById("totalScoreNum").innerText;
+      const rating = document.getElementById("ratingLabel").innerText;
+
+      document.getElementById("modalPropTitle").innerText = title;
+      document.getElementById("modalPropSub").innerText = `${loc} · ${type}`;
+      document.getElementById("modalPriceHorizon").innerText = `Indicative Price: ${price.toLocaleString()} · Horizon: ${horizon}`;
+      document.getElementById("modalScoreDisplay").innerText = `${score} / 100`;
+      document.getElementById("modalRatingDisplay").innerText = rating.toUpperCase();
+
+      const s1 = document.getElementById("slider1").value;
+      const s2 = document.getElementById("slider2").value;
+      const s3 = document.getElementById("slider3").value;
+      const s4 = document.getElementById("slider4").value;
+      const s5 = document.getElementById("slider5").value;
+
+      document.getElementById("modalBreakdownList").innerHTML = `
+        <div style="display:flex; justify-content:space-between;"><span>Location & Connectivity (25%):</span><strong>${s1}/100</strong></div>
+        <div style="display:flex; justify-content:space-between;"><span>Growth Potential (25%):</span><strong>${s2}/100</strong></div>
+        <div style="display:flex; justify-content:space-between;"><span>Rental Potential (20%):</span><strong>${s3}/100</strong></div>
+        <div style="display:flex; justify-content:space-between;"><span>Developer Credibility (15%):</span><strong>${s4}/100</strong></div>
+        <div style="display:flex; justify-content:space-between;"><span>Risk & Value (15%):</span><strong>${s5}/100</strong></div>
+      `;
+
+      document.getElementById("summaryModal").style.display = "flex";
+    }
+
+    function closeSummaryModal() {
+      document.getElementById("summaryModal").style.display = "none";
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      updateScore();
+    });
+  </script>
+</body>
+</html>

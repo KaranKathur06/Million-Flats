@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import type { MediaIntelligenceReport, MediaItemAnalysis } from '@/lib/ai-core/types'
 import { MediaGridSkeleton, AIErrorState } from '@/components/ai-shared/AISkeletons'
@@ -111,7 +112,15 @@ export default function AIView() {
       {/* Header */}
       <div className="bg-[#0a1628] text-white py-10 px-4">
         <div className="container mx-auto max-w-[1400px]">
-          <span className="text-xs font-bold uppercase tracking-widest text-cyan-400">AIView™</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold uppercase tracking-widest text-cyan-400">AIView™</span>
+            <Link
+              href="/ai/view/demo"
+              className="ml-auto rounded-full border border-[#d4af37]/50 px-3 py-1.5 text-xs font-semibold text-[#f2d778] transition-colors hover:bg-white/10"
+            >
+              View demo preview
+            </Link>
+          </div>
           <h1 className="text-3xl font-bold mt-1">Property Media Intelligence</h1>
           <p className="text-gray-400 mt-1 text-sm">
             AI image authenticity, virtual staging detection, defect analysis, and quality scoring

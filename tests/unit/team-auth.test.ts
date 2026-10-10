@@ -10,20 +10,19 @@
  * tests/integration/team/ but not runnable without DB connectivity.
  */
 
-import { isProtectedRoutePath, isPublicAuthPath } from '@/lib/auth/routes'
+import { isProtectedRoutePath, isPublicAuthPath, isPublicRoutePath } from '@/lib/auth/routes'
+import { metadata as teamMetadata } from '@/app/team/layout'
 
 describe('Team route classification', () => {
-  describe('isProtectedRoutePath — /team must be classified as protected', () => {
-    it('classifies /team as protected', () => {
-      expect(isProtectedRoutePath('/team')).toBe(true)
+  describe('public team directory', () => {
+    it('allows /team without classifying it as protected', () => {
+      expect(isProtectedRoutePath('/team')).toBe(false)
+      expect(isPublicRoutePath('/team')).toBe(true)
     })
 
-    it('classifies /team/ as protected', () => {
-      expect(isProtectedRoutePath('/team/')).toBe(true)
-    })
-
-    it('classifies /team/anything as protected', () => {
-      expect(isProtectedRoutePath('/team/subpage')).toBe(true)
+    it('keeps the team page public when a trailing slash is present', () => {
+      expect(isProtectedRoutePath('/team/')).toBe(false)
+      expect(isPublicRoutePath('/team/')).toBe(true)
     })
   })
 
@@ -41,11 +40,6 @@ describe('Team route classification', () => {
   describe('Public routes must remain public', () => {
     it('does not reclassify /about as protected', () => {
       expect(isProtectedRoutePath('/about')).toBe(false)
-    })
-
-    it('does not reclassify /about/team as protected', () => {
-      // /about/team is the public marketing team page — must remain public
-      expect(isProtectedRoutePath('/about/team')).toBe(false)
     })
 
     it('does not reclassify /buy as protected', () => {
@@ -74,7 +68,7 @@ describe('Team authorization logic invariants', () => {
    * The actual DB-backed functions are integration-tested separately.
    */
 
-  it('team access requires both authentication AND explicit membership (design check)', () => {
+  it('private directory API access requires authentication AND explicit membership', () => {
     // This test documents the access model — it's a contract, not a DB call.
     // identity + revoked membership = denied
     // identity + no membership = denied
@@ -82,7 +76,7 @@ describe('Team authorization logic invariants', () => {
     // identity + active membership + isTeamAdmin = allowed + can manage
     type AccessRecord = { isRevoked: boolean; isTeamAdmin: boolean } | null
 
-    function canViewTeam(access: AccessRecord): boolean {
+    function canReadPrivateDirectoryApi(access: AccessRecord): boolean {
       return access !== null && !access.isRevoked
     }
 
@@ -91,19 +85,19 @@ describe('Team authorization logic invariants', () => {
     }
 
     // No access record
-    expect(canViewTeam(null)).toBe(false)
+    expect(canReadPrivateDirectoryApi(null)).toBe(false)
     expect(canManageTeam(null)).toBe(false)
 
     // Revoked access
-    expect(canViewTeam({ isRevoked: true, isTeamAdmin: false })).toBe(false)
+    expect(canReadPrivateDirectoryApi({ isRevoked: true, isTeamAdmin: false })).toBe(false)
     expect(canManageTeam({ isRevoked: true, isTeamAdmin: true })).toBe(false)
 
     // Active access without admin
-    expect(canViewTeam({ isRevoked: false, isTeamAdmin: false })).toBe(true)
+    expect(canReadPrivateDirectoryApi({ isRevoked: false, isTeamAdmin: false })).toBe(true)
     expect(canManageTeam({ isRevoked: false, isTeamAdmin: false })).toBe(false)
 
     // Active access with admin
-    expect(canViewTeam({ isRevoked: false, isTeamAdmin: true })).toBe(true)
+    expect(canReadPrivateDirectoryApi({ isRevoked: false, isTeamAdmin: true })).toBe(true)
     expect(canManageTeam({ isRevoked: false, isTeamAdmin: true })).toBe(true)
   })
 
@@ -145,23 +139,16 @@ describe('Team authorization logic invariants', () => {
   })
 })
 
-describe('Sitemap / SEO: /team must be excluded from public sitemap', () => {
-  it('/team is not in the public route prefixes', () => {
-    // PUBLIC_ROUTE_PREFIXES from lib/auth/routes.ts must not include /team
-    const PUBLIC_ROUTE_PREFIXES = [
-      '/about', '/contact', '/blog', '/blogs', '/buy', '/rent',
-      '/sell', '/properties', '/projects', '/agents', '/developers', '/agencies',
-    ]
-    expect(PUBLIC_ROUTE_PREFIXES.includes('/team')).toBe(false)
-    expect(PUBLIC_ROUTE_PREFIXES.some(p => p === '/team' || '/team'.startsWith(p + '/'))).toBe(false)
+describe('Public team directory SEO', () => {
+  it('keeps the public directory excluded from indexing', () => {
+    expect(teamMetadata.robots.index).toBe(false)
+    expect(teamMetadata.robots.follow).toBe(false)
   })
 })
 
 describe('Cache control requirements', () => {
-  it('private team responses must include no-store directives', () => {
-    // Documents the expected Cache-Control header value
+  it('private team API responses must include no-store directives', () => {
     const expectedHeader = 'private, no-store, max-age=0'
-    // Verify the format is correct
     expect(expectedHeader).toContain('private')
     expect(expectedHeader).toContain('no-store')
     expect(expectedHeader).not.toContain('public')

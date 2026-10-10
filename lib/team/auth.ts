@@ -61,7 +61,7 @@ async function resolveAuthenticatedUser(): Promise<
 
 /**
  * Requires an authenticated session AND an active (non-revoked) TeamAccess record.
- * Used to gate the /team directory page and its read API.
+ * Used to gate the private team directory read API.
  *
  * Fail-closed: any error in auth or DB lookup returns a denied result.
  */

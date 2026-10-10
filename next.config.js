@@ -54,6 +54,12 @@ const nextConfig = {
   },
   async rewrites() {
     return [
+      // ── Temporary standalone AI product demos ──
+      { source: '/ai/index/demo', destination: '/ai-demos/aiindex_demo.html' },
+      { source: '/ai/pro/demo', destination: '/ai-demos/aipro_demo.html' },
+      { source: '/ai/shield/demo', destination: '/ai-demos/aishield_demo.html' },
+      { source: '/ai/title/demo', destination: '/ai-demos/aititle_demo.html' },
+      { source: '/ai/view/demo', destination: '/ai-demos/aiview_demo.html' },
       // ── Developer marketplace SEO-friendly country pages ──
       { source: '/dubai-developers', destination: '/developers?country=UAE' },
       { source: '/india-developers', destination: '/developers?country=INDIA' },
@@ -62,4 +68,3 @@ const nextConfig = {
 }
 
 module.exports = nextConfig
-

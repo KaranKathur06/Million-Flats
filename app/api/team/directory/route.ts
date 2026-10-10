@@ -2,8 +2,8 @@
  * GET /api/team/directory
  *
  * Returns the active team directory for explicitly approved team members.
- * Server-enforced authorization at this endpoint — the page layer also checks,
- * but every API endpoint independently enforces team membership.
+ * Server-enforced authorization at this endpoint; the public page reads its
+ * published directory data directly and does not use this private API.
  *
  * Cache policy: private, no-store — must never be served from a shared cache.
  */

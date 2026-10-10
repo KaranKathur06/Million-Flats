@@ -46,6 +46,10 @@ body {
   line-height: 1.55;
 }
 
+.projects-page-heading {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
 img,
 video,
 canvas,

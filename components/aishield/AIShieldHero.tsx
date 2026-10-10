@@ -77,6 +77,12 @@ export function AIShieldHero({ onExplore }: { onExplore?: () => void }) {
               </svg>
             </button>
             <Link
+              href="/ai/shield/demo"
+              className="inline-flex items-center px-6 py-3.5 text-sm font-semibold text-white border border-[#d4af37]/50 rounded-xl hover:bg-white/[0.06] transition-colors"
+            >
+              View demo preview
+            </Link>
+            <Link
               href="/ai/shield/about"
               className="inline-flex items-center px-6 py-3.5 text-sm font-semibold text-white/70 border border-white/15 rounded-xl hover:bg-white/[0.06] transition-colors"
             >

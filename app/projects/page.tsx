@@ -4,6 +4,7 @@ import ProjectsGridClient from './ProjectsGridClient'
 import { resolveHeroBanner } from '@/lib/heroBanners'
 import HeroBannerBackdrop from '@/components/HeroBannerBackdrop'
 import type { ResolvedHeroBanner } from '@/lib/heroBanners'
+import { getProjectsHeroPresentation, PROJECTS_HERO_FALLBACK_IMAGE } from './heroPresentation'
 
 export const metadata: Metadata = {
     title: 'Off-Plan Projects | MillionFlats',
@@ -20,11 +21,13 @@ export const metadata: Metadata = {
 }
 
 function ProjectsPageFallback({ banner }: { banner: ResolvedHeroBanner }) {
+    const heroPresentation = getProjectsHeroPresentation(banner)
+
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Image-only hero */}
             <section
-                className="relative w-full overflow-hidden bg-[#0c1d37] aspect-[16/9] sm:aspect-[21/7] lg:aspect-[1920/450]"
+                className={`relative w-full overflow-hidden bg-[#0c1d37] ${heroPresentation.aspectClass} lg:aspect-[1920/450]`}
                 aria-label="Projects hero banner"
             >
                 <HeroBannerBackdrop
@@ -32,9 +35,9 @@ function ProjectsPageFallback({ banner }: { banner: ResolvedHeroBanner }) {
                     mobileImage={banner.mobileImage}
                     desktopAlt={banner.desktopAlt}
                     mobileAlt={banner.mobileAlt}
-                    className="h-full w-full object-cover object-center"
+                    fallbackImage={PROJECTS_HERO_FALLBACK_IMAGE}
+                    className={heroPresentation.imageClass}
                 />
-                <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-50/60 to-transparent" />
             </section>
 
             {/* Search section skeleton */}

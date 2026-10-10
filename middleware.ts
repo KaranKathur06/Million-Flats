@@ -73,8 +73,6 @@ export async function middleware(req: NextRequest) {
   const isEcosystemDashProtected = pathname === '/ecosystem/dashboard' || pathname.startsWith('/ecosystem/dashboard/')
   const isEcosystemManageProtected = pathname === '/ecosystem/manage' || pathname.startsWith('/ecosystem/manage/')
   const isAIProtected = pathname === '/AI' || pathname.startsWith('/AI/')
-  // Team directory: protected — requires authentication (team membership check at page/API layer)
-  const isTeamProtected = pathname === '/team' || pathname.startsWith('/team/')
 
   const isProtected =
     isAdminProtected ||
@@ -86,7 +84,6 @@ export async function middleware(req: NextRequest) {
     isEcosystemDashProtected ||
     isEcosystemManageProtected ||
     isAIProtected ||
-    isTeamProtected ||
     isProtectedRoutePath(pathname)
 
   // ── Token extraction ──
@@ -131,7 +128,6 @@ export async function middleware(req: NextRequest) {
   // ── Unauthenticated redirect ──
   if (isProtected && !roleRaw) {
     const url = req.nextUrl.clone()
-    // Team page redirects to standard user login
     const loginRoute = isAdminProtected ? '/admin/login' : isAgentProtected ? '/agent/auth' : '/auth/login'
     url.pathname = loginRoute
     const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`

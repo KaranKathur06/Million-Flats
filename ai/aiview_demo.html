@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MillionFlats AIView™ — Authenticity & Visual Integrity</title>
+  <style>
+    :root {
+      --bg-dark: #0b1320;
+      --bg-surface: #111c2e;
+      --bg-surface-elevated: #16243b;
+      --bg-card: #132034;
+      --border: #1e2b42;
+      --border-accent: #2d4165;
+      --gold: #d4af37;
+      --gold-hover: #e5c158;
+      --gold-light: rgba(212, 175, 55, 0.15);
+      --gold-border: rgba(212, 175, 55, 0.35);
+      --cyan: #38bdf8;
+      --cyan-light: rgba(56, 189, 248, 0.15);
+      --cyan-border: rgba(56, 189, 248, 0.35);
+      --emerald: #10b981;
+      --emerald-light: rgba(16, 185, 129, 0.15);
+      --emerald-border: rgba(16, 185, 129, 0.35);
+      --text-white: #ffffff;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-dark);
+      color: var(--text-white);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 60px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Suite Top Navigation */
+    .suite-nav {
+      background: rgba(11, 19, 32, 0.95);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .nav-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 70px;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .logo-badge {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #16243b 0%, #1e2b42 100%);
+      border: 1px solid var(--cyan-border);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--cyan);
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-white);
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .beta-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      background: var(--cyan-light);
+      color: var(--cyan);
+      border: 1px solid var(--cyan-border);
+      border-radius: var(--radius-full);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .brand-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .suite-links {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .suite-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s ease;
+    }
+
+    .suite-link:hover {
+      color: var(--text-white);
+      background: var(--bg-surface);
+    }
+
+    .suite-link.active {
+      color: var(--cyan);
+      background: var(--cyan-light);
+      border: 1px solid var(--cyan-border);
+    }
+
+    /* Hero Banner */
+    .hero-banner {
+      margin-top: 32px;
+      background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-card) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px 40px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    .hero-banner::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--cyan), var(--emerald), var(--gold));
+    }
+
+    .hero-tag-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .hero-tag {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--cyan);
+    }
+
+    .positioning-pill {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 2px 10px;
+      border-radius: var(--radius-full);
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid var(--cyan-border);
+      color: var(--cyan);
+    }
+
+    .hero-title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text-white);
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+
+    .hero-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 800px;
+      line-height: 1.6;
+    }
+
+    .hero-disclaimer-note {
+      margin-top: 14px;
+      font-size: 0.82rem;
+      color: var(--text-subtle);
+      font-style: italic;
+      border-left: 3px solid var(--cyan);
+      padding-left: 12px;
+    }
+
+    /* Main Grid */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      margin-top: 32px;
+      align-items: start;
+    }
+
+    @media (max-width: 992px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-tag {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-status {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-awaiting {
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+
+    .badge-verified {
+      background: var(--emerald-light);
+      color: var(--emerald);
+      border: 1px solid var(--emerald-border);
+    }
+
+    /* Section A: Visual Evidence Overview */
+    .media-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .simulated-watermark {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(11, 19, 32, 0.85);
+      border: 1px solid var(--cyan-border);
+      color: var(--cyan);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      letter-spacing: 0.05em;
+      backdrop-filter: blur(4px);
+      z-index: 2;
+    }
+
+    .property-preview-box {
+      height: 220px;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 3D Scan Wireframe Grid Graphics */
+    .mesh-grid {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(56, 189, 248, 0.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.12) 1px, transparent 1px);
+      background-size: 24px 24px;
+      perspective: 600px;
+      transform: rotateX(25deg);
+      opacity: 0.8;
+    }
+
+    .villa-illustration {
+      z-index: 1;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .villa-icon-wrap {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid var(--cyan-border);
+      color: var(--cyan);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.25);
+    }
+
+    .villa-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-white);
+    }
+
+    .villa-sub {
+      font-size: 0.8rem;
+      color: var(--cyan);
+      font-family: var(--font-mono);
+    }
+
+    .media-caption {
+      padding: 10px 16px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      background: rgba(11, 19, 32, 0.5);
+      font-style: italic;
+    }
+
+    /* Form Fields for Listing Controls */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 640px) {
+      .controls-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .form-input, .form-select {
+      background: var(--bg-dark);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      color: var(--text-white);
+      font-size: 0.88rem;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+    }
+
+    /* Section 01: Authenticity Status */
+    .status-dashboard-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .fingerprint-frame {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 16px auto;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.08);
+      border: 2px dashed var(--cyan-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--cyan);
+      position: relative;
+    }
+
+    .fingerprint-frame.audited {
+      border-style: solid;
+      border-color: var(--emerald);
+      color: var(--emerald);
+      background: var(--emerald-light);
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.3);
+    }
+
+    .metric-pct {
+      font-size: 2.5rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: var(--text-white);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .metric-sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      max-width: 380px;
+      margin: 0 auto 16px auto;
+      line-height: 1.4;
+    }
+
+    .progress-track {
+      height: 8px;
+      background: #0b1320;
+      border-radius: var(--radius-full);
+      overflow: hidden;
+      max-width: 320px;
+      margin: 0 auto;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan), var(--emerald));
+      border-radius: var(--radius-full);
+      width: 0%;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn-audit {
+      width: 100%;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: white;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 13px 20px;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 15px rgba(2, 132, 199, 0.35);
+      transition: all 0.2s ease;
+    }
+
+    .btn-audit:hover {
+      background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45);
+    }
+
+    /* Section 02: Evidence Checklist */
+    .checklist-intro {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      line-height: 1.45;
+    }
+
+    .checklist-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .check-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      transition: all 0.15s ease;
+    }
+
+    .check-item:hover {
+      border-color: var(--border-accent);
+    }
+
+    .check-info {
+      flex: 1;
+    }
+
+    .check-name {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-white);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .check-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+      margin-top: 2px;
+    }
+
+    /* Modern Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #1e2b42;
+      transition: .3s;
+      border-radius: var(--radius-full);
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--emerald);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    /* Section 03: Cryptographic Fingerprint */
+    .crypto-box {
+      background: #080e18;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      margin-top: 14px;
+      position: relative;
+    }
+
+    .crypto-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .crypto-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--gold);
+      background: var(--gold-light);
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+    }
+
+    .hash-readout {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--cyan);
+      word-break: break-all;
+      background: #040810;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid #142032;
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      letter-spacing: 0.05em;
+    }
+
+    .crypto-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .btn-reveal {
+      background: transparent;
+      border: 1px solid var(--cyan-border);
+      color: var(--cyan);
+      padding: 6px 14px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-reveal:hover {
+      background: var(--cyan-light);
+    }
+
+    .crypto-note {
+      font-size: 0.76rem;
+      color: var(--text-subtle);
+      margin-top: 10px;
+      line-height: 1.4;
+      font-style: italic;
+    }
+
+    /* Section 04: Chain of Custody */
+    .custody-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 16px;
+      position: relative;
+      padding-left: 28px;
+    }
+
+    .custody-timeline::before {
+      content: "";
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      bottom: 10px;
+      width: 2px;
+      background: var(--border-accent);
+    }
+
+    .timeline-step {
+      position: relative;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: -28px;
+      top: 3px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--bg-surface);
+      border: 2px solid var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      color: var(--cyan);
+      font-weight: 800;
+    }
+
+    .timeline-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-white);
+      margin-bottom: 2px;
+    }
+
+    .timeline-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    /* Honesty by Design Callout */
+    .honesty-callout {
+      margin-top: 48px;
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(17, 28, 46, 0.9) 100%);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .honesty-icon-wrap {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      background: var(--bg-card);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+
+    .honesty-content h3 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--gold);
+      margin-bottom: 6px;
+    }
+
+    .honesty-content p {
+      font-size: 0.9rem;
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+
+    /* Architecture Grid */
+    .arch-section {
+      margin-top: 48px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px;
+    }
+
+    .arch-section h2 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: var(--text-white);
+    }
+
+    .arch-section p {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+    }
+
+    @media (max-width: 1024px) {
+      .arch-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .arch-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .arch-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px;
+    }
+
+    .arch-step-tag {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 6px;
+    }
+
+    .arch-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-white);
+      margin-bottom: 6px;
+    }
+
+    .arch-body {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    footer {
+      margin-top: 60px;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-subtle);
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Suite Top Navigation -->
+  <header class="suite-nav">
+    <div class="container nav-inner">
+      <a href="#" class="brand-wrap">
+        <div class="logo-badge">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">
+            MillionFlats AIView™
+            <span class="beta-badge">BETA</span>
+          </div>
+          <div class="brand-subtitle">Authenticity & Visual Integrity</div>
+        </div>
+      </a>
+      <div class="suite-links">
+        <a href="million_flats_shield_demo.html" class="suite-link">Shield™ (Price)</a>
+        <a href="million_flats_index_demo.html" class="suite-link">Index™ (Scoring)</a>
+        <a href="million_flats_title_demo.html" class="suite-link">Title™ (Legal)</a>
+        <a href="million_flats_pro_demo.html" class="suite-link">Pro™ (Agents)</a>
+        <a href="million_flats_aiview_demo.html" class="suite-link active">AIView™ (Visual)</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Hero Banner -->
+    <div class="hero-banner">
+      <div class="hero-tag-wrap">
+        <span class="hero-tag">Verified Visual Provenance</span>
+        <span class="positioning-pill">Integrity Framework</span>
+      </div>
+      <h1 class="hero-title">See the property. Verify the evidence.</h1>
+      <p class="hero-subtitle">
+        A transparency layer for property tours, capture metadata, asset integrity, and scan provenance. Review 3D scans, cryptographic hashes, and upload chain of custody through a single trust dashboard.
+      </p>
+      <div class="hero-disclaimer-note">
+        * The demo uses simulated verification records. A hash can detect file modification, but cannot mathematically prove that a scan's location, dimensions, or lighting was genuine at capture.
+      </div>
+    </div>
+
+    <!-- Main Dashboard Grid -->
+    <div class="dashboard-grid">
+
+      <!-- Left Column: Visual Overview & Authenticity Status -->
+      <div class="left-col">
+
+        <!-- Visual Evidence Overview -->
+        <div class="panel" style="margin-bottom: 28px;">
+          <div class="panel-header">
+            <div class="section-tag">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Visual Evidence Overview
+            </div>
+            <span style="font-size: 0.72rem; color: var(--cyan); font-weight: 700; letter-spacing: 0.05em;">SIMULATED DATA</span>
+          </div>
+
+          <div class="media-card">
+            <span class="simulated-watermark">3D SCAN MESH ACTIVE</span>
+            <div class="property-preview-box">
+              <div class="mesh-grid"></div>
+              <div class="villa-illustration">
+                <div class="villa-icon-wrap">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                <div class="villa-title">Azure Bay Residence — Villa 08</div>
+                <div class="villa-sub">LiDAR Mesh & HDR Tour Ingestion</div>
+              </div>
+            </div>
+            <div class="media-caption">
+              Illustrative property imagery — not an authenticated camera scan.
+            </div>
+          </div>
+
+          <div class="controls-grid">
+            <div class="form-group">
+              <label class="form-label" for="propListing">Property / listing</label>
+              <input type="text" class="form-input" id="propListing" value="Azure Bay Residence — Villa 08">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="captureDevice">Capture device</label>
+              <select class="form-select" id="captureDevice">
+                <option value="Matterport Pro3" selected>Matterport Pro3</option>
+                <option value="Leica BLK360 G2">Leica BLK360 G2</option>
+                <option value="Insta360 Titan">Insta360 Titan</option>
+                <option value="Ricoh Theta Z1">Ricoh Theta Z1</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="scanRef">Scan reference</label>
+              <input type="text" class="form-input" id="scanRef" value="MF-AV-2026-08421" readonly style="color: var(--cyan); font-family: var(--font-mono);">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="auditView">Audit view</label>
+              <select class="form-select" id="auditView">
+                <option value="Full authenticity audit" selected>Full authenticity audit</option>
+                <option value="Metadata & Hash only">Metadata & Hash only</option>
+                <option value="Chain of Custody">Chain of Custody</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 01: Authenticity Status -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="section-tag">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+              01 / Authenticity status
+            </div>
+            <span class="badge-status badge-awaiting" id="statusBadge">Awaiting audit</span>
+          </div>
+
+          <div class="status-dashboard-box">
+            <div class="fingerprint-frame" id="fingerprintFrame">
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 0 0-10 10c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/></svg>
+            </div>
+            <div class="metric-pct" id="metricPctDisplay">—%</div>
+            <div class="metric-sub">
+              This percentage represents checked demo items, not the probability of authenticity.
+            </div>
+            <div class="progress-track">
+              <div class="progress-bar-fill" id="auditProgressFill"></div>
+            </div>
+          </div>
+
+          <button class="btn-audit" id="btnRunAudit" onclick="runDemoAudit()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Run demo audit
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Evidence Checklist & Provenance -->
+      <div class="right-col">
+
+        <!-- Section 02: Evidence Checklist -->
+        <div class="panel" style="margin-bottom: 28px;">
+          <div class="panel-header">
+            <div class="section-tag">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              02 / Evidence checklist
+            </div>
+            <span style="font-size: 0.8rem; color: var(--cyan); font-weight: 700;" id="checkedRatioText">4 of 6 active</span>
+          </div>
+          <p class="checklist-intro">
+            Toggle items to explore how a production audit dashboard might display evidence. These switches are illustrative and do not perform technical checks.
+          </p>
+
+          <div class="checklist-wrap">
+            <!-- 1. File Integrity -->
+            <div class="check-item">
+              <div class="check-info">
+                <div class="check-name">1. File integrity</div>
+                <div class="check-desc">Uploaded asset hash matches the stored reference hash.</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="chk1" checked onchange="updateChecklist()">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <!-- 2. Capture Metadata -->
+            <div class="check-item">
+              <div class="check-info">
+                <div class="check-name">2. Capture metadata</div>
+                <div class="check-desc">Capture timestamp, device information and available EXIF fields.</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="chk2" checked onchange="updateChecklist()">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <!-- 3. Upload Chain of Custody -->
+            <div class="check-item">
+              <div class="check-info">
+                <div class="check-name">3. Upload chain of custody</div>
+                <div class="check-desc">Capture-to-server event records and upload history.</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="chk3" checked onchange="updateChecklist()">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <!-- 4. Direct Upload Record -->
+            <div class="check-item">
+              <div class="check-info">
+                <div class="check-name">4. Direct upload record</div>
+                <div class="check-desc">Evidence of the source device and ingestion pathway.</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="chk4" checked onchange="updateChecklist()">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <!-- 5. Room Dimensions -->
+            <div class="check-item">
+              <div class="check-info">
+                <div class="check-name">5. Room dimensions</div>
+                <div class="check-desc">Independent comparison against trusted measurements or scan geometry.</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="chk5" onchange="updateChecklist()">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <!-- 6. Lighting Integrity -->
+            <div class="check-item">
+              <div class="check-info">
+                <div class="check-name">6. Lighting integrity</div>
+                <div class="check-desc">Review for post-processing and comparison with original capture data.</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="chk6" onchange="updateChecklist()">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 03: Cryptographic Fingerprint -->
+        <div class="panel" style="margin-bottom: 28px;">
+          <div class="panel-header">
+            <div class="section-tag">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              03 / Cryptographic fingerprint
+            </div>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.45;">
+            A production system can calculate a SHA-256 hash of the original uploaded file and compare it with a previously recorded hash to detect changes to the file bytes.
+          </p>
+
+          <div class="crypto-box">
+            <div class="crypto-header">
+              <span class="crypto-badge">DEMO HASH · NOT A REAL FILE HASH</span>
+              <span style="font-size: 0.72rem; color: var(--text-muted);">SHA-256</span>
+            </div>
+            <div class="hash-readout" id="hashDisplay">
+              ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+            </div>
+            <div class="crypto-actions">
+              <button class="btn-reveal" id="btnRevealHash" onclick="toggleHash()">
+                Reveal sample fingerprint
+              </button>
+            </div>
+            <div class="crypto-note">
+              A matching hash proves byte-level consistency with the reference file, not that the original scene was genuine or that no editing occurred before hashing.
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 04: Chain of Custody -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="section-tag">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              04 / Chain of custody
+            </div>
+          </div>
+
+          <div class="custody-timeline">
+            <div class="timeline-step">
+              <div class="timeline-dot">1</div>
+              <div class="timeline-title">Scan captured</div>
+              <div class="timeline-desc">Record device identifier, capture time, available location metadata, and scanner software version.</div>
+            </div>
+
+            <div class="timeline-step">
+              <div class="timeline-dot">2</div>
+              <div class="timeline-title">Original asset sealed</div>
+              <div class="timeline-desc">Calculate the file hash, attach a signed manifest where supported, and record the trusted capture event.</div>
+            </div>
+
+            <div class="timeline-step">
+              <div class="timeline-dot">3</div>
+              <div class="timeline-title">Encrypted upload</div>
+              <div class="timeline-desc">Upload through an authenticated pipeline; log asset identity, timestamps, access, and transformations.</div>
+            </div>
+
+            <div class="timeline-step">
+              <div class="timeline-dot">4</div>
+              <div class="timeline-title">Integrity reviewed</div>
+              <div class="timeline-desc">Compare hashes, examine available metadata, and document independent geometry or image-processing checks.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Honesty by Design Callout -->
+    <div class="honesty-callout">
+      <div class="honesty-icon-wrap">🛡</div>
+      <div class="honesty-content">
+        <h3>Honesty by design</h3>
+        <p>
+          AIView should distinguish verified facts, unavailable evidence, and untested claims. EXIF data can be modified, dimensions require reliable geometry or independent measurement, and lighting authenticity may require original frames and processing records.
+        </p>
+      </div>
+    </div>
+
+    <!-- Recommended MVP Architecture -->
+    <div class="arch-section">
+      <h2>Recommended MVP Architecture</h2>
+      <p>Five-stage pipeline to establish verifiable visual provenance for real-estate digital assets.</p>
+
+      <div class="arch-grid">
+        <div class="arch-card">
+          <div class="arch-step-tag">STAGE 1</div>
+          <div class="arch-title">Capture</div>
+          <div class="arch-body">Start with one supported scanner workflow and document exactly which metadata and export formats it provides.</div>
+        </div>
+
+        <div class="arch-card">
+          <div class="arch-step-tag">STAGE 2</div>
+          <div class="arch-title">Ingestion</div>
+          <div class="arch-body">Upload original export directly to controlled cloud storage, compute SHA-256 server-side, and preserve original as immutable evidence.</div>
+        </div>
+
+        <div class="arch-card">
+          <div class="arch-step-tag">STAGE 3</div>
+          <div class="arch-title">Audit</div>
+          <div class="arch-body">Store signed manifest, timestamps, device details, available geolocation, and a tamper-evident event log.</div>
+        </div>
+
+        <div class="arch-card">
+          <div class="arch-step-tag">STAGE 4</div>
+          <div class="arch-title">Review</div>
+          <div class="arch-body">Add independent scan-geometry checks and image-processing disclosure; report each result separately.</div>
+        </div>
+
+        <div class="arch-card">
+          <div class="arch-step-tag">STAGE 5</div>
+          <div class="arch-title">Buyer Report</div>
+          <div class="arch-body">Show a QR-linked verification page with evidence provenance, scan date, file integrity status, and explicit limitations.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>MillionFlats AIView™ · Concept interface · All verification controls and fingerprint values are illustrative. · Part of MillionFlats Ecosystem</p>
+  </footer>
+
+  <script>
+    const sampleHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+    let isHashRevealed = false;
+    let isAudited = false;
+
+    function getCheckedCount() {
+      let count = 0;
+      for (let i = 1; i <= 6; i++) {
+        if (document.getElementById(`chk${i}`).checked) count++;
+      }
+      return count;
+    }
+
+    function updateChecklist() {
+      const count = getCheckedCount();
+      const pct = Math.round((count / 6) * 100);
+      document.getElementById("checkedRatioText").innerText = `${count} of 6 active`;
+
+      if (isAudited) {
+        document.getElementById("metricPctDisplay").innerText = `${pct}%`;
+        document.getElementById("auditProgressFill").style.width = `${pct}%`;
+      }
+    }
+
+    function runDemoAudit() {
+      const btn = document.getElementById("btnRunAudit");
+      btn.innerText = "Auditing cryptographic records...";
+      btn.style.opacity = "0.7";
+
+      setTimeout(() => {
+        isAudited = true;
+        const count = getCheckedCount();
+        const pct = Math.round((count / 6) * 100);
+
+        document.getElementById("metricPctDisplay").innerText = `${pct}%`;
+        document.getElementById("auditProgressFill").style.width = `${pct}%`;
+
+        const badge = document.getElementById("statusBadge");
+        badge.className = "badge-status badge-verified";
+        badge.innerText = `Audit Passed (${count}/6 Verified)`;
+
+        document.getElementById("fingerprintFrame").classList.add("audited");
+
+        btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Audit complete`;
+        btn.style.opacity = "1";
+        btn.style.background = "linear-gradient(135deg, #059669 0%, #047857 100%)";
+      }, 700);
+    }
+
+    function toggleHash() {
+      const readout = document.getElementById("hashDisplay");
+      const btn = document.getElementById("btnRevealHash");
+
+      if (!isHashRevealed) {
+        readout.innerText = `sha256:${sampleHash}`;
+        btn.innerText = "Hide fingerprint";
+        isHashRevealed = true;
+      } else {
+        readout.innerText = "••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••";
+        btn.innerText = "Reveal sample fingerprint";
+        isHashRevealed = false;
+      }
+    }
+  </script>
+</body>
+</html>

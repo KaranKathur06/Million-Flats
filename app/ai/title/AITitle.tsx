@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useRef, useState } from 'react'
+import Link from 'next/link'
 import type { LegalDocumentIntelligenceReport } from '@/lib/ai-core/types'
 import { AIInsightSkeleton, AIErrorState } from '@/components/ai-shared/AISkeletons'
 
@@ -215,7 +216,15 @@ export default function AITitle() {
     <div className="min-h-screen bg-[#f0f2f5]">
       <div className="bg-[#0a1628] text-white py-10 px-4">
         <div className="container mx-auto max-w-[1200px]">
-          <span className="text-xs font-bold uppercase tracking-widest text-amber-400">AITitle™</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold uppercase tracking-widest text-amber-400">AITitle™</span>
+            <Link
+              href="/ai/title/demo"
+              className="ml-auto rounded-full border border-[#d4af37]/50 px-3 py-1.5 text-xs font-semibold text-[#f2d778] transition-colors hover:bg-white/10"
+            >
+              View demo preview
+            </Link>
+          </div>
           <h1 className="text-3xl font-bold mt-1">Legal Document Intelligence</h1>
           <p className="text-gray-400 mt-1 text-sm">
             Title deed analysis, RERA compliance checks, NOC verification, and legal risk scoring

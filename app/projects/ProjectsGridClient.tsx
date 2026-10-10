@@ -7,6 +7,7 @@ import PremiumDropdown from '@/components/PremiumDropdown'
 import CurrencyPrice from '@/components/CurrencyPrice'
 import HeroBannerBackdrop from '@/components/HeroBannerBackdrop'
 import type { ResolvedHeroBanner } from '@/lib/heroBanners'
+import { getProjectsHeroPresentation, PROJECTS_HERO_FALLBACK_IMAGE } from './heroPresentation'
 
 /* ─── Types ─── */
 interface ProjectItem {
@@ -95,6 +96,7 @@ function CloseIcon({ className }: { className?: string }) {
 export default function ProjectsGridClient({ initialBanner }: { initialBanner: ResolvedHeroBanner }) {
     const searchParams = useSearchParams()
     const router = useRouter()
+    const heroPresentation = getProjectsHeroPresentation(initialBanner)
 
     const [projects, setProjects] = useState<ProjectItem[]>([])
     const [loading, setLoading] = useState(true)
@@ -277,7 +279,7 @@ export default function ProjectsGridClient({ initialBanner }: { initialBanner: R
 
             {/* ─── Hero Banner (image only) ─── */}
             <section
-                className="relative w-full overflow-hidden bg-[#0c1d37] aspect-[16/9] sm:aspect-[21/7] lg:aspect-[1920/450]"
+                className={`relative w-full overflow-hidden bg-[#0c1d37] ${heroPresentation.aspectClass} lg:aspect-[1920/450]`}
                 aria-label="Projects hero banner"
             >
                 <HeroBannerBackdrop
@@ -285,11 +287,9 @@ export default function ProjectsGridClient({ initialBanner }: { initialBanner: R
                     mobileImage={initialBanner.mobileImage}
                     desktopAlt={initialBanner.desktopAlt}
                     mobileAlt={initialBanner.mobileAlt}
-                    fallbackImage="/HOMEPAGE.jpeg"
-                    className="h-full w-full object-cover object-center"
+                    fallbackImage={PROJECTS_HERO_FALLBACK_IMAGE}
+                    className={heroPresentation.imageClass}
                 />
-                {/* Subtle bottom fade to blend into search section */}
-                <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-50/60 to-transparent" />
             </section>
 
             {/* ─── Search Section ─── */}
@@ -297,10 +297,10 @@ export default function ProjectsGridClient({ initialBanner }: { initialBanner: R
                 <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-5 lg:py-6">
                     <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-3">
                         <div>
-                            <h1 className="text-xl sm:text-2xl font-bold text-dark-blue leading-tight">
+                            <h1 className="projects-page-heading text-xl sm:text-2xl font-bold text-dark-blue leading-tight">
                                 {initialBanner.headline}
                             </h1>
-                            <p className="text-xs text-gray-400 mt-0.5">Browse exclusive off-plan developments across the UAE</p>
+                            <p className="mt-0.5 max-w-2xl text-xs text-gray-400">{initialBanner.subheadline}</p>
                         </div>
                         {!loading && (
                             <span className="text-sm text-gray-400 shrink-0">
@@ -575,7 +575,7 @@ export default function ProjectsGridClient({ initialBanner }: { initialBanner: R
             {/* ─── CTA Section ─── */}
             <section className="bg-gradient-to-r from-[#0c1d37] to-[#1e3a5f] py-16">
                 <div className="container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
-                    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
+                    <h2 className="projects-page-heading text-2xl sm:text-3xl font-bold text-white mb-4">
                         Can&apos;t Find What You&apos;re Looking For?
                     </h2>
                     <p className="text-white/60 text-base mb-8 max-w-xl mx-auto">
@@ -686,7 +686,7 @@ function ProjectCard({ project }: { project: ProjectItem }) {
 
             {/* Body */}
             <div className="p-5 flex flex-col flex-1">
-                <h3 className="text-[1.05rem] font-bold text-dark-blue leading-snug line-clamp-2 mb-1.5 group-hover:text-amber-600 transition-colors">
+                <h3 className="projects-page-heading text-[1.05rem] font-bold text-dark-blue leading-snug line-clamp-2 mb-1.5 group-hover:text-amber-600 transition-colors">
                     {project.name}
                 </h3>
 

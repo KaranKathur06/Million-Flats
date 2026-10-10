@@ -7,6 +7,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { useAIInvestment } from '@/hooks/useAIInvestment'
 import { InvestmentGradeSkeleton, AIErrorState, AIEmptyState } from '@/components/ai-shared/AISkeletons'
 
@@ -67,6 +68,12 @@ export default function AIIndexDashboard() {
     return (
       <div className="min-h-screen bg-[#f0f2f5] pt-20">
         <div className="container mx-auto max-w-3xl px-4">
+          <Link
+            href="/ai/index/demo"
+            className="mb-4 inline-flex rounded-full border border-[#d4af37] px-4 py-2 text-sm font-semibold text-[#0a1628] hover:bg-amber-50"
+          >
+            View demo preview
+          </Link>
           <AIEmptyState message="Select a property to load AIIndex™ investment intelligence" />
         </div>
       </div>
@@ -80,6 +87,12 @@ export default function AIIndexDashboard() {
         <div className="container mx-auto max-w-[1400px]">
           <div className="flex items-center gap-3 mb-2">
             <span className="text-xs font-bold uppercase tracking-widest text-blue-400">AIIndex™</span>
+            <Link
+              href="/ai/index/demo"
+              className="ml-auto rounded-full border border-[#d4af37]/50 px-3 py-1.5 text-xs font-semibold text-[#f2d778] transition-colors hover:bg-white/10"
+            >
+              View demo preview
+            </Link>
           </div>
           <h1 className="text-3xl font-bold">Investment Intelligence</h1>
           <p className="text-gray-400 mt-1 text-sm">

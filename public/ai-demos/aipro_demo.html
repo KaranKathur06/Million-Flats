@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MillionFlatsPro™ — Agent Trust Score</title>
+  <style>
+    :root {
+      --bg-dark: #0a1128;
+      --bg-surface: #111c38;
+      --bg-surface-elevated: #16224f;
+      --bg-card: #141e3d;
+      --border: #23335d;
+      --border-accent: #3b5087;
+      --gold: #d4af37;
+      --gold-hover: #e5c158;
+      --gold-light: rgba(212, 175, 55, 0.15);
+      --gold-border: rgba(212, 175, 55, 0.35);
+      --text-white: #ffffff;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --success: #10b981;
+      --success-light: rgba(16, 185, 129, 0.15);
+      --warning: #f59e0b;
+      --warning-light: rgba(245, 158, 11, 0.15);
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-dark);
+      color: var(--text-white);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 60px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Suite Top Navigation */
+    .suite-nav {
+      background: rgba(10, 17, 40, 0.95);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .nav-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 70px;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .logo-badge {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #16224f 0%, #1e293b 100%);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gold);
+      box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-white);
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .beta-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      background: var(--gold-light);
+      color: var(--gold);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius-full);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .brand-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .suite-links {
+      display: flex;
+      gap: 8px;
+    }
+
+    .suite-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s ease;
+    }
+
+    .suite-link:hover {
+      color: var(--text-white);
+      background: var(--bg-surface);
+    }
+
+    .suite-link.active {
+      color: var(--gold);
+      background: var(--gold-light);
+      border: 1px solid var(--gold-border);
+    }
+
+    /* Hero Section */
+    .hero-panel {
+      margin-top: 32px;
+      background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-card) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px 40px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    .hero-panel::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #10b981, var(--gold), #3b82f6);
+    }
+
+    .hero-tag {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--gold);
+      margin-bottom: 6px;
+    }
+
+    .hero-title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text-white);
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+
+    .hero-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 780px;
+      line-height: 1.6;
+    }
+
+    /* Metric Summary Row */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 640px) {
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .metric-icon-wrap {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      border: 1px solid var(--gold-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gold);
+      font-size: 1.1rem;
+    }
+
+    .metric-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .metric-val {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-white);
+    }
+
+    /* Main Dual-Column Layout */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 32px;
+      margin-top: 32px;
+      align-items: start;
+    }
+
+    @media (max-width: 992px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Panel Base */
+    .panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-tag {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Section 01: Discover Agents */
+    .search-box {
+      margin-bottom: 16px;
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      color: var(--text-white);
+      font-size: 0.88rem;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+
+    .search-input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+    }
+
+    .agent-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .agent-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+    }
+
+    .agent-card:hover {
+      border-color: var(--border-accent);
+      transform: translateY(-2px);
+    }
+
+    .agent-card.active {
+      border-color: var(--gold);
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, var(--bg-card) 100%);
+      box-shadow: 0 0 15px rgba(212, 175, 55, 0.15);
+    }
+
+    .agent-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .agent-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--bg-surface-elevated);
+      border: 2px solid var(--gold-border);
+      color: var(--gold);
+      font-weight: 800;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .agent-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-white);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .agent-location {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .badge-status {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: var(--radius-full);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .badge-verified {
+      background: var(--success-light);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge-pending {
+      background: var(--warning-light);
+      color: var(--warning);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .agent-score-pill {
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: var(--gold);
+      text-align: right;
+    }
+
+    .btn-add-agent {
+      width: 100%;
+      background: transparent;
+      border: 1px dashed var(--gold-border);
+      color: var(--gold);
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-add-agent:hover {
+      background: var(--gold-light);
+      border-color: var(--gold);
+    }
+
+    /* Section 02: Selected Agent Profile Details */
+    .profile-banner {
+      background: var(--bg-card);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius-md);
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .profile-hero-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .profile-avatar-lg {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--bg-surface-elevated);
+      border: 2px solid var(--gold);
+      color: var(--gold);
+      font-size: 1.25rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .profile-info h3 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-white);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .profile-info p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .score-hero-box {
+      text-align: right;
+    }
+
+    .score-hero-num {
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: var(--gold);
+      line-height: 1;
+    }
+
+    .score-hero-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    /* Tabs */
+    .tabs-header {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    .tab-btn {
+      padding: 10px 18px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .tab-btn.active {
+      color: var(--gold);
+      border-bottom-color: var(--gold);
+    }
+
+    .tab-btn:hover {
+      color: var(--text-white);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Criteria Breakdown Table / Cards */
+    .criteria-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+
+    .criteria-table th {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+
+    .criteria-table td {
+      padding: 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.88rem;
+    }
+
+    .criteria-row:hover td {
+      background: rgba(22, 34, 79, 0.4);
+    }
+
+    .criterion-name {
+      font-weight: 700;
+      color: var(--text-white);
+      margin-bottom: 2px;
+    }
+
+    .criterion-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .weight-tag {
+      font-size: 0.75rem;
+      color: var(--gold);
+      background: var(--gold-light);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      font-weight: 700;
+    }
+
+    .score-progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .progress-bar-bg {
+      flex: 1;
+      height: 8px;
+      background: #1e293b;
+      border-radius: var(--radius-full);
+      overflow: hidden;
+      min-width: 80px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #d4af37, #f59e0b);
+      border-radius: var(--radius-full);
+    }
+
+    .score-badge-val {
+      font-weight: 800;
+      color: var(--gold);
+      font-size: 0.95rem;
+    }
+
+    .formula-action-bar {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 14px;
+    }
+
+    .btn-formula {
+      background: transparent;
+      border: 1px solid var(--border-accent);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+
+    .btn-formula:hover {
+      color: var(--gold);
+      border-color: var(--gold);
+    }
+
+    /* Section 03: Verification Sources */
+    .sources-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 48px;
+    }
+
+    @media (max-width: 860px) {
+      .sources-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .source-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 22px;
+    }
+
+    .source-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+      border: 1px solid var(--gold-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gold);
+      margin-bottom: 14px;
+      font-size: 1.1rem;
+    }
+
+    .source-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-white);
+      margin-bottom: 8px;
+    }
+
+    .source-text {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Implementation Guidelines Banner */
+    .guide-banner {
+      margin-top: 48px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px;
+    }
+
+    .guide-banner h2 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--text-white);
+      margin-bottom: 8px;
+    }
+
+    .guide-banner p {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .steps-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .steps-list {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .step-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .step-badge {
+      width: 28px;
+      height: 28px;
+      background: var(--gold-light);
+      color: var(--gold);
+      border: 1px solid var(--gold-border);
+      border-radius: 50%;
+      font-size: 0.8rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step-desc h5 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-white);
+      margin-bottom: 4px;
+    }
+
+    .step-desc p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-bottom: 0;
+    }
+
+    .trust-principle-card {
+      background: rgba(212, 175, 55, 0.08);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+    }
+
+    .trust-principle-card h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .trust-principle-card p {
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+      margin-bottom: 0;
+    }
+
+    .component-disclaimer {
+      margin-top: 36px;
+      font-size: 0.78rem;
+      color: var(--text-subtle);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    footer {
+      margin-top: 60px;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-subtle);
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+    }
+  </style>
+  <link rel="stylesheet" href="/ai-demos/theme.css">
+  <meta name="robots" content="noindex,nofollow">
+</head>
+<body>
+
+  <!-- Suite Top Navigation -->
+  <header class="suite-nav">
+    <div class="container nav-inner">
+      <a href="/ai/pro" class="brand-wrap">
+        <div class="logo-badge">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">
+            MillionFlatsPro™
+            <span class="beta-badge">BETA</span>
+          </div>
+          <div class="brand-subtitle">Agent Trust & Reputation Intelligence</div>
+        </div>
+      </a>
+      <div class="suite-links">
+        <a href="/ai/shield/demo" class="suite-link">Shield™ (Price)</a>
+        <a href="/ai/index/demo" class="suite-link">Index™ (Scoring)</a>
+        <a href="/ai/title/demo" class="suite-link">Title™ (Legal)</a>
+        <a href="/ai/pro/demo" class="suite-link active">Pro™ (Agents)</a>
+      </div>
+    </div>
+  </header>
+<nav class="mf-demo-suite" aria-label="AI product demos"><strong>Explore demos</strong><a href="/ai/index/demo">AIIndex</a><a href="/ai/pro/demo">AIPro</a><a href="/ai/shield/demo">AIShield</a><a href="/ai/title/demo">AITitle</a><a href="/ai/view/demo">AIView</a></nav><div class="mf-demo-notice" role="note"><span><strong>Demo preview</strong> - This experience uses sample data and is not connected to live AI analysis.</span><a href="/ai/pro">Open AIPro live product</a></div>
+
+  <main class="container">
+    <!-- Hero Banner -->
+    <div class="hero-panel">
+      <div class="hero-tag">Agent Trust & Reputation</div>
+      <h1 class="hero-title">Trust the professional behind the property.</h1>
+      <p class="hero-subtitle">
+        Transparent agent profiles built around official registration checks, documented experience, verifiable service quality, and authenticated client feedback.
+      </p>
+
+      <!-- Metric Summary Cards -->
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="metric-icon-wrap">👥</div>
+          <div>
+            <div class="metric-label">Demo Profiles</div>
+            <div class="metric-val" id="metricProfilesCount">3</div>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon-wrap">🛡</div>
+          <div>
+            <div class="metric-label">Registry Status</div>
+            <div class="metric-val">2 Verified</div>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon-wrap">🌍</div>
+          <div>
+            <div class="metric-label">Market Coverage</div>
+            <div class="metric-val">2 (India, UAE)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Workspace Grid -->
+    <div class="main-grid">
+
+      <!-- Left Column: Section 01 Discover Agents -->
+      <div class="panel">
+        <div class="section-header">
+          <div class="section-tag">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            01 / Discover agents
+          </div>
+        </div>
+
+        <div class="search-box">
+          <input type="text" class="search-input" id="agentSearch" placeholder="Search agent, city or specialty..." oninput="filterAgents()">
+        </div>
+
+        <div class="agent-list" id="agentList">
+          <!-- Agent 1: Aarav Mehta -->
+          <div class="agent-card active" onclick="selectAgent('aarav', this)">
+            <div class="agent-left">
+              <div class="agent-avatar">AM</div>
+              <div>
+                <div class="agent-name">
+                  Aarav Mehta
+                  <span class="badge-status badge-verified">✓ Verified</span>
+                </div>
+                <div class="agent-location">Mumbai, India · Luxury residential</div>
+              </div>
+            </div>
+            <div class="agent-score-pill">
+              92 <span style="font-size: 0.7rem; color: var(--text-muted);">/100</span>
+            </div>
+          </div>
+
+          <!-- Agent 2: Sana Kapoor -->
+          <div class="agent-card" onclick="selectAgent('sana', this)">
+            <div class="agent-left">
+              <div class="agent-avatar">SK</div>
+              <div>
+                <div class="agent-name">
+                  Sana Kapoor
+                  <span class="badge-status badge-verified">✓ Verified</span>
+                </div>
+                <div class="agent-location">Dubai, UAE · Off-plan & investment</div>
+              </div>
+            </div>
+            <div class="agent-score-pill">
+              88 <span style="font-size: 0.7rem; color: var(--text-muted);">/100</span>
+            </div>
+          </div>
+
+          <!-- Agent 3: Rohan Shah -->
+          <div class="agent-card" onclick="selectAgent('rohan', this)">
+            <div class="agent-left">
+              <div class="agent-avatar">RS</div>
+              <div>
+                <div class="agent-name">
+                  Rohan Shah
+                  <span class="badge-status badge-pending">⏱ Pending</span>
+                </div>
+                <div class="agent-location">Ahmedabad, India · Premium homes</div>
+              </div>
+            </div>
+            <div class="agent-score-pill">
+              73 <span style="font-size: 0.7rem; color: var(--text-muted);">/100</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-add-agent" onclick="alert('Feature concept: Real-time agent onboarding and RERA credential intake form.')">
+          + Add an agent profile
+        </button>
+      </div>
+
+      <!-- Right Column: Section 02 Agent Trust Profile -->
+      <div class="panel">
+        <div class="section-header">
+          <div class="section-tag">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            02 / Agent trust profile
+          </div>
+          <span style="font-size: 0.8rem; color: var(--gold);" id="dispLastCheck">Verified via MahaRERA (Live Registry Check)</span>
+        </div>
+
+        <!-- Selected Profile Hero Banner -->
+        <div class="profile-banner">
+          <div class="profile-hero-left">
+            <div class="profile-avatar-lg" id="profAvatar">AM</div>
+            <div class="profile-info">
+              <h3 id="profName">
+                Aarav Mehta
+                <span class="badge-status badge-verified" id="profBadge">Demo verified</span>
+              </h3>
+              <p id="profSpec">Mumbai, India · Luxury residential</p>
+            </div>
+          </div>
+          <div class="score-hero-box">
+            <div class="score-hero-num" id="profScore">92</div>
+            <div class="score-hero-label">Overall Trust Score (/100)</div>
+          </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="tabs-header">
+          <button class="tab-btn active" onclick="switchTab('breakdown', this)">Score breakdown</button>
+          <button class="tab-btn" onclick="switchTab('reviews', this)">Reviews (24)</button>
+          <button class="tab-btn" onclick="switchTab('credentials', this)">Credentials</button>
+        </div>
+
+        <!-- Tab Content 1: Score Breakdown -->
+        <div class="tab-content active" id="tab-breakdown">
+          <table class="criteria-table">
+            <thead>
+              <tr>
+                <th>Criterion & Basis</th>
+                <th>Weight</th>
+                <th style="width: 180px;">Score & Progress</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Row 1 -->
+              <tr class="criteria-row">
+                <td>
+                  <div class="criterion-name">Registration & compliance</div>
+                  <div class="criterion-desc">License validity and registry record checks</div>
+                </td>
+                <td><span class="weight-tag">30%</span></td>
+                <td>
+                  <div class="score-progress-wrap">
+                    <div class="progress-bar-bg"><div class="progress-bar-fill" id="bar1" style="width: 95%;"></div></div>
+                    <span class="score-badge-val" id="val1">95</span>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Row 2 -->
+              <tr class="criteria-row">
+                <td>
+                  <div class="criterion-name">Client feedback</div>
+                  <div class="criterion-desc">Authenticated transaction or service reviews</div>
+                </td>
+                <td><span class="weight-tag">25%</span></td>
+                <td>
+                  <div class="score-progress-wrap">
+                    <div class="progress-bar-bg"><div class="progress-bar-fill" id="bar2" style="width: 91%;"></div></div>
+                    <span class="score-badge-val" id="val2">91</span>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Row 3 -->
+              <tr class="criteria-row">
+                <td>
+                  <div class="criterion-name">Experience</div>
+                  <div class="criterion-desc">Documented industry experience and track record</div>
+                </td>
+                <td><span class="weight-tag">15%</span></td>
+                <td>
+                  <div class="score-progress-wrap">
+                    <div class="progress-bar-bg"><div class="progress-bar-fill" id="bar3" style="width: 88%;"></div></div>
+                    <span class="score-badge-val" id="val3">88</span>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Row 4 -->
+              <tr class="criteria-row">
+                <td>
+                  <div class="criterion-name">Transparency</div>
+                  <div class="criterion-desc">Clear disclosures, communication and process</div>
+                </td>
+                <td><span class="weight-tag">15%</span></td>
+                <td>
+                  <div class="score-progress-wrap">
+                    <div class="progress-bar-bg"><div class="progress-bar-fill" id="bar4" style="width: 94%;"></div></div>
+                    <span class="score-badge-val" id="val4">94</span>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Row 5 -->
+              <tr class="criteria-row">
+                <td>
+                  <div class="criterion-name">Service quality</div>
+                  <div class="criterion-desc">Responsiveness and documented customer experience</div>
+                </td>
+                <td><span class="weight-tag">15%</span></td>
+                <td>
+                  <div class="score-progress-wrap">
+                    <div class="progress-bar-bg"><div class="progress-bar-fill" id="bar5" style="width: 92%;"></div></div>
+                    <span class="score-badge-val" id="val5">92</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="formula-action-bar">
+            <button class="btn-formula" onclick="toggleFormulaInfo()">
+              View scoring formula 🧮
+            </button>
+          </div>
+
+          <div id="formulaExplainBox" style="display:none; background: var(--bg-card); border-left: 3px solid var(--gold); padding: 14px 18px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-top: 14px; font-size: 0.82rem; color: #cbd5e1;">
+            <strong>Trust Score Formula:</strong> (Registration × 0.30) + (Feedback × 0.25) + (Experience × 0.15) + (Transparency × 0.15) + (Service Quality × 0.15).
+            <br>
+            <em>Example: (95 × 0.30) + (91 × 0.25) + (88 × 0.15) + (94 × 0.15) + (92 × 0.15) = 28.5 + 22.75 + 13.2 + 14.1 + 13.8 = 92.35 ≈ 92 / 100</em>
+          </div>
+        </div>
+
+        <!-- Tab Content 2: Reviews -->
+        <div class="tab-content" id="tab-reviews">
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div style="background:var(--bg-card); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
+              <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                <strong style="color:var(--text-white); font-size:0.9rem;">High-net-worth Buyer (Worli Seaface Apartment)</strong>
+                <span style="color:var(--gold); font-size:0.85rem;">★★★★★</span>
+              </div>
+              <p style="font-size:0.82rem; color:var(--text-muted); line-height:1.45;">"Aarav was exceptionally transparent during price benchmarking and RERA due diligence. No hidden broker fees and seamless title deed transfer."</p>
+              <div style="font-size:0.75rem; color:var(--success); margin-top:6px;">✓ Verified Transaction on MillionFlats</div>
+            </div>
+
+            <div style="background:var(--bg-card); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
+              <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                <strong style="color:var(--text-white); font-size:0.9rem;">Seller (Bandra West Penthouse)</strong>
+                <span style="color:var(--gold); font-size:0.85rem;">★★★★★</span>
+              </div>
+              <p style="font-size:0.82rem; color:var(--text-muted); line-height:1.45;">"Prompt communication, clear documentation, and accurate valuation without inflating unrealistic figures."</p>
+              <div style="font-size:0.75rem; color:var(--success); margin-top:6px;">✓ Verified Transaction on MillionFlats</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Content 3: Credentials -->
+        <div class="tab-content" id="tab-credentials">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <div style="background:var(--bg-card); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
+              <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Registry Reference</div>
+              <div style="font-weight:700; color:var(--text-white); font-size:1rem; margin-top:4px;" id="credRef">A51900004521</div>
+              <div style="font-size:0.78rem; color:var(--success); margin-top:4px;">● Active & Validated</div>
+            </div>
+            <div style="background:var(--bg-card); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
+              <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Issuing Authority</div>
+              <div style="font-weight:700; color:var(--text-white); font-size:1rem; margin-top:4px;" id="credAuth">MahaRERA (Govt of Maharashtra)</div>
+              <div style="font-size:0.78rem; color:var(--text-muted); margin-top:4px;">Valid through: Dec 2028</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Section 03: Verification Sources -->
+    <div class="sources-grid">
+      <div class="source-card">
+        <div class="source-icon">🏛</div>
+        <div class="source-title">India — MahaRERA / State RERA</div>
+        <div class="source-text">
+          Validate agent registration against the relevant official state registry and retain a dated verification record.
+        </div>
+      </div>
+
+      <div class="source-card">
+        <div class="source-icon">🛡</div>
+        <div class="source-title">UAE — Dubai Land Department</div>
+        <div class="source-text">
+          Check broker registration through an authorized DLD service (Dubai REST) and confirm active licensing status.
+        </div>
+      </div>
+
+      <div class="source-card">
+        <div class="source-icon">★</div>
+        <div class="source-title">Reviews & Client Feedback</div>
+        <div class="source-text">
+          Integrate authorized business reviews or authenticated client surveys, with consent and anti-fraud safeguards.
+        </div>
+      </div>
+    </div>
+
+    <!-- Recommended MVP Rollout Steps -->
+    <div class="guide-banner">
+      <h2>Recommended MVP Rollout Steps</h2>
+      <p>Strategic playbook for operationalizing agent trust verification and compliance.</p>
+
+      <div class="steps-list">
+        <div class="step-item">
+          <div class="step-badge">1</div>
+          <div class="step-desc">
+            <h5>Recruit Pilot Agents</h5>
+            <p>Onboard 5–10 real agents in India and Dubai with explicit consent to publish their verified profile data.</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-badge">2</div>
+          <div class="step-desc">
+            <h5>Manual Credential Verification</h5>
+            <p>Verify credentials manually first, storing registry IDs, verification timestamps, and jurisdiction snapshots.</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-badge">3</div>
+          <div class="step-desc">
+            <h5>Authenticated Client Feedback</h5>
+            <p>Collect feedback tied to verified listings or transaction agreements, displaying review counts rather than raw averages.</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-badge">4</div>
+          <div class="step-desc">
+            <h5>Transparent Weighted Scoring</h5>
+            <p>Implement an explicit scoring formula with an "insufficient evidence" state whenever licensing or feedback is missing.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="trust-principle-card">
+        <h4>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Key Trust Principle
+        </h4>
+        <p>
+          "A high score should never compensate for an invalid or unverified professional license. Keep registration status as a separate, prominent eligibility check alongside the overall score."
+        </p>
+      </div>
+    </div>
+
+    <!-- Component Footer Disclaimer -->
+    <div class="component-disclaimer">
+      MillionFlatsPro™ · Illustrative prototype · Scores and profile data are not real-world endorsements or credential verification.
+    </div>
+  </main>
+
+  <footer>
+    <p>© 2026 MillionFlatsPro™ · Agent Trust & Reputation Engine · MillionFlats Ecosystem</p>
+  </footer>
+
+  <script>
+    const agentData = {
+      aarav: {
+        initials: "AM",
+        name: "Aarav Mehta",
+        status: "verified",
+        badge: "Demo verified",
+        location: "Mumbai, India · Luxury residential",
+        score: 92,
+        scores: [95, 91, 88, 94, 92],
+        ref: "A51900004521",
+        auth: "MahaRERA (Govt of Maharashtra)"
+      },
+      sana: {
+        initials: "SK",
+        name: "Sana Kapoor",
+        status: "verified",
+        badge: "Demo verified",
+        location: "Dubai, UAE · Off-plan & investment",
+        score: 88,
+        scores: [92, 89, 85, 87, 88],
+        ref: "BRN-48912",
+        auth: "Dubai Land Department / RERA"
+      },
+      rohan: {
+        initials: "RS",
+        name: "Rohan Shah",
+        status: "pending",
+        badge: "Pending verification",
+        location: "Ahmedabad, India · Premium homes",
+        score: 73,
+        scores: [60, 78, 80, 75, 76],
+        ref: "PR/GJ/AGNT/PENDING",
+        auth: "Gujarat RERA (Application Submitted)"
+      }
+    };
+
+    function selectAgent(agentKey, el) {
+      document.querySelectorAll(".agent-card").forEach(c => c.classList.remove("active"));
+      el.classList.add("active");
+
+      const a = agentData[agentKey];
+      if (!a) return;
+
+      document.getElementById("profAvatar").innerText = a.initials;
+      document.getElementById("profName").innerHTML = `${a.name} <span class="badge-status ${a.status === 'verified' ? 'badge-verified' : 'badge-pending'}" id="profBadge">${a.badge}</span>`;
+      document.getElementById("profSpec").innerText = a.location;
+      document.getElementById("profScore").innerText = a.score;
+
+      for (let i = 0; i < 5; i++) {
+        document.getElementById(`val${i+1}`).innerText = a.scores[i];
+        document.getElementById(`bar${i+1}`).style.width = `${a.scores[i]}%`;
+      }
+
+      document.getElementById("credRef").innerText = a.ref;
+      document.getElementById("credAuth").innerText = a.auth;
+    }
+
+    function switchTab(tabId, el) {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+      el.classList.add("active");
+      document.getElementById(`tab-${tabId}`).classList.add("active");
+    }
+
+    function toggleFormulaInfo() {
+      const box = document.getElementById("formulaExplainBox");
+      box.style.display = box.style.display === "none" ? "block" : "none";
+    }
+
+    function filterAgents() {
+      const q = document.getElementById("agentSearch").value.toLowerCase();
+      document.querySelectorAll(".agent-card").forEach(card => {
+        const text = card.innerText.toLowerCase();
+        card.style.display = text.includes(q) ? "flex" : "none";
+      });
+    }
+  </script>
+</body>
+</html>

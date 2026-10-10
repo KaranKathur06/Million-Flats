@@ -135,7 +135,7 @@ export default function TeamDirectoryClient({ members, isTeamAdmin }: TeamDirect
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </div>
-            <span className="text-white font-semibold text-sm">MillionFlats Internal</span>
+            <span className="text-white font-semibold text-sm">MillionFlats Team</span>
           </div>
           {isTeamAdmin && (
             <Link
@@ -155,13 +155,9 @@ export default function TeamDirectoryClient({ members, isTeamAdmin }: TeamDirect
       <main className="max-w-6xl mx-auto px-6 py-12">
         {/* Page title */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 bg-blue-900/20 border border-blue-800/30 rounded-full px-4 py-1.5 mb-4">
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-            <span className="text-xs text-blue-400 font-medium uppercase tracking-wider">Internal Access Only</span>
-          </div>
           <h1 className="text-4xl font-bold text-white mb-3">Our Team</h1>
           <p className="text-slate-400 max-w-md mx-auto text-sm leading-relaxed">
-            The people building MillionFlats — private to team members only.
+            Meet the people building MillionFlats.
           </p>
         </div>
 
@@ -197,15 +193,6 @@ export default function TeamDirectoryClient({ members, isTeamAdmin }: TeamDirect
           </div>
         )}
 
-        {/* Footer note */}
-        <p className="text-center text-xs text-slate-700 mt-16">
-          This page is private and not indexed by search engines.{' '}
-          {isTeamAdmin && (
-            <Link href="/admin/team" className="text-slate-500 hover:text-slate-400 underline underline-offset-2">
-              Manage profiles
-            </Link>
-          )}
-        </p>
       </main>
     </div>
   )
