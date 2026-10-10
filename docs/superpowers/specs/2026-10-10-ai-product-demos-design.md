@@ -34,18 +34,20 @@ their behavior.
 - Keep all existing product routes and API behavior intact.
 - Publish a copy of each supplied standalone HTML file as a static asset, and
   map these readable preview paths to the corresponding static file:
-  - `/ai/index/demo` → AIIndex demo.
-  - `/ai/pro/demo` → AIPro demo.
-  - `/ai/shield/demo` → AIShield demo.
-  - `/ai/title/demo` → AITitle demo.
-  - `/ai/view/demo` → AIView demo.
+  - `/ai/index/demo` → `ai/aiindex_demo.html`.
+  - `/ai/pro/demo` → `ai/aipro_demo.html`.
+  - `/ai/shield/demo` → `ai/aishield_demo.html`.
+  - `/ai/title/demo` → `ai/aititle_demo.html`.
+  - `/ai/view/demo` → `ai/aiview_demo.html`.
 - Use route rewrites for the previews so each is rendered as a full standalone
   page rather than nesting the demo inside the app shell or an iframe.
 - Add a clearly labeled preview link to each existing product page. Update the
-  in-demo suite navigation to point to the matching preview paths, and provide
-  a route back to the corresponding live product page.
+  in-demo suite navigation to point to the matching lowercase preview paths,
+  and provide a route back to the corresponding lowercase live product page.
 - Keep prototype controls local to their demo. Do not wire them to production
   APIs or alter their sample behavior.
+- Keep `/ai/...` lowercase routes public as they are today. Do not change the
+  existing uppercase `/AI/...` protected-route behavior or add auth changes.
 
 ### Theme and demo labeling
 
@@ -81,7 +83,9 @@ their behavior.
 - Demos must not submit data to production AI APIs. The live product pages keep
   their existing request/error behavior.
 - This change does not alter authentication, authorization, API routes, or
-  production AI data handling.
+  production AI data handling. In particular, uppercase `/AI/...` routes
+  remain protected and lowercase `/ai/...` routes retain their current access
+  behavior.
 
 ## Out of scope
 
@@ -97,13 +101,17 @@ their behavior.
 
 1. Each of the five `/ai/<product>/demo` paths serves its matching standalone
    demo, with no duplicate app navigation surrounding the page.
-2. Each live AI product page links to its matching demo, and each demo's suite
-   navigation reaches the correct sibling previews and its live product page.
+2. Rewrite targets match the five supplied `ai/*_demo.html` files exactly;
+   each demo's suite navigation reaches the correct sibling preview paths and
+   its matching live product page.
 3. The demos are visibly identified as previews with sample/non-production
    behavior.
 4. All five demos use the approved shared MillionFlats theme and remain usable
    without horizontal overflow on mobile.
 5. Preview pages are marked `noindex`.
-6. Existing AI product pages, API calls, and route authorization remain
-   unchanged.
-7. Run focused route/theme checks and the available project type/build checks.
+6. A missing preview asset returns an explicit 404 and never serves a
+   different product's demo.
+7. Existing AI product pages, API calls, and route authorization remain
+   unchanged; lowercase `/ai/...` and protected uppercase `/AI/...` behavior
+   are both verified.
+8. Run focused route/theme checks and the available project type/build checks.
