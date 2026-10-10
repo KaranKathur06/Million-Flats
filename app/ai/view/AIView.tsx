@@ -3,8 +3,14 @@
 import { useCallback, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import type { MediaIntelligenceReport, MediaItemAnalysis } from '@/lib/ai-core/types'
+import GlobalDropdown, { type GlobalDropdownOption } from '@/components/ui/GlobalDropdown'
+import type { EntityType, MediaIntelligenceReport, MediaItemAnalysis } from '@/lib/ai-core/types'
 import { MediaGridSkeleton, AIErrorState } from '@/components/ai-shared/AISkeletons'
+
+const ENTITY_TYPE_OPTIONS: GlobalDropdownOption[] = [
+  { value: 'MANUAL_PROPERTY', label: 'Manual Property' },
+  { value: 'PROJECT', label: 'Project' },
+]
 
 // ─── Trust Badge ──────────────────────────────────────────────────────────────
 function TrustBadge({ score }: { score: number }) {
@@ -77,14 +83,15 @@ function ImageCard({ img }: { img: any }) {
 export default function AIView() {
   const searchParams = useSearchParams()
   const entityId = searchParams?.get('entityId') ?? ''
-  const entityType = (searchParams?.get('entityType') ?? 'MANUAL_PROPERTY') as 'MANUAL_PROPERTY' | 'PROJECT'
+  const entityTypeParam = searchParams?.get('entityType')
+  const entityType: EntityType = entityTypeParam === 'PROJECT' ? 'PROJECT' : 'MANUAL_PROPERTY'
 
   const [imageUrls, setImageUrls] = useState('')
   const [report, setReport] = useState<MediaIntelligenceReport | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [idInput, setIdInput] = useState(entityId)
-  const [typeInput, setTypeInput] = useState(entityType)
+  const [typeInput, setTypeInput] = useState<EntityType>(entityType)
 
   const analyze = useCallback(async () => {
     const urls = imageUrls.split('\n').map(u => u.trim()).filter(Boolean)
@@ -143,17 +150,19 @@ export default function AIView() {
                 onChange={(e) => setIdInput(e.target.value)}
               />
             </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Entity Type</label>
-              <select
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                value={typeInput}
-                onChange={(e) => setTypeInput(e.target.value as any)}
-              >
-                <option value="MANUAL_PROPERTY">Manual Property</option>
-                <option value="PROJECT">Project</option>
-              </select>
-            </div>
+            <GlobalDropdown
+              id="aiview-entity-type"
+              label="Entity Type"
+              value={typeInput}
+              onChange={(next) => {
+                if (typeof next === 'string' && (next === 'MANUAL_PROPERTY' || next === 'PROJECT')) {
+                  setTypeInput(next)
+                }
+              }}
+              options={ENTITY_TYPE_OPTIONS}
+              appearance="premium-light"
+              placeholder="Select entity type"
+            />
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">

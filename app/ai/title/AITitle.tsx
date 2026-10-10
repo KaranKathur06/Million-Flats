@@ -2,8 +2,24 @@
 
 import { useCallback, useRef, useState } from 'react'
 import Link from 'next/link'
-import type { LegalDocumentIntelligenceReport } from '@/lib/ai-core/types'
+import GlobalDropdown, { type GlobalDropdownOption } from '@/components/ui/GlobalDropdown'
+import type { EntityType, LegalDocumentIntelligenceReport } from '@/lib/ai-core/types'
 import { AIInsightSkeleton, AIErrorState } from '@/components/ai-shared/AISkeletons'
+
+const ENTITY_TYPE_OPTIONS: GlobalDropdownOption[] = [
+  { value: 'MANUAL_PROPERTY', label: 'Manual Property' },
+  { value: 'PROJECT', label: 'Project' },
+]
+
+const DOCUMENT_TYPE_OPTIONS: GlobalDropdownOption[] = [
+  'TITLE_DEED',
+  'RERA_CERTIFICATE',
+  'NOC',
+  'OQOOD_CONTRACT',
+  'SALE_DEED',
+  'ENCUMBRANCE_CERTIFICATE',
+  'TAX_RECEIPT',
+].map((value) => ({ value, label: value.replace(/_/g, ' ') }))
 
 // ─── Risk Badge ───────────────────────────────────────────────────────────────
 const RISK_STYLES: Record<string, { bg: string; text: string; label: string }> = {
@@ -41,7 +57,7 @@ function ScoreBar({ score, label }: { score: number; label: string }) {
 // ─── Upload Form ──────────────────────────────────────────────────────────────
 function UploadForm({ onResult }: { onResult: (r: LegalDocumentIntelligenceReport) => void }) {
   const [entityId, setEntityId] = useState('')
-  const [entityType, setEntityType] = useState<'MANUAL_PROPERTY' | 'PROJECT'>('MANUAL_PROPERTY')
+  const [entityType, setEntityType] = useState<EntityType>('MANUAL_PROPERTY')
   const [documentUrl, setDocumentUrl] = useState('')
   const [documentType, setDocumentType] = useState('TITLE_DEED')
   const [loading, setLoading] = useState(false)
@@ -80,29 +96,30 @@ function UploadForm({ onResult }: { onResult: (r: LegalDocumentIntelligenceRepor
             onChange={(e) => setEntityId(e.target.value)}
           />
         </div>
-        <div>
-          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Entity Type</label>
-          <select
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={entityType}
-            onChange={(e) => setEntityType(e.target.value as any)}
-          >
-            <option value="MANUAL_PROPERTY">Manual Property</option>
-            <option value="PROJECT">Project</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Document Type</label>
-          <select
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={documentType}
-            onChange={(e) => setDocumentType(e.target.value)}
-          >
-            {['TITLE_DEED', 'RERA_CERTIFICATE', 'NOC', 'OQOOD_CONTRACT', 'SALE_DEED', 'ENCUMBRANCE_CERTIFICATE', 'TAX_RECEIPT'].map((t) => (
-              <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
-            ))}
-          </select>
-        </div>
+        <GlobalDropdown
+          id="aititle-entity-type"
+          label="Entity Type"
+          value={entityType}
+          onChange={(next) => {
+            if (typeof next === 'string' && (next === 'MANUAL_PROPERTY' || next === 'PROJECT')) {
+              setEntityType(next)
+            }
+          }}
+          options={ENTITY_TYPE_OPTIONS}
+          appearance="premium-light"
+          placeholder="Select entity type"
+        />
+        <GlobalDropdown
+          id="aititle-document-type"
+          label="Document Type"
+          value={documentType}
+          onChange={(next) => {
+            if (typeof next === 'string') setDocumentType(next)
+          }}
+          options={DOCUMENT_TYPE_OPTIONS}
+          appearance="premium-light"
+          placeholder="Select document type"
+        />
         <div>
           <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Document URL</label>
           <input

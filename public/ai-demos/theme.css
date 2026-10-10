@@ -75,6 +75,12 @@ header {
   color: #64748b;
 }
 
+.hero-card::before,
+.hero-banner::before,
+.benchmark-hero::before {
+  background: linear-gradient(90deg, #d4af37, #b8972e, #0d1f38);
+}
+
 .progress-track {
   background: #e5e7eb;
 }
@@ -88,8 +94,24 @@ header {
   color: #0d1f38;
 }
 
-#formulaExplainBox {
+#formulaExplainBox,
+.category-reasoning {
+  background: #f8fafc;
   color: #334155 !important;
+}
+
+.crypto-box {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.slider-control {
+  background: #e5e7eb;
+}
+
+.btn-audit {
+  background: linear-gradient(135deg, #d4af37, #b8972e);
+  color: #0d1f38;
 }
 
 .mf-demo-notice {
@@ -118,6 +140,87 @@ header {
 
 .suite-links {
   display: none !important;
+}
+
+.workspace {
+  grid-template-columns: minmax(0, 460px) minmax(0, 1fr);
+}
+
+.main-grid {
+  grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+}
+
+.workspace > *,
+.main-grid > *,
+.card,
+.panel,
+.benchmark-hero,
+.comps-card,
+.table-responsive {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+@media (max-width: 992px) {
+  .workspace,
+  .main-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.section-header {
+  flex-wrap: wrap;
+}
+
+.tabs-header {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.tab-content {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+input,
+select,
+textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+
+select.form-select,
+select.form-control {
+  min-height: 44px;
+  padding-right: 2.75rem;
+  appearance: none;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='m5 7 5 5 5-5' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  color: #0d1f38;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.875rem;
+}
+
+select.form-select:focus-visible,
+select.form-control:focus-visible {
+  outline: 2px solid transparent;
+  border-color: #b8972e;
+  box-shadow: 0 0 0 3px rgba(184, 151, 46, 0.2);
+}
+
+select.form-select option,
+select.form-control option {
+  background: #ffffff;
+  color: #0d1f38;
 }
 
 .mf-demo-suite {
@@ -183,5 +286,14 @@ header {
   .container {
     padding-left: 16px;
     padding-right: 16px;
+  }
+
+  .hero-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero-card {
+    gap: 10px;
+    padding: 12px;
   }
 }

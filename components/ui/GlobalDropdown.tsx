@@ -289,10 +289,10 @@ export default function GlobalDropdown({
     >
       {showLabel && label ? (
         premium ? (
-          <div className="flex items-center gap-1.5 px-1 mb-1">
+          <label htmlFor={id} className="flex items-center gap-1.5 px-1 mb-1">
             {icon ? <span className={isDark ? 'text-amber-400/70' : 'text-amber-600/70'}>{icon}</span> : null}
             <span className={labelClass}>{label}</span>
-          </div>
+          </label>
         ) : (
           <label htmlFor={id} className={labelClass}>
             {label}
