@@ -1,12 +1,40 @@
+import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import PropertiesClient from '@/app/properties/PropertiesClient'
 import PropertiesHero from '@/components/properties/PropertiesHero'
 import { resolveHeroBanner } from '@/lib/heroBanners'
+import { buildSocialMetadata } from '@/lib/socialMetadata'
 
-export const metadata = {
-  title: 'Buy Premium Properties | MillionFlats',
-  description: 'Discover properties for sale across India and the UAE with MillionFlats.',
-  alternates: { canonical: '/buy' },
+const TITLE = 'Buy Premium Properties | MillionFlats'
+const DESCRIPTION = 'Discover properties for sale across India and the UAE with MillionFlats.'
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] || '' : value || ''
+}
+
+export async function generateMetadata({
+  searchParams = {},
+}: {
+  searchParams?: Record<string, string | string[] | undefined>
+}): Promise<Metadata> {
+  const banner = await resolveHeroBanner({
+    category: 'BUY',
+    city: firstParam(searchParams.location) || firstParam(searchParams.city),
+    country: firstParam(searchParams.country) || 'INDIA',
+  })
+
+  return {
+    title: TITLE,
+    description: DESCRIPTION,
+    alternates: { canonical: '/buy' },
+    ...buildSocialMetadata({
+      title: TITLE,
+      description: DESCRIPTION,
+      url: '/buy',
+      image: banner.desktopImage || '/HOMEPAGE.jpeg',
+      imageAlt: banner.desktopAlt,
+    }),
+  }
 }
 
 export default async function BuyPage({ searchParams = {} }: { searchParams?: Record<string, string | string[] | undefined> }) {

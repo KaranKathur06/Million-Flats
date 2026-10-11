@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
+import { buildSocialMetadata } from '@/lib/socialMetadata'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -26,18 +27,20 @@ export async function generateMetadata({ params }: AgencyPageProps): Promise<Met
 
   const base = getMetadataBase()
   const canonical = base ? `${base}/agencies/${params.slug}` : ''
+  const title = `${agency.agencyName} - Real Estate Agency | MillionFlats`
+  const description = agency.shortDescription || `Explore ${agency.agencyName} projects and services on MillionFlats.`
 
   return {
-    title: `${agency.agencyName} - Real Estate Agency | MillionFlats`,
-    description: agency.shortDescription || `Explore ${agency.agencyName} projects and services on MillionFlats.`,
+    title,
+    description,
     alternates: canonical ? { canonical } : undefined,
-    openGraph: {
-      title: `${agency.agencyName} - Real Estate Agency | MillionFlats`,
+    ...buildSocialMetadata({
+      title,
       description: agency.shortDescription || `Premium services by ${agency.agencyName}`,
       url: canonical || undefined,
       type: 'website',
-      images: agency.banner ? [{ url: agency.banner }] : undefined,
-    },
+      image: agency.banner,
+    }),
   }
 }
 

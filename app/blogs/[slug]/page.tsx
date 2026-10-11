@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getPublishedBlogBySlug } from '@/lib/blogs/public'
 import { fixImageUrl, fixHtmlImageUrls } from '@/lib/fixImageUrl'
+import { buildSocialMetadata } from '@/lib/socialMetadata'
 import BlogViewTracker from './BlogViewTracker'
 
 export const revalidate = 60
@@ -19,16 +20,21 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
     return { title: 'Blog Not Found | MillionFlats' }
   }
 
+  const title = blog.metaTitle || blog.title
+  const description = blog.metaDescription || blog.excerpt || 'Read this MillionFlats article.'
+  const featuredImage = blog.featuredImageUrl ? fixImageUrl(blog.featuredImageUrl) : null
+
   return {
-    title: blog.metaTitle || blog.title,
-    description: blog.metaDescription || blog.excerpt || 'Read this MillionFlats article.',
+    title,
+    description,
     alternates: blog.canonicalUrl ? { canonical: blog.canonicalUrl } : undefined,
-    openGraph: {
-      title: blog.metaTitle || blog.title,
-      description: blog.metaDescription || blog.excerpt || '',
+    ...buildSocialMetadata({
+      title,
+      description,
       type: 'article',
-      images: blog.featuredImageUrl ? [{ url: fixImageUrl(blog.featuredImageUrl) }] : undefined,
-    },
+      image: featuredImage,
+      imageAlt: blog.featuredImageAlt || title,
+    }),
   }
 }
 
@@ -95,5 +101,4 @@ export default async function BlogSlugPage({ params }: BlogPageProps) {
     </main>
   )
 }
-
 

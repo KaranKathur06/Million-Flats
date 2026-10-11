@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import ManualPropertyPreview from '@/components/ManualPropertyPreview'
 import { buildManualPropertyPath } from '@/lib/manualPropertyRoutes'
 import { getRelatedManualProperties, requirePublicManualProperty } from '@/lib/publicManualProperties'
+import { buildSocialMetadata } from '@/lib/socialMetadata'
 
 function siteUrl() {
   const base = (process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || '').trim()
@@ -34,25 +35,25 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const description = clampDescription(safeString(property?.shortDescription) || `${title}${locationLabel ? ` in ${locationLabel}` : ''}.`)
   const path = buildManualPropertyPath({ id: property.id, title, intent: property.intent })
   const canonical = absoluteUrl(path)
-  const cover = Array.isArray(property?.media) ? safeString(property.media.find((m: any) => m?.category === 'COVER')?.url || property.media[0]?.url) : ''
+  const coverImages = Array.isArray(property?.media)
+    ? [
+        ...property.media.filter((m: any) => String(m?.category || '').toUpperCase() === 'COVER'),
+        ...property.media,
+      ].map((m: any) => safeString(m?.url))
+    : []
+  const titleWithContext = `${title}${locationLabel ? ` in ${locationLabel}` : ''} | Rent | millionflats`
 
   return {
-    title: `${title}${locationLabel ? ` in ${locationLabel}` : ''} | Rent | millionflats`,
+    title: titleWithContext,
     description,
     alternates: canonical ? { canonical } : undefined,
-    openGraph: {
+    ...buildSocialMetadata({
       title,
       description,
       url: canonical || undefined,
       type: 'article',
-      images: cover ? [{ url: cover, alt: title }] : undefined,
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-      images: cover ? [cover] : undefined,
-    },
+      image: coverImages,
+    }),
   }
 }
 

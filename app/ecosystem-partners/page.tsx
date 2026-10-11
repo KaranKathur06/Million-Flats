@@ -5,22 +5,17 @@ import TrackedServiceLink from '@/components/services/TrackedServiceLink'
 import { ECOSYSTEM_CATEGORIES, categoryHref, partnerRegistrationHref } from '@/lib/ecosystemPartners'
 import { ECOSYSTEM_PACKAGES } from '@/lib/services/segmentContent'
 import EcosystemPackageCards from './_components/EcosystemPackageCards'
+import { buildSocialMetadata } from '@/lib/socialMetadata'
 
 export const metadata: Metadata = {
   title: 'MillionFlats | Ecosystem Partners',
   description: 'Join a verified network of real estate ecosystem specialists across finance, legal, insurance, interiors, property services, and technology.',
   alternates: { canonical: '/ecosystem-partners' },
-  openGraph: {
+  ...buildSocialMetadata({
     title: 'Ecosystem Partners | MillionFlats',
     description: 'Explore 12 verified ecosystem verticals and connect with the MillionFlats property marketplace.',
     url: '/ecosystem-partners',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Ecosystem Partners | MillionFlats',
-    description: 'Explore 12 verified ecosystem verticals and connect with the MillionFlats property marketplace.',
-  },
+  }),
 }
 
 const partnerBenefits = [

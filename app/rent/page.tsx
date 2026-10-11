@@ -1,12 +1,40 @@
+import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import PropertiesClient from '@/app/properties/PropertiesClient'
 import PropertiesHero from '@/components/properties/PropertiesHero'
 import { resolveHeroBanner } from '@/lib/heroBanners'
+import { buildSocialMetadata } from '@/lib/socialMetadata'
 
-export const metadata = {
-  title: 'Rent Premium Properties | MillionFlats',
-  description: 'Find rental properties across India and the UAE with MillionFlats.',
-  alternates: { canonical: '/rent' },
+const TITLE = 'Rent Premium Properties | MillionFlats'
+const DESCRIPTION = 'Find rental properties across India and the UAE with MillionFlats.'
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] || '' : value || ''
+}
+
+export async function generateMetadata({
+  searchParams = {},
+}: {
+  searchParams?: Record<string, string | string[] | undefined>
+}): Promise<Metadata> {
+  const banner = await resolveHeroBanner({
+    category: 'RENT',
+    city: firstParam(searchParams.location) || firstParam(searchParams.city),
+    country: firstParam(searchParams.country) || 'INDIA',
+  })
+
+  return {
+    title: TITLE,
+    description: DESCRIPTION,
+    alternates: { canonical: '/rent' },
+    ...buildSocialMetadata({
+      title: TITLE,
+      description: DESCRIPTION,
+      url: '/rent',
+      image: banner.desktopImage || '/HOMEPAGE.jpeg',
+      imageAlt: banner.desktopAlt,
+    }),
+  }
 }
 
 export default async function RentPage({ searchParams = {} }: { searchParams?: Record<string, string | string[] | undefined> }) {

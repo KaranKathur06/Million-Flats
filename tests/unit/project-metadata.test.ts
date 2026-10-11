@@ -13,7 +13,29 @@ describe('project metadata', () => {
     expect(metadata.title).toBe('Nirvana Apartment in Navi Mumbai | MillionFlats')
     expect(metadata.alternates?.canonical).toBe('/projects/nirvana-apartment')
     expect(metadata.openGraph).toMatchObject({ title: metadata.title, description: metadata.description, url: metadata.alternates?.canonical })
+    expect(metadata.openGraph?.images).toEqual([{
+      url: '/meta.jpeg',
+      alt: metadata.title,
+    }])
     expect(metadata.twitter).toMatchObject({ title: metadata.title, description: metadata.description })
+    expect(metadata.twitter?.images).toEqual(['/meta.jpeg'])
+  })
+
+  it('uses the project image for both social preview formats', () => {
+    const metadata = buildProjectMetadata({
+      name: 'Nirvana Apartment',
+      slug: 'nirvana-apartment',
+      socialImages: [
+        'https://cdn.example.com/projects/nirvana/hero.jpg?Expires=123&Signature=abc',
+        'https://cdn.example.com/projects/nirvana/cover.jpg',
+      ],
+    })
+
+    expect(metadata.openGraph?.images).toEqual([{
+      url: 'https://cdn.example.com/projects/nirvana/cover.jpg',
+      alt: metadata.title,
+    }])
+    expect(metadata.twitter?.images).toEqual(['https://cdn.example.com/projects/nirvana/cover.jpg'])
   })
 
   it('omits an unavailable city and falls back to a useful plain-text description', () => {

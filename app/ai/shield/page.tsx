@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import AIShieldDashboard from '@/components/aishield/AIShieldDashboard'
+import { buildSocialMetadata } from '@/lib/socialMetadata'
 
 export const revalidate = 900
 
@@ -15,11 +16,11 @@ export const metadata: Metadata = {
     'UAE property investment analysis',
     'off-plan project analysis',
   ].join(', '),
-  openGraph: {
+  ...buildSocialMetadata({
     title: 'AIShield™ — AI Property Intelligence | MillionFlats',
     description: 'Compare project valuations, fair value, and market signals across Dubai & UAE.',
-    type: 'website',
-  },
+    url: '/ai/shield',
+  }),
   alternates: {
     canonical: '/ai/shield',
   },

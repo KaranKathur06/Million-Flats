@@ -55,11 +55,6 @@ export const metadata: Metadata = {
   },
   other: {
     'p:domain_verify': 'e6933b23e105c64206750c2e27779d48',
-    'og:image': 'https://www.millionflats.com/meta.jpeg',
-    'og:image:secure_url': 'https://www.millionflats.com/meta.jpeg',
-    'og:image:type': 'image/jpeg',
-    'og:image:width': '1200',
-    'og:image:height': '630',
   },
 }
 

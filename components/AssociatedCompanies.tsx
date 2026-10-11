@@ -7,6 +7,9 @@ const associatedCompanies = [
   { id: 'metadology', name: 'MetaDology', src: '/partners/metadology.jpeg', alt: 'MetaDology' },
   { id: 'nextech', name: 'Nextech', src: '/partners/nextech.jpeg', alt: 'Nextech' },
   { id: 'yugen', name: 'Yugen', src: '/partners/yugen.jpeg', alt: 'Yugen' },
+  { id: 'goran', name: 'GoRan Building Intelligence', src: '/partners/goran.jpeg', alt: 'GoRan Building Intelligence' },
+  { id: 'grid', name: 'GRID', src: '/partners/grid.jpeg', alt: 'GRID' },
+  { id: 'video-service-desk', name: 'Video Service Desk', src: '/partners/video.jpeg', alt: 'Video Service Desk' },
 ]
 
 export default function AssociatedCompanies() {

@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import ServerDirectoryPagination from '@/components/directory/ServerDirectoryPagination'
+import { buildSocialMetadata } from '@/lib/socialMetadata'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,16 +32,17 @@ function slugify(input: string) {
 
 export async function generateMetadata(): Promise<Metadata> {
   const canonical = absoluteUrl('/agents')
+  const title = 'Find an Agent | millionflats'
+  const description = 'Browse and contact verified real estate agents on millionflats. View profiles, listings, and contact options.'
   return {
-    title: 'Find an Agent | millionflats',
-    description: 'Browse and contact verified real estate agents on millionflats. View profiles, listings, and contact options.',
+    title,
+    description,
     alternates: canonical ? { canonical } : undefined,
-    openGraph: {
-      title: 'Find an Agent | millionflats',
+    ...buildSocialMetadata({
+      title,
       description: 'Browse and contact verified real estate agents on millionflats.',
       url: canonical || undefined,
-      type: 'website',
-    },
+    }),
   }
 }
 

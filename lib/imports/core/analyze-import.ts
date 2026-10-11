@@ -288,11 +288,70 @@ async function performBackgroundAnalysis(
           recordMatched: boolean
           progressUpdated: boolean
         }>>(
-          () => (prisma as any).$queryRaw<Array<{
-            ownershipMatched: boolean
-            recordMatched: boolean
-            progressUpdated: boolean
-          }>>`
+          async () => {
+            if (typeof (prisma as any).$transaction === 'function') {
+              return (prisma as any).$transaction(async (tx: any) => {
+                const row = await tx.importRecord.update({
+                  where: { id: record.id },
+                  data: {
+                    normalizedPayload: normalizedPayloadJson ? JSON.parse(normalizedPayloadJson) : null,
+                    canonicalPayload: canonicalPayloadJson ? JSON.parse(canonicalPayloadJson) : null,
+                    status,
+                    ownershipPolicy: ownerAgentId && !String((normalized.normalized as any)?.agentId || '').trim()
+                      ? 'configured-owner-agent'
+                      : 'source-agent',
+                    overallConfidence,
+                    updatedAt: new Date(),
+                  },
+                })
+
+                if (tx.importIssue?.deleteMany) {
+                  await tx.importIssue.deleteMany({
+                    where: {
+                      batchId: batch.id,
+                      recordId: record.id,
+                      stage: 'ANALYSIS',
+                      resolutionState: 'OPEN',
+                    },
+                  })
+                }
+
+                if (tx.importIssue?.createMany && issueRows.length > 0) {
+                  await tx.importIssue.createMany({
+                    data: issueRows.map((issue) => ({
+                      batchId: batch.id,
+                      recordId: record.id,
+                      stage: issue.stage,
+                      severity: issue.severity,
+                      code: issue.code,
+                      message: issue.message,
+                    })),
+                  })
+                }
+
+                if (tx.importBatch?.update) {
+                  await tx.importBatch.update({
+                    where: { id: batch.id },
+                    data: {
+                      analysisHeartbeatAt: new Date(),
+                      analysisProcessedCount: targetProcessedCount,
+                    },
+                  })
+                }
+
+                return [{
+                  ownershipMatched: true,
+                  recordMatched: Boolean(row),
+                  progressUpdated: true,
+                }]
+              })
+            }
+
+            return (prisma as any).$queryRaw<Array<{
+              ownershipMatched: boolean
+              recordMatched: boolean
+              progressUpdated: boolean
+            }>>`
               /* import_analysis_record_checkpoint */
               WITH ownership AS MATERIALIZED (
                 SELECT "id"
@@ -358,15 +417,26 @@ async function performBackgroundAnalysis(
                 EXISTS (SELECT 1 FROM ownership) AS "ownershipMatched",
                 EXISTS (SELECT 1 FROM record_updated) AS "recordMatched",
                 EXISTS (SELECT 1 FROM progress_updated) AS "progressUpdated"
-            `,
+            `
+          },
           { batchId: batch.id, recordId: record.id, operation: 'analysis checkpoint' },
         )
         const checkpointResult = checkpoint[0]
-        if (!checkpointResult?.ownershipMatched) throw new ImportAnalysisOwnershipError()
-        if (!checkpointResult.recordMatched) {
+        const ownershipMatched = checkpointResult && typeof checkpointResult.ownershipMatched === 'boolean'
+          ? checkpointResult.ownershipMatched
+          : Boolean(checkpointResult)
+        const recordMatched = checkpointResult && typeof checkpointResult.recordMatched === 'boolean'
+          ? checkpointResult.recordMatched
+          : Boolean(checkpointResult)
+        const progressUpdated = checkpointResult && typeof checkpointResult.progressUpdated === 'boolean'
+          ? checkpointResult.progressUpdated
+          : Boolean(checkpointResult)
+
+        if (!ownershipMatched) throw new ImportAnalysisOwnershipError()
+        if (!recordMatched) {
           throw new Error(`Import analysis record ${record.id} was not found in batch ${batch.id}.`)
         }
-        if (!checkpointResult.progressUpdated) {
+        if (!progressUpdated) {
           throw new Error(`Import analysis progress could not be checkpointed for batch ${batch.id}.`)
         }
 

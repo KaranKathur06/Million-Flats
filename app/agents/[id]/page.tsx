@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import { buildSocialMetadata } from '@/lib/socialMetadata'
 import AgentListingCard from './AgentListingCard'
 import ContactAgentForm from './ContactAgentForm'
 import AgentListingsFilterBarClient from './AgentListingsFilterBarClient'
@@ -179,22 +180,23 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const description = clampDescription(
     `View ${name}, ${company}, on millionflats. Explore agent details, verification, and active listings.`
   )
+  const title = `${name} | Real Estate Agent | millionflats`
+  const socialImage = safeString((agent as any)?.profileImageUrl) ||
+    safeString(agent?.profilePhoto) ||
+    safeString((agent as any)?.profileImageKey) ||
+    null
 
   return {
-    title: `${name} | Real Estate Agent | millionflats`,
+    title,
     description,
     alternates: canonical ? { canonical } : undefined,
-    openGraph: {
-      title: `${name} | Real Estate Agent | millionflats`,
+    ...buildSocialMetadata({
+      title,
       description,
       url: canonical || undefined,
       type: 'profile',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: `${name} | Real Estate Agent | millionflats`,
-      description,
-    },
+      image: socialImage,
+    }),
   }
 }
 

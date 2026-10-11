@@ -246,6 +246,12 @@ export async function getPublicProjectBySlug(rawSlug: string) {
       coverImage: project.coverImage,
       media: project.media,
     })
+    const heroMediaReference = project.media?.find((media: any) => {
+      const mediaType = String(media.mediaType || '').toLowerCase()
+      const category = String(media.category || '').toLowerCase()
+      return mediaType === 'hero' || category === 'hero'
+    })?.mediaUrl
+    const socialImages = [heroMediaReference, project.coverImage, coverReference]
     const [resolvedCover, resolvedMedia] = await Promise.all([
       resolveProjectMediaUrl(coverReference),
       Promise.all((project.media || []).map(async (media: any) => ({
@@ -269,6 +275,7 @@ export async function getPublicProjectBySlug(rawSlug: string) {
         additionalCharges: [],
       }),
       coverImage: resolvedCover || coverReference,
+      socialImages,
       media: resolvedMedia,
       floorPlans: resolvedFloorPlans,
       highlights: parseHighlights(project.highlights),

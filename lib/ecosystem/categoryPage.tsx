@@ -3,6 +3,7 @@ import EcosystemCategoryLanding from '@/components/ecosystem/EcosystemCategoryLa
 import { getEcosystemCategoryConfig } from '@/lib/ecosystem/categoryConfig'
 import type { EcosystemCategorySlug } from '@/lib/ecosystemPartners'
 import { buildCanonicalUrl, normalizePage } from '@/lib/ecosystem/paginationSeo'
+import { buildSocialMetadata } from '@/lib/socialMetadata'
 
 export const ECOSYSTEM_CATEGORY_PAGE_DYNAMIC = {
   dynamic: 'force-dynamic' as const,
@@ -25,11 +26,13 @@ export function createEcosystemCategoryPage(slug: EcosystemCategorySlug) {
       title: cfg.meta.title,
       description: cfg.meta.description,
       alternates: { canonical },
-      openGraph: {
+      ...buildSocialMetadata({
         title: cfg.meta.title,
         description: cfg.meta.description,
-        images: cfg.meta.ogImage ? [{ url: cfg.meta.ogImage }] : undefined,
-      },
+        url: canonical,
+        image: cfg.meta.ogImage || cfg.heroImage.src,
+        imageAlt: cfg.heroImage.alt,
+      }),
     }
   }
 

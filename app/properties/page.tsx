@@ -3,6 +3,7 @@ import { Suspense } from 'react'
 import PropertiesClient from '@/app/properties/PropertiesClient'
 import { resolveHeroBanner } from '@/lib/heroBanners'
 import PropertiesHero from '@/components/properties/PropertiesHero'
+import { buildSocialMetadata } from '@/lib/socialMetadata'
 
 type SearchParams = Record<string, string | string[] | undefined>
 
@@ -21,26 +22,28 @@ function absoluteUrl(path: string) {
   return `${base}${path.startsWith('/') ? path : `/${path}`}`
 }
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({ searchParams = {} }: { searchParams?: SearchParams }): Promise<Metadata> {
+  const purpose = firstParam(searchParams.purpose).toLowerCase() === 'rent' ? 'RENT' : 'BUY'
+  const city = firstParam(searchParams.location) || firstParam(searchParams.city)
+  const country = firstParam(searchParams.country) || 'INDIA'
+  const banner = await resolveHeroBanner({ category: purpose, city, country })
   const canonical = absoluteUrl('/properties')
+  const title = 'Properties for Sale in UAE | millionflats'
+  const description =
+    'Browse premium projects and properties for sale across the UAE. Compare prices, locations, amenities, and developer details with SEO-ready listings.'
+  const socialDescription =
+    'Browse premium projects and properties for sale across the UAE. Compare prices, locations, amenities, and developer details.'
   return {
-    title: 'Properties for Sale in UAE | millionflats',
-    description:
-      'Browse premium projects and properties for sale across the UAE. Compare prices, locations, amenities, and developer details with SEO-ready listings.',
+    title,
+    description,
     alternates: canonical ? { canonical } : undefined,
-    openGraph: {
-      title: 'Properties for Sale in UAE | millionflats',
-      description:
-        'Browse premium projects and properties for sale across the UAE. Compare prices, locations, amenities, and developer details.',
+    ...buildSocialMetadata({
+      title,
+      description: socialDescription,
       url: canonical || undefined,
-      type: 'website',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: 'Properties for Sale in UAE | millionflats',
-      description:
-        'Browse premium projects and properties for sale across the UAE. Compare prices, locations, amenities, and developer details.',
-    },
+      image: banner.desktopImage || '/HOMEPAGE.jpeg',
+      imageAlt: banner.desktopAlt,
+    }),
   }
 }
 
@@ -64,4 +67,3 @@ export default async function PropertiesPage({ searchParams = {} }: { searchPara
     </Suspense>
   )
 }
-

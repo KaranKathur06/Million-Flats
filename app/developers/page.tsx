@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { getPublicDeveloperStats, getPublicDevelopers } from '@/lib/developers/getPublicDevelopers'
 import DeveloperDirectoryClient from './DeveloperDirectoryClient'
+import { buildSocialMetadata } from '@/lib/socialMetadata'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -13,19 +14,21 @@ function getMetadataBase() {
 export async function generateMetadata(): Promise<Metadata> {
   const base = getMetadataBase()
   const canonical = base ? `${base}/developers` : ''
+  const title = 'Explore Trusted Real Estate Developers | India & Dubai | MillionFlats'
+  const socialTitle = 'Trusted Real Estate Developers | MillionFlats'
+  const description =
+    'Discover verified real estate developers across India and Dubai. Compare portfolios, explore projects, read developer profiles and invest with confidence on MillionFlats.'
 
   return {
-    title: 'Explore Trusted Real Estate Developers | India & Dubai | MillionFlats',
-    description:
-      'Discover verified real estate developers across India and Dubai. Compare portfolios, explore projects, read developer profiles and invest with confidence on MillionFlats.',
+    title,
+    description,
     alternates: canonical ? { canonical } : undefined,
-    openGraph: {
-      title: 'Trusted Real Estate Developers | MillionFlats',
+    ...buildSocialMetadata({
+      title: socialTitle,
       description:
         'Browse developer profiles, compare project portfolios, and connect directly with India & Dubai\'s top builders.',
       url: canonical || undefined,
-      type: 'website',
-    },
+    }),
   }
 }
 

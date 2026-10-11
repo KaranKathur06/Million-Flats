@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getPartnerProfile, partnerProfileUrl } from '@/lib/ecosystem/partnerProfile'
+import { buildSocialMetadata } from '@/lib/socialMetadata'
 import {
   PartnerHero,
   PartnerStats,
@@ -47,13 +48,13 @@ export async function generateMetadata({ params }: PartnerPageProps): Promise<Me
       partner.shortDescription ||
       `Explore ${partner.name} portfolio, services, and client reviews. Request a consultation through MillionFlats.`,
     alternates: canonical ? { canonical } : undefined,
-    openGraph: {
+    ...buildSocialMetadata({
       title,
       description: partner.tagline,
       url: canonical || undefined,
       type: 'website',
-      images: partner.coverImage ? [{ url: partner.coverImage }] : undefined,
-    },
+      image: partner.coverImage,
+    }),
   }
 }
 

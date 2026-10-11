@@ -11,6 +11,7 @@ import DeveloperFaqs from '@/components/developer-profile/DeveloperFaqs'
 import DeveloperCTA from '@/components/developer-profile/DeveloperCTA'
 import EcosystemPartnerRecommendationsSection from '@/components/ecosystem/EcosystemPartnerRecommendationsSection'
 import { getPublicDeveloperProfile } from '@/lib/developers/getPublicDeveloperProfile'
+import { buildSocialMetadata } from '@/lib/socialMetadata'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -33,20 +34,22 @@ export async function generateMetadata({ params }: DeveloperPageProps): Promise<
 
   const base = getMetadataBase()
   const canonical = base ? `${base}/developers/${params.slug}` : ''
+  const title = `${developer.name} Developer Profile | MillionFlats`
+  const description =
+    developer.shortDescription ||
+    `Explore ${developer.name} projects, delivery track record, and verified developer details on MillionFlats.`
 
   return {
-    title: `${developer.name} Developer Profile | MillionFlats`,
-    description:
-      developer.shortDescription ||
-      `Explore ${developer.name} projects, delivery track record, and verified developer details on MillionFlats.`,
+    title,
+    description,
     alternates: canonical ? { canonical } : undefined,
-    openGraph: {
-      title: `${developer.name} Developer Profile | MillionFlats`,
+    ...buildSocialMetadata({
+      title,
       description: `Premium projects by ${developer.name} with trusted delivery and high-value communities.`,
       url: canonical || undefined,
       type: 'website',
-      images: developer.banner ? [{ url: developer.banner }] : undefined,
-    },
+      image: developer.hasCustomBanner ? developer.banner : developer.projects[0]?.image,
+    }),
   }
 }
 

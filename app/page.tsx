@@ -10,6 +10,7 @@ import { isAdminPanelRole } from '@/lib/roleHomeRoute'
 import MetaDologyVideoSection from '@/components/MetaDologyVideoSection'
 import AssociatedCompanies from '@/components/AssociatedCompanies'
 import { getBaseUrl } from '@/lib/auth/routes'
+import { buildSocialMetadata } from '@/lib/socialMetadata'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,6 +54,14 @@ export async function generateMetadata({
       canonical: '/',
     },
     robots: hasMarketParam ? { index: false, follow: true } : undefined,
+    ...buildSocialMetadata({
+      title: 'MillionFlats | Global Luxury Real Estate Marketplace',
+      description:
+        'Safely invest in premium ₹3Cr+ villas, penthouses, and off-plan projects across India and Dubai. Fully backed by institutional compliance, secure LRS/FEMA routing, and 3D digital twins.',
+      url: '/',
+      image: '/HOMEPAGE.webp',
+      imageAlt: 'Luxury Dubai Property',
+    }),
   }
 }
 

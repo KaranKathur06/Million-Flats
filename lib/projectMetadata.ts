@@ -1,6 +1,7 @@
 import { parseDocument } from 'htmlparser2'
 import { findAll, removeElement, textContent } from 'domutils'
 import type { Metadata } from 'next'
+import { buildSocialMetadata } from '@/lib/socialMetadata'
 
 type ProjectMetadataInput = {
   name: string
@@ -8,6 +9,7 @@ type ProjectMetadataInput = {
   city?: string | null
   description?: string | null
   coverImage?: string | null
+  socialImages?: Array<string | null | undefined>
 }
 
 export function normalizeProjectDescription(description: string | null | undefined, name: string, city?: string | null) {
@@ -29,18 +31,14 @@ export function buildProjectMetadata(project: ProjectMetadataInput): Metadata {
     title,
     description,
     alternates: { canonical },
-    openGraph: {
+    ...buildSocialMetadata({
       title,
       description,
       url: canonical,
       type: 'website',
-      images: project.coverImage ? [{ url: project.coverImage, alt: title }] : undefined,
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-    },
+      image: project.socialImages || project.coverImage,
+      imageAlt: title,
+    }),
   }
 }
 

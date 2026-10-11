@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { getPublicAgencyStats, getPublicAgencies } from '@/lib/agencies/getPublicAgencies'
 import AgenciesDirectoryClient from './AgenciesDirectoryClient'
+import { buildSocialMetadata } from '@/lib/socialMetadata'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -13,19 +14,21 @@ function getMetadataBase() {
 export async function generateMetadata(): Promise<Metadata> {
   const base = getMetadataBase()
   const canonical = base ? `${base}/agencies` : ''
+  const title = 'Explore Trusted Real Estate Agencies | India, UAE & Global | MillionFlats'
+  const socialTitle = 'Trusted Real Estate Agencies | MillionFlats'
+  const description =
+    'Discover verified real estate agencies across India, UAE, Saudi Arabia, UK and USA. Compare profiles, explore specializations, and connect with top agencies on MillionFlats.'
 
   return {
-    title: 'Explore Trusted Real Estate Agencies | India, UAE & Global | MillionFlats',
-    description:
-      'Discover verified real estate agencies across India, UAE, Saudi Arabia, UK and USA. Compare profiles, explore specializations, and connect with top agencies on MillionFlats.',
+    title,
+    description,
     alternates: canonical ? { canonical } : undefined,
-    openGraph: {
-      title: 'Trusted Real Estate Agencies | MillionFlats',
+    ...buildSocialMetadata({
+      title: socialTitle,
       description:
         'Browse agency profiles, compare specializations, and connect directly with verified real estate agencies across global markets.',
       url: canonical || undefined,
-      type: 'website',
-    },
+    }),
   }
 }
 

@@ -5,19 +5,43 @@ import { resolveHeroBanner } from '@/lib/heroBanners'
 import HeroBannerBackdrop from '@/components/HeroBannerBackdrop'
 import type { ResolvedHeroBanner } from '@/lib/heroBanners'
 import { getProjectsHeroPresentation, PROJECTS_HERO_FALLBACK_IMAGE } from './heroPresentation'
+import { buildSocialMetadata } from '@/lib/socialMetadata'
 
-export const metadata: Metadata = {
-    title: 'Off-Plan Projects | MillionFlats',
-    description:
-        'Discover premium off-plan developments across Dubai and the UAE. Browse luxury projects by top developers with Golden Visa eligibility, and find your next investment opportunity.',
-    keywords:
-        'off-plan projects Dubai, new developments UAE, Golden Visa projects, luxury developments Dubai, DAMAC projects, Emaar projects',
-    openGraph: {
-        title: 'Off-Plan Projects | MillionFlats',
-        description:
-            'Discover premium off-plan developments across Dubai and the UAE. Browse luxury projects by top developers.',
-        type: 'website',
-    },
+const PROJECTS_TITLE = 'Off-Plan Projects | MillionFlats'
+const PROJECTS_DESCRIPTION =
+    'Discover premium off-plan developments across Dubai and the UAE. Browse luxury projects by top developers with Golden Visa eligibility, and find your next investment opportunity.'
+const PROJECTS_SOCIAL_DESCRIPTION =
+    'Discover premium off-plan developments across Dubai and the UAE. Browse luxury projects by top developers.'
+
+function firstParam(value: string | string[] | undefined) {
+    return Array.isArray(value) ? value[0] || '' : value || ''
+}
+
+export async function generateMetadata({
+    searchParams = {},
+}: {
+    searchParams?: Record<string, string | string[] | undefined>
+}): Promise<Metadata> {
+    const banner = await resolveHeroBanner({
+        category: 'PROJECTS',
+        city: firstParam(searchParams.city),
+        country: firstParam(searchParams.country),
+    })
+
+    return {
+        title: PROJECTS_TITLE,
+        description: PROJECTS_DESCRIPTION,
+        keywords:
+            'off-plan projects Dubai, new developments UAE, Golden Visa projects, luxury developments Dubai, DAMAC projects, Emaar projects',
+        alternates: { canonical: '/projects' },
+        ...buildSocialMetadata({
+            title: PROJECTS_TITLE,
+            description: PROJECTS_SOCIAL_DESCRIPTION,
+            url: '/projects',
+            image: banner.desktopImage || PROJECTS_HERO_FALLBACK_IMAGE,
+            imageAlt: banner.desktopAlt,
+        }),
+    }
 }
 
 function ProjectsPageFallback({ banner }: { banner: ResolvedHeroBanner }) {
