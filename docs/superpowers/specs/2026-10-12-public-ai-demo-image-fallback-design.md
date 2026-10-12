@@ -42,11 +42,9 @@ remains informational. Authenticated interactive behavior stays unchanged.
 
 ### Missing-image fallback
 
-The source is
-`C:\Users\kathu\AppData\Roaming\Code\agentSessionData\b9b2d296-975f-4651-925f-a68fe42a8cf1\attachments\c1808c0b-fc85-4cc0-92d2-529dcd6e6bf8\Pasted Image 2.jpe`;
-it has PNG file contents despite the `.jpe` extension. Copy its bytes, without
-modifying the read-only attachment, to
-`public/images/property-project-placeholder.png`. Connect the fallback to
+The supplied source image is a JPEG. Copy its bytes, without modifying the
+read-only attachment, to `public/images/property-project-placeholder.jpeg`.
+Connect the fallback to
 `lib/propertyImages.ts` and use it consistently in the current property/project
 image surfaces: `PropertyCard`, `PropertyListCard`, `AgentListingCard`,
 `ProjectsGridClient`, and `ProjectDetailClient`. Treat missing, null, empty, or

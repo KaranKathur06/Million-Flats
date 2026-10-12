@@ -1,4 +1,4 @@
-export const PROPERTY_PROJECT_PLACEHOLDER = '/images/property-project-placeholder.png'
+export const PROPERTY_PROJECT_PLACEHOLDER = '/images/property-project-placeholder.jpeg'
 
 export function resolvePropertyImage(image?: string | null) {
   return typeof image === 'string' && image.trim() ? image : PROPERTY_PROJECT_PLACEHOLDER
