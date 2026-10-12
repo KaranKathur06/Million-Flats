@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import PremiumDropdown from '@/components/PremiumDropdown'
 import CurrencyPrice from '@/components/CurrencyPrice'
+import { PROPERTY_PROJECT_PLACEHOLDER, resolvePropertyImage } from '@/lib/propertyImages'
 import HeroBannerBackdrop from '@/components/HeroBannerBackdrop'
 import type { ResolvedHeroBanner } from '@/lib/heroBanners'
 import { getProjectsHeroPresentation, PROJECTS_HERO_FALLBACK_IMAGE } from './heroPresentation'
@@ -598,8 +599,8 @@ export default function ProjectsGridClient({ initialBanner }: { initialBanner: R
    PROJECT CARD
    ═══════════════════════════════════════════════ */
 function ProjectCard({ project }: { project: ProjectItem }) {
-    const fallbackImage = '/image-placeholder.svg'
-    const [imgSrc, setImgSrc] = useState(project.coverImage || fallbackImage)
+    const fallbackImage = PROPERTY_PROJECT_PLACEHOLDER
+    const [imgSrc, setImgSrc] = useState(resolvePropertyImage(project.coverImage))
 
     const price = formatPrice(project.startingPrice)
     const location = [project.community, project.city].filter(Boolean).join(' • ')

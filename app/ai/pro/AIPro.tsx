@@ -4,8 +4,9 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { AIProDashboard } from '@/components/aipro/AIProDashboard'
 import { AIEmptyState } from '@/components/ai-shared/AISkeletons'
+import { AIPageGate } from '@/components/ai-shared/AIPageGate'
 
-export default function AIPro() {
+function AIProWorkspace() {
   const searchParams = useSearchParams()
   const agentId = searchParams?.get('agentId') ?? null
 
@@ -38,5 +39,23 @@ export default function AIPro() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function AIPro() {
+  return (
+    <AIPageGate
+      product="AIPro™"
+      title="Agent Intelligence Platform"
+      description="Preview performance scoring, lead response, coaching, and agent health indicators."
+      metrics={[
+        { label: 'Performance score', value: '86 / 100' },
+        { label: 'Lead response', value: '12 min' },
+        { label: 'Conversion trend', value: '+8%' },
+        { label: 'Coaching signal', value: 'Strong' },
+      ]}
+    >
+      <AIProWorkspace />
+    </AIPageGate>
   )
 }

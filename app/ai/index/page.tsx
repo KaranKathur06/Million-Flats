@@ -10,6 +10,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAIInvestment } from '@/hooks/useAIInvestment'
 import { InvestmentGradeSkeleton, AIErrorState, AIEmptyState } from '@/components/ai-shared/AISkeletons'
+import { AIPageGate } from '@/components/ai-shared/AIPageGate'
 
 const GRADE_COLORS: Record<string, { bg: string; text: string; ring: string }> = {
   A_PLUS: { bg: 'bg-emerald-500', text: 'text-white', ring: 'ring-emerald-300' },
@@ -57,7 +58,7 @@ function FactorBar({ label, score }: { label: string; score: number }) {
   )
 }
 
-export default function AIIndexDashboard() {
+function AIIndexWorkspace() {
   const searchParams = useSearchParams()
   const entityId = searchParams?.get('entityId') ?? null
   const entityType = (searchParams?.get('entityType') as 'MANUAL_PROPERTY' | 'PROJECT') ?? 'MANUAL_PROPERTY'
@@ -77,6 +78,24 @@ export default function AIIndexDashboard() {
           <AIEmptyState message="Select a property to load AIIndex™ investment intelligence" />
         </div>
       </div>
+    )
+  }
+
+  export default function AIIndexDashboard() {
+    return (
+      <AIPageGate
+        product="AIIndex™"
+        title="Investment Intelligence"
+        description="Explore how investment grades, rental yield, growth, liquidity, and risk factors are presented."
+        metrics={[
+          { label: 'Opportunity score', value: '82 / 100' },
+          { label: 'Rental yield', value: '6.4%' },
+          { label: '5-year growth', value: '+28%' },
+          { label: 'Sample grade', value: 'A−' },
+        ]}
+      >
+        <AIIndexWorkspace />
+      </AIPageGate>
     )
   }
 

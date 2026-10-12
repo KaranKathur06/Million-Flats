@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from '@jest/globals'
-import { buildAbsoluteUrl, getBaseUrl, isProtectedRoutePath, isPublicAuthPath } from '@/lib/auth/routes'
+import { buildAbsoluteUrl, getBaseUrl, isProtectedRoutePath, isPublicAuthPath, isPublicRoutePath } from '@/lib/auth/routes'
 
 describe('auth architecture helpers', () => {
   const originalEnv = process.env
@@ -21,6 +21,15 @@ describe('auth architecture helpers', () => {
     expect(isProtectedRoutePath('/admin/users')).toBe(true)
     expect(isProtectedRoutePath('/dashboard')).toBe(true)
     expect(isProtectedRoutePath('/about')).toBe(false)
+  })
+
+  it('protects AI API endpoints while leaving the AI preview pages public', () => {
+    expect(isProtectedRoutePath('/api/ai/investment')).toBe(true)
+    expect(isProtectedRoutePath('/api/ai/vision')).toBe(true)
+    expect(isProtectedRoutePath('/ai/index')).toBe(false)
+    expect(isProtectedRoutePath('/ai/shield/about')).toBe(false)
+    expect(isPublicRoutePath('/ai/index')).toBe(true)
+    expect(isPublicRoutePath('/ai/shield/about')).toBe(true)
   })
 
   it('builds absolute URLs from the centralized environment helper', () => {

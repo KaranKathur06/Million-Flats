@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import GlobalDropdown, { type GlobalDropdownOption } from '@/components/ui/GlobalDropdown'
 import type { EntityType, MediaIntelligenceReport, MediaItemAnalysis } from '@/lib/ai-core/types'
 import { MediaGridSkeleton, AIErrorState } from '@/components/ai-shared/AISkeletons'
+import { AIPageGate } from '@/components/ai-shared/AIPageGate'
 
 const ENTITY_TYPE_OPTIONS: GlobalDropdownOption[] = [
   { value: 'MANUAL_PROPERTY', label: 'Manual Property' },
@@ -80,7 +81,7 @@ function ImageCard({ img }: { img: any }) {
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
-export default function AIView() {
+function AIViewWorkspace() {
   const searchParams = useSearchParams()
   const entityId = searchParams?.get('entityId') ?? ''
   const entityTypeParam = searchParams?.get('entityType')
@@ -241,5 +242,23 @@ export default function AIView() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function AIView() {
+  return (
+    <AIPageGate
+      product="AIView™"
+      title="Property Media Intelligence"
+      description="Preview image authenticity, quality scoring, staging detection, and media risk indicators."
+      metrics={[
+        { label: 'Media trust score', value: '89 / 100' },
+        { label: 'Average quality', value: '92 / 100' },
+        { label: 'Authentic images', value: '7 / 8' },
+        { label: 'Sample review', value: 'Clear' },
+      ]}
+    >
+      <AIViewWorkspace />
+    </AIPageGate>
   )
 }

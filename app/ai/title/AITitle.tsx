@@ -5,6 +5,7 @@ import Link from 'next/link'
 import GlobalDropdown, { type GlobalDropdownOption } from '@/components/ui/GlobalDropdown'
 import type { EntityType, LegalDocumentIntelligenceReport } from '@/lib/ai-core/types'
 import { AIInsightSkeleton, AIErrorState } from '@/components/ai-shared/AISkeletons'
+import { AIPageGate } from '@/components/ai-shared/AIPageGate'
 
 const ENTITY_TYPE_OPTIONS: GlobalDropdownOption[] = [
   { value: 'MANUAL_PROPERTY', label: 'Manual Property' },
@@ -226,7 +227,7 @@ function ResultPanel({ report }: { report: LegalDocumentIntelligenceReport }) {
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default function AITitle() {
+function AITitleWorkspace() {
   const [result, setResult] = useState<LegalDocumentIntelligenceReport | null>(null)
 
   return (
@@ -254,5 +255,23 @@ export default function AITitle() {
         {result && <ResultPanel report={result} />}
       </div>
     </div>
+  )
+}
+
+export default function AITitle() {
+  return (
+    <AIPageGate
+      product="AITitle™"
+      title="Legal Document Intelligence"
+      description="Preview document completeness, legal health, title risk, and compliance indicators."
+      metrics={[
+        { label: 'Legal health', value: '91 / 100' },
+        { label: 'Documents checked', value: '8' },
+        { label: 'Risk classification', value: 'Clear' },
+        { label: 'Completeness', value: '94%' },
+      ]}
+    >
+      <AITitleWorkspace />
+    </AIPageGate>
   )
 }

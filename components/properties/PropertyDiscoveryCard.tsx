@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import CurrencyPrice from '@/components/CurrencyPrice'
+import { resolvePropertyImages } from '@/lib/propertyImages'
 import { buildPropertySlugPath } from '@/lib/seo'
 
 function canOptimizeUrl(src: string) {
@@ -36,7 +37,11 @@ type PropertyDiscoveryCardProps = {
 }
 
 export default function PropertyDiscoveryCard({ property }: PropertyDiscoveryCardProps) {
-  const image = property.images[0] || '/image-placeholder.svg'
+  const image = resolvePropertyImages({
+    propertyType: property.propertyType,
+    images: property.images,
+    seed: property.id,
+  })[0]
   const href = property.href || buildPropertySlugPath({ id: property.id, title: property.title }) || `/properties/${property.id}`
   const sourceCurrency = property.currency === 'INR' || property.country === 'INDIA' ? 'INR' : 'AED'
   const location = [property.community, property.city].filter(Boolean).join(' · ') || property.location || property.country

@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import CurrencyPrice from '@/components/CurrencyPrice'
+import { PROPERTY_PROJECT_PLACEHOLDER, resolvePropertyImage } from '@/lib/propertyImages'
 import { calculateProjectPricingSummary } from '@/lib/projectPricing'
 import dynamic from 'next/dynamic'
 import { LocationSkeleton, SimilarProjectsSkeleton, VideosSkeleton } from '@/components/skeletons/ProjectPageSkeletons'
@@ -200,7 +201,7 @@ export default function ProjectDetailClient({
     const projectCurrency = project.countryIso2 === 'IN' ? 'INR' : 'AED'
 
     const searchParams = useSearchParams()
-    const fallbackImage = '/image-placeholder.svg'
+    const fallbackImage = PROPERTY_PROJECT_PLACEHOLDER
     const [selectedImg, setSelectedImg] = useState(0)
     const [formData, setFormData] = useState({ name: '', email: '', phone: '', message: '' })
     const [submitting, setSubmitting] = useState(false)
@@ -313,7 +314,7 @@ export default function ProjectDetailClient({
     }, [project.media])
 
     const heroImage = structuredMedia?.hero || heroImageFromMedia || project.coverImage || allGalleryMedia[0]?.mediaUrl || fallbackImage
-    const heroImageResolved = resolvePublicMediaUrl(heroImage)
+    const heroImageResolved = resolvePropertyImage(heroImage)
     const heroImageSrc = heroImageFailed ? fallbackImage : heroImageResolved
 
     useEffect(() => {
@@ -1449,4 +1450,3 @@ export default function ProjectDetailClient({
         </div>
     )
 }
-
