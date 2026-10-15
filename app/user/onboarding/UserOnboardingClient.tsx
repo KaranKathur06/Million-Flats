@@ -13,6 +13,7 @@ export default function UserOnboardingClient({ initialData }: { initialData?: an
   const [currentStep, setCurrentStep] = useState<StepId>((initialData?.currentOnboardingStep as StepId) || 1)
   const [isSaving, setIsSaving] = useState(false)
   const [completion, setCompletion] = useState(initialData?.profileCompletion || 0)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     fullName: initialData?.fullName || '',
@@ -43,6 +44,7 @@ export default function UserOnboardingClient({ initialData }: { initialData?: an
 
   const triggerAutosave = (dataToSave: any, step: number) => {
     setIsSaving(true)
+    setSaveError(null)
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
 
     timeoutRef.current = setTimeout(async () => {
@@ -52,12 +54,14 @@ export default function UserOnboardingClient({ initialData }: { initialData?: an
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...dataToSave, currentOnboardingStep: step })
         })
-        const data = await res.json()
-        if (data.success) {
-          setCompletion(data.profileCompletion)
+        const data = await res.json().catch(() => null)
+        if (!res.ok || !data?.success) {
+          throw new Error(data?.message || 'Unable to save your profile changes.')
         }
-      } catch (e) {
-        console.error('Autosave failed', e)
+        setCompletion(data.profileCompletion)
+      } catch (error) {
+        console.error('Autosave failed', error)
+        setSaveError(error instanceof Error ? error.message : 'Unable to save your profile changes.')
       } finally {
         setIsSaving(false)
       }
@@ -102,6 +106,7 @@ export default function UserOnboardingClient({ initialData }: { initialData?: an
 
   const handleFinish = async () => {
     setIsSaving(true)
+    setSaveError(null)
     try {
       const res = await fetch('/api/user/onboarding', {
         method: 'PATCH',
@@ -116,7 +121,7 @@ export default function UserOnboardingClient({ initialData }: { initialData?: an
       router.replace('/dashboard')
     } catch (error) {
       console.error('Onboarding completion failed', error)
-      router.replace('/dashboard')
+      setSaveError(error instanceof Error ? error.message : 'Unable to complete onboarding.')
     } finally {
       setIsSaving(false)
     }
@@ -146,9 +151,13 @@ export default function UserOnboardingClient({ initialData }: { initialData?: an
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="font-serif font-bold text-xl text-dark-blue">MillionFlats</div>
           <div className="flex items-center gap-4 text-sm font-medium">
-            <span className={isSaving ? 'text-gray-400' : 'text-green-600 transition-colors'}>
-              {isSaving ? 'Saving...' : 'Saved'}
-            </span>
+            {saveError ? (
+              <span role="alert" className="text-red-600">{saveError}</span>
+            ) : (
+              <span className={isSaving ? 'text-gray-400' : 'text-green-600 transition-colors'}>
+                {isSaving ? 'Saving...' : 'Saved'}
+              </span>
+            )}
             <div className="px-3 py-1 rounded-full bg-blue-50 text-dark-blue border border-blue-100">
               {completion}% Complete
             </div>
@@ -209,7 +218,7 @@ export default function UserOnboardingClient({ initialData }: { initialData?: an
                         { value: '', label: 'Select Country' },
                         { value: 'AE', label: 'United Arab Emirates' },
                         { value: 'IN', label: 'India' },
-                        { value: 'UK', label: 'United Kingdom' },
+                        { value: 'GB', label: 'United Kingdom' },
                         { value: 'US', label: 'United States' },
                       ]}
                       defaultValue={formData.country}
