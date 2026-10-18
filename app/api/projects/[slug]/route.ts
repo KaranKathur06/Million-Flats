@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { buildAssetUrl } from '@/lib/assetUrl'
 import { calculateProjectPricingSummary } from '@/lib/projectPricing'
-const FALLBACK_IMAGE = '/image-placeholder.svg'
+import { MEDIA_FALLBACKS } from '@/lib/media/resolveMedia'
+
+const FALLBACK_IMAGE = MEDIA_FALLBACKS.project
 
 function normalizeMediaType(v: unknown) {
     return String(v || '').trim().toLowerCase()

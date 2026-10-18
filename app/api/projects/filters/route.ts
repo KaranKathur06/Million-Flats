@@ -1,15 +1,25 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { buildProjectCityFilter, resolveCitySearchScope } from '@/lib/citySearch'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
+        const { searchParams } = new URL(req.url)
+        const city = (searchParams.get('city') || '').trim()
+        const country = (searchParams.get('country') || '').trim()
+        const cityScope = city ? await resolveCitySearchScope(city, country || null) : null
+        const cityFilter = cityScope ? buildProjectCityFilter(cityScope) || { id: { in: [] } } : null
+        const scopedWhere = {
+            status: 'PUBLISHED',
+            isDeleted: false,
+            ...(cityFilter ? { AND: [cityFilter] } : {}),
+        }
         const [cityRows, developerRows] = await Promise.all([
             (prisma as any).project.findMany({
                 where: {
-                    status: 'PUBLISHED',
-                    isDeleted: false,
+                    ...scopedWhere,
                     city: { not: null },
                 },
                 select: { city: true },
@@ -18,8 +28,7 @@ export async function GET() {
             }),
             (prisma as any).project.findMany({
                 where: {
-                    status: 'PUBLISHED',
-                    isDeleted: false,
+                    ...scopedWhere,
                     developer: {
                         status: 'ACTIVE',
                         isDeleted: { not: true },
@@ -52,6 +61,5 @@ export async function GET() {
         return NextResponse.json({ success: false, message: 'Unable to load project filters' }, { status: 500 })
     }
 }
-
 
 

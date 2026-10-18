@@ -12,6 +12,7 @@
 
 import { isProtectedRoutePath, isPublicAuthPath, isPublicRoutePath } from '@/lib/auth/routes'
 import { metadata as teamMetadata } from '@/app/team/layout'
+import { hasTrustedTeamAdminRole } from '@/lib/team/auth'
 
 describe('Team route classification', () => {
   describe('public team directory', () => {
@@ -110,6 +111,13 @@ describe('Team authorization logic invariants', () => {
     expect(canRevokeAdmin(1)).toBe(false)   // Last admin: cannot revoke
     expect(canRevokeAdmin(2)).toBe(true)    // 2 admins: one can be revoked
     expect(canRevokeAdmin(0)).toBe(false)   // Edge: no admins (cannot happen in practice)
+  })
+
+  it('grants team administration to trusted database ADMIN roles only', () => {
+    expect(hasTrustedTeamAdminRole('ADMIN')).toBe(true)
+    expect(hasTrustedTeamAdminRole('SUPERADMIN')).toBe(true)
+    expect(hasTrustedTeamAdminRole('USER')).toBe(false)
+    expect(hasTrustedTeamAdminRole('admin')).toBe(false)
   })
 
   it('profile deletion does not equal membership revocation (separate concepts)', () => {

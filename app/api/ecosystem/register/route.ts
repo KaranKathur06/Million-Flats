@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { uploadToS3 } from '@/lib/s3'
 import { getEcosystemRegistrationConfig } from '@/lib/ecosystem/ecosystemCategoryConfig'
+import { notifyAdminRegistration } from '@/lib/email/adminNotifications'
 
 export const runtime = 'nodejs'
 
@@ -186,6 +187,16 @@ export async function POST(req: Request) {
         isActive: true,
       } as any,
       select: { id: true, status: true, createdAt: true },
+    })
+
+    await notifyAdminRegistration({
+      type: 'Ecosystem',
+      registrationId: created.id,
+      name: contactPerson,
+      email,
+      phone,
+      businessName,
+      adminPath: '/admin/ecosystem-partners',
     })
 
     return NextResponse.json({ success: true, partner: created, uploads: { certificateUrl: certificate } })

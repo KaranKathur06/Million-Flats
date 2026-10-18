@@ -1,9 +1,20 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import {
+  enforceAnonymousAIBudget,
+  identityErrorResponse,
+  resolveAIRequestIdentity,
+} from '@/lib/ai/publicAccess'
 
-export const revalidate = 900
+export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: Request) {
+  const identity = await resolveAIRequestIdentity()
+  const identityError = identityErrorResponse(identity)
+  if (identityError) return identityError
+  const limited = await enforceAnonymousAIBudget(req, identity, 'aishield', 30)
+  if (limited) return limited
+
   try {
     const baseWhere = {
       status: 'PUBLISHED' as const,
@@ -47,7 +58,7 @@ export async function GET() {
 
     return NextResponse.json(
       { success: true, cities, developers, countries: countryList },
-      { headers: { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=1800' } }
+      { headers: { 'Cache-Control': 'private, no-store, max-age=0' } }
     )
   } catch (err) {
     console.error('[GET /api/ai-shield/filters]', err)

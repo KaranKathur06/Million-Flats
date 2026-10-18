@@ -15,6 +15,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { prisma } from '@/lib/prisma'
+import { fetchPublicRemoteAsset } from '@/lib/ai/remoteAssets'
 import type { EntityType, MediaIntelligenceReport, MediaItemAnalysis } from '../types'
 
 const ENGINE_VERSION = '2.0.0'
@@ -23,6 +24,7 @@ const VPS_VISION_ENDPOINT = process.env.ML_VPS_ENDPOINT   // e.g. http://ai.mill
 interface EngineOptions {
   forceRefresh?: boolean
   requestedBy?: string
+  safeImageContents?: Record<string, { contentType: string; base64: string }>
 }
 
 type HeuristicMediaAnalysis = Pick<
@@ -55,14 +57,20 @@ export async function runVisionEngine(
   // ── Check existing analysis in DB ────────────────────────────────────────
   if (!options.forceRefresh) {
     const existing = await loadExistingAnalysis(entityId, entityType)
-    if (existing && existing.length >= imageUrls.length * 0.8) {
-      return assembleReport(entityId, entityType, existing, Date.now() - startTime, true)
+    const matching = existing.filter((item) => imageUrls.includes(item.url))
+    if (matching.length >= imageUrls.length * 0.8) {
+      return assembleReport(entityId, entityType, matching, Date.now() - startTime, true)
     }
   }
 
   // ── Analyze each image ────────────────────────────────────────────────────
   const analyses = await Promise.allSettled(
-    imageUrls.map(url => analyzeImage(url, entityId, entityType))
+    imageUrls.map(url => analyzeImage(
+      url,
+      entityId,
+      entityType,
+      options.safeImageContents?.[url],
+    ))
   )
 
   const items: MediaItemAnalysis[] = analyses
@@ -83,7 +91,8 @@ export async function runVisionEngine(
 async function analyzeImage(
   url: string,
   entityId: string,
-  entityType: EntityType
+  entityType: EntityType,
+  safeContent?: { contentType: string; base64: string },
 ): Promise<MediaItemAnalysis | null> {
   try {
     // Phase 1: Metadata-based heuristics (available now)
@@ -93,7 +102,7 @@ async function analyzeImage(
     let vpsResult: Partial<MediaItemAnalysis> = {}
     if (VPS_VISION_ENDPOINT) {
       try {
-        vpsResult = await callVpsVision(url)
+        vpsResult = await callVpsVision(url, safeContent)
       } catch {
         // VPS not available — fallback to heuristics only
       }
@@ -171,13 +180,20 @@ function runHeuristicAnalysis(url: string): HeuristicMediaAnalysis {
 
 // ─── Phase 2: VPS Vision API Call ────────────────────────────────────────────
 
-async function callVpsVision(url: string): Promise<Partial<MediaItemAnalysis>> {
+async function callVpsVision(
+  url: string,
+  safeContent?: { contentType: string; base64: string },
+): Promise<Partial<MediaItemAnalysis>> {
   if (!VPS_VISION_ENDPOINT) throw new Error('VPS endpoint not configured')
+  const asset = safeContent || await fetchPublicRemoteAsset(url, 'image')
 
   const response = await fetch(`${VPS_VISION_ENDPOINT}/analyze/image`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({
+      imageBase64: 'base64' in asset ? asset.base64 : asset.data.toString('base64'),
+      contentType: asset.contentType,
+    }),
     signal: AbortSignal.timeout(15000),  // 15s timeout
   })
 

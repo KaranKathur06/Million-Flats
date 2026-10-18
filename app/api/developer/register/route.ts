@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { VerificationService } from '@/lib/auth/verification-service'
+import { notifyAdminRegistration } from '@/lib/email/adminNotifications'
 import { createDeveloperLifecycle } from '@/lib/lifecycle/partnerLifecycle'
 import {
   validateAndNormalizeEmail,
@@ -138,6 +139,16 @@ export async function POST(req: NextRequest) {
       })
 
       return { user, profile: lifecycle.profile, developer: lifecycle.developer }
+    })
+
+    await notifyAdminRegistration({
+      type: 'Developer',
+      registrationId: result.developer.id,
+      name: result.user.name || companyName,
+      email: normalizedEmail,
+      phone,
+      businessName: companyName,
+      adminPath: '/admin/developers',
     })
 
     // Send OTP via VerificationService

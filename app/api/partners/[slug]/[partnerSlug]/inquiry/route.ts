@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { partnerProfileUrl } from '@/lib/ecosystem/partnerProfile'
 import { notifyAdminNewLead } from '@/lib/leads/notifications'
-import { formatEcosystemLeadEmail, sendEmail } from '@/lib/email/sendEmail'
 
 export async function POST(
   request: Request,
@@ -111,22 +110,7 @@ export async function POST(
       message: fullMessage || undefined,
       propertyName: city?.trim() || undefined,
       budgetRange: budget?.trim() || undefined,
-    }).catch(() => null)
-
-    const notifyTo = String(process.env.ECOSYSTEM_LEADS_NOTIFY_EMAIL || '').trim()
-    if (notifyTo) {
-      const emailPayload = formatEcosystemLeadEmail({
-        leadId: ecosystemLead.id,
-        categorySlug: partner.category.slug,
-        partnerId: partner.id,
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
-        message: fullMessage,
-        source: `Partner Profile: ${partner.name}`,
-      })
-      await sendEmail({ to: notifyTo, subject: emailPayload.subject, text: emailPayload.text }).catch(() => null)
-    }
+    })
 
     return NextResponse.json({ success: true, message: 'Consultation request submitted.' })
   } catch (error) {

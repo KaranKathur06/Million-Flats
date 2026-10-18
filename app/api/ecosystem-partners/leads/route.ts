@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { formatEcosystemLeadEmail, sendEmail } from '@/lib/email/sendEmail'
+import { sendAdminNotification } from '@/lib/email/adminNotifications'
 
 export const runtime = 'nodejs'
 
@@ -99,21 +99,22 @@ export async function POST(req: Request) {
       select: { id: true, createdAt: true },
     })
 
-    const notifyTo = String(process.env.ECOSYSTEM_LEADS_NOTIFY_EMAIL || '').trim()
-    if (notifyTo) {
-      const email = formatEcosystemLeadEmail({
-        leadId: created.id,
-        categorySlug: payload.categorySlug,
-        partnerId: partnerId || null,
-        name: payload.name,
-        email: payload.email,
-        phone: payload.phone,
-        message: payload.message,
-        source: payload.source || null,
-      })
-
-      await sendEmail({ to: notifyTo, subject: email.subject, text: email.text }).catch(() => null)
-    }
+    await sendAdminNotification({
+      eventType: 'ECOSYSTEM_LEAD_CREATED',
+      eventId: created.id,
+      subject: `New Ecosystem Lead: ${payload.categorySlug}`,
+      text: [
+        `Lead ID: ${created.id}`,
+        `Category: ${payload.categorySlug}`,
+        `Partner ID: ${partnerId || 'N/A'}`,
+        `Name: ${payload.name}`,
+        `Email: ${payload.email}`,
+        `Phone: ${payload.phone}`,
+        `Source: ${payload.source || 'N/A'}`,
+        '',
+        payload.message,
+      ].join('\n'),
+    })
 
     return NextResponse.json({ success: true, lead: created })
   } catch (e) {

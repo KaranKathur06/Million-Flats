@@ -60,6 +60,7 @@ export type LeadForDisplay = {
   sourceName: string | null
   createdAt: string
   updatedAt: string
+  archived: boolean
   assignedTo: string | null
   status: string
   notes: string | null
@@ -117,6 +118,7 @@ type RawLead = {
   assignedTo: string | null
   createdAt: Date | string
   updatedAt: Date | string
+  deletedAt?: Date | string | null
   propertyType?: string | null
   propertyName?: string | null
   propertySize?: string | null
@@ -189,6 +191,7 @@ export function mapLeadForDisplay(lead: RawLead): LeadForDisplay {
     sourceName: lead.sourceName ?? null,
     createdAt: toIso(lead.createdAt),
     updatedAt: toIso(lead.updatedAt),
+    archived: Boolean(lead.deletedAt),
     assignedTo: lead.assignedTo,
     status: lead.status,
     notes,

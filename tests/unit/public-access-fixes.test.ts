@@ -1,15 +1,15 @@
  import { beforeEach, describe, expect, it, jest } from '@jest/globals'
 
-const mockGetServerSession = jest.fn()
-const mockGenerateSignedUrl = jest.fn()
-const mockTrackAssetAccess = jest.fn()
-const mockBuildDownloadGA4Event = jest.fn(() => ({ event_name: 'brochure_download' }))
-const mockProjectFindFirst = jest.fn()
-const mockBrochureDownloadCreate = jest.fn()
-const mockManualPropertyFindMany = jest.fn()
-const mockCityFindMany = jest.fn()
-const mockCommunityFindMany = jest.fn()
-const mockManualPropertyCount = jest.fn()
+const mockGetServerSession = jest.fn<() => Promise<{ user: { role: string } } | null>>()
+const mockGenerateSignedUrl = jest.fn<() => Promise<{ url: string; expiresIn: number }>>()
+const mockTrackAssetAccess = jest.fn<() => Promise<void>>()
+const mockBuildDownloadGA4Event = jest.fn<() => { event_name: string }>(() => ({ event_name: 'brochure_download' }))
+const mockProjectFindFirst = jest.fn<() => Promise<any>>()
+const mockBrochureDownloadCreate = jest.fn<() => Promise<{ id: string }>>()
+const mockManualPropertyFindMany = jest.fn<() => Promise<Array<Record<string, any>>>>()
+const mockCityFindMany = jest.fn<() => Promise<Array<Record<string, any>>>>()
+const mockCommunityFindMany = jest.fn<() => Promise<Array<Record<string, any>>>>()
+const mockManualPropertyCount = jest.fn<() => Promise<number>>()
 
 jest.mock('next/server', () => {
   class MockNextResponse {
@@ -92,7 +92,7 @@ describe('public access regressions', () => {
   })
 
   it('allows public brochure download without authenticating the user session', async () => {
-    const response = await brochureDownload(
+    const response: any = await brochureDownload(
       new Request('http://localhost/api/projects/test-project/brochure/download', { method: 'POST' }),
       { params: { slug: 'test-project' } }
     )
@@ -115,7 +115,7 @@ describe('public access regressions', () => {
     mockCityFindMany.mockResolvedValue([{ name: 'Ahmedabad' }])
 
     const { GET: adminProperties } = await import('@/app/api/admin/properties/route')
-    const response = await adminProperties(new Request('http://localhost/api/admin/properties?page=2&pageSize=50'))
+    const response: any = await adminProperties(new Request('http://localhost/api/admin/properties?page=2&pageSize=50'))
 
     expect(response.status).toBe(200)
     expect(response.body.page).toBe(2)
@@ -129,7 +129,7 @@ describe('public access regressions', () => {
     mockCityFindMany.mockResolvedValue([{ id: 'city-1', name: 'Dubai' }])
     mockCommunityFindMany.mockResolvedValue([{ id: 'community-1', name: 'Downtown Dubai', cityId: 'city-1' }])
 
-    const response = await propertyLocations(
+    const response: any = await propertyLocations(
       new Request('http://localhost/api/properties/locations?country=UAE'),
     )
 
@@ -144,7 +144,7 @@ describe('public access regressions', () => {
     mockCityFindMany.mockResolvedValue([{ id: 'city-rajkot', name: 'Rajkot' }])
     mockCommunityFindMany.mockResolvedValue([])
 
-    const response = await propertyLocations(new Request('http://localhost/api/properties/locations?country=INDIA'))
+    const response: any = await propertyLocations(new Request('http://localhost/api/properties/locations?country=INDIA'))
 
     expect(response.status).toBe(200)
     expect(response.body.cities).toContain('Rajkot')
@@ -159,7 +159,7 @@ describe('public access regressions', () => {
     ])
     mockCommunityFindMany.mockResolvedValue([])
 
-    const response = await propertyLocations(
+    const response: any = await propertyLocations(
       new Request('http://localhost/api/properties/locations?country=INDIA&city=Hyderabad'),
     )
 

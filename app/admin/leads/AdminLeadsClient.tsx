@@ -64,6 +64,7 @@ type LeadRow = {
   timeline?: string | null
   referralCode?: string | null
   createdAt: string
+  deletedAt?: string | null
 }
 
 type LeadStats = {
@@ -108,6 +109,7 @@ function filtersFromSearchParams(sp: URLSearchParams): LeadsApiFilters {
     propertyType: safeString(sp.get('propertyType')),
     budgetRange: safeString(sp.get('budgetRange')),
     assignedTo: safeString(sp.get('assignedTo')),
+    archived: sp.get('archived') === 'true' || sp.get('archived') === '1',
   }
 }
 
@@ -134,6 +136,7 @@ function filtersFromFormData(fd: FormData): LeadsApiFilters {
     propertyType: safeString(fd.get('propertyType')),
     budgetRange: safeString(fd.get('budgetRange')),
     assignedTo: safeString(fd.get('assignedTo')),
+    archived: fd.get('archived') === 'on',
   }
 }
 
@@ -148,6 +151,7 @@ export default function AdminLeadsClient({
   const searchParams = useSearchParams()
   const caps = useMemo(() => getAdminCapabilities(currentRole), [currentRole])
   const canModerate = Boolean(caps?.listings?.approve) || Boolean(caps?.agents?.approve)
+  const canManageLifecycle = ['ADMIN', 'SUPERADMIN'].includes(String(currentRole).toUpperCase())
 
   const [stats, setStats] = useState<LeadStats | null>(null)
   const [leads, setLeads] = useState<LeadRow[]>([])
@@ -178,6 +182,7 @@ export default function AdminLeadsClient({
     propertyType,
     budgetRange,
     assignedTo,
+    archived,
   } = activeFilters
 
   const apiParams = useMemo(() => filtersToSearchParams(activeFilters), [activeFilters])
@@ -288,6 +293,37 @@ export default function AdminLeadsClient({
       router.refresh()
     } catch (e) {
       setDetailError(e instanceof Error ? e.message : 'Update failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const runLeadLifecycleAction = async (action: 'archive' | 'restore' | 'delete') => {
+    if (!detail?.id || !canManageLifecycle) return
+    if (action === 'delete' && !window.confirm(`Permanently delete lead ${detail.id}? This cannot be undone.`)) return
+
+    setBusy(true)
+    setDetailError('')
+    try {
+      await fetchJson(`/api/admin/leads/${encodeURIComponent(detail.id)}${action === 'delete' ? '' : `/${action}`}`, {
+        method: action === 'delete' ? 'DELETE' : 'POST',
+        ...(action === 'delete'
+          ? {
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ confirmation: 'PERMANENTLY_DELETE_LEAD' }),
+            }
+          : {}),
+      })
+      if (action === 'delete') {
+        setDetail(null)
+        setDrawerOpen(false)
+      } else {
+        setDetail({ ...detail, archived: action === 'archive' })
+      }
+      await loadLeads(filtersToSearchParams(filtersFromSearchParams(sp)))
+      router.refresh()
+    } catch (e) {
+      setDetailError(e instanceof Error ? e.message : 'Lead action failed')
     } finally {
       setBusy(false)
     }
@@ -543,12 +579,17 @@ export default function AdminLeadsClient({
 
             <section className="space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-white/35">Status pipeline</h3>
+              {detail.archived ? (
+                <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                  This lead is archived and read-only.
+                </p>
+              ) : null}
               <div className="flex flex-wrap gap-2">
                 {drawerStatuses.map((s) => (
                   <button
                     key={s}
                     type="button"
-                    disabled={!canModerate || busy || detail.status === s}
+                    disabled={!canModerate || busy || detail.archived || detail.status === s}
                     onClick={() => updateLead({ status: s, onboard: s === 'APPROVED' || s === 'ONBOARDED' })}
                     className={`rounded-lg px-3 py-1.5 text-xs font-semibold border transition-colors ${
                       detail.status === s
@@ -566,6 +607,37 @@ export default function AdminLeadsClient({
                 </p>
               ) : null}
             </section>
+            {canManageLifecycle ? (
+              <section className="flex flex-wrap gap-2 border-t border-white/10 pt-4">
+                {detail.archived ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void runLeadLifecycleAction('restore')}
+                    className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-100 disabled:opacity-50"
+                  >
+                    Restore lead
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void runLeadLifecycleAction('archive')}
+                    className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs font-semibold text-amber-100 disabled:opacity-50"
+                  >
+                    Archive lead
+                  </button>
+                )}
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void runLeadLifecycleAction('delete')}
+                  className="rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-2 text-xs font-semibold text-red-100 disabled:opacity-50"
+                >
+                  Permanently delete
+                </button>
+              </section>
+            ) : null}
           </>
         ) : (
           <p className="text-sm text-white/50">No lead selected</p>
@@ -762,6 +834,10 @@ export default function AdminLeadsClient({
               className="h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 text-[13px] text-white/90 placeholder:text-white/25"
             />
           </div>
+          <label className="flex items-center gap-2 text-xs text-white/60">
+            <input type="checkbox" name="archived" defaultChecked={archived} className="accent-amber-400" />
+            Show archived leads
+          </label>
         </div>
 
         <div className="flex flex-wrap gap-2">

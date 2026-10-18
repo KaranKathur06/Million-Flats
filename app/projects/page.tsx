@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import ProjectsGridClient from './ProjectsGridClient'
-import { resolveHeroBanner } from '@/lib/heroBanners'
+import { resolveCityScopedHeroBanner } from '@/lib/heroBanners'
+import { resolveCitySearchScope } from '@/lib/citySearch'
 import HeroBannerBackdrop from '@/components/HeroBannerBackdrop'
 import type { ResolvedHeroBanner } from '@/lib/heroBanners'
 import { getProjectsHeroPresentation, PROJECTS_HERO_FALLBACK_IMAGE } from './heroPresentation'
@@ -22,22 +23,29 @@ export async function generateMetadata({
 }: {
     searchParams?: Record<string, string | string[] | undefined>
 }): Promise<Metadata> {
-    const banner = await resolveHeroBanner({
-        category: 'PROJECTS',
-        city: firstParam(searchParams.city),
-        country: firstParam(searchParams.country),
-    })
+    const city = firstParam(searchParams.city)
+    const country = firstParam(searchParams.country)
+    const scope = city ? await resolveCitySearchScope(city, country || null) : null
+    const banner = await resolveCityScopedHeroBanner('PROJECTS', city, country, scope || undefined)
+    const canonical = scope?.status === 'resolved'
+        ? `/projects?city=${encodeURIComponent(scope.name!)}&country=${scope.countryIso2}`
+        : '/projects'
+    const title = scope?.status === 'resolved' ? `Projects in ${scope.name} | MillionFlats` : PROJECTS_TITLE
+    const description = scope?.status === 'resolved'
+        ? `Discover published real estate projects and developers in ${scope.name}.`
+        : PROJECTS_DESCRIPTION
 
     return {
-        title: PROJECTS_TITLE,
-        description: PROJECTS_DESCRIPTION,
+        title,
+        description,
         keywords:
             'off-plan projects Dubai, new developments UAE, Golden Visa projects, luxury developments Dubai, DAMAC projects, Emaar projects',
-        alternates: { canonical: '/projects' },
+        alternates: { canonical },
+        ...(scope && scope.status !== 'resolved' ? { robots: { index: false, follow: true } } : {}),
         ...buildSocialMetadata({
-            title: PROJECTS_TITLE,
-            description: PROJECTS_SOCIAL_DESCRIPTION,
-            url: '/projects',
+            title,
+            description: scope?.status === 'resolved' ? description : PROJECTS_SOCIAL_DESCRIPTION,
+            url: canonical,
             image: banner.desktopImage || PROJECTS_HERO_FALLBACK_IMAGE,
             imageAlt: banner.desktopAlt,
         }),
@@ -95,10 +103,11 @@ export default async function ProjectsPage({ searchParams = {} }: { searchParams
     const countryValue = searchParams.country || ''
     const city = Array.isArray(cityValue) ? cityValue[0] : cityValue
     const country = Array.isArray(countryValue) ? countryValue[0] : countryValue
-    const initialBanner = await resolveHeroBanner({ category: 'PROJECTS', city, country })
+    const cityScope = city ? await resolveCitySearchScope(city, country || null) : null
+    const initialBanner = await resolveCityScopedHeroBanner('PROJECTS', city, country, cityScope || undefined)
     return (
         <Suspense fallback={<ProjectsPageFallback banner={initialBanner} />}>
-            <ProjectsGridClient initialBanner={initialBanner} />
+            <ProjectsGridClient initialBanner={initialBanner} cityScope={cityScope || undefined} />
         </Suspense>
     )
 }

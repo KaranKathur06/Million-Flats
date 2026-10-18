@@ -244,6 +244,7 @@ model User {
   id        String   @id @default(uuid())
   role      Role     @default(USER)
   status    UserStatus @default(ACTIVE)
+  securityStateVersion Int @default(0) @map("security_state_version")
   name      String?
   email     String   @unique
   emailVerified Boolean  @default(false) @map("email_verified")
@@ -673,6 +674,11 @@ model LoginAudit {
 model Agent {
   id       String  @id @default(uuid())
   userId   String  @unique @map("user_id")
+  archivedAt DateTime? @map("archived_at")
+  archivedBy String? @map("archived_by")
+  archivePriorUserStatus UserStatus? @map("archive_prior_user_status")
+  archivePriorApproved Boolean? @map("archive_prior_approved")
+  archiveSecurityVersion Int? @map("archive_security_version")
   agencyId String? @map("agency_id")
   company  String? @map("company_name")
   license  String? @unique @map("license_number")
@@ -1051,6 +1057,8 @@ model ManualProperty {
 
   archivedAt DateTime? @map("archived_at")
   archivedBy String? @map("archived_by")
+  archivedByAgentAt DateTime? @map("archived_by_agent_at")
+  archivedByAgentActorId String? @map("archived_by_agent_actor_id")
 
   title       String?
   category    String?
@@ -1223,6 +1231,7 @@ enum AuditEntityType {
   AGENCY_PROFILE
   TEAM_MEMBER
   TEAM_ACCESS
+  LEAD
 }
 
 enum AuditAction {
@@ -1308,6 +1317,9 @@ enum AuditAction {
   TEAM_MEMBER_DEACTIVATED
   TEAM_MEMBER_DELETED
   TEAM_MEMBER_REORDERED
+  LEAD_ARCHIVED
+  LEAD_RESTORED
+  LEAD_PERMANENTLY_DELETED
 }
 
 enum StorageCleanupStatus {
@@ -2125,6 +2137,8 @@ model Lead {
   basePriceAtInquiry Float?   @map("base_price_at_inquiry")
   baseCurrencyAtInquiry String? @map("base_currency_at_inquiry")
   displayCurrencyAtInquiry String? @map("display_currency_at_inquiry")
+  deletedAt        DateTime?   @map("deleted_at")
+  deletedBy        String?     @map("deleted_by")
 
   project          Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
   developer        Developer?       @relation(fields: [developerId], references: [id], onDelete: SetNull)
@@ -2152,6 +2166,7 @@ model Lead {
   @@index([crmStage])
   @@index([assignedTo])
   @@index([createdAt])
+  @@index([deletedAt])
   @@index([leadType, status])
   @@index([leadType, createdAt])
   @@map("leads")
@@ -4701,6 +4716,7 @@ model ImportRecord {
   sourceRecordId      String             @map("source_record_id")
   sourceRow           Int?               @map("source_row")
   sourcePath          String?            @map("source_path")
+  analysisCheckpointAttemptId String?     @map("analysis_checkpoint_attempt_id") @db.VarChar(64)
   rawPayload          Json?              @map("raw_payload")
   rawPayloadReference String?            @map("raw_payload_reference")
   normalizedPayload   Json?              @map("normalized_payload")

@@ -32,6 +32,7 @@ const QuerySchema = z.object({
   propertyType: z.string().optional(),
   budgetRange: z.string().optional(),
   assignedTo: z.string().optional(),
+  archived: z.enum(['1', 'true']).optional(),
   take: z.coerce.number().optional(),
   skip: z.coerce.number().optional(),
   statsOnly: z.enum(['1', 'true']).optional(),
@@ -54,6 +55,7 @@ function parseFilters(data: z.infer<typeof QuerySchema>) {
     propertyType: data.propertyType || '',
     budgetRange: data.budgetRange || '',
     assignedTo: data.assignedTo || '',
+    archived: data.archived === '1' || data.archived === 'true',
     take: data.take,
     skip: data.skip,
   })

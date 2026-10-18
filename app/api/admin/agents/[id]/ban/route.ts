@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/rbacServer'
-import { writeAuditLog } from '@/lib/audit'
 import { checkAdminRateLimit } from '@/lib/adminRateLimit'
 
 function bad(msg: string, status = 400) {
@@ -33,49 +32,69 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const agentId = String(params?.id || '').trim()
   if (!agentId) return bad('Not found', 404)
 
-  const agent = await (prisma as any).agent.findFirst({
-    where: { id: agentId },
-    select: { id: true, approved: true, userId: true, user: { select: { role: true, status: true } } },
-  })
-
-  if (!agent) return bad('Not found', 404)
-
-  const targetRole = String(agent?.user?.role || '').toUpperCase()
-  if (targetRole === 'ADMIN' || targetRole === 'SUPERADMIN') {
-    return bad('Forbidden', 403)
-  }
-
-  const beforeState = { approved: Boolean(agent.approved), userStatus: String(agent?.user?.status || 'ACTIVE') }
-
-  const updated = await (prisma as any).agent.update({
-    where: { id: agentId },
-    data: { approved: false, user: { update: { status: 'BANNED' } } } as any,
-    select: { id: true, approved: true },
-  })
-
-  const afterState = { approved: Boolean(updated.approved), userStatus: 'BANNED' }
-
-  await (prisma as any).manualProperty
-    .updateMany({
-      where: { agentId, sourceType: 'MANUAL', status: 'PUBLISHED' },
-      data: { status: 'ARCHIVED', archivedAt: new Date(), archivedBy: auth.userId } as any,
+  const result = await (prisma as any).$transaction(async (tx: any) => {
+    const agentRows = await tx.$queryRawUnsafe(
+      'SELECT "id", "user_id" FROM "agents" WHERE "id" = $1 FOR UPDATE',
+      agentId,
+    )
+    if (!agentRows.length) return { ok: false as const, status: 404, message: 'Not found' }
+    await tx.$queryRawUnsafe(
+      'SELECT "id" FROM "users" WHERE "id" = $1 FOR UPDATE',
+      agentRows[0].user_id,
+    )
+    const agent = await tx.agent.findUnique({
+      where: { id: agentId },
+      select: {
+        id: true,
+        approved: true,
+        userId: true,
+        user: { select: { role: true, status: true, securityStateVersion: true } },
+      },
     })
-    .catch(() => null)
+    if (!agent) return { ok: false as const, status: 404, message: 'Not found' }
 
-  await writeAuditLog({
-    entityType: 'AGENT',
-    entityId: agentId,
-    action: 'ADMIN_AGENT_BANNED',
-    performedByUserId: auth.userId,
-    ipAddress: getIp(req),
-    beforeState,
-    afterState,
-    meta: {
-      actor: 'admin',
-      previousApproved: Boolean(agent.approved),
-      previousStatus: String(agent?.user?.status || 'ACTIVE'),
-    },
-  })
+    const targetRole = String(agent.user.role || '').toUpperCase()
+    if (targetRole === 'ADMIN' || targetRole === 'SUPERADMIN') {
+      return { ok: false as const, status: 403, message: 'Forbidden' }
+    }
 
-  return NextResponse.json({ success: true, agent: updated })
+    const updated = await tx.agent.update({
+      where: { id: agentId },
+      data: { approved: false },
+      select: { id: true, approved: true },
+    })
+    const updatedUser = await tx.user.update({
+      where: { id: agent.userId },
+      data: { status: 'BANNED', securityStateVersion: { increment: 1 } },
+      select: { status: true, securityStateVersion: true },
+    })
+    await tx.manualProperty.updateMany({
+      where: { agentId, sourceType: 'MANUAL', status: 'PUBLISHED' },
+      data: { status: 'ARCHIVED', archivedAt: new Date(), archivedBy: auth.userId },
+    })
+    await tx.auditLog.create({
+      data: {
+        entityType: 'AGENT',
+        entityId: agentId,
+        action: 'ADMIN_AGENT_BANNED',
+        performedByUserId: auth.userId,
+        ipAddress: getIp(req),
+        beforeState: {
+          approved: agent.approved,
+          userStatus: agent.user.status,
+          securityStateVersion: agent.user.securityStateVersion,
+        },
+        afterState: {
+          approved: updated.approved,
+          userStatus: updatedUser.status,
+          securityStateVersion: updatedUser.securityStateVersion,
+        },
+        meta: { actor: 'admin' },
+      },
+    })
+    return { ok: true as const, agent: updated }
+  }, { isolationLevel: 'Serializable' })
+
+  if (!result.ok) return bad(result.message, result.status)
+  return NextResponse.json({ success: true, agent: result.agent })
 }

@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { getAdminCapabilities } from '@/lib/adminCapabilities'
 
 type AgentRow = {
   userId: string
@@ -19,6 +18,7 @@ type AgentRow = {
   license: string
   whatsapp: string
   approved: boolean
+  isArchived: boolean
   profileStatus: string
   profileCompletion: number
   verificationStatus: string
@@ -62,8 +62,12 @@ function getStatusBadge(status: string) {
   }
 }
 
-async function postJson(url: string) {
-  const res = await fetch(url, { method: 'POST' })
+async function requestAction(url: string, method: 'POST' | 'DELETE', body?: unknown) {
+  const res = await fetch(url, {
+    method,
+    headers: body ? { 'content-type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  })
   const json = (await res.json().catch(() => null)) as any
   if (!res.ok || !json?.success) {
     throw new Error(safeString(json?.message) || 'Request failed')
@@ -82,7 +86,6 @@ export default function AdminAgentsTableClient({
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
 
-  const caps = getAdminCapabilities(currentRole)
   const role = safeString(currentRole).toUpperCase()
   const isSuperadmin = role === 'SUPERADMIN'
 
@@ -98,6 +101,34 @@ export default function AdminAgentsTableClient({
     } finally {
       setBusyId('')
     }
+  }
+
+  const runAgentAction = (it: AgentRow, action: 'archive' | 'restore' | 'delete') => {
+    if (!it.agentId) return
+
+    if (action === 'archive') {
+      if (!window.confirm('Archive this agent? Sign-in and public visibility will be disabled.')) return
+      void doAction(it.agentId, async () => {
+        await requestAction(`/api/admin/agents/${it.agentId}/archive`, 'POST')
+      })
+      return
+    }
+
+    if (action === 'restore') {
+      if (!window.confirm('Restore this agent and only the listings archived by this operation?')) return
+      void doAction(it.agentId, async () => {
+        await requestAction(`/api/admin/agents/${it.agentId}/restore`, 'POST')
+      })
+      return
+    }
+
+    const confirmation = window.prompt(
+      'Permanent deletion is blocked when protected records exist. Type PERMANENTLY_DELETE_AGENT to continue.',
+    )
+    if (confirmation !== 'PERMANENTLY_DELETE_AGENT') return
+    void doAction(it.agentId, async () => {
+      await requestAction(`/api/admin/agents/${it.agentId}`, 'DELETE', { confirmation })
+    })
   }
 
   return (
@@ -163,6 +194,26 @@ export default function AdminAgentsTableClient({
                     </svg>
                     Review
                   </Link>
+                )}
+                {it.agentId && (
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => runAgentAction(it, it.isArchived ? 'restore' : 'archive')}
+                    className="inline-flex h-9 items-center rounded-lg border border-white/10 px-3 text-xs font-semibold text-white/80 disabled:opacity-50"
+                  >
+                    {it.isArchived ? 'Restore' : 'Archive'}
+                  </button>
+                )}
+                {it.agentId && isSuperadmin && (
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => runAgentAction(it, 'delete')}
+                    className="inline-flex h-9 items-center rounded-lg border border-red-400/20 px-3 text-xs font-semibold text-red-300 disabled:opacity-50"
+                  >
+                    Permanently delete
+                  </button>
                 )}
               </div>
             </div>
@@ -299,6 +350,26 @@ export default function AdminAgentsTableClient({
                         </svg>
                         Review
                       </Link>
+                    )}
+                    {it.agentId && (
+                      <button
+                        type="button"
+                        disabled={busyId === it.agentId}
+                        onClick={() => runAgentAction(it, it.isArchived ? 'restore' : 'archive')}
+                        className="ml-2 h-8 rounded-lg border border-white/10 px-2 text-[11px] font-semibold text-white/80 disabled:opacity-50"
+                      >
+                        {it.isArchived ? 'Restore' : 'Archive'}
+                      </button>
+                    )}
+                    {it.agentId && isSuperadmin && (
+                      <button
+                        type="button"
+                        disabled={busyId === it.agentId}
+                        onClick={() => runAgentAction(it, 'delete')}
+                        className="ml-2 h-8 rounded-lg border border-red-400/20 px-2 text-[11px] font-semibold text-red-300 disabled:opacity-50"
+                      >
+                        Delete
+                      </button>
                     )}
                   </td>
                 </tr>

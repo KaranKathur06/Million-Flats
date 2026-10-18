@@ -1,5 +1,5 @@
-declare const describe: (name: string, fn: () => void) => void
+declare const describe: typeof import('@jest/globals').describe
 
-declare const it: (name: string, fn: () => void | Promise<void>) => void
+declare const it: typeof import('@jest/globals').it
 
-declare const expect: any
+declare const expect: typeof import('@jest/globals').expect

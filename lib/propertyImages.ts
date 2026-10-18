@@ -1,4 +1,6 @@
-export const PROPERTY_PROJECT_PLACEHOLDER = '/images/property-project-placeholder.jpeg'
+import { PROJECT_IMAGE_FALLBACK } from '@/lib/media/fallbacks'
+
+export const PROPERTY_PROJECT_PLACEHOLDER = PROJECT_IMAGE_FALLBACK
 
 export function resolvePropertyImage(image?: string | null) {
   return typeof image === 'string' && image.trim() ? image : PROPERTY_PROJECT_PLACEHOLDER

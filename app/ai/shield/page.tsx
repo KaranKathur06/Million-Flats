@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import AIShieldDashboard from '@/components/aishield/AIShieldDashboard'
-import { AIPageGate } from '@/components/ai-shared/AIPageGate'
 import { buildSocialMetadata } from '@/lib/socialMetadata'
 
 export const revalidate = 900
@@ -87,19 +86,7 @@ export default function AIShieldPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(analysisJsonLd) }}
       />
       <Suspense fallback={<DashboardFallback />}>
-        <AIPageGate
-          product="AIShield™"
-          title="Property Intelligence"
-          description="Explore how project valuations, comparable properties, and market signals are organized."
-          metrics={[
-            { label: 'Fair value range', value: 'AED 1.2–1.4M' },
-            { label: 'Comparable homes', value: '12' },
-            { label: 'Market signal', value: 'Positive' },
-            { label: 'Sample confidence', value: 'High' },
-          ]}
-        >
-          <AIShieldDashboard />
-        </AIPageGate>
+        <AIShieldDashboard />
       </Suspense>
     </>
   )

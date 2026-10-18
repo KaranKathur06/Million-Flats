@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { uploadToS3 } from '@/lib/s3'
+import { notifyAdminRegistration } from '@/lib/email/adminNotifications'
 import { writeAuditLog } from '@/lib/audit'
 
 export const runtime = 'nodejs'
@@ -255,6 +256,16 @@ export async function POST(req: Request) {
       safeString(payload.companyDetails.businessName) ||
       safeString(payload.companyDetails.legalBusinessName) ||
       payload.category
+
+    await notifyAdminRegistration({
+      type: 'Ecosystem',
+      registrationId: created.id,
+      name: contactName,
+      email: contactEmail,
+      phone: contactPhone,
+      businessName: companyName,
+      adminPath: '/admin/ecosystem-partners',
+    })
 
     const { createLead, ecosystemSlugToCategory } = await import('@/lib/leads/createLead')
     const ecosystemCategory = ecosystemSlugToCategory(payload.category) || payload.category

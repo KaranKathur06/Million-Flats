@@ -81,16 +81,38 @@ interface Props {
   agentId: string
 }
 
+type PublicAgentProfile = {
+  agentId: string
+  isPublicProfile: true
+  displayName: string
+  profilePhoto: string | null
+  bio: string | null
+  city: string | null
+  countryIso2: string | null
+  rating: number | null
+  reviewCount: number
+  publishedListingCount: number
+  listings: Array<{
+    id: string
+    title: string | null
+    type: string | null
+    price: number | null
+    currency: string
+    city: string | null
+    imageUrl: string | null
+  }>
+}
+
 export function AIProDashboard({ agentId }: Props) {
-  const [data, setData] = useState<AgentIntelligenceReport | null>(null)
+  const [data, setData] = useState<AgentIntelligenceReport | PublicAgentProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const load = useCallback(async (force = false) => {
+  const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/ai/agent?agentId=${agentId}${force ? '&forceRefresh=true' : ''}`)
+      const res = await fetch(`/api/ai/agent?agentId=${encodeURIComponent(agentId)}`)
       const json = await res.json()
       if (!json.success) throw new Error(json.error ?? 'Failed to load')
       setData(json.data)
@@ -104,8 +126,76 @@ export function AIProDashboard({ agentId }: Props) {
   useEffect(() => { load() }, [load])
 
   if (loading) return <div className="p-6"><AIInsightSkeleton /></div>
-  if (error) return <AIErrorState message={error} onRetry={() => load(true)} />
+  if (error) return <AIErrorState message={error} onRetry={() => load()} />
   if (!data) return <AIEmptyState />
+  if ('isPublicProfile' in data) {
+    return (
+      <div className="space-y-6">
+        <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+            {data.profilePhoto ? (
+              <img
+                src={data.profilePhoto}
+                alt=""
+                className="h-20 w-20 rounded-full object-cover"
+              />
+            ) : null}
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">{data.displayName}</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                {[data.city, data.countryIso2].filter(Boolean).join(', ') || 'MillionFlats agent'}
+              </p>
+              {data.bio ? <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-600">{data.bio}</p> : null}
+            </div>
+          </div>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="text-xs font-semibold uppercase text-gray-500">Public rating</p>
+              <p className="mt-1 text-xl font-black text-gray-900">
+                {data.rating == null ? '—' : `${data.rating.toFixed(1)} / 5`}
+              </p>
+            </div>
+            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="text-xs font-semibold uppercase text-gray-500">Reviews</p>
+              <p className="mt-1 text-xl font-black text-gray-900">{data.reviewCount}</p>
+            </div>
+            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="text-xs font-semibold uppercase text-gray-500">Published listings</p>
+              <p className="mt-1 text-xl font-black text-gray-900">{data.publishedListingCount}</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+          <h3 className="text-sm font-bold uppercase tracking-wide text-gray-700">Published properties</h3>
+          {data.listings.length ? (
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {data.listings.map((listing) => (
+                <article key={listing.id} className="overflow-hidden rounded-xl border border-gray-100">
+                  {listing.imageUrl ? (
+                    <img src={listing.imageUrl} alt="" className="aspect-video w-full object-cover" />
+                  ) : null}
+                  <div className="space-y-1 p-4">
+                    <h4 className="font-semibold text-gray-900">{listing.title || 'Property listing'}</h4>
+                    <p className="text-xs text-gray-500">
+                      {[listing.type, listing.city].filter(Boolean).join(' · ')}
+                    </p>
+                    {listing.price != null ? (
+                      <p className="pt-1 text-sm font-bold text-gray-800">
+                        {listing.currency} {listing.price.toLocaleString()}
+                      </p>
+                    ) : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-gray-500">No published listings.</p>
+          )}
+        </section>
+      </div>
+    )
+  }
 
   const sentiment = data.sentiment
   const sentimentColor = sentiment.label === 'POSITIVE' ? '#10b981' : sentiment.label === 'NEGATIVE' ? '#ef4444' : '#6b7280'

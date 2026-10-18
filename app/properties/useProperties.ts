@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCountry } from '@/components/CountryProvider'
 import { COUNTRY_META, DEFAULT_COUNTRY, isCountryCode, type CountryCode } from '@/lib/country'
-import { normalizeCanonicalCity, normalizeCountryCode } from '@/lib/propertyCanonical'
+import { normalizeCanonicalCity, normalizeCountryCode, normalizeText } from '@/lib/propertyCanonical'
+import type { CitySearchScope } from '@/lib/citySearch'
 import {
   priceFilterOptions,
 } from '@/lib/filters/dropdownOptions'
@@ -34,7 +35,15 @@ function safePurpose(v: unknown): Purpose {
   return v === 'rent' ? 'rent' : 'buy'
 }
 
-export default function useProperties(forcedPurpose?: Purpose) {
+function countryFromUrl(value: string): CountryCode | null {
+  if (isCountryCode(value)) return value
+  const normalized = value.trim().toUpperCase()
+  if (normalized === 'IN' || normalized === 'INDIA') return 'INDIA'
+  if (normalized === 'AE' || normalized === 'UAE' || normalized === 'UNITED ARAB EMIRATES') return 'UAE'
+  return null
+}
+
+export default function useProperties(forcedPurpose?: Purpose, initialCityScope?: CitySearchScope) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { country, setCountry } = useCountry()
@@ -67,15 +76,18 @@ export default function useProperties(forcedPurpose?: Purpose) {
   const getParam = useCallback((key: string) => searchParams?.get(key) ?? '', [searchParams])
 
   const initialCountry = useMemo(() => {
-    const fromUrl = getParam('country')
-    if (fromUrl && isCountryCode(fromUrl)) return fromUrl
+    const fromUrl = countryFromUrl(getParam('country'))
+    if (fromUrl) return fromUrl
+    if (initialCityScope?.countryCode) return initialCityScope.countryCode
     return DEFAULT_COUNTRY
-  }, [getParam])
+  }, [getParam, initialCityScope?.countryCode])
 
   const [filters, setFilters] = useState<Filters>({
     country: initialCountry,
     search: getParam('q'),
-    location: normalizeCanonicalCity(normalizeCountryCode(initialCountry), getParam('location') || getParam('city')),
+    location: initialCityScope?.status === 'resolved'
+      ? initialCityScope.name || ''
+      : normalizeCanonicalCity(normalizeCountryCode(initialCountry), getParam('location') || getParam('city')),
     community: getParam('locality') || getParam('community'),
     type: getParam('type'),
     minPrice: getParam('minPrice'),
@@ -94,9 +106,21 @@ export default function useProperties(forcedPurpose?: Purpose) {
   const syncUrl = useCallback((nextFilters: Filters, nextPurpose: Purpose) => {
     const params = new URLSearchParams(window.location.search)
     params.set('purpose', nextPurpose)
-    params.delete('city')
-
-    params.set('country', nextFilters.country)
+    const unqualifiedAmbiguousCity = initialCityScope?.status === 'ambiguous' &&
+      normalizeText(nextFilters.location).toLowerCase() === normalizeText(initialCityScope.input).toLowerCase() &&
+      !getParam('country') &&
+      nextFilters.country === initialCountry
+    const invalidExplicitCityMarket = initialCityScope?.status === 'unknown' &&
+      normalizeText(nextFilters.location).toLowerCase() === normalizeText(initialCityScope.input).toLowerCase() &&
+      Boolean(getParam('country')) &&
+      !countryFromUrl(getParam('country')) &&
+      nextFilters.country === initialCountry
+    if (nextFilters.location) params.set('city', nextFilters.location)
+    else params.delete('city')
+    params.delete('location')
+    if (invalidExplicitCityMarket) params.set('country', getParam('country'))
+    else if (unqualifiedAmbiguousCity) params.delete('country')
+    else params.set('country', nextFilters.country === 'INDIA' ? 'IN' : 'AE')
     if (nextFilters.search) params.set('q', nextFilters.search)
     else params.delete('q')
     if (nextFilters.location) params.set('location', nextFilters.location)
@@ -125,14 +149,18 @@ export default function useProperties(forcedPurpose?: Purpose) {
     } else if (`${window.location.pathname}${window.location.search}` !== nextUrl) {
       router.push(nextUrl, { scroll: false })
     }
-  }, [router])
+  }, [getParam, initialCityScope, initialCountry, router])
 
   useEffect(() => {
     const restoreFromUrl = () => {
       const params = new URLSearchParams(window.location.search)
-      const urlCountry = params.get('country')
-      const restoredCountry = urlCountry && isCountryCode(urlCountry) ? urlCountry : DEFAULT_COUNTRY
-      const restoredLocation = normalizeCanonicalCity(normalizeCountryCode(restoredCountry), params.get('location') || params.get('city') || '')
+      const urlCountry = params.get('country') || ''
+      const restoredCountry = countryFromUrl(urlCountry) || initialCityScope?.countryCode || DEFAULT_COUNTRY
+      const urlCity = params.get('location') || params.get('city') || ''
+      const restoredLocation = initialCityScope?.status === 'resolved' &&
+        normalizeText(urlCity).toLowerCase() === normalizeText(initialCityScope.input).toLowerCase()
+        ? initialCityScope.name || ''
+        : normalizeCanonicalCity(normalizeCountryCode(restoredCountry), urlCity)
       restoringUrlRef.current = true
       setFilters((previous) => ({
         ...previous,
@@ -166,7 +194,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
 
     window.addEventListener('popstate', restoreFromUrl)
     return () => window.removeEventListener('popstate', restoreFromUrl)
-  }, [country, setCountry])
+  }, [country, initialCityScope, setCountry])
 
   useEffect(() => {
     syncUrl(filters, purpose)
@@ -178,11 +206,11 @@ export default function useProperties(forcedPurpose?: Purpose) {
   }, [forcedPurpose])
 
   useEffect(() => {
-    const fromUrl = getParam('country')
-    if (fromUrl && isCountryCode(fromUrl) && fromUrl !== country) {
+    const fromUrl = countryFromUrl(getParam('country')) || initialCityScope?.countryCode
+    if (fromUrl && fromUrl !== country) {
       setCountry(fromUrl)
     }
-  }, [country, getParam, setCountry])
+  }, [country, getParam, initialCityScope?.countryCode, setCountry])
 
   useEffect(() => {
     setDraftFilters(filters)
@@ -191,6 +219,23 @@ export default function useProperties(forcedPurpose?: Purpose) {
   useEffect(() => {
     const controller = new AbortController()
     const params = new URLSearchParams({ country: filters.country })
+    const requestedCity = normalizeText(filters.location).toLowerCase()
+    const invalidExplicitCityMarket = initialCityScope?.status === 'unknown' &&
+      requestedCity === normalizeText(initialCityScope.input).toLowerCase() &&
+      Boolean(getParam('country')) &&
+      !countryFromUrl(getParam('country')) &&
+      filters.country === initialCountry
+    if (invalidExplicitCityMarket) {
+      setProperties([])
+      setTotalCount(0)
+      setLoading(false)
+      return
+    }
+    const unqualifiedAmbiguousCity = initialCityScope?.status === 'ambiguous' &&
+      requestedCity === normalizeText(initialCityScope.input).toLowerCase() &&
+      !getParam('country') &&
+      filters.country === initialCountry
+    if (unqualifiedAmbiguousCity) params.delete('country')
 
     setLocationLoading(true)
     setLocationError('')
@@ -317,7 +362,7 @@ export default function useProperties(forcedPurpose?: Purpose) {
     } finally {
       setLoading(false)
     }
-  }, [filters.bathrooms, filters.bedrooms, filters.community, filters.country, filters.location, filters.maxPrice, filters.minPrice, filters.type, filters.search, filters.offPlanOnly, filters.readyHomesOnly, filters.sortBy, purpose, page, limit])
+  }, [filters.bathrooms, filters.bedrooms, filters.community, filters.country, filters.location, filters.maxPrice, filters.minPrice, filters.type, filters.search, filters.offPlanOnly, filters.readyHomesOnly, filters.sortBy, purpose, page, limit, getParam, initialCityScope, initialCountry])
 
   useEffect(() => {
     fetchProperties()

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { signToken } from '@/lib/auth/token'
 import { VerificationService } from '@/lib/auth/verification-service'
+import { notifyAdminRegistration } from '@/lib/email/adminNotifications'
 import crypto from 'crypto'
 import {
   validateAndNormalizeEmail,
@@ -154,6 +155,16 @@ export async function POST(req: Request) {
       })
 
       return { user, agencyProfile }
+    })
+
+    await notifyAdminRegistration({
+      type: 'Agency',
+      registrationId: result.agencyProfile.id,
+      name: result.user.name || agencyName,
+      email: normalizedEmail,
+      phone,
+      businessName: agencyName,
+      adminPath: '/admin/agencies',
     })
 
     // Send OTP via VerificationService

@@ -2,8 +2,9 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import PropertiesClient from '@/app/properties/PropertiesClient'
 import PropertiesHero from '@/components/properties/PropertiesHero'
-import { resolveHeroBanner } from '@/lib/heroBanners'
+import { resolveCityScopedHeroBanner } from '@/lib/heroBanners'
 import { buildSocialMetadata } from '@/lib/socialMetadata'
+import { resolveCitySearchScope } from '@/lib/citySearch'
 
 const TITLE = 'Buy Premium Properties | MillionFlats'
 const DESCRIPTION = 'Discover properties for sale across India and the UAE with MillionFlats.'
@@ -17,20 +18,27 @@ export async function generateMetadata({
 }: {
   searchParams?: Record<string, string | string[] | undefined>
 }): Promise<Metadata> {
-  const banner = await resolveHeroBanner({
-    category: 'BUY',
-    city: firstParam(searchParams.location) || firstParam(searchParams.city),
-    country: firstParam(searchParams.country) || 'INDIA',
-  })
+  const city = firstParam(searchParams.city) || firstParam(searchParams.location)
+  const country = firstParam(searchParams.country)
+  const scope = city ? await resolveCitySearchScope(city, country || null) : null
+  const banner = await resolveCityScopedHeroBanner('BUY', city, country, scope || undefined)
+  const canonical = scope?.status === 'resolved'
+    ? `/buy?city=${encodeURIComponent(scope.name!)}&country=${scope.countryIso2}`
+    : '/buy'
+  const title = scope?.status === 'resolved' ? `Properties for Sale in ${scope.name} | MillionFlats` : TITLE
+  const description = scope?.status === 'resolved'
+    ? `Explore homes and investment properties available for purchase in ${scope.name}.`
+    : DESCRIPTION
 
   return {
-    title: TITLE,
-    description: DESCRIPTION,
-    alternates: { canonical: '/buy' },
+    title,
+    description,
+    alternates: { canonical },
+    ...(scope && scope.status !== 'resolved' ? { robots: { index: false, follow: true } } : {}),
     ...buildSocialMetadata({
-      title: TITLE,
-      description: DESCRIPTION,
-      url: '/buy',
+      title,
+      description,
+      url: canonical,
       image: banner.desktopImage || '/HOMEPAGE.jpeg',
       imageAlt: banner.desktopAlt,
     }),
@@ -38,11 +46,11 @@ export async function generateMetadata({
 }
 
 export default async function BuyPage({ searchParams = {} }: { searchParams?: Record<string, string | string[] | undefined> }) {
-  const cityValue = searchParams.location || searchParams.city || ''
-  const city = Array.isArray(cityValue) ? cityValue[0] : cityValue
+  const city = firstParam(searchParams.city) || firstParam(searchParams.location)
   const countryValue = searchParams.country || 'INDIA'
   const country = Array.isArray(countryValue) ? countryValue[0] : countryValue
-  const initialBanner = await resolveHeroBanner({ category: 'BUY', city, country })
+  const cityScope = city ? await resolveCitySearchScope(city, firstParam(searchParams.country) || null) : null
+  const initialBanner = await resolveCityScopedHeroBanner('BUY', city, country, cityScope || undefined)
   return (
     <Suspense
       fallback={
@@ -54,7 +62,7 @@ export default async function BuyPage({ searchParams = {} }: { searchParams?: Re
         </div>
       }
     >
-      <PropertiesClient forcedPurpose="buy" initialBanner={initialBanner} />
+      <PropertiesClient forcedPurpose="buy" initialBanner={initialBanner} cityScope={cityScope || undefined} />
     </Suspense>
   )
 }

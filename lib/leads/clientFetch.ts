@@ -13,6 +13,7 @@ export type LeadsApiFilters = {
   propertyType?: string
   budgetRange?: string
   assignedTo?: string
+  archived?: boolean
 }
 
 export function filtersToSearchParams(filters: LeadsApiFilters): URLSearchParams {
@@ -27,6 +28,7 @@ export function filtersToSearchParams(filters: LeadsApiFilters): URLSearchParams
   }
   if (filters.q) p.set('q', filters.q)
   if (filters.assignedTo) p.set('assignedTo', filters.assignedTo)
+  if (filters.archived) p.set('archived', 'true')
   if (filters.leadType === 'ECOSYSTEM' && filters.category) p.set('category', filters.category)
   if (filters.leadType === 'PROJECT' && filters.projectId) p.set('projectId', filters.projectId)
   if (filters.leadType === 'THREE_D_TOUR') {

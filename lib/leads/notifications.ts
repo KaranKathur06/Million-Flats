@@ -3,19 +3,10 @@ import type { LeadType } from '@prisma/client'
 import { LEAD_TYPE_LABELS } from '@/lib/leads/constants'
 import { budgetRangeLabel, inquiryTypeLabel } from '@/lib/leads/threeDTour'
 import { getBaseUrl } from '@/lib/auth/routes'
-
-function safeString(v: unknown) {
-  return typeof v === 'string' ? v.trim() : ''
-}
+import { getAdminNotificationEmail, sendAdminNotification } from '@/lib/email/adminNotifications'
 
 export function getLeadsNotifyEmail() {
-  return (
-    safeString(process.env.LEADS_NOTIFY_EMAIL) ||
-    safeString(process.env.THREE_D_TOUR_LEADS_NOTIFY_EMAIL) ||
-    safeString(process.env.ECOSYSTEM_LEADS_NOTIFY_EMAIL) ||
-    safeString(process.env.ADMIN_NOTIFY_EMAIL) ||
-    ''
-  )
+  return getAdminNotificationEmail()
 }
 
 function baseUrl() {
@@ -35,9 +26,6 @@ export async function notifyAdminNewLead(params: {
   budgetRange?: string | null
   timeline?: string | null
 }) {
-  const to = getLeadsNotifyEmail()
-  if (!to) return { ok: false as const, skipped: true }
-
   const typeLabel = LEAD_TYPE_LABELS[params.leadType] || params.leadType
   const subject =
     params.leadType === 'THREE_D_TOUR'
@@ -67,7 +55,12 @@ export async function notifyAdminNewLead(params: {
     `Review: ${baseUrl()}/admin/leads?leadType=THREE_D_TOUR`,
   ].filter(Boolean)
 
-  return sendEmail({ to, subject, text: lines.join('\n') })
+  return sendAdminNotification({
+    eventType: 'LEAD_CREATED',
+    eventId: params.leadId,
+    subject,
+    text: lines.join('\n'),
+  })
 }
 
 export async function notifyUserThreeDTourReceived(params: {

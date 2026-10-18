@@ -7,7 +7,7 @@ import { formatAEDCompact } from '@/lib/pricing'
 interface PlatformStats {
   projectsAnalyzed: number
   assetsCoveredAed: number
-  predictionAccuracy: number
+  predictionAccuracy: number | null
   aiEngines: number
 }
 
@@ -33,7 +33,7 @@ export function AIShieldHero({ onExplore }: { onExplore?: () => void }) {
       label: 'Assets Covered',
     },
     {
-      value: stats ? `${stats.predictionAccuracy}%` : '—',
+      value: stats?.predictionAccuracy != null ? `${stats.predictionAccuracy}%` : '—',
       label: 'Avg Confidence',
     },
     {

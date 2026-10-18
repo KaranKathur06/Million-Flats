@@ -39,6 +39,8 @@ describe('import analysis attempt locking', () => {
     expect(sql).toContain('clock_timestamp() - (')
     expect(sql).toContain('FOR UPDATE SKIP LOCKED')
     expect(sql).toContain('"analysis_processed_count"')
+    expect(sql).toContain('reset_record_checkpoints')
+    expect(sql).toContain('"analysis_checkpoint_attempt_id" = NULL')
     expect(values).toEqual(['batch-1', false, true, 10, false, 'attempt-1', null])
   })
 

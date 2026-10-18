@@ -2,6 +2,7 @@ import type { LeadCountry, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createLead } from '@/lib/leads/createLead'
 import { triggerAgentVerification } from '@/lib/verification/verificationPolicy'
+import { notifyAdminNewLead } from '@/lib/leads/notifications'
 
 export type PropertyInquiryInput = {
   propertyId: string
@@ -154,6 +155,20 @@ export async function createPropertyInquiry(input: PropertyInquiryInput) {
     }
 
     return created
+  })
+
+  await notifyAdminNewLead({
+    leadType: 'CONTACT',
+    leadId: lead.id,
+    name: input.name,
+    email,
+    phone,
+    category: 'PROPERTY_INQUIRY',
+    projectOrCompany: 'Property Contact Form',
+    message: input.message,
+    propertyName: property.title,
+    budgetRange: input.budget,
+    timeline: input.purchaseTimeline,
   })
 
   return { duplicate: false as const, lead, agentId: property.agentId }

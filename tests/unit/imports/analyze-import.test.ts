@@ -30,11 +30,11 @@ const createPoolTimeoutError = () => Object.assign(
 let checkpointQuery: (...args: any[]) => Promise<any>
 const adapter = {
   adapterVersion: 1,
-  suggestMappings: jest.fn(() => []),
-  normalize: jest.fn(() => ({ normalized: {}, warnings: [], errors: [] })),
-  mapCanonical: jest.fn(() => ({ canonical: {}, warnings: [], errors: [], fieldConfidence: {} })),
-  validate: jest.fn(() => ({ ready: true, warnings: [], errors: [] })),
-  resolveRelations: jest.fn(async () => ({ ready: true, warnings: [], errors: [] })),
+  suggestMappings: jest.fn<() => any[]>(() => []),
+  normalize: jest.fn<() => { normalized: Record<string, unknown>; warnings: string[]; errors: string[] }>(() => ({ normalized: {}, warnings: [], errors: [] })),
+  mapCanonical: jest.fn<() => { canonical: Record<string, unknown>; warnings: string[]; errors: string[]; fieldConfidence: Record<string, number> }>(() => ({ canonical: {}, warnings: [], errors: [], fieldConfidence: {} })),
+  validate: jest.fn<() => { ready: boolean; warnings: string[]; errors: string[] }>(() => ({ ready: true, warnings: [], errors: [] })),
+  resolveRelations: jest.fn<() => Promise<{ ready: boolean; warnings: string[]; errors: string[] }>>(async () => ({ ready: true, warnings: [], errors: [] })),
 }
 describe('import batch analysis', () => {
   beforeEach(() => {
@@ -206,7 +206,7 @@ describe('import batch analysis', () => {
     }))
   })
 
-  it('checkpoints each analyzed record with its own atomic statement and absolute progress value', async () => {
+  it('checkpoints each analyzed record with atomic attempt-scoped progress', async () => {
     adapter.normalize.mockReturnValue({ normalized: {}, warnings: [], errors: [] })
     adapter.mapCanonical.mockReturnValue({ canonical: {}, warnings: [], errors: [], fieldConfidence: {} })
     mockedPrisma.importBatch.findUnique.mockResolvedValue({
@@ -240,8 +240,11 @@ describe('import batch analysis', () => {
     expect(checkpointCalls).toHaveLength(2)
     expect(checkpointCalls[0][0].join('')).toContain('FOR UPDATE')
     expect(checkpointCalls[0][0].join('')).toContain('progress_updated')
-    expect(checkpointCalls[0].slice(1)).toContain(1)
-    expect(checkpointCalls[1].slice(1)).toContain(2)
+    expect(checkpointCalls[0][0].join('')).toContain('"analysis_processed_count"')
+    expect(checkpointCalls[0][0].join('')).toContain('"previous_attempt_id" IS DISTINCT FROM')
+    expect(checkpointCalls[0][0].join('')).toContain('"analysis_checkpoint_attempt_id"')
+    expect(checkpointCalls[0].slice(1)).not.toContain(1)
+    expect(checkpointCalls[1].slice(1)).not.toContain(2)
   })
 
   it('fails the analysis after checkpoint P2024 retries are exhausted', async () => {
@@ -284,7 +287,7 @@ describe('import batch analysis', () => {
     }
   })
 
-  it('retries P2024 as a fresh atomic statement with the same absolute progress checkpoint', async () => {
+  it('retries P2024 as a fresh atomic statement with the same idempotent checkpoint', async () => {
     adapter.normalize.mockReturnValue({ normalized: {}, warnings: [], errors: [] })
     adapter.mapCanonical.mockReturnValue({ canonical: {}, warnings: [], errors: [], fieldConfidence: {} })
     mockedPrisma.importBatch.findUnique.mockResolvedValue({
@@ -324,6 +327,7 @@ describe('import batch analysis', () => {
       expect(checkpointCalls).toHaveLength(2)
       expect(checkpointCalls[0].slice(1)).toEqual(checkpointCalls[1].slice(1))
       expect(checkpointCalls[0][0].join('')).toContain('analysis_processed_count')
+      expect(checkpointCalls[0][0].join('')).toContain('IS DISTINCT FROM')
     } finally {
       warn.mockRestore()
     }

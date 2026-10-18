@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { z } from 'zod'
 import { parseAEDInput } from '@/lib/pricing'
-import { resolveProjectMediaUrl } from '@/lib/media/resolveMedia'
+import { MEDIA_FALLBACKS, resolveProjectMediaUrl } from '@/lib/media/resolveMedia'
 
 function safeString(v: unknown) {
     return typeof v === 'string' ? v.trim() : ''
@@ -211,7 +211,7 @@ export async function GET(req: Request) {
                 return mt === 'hero' || cat === 'hero'
             })?.mediaUrl
             const firstMedia = (item.media || []).find((m: any) => String(m.mediaUrl || '').trim())?.mediaUrl
-            const imageReference = hero || item.coverImage || firstMedia || '/image-placeholder.svg'
+            const imageReference = hero || item.coverImage || firstMedia || MEDIA_FALLBACKS.project
             const heroImage = await resolveProjectMediaUrl(imageReference) || imageReference
             return {
                 ...item,

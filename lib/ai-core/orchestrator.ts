@@ -47,6 +47,7 @@ export interface OrchestratorOptions {
   forceRefresh?: boolean        // bypass cache
   requestedBy?: string          // userId | "system" | "worker"
   requestIp?: string
+  safeImageContents?: Record<string, { contentType: string; base64: string }>
 }
 
 // ─── Main Orchestrator ────────────────────────────────────────────────────────

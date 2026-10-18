@@ -6,7 +6,6 @@ import { useSearchParams } from 'next/navigation'
 import GlobalDropdown, { type GlobalDropdownOption } from '@/components/ui/GlobalDropdown'
 import type { EntityType, MediaIntelligenceReport, MediaItemAnalysis } from '@/lib/ai-core/types'
 import { MediaGridSkeleton, AIErrorState } from '@/components/ai-shared/AISkeletons'
-import { AIPageGate } from '@/components/ai-shared/AIPageGate'
 
 const ENTITY_TYPE_OPTIONS: GlobalDropdownOption[] = [
   { value: 'MANUAL_PROPERTY', label: 'Manual Property' },
@@ -167,7 +166,7 @@ function AIViewWorkspace() {
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
-              Image URLs (one per line, max 20)
+              Image URLs (one per line, max 10)
             </label>
             <textarea
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 font-mono"
@@ -246,19 +245,5 @@ function AIViewWorkspace() {
 }
 
 export default function AIView() {
-  return (
-    <AIPageGate
-      product="AIView™"
-      title="Property Media Intelligence"
-      description="Preview image authenticity, quality scoring, staging detection, and media risk indicators."
-      metrics={[
-        { label: 'Media trust score', value: '89 / 100' },
-        { label: 'Average quality', value: '92 / 100' },
-        { label: 'Authentic images', value: '7 / 8' },
-        { label: 'Sample review', value: 'Clear' },
-      ]}
-    >
-      <AIViewWorkspace />
-    </AIPageGate>
-  )
+  return <AIViewWorkspace />
 }

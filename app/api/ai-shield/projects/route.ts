@@ -1,11 +1,22 @@
 import { NextResponse } from 'next/server'
 import { listAiShieldProjects, getFeaturedAiShieldProject, getAiShieldProjectBySlug } from '@/lib/aishield/projects'
+import {
+  enforceAnonymousAIBudget,
+  identityErrorResponse,
+  resolveAIRequestIdentity,
+} from '@/lib/ai/publicAccess'
 
 /** Query params require request.url — cannot be statically generated at build time. */
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 export async function GET(req: Request) {
+  const identity = await resolveAIRequestIdentity()
+  const identityError = identityErrorResponse(identity)
+  if (identityError) return identityError
+  const limited = await enforceAnonymousAIBudget(req, identity, 'aishield', 30)
+  if (limited) return limited
+
   try {
     const { searchParams } = new URL(req.url)
     const slug = (searchParams.get('slug') || '').trim()
@@ -17,7 +28,7 @@ export async function GET(req: Request) {
       }
       return NextResponse.json(
         { success: true, project },
-        { headers: { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=1800' } }
+        { headers: { 'Cache-Control': 'private, no-store, max-age=0' } }
       )
     }
 
@@ -26,7 +37,7 @@ export async function GET(req: Request) {
       const project = await getFeaturedAiShieldProject()
       return NextResponse.json(
         { success: true, project },
-        { headers: { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=1800' } }
+        { headers: { 'Cache-Control': 'private, no-store, max-age=0' } }
       )
     }
 
@@ -50,7 +61,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(
       { success: true, ...result },
-      { headers: { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=1800' } }
+      { headers: { 'Cache-Control': 'private, no-store, max-age=0' } }
     )
   } catch (err) {
     console.error('[GET /api/ai-shield/projects]', err)

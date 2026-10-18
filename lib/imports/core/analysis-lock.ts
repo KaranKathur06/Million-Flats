@@ -43,7 +43,7 @@ export async function claimImportAnalysisAttempt(input: {
   mode: ImportAnalysisClaimMode
 }) {
   const claimed = await prisma.$queryRaw<Array<{ id: string }>>`
-    WITH candidate AS (
+    WITH candidate AS MATERIALIZED (
       SELECT "id"
       FROM "import_batches"
       WHERE "id" = ${input.batchId}
@@ -65,19 +65,29 @@ export async function claimImportAnalysisAttempt(input: {
           )
         )
       FOR UPDATE SKIP LOCKED
+    ),
+    claimed AS (
+        UPDATE "import_batches"
+        SET "status" = 'ANALYZING',
+            "analysis_attempt_id" = ${input.attemptId},
+            "analysis_heartbeat_at" = clock_timestamp(),
+            "analysis_processed_count" = 0,
+            "analysis_owner_agent_id" = COALESCE(${input.ownerAgentId ?? null}, "analysis_owner_agent_id"),
+            "failure_summary" = NULL,
+            "started_at" = clock_timestamp(),
+            "completed_at" = NULL
+        FROM candidate
+        WHERE "import_batches"."id" = candidate."id"
+        RETURNING "import_batches"."id"
+    ),
+    reset_record_checkpoints AS (
+        UPDATE "import_records"
+        SET "analysis_checkpoint_attempt_id" = NULL
+        FROM claimed
+        WHERE "import_records"."batch_id" = claimed."id"
+        RETURNING "import_records"."id"
     )
-    UPDATE "import_batches"
-    SET "status" = 'ANALYZING',
-        "analysis_attempt_id" = ${input.attemptId},
-        "analysis_heartbeat_at" = clock_timestamp(),
-        "analysis_processed_count" = 0,
-        "analysis_owner_agent_id" = COALESCE(${input.ownerAgentId ?? null}, "analysis_owner_agent_id"),
-        "failure_summary" = NULL,
-        "started_at" = clock_timestamp(),
-        "completed_at" = NULL
-    FROM candidate
-    WHERE "import_batches"."id" = candidate."id"
-    RETURNING "import_batches"."id"
+    SELECT claimed."id" FROM claimed
   `
   return claimed.length === 1
 }

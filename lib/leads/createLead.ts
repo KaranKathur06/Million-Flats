@@ -142,7 +142,7 @@ export async function createLead(input: CreateLeadInput) {
     select: { id: true, leadType: true, status: true, category: true, createdAt: true },
   })
 
-  if (input.notify !== false) {
+  if (input.notify !== false && !input.db) {
     await notifyAdminNewLead({
       leadType: input.leadType,
       leadId: lead.id,

@@ -1,10 +1,11 @@
 import { buildAssetUrl } from '@/lib/assetUrl'
 import { extractRelativeKey } from '@/lib/assetUrl'
 import { generateSignedUrl } from '@/lib/cloudfront'
+import { PROJECT_IMAGE_FALLBACK } from '@/lib/media/fallbacks'
 
 /** Platform-wide media fallbacks — single source of truth */
 export const MEDIA_FALLBACKS = {
-  project: '/image-placeholder.svg',
+  project: PROJECT_IMAGE_FALLBACK,
   developerLogo: '/LOGO.jpeg',
   developerBanner: '/HOMEPAGE.jpg',
   placeholder: '/image-placeholder.svg',

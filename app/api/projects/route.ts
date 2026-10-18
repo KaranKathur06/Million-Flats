@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { resolveProjectMediaUrl } from '@/lib/media/resolveMedia'
+import { MEDIA_FALLBACKS, resolveProjectImage, resolveProjectMediaUrl } from '@/lib/media/resolveMedia'
+import { buildProjectCityFilter, resolveCitySearchScope } from '@/lib/citySearch'
 
 export const dynamic = 'force-dynamic'
-const FALLBACK_IMAGE = '/image-placeholder.svg'
+const FALLBACK_IMAGE = MEDIA_FALLBACKS.project
 
 export async function GET(req: Request) {
     try {
@@ -12,7 +13,7 @@ export async function GET(req: Request) {
         const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '24', 10) || 24))
         const city = (searchParams.get('city') || '').trim()
         const developer = (searchParams.get('developer') || '').trim()
-        const countryIso2 = (searchParams.get('countryIso2') || '').trim().toUpperCase()
+        const countryIso2 = (searchParams.get('countryIso2') || searchParams.get('country') || '').trim().toUpperCase()
         const goldenVisa = searchParams.get('goldenVisa')
         const minPrice = parseFloat(searchParams.get('minPrice') || '') || undefined
         const maxPrice = parseFloat(searchParams.get('maxPrice') || '') || undefined
@@ -21,7 +22,10 @@ export async function GET(req: Request) {
 
         const where: any = { status: 'PUBLISHED', isDeleted: false }
 
-        if (city) where.city = { contains: city, mode: 'insensitive' }
+        if (city) {
+            const cityScope = await resolveCitySearchScope(city, countryIso2 || null)
+            where.AND = [buildProjectCityFilter(cityScope) || { id: { in: [] } }]
+        }
         if (developer) {
             where.developer = { name: { contains: developer, mode: 'insensitive' } }
         }
@@ -85,13 +89,7 @@ export async function GET(req: Request) {
         ])
 
         const normalizedItems = await Promise.all(items.map(async (item: any) => {
-            const heroMedia = (item.media || []).find((m: any) => {
-                const mt = String(m?.mediaType || '').toLowerCase()
-                const cat = String(m?.category || '').toLowerCase()
-                return mt === 'hero' || cat === 'hero'
-            })
-            const firstMedia = (item.media || []).find((m: any) => String(m?.mediaUrl || '').trim())
-            const imageReference = heroMedia?.mediaUrl || item.coverImage || firstMedia?.mediaUrl || FALLBACK_IMAGE
+            const imageReference = resolveProjectImage(item, FALLBACK_IMAGE)
             const heroImage = await resolveProjectMediaUrl(imageReference) || imageReference
 
             const variantPrices = (item.unitTypes || [])

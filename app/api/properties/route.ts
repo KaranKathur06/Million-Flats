@@ -3,8 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
 import { buildManualPropertyPath } from '@/lib/manualPropertyRoutes'
-import { normalizeCanonicalCity, normalizeCountryCode, normalizeText } from '@/lib/propertyCanonical'
-import { resolveCanonicalSearchCity } from '@/lib/heroBanners'
+import { buildManualPropertyCityFilter, resolveCitySearchScope } from '@/lib/citySearch'
 
 type RateEntry = { count: number; resetAt: number }
 
@@ -98,9 +97,13 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
 
+    const requestedCountry = (searchParams.get('country') || '').trim().toUpperCase()
+    const normalizedCountry = requestedCountry === 'IN' ? 'INDIA'
+      : requestedCountry === 'AE' ? 'UAE'
+        : requestedCountry || (!searchParams.get('city') ? 'INDIA' : undefined)
     const parsed = QuerySchema.safeParse({
       purpose: (searchParams.get('purpose') || '').toLowerCase() || undefined,
-      country: (searchParams.get('country') || '').trim().toUpperCase() || 'INDIA',
+      country: normalizedCountry,
       q: searchParams.get('q') || undefined,
       city: searchParams.get('city') || undefined,
       community: searchParams.get('community') || undefined,
@@ -158,13 +161,10 @@ export async function GET(req: Request) {
       ]
     }
     if (q.city) {
-      const canonicalLocation = await resolveCanonicalSearchCity(q.city, q.country || 'INDIA')
-      canonicalSearchCity = canonicalLocation?.name || normalizeCanonicalCity(normalizeCountryCode(q.country || 'INDIA'), q.city)
-      const cityValues = Array.from(new Set([q.city, canonicalSearchCity, canonicalSearchCity.replace(/\s+/g, '-'), canonicalSearchCity.replace(/\s+/g, '_')]))
-      where.AND = [
-        ...(where.AND || []),
-        { OR: cityValues.map((value) => ({ city: { contains: normalizeText(value), mode: 'insensitive' as const } })) },
-      ]
+      const cityScope = await resolveCitySearchScope(q.city, q.country)
+      canonicalSearchCity = cityScope.name || q.city
+      const cityFilter = buildManualPropertyCityFilter(cityScope)
+      if (cityFilter) where.AND = [...(where.AND || []), cityFilter]
     }
     if (q.community) where.community = { contains: q.community, mode: 'insensitive' }
     if (q.locality) where.locality = { contains: q.locality, mode: 'insensitive' }

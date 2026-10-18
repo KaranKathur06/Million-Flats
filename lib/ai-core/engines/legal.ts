@@ -43,7 +43,7 @@ export async function runLegalEngine(
     redFlags: redFlagsFor(normalizedType, riskClassification),
     litigationRecords: [],
     extractedData: {
-      documentUrl,
+      documentProvided: true,
       documentType: normalizedType,
       analysisMode: "heuristic",
     },

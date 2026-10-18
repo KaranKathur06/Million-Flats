@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { MEDIA_FALLBACKS, resolveDeveloperLogo, resolveProjectImage } from '@/lib/media/resolveMedia'
 import { getProjectListing } from '@/lib/services/ProjectListingService'
-import { resolveCanonicalSearchCity } from '@/lib/heroBanners'
+import { buildProjectCityFilter, resolveCitySearchScope } from '@/lib/citySearch'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,8 +42,9 @@ export async function GET(req: Request) {
             : country === 'india' || country === 'in'
                 ? 'INDIA'
                 : null
-        const canonicalCity = city ? await resolveCanonicalSearchCity(city, searchCountryCode) : null
-        const searchCity = canonicalCity?.name || city
+        const cityScope = city
+            ? await resolveCitySearchScope(city, searchCountryCode === 'UAE' ? 'AE' : searchCountryCode === 'INDIA' ? 'IN' : null)
+            : null
 
         // ── Build WHERE clause using AND array for safe composition ─────────
         const conditions: any[] = [
@@ -52,8 +53,9 @@ export async function GET(req: Request) {
         ]
 
         // Free-text search
+        let textSearchCondition: any
         if (q) {
-            conditions.push({
+            textSearchCondition = {
                 OR: [
                     { name: { contains: q, mode: 'insensitive' } },
                     { city: { contains: q, mode: 'insensitive' } },
@@ -61,12 +63,13 @@ export async function GET(req: Request) {
                     { description: { contains: q, mode: 'insensitive' } },
                     { developer: { name: { contains: q, mode: 'insensitive' } } },
                 ],
-            })
+            }
+            conditions.push(textSearchCondition)
         }
 
         // City filter
-        if (city) {
-            conditions.push({ city: { contains: searchCity, mode: 'insensitive' } })
+        if (city && cityScope) {
+            conditions.push(buildProjectCityFilter(cityScope) || { id: { in: [] } })
         }
 
         // Developer filter (separate AND condition to avoid conflict with OR)
@@ -271,7 +274,7 @@ export async function GET(req: Request) {
         let suggestions: string[] = []
         if (total === 0 && q) {
             const similar = await db.project.findMany({
-                where: { status: 'PUBLISHED', isDeleted: false },
+                where: { AND: conditions.filter((condition) => condition !== textSearchCondition) },
                 orderBy: [{ createdAt: 'desc' }],
                 take: 4,
                 select: { name: true },

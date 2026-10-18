@@ -225,10 +225,12 @@ export async function getProjectListing(options: ProjectListingOptions) {
   }
 
   if (sortBy === 'recommended') {
-    // For recommended sort, we need to apply complex ranking logic
-    // Load all projects matching filter (with pagination for safety)
-    const pageSize = take || 100
-    const offset = skip || 0
+    // For recommended sort, we need to apply complex ranking logic.
+    // Always rank the full filtered result set so pagination does not silently
+    // truncate valid ordering when skip/take are unspecified or when a caller
+    // passes a high offset.
+    const offset = Math.max(0, skip ?? 0)
+    const pageSize = typeof take === 'number' ? take : Number.MAX_SAFE_INTEGER
 
     // Build include object: merge default relations with caller's include param
     const mergedInclude = {
@@ -254,13 +256,16 @@ export async function getProjectListing(options: ProjectListingOptions) {
       await refreshPriorityCache()
     }
 
-    // Compute effective priority for each project and sort
+    // Compute effective priority for each project and sort.
+    // Normalize country and city keys so persisted values are compared
+    // consistently regardless of case or whitespace.
     const projectsWithRank = projectsForRanking.map((p) => {
-      const marketPrio = priorityCache!.marketPriorities.get(p.countryIso2 || '') || 999
-      const cityKey = `${p.countryIso2}|${p.city}`
-      const cityPrio = priorityCache!.cityPriorities.get(cityKey) || 999
-      const pinPrio = p.isPinned ? (p.pinPriority ?? 999) : 999
-      const listingPrio = p.listingPriority ?? 999
+      const countryKey = (p.countryIso2 ?? '').trim().toUpperCase()
+      const cityKey = (p.city ?? '').trim()
+      const marketPrio = priorityCache!.marketPriorities.get(countryKey) ?? 999
+      const cityPrio = priorityCache!.cityPriorities.get(`${countryKey}|${cityKey}`) ?? 999
+      const pinPrio = p.isPinned ? (typeof p.pinPriority === 'number' && p.pinPriority > 0 ? p.pinPriority : 1) : 999
+      const listingPrio = typeof p.listingPriority === 'number' && p.listingPriority > 0 ? p.listingPriority : 999
 
       return {
         id: p.id,
@@ -326,6 +331,10 @@ export async function reorderProjectsInCity(
   cityName: string,
   projectUpdates: Array<{ projectId: string; newPriority: number }>
 ): Promise<void> {
+  if (projectUpdates.length !== new Set(projectUpdates.map((u) => u.projectId)).size) {
+    throw new Error('Duplicate project IDs found in reorder request')
+  }
+
   // Validate all projects exist in the target city
   const projectIds = projectUpdates.map((u) => u.projectId)
   const projects = await prisma.project.findMany({

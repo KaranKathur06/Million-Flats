@@ -10,12 +10,16 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url)
   const approvedOnly = url.searchParams.get('approved') === '1' || url.searchParams.get('approved') === 'true'
+  const archivedOnly = url.searchParams.get('archived') === '1' || url.searchParams.get('archived') === 'true'
 
   const agents = await (prisma as any).user.findMany({
     where: approvedOnly ? {
       role: 'AGENT',
-      agent: { is: { approved: true } },
-    } : { role: 'AGENT' },
+      agent: { is: { approved: true, archivedAt: archivedOnly ? { not: null } : null } },
+    } : {
+      role: 'AGENT',
+      agent: { is: { archivedAt: archivedOnly ? { not: null } : null } },
+    },
     orderBy: { createdAt: 'desc' },
     take: 500,
     select: {
@@ -34,6 +38,7 @@ export async function GET(req: Request) {
           license: true,
           whatsapp: true,
           approved: true,
+          archivedAt: true,
           profileCompletion: true,
           createdAt: true,
         },

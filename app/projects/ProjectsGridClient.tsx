@@ -8,6 +8,7 @@ import CurrencyPrice from '@/components/CurrencyPrice'
 import { PROPERTY_PROJECT_PLACEHOLDER, resolvePropertyImage } from '@/lib/propertyImages'
 import HeroBannerBackdrop from '@/components/HeroBannerBackdrop'
 import type { ResolvedHeroBanner } from '@/lib/heroBanners'
+import type { CitySearchScope } from '@/lib/citySearch'
 import { getProjectsHeroPresentation, PROJECTS_HERO_FALLBACK_IMAGE } from './heroPresentation'
 
 /* ─── Types ─── */
@@ -29,6 +30,13 @@ interface ProjectItem {
     developer: { id: string; name: string; slug: string | null; logo: string | null } | null
     bhkOptions?: number[]
     _score?: number
+}
+
+function normalizeCountryParam(value: string, resolvedIso2?: string | null) {
+    const normalized = value.trim().toUpperCase()
+    if (normalized === 'IN' || normalized === 'INDIA') return 'IN'
+    if (normalized === 'AE' || normalized === 'UAE' || normalized === 'UNITED ARAB EMIRATES') return 'AE'
+    return value || resolvedIso2 || ''
 }
 
 /* ─── Helpers ─── */
@@ -94,7 +102,13 @@ function CloseIcon({ className }: { className?: string }) {
 /* ═══════════════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════════════ */
-export default function ProjectsGridClient({ initialBanner }: { initialBanner: ResolvedHeroBanner }) {
+export default function ProjectsGridClient({
+    initialBanner,
+    cityScope,
+}: {
+    initialBanner: ResolvedHeroBanner
+    cityScope?: CitySearchScope
+}) {
     const searchParams = useSearchParams()
     const router = useRouter()
     const heroPresentation = getProjectsHeroPresentation(initialBanner)
@@ -112,11 +126,13 @@ export default function ProjectsGridClient({ initialBanner }: { initialBanner: R
 
     // ── Read initial filter state from URL params ──────────────────────────
     const [search, setSearch] = useState(searchParams?.get('q') || '')
-    const [city, setCity] = useState(searchParams?.get('city') || '')
+    const [city, setCity] = useState(cityScope?.status === 'resolved' ? cityScope.name || '' : searchParams?.get('city') || '')
     const [developer, setDeveloper] = useState(searchParams?.get('developer') || '')
     const [bhk, setBhk] = useState(searchParams?.get('bhk') || '')
     const [goldenVisa, setGoldenVisa] = useState(searchParams?.get('goldenVisa') || '')
-    const [country, setCountry] = useState(searchParams?.get('country') || '')
+    const [country, setCountry] = useState(
+        normalizeCountryParam(searchParams?.get('country') || '', cityScope?.countryIso2),
+    )
     const [budgetMin, setBudgetMin] = useState(searchParams?.get('budget_min') || '')
     const [budgetMax, setBudgetMax] = useState(searchParams?.get('budget_max') || '')
     const [sortBy, setSortBy] = useState(searchParams?.get('sortBy') || 'recommended')
@@ -132,7 +148,11 @@ export default function ProjectsGridClient({ initialBanner }: { initialBanner: R
     // ── Fetch filter options ───────────────────────────────────────────────
     const fetchFilterOptions = useCallback(async () => {
         try {
-            const res = await fetch('/api/projects/filters', { cache: 'no-store' })
+            const params = new URLSearchParams()
+            if (city) params.set('city', city)
+            if (country) params.set('country', country)
+            const query = params.toString()
+            const res = await fetch(`/api/projects/filters${query ? `?${query}` : ''}`, { cache: 'no-store' })
             const json = await res.json()
             if (!json.success) return
             setCityOptions(Array.isArray(json.cities) ? json.cities : [])
@@ -140,7 +160,7 @@ export default function ProjectsGridClient({ initialBanner }: { initialBanner: R
         } catch {
             // Fallback remains derived from loaded projects below
         }
-    }, [])
+    }, [city, country])
 
     useEffect(() => {
         fetchFilterOptions()

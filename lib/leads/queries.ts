@@ -19,6 +19,7 @@ export type LeadListFilters = {
   propertyType?: string
   budgetRange?: string
   assignedTo?: string
+  archived?: boolean
   take?: number
   skip?: number
 }
@@ -80,13 +81,15 @@ export function hasActiveLeadFilters(filters: LeadListFilters) {
       f.q ||
       f.propertyType ||
       f.budgetRange ||
-      f.assignedTo,
+      f.assignedTo ||
+      f.archived,
   )
 }
 
 export function buildLeadWhere(filters: LeadListFilters): Prisma.LeadWhereInput {
   const f = sanitizeLeadFilters(filters)
   const where: Prisma.LeadWhereInput = {}
+  where.deletedAt = f.archived ? { not: null } : null
 
   if (f.leadType) {
     where.leadType = f.leadType
@@ -265,6 +268,7 @@ export async function listLeads(filters: LeadListFilters) {
         referralCode: true,
         createdAt: true,
         updatedAt: true,
+        deletedAt: true,
       },
     }),
     prisma.lead.count({ where }),

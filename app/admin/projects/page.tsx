@@ -9,6 +9,7 @@ import ProjectDetailsDrawer from '@/components/admin/ProjectDetailsDrawer'
 import { AdminBulkToolbar, AdminFilterChips } from '@/components/admin/workspace'
 import { AdminDataCard, ResponsiveDataTable } from '@/components/responsive'
 import { formatAEDCompact } from '@/lib/pricing'
+import { PROJECT_IMAGE_FALLBACK } from '@/lib/media/fallbacks'
 import toast, { Toaster } from 'react-hot-toast'
 
 interface ProjectItem {
@@ -603,7 +604,7 @@ export default function AdminProjectsPage() {
                 onSelect={() => toggleSelect(p.id)}
                 leading={
                   <img
-                    src={p.coverImage || '/image-placeholder.svg'}
+                    src={p.coverImage || PROJECT_IMAGE_FALLBACK}
                     alt=""
                     className="h-12 w-16 rounded-lg border border-white/10 object-cover"
                   />
@@ -661,7 +662,7 @@ export default function AdminProjectsPage() {
                     </td>
                     <td className="px-3 py-3 align-middle">
                       <div className="admin-project-name-cell project-cell flex min-w-0 max-w-[220px] items-center gap-2.5">
-                        <img src={p.coverImage || '/image-placeholder.svg'} alt="" className="h-9 w-12 rounded-lg border border-white/10 object-cover flex-shrink-0" />
+                        <img src={p.coverImage || PROJECT_IMAGE_FALLBACK} alt="" className="h-9 w-12 rounded-lg border border-white/10 object-cover flex-shrink-0" />
                         <div className="min-w-0 flex-1">
                           <button
                             type="button"

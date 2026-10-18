@@ -3,10 +3,18 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getMarketReport } from '@/lib/ai-core'
+import { identityErrorResponse, resolveAIRequestIdentity } from '@/lib/ai/publicAccess'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
+  const identity = await resolveAIRequestIdentity()
+  const identityError = identityErrorResponse(identity)
+  if (identityError) return identityError
+  if (identity.kind !== 'authenticated') {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+  }
+
   const { searchParams } = new URL(req.url)
   const city = searchParams.get('city')
   const community = searchParams.get('community') ?? undefined
@@ -31,9 +39,10 @@ export async function GET(req: NextRequest) {
     }
 
     const res = NextResponse.json({ success: true, data: report })
-    res.headers.set('Cache-Control', 'public, s-maxage=21600, stale-while-revalidate=43200')
+    res.headers.set('Cache-Control', 'private, no-store, max-age=0')
     return res
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[API /ai/market] market report failed', err)
+    return NextResponse.json({ error: 'Market intelligence service temporarily unavailable' }, { status: 500 })
   }
 }

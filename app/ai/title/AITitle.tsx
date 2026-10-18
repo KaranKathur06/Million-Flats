@@ -5,7 +5,6 @@ import Link from 'next/link'
 import GlobalDropdown, { type GlobalDropdownOption } from '@/components/ui/GlobalDropdown'
 import type { EntityType, LegalDocumentIntelligenceReport } from '@/lib/ai-core/types'
 import { AIInsightSkeleton, AIErrorState } from '@/components/ai-shared/AISkeletons'
-import { AIPageGate } from '@/components/ai-shared/AIPageGate'
 
 const ENTITY_TYPE_OPTIONS: GlobalDropdownOption[] = [
   { value: 'MANUAL_PROPERTY', label: 'Manual Property' },
@@ -86,6 +85,9 @@ function UploadForm({ onResult }: { onResult: (r: LegalDocumentIntelligenceRepor
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-5">
       <h2 className="text-base font-bold text-gray-900">Analyze a Document</h2>
+      <p className="text-sm text-amber-800">
+        MVP preview: this heuristic does not read or verify document contents and is not legal advice.
+      </p>
 
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
@@ -259,19 +261,5 @@ function AITitleWorkspace() {
 }
 
 export default function AITitle() {
-  return (
-    <AIPageGate
-      product="AITitle™"
-      title="Legal Document Intelligence"
-      description="Preview document completeness, legal health, title risk, and compliance indicators."
-      metrics={[
-        { label: 'Legal health', value: '91 / 100' },
-        { label: 'Documents checked', value: '8' },
-        { label: 'Risk classification', value: 'Clear' },
-        { label: 'Completeness', value: '94%' },
-      ]}
-    >
-      <AITitleWorkspace />
-    </AIPageGate>
-  )
+  return <AITitleWorkspace />
 }

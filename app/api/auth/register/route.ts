@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import { VerificationService } from '@/lib/auth/verification-service'
+import { notifyAdminRegistration } from '@/lib/email/adminNotifications'
 import { normalizeRegistrationPhone } from '@/lib/auth/registrationPhone'
 import { normalizeReferralSource } from '@/lib/referrals'
 
@@ -326,6 +327,15 @@ export async function POST(req: Request) {
         }
       }
 
+      await notifyAdminRegistration({
+        type: 'Agent',
+        registrationId: user.id,
+        name: user.name || name,
+        email,
+        phone: phoneNormalized.phoneE164,
+        adminPath: '/admin/agents',
+      })
+
       await VerificationService.sendRegistrationOtp(email, 'agent', user.name, ip)
 
       return NextResponse.json(
@@ -439,6 +449,16 @@ export async function POST(req: Request) {
         }
       }
 
+      await notifyAdminRegistration({
+        type: 'Agency',
+        registrationId: user!.id,
+        name: user!.name || name,
+        email,
+        phone: phone || null,
+        businessName: name,
+        adminPath: '/admin/agencies',
+      })
+
       await VerificationService.sendRegistrationOtp(email, 'agency', user!.name, ip)
 
       return NextResponse.json({ success: true, message: 'Registration successful. Please verify your email.', requiresVerification: true, redirectTo: `/agency/verify-otp?email=${encodeURIComponent(email)}` }, { status: 200 })
@@ -514,6 +534,16 @@ export async function POST(req: Request) {
           console.error('[register/developer] developerProfile.create error:', e?.message)
         }
       }
+
+      await notifyAdminRegistration({
+        type: 'Developer',
+        registrationId: user!.id,
+        name: user!.name || name,
+        email,
+        phone: phone || null,
+        businessName: name,
+        adminPath: '/admin/developers',
+      })
 
       await VerificationService.sendRegistrationOtp(email, 'developer', user!.name, ip)
 

@@ -47,6 +47,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   return NextResponse.json({
     success: true,
     lead: mapLeadForDisplay(lead),
+    archived: Boolean(lead.deletedAt),
+    readOnly: Boolean(lead.deletedAt),
   })
 }
 
@@ -73,9 +75,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   const current = await prisma.lead.findUnique({
     where: { id },
-    select: { id: true, leadType: true, status: true, sourceId: true, legacyId: true },
+    select: { id: true, leadType: true, status: true, sourceId: true, legacyId: true, assignedTo: true, deletedAt: true },
   })
   if (!current) return bad('Not found', 404)
+  if (current.deletedAt) return bad('Archived leads must be restored before they can be edited.', 409)
 
   if (parsed.data.status) {
     const allowed = statusesForLeadType(current.leadType)
@@ -89,11 +92,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (parsed.data.priority) data.priority = parsed.data.priority
   if (parsed.data.assignedTo !== undefined) data.assignedTo = parsed.data.assignedTo
 
-  const updated = await prisma.lead.update({
-    where: { id },
+  const updated = await prisma.lead.updateMany({
+    where: { id, deletedAt: null },
     data,
-    select: { id: true, status: true, assignedTo: true, leadType: true, ecosystemPartnerId: true },
   })
+  if (updated.count !== 1) return bad('Archived leads must be restored before they can be edited.', 409)
 
   if (parsed.data.status && parsed.data.status !== current.status) {
     await prisma.leadActivity.create({
@@ -106,7 +109,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       },
     })
   }
-  if (parsed.data.assignedTo !== undefined && parsed.data.assignedTo !== updated.assignedTo) {
+  if (parsed.data.assignedTo !== undefined && parsed.data.assignedTo !== current.assignedTo) {
     await prisma.leadActivity.create({
       data: {
         leadId: id,
@@ -157,4 +160,67 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   })
 
   return NextResponse.json({ success: true, lead: fresh })
+}
+
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+  const auth = await requireAdminSession()
+  if (!auth.ok) {
+    return NextResponse.json({ success: false, message: auth.message }, { status: auth.status })
+  }
+  if (!['ADMIN', 'SUPERADMIN'].includes(String(auth.role).toUpperCase())) {
+    return bad('Forbidden', 403)
+  }
+
+  const body = await req.json().catch(() => null)
+  const parsed = z.object({ confirmation: z.literal('PERMANENTLY_DELETE_LEAD') }).safeParse(body)
+  if (!parsed.success) return bad('Explicit permanent-delete confirmation is required.', 400)
+
+  const id = String(params?.id || '').trim()
+  if (!id) return bad('Not found', 404)
+
+  try {
+    const limit = await checkAdminRateLimit({
+      performedByUserId: auth.userId,
+      action: 'LEAD_PERMANENTLY_DELETED',
+      windowMs: 60_000,
+      max: 10,
+    })
+    if (!limit.ok) return bad('Too many permanent-delete requests.', 429)
+  } catch (error) {
+    console.error('[admin/leads/delete] Rate-limit check failed', { leadId: id, error })
+    return bad('Unable to verify request limit.', 503)
+  }
+
+  try {
+    const deleted = await prisma.$transaction(async (tx) => {
+      const db = tx as any
+      const lead = await db.lead.findUnique({
+        where: { id },
+        select: { id: true },
+      })
+      if (!lead) return false
+
+      await db.leadActivity.deleteMany({ where: { leadId: id } })
+      await db.leadNote.deleteMany({ where: { leadId: id } })
+      await db.leadFollowUp.deleteMany({ where: { leadId: id } })
+      await db.auditLog.create({
+        data: {
+          entityType: 'LEAD',
+          entityId: id,
+          action: 'LEAD_PERMANENTLY_DELETED',
+          performedByUserId: auth.userId,
+          beforeState: { exists: true },
+          afterState: { exists: false },
+        },
+      })
+      await db.lead.delete({ where: { id } })
+      return true
+    })
+
+    if (!deleted) return bad('Not found', 404)
+    return NextResponse.json({ success: true, deleted: true })
+  } catch (error) {
+    console.error('[admin/leads/delete] Permanent deletion failed', { leadId: id, error })
+    return bad('Unable to permanently delete lead.', 500)
+  }
 }

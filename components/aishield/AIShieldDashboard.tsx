@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import dynamic from 'next/dynamic'
 import { AIShieldHero } from './AIShieldHero'
 import { AIShieldFeaturedBanner, type FeaturedProjectData } from './AIShieldFeaturedBanner'
 import { AIShieldFiltersBar } from './AIShieldFiltersBar'
@@ -10,11 +9,6 @@ import { AIShieldProjectExplorer, type ExplorerProject } from './AIShieldProject
 import { AIShieldProjectSummary, type AiShieldProjectDetail } from './AIShieldProjectSummary'
 import { ComingSoonModules } from './ComingSoonModules'
 import { AIShieldSkeleton } from '@/components/skeletons/ProjectPageSkeletons'
-
-const AIShieldPanel = dynamic(
-  () => import('@/components/verixshield').then((m) => m.AIShieldPanel),
-  { ssr: false, loading: () => <AIShieldSkeleton /> }
-)
 
 export default function AIShieldDashboard() {
   const searchParams = useSearchParams()
@@ -274,25 +268,13 @@ export default function AIShieldDashboard() {
           </div>
 
           {showManualProperty ? (
-            <AIShieldPanel
-              propertyId={manualPropertyId}
-              entityType={manualType === 'PROJECT' ? 'PROJECT' : 'MANUAL_PROPERTY'}
-              variant="dashboard"
-              showHeader
-            />
+            <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center">
+              <p className="text-gray-600">AIShield public exploration is available for published projects.</p>
+            </div>
           ) : loadingDetail && !selectedProject ? (
             <AIShieldSkeleton />
           ) : selectedProject ? (
-            <>
-              <AIShieldProjectSummary project={selectedProject} />
-              <AIShieldPanel
-                key={selectedProject.id}
-                propertyId={selectedProject.id}
-                entityType="PROJECT"
-                variant="dashboard"
-                showHeader={false}
-              />
-            </>
+            <AIShieldProjectSummary project={selectedProject} />
           ) : (
             <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center">
               <p className="text-gray-600">Select a project above to load the full intelligence dashboard.</p>

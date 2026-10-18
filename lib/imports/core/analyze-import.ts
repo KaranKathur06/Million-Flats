@@ -201,7 +201,6 @@ async function performBackgroundAnalysis(
     let ready = 0
     let warnings = 0
     let errors = 0
-    let processedCount = 0
     const BATCH_SIZE = 15
     const NON_BLOCKING_WARNINGS = batchMode === 'STRICT' ? [] : [
       'PARKING_SOURCE_CONTAMINATED',
@@ -277,7 +276,6 @@ async function performBackgroundAnalysis(
           })),
         ]
 
-        const targetProcessedCount = processedCount + 1
         const normalizedPayloadJson = normalized.normalized == null ? null : JSON.stringify(normalized.normalized)
         const canonicalPayloadJson = canonical == null ? null : JSON.stringify(canonical)
         const overallConfidence = Object.values(canonicalResult.fieldConfidence || {}).length
@@ -288,66 +286,7 @@ async function performBackgroundAnalysis(
           recordMatched: boolean
           progressUpdated: boolean
         }>>(
-          async () => {
-            if (typeof (prisma as any).$transaction === 'function') {
-              return (prisma as any).$transaction(async (tx: any) => {
-                const row = await tx.importRecord.update({
-                  where: { id: record.id },
-                  data: {
-                    normalizedPayload: normalizedPayloadJson ? JSON.parse(normalizedPayloadJson) : null,
-                    canonicalPayload: canonicalPayloadJson ? JSON.parse(canonicalPayloadJson) : null,
-                    status,
-                    ownershipPolicy: ownerAgentId && !String((normalized.normalized as any)?.agentId || '').trim()
-                      ? 'configured-owner-agent'
-                      : 'source-agent',
-                    overallConfidence,
-                    updatedAt: new Date(),
-                  },
-                })
-
-                if (tx.importIssue?.deleteMany) {
-                  await tx.importIssue.deleteMany({
-                    where: {
-                      batchId: batch.id,
-                      recordId: record.id,
-                      stage: 'ANALYSIS',
-                      resolutionState: 'OPEN',
-                    },
-                  })
-                }
-
-                if (tx.importIssue?.createMany && issueRows.length > 0) {
-                  await tx.importIssue.createMany({
-                    data: issueRows.map((issue) => ({
-                      batchId: batch.id,
-                      recordId: record.id,
-                      stage: issue.stage,
-                      severity: issue.severity,
-                      code: issue.code,
-                      message: issue.message,
-                    })),
-                  })
-                }
-
-                if (tx.importBatch?.update) {
-                  await tx.importBatch.update({
-                    where: { id: batch.id },
-                    data: {
-                      analysisHeartbeatAt: new Date(),
-                      analysisProcessedCount: targetProcessedCount,
-                    },
-                  })
-                }
-
-                return [{
-                  ownershipMatched: true,
-                  recordMatched: Boolean(row),
-                  progressUpdated: true,
-                }]
-              })
-            }
-
-            return (prisma as any).$queryRaw<Array<{
+          () => (prisma as any).$queryRaw<Array<{
               ownershipMatched: boolean
               recordMatched: boolean
               progressUpdated: boolean
@@ -361,6 +300,15 @@ async function performBackgroundAnalysis(
                   AND "analysis_attempt_id" = ${attemptId}
                 FOR UPDATE
               ),
+              record_candidate AS MATERIALIZED (
+                SELECT record."id",
+                       record."analysis_checkpoint_attempt_id" AS "previous_attempt_id"
+                FROM "import_records" AS record
+                JOIN ownership ON TRUE
+                WHERE record."id" = ${record.id}
+                  AND record."batch_id" = ${batch.id}
+                FOR UPDATE OF record
+              ),
               record_updated AS (
                 UPDATE "import_records" AS record
                 SET "normalized_payload" = ${normalizedPayloadJson}::jsonb,
@@ -370,10 +318,12 @@ async function performBackgroundAnalysis(
                       ? 'configured-owner-agent'
                       : 'source-agent'},
                     "overall_confidence" = ${overallConfidence},
+                    "analysis_checkpoint_attempt_id" = ${attemptId},
                     "updated_at" = clock_timestamp()
-                FROM ownership
+                FROM record_candidate
                 WHERE record."id" = ${record.id}
                   AND record."batch_id" = ${batch.id}
+                  AND record."id" = record_candidate."id"
                 RETURNING record."id"
               ),
               issues_deleted AS (
@@ -405,11 +355,18 @@ async function performBackgroundAnalysis(
               progress_updated AS (
                 UPDATE "import_batches" AS batch_progress
                 SET "analysis_heartbeat_at" = clock_timestamp(),
-                    "analysis_processed_count" = ${targetProcessedCount}
+                    "analysis_processed_count" = batch_progress."analysis_processed_count"
+                      + CASE
+                          WHEN record_candidate."previous_attempt_id" IS DISTINCT FROM ${attemptId}
+                          THEN 1
+                          ELSE 0
+                        END
+                FROM record_candidate
                 WHERE batch_progress."id" = ${batch.id}
                   AND batch_progress."status" = 'ANALYZING'
                   AND batch_progress."analysis_attempt_id" = ${attemptId}
                   AND EXISTS (SELECT 1 FROM record_updated)
+                  AND record_candidate."id" = ${record.id}
                   AND (SELECT count(*) FROM issues_inserted) >= 0
                 RETURNING batch_progress."id"
               )
@@ -418,7 +375,7 @@ async function performBackgroundAnalysis(
                 EXISTS (SELECT 1 FROM record_updated) AS "recordMatched",
                 EXISTS (SELECT 1 FROM progress_updated) AS "progressUpdated"
             `
-          },
+          ,
           { batchId: batch.id, recordId: record.id, operation: 'analysis checkpoint' },
         )
         const checkpointResult = checkpoint[0]
@@ -440,7 +397,6 @@ async function performBackgroundAnalysis(
           throw new Error(`Import analysis progress could not be checkpointed for batch ${batch.id}.`)
         }
 
-        processedCount = targetProcessedCount
       }
 
       for (const result of batchResults) {

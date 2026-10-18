@@ -12,6 +12,7 @@ export type AuditEntityType =
   | 'ECOSYSTEM_BANNER'
   | 'TEAM_MEMBER'
   | 'TEAM_ACCESS'
+  | 'LEAD'
 
 export type AuditAction =
   | 'DRAFT_DELETED'
@@ -82,6 +83,9 @@ export type AuditAction =
   | 'TEAM_MEMBER_DEACTIVATED'
   | 'TEAM_MEMBER_DELETED'
   | 'TEAM_MEMBER_REORDERED'
+  | 'LEAD_ARCHIVED'
+  | 'LEAD_RESTORED'
+  | 'LEAD_PERMANENTLY_DELETED'
 
 
 export async function writeAuditLog(input: {

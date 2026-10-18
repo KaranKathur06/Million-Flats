@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/rbacServer'
-import { writeAuditLog } from '@/lib/audit'
 import { checkAdminRateLimit } from '@/lib/adminRateLimit'
 
 function bad(msg: string, status = 400) {
@@ -37,46 +36,43 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return bad('Cannot ban your own account', 409)
   }
 
-  const user = await (prisma as any).user.findFirst({
-    where: { id: userId },
-    select: { id: true, email: true, role: true, status: true, verified: true },
-  })
+  const result = await (prisma as any).$transaction(async (tx: any) => {
+    await tx.$queryRawUnsafe('SELECT "id" FROM "users" WHERE "id" = $1 FOR UPDATE', userId)
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, role: true, status: true, verified: true, securityStateVersion: true },
+    })
+    if (!user) return { ok: false as const, status: 404, message: 'Not found' }
 
-  if (!user) return bad('Not found', 404)
+    const targetRole = String(user.role || '').toUpperCase()
+    if (targetRole === 'SUPERADMIN') {
+      return { ok: false as const, status: 403, message: 'Forbidden' }
+    }
+    if (user.status === 'BANNED') {
+      return { ok: false as const, status: 409, message: 'Conflict' }
+    }
 
-  const targetRole = String((user as any).role || '').toUpperCase()
-  if (targetRole === 'SUPERADMIN') {
-    return bad('Forbidden', 403)
-  }
+    const updated = await tx.user.update({
+      where: { id: userId },
+      data: { status: 'BANNED', securityStateVersion: { increment: 1 } },
+      select: { id: true, email: true, role: true, status: true, verified: true, securityStateVersion: true },
+    })
+    await tx.auditLog.create({
+      data: {
+        entityType: 'USER',
+        entityId: userId,
+        action: 'ADMIN_USER_BANNED',
+        performedByUserId: auth.userId,
+        ipAddress: getIp(req),
+        beforeState: { role: user.role, status: user.status, securityStateVersion: user.securityStateVersion },
+        afterState: { role: updated.role, status: updated.status, securityStateVersion: updated.securityStateVersion },
+        meta: { actor: 'admin' },
+      },
+    })
+    return { ok: true as const, user: updated }
+  }, { isolationLevel: 'Serializable' })
 
-  const targetStatus = String((user as any).status || 'ACTIVE').toUpperCase()
-  if (targetStatus === 'BANNED') {
-    return bad('Conflict', 409)
-  }
+  if (!result.ok) return bad(result.message, result.status)
 
-  const beforeState = { role: String((user as any).role || 'USER'), status: String((user as any).status || 'ACTIVE') }
-
-  const updated = await (prisma as any).user.update({
-    where: { id: userId },
-    data: { status: 'BANNED' } as any,
-    select: { id: true, email: true, role: true, status: true, verified: true },
-  })
-
-  const afterState = { role: String((updated as any).role || 'USER'), status: String((updated as any).status || 'BANNED') }
-
-  await writeAuditLog({
-    entityType: 'USER',
-    entityId: userId,
-    action: 'ADMIN_USER_BANNED',
-    performedByUserId: auth.userId,
-    ipAddress: getIp(req),
-    beforeState,
-    afterState,
-    meta: {
-      actor: 'admin',
-      targetEmail: String((user as any).email || ''),
-    },
-  })
-
-  return NextResponse.json({ success: true, user: updated })
+  return NextResponse.json({ success: true, user: result.user })
 }

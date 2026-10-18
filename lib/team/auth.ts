@@ -22,14 +22,14 @@ type TeamMemberAccess = {
   userId: string
   email: string
   isTeamAdmin: boolean
-  teamAccessId: string
+  teamAccessId: string | null
 }
 type TeamResult = TeamMemberAccess | Denied
 
 // ── Internal: resolve authenticated DB user ───────────────────────────────────
 
 async function resolveAuthenticatedUser(): Promise<
-  { ok: true; userId: string; email: string } | Denied
+  { ok: true; userId: string; email: string; role: string } | Denied
 > {
   const session = await getServerSession(authOptions)
   if (!session?.user) {
@@ -43,7 +43,7 @@ async function resolveAuthenticatedUser(): Promise<
 
   const dbUser = await prisma.user.findUnique({
     where: { email },
-    select: { id: true, email: true, status: true },
+    select: { id: true, email: true, status: true, role: true },
   })
 
   if (!dbUser) {
@@ -54,7 +54,16 @@ async function resolveAuthenticatedUser(): Promise<
     return { ok: false, status: 403, message: 'Account suspended' }
   }
 
-  return { ok: true, userId: dbUser.id, email: dbUser.email }
+  return {
+    ok: true,
+    userId: dbUser.id,
+    email: dbUser.email,
+    role: String(dbUser.role || '').toUpperCase(),
+  }
+}
+
+export function hasTrustedTeamAdminRole(role: string): boolean {
+  return role === 'ADMIN' || role === 'SUPERADMIN'
 }
 
 // ── requireTeamAccess ─────────────────────────────────────────────────────────
@@ -95,8 +104,8 @@ export async function requireTeamAccess(): Promise<TeamResult> {
 // ── requireTeamAdmin ──────────────────────────────────────────────────────────
 
 /**
- * Requires an authenticated session AND an active TeamAccess record where
- * isTeamAdmin === true. Used to gate all profile and membership management operations.
+ * Requires an authenticated ADMIN/SUPERADMIN role or an active TeamAccess
+ * record where isTeamAdmin === true. Used to gate team management operations.
  *
  * Fail-closed: any error returns denied.
  */
@@ -104,6 +113,16 @@ export async function requireTeamAdmin(): Promise<TeamResult> {
   try {
     const identity = await resolveAuthenticatedUser()
     if (!identity.ok) return identity
+
+    if (hasTrustedTeamAdminRole(identity.role)) {
+      return {
+        ok: true,
+        userId: identity.userId,
+        email: identity.email,
+        isTeamAdmin: true,
+        teamAccessId: null,
+      }
+    }
 
     const access = await prisma.teamAccess.findUnique({
       where: { userId: identity.userId },

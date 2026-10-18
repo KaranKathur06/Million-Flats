@@ -5,6 +5,7 @@ import type { CountryCode } from '@/lib/country'
 import useProperties from '@/app/properties/useProperties'
 import PropertiesHero from '@/components/properties/PropertiesHero'
 import type { ResolvedHeroBanner } from '@/lib/heroBanners'
+import type { CitySearchScope } from '@/lib/citySearch'
 import SmartSearch from '@/components/properties/SmartSearch'
 import GlobalDropdown from '@/components/ui/GlobalDropdown'
 import { singleDropdownValue } from '@/components/ui/dropdownUtils'
@@ -69,7 +70,15 @@ function safePurpose(v: unknown): Purpose {
   return v === 'rent' ? 'rent' : 'buy'
 }
 
-export default function PropertiesClient({ forcedPurpose, initialBanner }: { forcedPurpose?: Purpose; initialBanner?: ResolvedHeroBanner }) {
+export default function PropertiesClient({
+  forcedPurpose,
+  initialBanner,
+  cityScope,
+}: {
+  forcedPurpose?: Purpose
+  initialBanner?: ResolvedHeroBanner
+  cityScope?: CitySearchScope
+}) {
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false)
   const [moreFiltersVisible, setMoreFiltersVisible] = useState(false)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
@@ -104,7 +113,7 @@ export default function PropertiesClient({ forcedPurpose, initialBanner }: { for
     locationLoading,
     locationError,
     retryLocations,
-  } = useProperties(forcedPurpose)
+  } = useProperties(forcedPurpose, cityScope)
 
   // Data and URL sync handled by `useProperties` hook
 
@@ -186,8 +195,8 @@ export default function PropertiesClient({ forcedPurpose, initialBanner }: { for
 
   // Price options provided by `useProperties` hook
 
-  const heroTitle = forcedPurpose === 'rent' ? 'Find Your Next Home' : 'Discover Premium Properties'
-  const heroSubtitle =
+  const heroTitle = initialBanner?.headline || (forcedPurpose === 'rent' ? 'Find Your Next Home' : 'Discover Premium Properties')
+  const heroSubtitle = initialBanner?.subheadline ||
     forcedPurpose === 'rent'
       ? 'Discover rental properties across India and the UAE. Search by location, property type, configuration, rent and lifestyle preferences.'
       : 'Browse properties available for purchase across India and the UAE. Search by location, property type, configuration, budget and more.'
@@ -200,7 +209,7 @@ export default function PropertiesClient({ forcedPurpose, initialBanner }: { for
       <PropertiesHero
         title={heroTitle}
         subtitle={heroSubtitle}
-        image={{ src: '/HOMEPAGE.jpeg', alt: heroTitle }}
+        image={{ src: initialBanner?.desktopImage || '/HOMEPAGE.jpeg', alt: initialBanner?.desktopAlt || heroTitle }}
         banner={initialBanner}
         breadcrumb={[{ label: 'Home', href: '/' }, { label: breadcrumbLabel, href: breadcrumbHref }]}
         search={<SmartSearch draftFilters={draftFilters} setDraftFilters={setDraftFilters} onSearch={applyDraft} purpose={purpose} country={draftFilters.country} />}

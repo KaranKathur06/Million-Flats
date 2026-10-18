@@ -103,4 +103,152 @@ describe('getProjectListing', () => {
 
     expect(db.project.findMany).toHaveBeenCalledTimes(1)
   })
+
+  it('applies recommended priorities in order and restores that order after loading relations', async () => {
+    db.cityPriority.findMany.mockResolvedValueOnce([
+      { countryIso2: 'AE', cityName: 'Dubai', priority: 1 },
+      { countryIso2: 'AE', cityName: 'Abu Dhabi', priority: 2 },
+      { countryIso2: 'IN', cityName: 'Mumbai', priority: 1 },
+    ])
+
+    const projectsForRanking = [
+      {
+        id: 'in-mumbai-pinned',
+        countryIso2: 'IN',
+        city: 'Mumbai',
+        isPinned: true,
+        pinPriority: 1,
+        listingPriority: 1,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      },
+      {
+        id: 'ae-dubai-fallback-b',
+        countryIso2: 'AE',
+        city: 'Dubai',
+        isPinned: false,
+        pinPriority: null,
+        listingPriority: null,
+        createdAt: new Date('2025-01-01T00:00:00.000Z'),
+      },
+      {
+        id: 'ae-dubai-pinned-2',
+        countryIso2: 'AE',
+        city: 'Dubai',
+        isPinned: true,
+        pinPriority: 2,
+        listingPriority: 1,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      },
+      {
+        id: 'ae-abu-dhabi-pinned',
+        countryIso2: 'AE',
+        city: 'Abu Dhabi',
+        isPinned: true,
+        pinPriority: 1,
+        listingPriority: 1,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      },
+      {
+        id: 'ae-dubai-pinned-1-old',
+        countryIso2: 'AE',
+        city: 'Dubai',
+        isPinned: true,
+        pinPriority: 1,
+        listingPriority: 1,
+        createdAt: new Date('2025-01-01T00:00:00.000Z'),
+      },
+      {
+        id: 'ae-dubai-unpinned-listing-2',
+        countryIso2: 'AE',
+        city: 'Dubai',
+        isPinned: false,
+        pinPriority: null,
+        listingPriority: 2,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      },
+      {
+        id: 'ae-dubai-pinned-1-new',
+        countryIso2: 'AE',
+        city: 'Dubai',
+        isPinned: true,
+        pinPriority: 1,
+        listingPriority: 1,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      },
+      {
+        id: 'ae-dubai-unpinned-listing-1',
+        countryIso2: 'AE',
+        city: 'Dubai',
+        isPinned: false,
+        pinPriority: null,
+        listingPriority: 1,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      },
+      {
+        id: 'ae-dubai-fallback-a',
+        countryIso2: 'AE',
+        city: 'Dubai',
+        isPinned: false,
+        pinPriority: null,
+        listingPriority: null,
+        createdAt: new Date('2025-01-01T00:00:00.000Z'),
+      },
+    ]
+    const expectedIds = [
+      'ae-dubai-pinned-1-new',
+      'ae-dubai-pinned-1-old',
+      'ae-dubai-pinned-2',
+      'ae-dubai-unpinned-listing-1',
+      'ae-dubai-unpinned-listing-2',
+      'ae-dubai-fallback-a',
+      'ae-dubai-fallback-b',
+      'ae-abu-dhabi-pinned',
+      'in-mumbai-pinned',
+    ]
+    const projectsWithRelations = expectedIds.map((id) => ({ id, media: [] }))
+    db.project.findMany
+      .mockResolvedValueOnce(projectsForRanking)
+      .mockResolvedValueOnce([...projectsWithRelations].reverse())
+
+    const result = await getProjectListing({ include: { media: true } })
+
+    expect(result.map((project: { id: string }) => project.id)).toEqual(expectedIds)
+    expect(db.project.findMany.mock.calls[0][0]).toHaveProperty('select')
+    expect(db.project.findMany.mock.calls[1][0].where.id.in).toEqual(expectedIds)
+  })
+
+  it('clamps negative recommended offsets and returns an empty page beyond the ranked results', async () => {
+    const projectsForRanking = [
+      {
+        id: 'second',
+        countryIso2: 'AE',
+        city: 'Dubai',
+        isPinned: false,
+        pinPriority: null,
+        listingPriority: null,
+        createdAt: new Date('2025-01-01T00:00:00.000Z'),
+      },
+      {
+        id: 'first',
+        countryIso2: 'AE',
+        city: 'Dubai',
+        isPinned: false,
+        pinPriority: null,
+        listingPriority: null,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      },
+    ]
+    const firstProject = { id: 'first', media: [] }
+    db.project.findMany
+      .mockResolvedValueOnce(projectsForRanking)
+      .mockResolvedValueOnce([firstProject])
+      .mockResolvedValueOnce(projectsForRanking)
+
+    await expect(getProjectListing({ skip: -3, take: 1 })).resolves.toEqual([firstProject])
+    await expect(getProjectListing({ skip: 10, take: 1 })).resolves.toEqual([])
+
+    expect(db.project.findMany).toHaveBeenCalledTimes(3)
+    expect(db.project.findMany.mock.calls[1][0].where.id.in).toEqual(['first'])
+    expect(db.project.findMany.mock.calls[2][0]).toHaveProperty('select')
+  })
 })

@@ -28,8 +28,15 @@ export default async function AdminAgentsPage({
   }
 
   const statusFilter = safeString(searchParams?.status) || ''
+  const archivedOnly = safeString(searchParams?.archived) === '1'
 
-  const where: any = { agent: { isNot: null } }
+  const where: any = {
+    agent: {
+      is: {
+        archivedAt: archivedOnly ? { not: null } : null,
+      },
+    },
+  }
 
   const rows = await (prisma as any).user.findMany({
     where,
@@ -51,6 +58,7 @@ export default async function AdminAgentsPage({
           license: true,
           whatsapp: true,
           approved: true,
+          archivedAt: true,
           profileStatus: true,
           profileCompletion: true,
           verificationStatus: true,
@@ -113,6 +121,7 @@ export default async function AdminAgentsPage({
       license: safeString(agent?.license),
       whatsapp: safeString(agent?.whatsapp),
       approved: Boolean(agent?.approved),
+      isArchived: Boolean(agent?.archivedAt),
       profileStatus: safeString(agent?.profileStatus),
       profileCompletion: typeof agent?.profileCompletion === 'number' ? agent.profileCompletion : 0,
       verificationStatus: safeString(agent?.verificationStatus || 'PENDING'),
@@ -168,6 +177,19 @@ export default async function AdminAgentsPage({
       </div>
 
       {/* Status filter tabs */}
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-white/50">
+          {archivedOnly ? 'Showing archived agents' : 'Showing active agents'}
+        </p>
+        <Link
+          href={archivedOnly ? '/admin/agents' : '/admin/agents?archived=1'}
+          className="inline-flex items-center rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-white/70 hover:bg-white/[0.05]"
+        >
+          {archivedOnly ? 'View active agents' : 'View archived agents'}
+        </Link>
+      </div>
+
+      {/* Status filter tabs */}
       <div className="flex flex-wrap gap-2">
         {[
           { label: 'All', value: '', },
@@ -183,7 +205,9 @@ export default async function AdminAgentsPage({
           return (
             <Link
               key={tab.value}
-              href={tab.value ? `/admin/agents?status=${tab.value}` : '/admin/agents'}
+              href={tab.value
+                ? `/admin/agents?status=${tab.value}${archivedOnly ? '&archived=1' : ''}`
+                : archivedOnly ? '/admin/agents?archived=1' : '/admin/agents'}
               className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-[13px] font-semibold transition-all duration-200 border ${isActive
                 ? 'bg-gradient-to-r from-amber-400/15 to-amber-400/5 text-white border-amber-400/20'
                 : 'bg-white/[0.02] text-white/50 border-white/[0.06] hover:bg-white/[0.04] hover:text-white/70'
