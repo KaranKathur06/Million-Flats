@@ -23,9 +23,10 @@ describe('auth architecture helpers', () => {
     expect(isProtectedRoutePath('/about')).toBe(false)
   })
 
-  it('protects AI API endpoints while leaving the AI preview pages public', () => {
-    expect(isProtectedRoutePath('/api/ai/investment')).toBe(true)
-    expect(isProtectedRoutePath('/api/ai/vision')).toBe(true)
+  it('leaves AI pages and API handlers to their own access controls', () => {
+    expect(isProtectedRoutePath('/api/ai/investment')).toBe(false)
+    expect(isProtectedRoutePath('/api/ai/vision')).toBe(false)
+    expect(isProtectedRoutePath('/AI/pro')).toBe(false)
     expect(isProtectedRoutePath('/ai/index')).toBe(false)
     expect(isProtectedRoutePath('/ai/shield/about')).toBe(false)
     expect(isPublicRoutePath('/ai/index')).toBe(true)

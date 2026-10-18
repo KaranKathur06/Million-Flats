@@ -8,6 +8,7 @@ interface PropertiesGridProps {
   properties: Property[]
   loading: boolean
   error: string
+  onRetry?: () => void
   emptyLabel?: string
   variant?: PropertyCardVariant
 }
@@ -16,6 +17,7 @@ export default function PropertiesGrid({
   properties,
   loading,
   error,
+  onRetry,
   emptyLabel = 'No properties found matching your criteria.',
   variant = 'grid',
 }: PropertiesGridProps) {
@@ -24,6 +26,15 @@ export default function PropertiesGrid({
       <div className="rounded-2xl border border-red-100 bg-red-50 px-6 py-12 text-center">
         <p className="text-gray-700">We couldn&apos;t load properties right now.</p>
         <p className="mt-2 text-sm text-gray-600">{error}</p>
+        {onRetry ? (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-4 inline-flex h-10 items-center justify-center rounded-lg bg-dark-blue px-5 text-sm font-semibold text-white transition-colors hover:bg-blue-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dark-blue"
+          >
+            Retry
+          </button>
+        ) : null}
       </div>
     )
   }

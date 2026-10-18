@@ -1,10 +1,34 @@
 import { NextResponse } from 'next/server'
+import { unstable_cache } from 'next/cache'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import { isPrismaPoolTimeout } from '@/lib/prismaErrors'
+import { prismaPoolTimeoutResponse } from '@/lib/api/prismaPoolTimeout'
 import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
 import { getCityOptions, normalizeCanonicalCity, normalizeCountryCode, normalizeText } from '@/lib/propertyCanonical'
 
 export const dynamic = 'force-dynamic'
+const LOCATION_OPTIONS_CACHE_SECONDS = 300
+
+const getCanonicalCityRows = unstable_cache(
+  async (countryCode: 'UAE' | 'INDIA') => (prisma as any).city.findMany({
+    where: { countryCode },
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' },
+  }),
+  ['public-property-location-cities-v1'],
+  { revalidate: LOCATION_OPTIONS_CACHE_SECONDS },
+)
+
+const getCanonicalCommunityRows = unstable_cache(
+  async (countryCode: 'UAE' | 'INDIA', cityId: string | null) => (prisma as any).community.findMany({
+    where: cityId ? { cityId } : { city: { countryCode } },
+    select: { name: true, city: { select: { name: true } } },
+    orderBy: { name: 'asc' },
+  }),
+  ['public-property-location-communities-v1'],
+  { revalidate: LOCATION_OPTIONS_CACHE_SECONDS },
+)
 
 const QuerySchema = z.object({
   country: z.enum(['UAE', 'INDIA']),
@@ -57,11 +81,7 @@ export async function GET(req: Request) {
 
     const canonicalCountry = normalizeCountryCode(country)
     const canonicalCountryCode = canonicalCountry === 'AE' ? 'UAE' : 'INDIA'
-    const canonicalCityRows = await (prisma as any).city.findMany({
-      where: { countryCode: canonicalCountryCode },
-      select: { id: true, name: true },
-      orderBy: { name: 'asc' },
-    })
+    const canonicalCityRows = await getCanonicalCityRows(canonicalCountryCode)
 
     const cityNames = [
       ...canonicalCityRows.map((row: any) => row.name),
@@ -73,11 +93,10 @@ export async function GET(req: Request) {
     const selectedCanonicalCity = selectedCanonicalName
       ? canonicalCityRows.find((row: any) => normalizeText(row.name).toLowerCase() === normalizeText(selectedCanonicalName).toLowerCase())
       : null
-    const canonicalCommunityRows = await (prisma as any).community.findMany({
-      where: selectedCanonicalCity ? { cityId: selectedCanonicalCity.id } : {},
-      select: { name: true, city: { select: { name: true } } },
-      orderBy: { name: 'asc' },
-    })
+    const canonicalCommunityRows = await getCanonicalCommunityRows(
+      canonicalCountryCode,
+      selectedCanonicalCity?.id || null,
+    )
 
     const fallbackCities = uniqueSorted([
       ...cities,
@@ -98,6 +117,9 @@ export async function GET(req: Request) {
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     console.error('Property locations: failed', error)
+    if (isPrismaPoolTimeout(error)) {
+      return prismaPoolTimeoutResponse('Location options are temporarily unavailable. Please retry shortly.')
+    }
     return NextResponse.json({ success: false, message: 'Unable to load locations' }, { status: 500 })
   }
 }

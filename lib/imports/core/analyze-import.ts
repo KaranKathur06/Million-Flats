@@ -8,7 +8,7 @@ import {
   markImportAnalysisRetrying,
   releaseImportAnalysisAttempt,
 } from './analysis-lock'
-import { withPrismaPoolTimeoutRetry } from './retry-pool-timeout'
+import { withPrismaAcquisitionRetry } from './retry-pool-timeout'
 import { canTransition } from './state-machine'
 
 type AnalysisSummary = {
@@ -238,7 +238,7 @@ async function performBackgroundAnalysis(
             : { ready: false, warnings: [], errors: canonicalResult.errors }
 
           const relations = canonical
-            ? await withImportAnalysisRelationSlot(() => withPrismaPoolTimeoutRetry(
+            ? await withImportAnalysisRelationSlot(() => withPrismaAcquisitionRetry(
                 () => adapter.resolveRelations({ canonical, raw: analysisRaw, db: prisma }),
                 { batchId: batch.id, recordId: record.id, operation: 'relation resolution' },
               ))
@@ -281,7 +281,7 @@ async function performBackgroundAnalysis(
         const overallConfidence = Object.values(canonicalResult.fieldConfidence || {}).length
           ? Object.values(canonicalResult.fieldConfidence || {}).reduce((sum: number, value: any) => sum + (typeof value === 'number' ? value : 0), 0) / Object.values(canonicalResult.fieldConfidence || {}).length
           : null
-        const checkpoint = await withPrismaPoolTimeoutRetry<Array<{
+        const checkpoint = await withPrismaAcquisitionRetry<Array<{
           ownershipMatched: boolean
           recordMatched: boolean
           progressUpdated: boolean

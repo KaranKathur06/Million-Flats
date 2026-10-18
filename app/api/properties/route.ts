@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { MANUAL_PROPERTY_PUBLIC_STATUS } from '@/lib/manualPropertyLifecycle'
 import { buildManualPropertyPath } from '@/lib/manualPropertyRoutes'
 import { buildManualPropertyCityFilter, resolveCitySearchScope } from '@/lib/citySearch'
+import { isPrismaPoolTimeout } from '@/lib/prismaErrors'
+import { prismaPoolTimeoutResponse } from '@/lib/api/prismaPoolTimeout'
 
 type RateEntry = { count: number; resetAt: number }
 
@@ -321,6 +323,9 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: true, items, totalCount, page, limit: take, totalPages: Math.ceil(totalCount / take) })
   } catch (e) {
     console.error('Properties feed: failed', e)
+    if (isPrismaPoolTimeout(e)) {
+      return prismaPoolTimeoutResponse('Property search is temporarily busy. Please retry shortly.')
+    }
     return NextResponse.json({ success: false, message: 'Unable to load properties. Please try again later.' }, { status: 500 })
   }
 }

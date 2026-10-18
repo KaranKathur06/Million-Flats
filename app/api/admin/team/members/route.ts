@@ -15,11 +15,11 @@ export const dynamic = 'force-dynamic'
 
 const createMemberSchema = z.object({
   displayName: z.string().min(1).max(120).trim(),
-  designation: z.string().max(200).trim().optional().or(z.literal('')),
-  bio: z.string().max(2000).trim().optional().or(z.literal('')),
-  imageUrl: z.string().url().max(500).optional().or(z.literal('')),
-  linkedinUrl: z.string().url().max(500).optional().or(z.literal('')),
-  location: z.string().max(100).trim().optional().or(z.literal('')),
+  designation: z.string().max(200).trim().nullable().optional().or(z.literal('')),
+  bio: z.string().max(2000).trim().nullable().optional().or(z.literal('')),
+  imageUrl: z.string().url().max(500).nullable().optional().or(z.literal('')),
+  linkedinUrl: z.string().url().max(500).nullable().optional().or(z.literal('')),
+  location: z.string().max(100).trim().nullable().optional().or(z.literal('')),
   displayOrder: z.number().int().min(0).max(9999).optional(),
   userId: z.string().uuid().optional().or(z.literal('')),
 })

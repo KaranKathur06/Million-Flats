@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import GlobalPermanentDeleteDialog from '@/components/admin/GlobalPermanentDeleteDialog'
 
 type AgentRow = {
   userId: string
@@ -85,6 +86,8 @@ export default function AdminAgentsTableClient({
   const router = useRouter()
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<AgentRow | null>(null)
+  const [deleteError, setDeleteError] = useState('')
 
   const role = safeString(currentRole).toUpperCase()
   const isSuperadmin = role === 'SUPERADMIN'
@@ -122,18 +125,46 @@ export default function AdminAgentsTableClient({
       return
     }
 
-    const confirmation = window.prompt(
-      'Permanent deletion is blocked when protected records exist. Type PERMANENTLY_DELETE_AGENT to continue.',
-    )
-    if (confirmation !== 'PERMANENTLY_DELETE_AGENT') return
-    void doAction(it.agentId, async () => {
-      await requestAction(`/api/admin/agents/${it.agentId}`, 'DELETE', { confirmation })
-    })
+    setDeleteError('')
+    setDeleteTarget(it)
   }
 
   return (
     <div>
       {error ? <p className="mb-4 text-sm font-semibold text-red-300">{error}</p> : null}
+      <GlobalPermanentDeleteDialog
+        open={Boolean(deleteTarget)}
+        title="Permanently delete agent?"
+        description="This action cannot be undone. Deletion is blocked when the agent has protected records."
+        details={deleteTarget ? (
+          <div className="rounded-xl border border-red-400/15 bg-red-400/[0.04] px-4 py-3 text-sm text-white/75">
+            <p className="font-semibold text-white">{deleteTarget.name}</p>
+            <p className="mt-1 break-all text-xs text-white/45">{deleteTarget.email}</p>
+          </div>
+        ) : null}
+        error={deleteError}
+        loading={Boolean(deleteTarget && busyId === deleteTarget.agentId)}
+        onCancel={() => { setDeleteTarget(null); setDeleteError('') }}
+        onConfirm={() => {
+          if (!deleteTarget || busyId) return
+          const target = deleteTarget
+          void (async () => {
+            setBusyId(target.agentId)
+            setDeleteError('')
+            try {
+              await requestAction(`/api/admin/agents/${target.agentId}`, 'DELETE', {
+                confirmation: 'PERMANENTLY_DELETE_AGENT',
+              })
+              setDeleteTarget(null)
+              router.refresh()
+            } catch (e) {
+              setDeleteError(e instanceof Error ? e.message : 'Permanent deletion failed.')
+            } finally {
+              setBusyId('')
+            }
+          })()
+        }}
+      />
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-3">
@@ -148,6 +179,7 @@ export default function AdminAgentsTableClient({
                 <div>
                   <div className="text-white font-semibold">{it.name}</div>
                   <div className="text-xs text-white/70 break-all">{it.email}</div>
+                  {it.phone && <div className="mt-1 text-xs text-white/45">{it.phone}</div>}
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase ${getStatusBadge(vs)}`}>
@@ -171,6 +203,30 @@ export default function AdminAgentsTableClient({
                 <div>
                   <div className="text-white/50">Progress</div>
                   <div className="font-semibold text-white/90">{it.completionPercentage}%</div>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl border border-white/[0.06] bg-black/10 p-3 text-xs">
+                <div>
+                  <div className="text-white/45">Risk score</div>
+                  <div className={`mt-1 font-semibold ${it.riskScore >= 70 ? 'text-red-300' : it.riskScore >= 30 ? 'text-amber-300' : 'text-emerald-300'}`}>
+                    {risk.label} · {it.riskScore}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-white/45">Subscription</div>
+                  <div className="mt-1 font-semibold text-white/85">{it.subscriptionPlan || 'No plan'}</div>
+                  <div className="mt-0.5 text-white/50">{it.subscriptionStatus || 'No subscription'}</div>
+                </div>
+                <div>
+                  <div className="text-white/45">Days remaining</div>
+                  <div className="mt-1 font-semibold text-white/85">
+                    {it.subscriptionDaysRemaining === null ? '—' : it.subscriptionDaysRemaining === 0 ? 'Expired' : it.subscriptionDaysRemaining}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-white/45">Referral</div>
+                  <div className="mt-1 break-words font-medium text-white/80">{it.referralDetails || it.referralSource || '—'}</div>
                 </div>
               </div>
 
@@ -223,22 +279,22 @@ export default function AdminAgentsTableClient({
       </div>
 
       {/* Desktop table */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="min-w-full text-sm">
+      <div className="hidden overflow-x-auto rounded-xl border border-white/[0.07] md:block">
+        <table className="min-w-[1450px] w-full text-sm">
           <thead>
             <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-white/40 border-b border-white/[0.08]">
-              <th className="py-3 pr-4">Agent</th>
-              <th className="py-3 pr-4">Company</th>
-              <th className="py-3 pr-4">Referred By</th>
-              <th className="py-3 pr-4">Documents</th>
-              <th className="py-3 pr-4">Progress</th>
-              <th className="py-3 pr-4">Risk</th>
-              <th className="py-3 pr-4">Verification</th>
-              <th className="py-3 pr-4">Plan</th>
-              <th className="py-3 pr-4">Subscription</th>
-              <th className="py-3 pr-4">Days Left</th>
-              <th className="py-3 pr-4">Submitted</th>
-              <th className="py-3 pr-4">Actions</th>
+              <th className="px-4 py-3">Agent</th>
+              <th className="px-4 py-3">Company</th>
+              <th className="px-4 py-3">Referred By</th>
+              <th className="px-4 py-3">Documents</th>
+              <th className="px-4 py-3">Progress</th>
+              <th className="px-4 py-3">Risk</th>
+              <th className="px-4 py-3">Verification</th>
+              <th className="px-4 py-3">Plan</th>
+              <th className="px-4 py-3">Subscription</th>
+              <th className="px-4 py-3">Days Left</th>
+              <th className="px-4 py-3">Submitted</th>
+              <th className="px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -339,38 +395,40 @@ export default function AdminAgentsTableClient({
                   </td>
                   <td className="py-4 pr-4 text-xs text-white/50">{it.createdAt || '—'}</td>
                   <td className="py-4 pr-4">
-                    {it.agentId && (
-                      <Link
-                        href={`/admin/agents/${it.agentId}`}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-400/90 to-amber-500/90 px-4 text-[11px] font-bold text-[#0b1220] shadow-sm shadow-amber-500/20 hover:shadow-md hover:from-amber-300 hover:to-amber-400 transition-all duration-200"
-                      >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        Review
-                      </Link>
-                    )}
-                    {it.agentId && (
-                      <button
-                        type="button"
-                        disabled={busyId === it.agentId}
-                        onClick={() => runAgentAction(it, it.isArchived ? 'restore' : 'archive')}
-                        className="ml-2 h-8 rounded-lg border border-white/10 px-2 text-[11px] font-semibold text-white/80 disabled:opacity-50"
-                      >
-                        {it.isArchived ? 'Restore' : 'Archive'}
-                      </button>
-                    )}
-                    {it.agentId && isSuperadmin && (
-                      <button
-                        type="button"
-                        disabled={busyId === it.agentId}
-                        onClick={() => runAgentAction(it, 'delete')}
-                        className="ml-2 h-8 rounded-lg border border-red-400/20 px-2 text-[11px] font-semibold text-red-300 disabled:opacity-50"
-                      >
-                        Delete
-                      </button>
-                    )}
+                    <div className="flex min-w-[140px] flex-col items-stretch gap-2">
+                      {it.agentId && (
+                        <Link
+                          href={`/admin/agents/${it.agentId}`}
+                          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-400/90 to-amber-500/90 px-4 text-[11px] font-bold text-[#0b1220] shadow-sm shadow-amber-500/20 transition-all duration-200 hover:from-amber-300 hover:to-amber-400 hover:shadow-md"
+                        >
+                          <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          Review
+                        </Link>
+                      )}
+                      {it.agentId && (
+                        <button
+                          type="button"
+                          disabled={busyId === it.agentId}
+                          onClick={() => runAgentAction(it, it.isArchived ? 'restore' : 'archive')}
+                          className="h-8 rounded-lg border border-white/10 px-2 text-[11px] font-semibold text-white/80 disabled:opacity-50"
+                        >
+                          {it.isArchived ? 'Restore' : 'Archive'}
+                        </button>
+                      )}
+                      {it.agentId && isSuperadmin && (
+                        <button
+                          type="button"
+                          disabled={busyId === it.agentId}
+                          onClick={() => runAgentAction(it, 'delete')}
+                          className="h-8 rounded-lg border border-red-400/20 px-2 text-[11px] font-semibold text-red-300 disabled:opacity-50"
+                        >
+                          Permanently delete
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )
@@ -378,7 +436,7 @@ export default function AdminAgentsTableClient({
 
             {items.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-16 text-center">
+                <td colSpan={12} className="py-16 text-center">
                   <div className="text-white/30">
                     <svg className="mx-auto h-12 w-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import toast, { Toaster } from 'react-hot-toast'
+import GlobalPermanentDeleteDialog from '@/components/admin/GlobalPermanentDeleteDialog'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -133,6 +134,7 @@ function MemberFormModal({
     e.preventDefault()
     const errs = validate()
     if (Object.keys(errs).length > 0) { setErrors(errs); return }
+    setErrors({})
     setSaving(true)
 
     try {
@@ -158,8 +160,14 @@ function MemberFormModal({
 
       if (!res.ok) {
         const data = await res.json()
+        if (res.status === 422 && data.issues) {
+          const fieldErrors: Record<string, string> = {}
+          for (const [key, messages] of Object.entries(data.issues as Record<string, string[] | undefined>)) {
+            if (messages?.[0]) fieldErrors[key] = messages[0]
+          }
+          setErrors(fieldErrors)
+        }
         toast.error(data.error || 'Save failed')
-        setSaving(false)
         return
       }
 
@@ -393,6 +401,9 @@ export default function TeamAdminClient({ initialMembers, initialAccessGrants, u
   const [tab, setTab] = useState<'members' | 'access'>('members')
   const [editingMember, setEditingMember] = useState<TeamMember | null | undefined>(undefined)
   const [showGrantModal, setShowGrantModal] = useState(false)
+  const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | undefined>()
   const [confirm, setConfirm] = useState<{
     open: boolean; title: string; message: string; confirmLabel: string; danger?: boolean; onConfirm: () => void
   }>({ open: false, title: '', message: '', confirmLabel: '', onConfirm: () => {} })
@@ -441,25 +452,32 @@ export default function TeamAdminClient({ initialMembers, initialAccessGrants, u
   }, [handleMemberSaved])
 
   const handleDeleteMember = useCallback((member: TeamMember) => {
-    setConfirm({
-      open: true,
-      title: 'Delete profile',
-      message: `Delete ${member.displayName}'s team profile? The user account and directory access are NOT affected.`,
-      confirmLabel: 'Delete Profile',
-      danger: true,
-      onConfirm: async () => {
-        setConfirm(c => ({ ...c, open: false }))
-        const res = await fetch(`/api/admin/team/members/${member.id}`, { method: 'DELETE' })
-        if (res.ok) {
-          setMembers(prev => prev.filter(m => m.id !== member.id))
-          toast.success('Profile deleted')
-        } else {
-          const d = await res.json()
-          toast.error(d.error || 'Delete failed')
-        }
-      },
-    })
+    setDeleteError(undefined)
+    setMemberToDelete(member)
   }, [])
+
+  const handleConfirmDeleteMember = useCallback(async () => {
+    if (!memberToDelete || deleteLoading) return
+
+    setDeleteLoading(true)
+    setDeleteError(undefined)
+    try {
+      const res = await fetch(`/api/admin/team/members/${memberToDelete.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json()
+        setDeleteError(data.error || 'Delete failed. Please try again.')
+        return
+      }
+
+      setMembers(prev => prev.filter(member => member.id !== memberToDelete.id))
+      setMemberToDelete(null)
+      toast.success('Profile deleted')
+    } catch {
+      setDeleteError('Unable to delete the profile. Check your connection and try again.')
+    } finally {
+      setDeleteLoading(false)
+    }
+  }, [deleteLoading, memberToDelete])
 
   // ── Access handlers ──────────────────────────────────────────────────────
 
@@ -518,6 +536,27 @@ export default function TeamAdminClient({ initialMembers, initialAccessGrants, u
         danger={confirm.danger}
         onConfirm={confirm.onConfirm}
         onCancel={() => setConfirm(c => ({ ...c, open: false }))}
+      />
+      <GlobalPermanentDeleteDialog
+        open={memberToDelete !== null}
+        title="Permanently delete team profile?"
+        description={`Delete ${memberToDelete?.displayName ?? 'this member'}'s team profile? This action cannot be undone.`}
+        details={
+          <p className="text-sm leading-relaxed text-white/65">
+            Only the team profile is deleted. The user account and team directory access remain unchanged.
+          </p>
+        }
+        confirmLabel="Delete profile"
+        loading={deleteLoading}
+        loadingLabel="Deleting profile..."
+        error={deleteError}
+        onConfirm={handleConfirmDeleteMember}
+        onCancel={() => {
+          if (!deleteLoading) {
+            setMemberToDelete(null)
+            setDeleteError(undefined)
+          }
+        }}
       />
 
       {/* Member form modal */}

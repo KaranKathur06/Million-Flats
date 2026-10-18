@@ -10,18 +10,22 @@ const mockManualPropertyFindMany = jest.fn<() => Promise<Array<Record<string, an
 const mockCityFindMany = jest.fn<() => Promise<Array<Record<string, any>>>>()
 const mockCommunityFindMany = jest.fn<() => Promise<Array<Record<string, any>>>>()
 const mockManualPropertyCount = jest.fn<() => Promise<number>>()
+const mockUnstableCache = jest.fn((callback: (...args: any[]) => Promise<any>) => callback)
 
 jest.mock('next/server', () => {
   class MockNextResponse {
     body: any
     status: number
 
-    constructor(body: any, init?: { status?: number }) {
+    headers: Headers
+
+    constructor(body: any, init?: { status?: number; headers?: HeadersInit }) {
       this.body = body
       this.status = init?.status ?? 200
+      this.headers = new Headers(init?.headers)
     }
 
-    static json(body: any, init?: { status?: number }) {
+    static json(body: any, init?: { status?: number; headers?: HeadersInit }) {
       return new MockNextResponse(body, init)
     }
   }
@@ -31,6 +35,10 @@ jest.mock('next/server', () => {
 
 jest.mock('next-auth', () => ({
   getServerSession: mockGetServerSession,
+}))
+
+jest.mock('next/cache', () => ({
+  unstable_cache: mockUnstableCache,
 }))
 
 jest.mock('@/lib/auth', () => ({
@@ -71,6 +79,7 @@ jest.mock('@/lib/assetTracking', () => ({
 
 import { POST as brochureDownload } from '@/app/api/projects/[slug]/brochure/download/route'
 import { GET as propertyLocations } from '@/app/api/properties/locations/route'
+import { GET as publicProperties } from '@/app/api/properties/route'
 
 describe('public access regressions', () => {
   beforeEach(() => {
@@ -137,6 +146,14 @@ describe('public access regressions', () => {
     expect(response.body.success).toBe(true)
     expect(response.body.cities).toContain('Dubai')
     expect(response.body.localities).toContain('Downtown Dubai')
+    expect(mockCommunityFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { city: { countryCode: 'UAE' } },
+    }))
+    expect(mockUnstableCache).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.arrayContaining(['public-property-location-communities-v1']),
+      { revalidate: 300 },
+    )
   })
 
   it('returns canonical cities when no public property rows match', async () => {
@@ -166,5 +183,43 @@ describe('public access regressions', () => {
     expect(response.status).toBe(200)
     expect(response.body.cities).toEqual(['Hyderabad', 'Navi Mumbai'])
     expect(response.body.cities.filter((city: string) => city === 'Navi Mumbai')).toHaveLength(1)
+    expect(mockCommunityFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { cityId: 'city-hyd' },
+    }))
+  })
+
+  it('returns a retryable response for Prisma pool timeouts on the property feed', async () => {
+    const poolTimeout = Object.assign(
+      new Error('Timed out fetching a new connection from the connection pool'),
+      { name: 'PrismaClientKnownRequestError', clientVersion: '5.22.0', code: 'P2024' },
+    )
+    mockManualPropertyCount.mockResolvedValue(0)
+    mockManualPropertyFindMany.mockRejectedValueOnce(poolTimeout)
+
+    const response: any = await publicProperties(
+      new Request('http://localhost/api/properties?country=INDIA&purpose=buy'),
+    )
+
+    expect(response.status).toBe(503)
+    expect(response.headers.get('Retry-After')).toBe('3')
+    expect(response.body.message).toContain('temporarily busy')
+    expect(response.body.message).not.toContain('connection pool')
+  })
+
+  it('returns a retryable response for Prisma pool timeouts on location options', async () => {
+    const poolTimeout = Object.assign(
+      new Error('Timed out fetching a new connection from the connection pool'),
+      { name: 'PrismaClientKnownRequestError', clientVersion: '5.22.0', code: 'P2024' },
+    )
+    mockCityFindMany.mockRejectedValueOnce(poolTimeout)
+
+    const response: any = await propertyLocations(
+      new Request('http://localhost/api/properties/locations?country=INDIA'),
+    )
+
+    expect(response.status).toBe(503)
+    expect(response.headers.get('Retry-After')).toBe('3')
+    expect(response.body.message).toContain('temporarily unavailable')
+    expect(response.body.message).not.toContain('connection pool')
   })
 })

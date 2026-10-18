@@ -51,6 +51,7 @@ export default function useProperties(forcedPurpose?: Purpose, initialCityScope?
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
   const [apiError, setApiError] = useState('')
+  const propertiesRequestRef = useRef<AbortController | null>(null)
   const [page, setPage] = useState<number>(1)
   const [limit, setLimit] = useState<number>(24)
   const [totalCount, setTotalCount] = useState<number | null>(null)
@@ -269,8 +270,12 @@ export default function useProperties(forcedPurpose?: Purpose, initialCityScope?
   const retryLocations = useCallback(() => setLocationRequestVersion((version) => version + 1), [])
 
   const fetchProperties = useCallback(async () => {
+    propertiesRequestRef.current?.abort()
+    const controller = new AbortController()
+    propertiesRequestRef.current = controller
     setLoading(true)
     setApiError('')
+    setTotalCount(null)
     try {
       const params = new URLSearchParams()
 
@@ -290,15 +295,17 @@ export default function useProperties(forcedPurpose?: Purpose, initialCityScope?
       params.set('page', String(page))
       params.set('limit', String(limit))
 
-      const res = await fetch(`/api/properties?${params.toString()}`)
-      const text = await res.text().catch(() => '')
-      const json = text ? (JSON.parse(text) as any) : null
+      const res = await fetch(`/api/properties?${params.toString()}`, { signal: controller.signal })
+      const json = await res.json().catch(() => null)
 
       if (!res.ok || !json?.success) {
+        if (controller.signal.aborted) return
         setProperties([])
-        setApiError('Unable to load properties. Please try again later.')
+        setTotalCount(null)
+        setApiError(json?.message || 'Unable to load properties. Please try again later.')
         return
       }
+      if (controller.signal.aborted) return
 
       const items = Array.isArray(json?.items) ? (json.items as any[]) : []
       const total = typeof json?.totalCount === 'number' ? Number(json.totalCount) : null
@@ -357,15 +364,24 @@ export default function useProperties(forcedPurpose?: Purpose, initialCityScope?
       setProperties(mapped)
       setTotalCount(total)
     } catch (e) {
+      if (controller.signal.aborted) return
       setProperties([])
+      setTotalCount(null)
       setApiError('Unable to load properties. Please try again later.')
     } finally {
-      setLoading(false)
+      if (propertiesRequestRef.current === controller) {
+        propertiesRequestRef.current = null
+        setLoading(false)
+      }
     }
-  }, [filters.bathrooms, filters.bedrooms, filters.community, filters.country, filters.location, filters.maxPrice, filters.minPrice, filters.type, filters.search, filters.offPlanOnly, filters.readyHomesOnly, filters.sortBy, purpose, page, limit, getParam, initialCityScope, initialCountry])
+  }, [filters.bathrooms, filters.bedrooms, filters.community, filters.country, filters.location, filters.maxPrice, filters.minPrice, filters.type, filters.search, filters.offPlanOnly, filters.readyHomesOnly, filters.sortBy, purpose, page, limit])
 
   useEffect(() => {
-    fetchProperties()
+    void fetchProperties()
+    return () => {
+      propertiesRequestRef.current?.abort()
+      propertiesRequestRef.current = null
+    }
   }, [fetchProperties])
 
   useEffect(() => {

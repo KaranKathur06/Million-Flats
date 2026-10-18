@@ -27,6 +27,8 @@ describe('import commit attempt locking', () => {
     const sql = Array.from(template).join('')
     expect(sql).toContain('"status" = \'COMMITTING\'')
     expect(sql).toContain('"entity_type" IN (\'PROPERTY\', \'PROJECT\')')
+    expect(sql).toContain('"failure_summary"->>\'stage\' IS DISTINCT FROM \'ANALYSIS\'')
+    expect(sql).toContain('"failure_summary" = NULL')
     expect(sql).toContain('COALESCE("commit_heartbeat_at", "started_at", "updated_at")')
     expect(sql).toContain("clock_timestamp() - (")
     expect(sql).toContain("* INTERVAL '1 minute')")

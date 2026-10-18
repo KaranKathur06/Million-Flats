@@ -50,9 +50,7 @@ export default function Header() {
   const showServices = !isAdminOrHigher;
 
   const showVerfix = !isAuthed || role === "USER";
-  const verfixHref = !isAuthed
-    ? "/auth/redirect?next=%2Fai-system"
-    : "/ai-system";
+  const verfixHref = "/ai-system";
 
   const publicLinks: NavItem[] = [
     { href: "/", label: "Home" },

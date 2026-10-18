@@ -72,8 +72,6 @@ export async function middleware(req: NextRequest) {
   const isEcosystemAdminProtected = pathname === '/ecosystem/admin' || pathname.startsWith('/ecosystem/admin/')
   const isEcosystemDashProtected = pathname === '/ecosystem/dashboard' || pathname.startsWith('/ecosystem/dashboard/')
   const isEcosystemManageProtected = pathname === '/ecosystem/manage' || pathname.startsWith('/ecosystem/manage/')
-  const isAIProtected = pathname === '/AI' || pathname.startsWith('/AI/')
-  const isAIAPIProtected = pathname === '/api/ai' || pathname.startsWith('/api/ai/')
 
   const isProtected =
     isAdminProtected ||
@@ -84,8 +82,6 @@ export async function middleware(req: NextRequest) {
     isEcosystemAdminProtected ||
     isEcosystemDashProtected ||
     isEcosystemManageProtected ||
-    isAIProtected ||
-    isAIAPIProtected ||
     isProtectedRoutePath(pathname)
 
   // ── Token extraction ──
@@ -129,10 +125,6 @@ export async function middleware(req: NextRequest) {
 
   // ── Unauthenticated redirect ──
   if (isProtected && !roleRaw) {
-    if (isAIAPIProtected) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     const url = req.nextUrl.clone()
     const loginRoute = isAdminProtected ? '/admin/login' : isAgentProtected ? '/agent/auth' : '/auth/login'
     url.pathname = loginRoute
@@ -546,25 +538,6 @@ export async function middleware(req: NextRequest) {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // AI guard — same as agent but requires approval
-  // ─────────────────────────────────────────────────────────────────────────────
-  if (isAIProtected) {
-    if (role !== 'AGENT') {
-      const url = req.nextUrl.clone()
-      url.pathname = '/agent/auth'
-      const next = `${req.nextUrl.pathname}${req.nextUrl.search || ''}`
-      url.search = `next=${encodeURIComponent(next)}`
-      return NextResponse.redirect(url)
-    }
-    if (!emailVerified || agentStatus !== 'APPROVED') {
-      const url = req.nextUrl.clone()
-      url.pathname = agentStatus === 'REJECTED' ? '/agent/rejected' : '/agent/on-hold'
-      url.search = ''
-      return NextResponse.redirect(url)
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────────
   // BUYER/USER dashboard guard — redirect other roles to their home
   // ─────────────────────────────────────────────────────────────────────────────
   if (isDashboardProtected) {
@@ -639,8 +612,5 @@ export const config = {
     '/ecosystem/admin/:path*',
     '/ecosystem/dashboard/:path*',
     '/ecosystem/manage/:path*',
-    '/api/ai',
-    '/api/ai/:path*',
-    '/AI/:path*',
   ],
 }

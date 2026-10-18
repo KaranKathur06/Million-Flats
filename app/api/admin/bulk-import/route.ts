@@ -6,6 +6,7 @@ import { getImportAdapterForEntity, listImportAdapters } from '@/lib/imports/reg
 import { csvParser, detectFormat, jsonParser, xlsxParser } from '@/lib/imports/parser'
 import { resolvePropertyImportIntent } from '@/lib/imports/adapters/property/adapter'
 import { IMPORT_COMMIT_STALE_AFTER_MINUTES } from '@/lib/imports/core/constants'
+import { summarizeCommitOutcomes } from '@/lib/imports/core/commit-outcomes'
 
 const MAX_BYTES = Number(process.env.IMPORT_MAX_FILE_SIZE || 10 * 1024 * 1024)
 const MAX_RECORDS = Number(process.env.IMPORT_MAX_RECORDS || 5000)
@@ -37,6 +38,7 @@ export async function GET() {
         startedAt: true,
         updatedAt: true,
         commitHeartbeatAt: true,
+        failureSummary: true,
         entityType: true,
         operation: true,
         sourceProvider: true,
@@ -62,20 +64,22 @@ export async function GET() {
       const legacyCommitErrorsCanRetry =
         batch.errorCount === 0 &&
         ['PARTIALLY_COMMITTED', 'FAILED', 'COMMITTING'].includes(batch.status)
-      const remainingCount = groups
-        .filter((group) => ['READY', 'WARNING', 'STAGED'].includes(group.status))
-        .reduce((total, group) => total + group._count._all, 0)
-      const retryableCount = groups
-        .filter((group) =>
-          group.status === 'ERROR' &&
-          (group.commitAction === 'COMMIT_FAILED' || legacyCommitErrorsCanRetry),
-        )
-        .reduce((total, group) => total + group._count._all, 0)
-      const recordCount = groups.reduce((total, group) => total + group._count._all, 0)
-      const committedCount = groups
-        .filter((group) => group.status === 'COMMITTED')
-        .reduce((total, group) => total + group._count._all, 0)
-      const fullyCommitted = recordCount > 0 && committedCount === recordCount
+      const failureStage = batch.failureSummary && typeof batch.failureSummary === 'object'
+        ? batch.failureSummary.stage
+        : null
+      const outcomes = summarizeCommitOutcomes(
+        groups.map((group) => ({
+          status: group.status,
+          commitAction: group.commitAction,
+          count: group._count._all,
+        })),
+        { allowLegacyErrors: legacyCommitErrorsCanRetry, failureStage },
+      )
+      const { remaining: remainingCount, retryable: retryableCount, committed: committedCount } = outcomes
+      const fullyCommitted = outcomes.recordCount > 0 &&
+        committedCount === outcomes.recordCount &&
+        outcomes.inconsistent === 0
+      const hasAnalysisFailure = failureStage === 'ANALYSIS'
       const hasUnresolvedStrictWarnings =
         batch.mode === 'STRICT' &&
         groups.some((group) => group.status === 'WARNING' && group._count._all > 0)
@@ -86,6 +90,10 @@ export async function GET() {
       const resumableStatus = ['READY_TO_COMMIT', 'READY_FOR_REVIEW', 'PARTIALLY_COMMITTED', 'FAILED'].includes(batch.status)
       return {
         ...batch,
+        createdCount: outcomes.created,
+        updatedCount: outcomes.updated,
+        skippedCount: outcomes.skipped,
+        failedCount: outcomes.failed,
         remainingCount,
         retryableCount,
         committedCount,
@@ -93,6 +101,8 @@ export async function GET() {
         staleCommit,
         canContinue:
           ['PROPERTY', 'PROJECT'].includes(batch.entityType) &&
+          !hasAnalysisFailure &&
+          outcomes.inconsistent === 0 &&
           (resumableStatus || staleCommit) &&
           ((remainingCount + retryableCount > 0 && !hasUnresolvedStrictWarnings) || fullyCommitted),
       }

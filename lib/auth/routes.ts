@@ -53,7 +53,6 @@ const PROTECTED_PREFIXES = [
   '/agent',
   '/developer',
   '/agency',
-  '/api/ai',
 ]
 
 const PUBLIC_ROUTE_PREFIXES = ['/about', '/contact', '/blog', '/blogs', '/buy', '/rent', '/sell', '/properties', '/projects', '/agents', '/developers', '/agencies', '/team', '/ai']

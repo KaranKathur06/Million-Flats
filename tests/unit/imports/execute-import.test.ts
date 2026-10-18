@@ -97,6 +97,21 @@ describe('import commit orchestration', () => {
     expect(mockedPrisma.$queryRaw).not.toHaveBeenCalled()
   })
 
+  it('does not attempt commit continuation for an analysis-stage failure', async () => {
+    mockedPrisma.importRequestIdempotency.findUnique.mockResolvedValue(null)
+    mockedPrisma.importBatch.findUnique.mockResolvedValue({
+      id: 'batch-1',
+      status: 'FAILED',
+      entityType: 'PROPERTY',
+      failureSummary: { stage: 'ANALYSIS', message: 'Analysis checkpoint failed.' },
+    })
+
+    await expect(executeImport({ batchId: 'batch-1', idempotencyKey: 'user-1:analysis-failure' }))
+      .rejects.toThrow('Import analysis failed; retry analysis before attempting to commit.')
+
+    expect(mockedPrisma.$queryRaw).not.toHaveBeenCalled()
+  })
+
   it('rejects a recent COMMITTING attempt when the atomic claim is unavailable', async () => {
     mockedPrisma.importRequestIdempotency.findUnique.mockResolvedValue(null)
     mockedPrisma.importBatch.findUnique.mockResolvedValue({

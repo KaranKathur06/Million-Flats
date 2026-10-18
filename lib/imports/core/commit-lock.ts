@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
 import { IMPORT_COMMIT_STALE_AFTER_MINUTES } from './constants'
 
 export class ImportCommitOwnershipError extends Error {
@@ -14,6 +15,7 @@ export async function acquireImportCommitLock(batchId: string, attemptId: string
       SELECT "id"
       FROM "import_batches"
       WHERE "id" = ${batchId}
+        AND "failure_summary"->>'stage' IS DISTINCT FROM 'ANALYSIS'
         AND (
           "status" IN ('READY_TO_COMMIT', 'READY_FOR_REVIEW')
           OR (
@@ -34,7 +36,8 @@ export async function acquireImportCommitLock(batchId: string, attemptId: string
     SET "status" = 'COMMITTING',
         "commit_attempt_id" = ${attemptId},
         "commit_heartbeat_at" = clock_timestamp(),
-        "started_at" = clock_timestamp()
+        "started_at" = clock_timestamp(),
+        "failure_summary" = NULL
     FROM candidate
     WHERE "import_batches"."id" = candidate."id"
     RETURNING "import_batches"."id"
@@ -57,6 +60,10 @@ export async function releaseImportCommitLock(
   batchId: string,
   attemptId: string,
   status: 'READY_FOR_REVIEW' | 'READY_TO_COMMIT' | 'COMMITTED' | 'PARTIALLY_COMMITTED' | 'FAILED',
+  options: {
+    failureSummary?: Prisma.InputJsonObject
+    counts?: { createdCount: number; updatedCount: number; skippedCount: number; failedCount: number }
+  } = {},
 ) {
   const result = await prisma.importBatch.updateMany({
     where: { id: batchId, status: 'COMMITTING', commitAttemptId: attemptId },
@@ -64,6 +71,8 @@ export async function releaseImportCommitLock(
       status,
       completedAt: ['COMMITTED', 'PARTIALLY_COMMITTED', 'FAILED'].includes(status) ? new Date() : null,
       commitAttemptId: null,
+      ...(options.failureSummary ? { failureSummary: options.failureSummary } : {}),
+      ...(options.counts || {}),
     },
   })
   if (result.count !== 1) throw new ImportCommitOwnershipError()

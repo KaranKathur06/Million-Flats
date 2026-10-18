@@ -1,0 +1,2536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Packers & Movers — Ecosystem Partner Profile</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    .spec-badge {
+      display: none;
+    }
+    body.spec-mode .spec-badge {
+      display: inline-flex;
+    }
+    body.spec-mode .spec-zone {
+      outline: 2px dashed #6366f1;
+      outline-offset: 4px;
+      position: relative;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-indigo-600 selection:text-white">
+
+  <!-- Top Ecosystem Navigation & Design Spec Bar -->
+  <header class="sticky top-0 z-40 bg-slate-900 text-white border-b border-slate-800 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-teal-400 flex items-center justify-center font-extrabold text-sm tracking-tight shadow-inner">
+          EP
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-sm sm:text-base tracking-tight">Packers & Movers — Partner Profile</h1>
+            <span class="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Common Profile Template</span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">Standardized 7-Zone Ecosystem Partner Layout &bull; Dedicated Category Page</p>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center flex-wrap gap-2">
+        <button id="toggleSpecOverlayBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 transition-all" title="Highlight common template zones">
+          <span id="specIndicatorDot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+          <span>Zone Spec Overlay</span>
+        </button>
+
+        <button id="openShortlistBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all">
+          <span>Shortlist</span>
+          <span id="shortlistCountBadge" class="px-1.5 py-0.2 rounded-full bg-black/25 text-[11px]">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+    <!-- Breadcrumb + Archetype Notice -->
+    <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 bg-white px-4 py-2.5 rounded-xl border border-slate-200/80 shadow-sm">
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <span class="font-medium text-slate-700">Ecosystem Directory</span>
+        <span>/</span>
+        <span id="breadcrumbCluster" class="text-slate-600">Cluster</span>
+        <span>/</span>
+        <span id="breadcrumbCategory" class="font-semibold text-indigo-600">Packers & Movers</span>
+        <span>/</span>
+        <span id="breadcrumbPartner" class="text-slate-800 font-medium">Partner</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          Archetype: <strong id="archetypeLabel">Archetype</strong>
+        </span>
+      </div>
+    </div>
+
+    <!-- ZONE 1: COMMON HERO & TRUST IDENTITY HEADER -->
+    <section class="spec-zone bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="spec-badge items-center gap-1.5 px-3 py-1 bg-indigo-600 text-white text-[11px] font-bold uppercase tracking-wider">
+        <span>ZONE 1 (Fixed Shell): Universal Partner Identity Header + Regulatory Badge + Dual CTA</span>
+      </div>
+
+      <div id="heroBannerBg" class="h-28 sm:h-36 w-full bg-gradient-to-r from-indigo-900 via-indigo-800 to-blue-900 relative overflow-hidden flex items-end p-4 sm:p-6">
+        <div class="absolute inset-0 opacity-15 pointer-events-none" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 20px 20px;"></div>
+        <div class="relative z-10 ml-auto flex flex-wrap items-center gap-2">
+          <span id="heroComplianceBadge" class="px-3 py-1 rounded-full text-xs font-semibold bg-white/15 backdrop-blur-md text-white border border-white/25"></span>
+          <span id="heroCoverageBadge" class="px-3 py-1 rounded-full text-xs font-semibold bg-black/30 backdrop-blur-md text-white border border-white/15"></span>
+        </div>
+      </div>
+
+      <div class="px-5 sm:px-7 pb-6 pt-0 relative">
+        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4 -mt-10 sm:-mt-12 mb-5">
+          <div class="flex flex-col sm:flex-row sm:items-end gap-4">
+            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white p-1.5 shadow-lg border border-slate-200 flex items-center justify-center shrink-0">
+              <div id="partnerAvatarInner" class="w-full h-full rounded-xl bg-indigo-600 text-white flex flex-col items-center justify-center font-extrabold text-xl"></div>
+            </div>
+            <div class="pt-1 sm:pt-0">
+              <div class="flex flex-wrap items-center gap-2 mb-1">
+                <span id="partnerCategoryTag" class="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200"></span>
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  &#10003; Ecosystem Verified Partner
+                </span>
+                <span id="partnerTierTag" class="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200"></span>
+              </div>
+              <h2 id="partnerName" class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight"></h2>
+              <p id="partnerTagline" class="text-sm text-slate-600 mt-0.5 max-w-2xl"></p>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button id="savePartnerBtn" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50 transition-all">
+              <span id="savePartnerIcon">&#9734;</span>
+              <span id="savePartnerText">Save Partner</span>
+            </button>
+            <button id="shareProfileBtn" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50 transition-all">
+              <span>Share Profile</span>
+            </button>
+            <button id="heroPrimaryCtaBtn" type="button" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all">
+              <span id="heroPrimaryCtaText"></span>
+              <span>&rarr;</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-100 text-xs">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm border border-amber-200/60">&#9733;</div>
+            <div>
+              <div class="font-bold text-slate-900"><span id="partnerRating"></span> / 5.0 <span class="font-normal text-slate-500">(<span id="partnerReviews"></span> reviews)</span></div>
+              <div class="text-slate-500">Verified Customer Score</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm border border-emerald-200/60">&#9201;</div>
+            <div>
+              <div id="partnerSlaMetric" class="font-bold text-slate-900"></div>
+              <div class="text-slate-500">Avg. Ecosystem Response SLA</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm border border-blue-200/60">&#127970;</div>
+            <div>
+              <div id="partnerExperienceMetric" class="font-bold text-slate-900"></div>
+              <div class="text-slate-500">Ecosystem Track Record</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm border border-purple-200/60">&#127919;</div>
+            <div>
+              <div id="partnerExclusiveBenefit" class="font-bold text-purple-900"></div>
+              <div class="text-slate-500">Exclusive Ecosystem Member Perk</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ZONE 2: POLYMORPHIC 4-METRIC KPI STRIP -->
+    <section class="spec-zone">
+      <div class="spec-badge mb-2 items-center gap-1.5 px-3 py-1 rounded bg-indigo-600 text-white text-[11px] font-bold uppercase tracking-wider">
+        <span>ZONE 2 (Polymorphic KPI Strip): Fixed 4-Card Layout &bull; Category-Specific Schema Keys</span>
+      </div>
+      <div id="kpiGridContainer" class="grid grid-cols-2 lg:grid-cols-4 gap-3.5"></div>
+    </section>
+
+    <!-- MAIN 2-COLUMN BODY -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- LEFT COLUMN (8 Cols) -->
+      <div class="lg:col-span-8 space-y-6">
+
+        <!-- ZONE 3: UNIVERSAL SECTION NAVIGATION TABS -->
+        <div class="spec-zone bg-white rounded-xl border border-slate-200 p-1.5 shadow-sm">
+          <div class="spec-badge mb-1 items-center gap-1.5 px-2.5 py-0.5 rounded bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-wider">
+            <span>ZONE 3: Standardized 4-Tab Information Architecture</span>
+          </div>
+          <nav class="grid grid-cols-2 sm:grid-cols-4 gap-1" aria-label="Profile Sections">
+            <button data-tab="offerings" class="profile-tab-btn py-2.5 px-3 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-sm transition-all text-center">
+              1. Offerings &amp; Packages
+            </button>
+            <button data-tab="calculator" class="profile-tab-btn py-2.5 px-3 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all text-center">
+              2. Interactive Estimator
+            </button>
+            <button data-tab="portfolio" class="profile-tab-btn py-2.5 px-3 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all text-center">
+              3. Showcase &amp; Specs
+            </button>
+            <button data-tab="trust" class="profile-tab-btn py-2.5 px-3 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all text-center">
+              4. Workflow, Reviews &amp; FAQs
+            </button>
+          </nav>
+        </div>
+
+        <!-- ZONE 4: POLYMORPHIC CATEGORY-ADAPTIVE INTERACTIVE WIDGET -->
+        <section id="zoneInteractiveWidget" class="spec-zone bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 text-white rounded-2xl p-5 sm:p-6 shadow-md border border-slate-800">
+          <div class="spec-badge mb-3 items-center gap-1.5 px-3 py-1 rounded bg-indigo-500 text-white text-[11px] font-bold uppercase tracking-wider">
+            <span>ZONE 4 (Polymorphic Widget Slot): Category-Specific Calculator / Configurator</span>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-800">
+            <div>
+              <span id="widgetBadgeLabel" class="text-[11px] font-bold uppercase tracking-wider text-indigo-400"></span>
+              <h3 id="widgetTitle" class="text-base sm:text-lg font-bold text-white mt-0.5"></h3>
+            </div>
+            <span class="text-xs text-slate-400">Real-time estimate &bull; Push directly to quote request</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
+            <div class="md:col-span-7 space-y-4">
+              <div>
+                <div class="flex justify-between text-xs font-medium mb-1.5">
+                  <span id="calcInput1Label" class="text-slate-300"></span>
+                  <span id="calcInput1Display" class="font-bold text-indigo-300 text-sm"></span>
+                </div>
+                <input id="calcSlider1" type="range" min="10" max="200" value="50" class="w-full accent-indigo-500 cursor-pointer h-2 rounded-lg bg-slate-700" />
+                <div class="flex justify-between text-[11px] text-slate-400 mt-1">
+                  <span id="calcSlider1Min"></span>
+                  <span id="calcSlider1Max"></span>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs font-medium mb-1.5">
+                  <span id="calcInput2Label" class="text-slate-300"></span>
+                  <span id="calcInput2Display" class="font-bold text-indigo-300 text-sm"></span>
+                </div>
+                <input id="calcSlider2" type="range" min="5" max="30" value="20" class="w-full accent-indigo-500 cursor-pointer h-2 rounded-lg bg-slate-700" />
+                <div class="flex justify-between text-[11px] text-slate-400 mt-1">
+                  <span id="calcSlider2Min"></span>
+                  <span id="calcSlider2Max"></span>
+                </div>
+              </div>
+
+              <div>
+                <label id="calcOptionLabel" class="block text-xs font-medium text-slate-300 mb-1.5"></label>
+                <div id="calcOptionButtons" class="grid grid-cols-3 gap-2"></div>
+              </div>
+            </div>
+
+            <div class="md:col-span-5 bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/15 flex flex-col justify-between space-y-3">
+              <div>
+                <div id="calcResultPrimaryLabel" class="text-xs text-indigo-200 font-medium"></div>
+                <div id="calcResultPrimaryValue" class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-0.5"></div>
+                <div id="calcResultSecondaryText" class="text-xs text-emerald-300 font-medium mt-1"></div>
+              </div>
+
+              <div id="calcBreakdownList" class="border-t border-white/10 pt-2.5 space-y-1.5 text-xs text-slate-300"></div>
+
+              <button id="applyEstimateToLeadBtn" type="button" class="w-full py-2 px-3 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white font-semibold text-xs transition-all shadow">
+                Attach Estimate to Inquiry Form &rarr;
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ZONE 5: STANDARDIZED OFFERINGS / PACKAGES / CATALOG CARDS -->
+        <section id="zoneOfferings" class="spec-zone bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm">
+          <div class="spec-badge mb-3 items-center gap-1.5 px-3 py-1 rounded bg-indigo-600 text-white text-[11px] font-bold uppercase tracking-wider">
+            <span>ZONE 5 (Universal Catalog Grid): Standardized 3-Card Schema</span>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div>
+              <h3 id="offeringsSectionTitle" class="text-base sm:text-lg font-bold text-slate-900"></h3>
+              <p id="offeringsSectionSub" class="text-xs text-slate-500"></p>
+            </div>
+            <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">
+              Click any item to shortlist or inquire
+            </span>
+          </div>
+
+          <div id="offeringsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+        </section>
+
+        <!-- ZONE 6: PORTFOLIO SHOWCASE / TECHNICAL SPECS & DELIVERABLES -->
+        <section id="zonePortfolio" class="spec-zone bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm">
+          <div class="spec-badge mb-3 items-center gap-1.5 px-3 py-1 rounded bg-indigo-600 text-white text-[11px] font-bold uppercase tracking-wider">
+            <span>ZONE 6 (Proof &amp; Spec Block): Portfolio, Sample Reports &amp; 4-Stage Workflow</span>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div>
+              <h3 id="portfolioSectionTitle" class="text-base sm:text-lg font-bold text-slate-900"></h3>
+              <p class="text-xs text-slate-500">Verified execution records, technical compliance standards, and downloadable specifications.</p>
+            </div>
+          </div>
+
+          <div id="portfolioGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5"></div>
+
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-200/80">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Standardized 4-Stage Partner Engagement Workflow</h4>
+            <div id="workflowStepsGrid" class="grid grid-cols-1 sm:grid-cols-4 gap-3"></div>
+          </div>
+        </section>
+
+        <!-- ZONE 6B: VERIFIED REVIEWS & CATEGORY FAQS -->
+        <section id="zoneTrust" class="spec-zone bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm">
+          <div class="spec-badge mb-3 items-center gap-1.5 px-3 py-1 rounded bg-indigo-600 text-white text-[11px] font-bold uppercase tracking-wider">
+            <span>ZONE 6B (Trust &amp; FAQ Module): Verified Reviews + Category FAQ Accordion</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 class="text-base font-bold text-slate-900 mb-3">Verified Ecosystem Client Reviews</h3>
+              <div id="reviewsList" class="space-y-3"></div>
+            </div>
+
+            <div>
+              <h3 class="text-base font-bold text-slate-900 mb-3">Frequently Asked Questions &amp; SLAs</h3>
+              <div id="faqList" class="space-y-2.5"></div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- RIGHT COLUMN (4 Cols): ZONE 7 STICKY SMART LEAD & CONVERSION ENGINE -->
+      <aside class="lg:col-span-4 lg:sticky lg:top-20 space-y-4">
+        <div class="spec-zone bg-white rounded-2xl border border-slate-200 shadow-md overflow-hidden">
+          <div class="spec-badge w-full items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-[11px] font-bold uppercase tracking-wider">
+            <span>ZONE 7 (Sticky Conversion Engine): 3 Universal Fields + 2 Category-Adaptive Fields</span>
+          </div>
+
+          <div class="bg-slate-900 text-white p-4">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">Instant Partner Desk</span>
+              <span class="text-[11px] text-slate-300">Zero Platform Brokerage</span>
+            </div>
+            <h3 id="leadFormTitle" class="text-base font-bold mt-1"></h3>
+            <p id="leadFormSubtitle" class="text-xs text-slate-300 mt-0.5"></p>
+          </div>
+
+          <form id="partnerLeadForm" class="p-4 sm:p-5 space-y-3.5">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1.5">Preferred Engagement Mode</label>
+              <div id="engagementModeBtns" class="grid grid-cols-3 gap-1.5"></div>
+            </div>
+
+            <div>
+              <label for="leadNameInput" class="block text-xs font-semibold text-slate-700 mb-1">Your Full Name <span class="text-rose-500">*</span></label>
+              <input id="leadNameInput" type="text" required value="Aarav Mehta" placeholder="Enter your full name" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label for="leadPhoneInput" class="block text-xs font-semibold text-slate-700 mb-1">Mobile Number <span class="text-rose-500">*</span></label>
+                <input id="leadPhoneInput" type="tel" required value="+91 98250 44120" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div>
+                <label for="leadCitySelect" class="block text-xs font-semibold text-slate-700 mb-1">Property City</label>
+                <select id="leadCitySelect" class="w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option value="Mumbai">Mumbai / MMR</option>
+                  <option value="Bengaluru">Bengaluru</option>
+                  <option value="Delhi NCR">Delhi NCR</option>
+                  <option value="Ahmedabad / Rajkot" selected>Ahmedabad / Rajkot</option>
+                  <option value="Pune">Pune</option>
+                  <option value="Hyderabad">Hyderabad</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-indigo-50/70 border border-indigo-100 space-y-2.5">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-700">Category-Specific Parameters</span>
+                <span id="dynamicFieldTag" class="text-[10px] font-semibold text-indigo-600"></span>
+              </div>
+              <div>
+                <label id="dynamicField1Label" for="dynamicField1Select" class="block text-xs font-semibold text-slate-700 mb-1"></label>
+                <select id="dynamicField1Select" class="w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
+              </div>
+              <div>
+                <label id="dynamicField2Label" for="dynamicField2Input" class="block text-xs font-semibold text-slate-700 mb-1"></label>
+                <input id="dynamicField2Input" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+            </div>
+
+            <div>
+              <label for="leadTimelineSelect" class="block text-xs font-semibold text-slate-700 mb-1">Requirement Timeline</label>
+              <select id="leadTimelineSelect" class="w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="Immediate (Within 7 Days)">Immediate (Within 7 Days)</option>
+                <option value="Short-Term (Within 30 Days)">Short-Term (Within 30 Days)</option>
+                <option value="Planning Stage (1 - 3 Months)">Planning Stage (1 - 3 Months)</option>
+              </select>
+            </div>
+
+            <button type="submit" id="leadSubmitBtn" class="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm shadow-sm transition-all">
+              Submit Verified Partner Inquiry
+            </button>
+
+            <p class="text-[11px] text-slate-400 text-center leading-relaxed">
+              Protected by Ecosystem Privacy Shield &bull; Your contact is shared only with <span id="leadPrivacyPartnerName" class="font-medium text-slate-600"></span>.
+            </p>
+          </form>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Ecosystem Due Diligence</h4>
+            <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">100% Audited</span>
+          </div>
+          <ul id="complianceCheckList" class="space-y-2 text-xs text-slate-600"></ul>
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span class="text-slate-500">Partner Brochure / Spec Deck</span>
+            <button id="downloadSpecBtn" type="button" class="font-semibold text-indigo-600 hover:text-indigo-800">
+              Download PDF Summary &darr;
+            </button>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- SHORTLIST DRAWER MODAL -->
+  <div id="shortlistModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden">
+      <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+        <div>
+          <h3 class="font-bold text-base">Your Shortlisted Packages</h3>
+          <p class="text-xs text-slate-400">Saved service packages for Packers & Movers</p>
+        </div>
+        <button id="closeShortlistModalBtn" type="button" class="text-slate-400 hover:text-white text-sm font-bold px-2 py-1 rounded">
+          &#10005;
+        </button>
+      </div>
+      <div id="shortlistModalBody" class="p-5 max-h-80 overflow-y-auto space-y-2.5 text-xs"></div>
+      <div class="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+        <button id="clearShortlistBtn" type="button" class="text-xs font-semibold text-rose-600 hover:text-rose-700">Clear All</button>
+        <button id="requestCombinedQuoteBtn" type="button" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold">
+          Request Partner Callback
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toastBanner" class="fixed bottom-5 right-5 z-50 hidden max-w-sm bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl border border-slate-700 flex items-center gap-3 text-xs">
+    <span class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold shrink-0">&#10003;</span>
+    <div id="toastMessage" class="font-medium leading-snug">Action completed.</div>
+  </div>
+
+  <script>
+    const PARTNER_CATEGORIES = [
+      {
+        id: "home-loans",
+        name: "Home Loans & Finance",
+        shortName: "Home Loans",
+        cluster: "Financial & Legal",
+        archetype: "Financial & Risk Product",
+        avatarCode: "AP",
+        bannerGradient: "from-indigo-900 via-blue-900 to-slate-900",
+        accentBg: "bg-indigo-600",
+        partnerName: "AxisPrime Housing Finance Ltd.",
+        tier: "Platinum Lending Partner",
+        tagline: "Digital-first home acquisition, plot + construction, and balance transfer loans with 48-hour sanction SLA for verified ecosystem properties.",
+        complianceBadge: "RBI / NHB Reg: HFC-09821",
+        coverageBadge: "Pan-India (45+ Cities)",
+        rating: "4.9",
+        reviewsCount: "1,420",
+        slaMetric: "Under 2 Hours",
+        experienceMetric: "14+ Years • ₹18,500 Cr+ Disbursed",
+        exclusiveBenefit: "50% Off Processing Fee",
+        primaryCta: "Check Loan Eligibility",
+        kpis: [
+          { label: "Starting Interest Rate", value: "8.35% p.a.", sub: "Repo-linked floating rate", badge: "Lowest in Tier" },
+          { label: "Maximum Loan Tenure", value: "Up to 30 Yrs", sub: "Zero prepayment penalty", badge: "Flexible" },
+          { label: "Loan-to-Value (LTV)", value: "Up to 90%", sub: "On ecosystem-approved projects", badge: "High LTV" },
+          { label: "Digital Sanction SLA", value: "48 Hours", sub: "Doorstep document pickup", badge: "Fast-Track" }
+        ],
+        calculator: {
+          title: "Interactive Home Loan EMI & Eligibility Estimator",
+          badge: "Live Financial Calculator",
+          slider1: { label: "Loan Principal Amount", min: 10, max: 300, value: 65, unit: "Lakhs", prefix: "₹ " },
+          slider2: { label: "Repayment Tenure", min: 5, max: 30, value: 20, unit: "Years", prefix: "" },
+          optionLabel: "Borrower & Rate Profile",
+          options: [
+            { label: "Salaried (8.35%)", rate: 8.35 },
+            { label: "Self-Employed (8.60%)", rate: 8.60 },
+            { label: "Balance Transfer (8.25%)", rate: 8.25 }
+          ],
+          computeType: "emi"
+        },
+        offeringsTitle: "Standardized Loan Products & Financing Tracks",
+        offeringsSub: "Transparent interest spreads, processing fee caps, and pre-approved project tracks.",
+        offerings: [
+          {
+            badge: "Most Popular",
+            title: "Fresh Home Purchase Loan",
+            price: "8.35% – 8.75% p.a.",
+            unit: "Processing Fee: ₹4,999 flat",
+            bullets: [
+              "Up to 90% funding for ready & under-construction homes",
+              "Instant in-principle sanction letter in 45 minutes",
+              "Free legal & technical valuation on pre-approved projects"
+            ],
+            sla: "48-Hour Sanction SLA"
+          },
+          {
+            badge: "Refinance Saver",
+            title: "Balance Transfer + Top-Up",
+            price: "8.25% p.a. Onwards",
+            unit: "Up to ₹50L Top-Up at Home Loan Rate",
+            bullets: [
+              "Reduce existing EMI by up to 14% with zero hidden charges",
+              "Top-up usable for interiors or home extension",
+              "Dedicated relationship officer handles foreclosure handover"
+            ],
+            sla: "72-Hour Switch SLA"
+          },
+          {
+            badge: "Custom Build",
+            title: "Plot + Self-Construction Finance",
+            price: "8.55% p.a. Onwards",
+            unit: "Tranche-based disbursement",
+            bullets: [
+              "Covers both plot purchase and stage-wise construction",
+              "Interest charged only on disbursed stage amount",
+              "18-month principal moratorium during construction phase"
+            ],
+            sla: "4-Day Technical Approval"
+          }
+        ],
+        portfolioTitle: "Pre-Approved Project Coverage & Sanction Benchmarks",
+        portfolio: [
+          {
+            tag: "APF Pre-Approved",
+            title: "3,200+ Pre-Approved Residential Towers",
+            metric: "Zero Technical Delay",
+            desc: "Properties pre-vetted with master title & valuation reports for instant disbursement without repeat site audits."
+          },
+          {
+            tag: "NRI Desk",
+            title: "Dedicated NRI & PIO Remote Sanction Desk",
+            metric: "18 Countries Supported",
+            desc: "Digital POA execution, overseas credit bureau pulls, and NRE/NRO auto-debit mandate setup."
+          }
+        ],
+        workflow: [
+          { step: "01", title: "Soft Eligibility Check", desc: "Instant CIBIL & income multiplier check with zero credit score drop." },
+          { step: "02", title: "Digital KYC & Vault", desc: "Upload 6 months bank statements & ITR via Account Aggregator." },
+          { step: "03", title: "Sanction Letter", desc: "Receive firm sanction with locked interest spread within 48 hours." },
+          { step: "04", title: "Tranche Disbursal", desc: "Direct RTGS/demand draft handover coordinated with builder/seller." }
+        ],
+        reviews: [
+          { author: "Rohan & Sneha Kulkarni", context: "3BHK Home Purchase • Pune", rating: "5.0", text: "Got our ₹85L sanction letter in 36 hours. Because our builder was pre-approved in the ecosystem, legal verification was waived off completely." },
+          { author: "Vikramaditya Shah", context: "Balance Transfer • Rajkot", rating: "4.9", text: "Switched from a 9.45% loan to 8.30% p.a. and saved nearly ₹6,800 per month on EMI. Doorstep pickup was seamless." }
+        ],
+        faqs: [
+          { q: "Are there any prepayment or part-payment charges?", a: "Zero prepayment or foreclosure charges apply on all floating-rate home loans for individual borrowers." },
+          { q: "How does the Ecosystem Member 50% fee waiver work?", a: "Submitting your inquiry through this profile attaches a verified Ecosystem Referral Token that caps processing fees at 50% of standard rack rates." }
+        ],
+        leadConfig: {
+          title: "Request Pre-Approval & Rate Quote",
+          subtitle: "Direct callback from dedicated Mortgage Specialist within 2 hours.",
+          modes: ["Digital Pre-Approval", "Doorstep Pickup", "Branch / Video Call"],
+          field1Label: "Loan Product Type",
+          field1Options: ["Fresh Home Purchase Loan", "Balance Transfer + Top-Up", "Plot + Construction Loan", "NRI Home Loan"],
+          field2Label: "Required Loan Amount & Monthly Income",
+          field2Default: "₹ 65 Lakhs | Net Income: ₹ 1.8L/mo",
+          complianceItems: [
+            "RBI & National Housing Bank (NHB) Registered HFC",
+            "ISO 27001 Encrypted Financial Document Vault",
+            "Zero Hidden Spread Markup Guarantee"
+          ]
+        }
+      },
+      {
+        id: "legal-docs",
+        name: "Legal & Documentation",
+        shortName: "Legal & Docs",
+        cluster: "Financial & Legal",
+        archetype: "Advisory & Regulatory Service",
+        avatarCode: "LV",
+        bannerGradient: "from-slate-900 via-indigo-950 to-slate-800",
+        accentBg: "bg-slate-800",
+        partnerName: "LexVanguard Property Law Chambers",
+        tier: "Premier Legal Partner",
+        tagline: "End-to-end 30-year title search, RERA litigation check, sale deed drafting, and sub-registrar e-stamping concierge across 28 states.",
+        complianceBadge: "Bar Council Reg: BCI-LAW-4410",
+        coverageBadge: "28 State Sub-Registrars",
+        rating: "4.9",
+        reviewsCount: "980",
+        slaMetric: "Under 90 Mins",
+        experienceMetric: "18+ Years • 24,000+ Title Audits",
+        exclusiveBenefit: "Free RERA Compliance Check",
+        primaryCta: "Book Legal Title Audit",
+        kpis: [
+          { label: "Title Search Depth", value: "30+ Years", sub: "Encumbrance & revenue chain", badge: "Bank-Grade" },
+          { label: "Standard Audit SLA", value: "72 Hours", sub: "Signed Legal Opinion Report", badge: "Guaranteed" },
+          { label: "Fixed-Fee Packages", value: "₹ 4,500+", sub: "100% transparent stage billing", badge: "No Retainer" },
+          { label: "Dispute Protection", value: "100% Vetted", sub: "High Court, NCLT & RERA search", badge: "Zero-Risk" }
+        ],
+        calculator: {
+          title: "Property Legal Fee & Stamp Duty Estimator",
+          badge: "Legal Scope Estimator",
+          slider1: { label: "Property Agreement Value", min: 20, max: 500, value: 90, unit: "Lakhs", prefix: "₹ " },
+          slider2: { label: "Chain Title Search Horizon", min: 15, max: 45, value: 30, unit: "Years", prefix: "" },
+          optionLabel: "Legal Service Scope",
+          options: [
+            { label: "Title Search Only", fee: 6500 },
+            { label: "Drafting + Vetting", fee: 12500 },
+            { label: "Full Registration Concierge", fee: 19500 }
+          ],
+          computeType: "legal"
+        },
+        offeringsTitle: "Fixed-Fee Legal Verification & Registration Packages",
+        offeringsSub: "Standardized legal deliverables with Bar-certified advocate sign-off.",
+        offerings: [
+          {
+            badge: "Pre-Purchase Essential",
+            title: "30-Year Title & Encumbrance Due Diligence",
+            price: "₹ 6,500 Flat",
+            unit: "Includes written Legal Opinion",
+            bullets: [
+              "30-year Sub-Registrar Index-II & Mother Deed verification",
+              "RERA registration, land mortgage & litigation screening",
+              "1-on-1 video consultation with Senior Property Advocate"
+            ],
+            sla: "3 Business Days"
+          },
+          {
+            badge: "Agreement Shield",
+            title: "ATS / Sale Deed Drafting & Clause Vetting",
+            price: "₹ 12,500 Flat",
+            unit: "Up to 2 revision rounds included",
+            bullets: [
+              "Buyer-protective indemnity, possession delay & penalty clauses",
+              "Review of builder allotment letter & society NOCs",
+              "TDS (Form 26QB) compliance check for properties > ₹50L"
+            ],
+            sla: "48-Hour Draft Delivery"
+          },
+          {
+            badge: "Turnkey Execution",
+            title: "End-to-End e-Stamping & Sub-Registrar Concierge",
+            price: "₹ 19,500 Flat",
+            unit: "Govt stamp duty & reg fees at actuals",
+            bullets: [
+              "Challan generation, e-Stamp procurement & token booking",
+              "On-ground legal liaison at Sub-Registrar office on execution day",
+              "Post-registration mutation & society share transfer filing"
+            ],
+            sla: "Dedicated Registrar Slot"
+          }
+        ],
+        portfolioTitle: "Sample Legal Audit Deliverables & Verification Scope",
+        portfolio: [
+          {
+            tag: "Sample Deliverable",
+            title: "42-Point Property Title & Litigation Red-Flag Report",
+            metric: "Covers 7 Courts/Tribunals",
+            desc: "Screens Civil Courts, High Court, DRT, NCLT, RERA Authority, Revenue Tehsildar records, and CERSAI mortgage registries."
+          },
+          {
+            tag: "NRI Legal Desk",
+            title: "Specific Power of Attorney (SPOA) & FEMA Repatriation",
+            metric: "Embassy Apostille Ready",
+            desc: "Drafting & adjudication of overseas POA documents and CA 15CA/15CB certification for NRI property sales."
+          }
+        ],
+        workflow: [
+          { step: "01", title: "Document Upload", desc: "Share draft agreement, chain deeds, or RERA number in encrypted vault." },
+          { step: "02", title: "Registry & Court Search", desc: "Physical & digital search across revenue records and court databases." },
+          { step: "03", title: "Legal Opinion Report", desc: "Receive traffic-light graded risk report with advocate stamp." },
+          { step: "04", title: "Execution & Registration", desc: "Assisted signing and biometric registration at Sub-Registrar office." }
+        ],
+        reviews: [
+          { author: "Dr. Meenakshi Iyer", context: "Resale Villa Title Audit • Bengaluru", rating: "5.0", text: "LexVanguard uncovered an unreleased bank charge from 2014 on a plot we almost paid token money for. Saved us from a massive legal trap." },
+          { author: "Siddharth Bansal", context: "Sale Deed Registration • Gurugram", rating: "4.9", text: "In and out of the Sub-Registrar office in 35 minutes. All stamp papers and witness formalities were pre-arranged." }
+        ],
+        faqs: [
+          { q: "Is the Title Opinion accepted by banks for home loans?", a: "Yes, our senior partners are empaneled on the legal panels of 14 major PSU and private housing finance institutions." },
+          { q: "Can you verify agricultural-to-residential (NA) conversion orders?", a: "Yes, our revenue law specialists verify Collector NA orders, Town Planning layouts, and FSI/TDR utilization certificates." }
+        ],
+        leadConfig: {
+          title: "Book Property Advocate Consultation",
+          subtitle: "Confidential legal document review & fixed-fee quote in 90 mins.",
+          modes: ["Video Advocate Call", "Document Vault Upload", "Registrar Visit"],
+          field1Label: "Legal Service Needed",
+          field1Options: ["30-Year Title & Due Diligence", "Sale Deed / ATS Vetting", "Sub-Registrar Registration Concierge", "NRI Power of Attorney & Tax"],
+          field2Label: "Property Type & Transaction Stage",
+          field2Default: "Resale Apartment | Pre-Token Stage",
+          complianceItems: [
+            "Bar Council Registered Senior Property Advocates",
+            "Strict Attorney-Client Privilege & NDA Protection",
+            "Empaneled with 14+ Leading Housing Finance Banks"
+          ]
+        }
+      },
+      {
+        id: "property-insurance",
+        name: "Property Insurance",
+        shortName: "Property Insurance",
+        cluster: "Financial & Legal",
+        archetype: "Financial & Risk Product",
+        avatarCode: "SG",
+        bannerGradient: "from-emerald-950 via-teal-900 to-slate-900",
+        accentBg: "bg-teal-600",
+        partnerName: "ShieldGuard General Insurance Co.",
+        tier: "Gold Protection Partner",
+        tagline: "Bharat Griha Raksha compliant structure, home contents, earthquake/flood, and tenant liability insurance with instant digital policy issuance.",
+        complianceBadge: "IRDAI Reg: IRDA-GI-142",
+        coverageBadge: "98.6% Claim Settlement",
+        rating: "4.8",
+        reviewsCount: "1,150",
+        slaMetric: "Instant Policy PDF",
+        experienceMetric: "12+ Years • 4.2 Lakh Homes Insured",
+        exclusiveBenefit: "15% Ecosystem Fleet Discount",
+        primaryCta: "Calculate Premium Instantly",
+        kpis: [
+          { label: "Claim Settlement Ratio", value: "98.6%", sub: "FY 2025-26 IRDAI audited", badge: "Top Rated" },
+          { label: "Starting Annual Premium", value: "₹ 1,850 / yr", sub: "For ₹50L structure cover", badge: "Ultra Low" },
+          { label: "Fast-Track Claim SLA", value: "5 Days", sub: "Zero surveyor for claims < ₹1L", badge: "Digital Claim" },
+          { label: "Max Policy Tenure", value: "Up to 10 Yrs", sub: "Long-term discount up to 25%", badge: "Bharat Griha" }
+        ],
+        calculator: {
+          title: "Structure + Home Contents Premium Calculator",
+          badge: "IRDAI Tariff Estimator",
+          slider1: { label: "Building Reconstruction Sum Insured", min: 20, max: 300, value: 75, unit: "Lakhs", prefix: "₹ " },
+          slider2: { label: "Home Contents & Valuables Cover", min: 0, max: 50, value: 15, unit: "Lakhs", prefix: "₹ " },
+          optionLabel: "Policy Coverage Tier",
+          options: [
+            { label: "Structure Only", mult: 0.28 },
+            { label: "Structure + Contents", mult: 0.42 },
+            { label: "All-Risk + Rent Loss", mult: 0.56 }
+          ],
+          computeType: "insurance"
+        },
+        offeringsTitle: "Standardized Home & Property Protection Plans",
+        offeringsSub: "IRDAI Bharat Griha Raksha compliant policies on agreed reinstatement value basis.",
+        offerings: [
+          {
+            badge: "Bank Loan Mandatory",
+            title: "Bharat Griha Raksha — Structure Shield",
+            price: "₹ 2,100 / year",
+            unit: "Per ₹50 Lakhs Reconstruction Value",
+            bullets: [
+              "Covers fire, earthquake, flood, cyclone, subsidence & riot damage",
+              "Zero depreciation deduction — full reconstruction cost payout",
+              "Accepted by all banks for mandatory home loan hypothecation"
+            ],
+            sla: "Instant Digital Policy"
+          },
+          {
+            badge: "Complete Home",
+            title: "Comprehensive Structure + Appliances & Interiors",
+            price: "₹ 4,450 / year",
+            unit: "₹75L Structure + ₹15L Contents",
+            bullets: [
+              "Covers modular kitchen, fixed wardrobes, electronics & furniture",
+              "Burglary, housebreaking, and mechanical/electrical breakdown cover",
+              "Includes up to ₹5L alternative accommodation rent reimbursement"
+            ],
+            sla: "Zero-Inspection Up to ₹1.5Cr"
+          },
+          {
+            badge: "Landlord & NRI",
+            title: "Landlord Rental Protection & Public Liability",
+            price: "₹ 3,200 / year",
+            unit: "Tailored for leased apartments & villas",
+            bullets: [
+              "Covers accidental tenant damage to fixtures and fittings",
+              "Loss of rent cover for up to 6 months if unit becomes uninhabitable",
+              "₹25 Lakhs third-party domestic helper & visitor liability shield"
+            ],
+            sla: "Instant Endorsement"
+          }
+        ],
+        portfolioTitle: "Claim Settlement Guarantees & Valuation Methodology",
+        portfolio: [
+          {
+            tag: "Zero Under-Insurance",
+            title: "Agreed Value Reinstatement Clause (No Market Depreciation)",
+            metric: "100% Replacement Cost",
+            desc: "Claims are settled on actual CPWD/state reconstruction cost per sq.ft without deducting age-based depreciation."
+          },
+          {
+            tag: "Video Claim Survey",
+            title: "AI + Live Video Appraisal for Water & Storm Claims",
+            metric: "72-Hour Direct NEFT",
+            desc: "Claims up to ₹1,00,000 are surveyed via smartphone video walkthrough and settled directly to your bank account."
+          }
+        ],
+        workflow: [
+          { step: "01", title: "Carpet Area Input", desc: "Enter built-up sq.ft and select reconstruction rate per sq.ft." },
+          { step: "02", title: "Add-On Selection", desc: "Toggle contents, jewellery vault, or landlord rent-loss riders." },
+          { step: "03", title: "Instant Policy PDF", desc: "Pay online and download IRDAI QR-coded policy schedule in 60 seconds." },
+          { step: "04", title: "1-Tap Claim Desk", desc: "Dedicated WhatsApp & portal claim desk with 24x7 emergency plumber/electrician." }
+        ],
+        reviews: [
+          { author: "Anirudh & Pooja Nair", context: "Cyclone Water Damage Claim • Chennai", rating: "4.9", text: "When heavy rains damaged our ground floor woodwork, ShieldGuard completed the video survey the next morning and credited ₹1.42L within 5 days." },
+          { author: "Karanवीर Singh", context: "Home Loan Structure Policy • Noida", rating: "4.8", text: "Saved nearly 60% compared to the bundled insurance my bank tried to push, with better coverage." }
+        ],
+        faqs: [
+          { q: "Should I insure for market price or reconstruction cost?", a: "Structure insurance should cover construction cost (Carpet Area × Rebuilding Cost/sq.ft), excluding land value since land cannot be destroyed." },
+          { q: "Can I assign this policy to my home loan bank?", a: "Yes, we automatically generate the Bank Hypothecation Endorsement clause on your policy schedule at zero extra cost." }
+        ],
+        leadConfig: {
+          title: "Get Instant Custom Policy Quote",
+          subtitle: "IRDAI-certified property risk advisor callback or instant WhatsApp quote.",
+          modes: ["Instant PDF Quote", "Advisor Callback", "Bulk Society Cover"],
+          field1Label: "Coverage Type Required",
+          field1Options: ["Structure Only (Home Loan Mandatory)", "Structure + Home Contents & Interiors", "Landlord & Tenant Protection Plan", "Housing Society Master Policy"],
+          field2Label: "Built-up Area (Sq.Ft) & City Pin Code",
+          field2Default: "1,650 Sq.Ft | Reconstruction + ₹15L Contents",
+          complianceItems: [
+            "IRDAI Licensed General Insurer (Reg: 142)",
+            "Bharat Griha Raksha Standardized Policy Wordings",
+            "Direct Cashless Repair Network Across 35+ Cities"
+          ]
+        }
+      },
+      {
+        id: "interior-design",
+        name: "Interior Design & Renovation",
+        shortName: "Interiors & Reno",
+        cluster: "Design & Execution",
+        archetype: "Turnkey Execution & Design",
+        avatarCode: "AT",
+        bannerGradient: "from-amber-900 via-stone-900 to-neutral-900",
+        accentBg: "bg-amber-700",
+        partnerName: "AtelierVibe Turnkey Interiors",
+        tier: "Signature Design Partner",
+        tagline: "Factory-precision modular kitchens, wardrobes, civil renovation, and 3D photorealistic turnkey interiors with a 45-day delivery guarantee.",
+        complianceBadge: "ISO 9001 • FSC E0 Marine Ply",
+        coverageBadge: "12 Experience Centers",
+        rating: "4.9",
+        reviewsCount: "2,180",
+        slaMetric: "45-Day Handover",
+        experienceMetric: "10+ Years • 6,400+ Homes Delivered",
+        exclusiveBenefit: "Free 3D Walkthrough (Worth ₹25K)",
+        primaryCta: "Book Free 3D Design Session",
+        kpis: [
+          { label: "Turnkey Starting Price", value: "₹ 1,450 / sq.ft", sub: "Modular + false ceiling + paint", badge: "All-Inclusive" },
+          { label: "Delivery Guarantee", value: "45 Days", sub: "₹1,000/day delay penalty protection", badge: "SLA Backed" },
+          { label: "Material Warranty", value: "10 Years", sub: "BWP IS:710 ply & Hettich hardware", badge: "Certified" },
+          { label: "Payment Structure", value: "4-Stage Escrow", sub: "Milestone-linked safe payments", badge: "Zero Risk" }
+        ],
+        calculator: {
+          title: "Turnkey Home Interior Budget Configurator",
+          badge: "Instant BOQ Estimator",
+          slider1: { label: "Home Carpet Area (Sq.Ft)", min: 500, max: 4000, value: 1250, unit: "Sq.Ft", prefix: "" },
+          slider2: { label: "Number of Wardrobes + Lofts", min: 1, max: 8, value: 3, unit: "Units", prefix: "" },
+          optionLabel: "Finish & Material Grade",
+          options: [
+            { label: "Essential Laminate", rate: 1150 },
+            { label: "Premium Acrylic / PU", rate: 1650 },
+            { label: "Luxe Veneer & Quartz", rate: 2350 }
+          ],
+          computeType: "interiors"
+        },
+        offeringsTitle: "Turnkey Interior & Renovation Packages",
+        offeringsSub: "Factory-manufactured modular precision with itemised Bill of Quantities (BOQ).",
+        offerings: [
+          {
+            badge: "Move-In Ready",
+            title: "2BHK / 3BHK Essential Modular Package",
+            price: "₹ 4.85 Lakhs*",
+            unit: "Complete Kitchen + 3 Wardrobes + TV Unit",
+            bullets: [
+              "L-shaped/Parallel BWP Marine Ply modular kitchen with soft-close channels",
+              "3 full-height sliding or hinged bedroom wardrobes with internal organizers",
+              "Foyer shoe rack, living room TV console & vanity storage"
+            ],
+            sla: "35-Day Factory Install"
+          },
+          {
+            badge: "Bestseller Turnkey",
+            title: "Signature Full-Home Interior & False Ceiling",
+            price: "₹ 8.90 Lakhs*",
+            unit: "End-to-end design + civil + lighting",
+            bullets: [
+              "High-gloss Acrylic/PU kitchen with quartz countertop & tandem baskets",
+              "Saint-Gobain gypsum false ceiling with warm cove & profile LED lighting",
+              "Asian Paints Royale luxury emulsion with accent wall panelling"
+            ],
+            sla: "45-Day Turnkey SLA"
+          },
+          {
+            badge: "Civil Remodel",
+            title: "Full Villa / Resale Home Structural Renovation",
+            price: "₹ 1,950 / sq.ft",
+            unit: "Civil demolition, plumbing, tiling & woodwork",
+            bullets: [
+              "Complete bathroom waterproofing, concealed plumbing & designer tiling",
+              "Electrical rewiring, smart switchboards & HVAC duct integration",
+              "Dedicated site civil engineer + daily app photo progress updates"
+            ],
+            sla: "60–75 Day Full Remodel"
+          }
+        ],
+        portfolioTitle: "Delivered Homes Showcase & Material Specification Matrix",
+        portfolio: [
+          {
+            tag: "Delivered Project • 3BHK",
+            title: "Skyline Crest, 1,680 Sq.Ft Contemporary Warm Minimalist Home",
+            metric: "Delivered in 42 Days • ₹11.4L BOQ",
+            desc: "Fluted ash-wood panelling, island quartz kitchen, concealed bar unit, and automated sheer curtains."
+          },
+          {
+            tag: "Quality Spec Sheet",
+            title: "Zero-Compromise Core & Hardware Specification Guarantee",
+            metric: "IS:710 BWP + Hettich/Blum",
+            desc: "100% E0 low-emission boards, 2mm Rehau edge-banding, German soft-close hinges with lifetime cycle warranty."
+          }
+        ],
+        workflow: [
+          { step: "01", title: "Laser Site Measurement", desc: "3D LiDAR scan of your apartment and lifestyle requirement briefing." },
+          { step: "02", title: "3D VR Walkthrough & BOQ", desc: "Interactive room-by-room 3D renders with line-item frozen pricing." },
+          { step: "03", title: "CNC Factory Production", desc: "Precision German CNC cutting & edge-banding with zero on-site dust." },
+          { step: "04", title: "10-Day Assembly & Handover", desc: "Deep-cleaned handover with 120-point quality snag check & 10-yr warranty card." }
+        ],
+        reviews: [
+          { author: "Priyanka & Harshvardhan Desai", context: "3BHK Turnkey Interiors • Ahmedabad", rating: "4.9", text: "The line-item BOQ never changed by a single rupee after sign-off, and we moved in on Day 43. Their app showed daily site photos." },
+          { author: "Nikhil Menon", context: "Resale Flat Renovation • Mumbai", rating: "5.0", text: "Transformed our 18-year-old apartment including both bathrooms and kitchen without any society complaints." }
+        ],
+        faqs: [
+          { q: "What happens if handover is delayed beyond 45 days?", a: "Our contract includes a binding ₹1,000/day rental compensation clause for any post-45-day delay after 3D design freeze." },
+          { q: "Can we customize board brands and laminate shades?", a: "Yes, you can pick from 600+ Century/Greenlam/Merino swatches at our Experience Center or request a home swatch trunk." }
+        ],
+        leadConfig: {
+          title: "Book Free 3D Design & BOQ Session",
+          subtitle: "Meet a Senior Interior Architect online or at our Experience Center.",
+          modes: ["Experience Center Visit", "Laser Site Visit", "3D Video Consult"],
+          field1Label: "Property Configuration & Scope",
+          field1Options: ["2BHK Full Home Interiors", "3BHK / 4BHK Turnkey Interiors", "Modular Kitchen & Wardrobes Only", "Resale Civil Renovation"],
+          field2Label: "Possession Status & Estimated Budget",
+          field2Default: "Possession Ready | Budget: ₹8L – ₹12L",
+          complianceItems: [
+            "10-Year Flat Warranty on BWP Woodwork & Hardware",
+            "Zero Price Escalation Post-BOQ Freeze",
+            "120-Point Snag-Free Quality Audit Before Final Tranche"
+          ]
+        }
+      },
+      {
+        id: "packers-movers",
+        name: "Packers & Movers",
+        shortName: "Packers & Movers",
+        cluster: "Design & Execution",
+        archetype: "Logistics & Field Execution",
+        avatarCode: "SN",
+        bannerGradient: "from-blue-950 via-sky-900 to-slate-900",
+        accentBg: "bg-sky-600",
+        partnerName: "SwiftNest SafeRelocate Logistics",
+        tier: "Verified Logistics Partner",
+        tagline: "Damage-free 5-layer bubble & corrugated crating, GPS-locked containerized fleet, and carpentry/appliance uninstallation-reinstallation.",
+        complianceBadge: "IBA Approved • ISO 39001 Road Safety",
+        coverageBadge: "650+ Pin Codes • GPS Fleet",
+        rating: "4.8",
+        reviewsCount: "3,410",
+        slaMetric: "Zero-Transshipment",
+        experienceMetric: "11+ Years • 92,000+ Moves Completed",
+        exclusiveBenefit: "Free ₹5L Transit Insurance + 20 Crates",
+        primaryCta: "Get Instant Move Quote",
+        kpis: [
+          { label: "Damage-Free Record", value: "99.4%", sub: "5-layer foam & wooden crating", badge: "Insured" },
+          { label: "Intracity Move Starting", value: "₹ 5,900", sub: "Closed container + 4 crew members", badge: "Fixed Quote" },
+          { label: "Transit Insurance", value: "Up to ₹ 25L", sub: "72-hour digital damage settlement", badge: "All-Risk" },
+          { label: "Society NOC & Handyman", value: "Included", sub: "AC, geyser, TV & bed dismantling", badge: "White-Glove" }
+        ],
+        calculator: {
+          title: "Relocation Volume & Container Cost Estimator",
+          badge: "Instant Move Calculator",
+          slider1: { label: "Household Inventory Size (BHK Equivalent)", min: 1, max: 5, value: 3, unit: "BHK", prefix: "" },
+          slider2: { label: "Relocation Distance (km)", min: 5, max: 1500, value: 25, unit: "km", prefix: "" },
+          optionLabel: "Packing & Service Tier",
+          options: [
+            { label: "Standard 3-Layer", mult: 1.0 },
+            { label: "White-Glove 5-Layer", mult: 1.35 },
+            { label: "Dedicated Truck + Storage", mult: 1.65 }
+          ],
+          computeType: "movers"
+        },
+        offeringsTitle: "Standardized Relocation & Storage Packages",
+        offeringsSub: "Locked post-survey quotes with zero last-minute floor or carton surcharges.",
+        offerings: [
+          {
+            badge: "Local City Move",
+            title: "Same-Day Intracity White-Glove Relocation",
+            price: "₹ 6,500 – ₹ 14,500",
+            unit: "1BHK to 4BHK Closed Container",
+            bullets: [
+              "5-layer packing for fragile crockery, LED TVs & marble tabletops",
+              "Trained carpenter & electrician for bed, wardrobe, AC & RO dismantling",
+              "Full unpacking, room-wise placement & debris carton removal same day"
+            ],
+            sla: "Same-Day 8-Hour Execution"
+          },
+          {
+            badge: "Domestic Intercity",
+            title: "Sealed-Lock Dedicated Container Intercity Move",
+            price: "₹ 18,500 Onwards",
+            unit: "Customer-locked tamper-proof seal",
+            bullets: [
+              "Zero transshipment — same vehicle from origin door to destination door",
+              "Real-time live GPS tracking link shared with family members",
+              "Includes enclosed Hydraulic Car / Two-Wheeler Carrier option"
+            ],
+            sla: "Guaranteed ETA + Delay Refund"
+          },
+          {
+            badge: "Renovation Pause",
+            title: "Climate-Safe Palletized Warehouse Storage",
+            price: "₹ 2,900 / month",
+            unit: "Per 1BHK pallet module (CCTV + Fire Safe)",
+            bullets: [
+              "Ideal while your new home interiors or civil renovations are underway",
+              "Biometric access, pest-controlled, barcode-inventoried private bays",
+              "Flexible weekly/monthly extensions with 24-hour redelivery notice"
+            ],
+            sla: "24-Hour Redelivery"
+          }
+        ],
+        portfolioTitle: "Packing Material Standards & Fleet Verification",
+        portfolio: [
+          {
+            tag: "Crating Standard",
+            title: "Reusable Heavy-Duty Polymer Wardrobe & Crockery Trunks",
+            metric: "Zero Crush Guarantee",
+            desc: "Suits and sarees travel on hanging wardrobe rods inside dust-proof trunks; fragile glassware travels in cellular foam boxes."
+          },
+          {
+            tag: "Corporate & Bank Approved",
+            title: "IBA-Approved Consignment Bills for Employer Reimbursement",
+            metric: "100% GST & IBA Compliant",
+            desc: "Official IBA code bills, lorry receipts, and digital weight slips accepted by all PSU banks, IT firms, and MNCs."
+          }
+        ],
+        workflow: [
+          { step: "01", title: "AI Video Inventory Survey", desc: "5-minute smartphone walkthrough to generate an itemized inventory list." },
+          { step: "02", title: "Locked No-Surprise Quote", desc: "Binding fixed quote covering society lift rules, floors, and handyman work." },
+          { step: "03", title: "5-Layer Crating & Seal", desc: "Barcode tagging of every box and customer lock on container door." },
+          { step: "04", title: "Unpack & Reassemble", desc: "Furniture reassembly, appliance mounting, and packaging waste clearance." }
+        ],
+        reviews: [
+          { author: "Capt. Rajeev Malhotra", context: "3BHK + Car Move • Delhi to Pune", rating: "4.9", text: "Not a single wine glass or ceramic pot was chipped across 1,400 km. The supervisor shared live GPS location every morning." },
+          { author: "Divya Krishnan", context: "2BHK Local Move • Bengaluru", rating: "4.8", text: "They brought reusable plastic crates, dismantled two split ACs and three beds, and set everything up by 6 PM without asking for tips." }
+        ],
+        faqs: [
+          { q: "Can the price increase on moving day?", a: "Never, provided the inventory matches your video survey list. Our quotes include society waiting time and standard stair/lift handling." },
+          { q: "Do you handle society move-in/move-out gate passes?", a: "Yes, our move coordinator provides vehicle RC, crew Aadhaar KYC, and security deposit coordination 24 hours prior." }
+        ],
+        leadConfig: {
+          title: "Book Video Survey & Lock Move Quote",
+          subtitle: "Instant inventory price lock with ₹0 booking cancellation fee.",
+          modes: ["5-Min Video Survey", "Home Supervisor Visit", "Instant Item List"],
+          field1Label: "Relocation Route & Service Type",
+          field1Options: ["Within Same City (Intracity)", "Between Cities (Domestic Container)", "Home + Car/Bike Relocation", "Temporary Warehouse Storage"],
+          field2Label: "Home Size & Tentative Move Date",
+          field2Default: "3BHK Household | Next Month 1st Weekend",
+          complianceItems: [
+            "Indian Banks' Association (IBA) Approved Transporter",
+            "100% Background-Verified Uniformed Crew (Police KYC)",
+            "Tamper-Proof Digital Lock & Live GPS Telemetry"
+          ]
+        }
+      },
+      {
+        id: "property-management",
+        name: "Property Management",
+        shortName: "Property Mgmt",
+        cluster: "Design & Execution",
+        archetype: "Advisory & Field Operations",
+        avatarCode: "CH",
+        bannerGradient: "from-teal-950 via-emerald-900 to-slate-900",
+        accentBg: "bg-emerald-700",
+        partnerName: "CustodianHub NRI & Asset Management",
+        tier: "Platinum Asset Partner",
+        tagline: "End-to-end tenant discovery, police/court background verification, guaranteed on-time rent collection, and quarterly video maintenance audits.",
+        complianceBadge: "RERA Registered • ISO 27001",
+        coverageBadge: "18 Metro & Tier-1 Cities",
+        rating: "4.9",
+        reviewsCount: "860",
+        slaMetric: "100% On-Time Rent",
+        experienceMetric: "9+ Years • ₹4,200 Cr+ Assets Managed",
+        exclusiveBenefit: "1st Month Management Fee Waived",
+        primaryCta: "Estimate Rental Yield",
+        kpis: [
+          { label: "Annual Management Fee", value: "6% – 8%", sub: "Of monthly rental collected", badge: "No-Rent No-Fee" },
+          { label: "Avg. Tenant Placement", value: "14 Days", sub: "Corporate & expat tenant pool", badge: "Low Vacancy" },
+          { label: "Tenant Screening", value: "5-Point Check", sub: "CIBIL, Court, Police, ID & HR", badge: "Zero Default" },
+          { label: "Property Inspection", value: "Quarterly", sub: "80-photo report + video walkthrough", badge: "Owner Portal" }
+        ],
+        calculator: {
+          title: "Net Rental Yield & Cashflow Estimator",
+          badge: "Owner ROI Calculator",
+          slider1: { label: "Expected Monthly Rent", min: 15, max: 250, value: 45, unit: "k / mo", prefix: "₹ " },
+          slider2: { label: "Management Tenure", min: 1, max: 5, value: 3, unit: "Years", prefix: "" },
+          optionLabel: "Asset Management Plan",
+          options: [
+            { label: "Tenant Finder Only", feePct: 4.0 },
+            { label: "360° Full Custodianship", feePct: 7.0 },
+            { label: "Rent Guarantee Plan", feePct: 9.5 }
+          ],
+          computeType: "propmgmt"
+        },
+        offeringsTitle: "Turnkey Property & Tenancy Management Tiers",
+        offeringsSub: "Built for NRIs, outstation investors, and multi-property owners.",
+        offerings: [
+          {
+            badge: "NRI Bestseller",
+            title: "360° End-to-End Tenancy & Maintenance Custodianship",
+            price: "7% of Monthly Rent",
+            unit: "Zero fee during any vacancy period",
+            bullets: [
+              "Professional photoshoot, corporate listing & accompanied viewings",
+              "5-point tenant KYC + leave & license biometric registration",
+              "Automated rent collection, society bill tracking & quarterly 80-photo audit"
+            ],
+            sla: "Dedicated Asset Manager"
+          },
+          {
+            badge: "Assured Cashflow",
+            title: "Guaranteed On-Time Rent & Eviction Protection Plan",
+            price: "9.5% of Monthly Rent",
+            unit: "Rent credited on 5th of every month",
+            bullets: [
+              "Guaranteed rent payout on the 5th even if tenant delays payment",
+              "Up to ₹1,00,000 free legal & eviction handling coverage",
+              "Includes ₹25,000/year preventive plumbing, AC & electrical servicing"
+            ],
+            sla: "5th-of-Month Payout SLA"
+          },
+          {
+            badge: "Vacant Home Care",
+            title: "Non-Rented Vacant Villa / Apartment Custodial Care",
+            price: "₹ 2,400 / month",
+            unit: "For owners keeping homes for personal use",
+            bullets: [
+              "Bi-weekly airing, deep cleaning, pest control & plumbing flush",
+              "Electricity, property tax & society maintenance bill settlement",
+              "Live timestamped video report uploaded to owner dashboard twice a month"
+            ],
+            sla: "Bi-Weekly Video Audit"
+          }
+        ],
+        portfolioTitle: "Owner Dashboard Capabilities & Tenant Vetting Protocol",
+        portfolio: [
+          {
+            tag: "Corporate Desk",
+            title: "Direct Tie-Ups with 180+ MNCs & Relocation Desks",
+            metric: "78% Corporate Families",
+            desc: "Priority placement of company-leased executives, reducing wear-and-tear and eliminating rent default risks."
+          },
+          {
+            tag: "Possession Snagging",
+            title: "Pre-Handover Builder Snagging & Key Takeover Service",
+            metric: "150-Point Engineering Check",
+            desc: "We take possession from the builder on your behalf after checking tile hollowness, dampness via thermal camera, and electrical load."
+          }
+        ],
+        workflow: [
+          { step: "01", title: "Asset Onboarding & Snag", desc: "Digital key handover, inventory cataloguing, and rental valuation." },
+          { step: "02", title: "Corporate Marketing", desc: "360° virtual tour and screening of verified family/corporate tenants." },
+          { step: "03", title: "Biometric Agreement", desc: "Remote e-registration of Leave & License + security deposit escrow." },
+          { step: "04", title: "Automated Yield & Audits", desc: "Monthly rent payouts, tax statements, and quarterly video inspections." }
+        ],
+        reviews: [
+          { author: "Saurabh & Neha Chatterjee", context: "NRI Owners (London) • 2 Flats in Bengaluru", rating: "5.0", text: "Haven't had to make a single midnight phone call to India in 4 years. Rent hits our NRO account on the 5th and quarterly inspection videos are super thorough." },
+          { author: "Arvind Swaminathan", context: "Villa Asset Management • Hyderabad", rating: "4.9", text: "They handled builder handover snagging, got the modular kitchen installed, and placed a Fortune-500 expat tenant within 18 days." }
+        ],
+        faqs: [
+          { q: "How are repair and maintenance expenses approved?", a: "Any repair under ₹2,000 is handled via pre-approved float; anything above requires your 1-click approval on 2 vendor quotes inside the Owner App." },
+          { q: "Do you handle NRI TDS deduction and tax filing?", a: "Yes, our in-house CA desk manages Section 195 TDS compliance and issues annual rental income & expense statements." }
+        ],
+        leadConfig: {
+          title: "Get Free Rental Valuation & Yield Plan",
+          subtitle: "Receive a comparative rent study for your society within 4 hours.",
+          modes: ["Video Portfolio Consult", "Key Handover / Snagging", "NRI WhatsApp Desk"],
+          field1Label: "Management Requirement",
+          field1Options: ["360° Full Rental Management", "Guaranteed Rent Plan", "Vacant Home Custodial Care", "New Possession Snagging + Leasing"],
+          field2Label: "Property Society Name & Configuration",
+          field2Default: "3BHK Semi-Furnished | Ready for Tenant",
+          complianceItems: [
+            "RERA Certified Real Estate Asset Manager",
+            "5-Layer Court, Police & CIBIL Tenant Verification",
+            "Dedicated Escrow Account for Rent & Security Deposits"
+          ]
+        }
+      },
+      {
+        id: "vastu-fengshui",
+        name: "Vastu / Feng Shui",
+        shortName: "Vastu & Spatial",
+        cluster: "Design & Execution",
+        archetype: "Advisory & Spatial Consultation",
+        avatarCode: "VS",
+        bannerGradient: "from-amber-950 via-orange-900 to-stone-900",
+        accentBg: "bg-orange-600",
+        partnerName: "VastuShastra & Spatial Harmony Institute",
+        tier: "Certified Advisory Partner",
+        tagline: "Scientific, non-demolition 16-Zone MahaVastu & Classical Feng Shui floor-plan audits, compass grid mapping, and pre-purchase plot selection.",
+        complianceBadge: "IIA & Vedic Spatial Research Cert.",
+        coverageBadge: "Digital CAD + On-Site Compass",
+        rating: "4.9",
+        reviewsCount: "740",
+        slaMetric: "Zero-Demolition",
+        experienceMetric: "16+ Years • 11,500+ Floor Plans Audited",
+        exclusiveBenefit: "Free Pre-Purchase 3-Flat Comparison",
+        primaryCta: "Upload Floor Plan for Audit",
+        kpis: [
+          { label: "Remedy Methodology", value: "100% Non-Civil", sub: "Zero structural demolition needed", badge: "Modern Apartments" },
+          { label: "CAD Grid Precision", value: "16-Zone Map", sub: "True North geomagnetic degree overlay", badge: "AutoCAD / PDF" },
+          { label: "Pre-Purchase Vetting", value: "24 Hours", sub: "Compare up to 3 shortlisted units", badge: "Fast Turnaround" },
+          { label: "Architect Sync", value: "Included", sub: "Direct coordination with interior team", badge: "Collaborative" }
+        ],
+        calculator: {
+          title: "Floor Plan Spatial Audit & Consultation Estimator",
+          badge: "Spatial Audit Configurator",
+          slider1: { label: "Property Built-up Area (Sq.Ft)", min: 500, max: 6000, value: 1800, unit: "Sq.Ft", prefix: "" },
+          slider2: { label: "Number of Floors / Levels", min: 1, max: 4, value: 1, unit: "Level(s)", prefix: "" },
+          optionLabel: "Consultation Mode",
+          options: [
+            { label: "Pre-Purchase Digital", base: 4500 },
+            { label: "16-Zone CAD + Remedies", base: 9500 },
+            { label: "On-Site Compass + Interior Sync", base: 18500 }
+          ],
+          computeType: "vastu"
+        },
+        offeringsTitle: "Scientific Vastu & Feng Shui Consultation Packages",
+        offeringsSub: "Practical spatial alignment integrated directly with modern architectural layouts.",
+        offerings: [
+          {
+            badge: "Before You Buy",
+            title: "Pre-Purchase Shortlist Comparison (Up to 3 Units)",
+            price: "₹ 4,500 Flat",
+            unit: "24-Hour Scorecard Delivery",
+            bullets: [
+              "Comparative 100-point Vastu & natural light/airflow score for 3 flats/plots",
+              "Entrance pada (32-division), kitchen fire-zone & master bedroom evaluation",
+              "30-minute video debrief to help you pick the most harmonious unit"
+            ],
+            sla: "24-Hour Digital Report"
+          },
+          {
+            badge: "Most Popular",
+            title: "16-Zone CAD Shakti Chakra Overlay & Non-Demolition Plan",
+            price: "₹ 9,500 Flat",
+            unit: "For Apartments up to 2,500 Sq.Ft",
+            bullets: [
+              "Precise AutoCAD center-of-gravity (Brahmasthan) & 16-directional zoning",
+              "Color palette, elemental metal strip, mirror & furniture placement remedies",
+              "Joint zoom session with your Interior Designer to align electrical/kitchen layout"
+            ],
+            sla: "72-Hour CAD Report"
+          },
+          {
+            badge: "Villas & Plots",
+            title: "On-Site Geomagnetic Audit & Bhoomi/Griha Pravesh Advisory",
+            price: "₹ 18,500 Flat",
+            unit: "Includes physical site visit + 2 follow-ups",
+            bullets: [
+              "On-site True North compass reading, slope gradient & borewell/septic zoning",
+              "Custom architectural blueprint zoning for new villa or commercial office",
+              "Auspicious Muhurat timeline & element-balancing installation kit included"
+            ],
+            sla: "Scheduled Site Visit"
+          }
+        ],
+        portfolioTitle: "Sample CAD Zoning Maps & Non-Structural Corrections",
+        portfolio: [
+          {
+            tag: "CAD Deliverable",
+            title: "16-Zone & 32-Entrance Pada AutoCAD Overlay Blueprint",
+            metric: "0.5° Degree Accuracy",
+            desc: "Superimposes directional energy zones directly onto your builder's floor plan so your architect knows exact stove, bed, and desk positions."
+          },
+          {
+            tag: "No-Demolition Guarantee",
+            title: "Elemental Color, Metal Strip & Lighting Balancing Protocol",
+            metric: "Zero Wall Breaking",
+            desc: "Corrects toilet or entrance imbalances in high-rise apartments using subtle brass/copper/stainless strips and directional lighting."
+          }
+        ],
+        workflow: [
+          { step: "01", title: "Floor Plan & Google Pin", desc: "Upload your 2D floor plan and share Google Maps location pin for True North." },
+          { step: "02", title: "CAD Center & 16-Zone Map", desc: "Computerized baricenter calculation and 16-zone area distribution chart." },
+          { step: "03", title: "Remedy & Interior Sync", desc: "Receive room-wise furniture, color, and elemental placement blueprint." },
+          { step: "04", title: "Post-Setup Verification", desc: "Video walkthrough check after interiors are completed." }
+        ],
+        reviews: [
+          { author: "Gaurav & Ritu Singhal", context: "Pre-Purchase Audit • Noida", rating: "5.0", text: "We were confused between two corner flats in the same tower. Their 16-zone report clearly showed why Unit B had far better entrance and kitchen alignment." },
+          { author: "Architect K. Deshmukh", context: "Interior Collaborator • Pune", rating: "4.9", text: "As an architect, I love working with VastuShastra Institute because they never ask to break walls—their CAD overlays integrate cleanly into modern designs." }
+        ],
+        faqs: [
+          { q: "Can Vastu corrections be done in a builder flat where walls cannot be moved?", a: "Yes, 100% of our apartment remedies use directional colors, furniture orientation, lighting warmth, and concealed metal strips without breaking a single tile." },
+          { q: "Do you offer both Vedic Vastu and Flying Star Feng Shui?", a: "Yes, you can opt for Classical 16-Zone Vedic Vastu, BTB/Flying Star Feng Shui, or a unified spatial wellness audit." }
+        ],
+        leadConfig: {
+          title: "Upload Floor Plan for Spatial Audit",
+          subtitle: "Get a preliminary directional check & consultation slot within 4 hours.",
+          modes: ["Digital CAD Audit", "On-Site Compass Visit", "Pre-Purchase Shortlist"],
+          field1Label: "Consultation Requirement",
+          field1Options: ["Pre-Purchase Flat/Plot Selection (Up to 3)", "16-Zone CAD Audit (No Demolition)", "New Villa / Plot Architectural Zoning", "Commercial Office / Retail Vastu"],
+          field2Label: "Property Type & Google Maps Orientation",
+          field2Default: "3BHK Apartment (1,800 Sq.Ft) | Floor Plan Ready",
+          complianceItems: [
+            "Certified Architectural & Vedic Spatial Consultants",
+            "100% Non-Demolition Apartment Remedy Guarantee",
+            "Free Sync Call with Your Interior Designer Included"
+          ]
+        }
+      },
+      {
+        id: "tiles-surfaces",
+        name: "Tiles & Surface Finishing",
+        shortName: "Tiles & Surfaces",
+        cluster: "Materials & Hardware",
+        archetype: "Building Materials & Catalog",
+        avatarCode: "CS",
+        bannerGradient: "from-stone-900 via-neutral-800 to-slate-900",
+        accentBg: "bg-stone-700",
+        partnerName: "Ceramique Luxe Surfaces & Quartz",
+        tier: "Direct Factory Partner",
+        tagline: "Large-format sintered slabs, Italian marble-look GVT vitrified tiles, anti-skid deck porcelain, and epoxy grouting with zero-breakage doorstep delivery.",
+        complianceBadge: "ISO 13006 • BIS IS:15622 Certified",
+        coverageBadge: "Direct Morbi & European Mill Dispatch",
+        rating: "4.8",
+        reviewsCount: "1,640",
+        slaMetric: "Free 5-Tile Sample Box",
+        experienceMetric: "15+ Years • 850+ Active SKU Designs",
+        exclusiveBenefit: "Up to 22% Trade Pricing for Homeowners",
+        primaryCta: "Order Sample Swatch Box",
+        kpis: [
+          { label: "Ecosystem Direct Price", value: "₹ 48 – ₹ 290/sq.ft", sub: "Ex-showroom wholesale tier", badge: "Save 22%" },
+          { label: "Slab Sizes Available", value: "Up to 8×4 Ft", sub: "600x1200, 800x1600, 1200x2400mm", badge: "Large Format" },
+          { label: "Breakage Replacement", value: "100% Free", sub: "In-transit breakage replaced in 24h", badge: "Insured Transit" },
+          { label: "Batch Shade Lock", value: "Single Lot", sub: "Guaranteed uniform caliper & tone", badge: "Zero Shade Gap" }
+        ],
+        calculator: {
+          title: "Room Tile Quantity, Box & Wastage Calculator",
+          badge: "Material BOQ Calculator",
+          slider1: { label: "Total Flooring + Wall Tiling Area (Sq.Ft)", min: 200, max: 5000, value: 1400, unit: "Sq.Ft", prefix: "" },
+          slider2: { label: "Recommended Cut & Skirting Wastage Buffer", min: 5, max: 15, value: 10, unit: "% Buffer", prefix: "" },
+          optionLabel: "Tile Format & Surface Finish",
+          options: [
+            { label: "600×1200 GVT (₹68/sf)", rate: 68, sqFtPerBox: 15.5 },
+            { label: "800×1600 Slab (₹115/sf)", rate: 115, sqFtPerBox: 27.5 },
+            { label: "Sintered Quartz (₹210/sf)", rate: 210, sqFtPerBox: 34.4 }
+          ],
+          computeType: "tiles"
+        },
+        offeringsTitle: "Curated Surface Collections & Technical Adhesives",
+        offeringsSub: "Single-batch factory reservation with matching epoxy grout and tile adhesives.",
+        offerings: [
+          {
+            badge: "Living & Bedrooms",
+            title: "Bookmatch Statuario & Endless Vein GVT (800×1600mm)",
+            price: "₹ 92 – ₹ 135 / sq.ft",
+            unit: "High-Gloss / Carver Matte / Satin",
+            bullets: [
+              "Continuous bookmatched Italian marble vein continuity across 4 slabs",
+              "Zero porosity (<0.05% water absorption) — immune to haldi, coffee & wine stains",
+              "Rectified laser-cut edges allowing ultra-thin 1.5mm spacer joints"
+            ],
+            sla: "48-Hour City Warehouse Dispatch"
+          },
+          {
+            badge: "Bathrooms & Balconies",
+            title: "R11 Anti-Skid Moroccan, Terrazzo & Wood-Plank Porcelain",
+            price: "₹ 64 – ₹ 98 / sq.ft",
+            unit: "Certified R10/R11 Wet Slip Resistance",
+            bullets: [
+              "Senior-citizen safe micro-grip surface texture for wet shower zones",
+              "UV-stable outdoor elevation & balcony wood-plank porcelain tiles",
+              "Bundled with Laticrete/MYK stain-free epoxy grout in 24 matching shades"
+            ],
+            sla: "Free Sample Trunk Available"
+          },
+          {
+            badge: "Kitchen Countertops",
+            title: "15mm Full-Body Sintered Stone & Quartz Counter Slabs",
+            price: "₹ 215 – ₹ 340 / sq.ft",
+            unit: "8×4 Feet Jumbo Slabs (Heat & Scratch Proof)",
+            bullets: [
+              "Direct hot-pan resistant (up to 300°C) and Mohs Grade-7 scratch proof",
+              "Food-safe non-porous antimicrobial surface requiring zero annual sealing",
+              "Available with precision CNC sink cut-out & mitered edge profiling"
+            ],
+            sla: "72-Hour Custom Cut Delivery"
+          }
+        ],
+        portfolioTitle: "3D Room Visualizer & Single-Batch Quality Assurance",
+        portfolio: [
+          {
+            tag: "Batch Integrity",
+            title: "100% Single-Kiln-Lot Reservation Guarantee",
+            metric: "Zero Caliper/Shade Variation",
+            desc: "All boxes for your apartment are locked from the exact same production kiln batch code so floor reflections never look patchy."
+          },
+          {
+            tag: "Adhesive System",
+            title: "C2TE S1 Polymer-Modified Tile Adhesive + Epoxy Grout Kit",
+            metric: "Zero Hollow Tile Guarantee",
+            desc: "Complete system supply including levelling clips, spacers, and waterproof epoxy grouting to prevent tile popping."
+          }
+        ],
+        workflow: [
+          { step: "01", title: "3D Room Preview & Sample", desc: "Upload room photo or receive a 5-tile physical sample box at home." },
+          { step: "02", title: "Tile Layout & Box BOQ", desc: "Our CAD team maps tile joints to minimize cutting wastage." },
+          { step: "03", title: "Single-Batch Lock", desc: "Boxes are reserved from a single shade lot and pallet-wrapped." },
+          { step: "04", title: "Crane/Lift Unloading", desc: "Doorstep delivery with 100% free replacement for any transit damage." }
+        ],
+        reviews: [
+          { author: "Manish & Kavita Patwardhan", context: "2,200 Sq.Ft Villa Flooring • Rajkot", rating: "4.9", text: "Saved nearly ₹1.1 Lakhs buying 800x1600 GVT slabs directly through this partner vs local retail, and every single box was from the same batch." },
+          { author: "Studio Arka Architects", context: "Trade Partner • Mumbai", rating: "4.8", text: "Their sample box delivery within 24 hours makes client sign-off super fast. The R11 bathroom series is our go-to spec." }
+        ],
+        faqs: [
+          { q: "What if we run short by 2-3 boxes during installation?", a: "We hold a 5% buffer from your exact production batch code in our regional depot for 30 days after delivery." },
+          { q: "What happens if tiles crack during transport?", a: "Simply share a photo on delivery day—any cracked slab is replaced free of cost within 24 hours." }
+        ],
+        leadConfig: {
+          title: "Order 5-Tile Sample Box or Wholesale BOQ",
+          subtitle: "Direct factory-tier pricing + free CAD tile layout calculation.",
+          modes: ["Order Sample Box", "Showroom Experience", "Send Architect BOQ"],
+          field1Label: "Surface Category Needed",
+          field1Options: ["Full Home Living & Bedroom Slabs", "Bathroom & Balcony Anti-Skid Tiles", "Kitchen Quartz / Sintered Countertops", "Complete Home Tiles + Epoxy Adhesive Kit"],
+          field2Label: "Approximate Tiling Area (Sq.Ft)",
+          field2Default: "1,400 Sq.Ft | Need 800x1600 Matte & Gloss",
+          complianceItems: [
+            "BIS IS:15622 & ISO 13006 Grade-1 First Quality Only",
+            "Strict Single-Kiln Batch & Caliper Lock Guarantee",
+            "100% Free Transit Breakage Replacement SLA"
+          ]
+        }
+      },
+      {
+        id: "hardware-fittings",
+        name: "Hardware & Architectural Fittings",
+        shortName: "Hardware & Fittings",
+        cluster: "Materials & Hardware",
+        archetype: "Building Materials & Catalog",
+        avatarCode: "KR",
+        bannerGradient: "from-zinc-900 via-slate-800 to-neutral-900",
+        accentBg: "bg-zinc-700",
+        partnerName: "KronoCraft Architectural Hardware & Locks",
+        tier: "Authorized Master Distributor",
+        tagline: "SS-304 mortise locks, biometric smart deadbolts, soft-close kitchen tandem systems, glass patch fittings, and sliding wardrobe hardware.",
+        complianceBadge: "EN 1906 Grade-4 • 2,00,000 Cycle Tested",
+        coverageBadge: "100% Genuine OEM QR-Verified",
+        rating: "4.9",
+        reviewsCount: "1,120",
+        slaMetric: "Lifetime Mech. Warranty",
+        experienceMetric: "20+ Years • 100% Counterfeit-Free OEM",
+        exclusiveBenefit: "Free Master-Keying + 18% Project Rebate",
+        primaryCta: "Configure Hardware Kit",
+        kpis: [
+          { label: "Cycle Durability", value: "2,00,000+", sub: "EN-certified open/close test", badge: "Lifetime Cover" },
+          { label: "Project Bundle Discount", value: "18% – 26%", sub: "Below MRP on full-home kits", badge: "OEM Direct" },
+          { label: "Corrosion Rating", value: "96-Hr Salt Spray", sub: "AISI 304 Grade Stainless Steel", badge: "Rust-Proof" },
+          { label: "Technician Support", value: "On-Site Jig", sub: "Template & router guide for carpenters", badge: "Zero Misalign" }
+        ],
+        calculator: {
+          title: "Full-Home Architectural Hardware & Kitchen Fitting Estimator",
+          badge: "Hardware Kit Builder",
+          slider1: { label: "Total Internal + Main Doors", min: 3, max: 20, value: 8, unit: "Doors", prefix: "" },
+          slider2: { label: "Modular Kitchen Tandem Drawers + Cabinets", min: 4, max: 30, value: 12, unit: "Units", prefix: "" },
+          optionLabel: "Finish & Mechanism Tier",
+          options: [
+            { label: "Brushed SS-304 Essential", mult: 1.0 },
+            { label: "PVD Rose Gold / Matte Black", mult: 1.45 },
+            { label: "Motorized Servo & Biometric", mult: 2.10 }
+          ],
+          computeType: "hardware"
+        },
+        offeringsTitle: "Standardized Door, Wardrobe & Kitchen Hardware Kits",
+        offeringsSub: "Room-tagged hardware kits so your carpenter never wastes time buying loose screws.",
+        offerings: [
+          {
+            badge: "Main & Bedroom Doors",
+            title: "PVD Designer Mortise Handle + 10-Pin Euro Cylinder Kit",
+            price: "₹ 3,450 / door kit",
+            unit: "Includes Handle, Lock Body, Cylinder, 4 Ball-Bearing Hinges & Stopper",
+            bullets: [
+              "Solid Forged Brass / SS-304 handles in Graphite Black, Champagne Gold & Satin Nickel",
+              "Anti-drill, anti-pick dimple key cylinders with master-keying option",
+              "Pre-packed room-by-room boxes labelled 'Main Door', 'Master Bed', 'Bath'"
+            ],
+            sla: "24-Hour Kit Dispatch"
+          },
+          {
+            badge: "Kitchen & Wardrobe",
+            title: "Soft-Close Tandem Drawer Box & Zero-Crank Hinge Package",
+            price: "₹ 18,900 / kitchen set",
+            unit: "6 Tandem Boxes (45kg load) + 24 Soft-Close Hinges + Pantry Unit",
+            bullets: [
+              "Feather-touch synchronized concealed runners rated for 45kg–65kg deadweight",
+              "3-way clip-on adjustable hydraulic hinges tested for coastal humidity",
+              "Includes corner Magic-Corner / LeMans pull-out and cutlery organizer tray"
+            ],
+            sla: "Includes Carpenter Drilling Jig"
+          },
+          {
+            badge: "Glass & Sliding Systems",
+            title: "Floor-to-Ceiling Slim-Frame Sliding & Shower Cubicle Kit",
+            price: "₹ 11,500 / system",
+            unit: "Soft-Close Both Ways • 80kg Roller Capacity",
+            bullets: [
+              "16mm ultra-slim anodized aluminium profile for walk-in wardrobes & partitions",
+              "SS-316 marine-grade frameless glass shower enclosure hinges & seals",
+              "Concealed acoustic drop-down door bottom seals to block dust & noise"
+            ],
+            sla: "Custom Cut-to-Size in 72h"
+          }
+        ],
+        portfolioTitle: "Anti-Counterfeit OEM Guarantee & Carpenter Support",
+        portfolio: [
+          {
+            tag: "Zero Counterfeit Shield",
+            title: "Factory Hologram & Serialized QR Warranty Registration",
+            metric: "100% Direct Brand Billing",
+            desc: "Architectural hardware is plagued by lookalike counterfeits. Every hinge and lock comes with verifiable OEM factory serial numbers."
+          },
+          {
+            tag: "Site Precision",
+            title: "Complimentary Router Jigs & Technical Supervisor Site Visit",
+            metric: "Zero Door Damage",
+            desc: "Our technician visits your site on Day 1 to hand over drilling templates to your carpenter so mortise cavities and tandem channels are aligned to the millimeter."
+          }
+        ],
+        workflow: [
+          { step: "01", title: "Door & Cabinet Schedule", desc: "Share your interior drawing or count of doors, drawers, and shutters." },
+          { step: "02", title: "Finish Touch & Feel", desc: "Experience PVD finishes at our studio or via home hardware sample case." },
+          { step: "03", title: "Room-Labelled Kit Box", desc: "Receive pre-sorted boxes labelled per room so nothing goes missing on site." },
+          { step: "04", title: "Carpenter Alignment Check", desc: "Free site technician audit post-installation to activate lifetime warranty." }
+        ],
+        reviews: [
+          { author: "Chetan & Ridhi Parekh", context: "4BHK Interior Hardware • Surat", rating: "5.0", text: "Having every door's hinges, mortise lock, and magnetic stopper packed in room-labelled boxes saved our carpenter 4 days of running to hardware shops." },
+          { author: "DesignCube Interiors", context: "Ecosystem Partner • Bengaluru", rating: "4.9", text: "Zero duplicate goods, flat 22% project discount, and their technician actually comes on site to calibrate sliding wardrobe rollers." }
+        ],
+        faqs: [
+          { q: "Does PVD coating peel or fade in humid bathrooms?", a: "Our PVD (Physical Vapor Deposition) titanium-bonded finishes carry a 10-year anti-tarnish warranty even in coastal cities." },
+          { q: "Can we return unused hinges or handles if our design changes?", a: "Yes, any unopened standard box can be exchanged or refunded at 100% value within 45 days of invoice." }
+        ],
+        leadConfig: {
+          title: "Get Itemized Hardware Schedule & Trade Quote",
+          subtitle: "Upload carpenter list or request our PVD Finish Sample Case at home.",
+          modes: ["Upload Carpenter List", "Request Sample Trunk", "Studio Visit"],
+          field1Label: "Hardware Package Needed",
+          field1Options: ["Complete Home Door Locks + Kitchen Tandems", "Modular Kitchen & Wardrobe Fittings Only", "Designer PVD Door Handles & Biometric Locks", "Glass Shower & Sliding Partition Systems"],
+          field2Label: "Number of Doors / Cabinets & Preferred Finish",
+          field2Default: "8 Doors + 12 Kitchen Drawers | Matte Black / PVD Gold",
+          complianceItems: [
+            "100% Authorized Factory Distributor (Zero Grey Market)",
+            "EN 1906 & ANSI Grade-1 Tested Mechanical Components",
+            "Room-by-Room Pre-Sorted Packaging with Site Audit"
+          ]
+        }
+      },
+      {
+        id: "cement-structural",
+        name: "Cement & Structural",
+        shortName: "Cement & Structural",
+        cluster: "Materials & Hardware",
+        archetype: "Building Materials & Catalog",
+        avatarCode: "TS",
+        bannerGradient: "from-slate-900 via-zinc-900 to-stone-900",
+        accentBg: "bg-slate-700",
+        partnerName: "TitanStruct Ready-Mix, Cement & TMT Supply",
+        tier: "Core Infrastructure Partner",
+        tagline: "Fresh kiln-week OPC 53 / PPC moisture-proof cement, Fe-550D earthquake-resistant TMT rebars, AAC blocks, and Dr. Fixit structural waterproofing.",
+        complianceBadge: "BIS IS:269 / IS:1786 Fe-550D Certified",
+        coverageBadge: "MTC Lab Certificate Every Lot",
+        rating: "4.8",
+        reviewsCount: "1,290",
+        slaMetric: "Fresh <7 Day Week-Code",
+        experienceMetric: "19+ Years • 1.8M+ Bags & 45k MT Steel",
+        exclusiveBenefit: "Free Cube Compression Testing + Direct Depot Price",
+        primaryCta: "Calculate Cement & Steel BOQ",
+        kpis: [
+          { label: "Cement Freshness SLA", value: "< 7 Days Old", sub: "Direct plant dispatch week-code", badge: "Zero Lumps" },
+          { label: "TMT Steel Grade", value: "Fe-550D CRS", sub: "High ductility seismic resistant", badge: "IS:1786 Cert" },
+          { label: "Weight Accuracy", value: "100% Electronic", sub: "Dharma-kanta slip + Mill Test Cert", badge: "Zero Shortfall" },
+          { label: "Stage Scheduling", value: "JIT Delivery", sub: "Footing, plinth, column & slab slots", badge: "Price Lock" }
+        ],
+        calculator: {
+          title: "Built-up Area Cement Bag & Fe-550D Steel Estimator",
+          badge: "Structural Civil Calculator",
+          slider1: { label: "Total Proposed Built-up Area (Sq.Ft)", min: 500, max: 10000, value: 2500, unit: "Sq.Ft", prefix: "" },
+          slider2: { label: "Number of Structural Slabs (G+Floors)", min: 1, max: 5, value: 2, unit: "Slabs", prefix: "" },
+          optionLabel: "Construction Stage Scope",
+          options: [
+            { label: "Full Grey Structure", factor: 1.0 },
+            { label: "Foundation + Columns Only", factor: 0.45 },
+            { label: "Slab Casting + Plastering", factor: 0.55 }
+          ],
+          computeType: "cement"
+        },
+        offeringsTitle: "Direct-Depot Structural Materials & Waterproofing Systems",
+        offeringsSub: "Accompanied by original Manufacturer Test Certificates (MTC) for every batch.",
+        offerings: [
+          {
+            badge: "Foundation & Slabs",
+            title: "OPC 53 Grade & Weather-Shield PPC Laminated Bags",
+            price: "₹ 365 – ₹ 410 / bag",
+            unit: "50kg Moisture-Proof Laminated PP Bags (Min 50 Bags)",
+            bullets: [
+              "High early compressive strength (53 MPa) ideal for RCC footings, beams & slabs",
+              "Guaranteed current-week manufacturing stamp directly from regional rake point",
+              "Includes free slump cone check & 7/28-day concrete cube lab test for slab pours"
+            ],
+            sla: "Next-Morning Site Unloading"
+          },
+          {
+            badge: "Seismic Rebars",
+            title: "Primary Producer Fe-550D Corrosion-Resistant TMT Bars",
+            price: "₹ 64,500 / Metric Ton*",
+            unit: "8mm, 10mm, 12mm, 16mm, 20mm & 25mm Straight Lengths",
+            bullets: [
+              "Low carbon & sulphur ‘D’ grade elongation (>18%) for high earthquake resilience",
+              "Billed on exact sectional weight or verified electronic weighbridge slip",
+              "Available with factory cut-and-bend stirrup rings to reduce site scrap to 0%"
+            ],
+            sla: "Includes Mill Test Certificate"
+          },
+          {
+            badge: "Masonry & Waterproofing",
+            title: "Autoclaved Aerated Concrete (AAC) Blocks + Structural Waterproofing",
+            price: "₹ 3,850 / Cu.M",
+            unit: "Grade-1 AAC Blocks + Jointing Mortar + Polymer Coating",
+            bullets: [
+              "Reduces dead structural load on beams by 60% and lowers indoor heat by 4°C",
+              "Bundled with crystalline foundation & sunken-slab bathroom waterproofing chemicals",
+              "Zero efflorescence (salt-petre) guarantee with ready-mix thin-bed block adhesive"
+            ],
+            sla: "24-Hour Truckload Dispatch"
+          }
+        ],
+        portfolioTitle: "Lab Quality Assurance & Tranche Delivery Scheduling",
+        portfolio: [
+          {
+            tag: "Quality Verification",
+            title: "Every Consignment Shipped with NABL / Mill Test Certificate (MTC)",
+            metric: "Chemical & Tensile Verified",
+            desc: "Verify carbon equivalent, yield strength, and cement fineness modulus before your site engineer approves unloading."
+          },
+          {
+            tag: "Rate Protection",
+            title: "90-Day Slab-Stage Price Lock for Independent Home Builders",
+            metric: "Hedge Against Price Spikes",
+            desc: "Lock cement and TMT steel rates for your upcoming plinth and roof slabs without storing 500 bags in the rain on a cramped plot."
+          }
+        ],
+        workflow: [
+          { step: "01", title: "Structural Drawing Upload", desc: "Share your RCC structural consultant's bar-bending schedule or sq.ft plan." },
+          { step: "02", title: "Stage-Wise Tranche Plan", desc: "Schedule exact delivery dates for footing, plinth, columns, and slabs." },
+          { step: "03", title: "Weighbridge & MTC Sync", desc: "Receive live truck GPS + digital weighbridge slip and Mill Test Certificate." },
+          { step: "04", title: "Cube Test Certification", desc: "Mobile lab engineer collects concrete cubes on slab casting day." }
+        ],
+        reviews: [
+          { author: "Er. Bhupendra Solanki", context: "G+2 Bunglow Construction • Rajkot", rating: "4.9", text: "Every cement lot arrived with a manufacturing date less than 5 days old in laminated bags. Their free cube testing gave my client complete peace of mind." },
+          { author: "Harishankar Reddy", context: "Plot Self-Construction • Hyderabad", rating: "4.8", text: "Saved ₹3,200 per ton on primary Fe-550D steel and got zero short-weight issues thanks to dual weighbridge verification." }
+        ],
+        faqs: [
+          { q: "Should I use OPC 53 or PPC cement for my house?", a: "Structural consultants typically recommend OPC 53 for load-bearing RCC columns/beams where fast shuttering removal is needed, and blended PPC/PSC for foundations, brickwork, and plastering for superior long-term durability." },
+          { q: "What is the minimum order quantity for direct depot rates?", a: "Minimum 50 bags for cement and 2 Metric Tons for TMT rebars within city limits." }
+        ],
+        leadConfig: {
+          title: "Get Today's Depot Rate & Stage BOQ",
+          subtitle: "Daily live wholesale index pricing for Cement, Fe-550D TMT & AAC Blocks.",
+          modes: ["Live Wholesale Quote", "Upload Structural BOQ", "Book Slab Cube Test"],
+          field1Label: "Material Requirement",
+          field1Options: ["Cement (OPC 53 / PPC) + Fe-550D TMT Combo", "Fresh Cement Bags Only (50+ Bags)", "Fe-550D TMT Steel Rebars Only", "AAC Blocks + Structural Waterproofing"],
+          field2Label: "Plot Location & Current Construction Stage",
+          field2Default: "2,500 Sq.Ft G+2 Villa | Plinth Stage Next Week",
+          complianceItems: [
+            "100% Primary Mill Steel & Fresh (<7 Day) Kiln Cement",
+            "Mandatory NABL / Manufacturer Test Certificate (MTC)",
+            "Certified Electronic Weighbridge & Zero Adulteration SLA"
+          ]
+        }
+      },
+      {
+        id: "smart-home",
+        name: "Smart Home & Automation",
+        shortName: "Smart Home",
+        cluster: "Smart & Tech",
+        archetype: "Smart Home & PropTech",
+        avatarCode: "NX",
+        bannerGradient: "from-violet-950 via-indigo-950 to-slate-900",
+        accentBg: "bg-violet-600",
+        partnerName: "NexaDomus Smart Living & Security",
+        tier: "Platinum Automation Partner",
+        tagline: "Retrofit zero-rewiring Matter & Zigbee 3.0 touch panels, DALI circadian lighting, motorized curtain tracks, and biometric video door phones.",
+        complianceBadge: "CSA Matter 1.3 • BIS & CE Certified",
+        coverageBadge: "Works with Apple Home, Alexa & Google",
+        rating: "4.9",
+        reviewsCount: "910",
+        slaMetric: "Zero-Rewiring Retrofit",
+        experienceMetric: "8+ Years • 4,800+ Smart Homes Automated",
+        exclusiveBenefit: "Free Smart Hub + 3-Year On-Site AMC",
+        primaryCta: "Build Your Smart Home Kit",
+        kpis: [
+          { label: "Retrofit Install Time", value: "4 Hours", sub: "Fits existing Indian modular boxes", badge: "No Wall Chasing" },
+          { label: "Ecosystem Compatibility", value: "Matter + KNX", sub: "Apple HomeKit, Alexa & Google Home", badge: "Local Offline" },
+          { label: "Replacement Warranty", value: "5 Years", sub: "Surge-protected up to 440V AC", badge: "Indian Grid Safe" },
+          { label: "2BHK Starter Bundle", value: "₹ 38,500", sub: "Living + 2 Bedrooms + Smart Lock", badge: "Installed" }
+        ],
+        calculator: {
+          title: "Smart Room & Security Automation Bundle Configurator",
+          badge: "Smart Node Configurator",
+          slider1: { label: "Rooms to Automate (Lighting + AC + Fan)", min: 1, max: 8, value: 3, unit: "Rooms", prefix: "" },
+          slider2: { label: "Motorized Curtain Tracks + Smart Locks", min: 0, max: 6, value: 2, unit: "Units", prefix: "" },
+          optionLabel: "Automation Protocol & Switch Style",
+          options: [
+            { label: "Retrofit Relay (Keep Switches)", roomCost: 9500 },
+            { label: "Tempered Glass Touch Panels", roomCost: 15500 },
+            { label: "Wired KNX / DALI Luxury", roomCost: 28500 }
+          ],
+          computeType: "smarthome"
+        },
+        offeringsTitle: "Modular Smart Home & Perimeter Security Bundles",
+        offeringsSub: "Operates 100% locally over LAN/Zigbee even when home internet is down.",
+        offerings: [
+          {
+            badge: "Zero Rewiring",
+            title: "2BHK / 3BHK Concealed Retrofit Automation Kit",
+            price: "₹ 38,500 Installed",
+            unit: "Keep your existing designer switchboards",
+            bullets: [
+              "Micro Zigbee 3.0 dimmer & relay modules fit behind existing Roma/Legrand switches",
+              "App & voice control for 24 lights, 4 stepless silent fans, 3 ACs & 2 geysers",
+              "One-tap 'Movie Night', 'Good Morning' & 'All Off Away' scene automation"
+            ],
+            sla: "4-Hour Same-Day Install"
+          },
+          {
+            badge: "Architectural Touch",
+            title: "Machined Metal & Tempered Glass Scene Keypad Suite",
+            price: "₹ 74,000 Installed",
+            unit: "Full 3BHK Touch Panels + 2 Motorized Curtain Tracks",
+            bullets: [
+              "Custom laser-engraved scene icons ('Dinner', 'Party', 'Sleep', 'Curtain Open')",
+              "Whisper-quiet Somfy/Nexa motorized drapery tracks with gentle pull-to-start",
+              "Tunable warm-to-cool (2700K–6000K) circadian lighting dimming integration"
+            ],
+            sla: "1-Day Clean Installation"
+          },
+          {
+            badge: "360° Entrance Security",
+            title: "3D Face-ID Smart Mortise Lock + IP Video Door Phone",
+            price: "₹ 29,500 Installed",
+            unit: "6-Way Unlock + 7-Inch Indoor Touch Monitor",
+            bullets: [
+              "3D Infrared Face Recognition, Fingerprint, OTP Passcode, NFC, Key & Remote App unlock",
+              "Wide-angle 2K bell camera sends instant visitor snapshot to your phone anywhere in the world",
+              "Heavy-duty SS-304 5-bolt mortise body engineered for 38mm–75mm Indian teak main doors"
+            ],
+            sla: "Includes Carpenter Fitting"
+          }
+        ],
+        portfolioTitle: "Indian Power Grid Resilience & Local Privacy Architecture",
+        portfolio: [
+          {
+            tag: "Zero Cloud Dependency",
+            title: "100% Local Edge Hub Execution (Works Without Internet)",
+            metric: "<15ms Local Response",
+            desc: "Wall switches, motion sensors, and Apple HomeKit/Matter scenes run locally on your home gateway—internet outages never disable your lights."
+          },
+          {
+            tag: "Grid Protection",
+            title: "Engineered for Indian Voltage Fluctuations (110V–440V Surge Safe)",
+            metric: "Zero-Cross Relay Tech",
+            desc: "Inbuilt MOV surge arrestors and zero-crossing relays prevent LED driver flickering and protect appliances during generator switchover."
+          }
+        ],
+        workflow: [
+          { step: "01", title: "Switchboard & Wi-Fi Audit", desc: "Check neutral wire availability and mesh Wi-Fi coverage across rooms." },
+          { step: "02", title: "Scene & Keypad Engraving", desc: "Select glass/metal switch finishes and custom laser-etched scene names." },
+          { step: "03", title: "Plug-and-Play Retrofit", desc: "Certified system integrator installs modules in 4–6 hours with zero dust." },
+          { step: "04", title: "Scene Programming & AMC", desc: "Configure family member phone access, voice routines, and 5-year warranty." }
+        ],
+        reviews: [
+          { author: "Aditya & Shweta Kapoor", context: "3BHK Retrofit Automation • Gurugram", rating: "4.9", text: "We didn't have to break a single wall or change our new switches. Having the geysers, curtains, and ACs run on automated schedules feels magical." },
+          { author: "Rameshwar Patel", context: "Bunglow Security & Lighting • Ahmedabad", rating: "5.0", text: "The 3D Face-ID main door lock and mobile video intercom let us grant entry to househelp remotely while travelling." }
+        ],
+        faqs: [
+          { q: "Can we automate an already-finished home without new wiring?", a: "Our Retrofit Zigbee/Matter series fits inside standard Indian 2M/4M/8M modular switchboxes using your existing wiring—no wall cutting or repainting needed." },
+          { q: "What happens if a smart switch fails after 3 years?", a: "All installed relays and touch panels carry a 5-year doorstep replacement warranty." }
+        ],
+        leadConfig: {
+          title: "Book Smart Home Demo Trunk at Your Home",
+          subtitle: "Experience live touch panels, motorized curtains & smart locks in person.",
+          modes: ["Home Demo Suitcase", "Experience Lounge", "Send Electrical Plan"],
+          field1Label: "Smart Automation Scope",
+          field1Options: ["Full Home Retrofit Lighting + AC + Curtains", "Smart Main Door Lock + Video Door Phone", "Luxury Wired KNX / DALI Villa Automation", "Home Theater & Multi-Room Audio"],
+          field2Label: "Home Stage & Number of Rooms",
+          field2Default: "3BHK Ready Apartment | Want Retrofit + Smart Lock",
+          complianceItems: [
+            "CSA Matter 1.3, Apple HomeKit & Zigbee 3.0 Certified",
+            "440V High-Voltage Surge Protected for Indian Grid",
+            "100% Local LAN Control (No Mandatory Cloud Subscription)"
+          ]
+        }
+      },
+      {
+        id: "technology-partners",
+        name: "Technology Partners",
+        shortName: "Tech Partners",
+        cluster: "Smart & Tech",
+        archetype: "Smart Home & PropTech",
+        avatarCode: "PV",
+        bannerGradient: "from-indigo-950 via-slate-900 to-cyan-950",
+        accentBg: "bg-cyan-600",
+        partnerName: "PropVerse Cloud & Community OS",
+        tier: "Strategic PropTech Partner",
+        tagline: "Integrated RERA CRM, AI 3D Matterport/Gaussian twin visualizers, society gate & ERP management, and automated tenant/facility billing APIs.",
+        complianceBadge: "SOC2 Type II • ISO 27001 • DPDP Compliant",
+        coverageBadge: "99.98% Uptime SLA • REST & Webhook API",
+        rating: "4.9",
+        reviewsCount: "640",
+        slaMetric: "48-Hour Onboarding",
+        experienceMetric: "7+ Years • 1,900+ Societies & Developers",
+        exclusiveBenefit: "3 Months Free SaaS + Zero Setup Fee",
+        primaryCta: "Launch Live Sandbox Demo",
+        kpis: [
+          { label: "Platform Uptime SLA", value: "99.98%", sub: "Multi-AZ India cloud hosting", badge: "Enterprise" },
+          { label: "Integration Speed", value: "< 48 Hours", sub: "Pre-built ERP, WhatsApp & Tally sync", badge: "Open API" },
+          { label: "Data Residency", value: "100% India", sub: "Mumbai/Hyderabad AWS & DPDP Act ready", badge: "SOC2 Type II" },
+          { label: "Starting SaaS License", value: "₹ 18 / unit/mo", sub: "Or flat developer project license", badge: "Modular SaaS" }
+        ],
+        calculator: {
+          title: "Society ERP / Developer PropTech Stack Cost Estimator",
+          badge: "SaaS & API Pricing Calculator",
+          slider1: { label: "Total Residential Units / Flats Managed", min: 50, max: 2000, value: 350, unit: "Units", prefix: "" },
+          slider2: { label: "Active Staff / Sales / Facility Seats", min: 2, max: 50, value: 10, unit: "Users", prefix: "" },
+          optionLabel: "PropTech Module Stack",
+          options: [
+            { label: "Society Gate + Billing ERP", perUnit: 18 },
+            { label: "Builder CRM + Post-Sales App", perUnit: 32 },
+            { label: "3D Digital Twin + Full Suite", perUnit: 48 }
+          ],
+          computeType: "proptech"
+        },
+        offeringsTitle: "Modular PropTech SaaS & Digital Twin Solutions",
+        offeringsSub: "Built for Housing Societies (RWAs), Real Estate Developers, and Channel Ecosystems.",
+        offerings: [
+          {
+            badge: "For Housing Societies",
+            title: "Smart Community Gate, Visitor & Accounting ERP",
+            price: "₹ 18 / flat / month",
+            unit: "Includes Guard App + Resident App + Automated GST Accounting",
+            bullets: [
+              "Zero-queue ANPR boom barrier & pass-code visitor management with WhatsApp alerts",
+              "Automated society maintenance billing, UPI auto-reconciliation & Tally export",
+              "Facility helpdesk ticketing (plumbing/lift/DG monitoring) with SLA escalation"
+            ],
+            sla: "72-Hour RWA Go-Live"
+          },
+          {
+            badge: "For Developers & Brokers",
+            title: "RERA Sales CRM, Inventory Matrix & Post-Sales Customer Portal",
+            price: "₹ 24,500 / month",
+            unit: "Unlimited Leads + Automated Demand Letters & Tranche Tracking",
+            bullets: [
+              "Real-time live tower inventory matrix with unit blocking & quotation generator",
+              "Automated RERA-compliant payment milestones, demand letters & TDS tracking",
+              "White-labelled buyer app for construction photo updates & possession snagging"
+            ],
+            sla: "SAP / Salesforce / Tally Sync"
+          },
+          {
+            badge: "Immersive PropTech",
+            title: "Interactive 3D Digital Twin, Drone View & Sun-Path Visualizer",
+            price: "₹ 1.45 Lakhs / project",
+            unit: "Web-embedded 60fps 3D Tour (Runs on Mobile Browser)",
+            bullets: [
+              "Interactive balcony view from every floor using real 360° drone capture",
+              "Real-time summer/winter sun-path & cross-ventilation simulation inside each flat",
+              "Embeds on project website, iPad experience center kiosks & WhatsApp links"
+            ],
+            sla: "10-Day 3D Twin Delivery"
+          }
+        ],
+        portfolioTitle: "API Documentation, Security Posture & Ecosystem Connectors",
+        portfolio: [
+          {
+            tag: "Enterprise Security",
+            title: "SOC2 Type II Audited & India DPDP Act 2023 Compliant",
+            metric: "Zero Ad-Spam Guarantee",
+            desc: "Resident phone numbers and buyer KYC documents are encrypted with AES-256 and never monetized via third-party ad networks."
+          },
+          {
+            tag: "Plug & Play APIs",
+            title: "45+ Native Connectors (Tally Prime, SAP, Razorpay, WhatsApp Cloud)",
+            metric: "REST & Webhook SDK",
+            desc: "Out-of-the-box two-way synchronization with existing accounting, payment gateways, biometric access control, and smart water/energy meters."
+          }
+        ],
+        workflow: [
+          { step: "01", title: "Sandbox & Stack Audit", desc: "30-minute interactive sandbox tour tailored to your RWA or builder workflow." },
+          { step: "02", title: "Data Migration & API Sync", desc: "Automated import of unit master, ledger balances, or CRM inventory." },
+          { step: "03", title: "On-Ground Guard/Team Training", desc: "Bilingual training for security guards, facility managers, and sales desks." },
+          { step: "04", title: "24x7 Customer Success SLA", desc: "Dedicated technical account manager with 99.98% uptime guarantee." }
+        ],
+        reviews: [
+          { author: "Col. H.S. Gill (RWA President)", context: "640-Flat Gated Society • Mohali", rating: "4.9", text: "Switched to PropVerse specifically because they are 100% ad-free and privacy-compliant. Maintenance collection jumped from 76% to 98% in two months." },
+          { author: "Shivalik Infraspace", context: "Real Estate Developer • Ahmedabad", rating: "5.0", text: "Their 3D balcony view and sun-path visualizer cut our site visit conversion cycle in half, especially for NRI buyers." }
+        ],
+        faqs: [
+          { q: "Does the society gate app show intrusive third-party ads to residents?", a: "Never. Unlike ad-funded gate apps, PropVerse operates on a pure SaaS model with strict DPDP Act resident data privacy." },
+          { q: "Can we migrate existing society accounting data from another app or Tally?", a: "Yes, our onboarding team migrates historical ledgers, member directories, and vehicle RFID tags within 48 hours at zero cost." }
+        ],
+        leadConfig: {
+          title: "Book Live Sandbox Demo & API Architecture Call",
+          subtitle: "Get instant sandbox credentials and a tailored implementation roadmap.",
+          modes: ["Live Zoom + Sandbox", "RWA Committee Demo", "API / Tech Spec Call"],
+          field1Label: "Solution Track",
+          field1Options: ["Gated Society Gate & Accounting ERP", "Developer Sales CRM & Post-Sales Portal", "3D Digital Twin & Drone Balcony Visualizer", "Custom PropTech API / Hardware Integration"],
+          field2Label: "Organization / Society Name & Unit Count",
+          field2Default: "350 Units Gated Society | Looking for Ad-Free ERP",
+          complianceItems: [
+            "SOC2 Type II & ISO 27001 Certified Cloud Security",
+            "100% India Data Residency (AWS Mumbai Region)",
+            "Strict Zero-Ad-Spam & DPDP Act 2023 Compliance"
+          ]
+        }
+      }
+    ];
+
+    const ACTIVE_CATEGORY_ID = "packers-movers";
+
+    let state = {
+      specOverlay: false,
+      selectedCalcOptionIndex: 0,
+      selectedEngagementModeIndex: 0,
+      isSaved: false,
+      shortlistItems: []
+    };
+
+    function getActiveCategory() {
+      return PARTNER_CATEGORIES.find(c => c.id === ACTIVE_CATEGORY_ID) || PARTNER_CATEGORIES[0];
+    }
+
+    function formatINR(num) {
+      return "₹ " + Math.round(num).toLocaleString("en-IN");
+    }
+
+    function showToast(msg) {
+      const banner = document.getElementById("toastBanner");
+      const text = document.getElementById("toastMessage");
+      text.textContent = msg;
+      banner.classList.remove("hidden");
+      if (window._toastTimer) clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        banner.classList.add("hidden");
+      }, 3600);
+    }
+
+    function updateShortlistBadge() {
+      document.getElementById("shortlistCountBadge").textContent = state.shortlistItems.length;
+    }
+
+    function renderProfileView() {
+      const cat = getActiveCategory();
+
+      document.getElementById("breadcrumbCluster").textContent = cat.cluster;
+      document.getElementById("breadcrumbCategory").textContent = cat.name;
+      document.getElementById("breadcrumbPartner").textContent = cat.partnerName;
+      document.getElementById("archetypeLabel").textContent = cat.archetype;
+
+      const bannerEl = document.getElementById("heroBannerBg");
+      bannerEl.className = `h-28 sm:h-36 w-full bg-gradient-to-r ${cat.bannerGradient} relative overflow-hidden flex items-end p-4 sm:p-6`;
+      document.getElementById("heroComplianceBadge").textContent = cat.complianceBadge;
+      document.getElementById("heroCoverageBadge").textContent = cat.coverageBadge;
+
+      const avatarInner = document.getElementById("partnerAvatarInner");
+      avatarInner.className = `w-full h-full rounded-xl ${cat.accentBg} text-white flex flex-col items-center justify-center font-extrabold text-xl`;
+      avatarInner.textContent = cat.avatarCode;
+
+      document.getElementById("partnerCategoryTag").textContent = cat.name;
+      document.getElementById("partnerTierTag").textContent = cat.tier;
+      document.getElementById("partnerName").textContent = cat.partnerName;
+      document.getElementById("partnerTagline").textContent = cat.tagline;
+      document.getElementById("heroPrimaryCtaText").textContent = cat.primaryCta;
+
+      document.getElementById("savePartnerIcon").innerHTML = state.isSaved ? "&#9733;" : "&#9734;";
+      document.getElementById("savePartnerText").textContent = state.isSaved ? "Saved Partner" : "Save Partner";
+
+      document.getElementById("partnerRating").textContent = cat.rating;
+      document.getElementById("partnerReviews").textContent = cat.reviewsCount;
+      document.getElementById("partnerSlaMetric").textContent = cat.slaMetric;
+      document.getElementById("partnerExperienceMetric").textContent = cat.experienceMetric;
+      document.getElementById("partnerExclusiveBenefit").textContent = cat.exclusiveBenefit;
+
+      const kpiContainer = document.getElementById("kpiGridContainer");
+      kpiContainer.innerHTML = "";
+      cat.kpis.forEach((kpi) => {
+        const card = document.createElement("div");
+        card.className = "bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between";
+        card.innerHTML = `
+          <div class="flex items-center justify-between gap-2 mb-1.5">
+            <span class="text-xs font-semibold text-slate-500">${kpi.label}</span>
+            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">${kpi.badge}</span>
+          </div>
+          <div class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">${kpi.value}</div>
+          <div class="text-xs text-slate-500 mt-1">${kpi.sub}</div>
+        `;
+        kpiContainer.appendChild(card);
+      });
+
+      const calc = cat.calculator;
+      document.getElementById("widgetBadgeLabel").textContent = calc.badge;
+      document.getElementById("widgetTitle").textContent = calc.title;
+
+      const s1 = document.getElementById("calcSlider1");
+      s1.min = calc.slider1.min;
+      s1.max = calc.slider1.max;
+      if (!s1.dataset.initialized) {
+        s1.value = calc.slider1.value;
+        s1.dataset.initialized = "true";
+      }
+      document.getElementById("calcInput1Label").textContent = calc.slider1.label;
+      document.getElementById("calcSlider1Min").textContent = `${calc.slider1.prefix}${calc.slider1.min} ${calc.slider1.unit}`;
+      document.getElementById("calcSlider1Max").textContent = `${calc.slider1.prefix}${calc.slider1.max} ${calc.slider1.unit}`;
+
+      const s2 = document.getElementById("calcSlider2");
+      s2.min = calc.slider2.min;
+      s2.max = calc.slider2.max;
+      if (!s2.dataset.initialized) {
+        s2.value = calc.slider2.value;
+        s2.dataset.initialized = "true";
+      }
+      document.getElementById("calcInput2Label").textContent = calc.slider2.label;
+      document.getElementById("calcSlider2Min").textContent = `${calc.slider2.prefix}${calc.slider2.min} ${calc.slider2.unit}`;
+      document.getElementById("calcSlider2Max").textContent = `${calc.slider2.prefix}${calc.slider2.max} ${calc.slider2.unit}`;
+
+      document.getElementById("calcOptionLabel").textContent = calc.optionLabel;
+      renderCalculatorOptions();
+      updateCalculatorComputation();
+
+      document.getElementById("offeringsSectionTitle").textContent = cat.offeringsTitle;
+      document.getElementById("offeringsSectionSub").textContent = cat.offeringsSub;
+      const offGrid = document.getElementById("offeringsGrid");
+      offGrid.innerHTML = "";
+      cat.offerings.forEach((off, idx) => {
+        const itemKey = `${cat.id}-pkg-${idx}`;
+        const inShortlist = state.shortlistItems.some(i => i.key === itemKey);
+        const card = document.createElement("div");
+        card.className = "rounded-xl border border-slate-200 p-4 flex flex-col justify-between hover:border-indigo-300 hover:shadow-md transition-all bg-slate-50/40";
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <span class="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-indigo-100 text-indigo-800">${off.badge}</span>
+              <span class="text-[11px] font-semibold text-emerald-700">${off.sla}</span>
+            </div>
+            <h4 class="font-bold text-slate-900 text-sm leading-snug">${off.title}</h4>
+            <div class="mt-2 pb-2.5 border-b border-slate-200">
+              <div class="text-lg font-extrabold text-indigo-700">${off.price}</div>
+              <div class="text-[11px] text-slate-500">${off.unit}</div>
+            </div>
+            <ul class="mt-3 space-y-1.5 text-xs text-slate-600">
+              ${off.bullets.map(b => `<li class="flex items-start gap-1.5"><span class="text-emerald-600 font-bold mt-0.5">&#10003;</span><span>${b}</span></li>`).join("")}
+            </ul>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-200/80 flex items-center gap-2">
+            <button type="button" data-pkg-idx="${idx}" class="select-pkg-lead-btn flex-1 py-2 px-2.5 rounded-lg bg-slate-900 hover:bg-indigo-600 text-white font-semibold text-xs transition-all">
+              Select in Inquiry
+            </button>
+            <button type="button" data-pkg-idx="${idx}" class="shortlist-pkg-btn py-2 px-3 rounded-lg border ${inShortlist ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'border-slate-300 text-slate-700 hover:bg-slate-100'} font-semibold text-xs transition-all">
+              ${inShortlist ? "&#10003; Added" : "+ Shortlist"}
+            </button>
+          </div>
+        `;
+        offGrid.appendChild(card);
+      });
+
+      offGrid.querySelectorAll(".select-pkg-lead-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const idx = parseInt(btn.getAttribute("data-pkg-idx"), 10);
+          const off = cat.offerings[idx];
+          const f2 = document.getElementById("dynamicField2Input");
+          f2.value = `${off.title} (${off.price})`;
+          document.getElementById("partnerLeadForm").scrollIntoView({ behavior: "smooth", block: "center" });
+          showToast(`Selected "${off.title}" in the inquiry form.`);
+        });
+      });
+
+      offGrid.querySelectorAll(".shortlist-pkg-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const idx = parseInt(btn.getAttribute("data-pkg-idx"), 10);
+          const off = cat.offerings[idx];
+          const itemKey = `${cat.id}-pkg-${idx}`;
+          const existingIdx = state.shortlistItems.findIndex(i => i.key === itemKey);
+          if (existingIdx >= 0) {
+            state.shortlistItems.splice(existingIdx, 1);
+            showToast(`Removed "${off.title}" from shortlist.`);
+          } else {
+            state.shortlistItems.push({
+              key: itemKey,
+              categoryName: cat.name,
+              partnerName: cat.partnerName,
+              title: off.title,
+              price: off.price
+            });
+            showToast(`Added "${off.title}" to your Shortlist.`);
+          }
+          updateShortlistBadge();
+          renderProfileView();
+        });
+      });
+
+      document.getElementById("portfolioSectionTitle").textContent = cat.portfolioTitle;
+      const portGrid = document.getElementById("portfolioGrid");
+      portGrid.innerHTML = "";
+      cat.portfolio.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "p-4 rounded-xl border border-slate-200 bg-slate-50/60 flex flex-col justify-between";
+        div.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">${p.tag}</span>
+              <span class="text-xs font-bold text-emerald-700">${p.metric}</span>
+            </div>
+            <h4 class="font-bold text-slate-900 text-sm">${p.title}</h4>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed">${p.desc}</p>
+          </div>
+        `;
+        portGrid.appendChild(div);
+      });
+
+      const wfGrid = document.getElementById("workflowStepsGrid");
+      wfGrid.innerHTML = "";
+      cat.workflow.forEach(w => {
+        const step = document.createElement("div");
+        step.className = "bg-white p-3 rounded-lg border border-slate-200/80";
+        step.innerHTML = `
+          <div class="text-[11px] font-extrabold text-indigo-600">STEP ${w.step}</div>
+          <div class="font-bold text-slate-900 text-xs mt-0.5">${w.title}</div>
+          <p class="text-[11px] text-slate-500 mt-1 leading-normal">${w.desc}</p>
+        `;
+        wfGrid.appendChild(step);
+      });
+
+      const revList = document.getElementById("reviewsList");
+      revList.innerHTML = "";
+      cat.reviews.forEach(r => {
+        const rCard = document.createElement("div");
+        rCard.className = "p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs space-y-1.5";
+        rCard.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-900">${r.author}</span>
+            <span class="px-2 py-0.5 rounded bg-amber-50 text-amber-700 font-bold border border-amber-200">&#9733; ${r.rating}</span>
+          </div>
+          <div class="text-[11px] text-indigo-600 font-medium">${r.context}</div>
+          <p class="text-slate-600 leading-relaxed">"${r.text}"</p>
+        `;
+        revList.appendChild(rCard);
+      });
+
+      const faqList = document.getElementById("faqList");
+      faqList.innerHTML = "";
+      cat.faqs.forEach((f) => {
+        const fCard = document.createElement("div");
+        fCard.className = "rounded-xl border border-slate-200 overflow-hidden";
+        fCard.innerHTML = `
+          <button type="button" class="faq-toggle-btn w-full text-left px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 flex items-center justify-between gap-2 text-xs font-bold text-slate-800">
+            <span>${f.q}</span>
+            <span class="text-slate-400 font-extrabold">+</span>
+          </button>
+          <div class="faq-answer px-3.5 py-2.5 bg-white text-xs text-slate-600 border-t border-slate-100 leading-relaxed">
+            ${f.a}
+          </div>
+        `;
+        faqList.appendChild(fCard);
+      });
+
+      faqList.querySelectorAll(".faq-toggle-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const ans = btn.nextElementSibling;
+          ans.classList.toggle("hidden");
+        });
+      });
+
+      const lc = cat.leadConfig;
+      document.getElementById("leadFormTitle").textContent = lc.title;
+      document.getElementById("leadFormSubtitle").textContent = lc.subtitle;
+      document.getElementById("dynamicFieldTag").textContent = `${cat.shortName} Schema`;
+      document.getElementById("dynamicField1Label").textContent = lc.field1Label;
+
+      const f1Select = document.getElementById("dynamicField1Select");
+      if (!f1Select.dataset.initialized) {
+        f1Select.innerHTML = lc.field1Options.map(o => `<option value="${o}">${o}</option>`).join("");
+        f1Select.dataset.initialized = "true";
+      }
+
+      document.getElementById("dynamicField2Label").textContent = lc.field2Label;
+      const f2Input = document.getElementById("dynamicField2Input");
+      if (!f2Input.dataset.initialized) {
+        f2Input.value = lc.field2Default;
+        f2Input.dataset.initialized = "true";
+      }
+      document.getElementById("leadPrivacyPartnerName").textContent = cat.partnerName;
+
+      renderEngagementModes();
+
+      const compList = document.getElementById("complianceCheckList");
+      compList.innerHTML = lc.complianceItems.map(item => `
+        <li class="flex items-start gap-2">
+          <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">&#10003;</span>
+          <span>${item}</span>
+        </li>
+      `).join("");
+    }
+
+    function renderCalculatorOptions() {
+      const cat = getActiveCategory();
+      const btnContainer = document.getElementById("calcOptionButtons");
+      btnContainer.innerHTML = "";
+      cat.calculator.options.forEach((opt, idx) => {
+        const active = idx === state.selectedCalcOptionIndex;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = active
+          ? "py-2 px-2.5 rounded-lg text-xs font-bold bg-indigo-500 text-white border border-indigo-400 shadow-sm transition-all"
+          : "py-2 px-2.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition-all";
+        btn.textContent = opt.label;
+        btn.addEventListener("click", () => {
+          state.selectedCalcOptionIndex = idx;
+          renderCalculatorOptions();
+          updateCalculatorComputation();
+        });
+        btnContainer.appendChild(btn);
+      });
+    }
+
+    function renderEngagementModes() {
+      const cat = getActiveCategory();
+      const container = document.getElementById("engagementModeBtns");
+      container.innerHTML = "";
+      cat.leadConfig.modes.forEach((m, idx) => {
+        const active = idx === state.selectedEngagementModeIndex;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = active
+          ? "py-1.5 px-2 rounded-lg text-[11px] font-bold bg-indigo-600 text-white shadow-sm transition-all text-center"
+          : "py-1.5 px-2 rounded-lg text-[11px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all text-center";
+        btn.textContent = m;
+        btn.addEventListener("click", () => {
+          state.selectedEngagementModeIndex = idx;
+          renderEngagementModes();
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    function updateCalculatorComputation() {
+      const cat = getActiveCategory();
+      const calc = cat.calculator;
+      const v1 = parseFloat(document.getElementById("calcSlider1").value);
+      const v2 = parseFloat(document.getElementById("calcSlider2").value);
+      const opt = calc.options[state.selectedCalcOptionIndex] || calc.options[0];
+
+      document.getElementById("calcInput1Display").textContent = `${calc.slider1.prefix}${v1.toLocaleString("en-IN")} ${calc.slider1.unit}`;
+      document.getElementById("calcInput2Display").textContent = `${calc.slider2.prefix}${v2.toLocaleString("en-IN")} ${calc.slider2.unit}`;
+
+      const pLabel = document.getElementById("calcResultPrimaryLabel");
+      const pValue = document.getElementById("calcResultPrimaryValue");
+      const sText = document.getElementById("calcResultSecondaryText");
+      const bList = document.getElementById("calcBreakdownList");
+
+      if (calc.computeType === "emi") {
+        const principal = v1 * 100000;
+        const r = (opt.rate / 12) / 100;
+        const n = v2 * 12;
+        const emi = (principal * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+        pLabel.textContent = "Estimated Monthly EMI";
+        pValue.textContent = `${formatINR(emi)} / mo`;
+        sText.textContent = `Interest Rate: ${opt.rate.toFixed(2)}% p.a. • Ecosystem Fee Saving: ₹5,000`;
+        bList.innerHTML = `
+          <div class="flex justify-between"><span>Loan Principal:</span><span class="font-semibold text-white">₹ ${v1} Lakhs</span></div>
+          <div class="flex justify-between"><span>Min. Recommended Net Income:</span><span class="font-semibold text-white">${formatINR(emi * 2)} / mo</span></div>
+        `;
+      } else if (calc.computeType === "legal") {
+        const stampDuty = v1 * 100000 * 0.05;
+        const legalFee = opt.fee + (v2 > 30 ? 2000 : 0);
+        pLabel.textContent = "Professional Legal Fee";
+        pValue.textContent = formatINR(legalFee);
+        sText.textContent = `Includes ${v2}-Year Title Chain & Advocate Sign-Off`;
+        bList.innerHTML = `
+          <div class="flex justify-between"><span>Est. 5% Govt Stamp Duty:</span><span class="font-semibold text-white">${formatINR(stampDuty)}</span></div>
+          <div class="flex justify-between"><span>Turnaround SLA:</span><span class="font-semibold text-white">72 Hours Guaranteed</span></div>
+        `;
+      } else if (calc.computeType === "insurance") {
+        const totalCoverLakhs = v1 + v2;
+        const annualPrem = Math.max(1450, Math.round(v1 * 32 * opt.mult + v2 * 75 * opt.mult));
+        pLabel.textContent = "Estimated Annual Premium (Incl. GST)";
+        pValue.textContent = `${formatINR(annualPrem)} / yr`;
+        sText.textContent = `Total Sum Insured: ₹${totalCoverLakhs} Lakhs • 15% Ecosystem Discount Applied`;
+        bList.innerHTML = `
+          <div class="flex justify-between"><span>3-Year Long-Term Saver:</span><span class="font-semibold text-white">${formatINR(annualPrem * 2.65)}</span></div>
+          <div class="flex justify-between"><span>Basis of Settlement:</span><span class="font-semibold text-white">100% Reinstatement Value</span></div>
+        `;
+      } else if (calc.computeType === "interiors") {
+        const baseCost = v1 * opt.rate + v2 * 42000;
+        pLabel.textContent = "Estimated Turnkey Interior BOQ";
+        pValue.textContent = formatINR(baseCost);
+        sText.textContent = `Includes 45-Day Handover SLA & 10-Yr BWP Warranty`;
+        bList.innerHTML = `
+          <div class="flex justify-between"><span>Modular Kitchen + ${v2} Wardrobes:</span><span class="font-semibold text-white">${formatINR(baseCost * 0.62)}</span></div>
+          <div class="flex justify-between"><span>False Ceiling, Paint & Lighting:</span><span class="font-semibold text-white">${formatINR(baseCost * 0.38)}</span></div>
+        `;
+      } else if (calc.computeType === "movers") {
+        const baseMove = (v1 * 3200 + v2 * 24) * opt.mult;
+        pLabel.textContent = "Locked All-Inclusive Move Quote";
+        pValue.textContent = formatINR(baseMove);
+        sText.textContent = `Includes Closed Container + ₹5L Free Transit Cover`;
+        bList.innerHTML = `
+          <div class="flex justify-between"><span>Est. Crates & Boxes Needed:</span><span class="font-semibold text-white">${v1 * 18} Boxes</span></div>
+          <div class="flex justify-between"><span>Crew & Handyman Team:</span><span class="font-semibold text-white">${v1 + 2} Verified Specialists</span></div>
+        `;
+      } else if (calc.computeType === "propmgmt") {
+        const grossAnnual = v1 * 1000 * 12;
+        const mgmtFee = grossAnnual * (opt.feePct / 100);
+        const netAnnual = grossAnnual - mgmtFee;
+        pLabel.textContent = "Net Annual Rental Inflow";
+        pValue.textContent = `${formatINR(netAnnual)} / yr`;
+        sText.textContent = `${opt.label} (${opt.feePct}% fee) • 1st Month Fee Waived`;
+        bList.innerHTML = `
+          <div class="flex justify-between"><span>Gross ${v2}-Year Rent Projected:</span><span class="font-semibold text-white">${formatINR(grossAnnual * v2)}</span></div>
+          <div class="flex justify-between"><span>Quarterly Video Audits:</span><span class="font-semibold text-white">${v2 * 4} Reports Included</span></div>
+        `;
+      } else if (calc.computeType === "vastu") {
+        const totalFee = opt.base + Math.round(v1 * 1.8) + (v2 - 1) * 3500;
+        pLabel.textContent = "Fixed Spatial Audit Package Fee";
+        pValue.textContent = formatINR(totalFee);
+        sText.textContent = `16-Zone CAD Mapping + 100% Non-Demolition Remedies`;
+        bList.innerHTML = `
+          <div class="flex justify-between"><span>True North 32-Pada Grid:</span><span class="font-semibold text-white">AutoCAD + PDF Report</span></div>
+          <div class="flex justify-between"><span>Interior Architect Sync Call:</span><span class="font-semibold text-white">Included Free</span></div>
+        `;
+      } else if (calc.computeType === "tiles") {
+        const totalSqFt = Math.round(v1 * (1 + v2 / 100));
+        const boxes = Math.ceil(totalSqFt / opt.sqFtPerBox);
+        const totalCost = totalSqFt * opt.rate;
+        pLabel.textContent = "Estimated Direct-Mill Tile Cost";
+        pValue.textContent = formatINR(totalCost);
+        sText.textContent = `${boxes} Boxes Required (Includes ${v2}% Wastage Buffer)`;
+        bList.innerHTML = `
+          <div class="flex justify-between"><span>Net Area with Buffer:</span><span class="font-semibold text-white">${totalSqFt.toLocaleString("en-IN")} Sq.Ft</span></div>
+          <div class="flex justify-between"><span>Recommended Adhesive Bags:</span><span class="font-semibold text-white">${Math.ceil(totalSqFt / 45)} Bags</span></div>
+        `;
+      } else if (calc.computeType === "hardware") {
+        const doorsCost = v1 * 3450 * opt.mult;
+        const drawersCost = v2 * 2400 * opt.mult;
+        const totalHw = doorsCost + drawersCost;
+        pLabel.textContent = "Estimated Full-Home Hardware Kit";
+        pValue.textContent = formatINR(totalHw);
+        sText.textContent = `Includes 22% Project Bundle Rebate + Free Carpenter Jig`;
+        bList.innerHTML = `
+          <div class="flex justify-between"><span>${v1} Door Lock & Hinge Kits:</span><span class="font-semibold text-white">${formatINR(doorsCost)}</span></div>
+          <div class="flex justify-between"><span>${v2} Soft-Close Tandem Sets:</span><span class="font-semibold text-white">${formatINR(drawersCost)}</span></div>
+        `;
+      } else if (calc.computeType === "cement") {
+        const bags = Math.round(v1 * 0.42 * opt.factor * (1 + (v2 - 1) * 0.12));
+        const steelMT = +(v1 * 0.0038 * opt.factor * (1 + (v2 - 1) * 0.12)).toFixed(2);
+        const totalCost = bags * 380 + steelMT * 64500;
+        pLabel.textContent = "Estimated Cement + Fe-550D Steel BOQ";
+        pValue.textContent = formatINR(totalCost);
+        sText.textContent = `${bags} Cement Bags + ${steelMT} MT Primary TMT Rebars`;
+        bList.innerHTML = `
+          <div class="flex justify-between"><span>Cement (${bags} Bags @ ₹380):</span><span class="font-semibold text-white">${formatINR(bags * 380)}</span></div>
+          <div class="flex justify-between"><span>Fe-550D TMT (${steelMT} MT):</span><span class="font-semibold text-white">${formatINR(steelMT * 64500)}</span></div>
+        `;
+      } else if (calc.computeType === "smarthome") {
+        const roomsTotal = v1 * opt.roomCost;
+        const motorsTotal = v2 * 11500;
+        const totalSmart = roomsTotal + motorsTotal;
+        pLabel.textContent = "Installed Smart Automation Bundle";
+        pValue.textContent = formatINR(totalSmart);
+        sText.textContent = `Includes Free Matter Edge Hub + 5-Year Warranty`;
+        bList.innerHTML = `
+          <div class="flex justify-between"><span>${v1} Smart Rooms (Light/Fan/AC):</span><span class="font-semibold text-white">${formatINR(roomsTotal)}</span></div>
+          <div class="flex justify-between"><span>${v2} Motorized Curtain/Lock Units:</span><span class="font-semibold text-white">${formatINR(motorsTotal)}</span></div>
+        `;
+      } else if (calc.computeType === "proptech") {
+        const monthlySaaS = v1 * opt.perUnit + v2 * 450;
+        pLabel.textContent = "Monthly Platform Subscription";
+        pValue.textContent = `${formatINR(monthlySaaS)} / mo`;
+        sText.textContent = `3 Months Free on Annual Billing • Zero Setup Fee`;
+        bList.innerHTML = `
+          <div class="flex justify-between"><span>${v1} Residential Units Covered:</span><span class="font-semibold text-white">${formatINR(v1 * opt.perUnit)} / mo</span></div>
+          <div class="flex justify-between"><span>${v2} Staff / CRM Seats + API:</span><span class="font-semibold text-white">${formatINR(v2 * 450)} / mo</span></div>
+        `;
+      }
+    }
+
+    function renderShortlistModal() {
+      const body = document.getElementById("shortlistModalBody");
+      if (state.shortlistItems.length === 0) {
+        body.innerHTML = `
+          <div class="text-center py-8 text-slate-400">
+            <p class="font-semibold text-slate-600 mb-1">Your Shortlist is empty</p>
+            <p>Click "+ Shortlist" on any package card to save it here.</p>
+          </div>
+        `;
+        return;
+      }
+
+      body.innerHTML = state.shortlistItems.map((item, idx) => `
+        <div class="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-600">${item.categoryName} &bull; ${item.partnerName}</span>
+            <div class="font-bold text-slate-900 text-xs mt-0.5">${item.title}</div>
+            <div class="text-xs font-semibold text-emerald-700">${item.price}</div>
+          </div>
+          <button type="button" data-rm-idx="${idx}" class="rm-shortlist-item text-xs font-bold text-slate-400 hover:text-rose-600 px-2 py-1">
+            &#10005;
+          </button>
+        </div>
+      `).join("");
+
+      body.querySelectorAll(".rm-shortlist-item").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const idx = parseInt(btn.getAttribute("data-rm-idx"), 10);
+          state.shortlistItems.splice(idx, 1);
+          updateShortlistBadge();
+          renderShortlistModal();
+          renderProfileView();
+        });
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("toggleSpecOverlayBtn").addEventListener("click", () => {
+        state.specOverlay = !state.specOverlay;
+        document.body.classList.toggle("spec-mode", state.specOverlay);
+        const dot = document.getElementById("specIndicatorDot");
+        dot.className = state.specOverlay ? "w-2 h-2 rounded-full bg-emerald-400 animate-pulse" : "w-2 h-2 rounded-full bg-slate-500";
+        showToast(state.specOverlay
+          ? "Zone Spec Overlay enabled: Dashed outlines show the 7 common template zones."
+          : "Zone Spec Overlay hidden.");
+      });
+
+      document.getElementById("calcSlider1").addEventListener("input", updateCalculatorComputation);
+      document.getElementById("calcSlider2").addEventListener("input", updateCalculatorComputation);
+
+      document.getElementById("applyEstimateToLeadBtn").addEventListener("click", () => {
+        const primaryVal = document.getElementById("calcResultPrimaryValue").textContent;
+        const d1 = document.getElementById("calcInput1Display").textContent;
+        const d2 = document.getElementById("calcInput2Display").textContent;
+        const f2 = document.getElementById("dynamicField2Input");
+        f2.value = `Est: ${primaryVal} (${d1}, ${d2})`;
+        document.getElementById("partnerLeadForm").scrollIntoView({ behavior: "smooth", block: "center" });
+        showToast("Estimator calculation attached to your partner inquiry form.");
+      });
+
+      document.querySelectorAll(".profile-tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".profile-tab-btn").forEach(b => {
+            b.className = "profile-tab-btn py-2.5 px-3 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all text-center";
+          });
+          btn.className = "profile-tab-btn py-2.5 px-3 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-sm transition-all text-center";
+
+          const tab = btn.getAttribute("data-tab");
+          const map = {
+            offerings: "zoneOfferings",
+            calculator: "zoneInteractiveWidget",
+            portfolio: "zonePortfolio",
+            trust: "zoneTrust"
+          };
+          const target = document.getElementById(map[tab]);
+          if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
+
+      document.getElementById("savePartnerBtn").addEventListener("click", () => {
+        const cat = getActiveCategory();
+        state.isSaved = !state.isSaved;
+        renderProfileView();
+        showToast(state.isSaved
+          ? `Saved ${cat.partnerName} to your favorite partners.`
+          : `Removed ${cat.partnerName} from saved partners.`);
+      });
+
+      document.getElementById("shareProfileBtn").addEventListener("click", () => {
+        const cat = getActiveCategory();
+        showToast(`Copied verified profile link for ${cat.partnerName} (${cat.name}).`);
+      });
+
+      document.getElementById("heroPrimaryCtaBtn").addEventListener("click", () => {
+        document.getElementById("zoneInteractiveWidget").scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+
+      document.getElementById("partnerLeadForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const cat = getActiveCategory();
+        const name = document.getElementById("leadNameInput").value;
+        const mode = cat.leadConfig.modes[state.selectedEngagementModeIndex];
+        showToast(`Inquiry sent to ${cat.partnerName}! Reference #EP-${Math.floor(1000 + Math.random() * 9000)} (${mode}) for ${name}.`);
+      });
+
+      document.getElementById("downloadSpecBtn").addEventListener("click", () => {
+        const cat = getActiveCategory();
+        showToast(`Prepared ${cat.partnerName} (${cat.name}) Compliance & Rate Card summary.`);
+      });
+
+      document.getElementById("openShortlistBtn").addEventListener("click", () => {
+        renderShortlistModal();
+        document.getElementById("shortlistModal").classList.remove("hidden");
+      });
+
+      document.getElementById("closeShortlistModalBtn").addEventListener("click", () => {
+        document.getElementById("shortlistModal").classList.add("hidden");
+      });
+
+      document.getElementById("clearShortlistBtn").addEventListener("click", () => {
+        state.shortlistItems = [];
+        updateShortlistBadge();
+        renderShortlistModal();
+        renderProfileView();
+      });
+
+      document.getElementById("requestCombinedQuoteBtn").addEventListener("click", () => {
+        if (state.shortlistItems.length === 0) {
+          showToast("Add at least one package to your shortlist first.");
+          return;
+        }
+        document.getElementById("shortlistModal").classList.add("hidden");
+        showToast(`Partner callback requested for ${state.shortlistItems.length} shortlisted package(s)!`);
+      });
+
+      renderProfileView();
+      updateShortlistBadge();
+    });
+  </script>
+</body>
+</html>

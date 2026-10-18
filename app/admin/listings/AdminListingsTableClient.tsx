@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { getAdminCapabilities } from '@/lib/adminCapabilities'
 import type { AppRole } from '@/lib/rbac'
 import { useAdminAction } from '@/components/admin/AdminActionProvider'
+import GlobalPermanentDeleteDialog from '@/components/admin/GlobalPermanentDeleteDialog'
 
 type ListingItem = {
   id: string
@@ -52,6 +53,9 @@ export default function AdminListingsTableClient({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkActionLoading, setBulkActionLoading] = useState('')
   const [error, setError] = useState('')
+  const [permanentDeleteTarget, setPermanentDeleteTarget] = useState<ListingItem | null>(null)
+  const [permanentDeleteIds, setPermanentDeleteIds] = useState<string[]>([])
+  const [permanentDeleteError, setPermanentDeleteError] = useState('')
   const selectAllRef = useRef<HTMLInputElement>(null)
 
   const capabilities = useMemo(() => getAdminCapabilities(currentRole), [currentRole])
@@ -147,30 +151,36 @@ export default function AdminListingsTableClient({
   const permanentlyDeleteSelected = async () => {
     const ids = Array.from(selectedIds)
     if (!ids.length || bulkActionLoading) return
-    const confirmed = await runAction({
-      title: `Permanently delete ${ids.length} listings?`,
-      description: 'This action cannot be undone and removes associated media, inquiries, and moderation records.',
-      confirmLabel: 'Delete permanently',
-      variant: 'danger',
-      loadingTitle: 'Deleting listings',
-      successTitle: 'Listings deleted',
-      errorMessage: 'Unable to permanently delete the selected listings.',
-      mutation: async () => {
-        setBulkActionLoading('PERMANENT_DELETE')
-        const results = await Promise.allSettled(ids.map(async (id) => {
-          const response = await fetch(`/api/admin/properties/${encodeURIComponent(id)}?permanent=true`, { method: 'DELETE' })
-          const json = await response.json().catch(() => null)
-          if (!response.ok || !json?.success) throw new Error(safeString(json?.message) || 'Delete failed')
-          return id
-        }))
-        const failedIds = results.flatMap((result, index) => result.status === 'rejected' ? [ids[index]] : [])
-        setSelectedIds(new Set(failedIds))
-        if (failedIds.length) setError(`${failedIds.length} selected listing${failedIds.length === 1 ? '' : 's'} could not be deleted.`)
-        router.refresh()
-        setBulkActionLoading('')
-      },
-    })
-    return confirmed
+    setPermanentDeleteError('')
+    setPermanentDeleteIds(ids)
+  }
+
+  const confirmPermanentDeleteSelected = async () => {
+    const ids = permanentDeleteIds
+    if (!ids.length || bulkActionLoading) return
+    setBulkActionLoading('PERMANENT_DELETE')
+    setPermanentDeleteError('')
+    try {
+      const results = await Promise.allSettled(ids.map(async (id) => {
+        const response = await fetch(`/api/admin/properties/${encodeURIComponent(id)}?permanent=true`, { method: 'DELETE' })
+        const json = await response.json().catch(() => null)
+        if (!response.ok || !json?.success) throw new Error(safeString(json?.message) || 'Delete failed')
+        return id
+      }))
+      const failedIds = results.flatMap((result, index) => result.status === 'rejected' ? [ids[index]] : [])
+      setSelectedIds(new Set(failedIds))
+      if (failedIds.length) {
+        setPermanentDeleteIds(failedIds)
+        setPermanentDeleteError(`${failedIds.length} selected listing${failedIds.length === 1 ? '' : 's'} could not be deleted. Review the selection and retry if appropriate.`)
+      } else {
+        setPermanentDeleteIds([])
+      }
+      router.refresh()
+    } catch (e) {
+      setPermanentDeleteError(e instanceof Error ? e.message : 'Unable to permanently delete selected listings.')
+    } finally {
+      setBulkActionLoading('')
+    }
   }
 
   const doAction = async (id: string, fn: () => Promise<void>) => {
@@ -192,28 +202,52 @@ export default function AdminListingsTableClient({
       await postJson(`/api/admin/properties/${encodeURIComponent(id)}/lifecycle`, { action: 'unpublish' })
     })
 
-  const permanentlyDeleteListing = (item: ListingItem) =>
-    doAction(item.id, async () => {
-      let confirmation = ''
-      const confirmed = await runAction({
-        title: 'Permanently delete this listing?',
-        description: `This permanently removes "${item.title}" and its media, inquiries, and moderation history. Type DELETE to continue.`,
-        confirmLabel: 'Delete permanently',
-        variant: 'danger',
-        input: { label: 'Type DELETE to confirm', placeholder: 'DELETE', required: true, onChange: (value) => { confirmation = value } },
-        loadingTitle: 'Deleting listing',
-        successTitle: 'Listing permanently deleted',
-        errorMessage: 'Unable to permanently delete this listing.',
-        mutation: async () => {
-          if (confirmation.trim() !== 'DELETE') throw new Error('Type DELETE exactly to permanently delete this listing.')
-          await postJson(`/api/admin/properties/${encodeURIComponent(item.id)}?permanent=true`, undefined)
-        },
-      })
-      if (!confirmed) return
-    })
+  const permanentlyDeleteListing = (item: ListingItem) => {
+    setPermanentDeleteError('')
+    setPermanentDeleteTarget(item)
+  }
+
+  const confirmPermanentDeleteListing = async () => {
+    if (!permanentDeleteTarget || busyId) return
+    const target = permanentDeleteTarget
+    setBusyId(target.id)
+    setPermanentDeleteError('')
+    try {
+      await postJson(`/api/admin/properties/${encodeURIComponent(target.id)}?permanent=true`)
+      setPermanentDeleteTarget(null)
+      router.refresh()
+    } catch (e) {
+      setPermanentDeleteError(e instanceof Error ? e.message : 'Unable to permanently delete this listing.')
+    } finally {
+      setBusyId('')
+    }
+  }
 
   return (
     <div>
+      <GlobalPermanentDeleteDialog
+        open={Boolean(permanentDeleteTarget)}
+        title="Permanently delete listing?"
+        description="This action permanently removes the listing, its media, inquiries, and moderation history. It cannot be undone."
+        details={permanentDeleteTarget ? (
+          <div className="rounded-xl border border-red-400/15 bg-red-400/[0.04] px-4 py-3 text-sm font-semibold text-white">
+            {permanentDeleteTarget.title}
+          </div>
+        ) : null}
+        error={permanentDeleteError}
+        loading={Boolean(permanentDeleteTarget && busyId === permanentDeleteTarget.id)}
+        onCancel={() => { setPermanentDeleteTarget(null); setPermanentDeleteError('') }}
+        onConfirm={() => void confirmPermanentDeleteListing()}
+      />
+      <GlobalPermanentDeleteDialog
+        open={permanentDeleteIds.length > 0}
+        title={`Permanently delete ${permanentDeleteIds.length} listings?`}
+        description="This action cannot be undone. Selected listings, associated media, inquiries, and moderation records will be removed."
+        error={permanentDeleteError}
+        loading={bulkActionLoading === 'PERMANENT_DELETE'}
+        onCancel={() => { setPermanentDeleteIds([]); setPermanentDeleteError('') }}
+        onConfirm={() => void confirmPermanentDeleteSelected()}
+      />
       {error ? <p className="mb-4 text-sm font-semibold text-red-300">{error}</p> : null}
 
       <div className="mb-4 flex flex-wrap gap-2 text-xs text-white/70">

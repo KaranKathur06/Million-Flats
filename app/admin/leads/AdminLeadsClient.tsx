@@ -23,6 +23,7 @@ import { getAdminCapabilities } from '@/lib/adminCapabilities'
 import { LEAD_TEMPERATURE_STYLES, threeDTourLeadTemperature } from '@/lib/leads/leadTemperature'
 import type { LeadForDisplay } from '@/lib/leads/mapLeadForDisplay'
 import { isLeadCountInSync } from '@/lib/leads/syncHealth'
+import GlobalPermanentDeleteDialog from '@/components/admin/GlobalPermanentDeleteDialog'
 
 function LeadTemperatureBadge({
   leadType,
@@ -165,6 +166,8 @@ export default function AdminLeadsClient({
   const [detailError, setDetailError] = useState('')
   const [detailLeadId, setDetailLeadId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
+  const [deleteError, setDeleteError] = useState('')
   const [syncOk, setSyncOk] = useState(true)
 
   const sp = searchParams ?? new URLSearchParams()
@@ -300,19 +303,17 @@ export default function AdminLeadsClient({
 
   const runLeadLifecycleAction = async (action: 'archive' | 'restore' | 'delete') => {
     if (!detail?.id || !canManageLifecycle) return
-    if (action === 'delete' && !window.confirm(`Permanently delete lead ${detail.id}? This cannot be undone.`)) return
+    if (action === 'delete') {
+      setDeleteError('')
+      setDeleteTarget({ id: detail.id, name: detail.name })
+      return
+    }
 
     setBusy(true)
     setDetailError('')
     try {
       await fetchJson(`/api/admin/leads/${encodeURIComponent(detail.id)}${action === 'delete' ? '' : `/${action}`}`, {
         method: action === 'delete' ? 'DELETE' : 'POST',
-        ...(action === 'delete'
-          ? {
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ confirmation: 'PERMANENTLY_DELETE_LEAD' }),
-            }
-          : {}),
       })
       if (action === 'delete') {
         setDetail(null)
@@ -324,6 +325,31 @@ export default function AdminLeadsClient({
       router.refresh()
     } catch (e) {
       setDetailError(e instanceof Error ? e.message : 'Lead action failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const permanentlyDeleteLead = async () => {
+    if (!deleteTarget || busy || !canManageLifecycle) return
+    const target = deleteTarget
+    setBusy(true)
+    setDeleteError('')
+    try {
+      await fetchJson(`/api/admin/leads/${encodeURIComponent(target.id)}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmation: 'PERMANENTLY_DELETE_LEAD' }),
+      })
+      setDeleteTarget(null)
+      if (detail?.id === target.id) {
+        setDetail(null)
+        setDrawerOpen(false)
+      }
+      await loadLeads(filtersToSearchParams(filtersFromSearchParams(sp)))
+      router.refresh()
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : 'Lead deletion failed')
     } finally {
       setBusy(false)
     }
@@ -648,6 +674,21 @@ export default function AdminLeadsClient({
 
   return (
     <div className="space-y-6">
+      <GlobalPermanentDeleteDialog
+        open={Boolean(deleteTarget)}
+        title="Permanently delete lead?"
+        description="This permanently removes the lead and its notes, follow-ups, and activity history. This cannot be undone."
+        details={deleteTarget ? (
+          <div className="rounded-xl border border-red-400/15 bg-red-400/[0.04] px-4 py-3 text-sm text-white/75">
+            <p className="font-semibold text-white">{deleteTarget.name}</p>
+            <p className="mt-1 break-all font-mono text-xs text-white/45">{deleteTarget.id}</p>
+          </div>
+        ) : null}
+        error={deleteError}
+        loading={busy}
+        onCancel={() => { setDeleteTarget(null); setDeleteError('') }}
+        onConfirm={() => void permanentlyDeleteLead()}
+      />
       {listError ? <p className="text-sm font-semibold text-red-300">{listError}</p> : null}
 
       {!loading && !syncOk && stats ? (
@@ -915,13 +956,25 @@ export default function AdminLeadsClient({
                     {new Date(row.createdAt).toLocaleString()}
                   </td>
                   <td className="py-3 pr-3">
-                    <button
-                      type="button"
-                      onClick={() => openDetail(row.id)}
-                      className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-200 hover:bg-amber-400/20"
-                    >
-                      View
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openDetail(row.id)}
+                        className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-200 hover:bg-amber-400/20"
+                      >
+                        View
+                      </button>
+                      {canManageLifecycle && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => { setDeleteTarget({ id: row.id, name: row.name }); setDeleteError('') }}
+                          className="rounded-lg border border-red-400/25 bg-red-400/[0.06] px-3 py-1.5 text-xs font-semibold text-red-200 hover:bg-red-400/15 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -947,13 +1000,25 @@ export default function AdminLeadsClient({
                   ? displayCategory(row.leadType, row.category)
                   : row.sourceName || row.projectOrCompany || '—'}
               </p>
-              <button
-                type="button"
-                onClick={() => openDetail(row.id)}
-                className="mt-3 w-full rounded-lg bg-amber-400/15 py-2 text-xs font-semibold text-amber-200"
-              >
-                View
-              </button>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => openDetail(row.id)}
+                  className="flex-1 rounded-lg bg-amber-400/15 py-2 text-xs font-semibold text-amber-200"
+                >
+                  View
+                </button>
+                {canManageLifecycle && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => { setDeleteTarget({ id: row.id, name: row.name }); setDeleteError('') }}
+                    className="flex-1 rounded-lg border border-red-400/20 py-2 text-xs font-semibold text-red-200 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>

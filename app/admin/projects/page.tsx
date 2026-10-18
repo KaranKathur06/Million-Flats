@@ -8,6 +8,7 @@ import ProjectActionsMenu from '@/components/admin/ProjectActionsMenu'
 import ProjectDetailsDrawer from '@/components/admin/ProjectDetailsDrawer'
 import { AdminBulkToolbar, AdminFilterChips } from '@/components/admin/workspace'
 import { AdminDataCard, ResponsiveDataTable } from '@/components/responsive'
+import GlobalPermanentDeleteDialog from '@/components/admin/GlobalPermanentDeleteDialog'
 import { formatAEDCompact } from '@/lib/pricing'
 import { PROJECT_IMAGE_FALLBACK } from '@/lib/media/fallbacks'
 import toast, { Toaster } from 'react-hot-toast'
@@ -71,8 +72,8 @@ export default function AdminProjectsPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [singleDeleteTarget, setSingleDeleteTarget] = useState<ProjectItem | null>(null)
   const [permanentDeleteTarget, setPermanentDeleteTarget] = useState<ProjectItem | null>(null)
-  const [permanentDeleteConfirmation, setPermanentDeleteConfirmation] = useState('')
   const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false)
+  const [permanentBulkDeleteOpen, setPermanentBulkDeleteOpen] = useState(false)
   const [bulkActionLoading, setBulkActionLoading] = useState<null | 'delete' | 'archive' | 'publish' | 'unpublish'>(null)
   const [cityFilter, setCityFilter] = useState<string[]>([])
   const [developerFilter, setDeveloperFilter] = useState<string[]>([])
@@ -245,28 +246,51 @@ export default function AdminProjectsPage() {
 
   const permanentDeleteProject = async () => {
     if (!permanentDeleteTarget) return
-    if (permanentDeleteConfirmation !== 'DELETE') {
-      toast.error('Type DELETE to confirm permanent deletion')
-      return
-    }
 
     setDeleting(permanentDeleteTarget.id)
     try {
       const res = await fetch(`/api/admin/projects/${permanentDeleteTarget.id}/permanent`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ confirmation: permanentDeleteConfirmation }),
+        body: JSON.stringify({ confirmation: 'DELETE' }),
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.message || 'Permanent delete failed')
       toast.success('Project permanently deleted')
       setPermanentDeleteTarget(null)
-      setPermanentDeleteConfirmation('')
       await load()
     } catch (err: any) {
       toast.error(err.message || 'Permanent delete failed')
     } finally {
       setDeleting(null)
+    }
+  }
+
+  const permanentlyDeleteSelected = async () => {
+    if (!selectedIds.length) return
+    setBulkActionLoading('delete')
+    try {
+      const res = await fetch('/api/admin/projects/bulk-permanent-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds, confirmation: 'DELETE' }),
+      })
+      const json = await res.json()
+      if (!res.ok && !json.partial) throw new Error(json.message || 'Permanent delete failed')
+      const successfulIds = Array.isArray(json.successful) ? json.successful as string[] : []
+      const failedIds = Array.isArray(json.failed) ? json.failed as Array<{ id: string; message: string }> : []
+      toast.success(`Permanently deleted ${successfulIds.length} project(s)`)
+      if (failedIds.length) toast.error(`Failed: ${failedIds.length} project(s)`)
+      if (Array.isArray(json.pendingCleanup) && json.pendingCleanup.length) {
+        toast(`Media cleanup queued for ${json.pendingCleanup.length} project(s)`)
+      }
+      setSelectedIds(failedIds.map((failure) => failure.id))
+      if (failedIds.length === 0) setPermanentBulkDeleteOpen(false)
+      await load()
+    } catch (err: any) {
+      toast.error(err.message || 'Permanent delete failed')
+    } finally {
+      setBulkActionLoading(null)
     }
   }
 
@@ -568,25 +592,7 @@ export default function AdminProjectsPage() {
             label: 'Permanent Delete',
             variant: 'danger',
             disabled: bulkActionLoading !== null || !selectedProjects.length || selectedProjects.some((project) => !project.isDeleted),
-            onClick: async () => {
-              const confirmation = window.prompt(`Permanently delete ${selectedIds.length} project(s)? Type DELETE to continue.`)
-              if (confirmation !== 'DELETE') return
-              setBulkActionLoading('delete')
-              try {
-                const res = await fetch('/api/admin/projects/bulk-permanent-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: selectedIds, confirmation }) })
-                const json = await res.json()
-                if (!res.ok && !json.partial) throw new Error(json.message || 'Permanent delete failed')
-                const successfulIds = Array.isArray(json.successful) ? json.successful as string[] : []
-                const failedIds = Array.isArray(json.failed) ? json.failed as Array<{ id: string; message: string }> : []
-                toast.success(`Permanently deleted ${successfulIds.length} project(s)`)
-                if (failedIds.length) toast.error(`Failed: ${failedIds.length} project(s)`)
-                if (Array.isArray(json.pendingCleanup) && json.pendingCleanup.length) {
-                  toast(`Media cleanup queued for ${json.pendingCleanup.length} project(s)`)
-                }
-                setSelectedIds(failedIds.map((failure) => failure.id))
-                await load()
-              } catch (err: any) { toast.error(err.message || 'Permanent delete failed') } finally { setBulkActionLoading(null) }
-            },
+            onClick: () => setPermanentBulkDeleteOpen(true),
           },
         ]}
       />
@@ -782,38 +788,29 @@ export default function AdminProjectsPage() {
         </div>
       )}
 
-      {permanentDeleteTarget && (
-        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-red-500/35 bg-[#071328] p-6">
-            <h3 className="text-xl font-semibold text-white">Permanently Delete Project?</h3>
-            <p className="mt-3 text-sm text-white/70 leading-relaxed">
-              This action cannot be undone. The project and its associated data will be permanently removed from MillionFlats. Associated media stored in AWS S3 will also be permanently deleted where those assets are not shared with another record.
-            </p>
-            <div className="mt-5 rounded-xl border border-red-500/25 bg-red-500/5 p-4 text-sm text-white/80">
-              <div className="flex justify-between gap-4 py-1"><span className="text-white/50">Project:</span><span className="font-semibold text-white">{permanentDeleteTarget.name}</span></div>
-              <div className="flex justify-between gap-4 py-1"><span className="text-white/50">Developer:</span><span className="font-semibold text-white">{permanentDeleteTarget.developer.name}</span></div>
-              <div className="flex justify-between gap-4 py-1"><span className="text-white/50">Status:</span><span className="font-semibold text-red-200">Deleted</span></div>
-            </div>
-            <label className="mt-5 block text-sm font-medium text-white/75">
-              Type DELETE to confirm
-              <input
-                value={permanentDeleteConfirmation}
-                onChange={(e) => setPermanentDeleteConfirmation(e.target.value)}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white outline-none ring-0 placeholder:text-white/25 focus:border-red-400/40"
-                placeholder="DELETE"
-              />
-            </label>
-            <div className="mt-6 flex items-center justify-end gap-2">
-              <button onClick={() => { setPermanentDeleteTarget(null); setPermanentDeleteConfirmation('') }} className="rounded-lg border border-white/20 bg-white/5 px-3.5 py-2 text-sm text-white/80 hover:bg-white/10">
-                Cancel
-              </button>
-              <button onClick={permanentDeleteProject} disabled={permanentDeleteConfirmation !== 'DELETE' || deleting === permanentDeleteTarget.id} className="rounded-lg border border-red-500/35 bg-red-500/15 px-3.5 py-2 text-sm font-semibold text-red-100 hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-50">
-                {deleting === permanentDeleteTarget.id ? 'Deleting...' : 'Permanently Delete'}
-              </button>
-            </div>
+      <GlobalPermanentDeleteDialog
+        open={Boolean(permanentDeleteTarget)}
+        title="Permanently delete project?"
+        description="This action cannot be undone. The project and its associated data will be permanently removed. Unshared media stored in S3 will also be deleted."
+        details={permanentDeleteTarget ? (
+          <div className="rounded-xl border border-red-500/25 bg-red-500/[0.05] p-4 text-sm text-white/80">
+            <p><span className="text-white/50">Project: </span><span className="font-semibold text-white">{permanentDeleteTarget.name}</span></p>
+            <p className="mt-1"><span className="text-white/50">Developer: </span><span className="font-semibold text-white">{permanentDeleteTarget.developer.name}</span></p>
+            <p className="mt-1"><span className="text-white/50">Status: </span><span className="font-semibold text-red-200">Deleted</span></p>
           </div>
-        </div>
-      )}
+        ) : null}
+        loading={Boolean(permanentDeleteTarget && deleting === permanentDeleteTarget.id)}
+        onCancel={() => setPermanentDeleteTarget(null)}
+        onConfirm={() => void permanentDeleteProject()}
+      />
+      <GlobalPermanentDeleteDialog
+        open={permanentBulkDeleteOpen}
+        title={`Permanently delete ${selectedIds.length} projects?`}
+        description="This action cannot be undone. All selected projects and their unshared media will be permanently removed."
+        loading={bulkActionLoading === 'delete' && permanentBulkDeleteOpen}
+        onCancel={() => setPermanentBulkDeleteOpen(false)}
+        onConfirm={() => void permanentlyDeleteSelected()}
+      />
 
       {bulkDeleteModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4">

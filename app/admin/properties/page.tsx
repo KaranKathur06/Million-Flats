@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import GlobalDropdown from '@/components/ui/GlobalDropdown'
+import GlobalPermanentDeleteDialog from '@/components/admin/GlobalPermanentDeleteDialog'
 import { buildManualPropertyPath } from '@/lib/manualPropertyRoutes'
 
 interface PropertyItem {
@@ -85,7 +86,6 @@ export default function AdminPropertiesPage() {
     const [stats, setStats] = useState({ total: 0, active: 0, pending: 0, rejected: 0, sold: 0, archived: 0 })
     const [deleteTarget, setDeleteTarget] = useState<PropertyItem | null>(null)
     const [permanentDeleteTarget, setPermanentDeleteTarget] = useState<PropertyItem | null>(null)
-    const [permanentDeleteConfirmation, setPermanentDeleteConfirmation] = useState('')
     const [bulkPermanentDeleteOpen, setBulkPermanentDeleteOpen] = useState(false)
     const [deleting, setDeleting] = useState<string | null>(null)
     const [actionDrawerTarget, setActionDrawerTarget] = useState<PropertyItem | null>(null)
@@ -183,7 +183,7 @@ export default function AdminPropertiesPage() {
 
     // Permanent delete
     const permanentDelete = useCallback(async () => {
-        if (!permanentDeleteTarget || permanentDeleteConfirmation !== 'DELETE') return
+        if (!permanentDeleteTarget) return
         setDeleting(permanentDeleteTarget.id)
         try {
             const res = await fetch(`/api/admin/properties/${permanentDeleteTarget.id}?permanent=true`, { method: 'DELETE' })
@@ -191,17 +191,16 @@ export default function AdminPropertiesPage() {
             if (!json.success) throw new Error(json.message)
             toast.success('Property permanently deleted')
             setPermanentDeleteTarget(null)
-            setPermanentDeleteConfirmation('')
             load()
         } catch (err: any) {
             toast.error(err.message)
         } finally {
             setDeleting(null)
         }
-    }, [permanentDeleteTarget, permanentDeleteConfirmation, load])
+    }, [permanentDeleteTarget, load])
 
     const permanentDeleteSelected = useCallback(async () => {
-        if (selectedIds.size === 0 || permanentDeleteConfirmation !== 'DELETE') return
+        if (selectedIds.size === 0) return
         setBulkActionLoading('permanent_delete')
         try {
             const results = await Promise.allSettled(
@@ -217,7 +216,6 @@ export default function AdminPropertiesPage() {
             if (deleted > 0) toast.success(`${deleted} propert${deleted === 1 ? 'y' : 'ies'} permanently deleted`)
             if (failed.length > 0) toast.error(`${failed.length} propert${failed.length === 1 ? 'y' : 'ies'} could not be permanently deleted`)
             setBulkPermanentDeleteOpen(false)
-            setPermanentDeleteConfirmation('')
             setSelectedIds(new Set())
             await load()
         } catch (err: any) {
@@ -225,7 +223,7 @@ export default function AdminPropertiesPage() {
         } finally {
             setBulkActionLoading(null)
         }
-    }, [selectedIds, permanentDeleteConfirmation, load])
+    }, [selectedIds, load])
 
     // Select helpers
     const toggleSelect = (id: string) => {
@@ -495,59 +493,22 @@ export default function AdminPropertiesPage() {
                 </div>
             )}
 
-            {/* Permanent Delete Modal */}
-            {permanentDeleteTarget && (
-                <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="w-full max-w-lg rounded-2xl border border-red-500/35 bg-[#071328] p-6">
-                        <h3 className="text-xl font-semibold text-white">Permanently Delete Property?</h3>
-                        <p className="mt-3 text-sm text-white/70 leading-relaxed">
-                            This action cannot be undone. The property and all associated media will be permanently removed.
-                        </p>
-                        <label className="mt-5 block text-sm font-medium text-white/75">
-                            Type DELETE to confirm
-                            <input
-                                value={permanentDeleteConfirmation}
-                                onChange={e => setPermanentDeleteConfirmation(e.target.value)}
-                                className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/25 focus:border-red-400/40"
-                                placeholder="DELETE"
-                            />
-                        </label>
-                        <div className="mt-6 flex items-center justify-end gap-2">
-                            <button onClick={() => { setPermanentDeleteTarget(null); setPermanentDeleteConfirmation('') }} className="rounded-lg border border-white/20 bg-white/5 px-3.5 py-2 text-sm text-white/80 hover:bg-white/10 cursor-pointer">Cancel</button>
-                            <button onClick={permanentDelete} disabled={permanentDeleteConfirmation !== 'DELETE' || deleting === permanentDeleteTarget.id} className="rounded-lg border border-red-500/35 bg-red-500/15 px-3.5 py-2 text-sm font-semibold text-red-100 hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer">
-                                {deleting === permanentDeleteTarget.id ? 'Deleting...' : 'Permanently Delete'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {bulkPermanentDeleteOpen && (
-                <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="w-full max-w-lg rounded-2xl border border-red-500/35 bg-[#071328] p-6 shadow-2xl">
-                        <h3 className="text-xl font-semibold text-white">Permanently Delete Properties?</h3>
-                        <p className="mt-3 text-sm text-white/70 leading-relaxed">
-                            This will permanently remove {selectedIds.size} selected propert{selectedIds.size === 1 ? 'y' : 'ies'} and all associated media. This action cannot be undone.
-                        </p>
-                        <label className="mt-5 block text-sm font-medium text-white/75">
-                            Type DELETE to confirm
-                            <input
-                                value={permanentDeleteConfirmation}
-                                onChange={e => setPermanentDeleteConfirmation(e.target.value)}
-                                className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/25 focus:border-red-400/40"
-                                placeholder="DELETE"
-                                autoFocus
-                            />
-                        </label>
-                        <div className="mt-6 flex items-center justify-end gap-2">
-                            <button onClick={() => { setBulkPermanentDeleteOpen(false); setPermanentDeleteConfirmation('') }} className="rounded-lg border border-white/20 bg-white/5 px-3.5 py-2 text-sm text-white/80 hover:bg-white/10 cursor-pointer">Cancel</button>
-                            <button onClick={permanentDeleteSelected} disabled={permanentDeleteConfirmation !== 'DELETE' || bulkActionLoading === 'permanent_delete'} className="rounded-lg border border-red-500/35 bg-red-500/15 px-3.5 py-2 text-sm font-semibold text-red-100 hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer">
-                                {bulkActionLoading === 'permanent_delete' ? 'Deleting...' : 'Permanently Delete'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <GlobalPermanentDeleteDialog
+                open={Boolean(permanentDeleteTarget)}
+                title="Permanently delete property?"
+                description={`This action cannot be undone. "${permanentDeleteTarget?.title || 'This property'}" and all associated media will be permanently removed.`}
+                loading={Boolean(permanentDeleteTarget && deleting === permanentDeleteTarget.id)}
+                onCancel={() => setPermanentDeleteTarget(null)}
+                onConfirm={() => void permanentDelete()}
+            />
+            <GlobalPermanentDeleteDialog
+                open={bulkPermanentDeleteOpen}
+                title={`Permanently delete ${selectedIds.size} properties?`}
+                description="This action cannot be undone. Selected properties and all associated media will be permanently removed."
+                loading={bulkActionLoading === 'permanent_delete'}
+                onCancel={() => setBulkPermanentDeleteOpen(false)}
+                onConfirm={() => void permanentDeleteSelected()}
+            />
 
             {actionDrawerTarget && (
                 <div className="fixed inset-0 z-50 flex justify-end bg-black/60">

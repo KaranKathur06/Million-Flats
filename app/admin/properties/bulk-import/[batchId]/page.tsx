@@ -8,6 +8,7 @@ import {
     IMPORT_ANALYSIS_STALE_AFTER_MINUTES,
     IMPORT_COMMIT_STALE_AFTER_MINUTES,
 } from '@/lib/imports/core/constants'
+import { summarizeCommitOutcomes } from '@/lib/imports/core/commit-outcomes'
 
 type ImportRecord = {
     id: string
@@ -224,37 +225,42 @@ export default function ImportBatchDetailPage() {
     if (loading) return <div className="p-8 text-sm text-white/50">Loading import batch...</div>
     if (!batch) return <div className="p-8 text-sm text-red-300">Import batch could not be loaded.</div>
 
-    const canCommit = batch.status === 'READY_TO_COMMIT' || batch.status === 'READY_FOR_REVIEW'
     const entityLabel = batch.entityType === 'DEVELOPER' ? 'developer' : batch.entityType === 'PROJECT' ? 'project' : batch.entityType === 'ECOSYSTEM_PARTNER' ? 'ecosystem partner' : batch.entityType === 'AGENCY' ? 'agency' : batch.entityType === 'AGENT' ? 'agent' : batch.entityType === 'LEAD' ? 'lead' : 'property'
     const isSupportedResumeEntity = batch.entityType === 'PROPERTY' || batch.entityType === 'PROJECT'
-    const analysisFailure = batch.failureSummary && typeof batch.failureSummary === 'object'
+    const failureSummary = batch.failureSummary && typeof batch.failureSummary === 'object'
         ? batch.failureSummary as { stage?: unknown; message?: unknown }
         : null
-    const hasAnalysisFailure = ['FAILED', 'RETRYING'].includes(batch.status) && analysisFailure?.stage === 'ANALYSIS'
+    const hasAnalysisFailure = failureSummary?.stage === 'ANALYSIS'
+    const canCommit = !hasAnalysisFailure && (batch.status === 'READY_TO_COMMIT' || batch.status === 'READY_FOR_REVIEW')
     const legacyCommitErrorsCanRetry =
         !hasAnalysisFailure &&
         batch.errorCount === 0 &&
         ['PARTIALLY_COMMITTED', 'FAILED', 'COMMITTING'].includes(batch.status)
-    const remainingCount = batch.records.filter((record) => ['READY', 'WARNING', 'STAGED'].includes(record.status)).length
+    const commitOutcomes = summarizeCommitOutcomes(batch.records, {
+        allowLegacyErrors: legacyCommitErrorsCanRetry,
+        failureStage: String(failureSummary?.stage || ''),
+    })
+    const remainingCount = commitOutcomes.remaining
     const hasUnresolvedStrictWarnings =
         batch.mode === 'STRICT' &&
         batch.records.some((record) => record.status === 'WARNING')
-    const retryableCount = batch.records.filter((record) =>
-        record.status === 'ERROR' &&
-        (record.commitAction === 'COMMIT_FAILED' || legacyCommitErrorsCanRetry),
-    ).length
-    const committedCount = batch.records.filter((record) => record.status === 'COMMITTED').length
-    const fullyCommitted = batch.records.length > 0 && committedCount === batch.records.length
+    const retryableCount = commitOutcomes.retryable
+    const committedCount = commitOutcomes.committed
+    const fullyCommitted = batch.records.length > 0 &&
+        committedCount === commitOutcomes.recordCount &&
+        commitOutcomes.inconsistent === 0
     const heartbeat = batch.commitHeartbeatAt || batch.startedAt || batch.updatedAt
     const isStaleCommit = batch.status === 'COMMITTING' &&
         !!heartbeat &&
         Date.now() - new Date(heartbeat).getTime() >= IMPORT_COMMIT_STALE_AFTER_MINUTES * 60 * 1000
     const canResume = isSupportedResumeEntity &&
         !hasAnalysisFailure &&
+        commitOutcomes.inconsistent === 0 &&
         ['PARTIALLY_COMMITTED', 'FAILED'].includes(batch.status) &&
         ((remainingCount + retryableCount > 0 && !hasUnresolvedStrictWarnings) || fullyCommitted)
     const canRecoverStaleCommit = isSupportedResumeEntity &&
         isStaleCommit &&
+        commitOutcomes.inconsistent === 0 &&
         ((remainingCount + retryableCount > 0 && !hasUnresolvedStrictWarnings) || fullyCommitted)
     const continueImport = () => {
         const confirmation = fullyCommitted
@@ -335,7 +341,17 @@ export default function ImportBatchDetailPage() {
             )}
             {hasAnalysisFailure && (
                 <div className="mb-5 rounded-lg border border-red-400/20 bg-red-400/[0.04] px-4 py-3 text-xs text-red-200/80">
-                    {String(analysisFailure?.message || 'Import analysis failed. Retry analysis to continue.')}
+                    {String(failureSummary?.message || 'Import analysis failed. Retry analysis to continue.')}
+                </div>
+            )}
+            {commitOutcomes.inconsistent > 0 && (
+                <div className="mb-5 rounded-lg border border-red-400/20 bg-red-400/[0.04] px-4 py-3 text-xs text-red-200/80">
+                    {commitOutcomes.inconsistent} record(s) have inconsistent persisted commit outcomes. Automatic continuation is disabled; review the batch before taking further action.
+                </div>
+            )}
+            {failureSummary?.stage === 'COMMIT' && (
+                <div className="mb-5 rounded-lg border border-red-400/20 bg-red-400/[0.04] px-4 py-3 text-xs text-red-200/80">
+                    {String(failureSummary.message || 'The commit attempt failed. Persisted record outcomes are shown below.')}
                 </div>
             )}
             {['PARTIALLY_COMMITTED', 'FAILED'].includes(batch.status) && hasUnresolvedStrictWarnings && (
@@ -343,7 +359,7 @@ export default function ImportBatchDetailPage() {
                     Resolve the remaining warning records before continuing this strict-mode batch.
                 </div>
             )}
-            {['PARTIALLY_COMMITTED', 'FAILED'].includes(batch.status) && !hasAnalysisFailure && remainingCount + retryableCount === 0 && !fullyCommitted && !hasUnresolvedStrictWarnings && (
+            {['PARTIALLY_COMMITTED', 'FAILED'].includes(batch.status) && !hasAnalysisFailure && commitOutcomes.inconsistent === 0 && remainingCount + retryableCount === 0 && !fullyCommitted && !hasUnresolvedStrictWarnings && (
                 <div className="mb-5 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-white/55">
                     There are no eligible or retryable commit records remaining in this batch.
                 </div>
@@ -355,11 +371,11 @@ export default function ImportBatchDetailPage() {
                     [canResume || canRecoverStaleCommit ? 'Still ready' : 'Ready to commit', canResume || canRecoverStaleCommit ? remainingCount : batch.readyCount],
                     ['Already committed', committedCount],
                     ['Failed · retryable', retryableCount],
-                    ['Warnings', batch.warningCount],
-                    ['Errors', batch.errorCount],
-                    ['Created', batch.createdCount],
-                    ['Updated', batch.updatedCount ?? 0],
-                    ['Skipped', batch.skippedCount ?? 0],
+                    ['Warnings', batch.records.filter((record) => record.status === 'WARNING').length],
+                    ['Errors', batch.records.filter((record) => record.status === 'ERROR').length],
+                    ['Created', commitOutcomes.created],
+                    ['Updated', commitOutcomes.updated],
+                    ['Skipped', commitOutcomes.skipped],
                 ].map(([label, value]) => (
                     <div key={label} className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-4">
                         <p className="text-[11px] uppercase tracking-[0.16em] text-white/35">{label}</p>

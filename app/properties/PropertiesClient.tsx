@@ -499,6 +499,7 @@ export default function PropertiesClient({
           properties={displayedProperties}
           loading={loading}
           error={apiError}
+          onRetry={fetchProperties}
           variant="grid"
         />
 

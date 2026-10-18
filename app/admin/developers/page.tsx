@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { CountryFilter, EntityIdentityCell, LifecycleBadge, LifecycleTabs, ManagementEmptyState, ManagementMetricCards } from '@/components/admin/management/ManagementPrimitives'
+import GlobalPermanentDeleteDialog from '@/components/admin/GlobalPermanentDeleteDialog'
 
 type FilterTab = 'ALL' | 'ACTIVE' | 'INACTIVE' | 'DELETED'
 
@@ -219,6 +220,7 @@ export default function AdminDevelopersPage() {
   const [selectedDevelopers, setSelectedDevelopers] = useState<string[]>([])
   const [deleteTarget, setDeleteTarget] = useState<Developer | null>(null)
   const [deleteModeLoading, setDeleteModeLoading] = useState<'soft' | 'hard' | null>(null)
+  const [hardDeleteConfirmType, setHardDeleteConfirmType] = useState<'single' | 'bulk' | null>(null)
 
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [bulkRestoreOpen, setBulkRestoreOpen] = useState(false)
@@ -343,6 +345,7 @@ export default function AdminDevelopersPage() {
 
       showToast(`"${deleteTarget.name}" deleted permanently`)
       setDeleteTarget(null)
+      setHardDeleteConfirmType(null)
       setSelectedDevelopers((prev) => prev.filter((id) => id !== deleteTarget.id))
       await load()
     } catch (err: any) {
@@ -375,6 +378,7 @@ export default function AdminDevelopersPage() {
       )
       setSelectedDevelopers([])
       setBulkDeleteOpen(false)
+      if (mode === 'hard') setHardDeleteConfirmType(null)
       await load()
     } catch (err: any) {
       showToast(err?.message || 'Bulk delete failed')
@@ -463,7 +467,7 @@ export default function AdminDevelopersPage() {
         isOpen={!!deleteTarget}
         developer={deleteTarget}
         onSoftDelete={handleSoftDelete}
-        onHardDelete={handleHardDelete}
+        onHardDelete={() => setHardDeleteConfirmType('single')}
         onCancel={() => setDeleteTarget(null)}
         loading={deleteModeLoading}
       />
@@ -473,9 +477,31 @@ export default function AdminDevelopersPage() {
         selectedCount={selectedDevelopers.length}
         alreadySoftDeleted={selectedRowsAllDeleted}
         onSoftDelete={() => handleBulkDelete('soft')}
-        onHardDelete={() => handleBulkDelete('hard')}
+        onHardDelete={() => setHardDeleteConfirmType('bulk')}
         onCancel={() => setBulkDeleteOpen(false)}
         loading={bulkDeleteModeLoading}
+      />
+
+      <GlobalPermanentDeleteDialog
+        open={hardDeleteConfirmType !== null}
+        title={hardDeleteConfirmType === 'bulk'
+          ? `Permanently delete ${selectedDevelopers.length} developers?`
+          : 'Permanently delete developer?'}
+        description="This action permanently removes the developer and cannot be undone."
+        details={hardDeleteConfirmType === 'single' && deleteTarget ? (
+          <div className="rounded-xl border border-red-400/15 bg-red-400/[0.04] px-4 py-3 text-sm text-white/75">
+            <p className="font-semibold text-white">{deleteTarget.name}</p>
+            <p className="mt-1 text-xs text-white/45">{deleteTarget._count.projects} associated project(s)</p>
+          </div>
+        ) : null}
+        loading={hardDeleteConfirmType === 'bulk'
+          ? bulkDeleteModeLoading === 'hard'
+          : deleteModeLoading === 'hard'}
+        onCancel={() => setHardDeleteConfirmType(null)}
+        onConfirm={() => {
+          if (hardDeleteConfirmType === 'bulk') void handleBulkDelete('hard')
+          if (hardDeleteConfirmType === 'single') void handleHardDelete()
+        }}
       />
 
       <ConfirmModal
