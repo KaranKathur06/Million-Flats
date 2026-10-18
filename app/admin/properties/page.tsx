@@ -86,6 +86,7 @@ export default function AdminPropertiesPage() {
     const [stats, setStats] = useState({ total: 0, active: 0, pending: 0, rejected: 0, sold: 0, archived: 0 })
     const [deleteTarget, setDeleteTarget] = useState<PropertyItem | null>(null)
     const [permanentDeleteTarget, setPermanentDeleteTarget] = useState<PropertyItem | null>(null)
+    const [permanentDeleteConfirmation, setPermanentDeleteConfirmation] = useState('')
     const [bulkPermanentDeleteOpen, setBulkPermanentDeleteOpen] = useState(false)
     const [deleting, setDeleting] = useState<string | null>(null)
     const [actionDrawerTarget, setActionDrawerTarget] = useState<PropertyItem | null>(null)

@@ -142,7 +142,7 @@ export async function executeImport(input: { batchId: string; idempotencyKey: st
           throw new Error(relations.errors[0] || 'Required relationships could not be resolved.')
         }
 
-        const committed = await withPrismaAcquisitionRetry(
+        const committed: any = await withPrismaAcquisitionRetry(
           () => (prisma as any).$transaction(async (tx: any) => {
             await refreshImportCommitHeartbeat(tx, input.batchId, attemptId)
             const created = await adapter.commit({ canonical: payload, operation: batch.operation, sourceRecordId: record.sourceRecordId, db: tx })

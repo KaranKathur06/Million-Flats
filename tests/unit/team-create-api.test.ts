@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals'
 
-const mockCreateMember = jest.fn()
-const mockRequireTeamAdmin = jest.fn()
-const mockWriteAuditLog = jest.fn()
+const mockCreateMember = jest.fn<() => Promise<any>>()
+const mockRequireTeamAdmin = jest.fn<() => Promise<any>>()
+const mockWriteAuditLog = jest.fn<() => Promise<any>>()
 
 jest.mock('@/lib/prisma', () => ({
   prisma: {

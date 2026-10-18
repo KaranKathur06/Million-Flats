@@ -312,15 +312,10 @@ export default function AdminLeadsClient({
     setBusy(true)
     setDetailError('')
     try {
-      await fetchJson(`/api/admin/leads/${encodeURIComponent(detail.id)}${action === 'delete' ? '' : `/${action}`}`, {
-        method: action === 'delete' ? 'DELETE' : 'POST',
+      await fetchJson(`/api/admin/leads/${encodeURIComponent(detail.id)}/${action}`, {
+        method: 'POST',
       })
-      if (action === 'delete') {
-        setDetail(null)
-        setDrawerOpen(false)
-      } else {
-        setDetail({ ...detail, archived: action === 'archive' })
-      }
+      setDetail({ ...detail, archived: action === 'archive' })
       await loadLeads(filtersToSearchParams(filtersFromSearchParams(sp)))
       router.refresh()
     } catch (e) {
