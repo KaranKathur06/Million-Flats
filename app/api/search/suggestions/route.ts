@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { normalizeCountryCode } from '@/lib/propertyCanonical'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,12 +29,17 @@ export async function GET(req: Request) {
         }
 
         const db = prisma as any
+        const countryParam = (searchParams.get('country') || '').trim()
+        const normalizedCountryCode = normalizeCountryCode(countryParam)
+        const countryCode = normalizedCountryCode === 'IN' ? 'INDIA' : 'UAE'
+        const countryIso2 = normalizedCountryCode
 
         // ── 1. Project name matches ────────────────────────────────────────
         const projectRows = await db.project.findMany({
             where: {
                 status: 'PUBLISHED',
                 isDeleted: false,
+                ...(countryParam ? { countryIso2 } : {}),
                 name: { contains: q, mode: 'insensitive' },
             },
             orderBy: [
@@ -77,7 +83,7 @@ export async function GET(req: Request) {
             where: {
                 status: 'PUBLISHED',
                 sourceType: 'MANUAL',
-                ...(searchParams.get('country') ? { countryCode: String(searchParams.get('country')).toUpperCase() } : {}),
+                ...(countryParam ? { countryCode } : {}),
                 agent: { approved: true, user: { status: 'ACTIVE' } },
                 OR: [
                     { title: { contains: q, mode: 'insensitive' } },
@@ -93,11 +99,10 @@ export async function GET(req: Request) {
         })
 
         // ── 3. Location matches (distinct cities + communities) ────────────
-        const country = (searchParams.get('country') || '').trim().toUpperCase()
         const projectLocationWhere = {
             status: 'PUBLISHED',
             isDeleted: false,
-            ...(country ? { countryIso2: country === 'INDIA' ? 'IN' : 'AE' } : {}),
+            ...(countryParam ? { countryIso2 } : {}),
         }
         const cityRows = await db.project.findMany({
             where: {
@@ -123,7 +128,7 @@ export async function GET(req: Request) {
             where: {
                 status: 'PUBLISHED',
                 sourceType: 'MANUAL',
-                ...(country ? { countryCode: country } : {}),
+                ...(countryParam ? { countryCode } : {}),
                 agent: { approved: true, user: { status: 'ACTIVE' } },
                 OR: [
                     { city: { contains: q, mode: 'insensitive' } },

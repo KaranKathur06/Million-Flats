@@ -7,6 +7,8 @@ const mockBuildDownloadGA4Event = jest.fn<() => { event_name: string }>(() => ({
 const mockProjectFindFirst = jest.fn<() => Promise<any>>()
 const mockBrochureDownloadCreate = jest.fn<() => Promise<{ id: string }>>()
 const mockManualPropertyFindMany = jest.fn<() => Promise<Array<Record<string, any>>>>()
+const mockProjectFindMany = jest.fn<() => Promise<Array<Record<string, any>>>>()
+const mockDeveloperFindMany = jest.fn<() => Promise<Array<Record<string, any>>>>()
 const mockCityFindMany = jest.fn<() => Promise<Array<Record<string, any>>>>()
 const mockCommunityFindMany = jest.fn<() => Promise<Array<Record<string, any>>>>()
 const mockManualPropertyCount = jest.fn<() => Promise<number>>()
@@ -51,8 +53,9 @@ jest.mock('@/lib/adminAuth', () => ({
 
 jest.mock('@/lib/prisma', () => ({
   prisma: {
-    project: { findFirst: mockProjectFindFirst },
+    project: { findFirst: mockProjectFindFirst, findMany: mockProjectFindMany },
     brochureDownload: { create: mockBrochureDownloadCreate },
+    developer: { findMany: mockDeveloperFindMany },
     manualProperty: { findMany: mockManualPropertyFindMany, count: mockManualPropertyCount },
     city: { findMany: mockCityFindMany },
     community: { findMany: mockCommunityFindMany },
@@ -78,6 +81,7 @@ jest.mock('@/lib/assetTracking', () => ({
 }))
 
 import { POST as brochureDownload } from '@/app/api/projects/[slug]/brochure/download/route'
+import { GET as searchSuggestions } from '@/app/api/search/suggestions/route'
 import { GET as propertyLocations } from '@/app/api/properties/locations/route'
 import { GET as publicProperties } from '@/app/api/properties/route'
 
@@ -166,6 +170,27 @@ describe('public access regressions', () => {
     expect(response.status).toBe(200)
     expect(response.body.success).toBe(true)
     expect(response.body.cities).toContain('Rajkot')
+  })
+
+  it('accepts short country aliases for search suggestions and filters canonical country values', async () => {
+    mockProjectFindMany.mockResolvedValue([
+      { id: 'project-1', name: 'Aster', slug: 'aster', city: 'Navi Mumbai', community: 'Kharghar', coverImage: null, isFeatured: false, developer: { name: 'Acme' } },
+    ])
+    mockDeveloperFindMany.mockResolvedValue([])
+    mockManualPropertyFindMany.mockResolvedValue([
+      { id: 'property-1', title: 'Aster Residency', projectName: 'Aster', city: 'Navi Mumbai', community: 'Kharghar', countryCode: 'INDIA' },
+    ])
+
+    const response: any = await searchSuggestions(new Request('http://localhost/api/search/suggestions?q=Aster&country=IN'))
+
+    expect(response.status).toBe(200)
+    expect(response.body.success).toBe(true)
+    expect(mockProjectFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ countryIso2: 'IN' }),
+    }))
+    expect(mockManualPropertyFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ countryCode: 'INDIA' }),
+    }))
   })
 
   it('returns canonical cities when no public property rows match', async () => {
