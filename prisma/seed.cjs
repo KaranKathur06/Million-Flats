@@ -123,6 +123,54 @@ const CATEGORIES = [
   },
 ]
 
+function normalizeSeedSlug(value) {
+  return String(value ?? '').trim().toLowerCase().replace(/\s+/g, '-')
+}
+
+function normalizeSeedEmail(value) {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim().toLowerCase()
+  return trimmed || null
+}
+
+async function upsertSeedPartner(categoryId, seedData) {
+  const slug = normalizeSeedSlug(seedData.slug)
+  const contactEmail = normalizeSeedEmail(seedData.contactEmail)
+  const payload = {
+    ...seedData,
+    categoryId,
+    slug,
+    contactEmail,
+    website: seedData.website || null,
+  }
+
+  const existing = await prisma.ecosystemPartner.findFirst({
+    where: {
+      categoryId,
+      OR: [
+        { slug },
+        ...(contactEmail ? [{ contactEmail: { equals: contactEmail, mode: 'insensitive' } }] : []),
+      ],
+    },
+    select: { id: true, slug: true, contactEmail: true },
+  })
+
+  try {
+    if (existing) {
+      await prisma.ecosystemPartner.update({
+        where: { id: existing.id },
+        data: payload,
+      })
+    } else {
+      await prisma.ecosystemPartner.create({ data: payload })
+    }
+  } catch (error) {
+    const conflictSummary = `categoryId=${categoryId} slug=${slug} email=${contactEmail ?? 'null'}`
+    console.error(`EcosystemPartner seed conflict for ${conflictSummary}. Existing DB records must be reconciled before rerunning seed.`)
+    throw error
+  }
+}
+
 async function main() {
   for (const c of CATEGORIES) {
     await prisma.ecosystemCategory.upsert({
@@ -154,54 +202,29 @@ async function main() {
   })
 
   if (technologyCategory) {
-    await prisma.ecosystemPartner.upsert({
-      where: {
-        categoryId_slug: {
-          categoryId: technologyCategory.id,
-          slug: 'goram',
-        },
-      },
-      update: {
-        name: 'GoRam',
-        tagline: 'Digital growth platform for property discovery and customer engagement.',
-        shortDescription: 'Technology partner helping developers and real-estate teams simplify discovery, CRM, and customer journeys.',
-        description: 'GoRam is a verified MillionFlats technology partner powering digital discovery, automation, and buyer engagement workflows across real-estate teams.',
-        logo: '/partners/goran.jpeg',
-        coverImage: '/partners/goran.jpeg',
-        rating: 4.8,
-        yearsExperience: 6,
-        projectsCompleted: 18,
-        locationCoverage: 'India, UAE',
-        pricingRange: 'Custom',
-        status: 'APPROVED',
-        isActive: true,
-        isFeatured: true,
-        isVerified: true,
-        contactEmail: 'hello@goram.io',
-        website: 'https://goram.io',
-      },
-      create: {
-        categoryId: technologyCategory.id,
-        name: 'GoRam',
-        slug: 'goram',
-        tagline: 'Digital growth platform for property discovery and customer engagement.',
-        shortDescription: 'Technology partner helping developers and real-estate teams simplify discovery, CRM, and customer journeys.',
-        description: 'GoRam is a verified MillionFlats technology partner powering digital discovery, automation, and buyer engagement workflows across real-estate teams.',
-        logo: '/partners/goran.jpeg',
-        coverImage: '/partners/goran.jpeg',
-        rating: 4.8,
-        yearsExperience: 6,
-        projectsCompleted: 18,
-        locationCoverage: 'India, UAE',
-        pricingRange: 'Custom',
-        status: 'APPROVED',
-        isActive: true,
-        isFeatured: true,
-        isVerified: true,
-        contactEmail: 'hello@goram.io',
-        website: 'https://goram.io',
-      },
-    })
+    const seedData = {
+      categoryId: technologyCategory.id,
+      name: 'GoRam',
+      slug: 'goram',
+      tagline: 'Digital growth platform for property discovery and customer engagement.',
+      shortDescription: 'Technology partner helping developers and real-estate teams simplify discovery, CRM, and customer journeys.',
+      description: 'GoRam is a verified MillionFlats technology partner powering digital discovery, automation, and buyer engagement workflows across real-estate teams.',
+      logo: '/partners/goran.jpeg',
+      coverImage: '/partners/goran.jpeg',
+      rating: 4.8,
+      yearsExperience: 6,
+      projectsCompleted: 18,
+      locationCoverage: 'India, UAE',
+      pricingRange: 'Custom',
+      status: 'APPROVED',
+      isActive: true,
+      isFeatured: true,
+      isVerified: true,
+      contactEmail: 'hello@goram.io',
+      website: 'https://goram.io',
+    }
+
+    await upsertSeedPartner(technologyCategory.id, seedData)
   }
 }
 

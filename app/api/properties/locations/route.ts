@@ -55,8 +55,10 @@ function canonicalCityNames(country: 'UAE' | 'INDIA', values: unknown[]) {
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url)
+    const countryParam = (url.searchParams.get('country') || '').trim()
+    const normalizedCountry = normalizeCountryCode(countryParam) === 'AE' ? 'UAE' : 'INDIA'
     const parsed = QuerySchema.safeParse({
-      country: (url.searchParams.get('country') || '').trim().toUpperCase(),
+      country: normalizedCountry,
       city: url.searchParams.get('city') || undefined,
     })
 

@@ -67,6 +67,52 @@ async function seedMarketAndCityPriorities() {
   console.log('✓ Market and City Priorities seeded')
 }
 
+function normalizeSeedSlug(value?: string | null) {
+  return String(value ?? '').trim().toLowerCase().replace(/\s+/g, '-')
+}
+
+function normalizeSeedEmail(value?: string | null) {
+  return typeof value === 'string' ? value.trim().toLowerCase() || null : null
+}
+
+async function upsertSeedPartner(categoryId: string, seedData: any) {
+  const slug = normalizeSeedSlug(seedData.slug)
+  const contactEmail = normalizeSeedEmail(seedData.contactEmail)
+  const payload = {
+    ...seedData,
+    categoryId,
+    slug,
+    contactEmail,
+    website: seedData.website || null,
+  }
+
+  const existing = await (prisma as any).ecosystemPartner.findFirst({
+    where: {
+      categoryId,
+      OR: [
+        { slug },
+        ...(contactEmail ? [{ contactEmail: { equals: contactEmail, mode: 'insensitive' } }] : []),
+      ],
+    },
+    select: { id: true, slug: true, contactEmail: true },
+  })
+
+  try {
+    if (existing) {
+      await (prisma as any).ecosystemPartner.update({
+        where: { id: existing.id },
+        data: payload,
+      })
+    } else {
+      await (prisma as any).ecosystemPartner.create({ data: payload })
+    }
+  } catch (error) {
+    const conflictSummary = `categoryId=${categoryId} slug=${slug} email=${contactEmail ?? 'null'}`
+    console.error(`EcosystemPartner seed conflict for ${conflictSummary}. Existing DB records must be reconciled before rerunning seed.`)
+    throw error
+  }
+}
+
 async function seedGoRamPartner() {
   const category = await (prisma as any).ecosystemCategory.findUnique({ where: { slug: 'technology-partners' } })
   if (!category) {
@@ -96,11 +142,7 @@ async function seedGoRamPartner() {
     website: 'https://goram.io',
   }
 
-  await (prisma as any).ecosystemPartner.upsert({
-    where: { categoryId_slug: { categoryId: category.id, slug: 'goram' } },
-    update: data,
-    create: data,
-  })
+  await upsertSeedPartner(category.id, data)
 
   console.log('✓ GoRam ecosystem partner seeded')
 }

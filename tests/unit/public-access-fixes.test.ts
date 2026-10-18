@@ -156,6 +156,18 @@ describe('public access regressions', () => {
     )
   })
 
+  it('accepts short country aliases for public location queries', async () => {
+    mockManualPropertyFindMany.mockResolvedValue([])
+    mockCityFindMany.mockResolvedValue([{ id: 'city-rajkot', name: 'Rajkot' }])
+    mockCommunityFindMany.mockResolvedValue([])
+
+    const response: any = await propertyLocations(new Request('http://localhost/api/properties/locations?country=IN'))
+
+    expect(response.status).toBe(200)
+    expect(response.body.success).toBe(true)
+    expect(response.body.cities).toContain('Rajkot')
+  })
+
   it('returns canonical cities when no public property rows match', async () => {
     mockManualPropertyFindMany.mockResolvedValue([])
     mockCityFindMany.mockResolvedValue([{ id: 'city-rajkot', name: 'Rajkot' }])
