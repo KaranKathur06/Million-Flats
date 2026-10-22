@@ -139,7 +139,7 @@ header {
 }
 
 .suite-links {
-  display: none !important;
+  display: flex;
 }
 
 .workspace {
