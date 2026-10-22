@@ -1,3 +1,5 @@
+import { AI_PUBLIC_PAGE_PREFIXES } from '@/lib/ai-public-routes'
+
 const DEFAULT_PUBLIC_PREFIXES = [
   '/auth/login',
   '/auth/register',
@@ -55,7 +57,23 @@ const PROTECTED_PREFIXES = [
   '/agency',
 ]
 
-const PUBLIC_ROUTE_PREFIXES = ['/about', '/contact', '/blog', '/blogs', '/buy', '/rent', '/sell', '/properties', '/projects', '/agents', '/developers', '/agencies', '/team', '/ai']
+const PUBLIC_ROUTE_PREFIXES = [
+  '/about',
+  '/contact',
+  '/blog',
+  '/blogs',
+  '/buy',
+  '/rent',
+  '/sell',
+  '/properties',
+  '/projects',
+  '/agents',
+  '/developers',
+  '/agencies',
+  '/team',
+  // AI System™ public informational pages — canonical paths from shared allowlist
+  ...AI_PUBLIC_PAGE_PREFIXES,
+]
 
 function normalizePath(pathname: string) {
   if (!pathname || pathname === '/') return '/'
