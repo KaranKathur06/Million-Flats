@@ -4,6 +4,7 @@ import { generateSignedUrl, ASSET_TTL } from '@/lib/cloudfront'
 import { trackAssetAccess } from '@/lib/assetTracking'
 import { DEFAULT_FAQ_LEAD_MAGNET_SLUG } from './constants'
 import { buildLegacyRecoveryCandidates } from './recovery'
+import { getLeadMagnetMimeTypeFromFileName } from './fileTypes'
 
 export type PublicLeadMagnet = {
   id: string
@@ -16,6 +17,7 @@ export type PublicLeadMagnet = {
   cooldownHours: number
   popupDelaySeconds: number
   popupScrollPercent: number
+  previewImageUrl: string | null
 }
 
 function toInt(value: unknown, fallback: number, min: number, max: number) {
@@ -26,6 +28,28 @@ function toInt(value: unknown, fallback: number, min: number, max: number) {
 
 export function getFaqLeadMagnetSlug() {
   return String(process.env.LEAD_MAGNET_FAQ_SLUG || DEFAULT_FAQ_LEAD_MAGNET_SLUG).trim() || DEFAULT_FAQ_LEAD_MAGNET_SLUG
+}
+
+async function getLeadMagnetPreviewImageUrl(fileS3Key: string | null | undefined) {
+  const key = String(fileS3Key || '').trim().replace(/^\/+/, '')
+  if (!key.startsWith('private/')) return null
+
+  const fileName = key.split('/').pop() || ''
+  const mimeType = getLeadMagnetMimeTypeFromFileName(fileName)
+  if (!mimeType?.startsWith('image/')) return null
+
+  try {
+    if (!(await s3ObjectExists({ key }))) {
+      console.warn('[getPopupLeadMagnet] preview image is missing from S3', { fileName })
+      return null
+    }
+
+    const signed = await generateSignedUrl({ s3Key: key, ttlSeconds: ASSET_TTL.PROTECTED_VIEW })
+    return signed.url
+  } catch (error) {
+    console.error('[getPopupLeadMagnet] failed to create preview image URL', { fileName, error })
+    return null
+  }
 }
 
 function fallbackLeadMagnet(): (PublicLeadMagnet & { fileS3Key: string | null; isActive: boolean; popupEnabled: boolean }) | null {
@@ -43,6 +67,7 @@ function fallbackLeadMagnet(): (PublicLeadMagnet & { fileS3Key: string | null; i
     cooldownHours: toInt(process.env.LEAD_MAGNET_FAQ_COOLDOWN_HOURS, 24, 1, 168),
     popupDelaySeconds: toInt(process.env.LEAD_MAGNET_FAQ_DELAY_SECONDS, 4, 1, 30),
     popupScrollPercent: toInt(process.env.LEAD_MAGNET_FAQ_SCROLL_PERCENT, 25, 5, 80),
+    previewImageUrl: null,
     fileS3Key,
     isActive: true,
     popupEnabled: String(process.env.LEAD_MAGNET_FAQ_POPUP_ENABLED || 'true').toLowerCase() !== 'false',
@@ -67,6 +92,7 @@ export async function getPopupLeadMagnet(): Promise<PublicLeadMagnet | null> {
         cooldownHours: true,
         popupDelaySeconds: true,
         popupScrollPercent: true,
+        fileS3Key: true,
       },
     })
   } catch {
@@ -85,13 +111,15 @@ export async function getPopupLeadMagnet(): Promise<PublicLeadMagnet | null> {
       cooldownHours: toInt(dbMagnet.cooldownHours, 24, 1, 168),
       popupDelaySeconds: toInt(dbMagnet.popupDelaySeconds, 4, 1, 30),
       popupScrollPercent: toInt(dbMagnet.popupScrollPercent, 25, 5, 80),
+      previewImageUrl: await getLeadMagnetPreviewImageUrl(dbMagnet.fileS3Key),
     }
   }
 
   const fallback = fallbackLeadMagnet()
   if (!fallback || !fallback.popupEnabled || !fallback.isActive) return null
 
-  const { fileS3Key: _unused, isActive: _a, popupEnabled: _p, ...safe } = fallback
+  const { fileS3Key, isActive: _a, popupEnabled: _p, ...safe } = fallback
+  safe.previewImageUrl = await getLeadMagnetPreviewImageUrl(fileS3Key)
   return safe
 }
 

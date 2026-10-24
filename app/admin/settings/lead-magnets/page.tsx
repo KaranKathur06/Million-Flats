@@ -28,7 +28,7 @@ export default async function LeadMagnetsSettingsPage() {
             </span>
           </div>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">Lead Magnets</h1>
-          <p className="mt-1 text-sm text-white/50">Upload, preview, and publish gated PDF assets.</p>
+          <p className="mt-1 text-sm text-white/50">Upload, preview, and publish gated PDF or image assets.</p>
         </div>
         <Link href="/admin/settings" className="mt-2 inline-flex items-center gap-1 text-[13px] font-semibold text-white/50 hover:text-white/80 transition-colors">
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,4 +42,3 @@ export default async function LeadMagnetsSettingsPage() {
     </div>
   )
 }
-

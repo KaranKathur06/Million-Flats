@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import Image from 'next/image'
 import { FAQ_POPUP_LAST_CLOSED_KEY, FAQ_POPUP_LAST_SEEN_KEY } from '@/lib/leadMagnets/constants'
 import { savePostLoginAction, trackLeadMagnetEvent } from '@/lib/leadMagnets/client'
 
@@ -17,6 +18,7 @@ type PopupLeadMagnet = {
   cooldownHours: number
   popupDelaySeconds: number
   popupScrollPercent: number
+  previewImageUrl: string | null
 }
 
 function hasCooldown(hours: number) {
@@ -219,6 +221,18 @@ export default function DownloadGatePopup() {
 
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-dark-blue/10 via-transparent to-transparent" />
             <div className="relative pr-12">
+              {magnet.previewImageUrl ? (
+                <div className="relative mb-5 h-40 overflow-hidden rounded-xl bg-slate-100 sm:h-48">
+                  <Image
+                    src={magnet.previewImageUrl}
+                    alt=""
+                    fill
+                    sizes="(max-width: 640px) 90vw, 448px"
+                    unoptimized
+                    className="object-cover"
+                  />
+                </div>
+              ) : null}
               <p className="text-xs font-semibold uppercase tracking-wide text-primary-700">{magnet.badgeText || 'Exclusive Guide'}</p>
               <h3 className="mt-2 text-2xl font-bold tracking-tight text-dark-blue">{magnet.title}</h3>
               <p className="mt-2 text-sm leading-6 text-gray-600">

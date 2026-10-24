@@ -48,6 +48,23 @@ signature against the declared MIME type and rejects mismatched known
 extensions; supported files without an extension receive the detected
 canonical extension before storage.
 
+## Public popup image preview
+
+When the active popup lead magnet's stored asset has a supported image
+extension, the public configuration endpoint returns a short-lived signed
+preview URL generated server-side for the existing private S3 object. The
+response must not expose the raw S3 key. The popup renders the image above its
+badge, title, and description. The existing CTA remains login-gated and
+continues to download the original lead-magnet asset through its current route.
+PDF assets do not receive an image preview URL and continue to use the
+text-only popup.
+
+Before signing, verify the private object exists. If it is missing or signing
+fails, log the failure and return the popup configuration without an image
+preview; a preview failure must not hide the popup or change download
+authorization. The preview URL lifetime must exceed the public endpoint's
+maximum configured cache lifetime.
+
 ## Validation and failure behavior
 
 - Reject unsupported MIME types, mismatched file signatures, and files over
@@ -68,5 +85,7 @@ unsupported MIME/signature mismatches and files above 10 MB. Exercise the
 admin create and replacement upload paths, including failure without losing
 the existing file. Verify that deleting the asset still resets lifecycle state
 and that existing signed-download, login-gate, and legacy fallback behavior
-remains unchanged. Run focused tests and the repository's relevant TypeScript
+remains unchanged. Verify that active image assets receive a signed popup
+preview URL without exposing the private key, PDFs do not receive one, and
+missing images or signing failures preserve the text popup. Run focused tests and the repository's relevant TypeScript
 or build validation.

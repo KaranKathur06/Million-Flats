@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@jest/globals'
 import { buildLegacyRecoveryCandidates } from '@/lib/leadMagnets/recovery'
+import { getLeadMagnetMimeTypeFromFileName } from '@/lib/leadMagnets/fileTypes'
 
 describe('lead magnet legacy download recovery', () => {
   it('keeps legacy PDF recovery candidates unchanged', () => {
@@ -37,5 +38,13 @@ describe('lead magnet legacy download recovery', () => {
       'private/lead-magnets/investor-guide/cover',
       'private/lead-magnets/faq/investor-guide/cover',
     ])
+  })
+
+  it('recognizes only supported image filename extensions for popup previews', () => {
+    expect(getLeadMagnetMimeTypeFromFileName('cover.PNG')).toBe('image/png')
+    expect(getLeadMagnetMimeTypeFromFileName('cover.jpeg')).toBe('image/jpeg')
+    expect(getLeadMagnetMimeTypeFromFileName('cover.webp')).toBe('image/webp')
+    expect(getLeadMagnetMimeTypeFromFileName('guide.pdf')).toBe('application/pdf')
+    expect(getLeadMagnetMimeTypeFromFileName('cover.svg')).toBeUndefined()
   })
 })
