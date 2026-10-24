@@ -94,10 +94,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const nextStatus = determineLeadMagnetStatus({ fileS3Key: finalFileKey, isActive: nextIsActive, popupEnabled: nextPopupEnabled })
 
     if (nextIsActive && !finalFileKey) {
-      return NextResponse.json({ success: false, message: 'Cannot activate a lead magnet without an uploaded PDF' }, { status: 400 })
+      return NextResponse.json({ success: false, message: 'Cannot activate a lead magnet without an uploaded file' }, { status: 400 })
     }
     if (nextPopupEnabled && !finalFileKey) {
-      return NextResponse.json({ success: false, message: 'Cannot publish a lead magnet without an uploaded PDF' }, { status: 400 })
+      return NextResponse.json({ success: false, message: 'Cannot publish a lead magnet without an uploaded file' }, { status: 400 })
     }
 
     const updated = await (prisma as any).leadMagnet.update({

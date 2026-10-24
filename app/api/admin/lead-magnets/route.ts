@@ -6,6 +6,8 @@ import { hasMinRole, normalizeRole } from '@/lib/rbac'
 import { prisma } from '@/lib/prisma'
 import { uploadFile, UploadServiceError } from '@/services/uploadService'
 import { deleteFromS3 } from '@/lib/s3'
+import { validateLeadMagnetFile } from '@/lib/leadMagnets/fileValidation'
+import { LEAD_MAGNET_ALLOWED_MIME_TYPES, LEAD_MAGNET_MAX_FILE_SIZE_BYTES } from '@/lib/leadMagnets/fileTypes'
 
 export const dynamic = 'force-dynamic'
 
@@ -158,14 +160,15 @@ export async function POST(req: Request) {
       }
 
       if (file instanceof File) {
+        const validatedFile = await validateLeadMagnetFile(file)
         const uploaded = await uploadFile({
-          file,
+          file: validatedFile,
           visibility: 'private',
           module: 'lead-magnets',
           subModule: 'faq',
           entityId: slug || undefined,
-          allowedMimeTypes: ['application/pdf'],
-          maxSizeBytes: 10 * 1024 * 1024,
+          allowedMimeTypes: [...LEAD_MAGNET_ALLOWED_MIME_TYPES],
+          maxSizeBytes: LEAD_MAGNET_MAX_FILE_SIZE_BYTES,
         })
         fileS3Key = uploaded.key
         uploadedFileKey = uploaded.key
@@ -195,10 +198,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: 'fileS3Key must be a private S3 key' }, { status: 400 })
     }
     if (isActive && !fileS3Key) {
-      return NextResponse.json({ success: false, message: 'Cannot activate a lead magnet without an uploaded PDF' }, { status: 400 })
+      return NextResponse.json({ success: false, message: 'Cannot activate a lead magnet without an uploaded file' }, { status: 400 })
     }
     if (popupEnabled && !fileS3Key) {
-      return NextResponse.json({ success: false, message: 'Cannot publish a lead magnet without an uploaded PDF' }, { status: 400 })
+      return NextResponse.json({ success: false, message: 'Cannot publish a lead magnet without an uploaded file' }, { status: 400 })
     }
 
     if (!isMultipart) {

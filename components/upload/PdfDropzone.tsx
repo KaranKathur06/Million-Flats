@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useRef, useState } from 'react'
+import Image from 'next/image'
 import toast from 'react-hot-toast'
 
 export type FileMeta = {
@@ -8,6 +9,7 @@ export type FileMeta = {
   name: string
   size: number
   url?: string | null
+  type?: string
 }
 
 type PdfDropzoneProps = {
@@ -15,13 +17,33 @@ type PdfDropzoneProps = {
   onUpload: (file: File) => Promise<void>
   onDelete: () => Promise<void>
   loading?: boolean
+  acceptedMimeTypes?: readonly string[]
+  maxSizeBytes?: number
+  allowMissingMimeType?: boolean
 }
 
-export default function PdfDropzone({ value, onUpload, onDelete, loading = false }: PdfDropzoneProps) {
+const MIME_TYPE_LABELS: Record<string, string> = {
+  'application/pdf': 'PDF',
+  'image/png': 'PNG',
+  'image/jpeg': 'JPG/JPEG',
+  'image/webp': 'WebP',
+}
+
+export default function PdfDropzone({
+  value,
+  onUpload,
+  onDelete,
+  loading = false,
+  acceptedMimeTypes = ['application/pdf'],
+  maxSizeBytes,
+  allowMissingMimeType = false,
+}: PdfDropzoneProps) {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [error, setError] = useState('')
   const [retryFile, setRetryFile] = useState<File | null>(null)
+
+  const supportedTypesLabel = acceptedMimeTypes.map((type) => MIME_TYPE_LABELS[type] || type).join(', ')
 
   const sizeLabel = useMemo(() => {
     if (!value?.size) return ''
@@ -29,15 +51,19 @@ export default function PdfDropzone({ value, onUpload, onDelete, loading = false
     return `${mb} MB`
   }, [value?.size])
 
-  const validatePdf = (file: File) => {
-    if (file.type !== 'application/pdf') {
-      return 'Only PDF files are allowed'
+  const validateFile = (file: File) => {
+    const fileType = file.type.trim().toLowerCase()
+    if ((fileType || !allowMissingMimeType) && !acceptedMimeTypes.includes(fileType)) {
+      return `Only ${supportedTypesLabel} files are allowed`
+    }
+    if (maxSizeBytes !== undefined && file.size > maxSizeBytes) {
+      return `File too large (max ${Math.floor(maxSizeBytes / (1024 * 1024))}MB)`
     }
     return ''
   }
 
   const uploadValidated = async (file: File) => {
-    const validationError = validatePdf(file)
+    const validationError = validateFile(file)
     if (validationError) {
       setError(validationError)
       toast.error(validationError)
@@ -59,7 +85,7 @@ export default function PdfDropzone({ value, onUpload, onDelete, loading = false
       <input
         ref={inputRef}
         type="file"
-        accept="application/pdf"
+        accept={acceptedMimeTypes.join(',')}
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0]
@@ -111,9 +137,12 @@ export default function PdfDropzone({ value, onUpload, onDelete, loading = false
             {/* Main Text */}
             <div>
               <p className={`font-semibold transition-colors ${error ? 'text-red-400' : dragOver ? 'text-amber-300' : 'text-white/80'}`}>
-                {dragOver ? 'Drop PDF to upload' : 'Upload Brochure (PDF)'}
+                {dragOver ? `Drop ${supportedTypesLabel} to upload` : `Upload ${acceptedMimeTypes.length === 1 ? 'Brochure' : 'File'} (${supportedTypesLabel})`}
               </p>
-              <p className="text-xs text-white/40 mt-1">PDF only</p>
+              <p className="text-xs text-white/40 mt-1">
+                {maxSizeBytes ? `Up to ${Math.floor(maxSizeBytes / (1024 * 1024))} MB · ` : ''}
+                {supportedTypesLabel}
+              </p>
             </div>
 
             {/* Action Button */}
@@ -130,7 +159,7 @@ export default function PdfDropzone({ value, onUpload, onDelete, loading = false
               } disabled:opacity-50`}
               disabled={loading}
             >
-              {loading ? 'Uploading…' : 'Select PDF'}
+              {loading ? 'Uploading…' : `Select ${acceptedMimeTypes.length === 1 ? 'PDF' : 'File'}`}
             </button>
 
             {/* Status Messages */}
@@ -171,20 +200,31 @@ export default function PdfDropzone({ value, onUpload, onDelete, loading = false
           <div className="flex items-center justify-between gap-4">
             {/* File Info */}
             <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-amber-400/15 to-amber-500/5 border border-amber-400/20 flex items-center justify-center flex-shrink-0 transition-all group-hover:from-amber-400/20 group-hover:to-amber-500/10">
-                <svg className="w-6 h-6 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-8-6z"/>
-                </svg>
-              </div>
+              {value.type?.startsWith('image/') && value.url ? (
+                <Image
+                  src={value.url}
+                  alt={`Preview of ${value.name}`}
+                  width={48}
+                  height={48}
+                  unoptimized
+                  className="h-12 w-12 flex-shrink-0 rounded-lg border border-white/10 object-cover"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-amber-400/15 to-amber-500/5 border border-amber-400/20 flex items-center justify-center flex-shrink-0 transition-all group-hover:from-amber-400/20 group-hover:to-amber-500/10">
+                  <svg className="w-6 h-6 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-8-6z"/>
+                  </svg>
+                </div>
+              )}
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-semibold text-white/90 truncate">{value.name}</p>
                   <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300 flex-shrink-0 border border-emerald-400/30">
-                    ✓ UPLOADED
+                    ✓ FILE READY
                   </span>
                 </div>
-                <p className="text-xs text-white/50 mt-0.5">{sizeLabel || 'PDF file'}</p>
+                <p className="text-xs text-white/50 mt-0.5">{sizeLabel || `${MIME_TYPE_LABELS[value.type || 'application/pdf'] || 'File'} file`}</p>
               </div>
             </div>
 
@@ -196,7 +236,7 @@ export default function PdfDropzone({ value, onUpload, onDelete, loading = false
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.12] bg-white/[0.05] px-3 py-2 text-xs font-medium text-white/70 transition-all hover:bg-white/[0.10] hover:border-white/[0.2]"
-                  title="Open PDF in new window"
+                  title={`Preview ${value.type?.startsWith('image/') ? 'image' : 'PDF'} in new window`}
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -210,7 +250,7 @@ export default function PdfDropzone({ value, onUpload, onDelete, loading = false
                 onClick={() => inputRef.current?.click()}
                 disabled={loading}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs font-medium text-amber-300 transition-all hover:border-amber-400/50 hover:bg-amber-400/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Replace with new PDF"
+                title={`Replace with ${acceptedMimeTypes.length === 1 ? 'a PDF' : 'another file'}`}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -223,7 +263,7 @@ export default function PdfDropzone({ value, onUpload, onDelete, loading = false
                 onClick={() => void onDelete()}
                 disabled={loading}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300 transition-all hover:border-red-500/50 hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Delete PDF"
+                title="Delete file"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -237,4 +277,3 @@ export default function PdfDropzone({ value, onUpload, onDelete, loading = false
     </div>
   )
 }
-

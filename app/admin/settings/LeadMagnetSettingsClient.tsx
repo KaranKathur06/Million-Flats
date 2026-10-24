@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import PdfDropzone, { type FileMeta } from '@/components/upload/PdfDropzone'
+import {
+  getLeadMagnetMimeTypeFromFileName,
+  LEAD_MAGNET_ALLOWED_MIME_TYPES,
+  LEAD_MAGNET_MAX_FILE_SIZE_BYTES,
+} from '@/lib/leadMagnets/fileTypes'
 
 type LeadMagnetStatus = 'draft' | 'uploaded' | 'published' | 'active'
 
@@ -88,7 +93,7 @@ export default function LeadMagnetSettingsClient() {
   const [toast, setToast] = useState<ToastState>(null)
   const [activeFilter, setActiveFilter] = useState<LeadMagnetFilter>('all')
   const [form, setForm] = useState<EditorState>(INITIAL_FORM)
-  const [pdfFile, setPdfFile] = useState<File | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   async function loadData(nextSelectedId?: string | null) {
     setLoading(true)
@@ -135,22 +140,25 @@ export default function LeadMagnetSettingsClient() {
   const filteredItems = useMemo(() => (activeFilter === 'all' ? items : items.filter((item) => item.status === activeFilter)), [activeFilter, items])
   const editingItem = useMemo(() => items.find((item) => item.id === form.id) || null, [items, form.id])
   const fileMeta = useMemo<FileMeta | null>(() => {
-    if (pdfFile) {
+    if (selectedFile) {
       return {
-        name: pdfFile.name,
-        size: pdfFile.size,
-        url: URL.createObjectURL(pdfFile),
+        name: selectedFile.name,
+        size: selectedFile.size,
+        url: URL.createObjectURL(selectedFile),
+        type: selectedFile.type || getLeadMagnetMimeTypeFromFileName(selectedFile.name),
       }
     }
     if (editingItem?.fileS3Key) {
+      const name = editingItem.fileS3Key.split('/').pop() || 'lead-magnet.pdf'
       return {
-        name: editingItem.fileS3Key.split('/').pop() || 'lead-magnet.pdf',
+        name,
         size: 0,
         url: null,
+        type: getLeadMagnetMimeTypeFromFileName(name),
       }
     }
     return null
-  }, [editingItem?.fileS3Key, pdfFile])
+  }, [editingItem?.fileS3Key, selectedFile])
 
   useEffect(() => {
     return () => {
@@ -181,7 +189,7 @@ export default function LeadMagnetSettingsClient() {
 
   function resetEditor() {
     setForm(INITIAL_FORM)
-    setPdfFile(null)
+    setSelectedFile(null)
   }
 
   async function saveDraft() {
@@ -237,7 +245,7 @@ export default function LeadMagnetSettingsClient() {
 
   async function removeStoredFile() {
     if (!form.id) {
-      setPdfFile(null)
+      setSelectedFile(null)
       return
     }
 
@@ -251,8 +259,8 @@ export default function LeadMagnetSettingsClient() {
         throw new Error(json?.message || 'Failed to remove file')
       }
 
-      setPdfFile(null)
-      setToast({ type: 'success', message: 'Stored PDF removed. Lead magnet is back in draft state.' })
+      setSelectedFile(null)
+      setToast({ type: 'success', message: 'Stored file removed. Lead magnet is back in draft state.' })
       await loadData(form.id)
     } catch (error) {
       setToast({ type: 'error', message: error instanceof Error ? error.message : 'Failed to remove file' })
@@ -263,18 +271,18 @@ export default function LeadMagnetSettingsClient() {
 
   async function uploadSelectedFile() {
     if (!form.id) {
-      setToast({ type: 'error', message: 'Create the draft before uploading a PDF.' })
+      setToast({ type: 'error', message: 'Create the draft before uploading a file.' })
       return
     }
-    if (!pdfFile) {
-      setToast({ type: 'error', message: 'Select a PDF first.' })
+    if (!selectedFile) {
+      setToast({ type: 'error', message: 'Select a PDF or image first.' })
       return
     }
 
     setUploading(true)
     try {
       const fd = new FormData()
-      fd.set('file', pdfFile)
+      fd.set('file', selectedFile)
       const res = await fetch(`/api/admin/lead-magnets/${form.id}/upload`, {
         method: 'POST',
         body: fd,
@@ -284,8 +292,8 @@ export default function LeadMagnetSettingsClient() {
         throw new Error(json?.message || 'Failed to upload file')
       }
 
-      setPdfFile(null)
-      setToast({ type: 'success', message: 'PDF uploaded successfully.' })
+      setSelectedFile(null)
+      setToast({ type: 'success', message: 'File uploaded successfully.' })
       await loadData(form.id)
     } catch (error) {
       setToast({ type: 'error', message: error instanceof Error ? error.message : 'Failed to upload file' })
@@ -389,7 +397,7 @@ export default function LeadMagnetSettingsClient() {
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-white/45">Upload Section</p>
-                <p className="mt-1 text-xs text-white/45">Create draft first. Then upload or replace the PDF without recreating the entity.</p>
+                <p className="mt-1 text-xs text-white/45">Create draft first. Then upload or replace its PDF or image without recreating the entity.</p>
               </div>
               {editingItem ? (
                 <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${STATUS_CLASS[editingItem.status]}`}>
@@ -401,12 +409,15 @@ export default function LeadMagnetSettingsClient() {
             <PdfDropzone
               value={fileMeta}
               loading={saving || uploading || removingFile}
+              acceptedMimeTypes={LEAD_MAGNET_ALLOWED_MIME_TYPES}
+              maxSizeBytes={LEAD_MAGNET_MAX_FILE_SIZE_BYTES}
+              allowMissingMimeType
               onUpload={async (file) => {
-                setPdfFile(file)
+                setSelectedFile(file)
               }}
               onDelete={async () => {
-                if (pdfFile) {
-                  setPdfFile(null)
+                if (selectedFile) {
+                  setSelectedFile(null)
                   return
                 }
 
@@ -423,11 +434,11 @@ export default function LeadMagnetSettingsClient() {
             <button type="button" disabled={saving} onClick={saveDraft} className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#111827] disabled:opacity-50">
               {saving ? 'Saving...' : form.id ? 'Update Draft' : 'Save Draft'}
             </button>
-            <button type="button" disabled={!form.id || !pdfFile || uploading || removingFile} onClick={uploadSelectedFile} className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-[#111827] disabled:opacity-50">
+            <button type="button" disabled={!form.id || !selectedFile || uploading || removingFile} onClick={uploadSelectedFile} className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-[#111827] disabled:opacity-50">
               {uploading ? 'Uploading...' : editingItem?.hasFile ? 'Replace File' : 'Upload File'}
             </button>
-            <button type="button" disabled={!form.id || (!editingItem?.hasFile && !pdfFile) || removingFile || uploading} onClick={() => { if (pdfFile) { setPdfFile(null); return } void removeStoredFile() }} className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 disabled:opacity-50">
-              {removingFile ? 'Removing File...' : pdfFile ? 'Clear Selected File' : 'Remove File'}
+            <button type="button" disabled={!form.id || (!editingItem?.hasFile && !selectedFile) || removingFile || uploading} onClick={() => { if (selectedFile) { setSelectedFile(null); return } void removeStoredFile() }} className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 disabled:opacity-50">
+              {removingFile ? 'Removing File...' : selectedFile ? 'Clear Selected File' : 'Remove File'}
             </button>
             <button type="button" disabled={!form.id} onClick={() => void setLifecycle({ popupEnabled: true, isActive: false }, 'Lead magnet published.')} className="rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-200 disabled:opacity-50">
               Publish
@@ -480,7 +491,7 @@ export default function LeadMagnetSettingsClient() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <button type="button" onClick={() => { setForm(mapItemToForm(item)); setPdfFile(null) }} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-white/75 hover:bg-white/5">Edit</button>
+                        <button type="button" onClick={() => { setForm(mapItemToForm(item)); setSelectedFile(null) }} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-white/75 hover:bg-white/5">Edit</button>
                         <button type="button" disabled={deletingId === item.id} onClick={() => void deleteLeadMagnet(item.id)} className="rounded-lg border border-red-400/25 px-3 py-1.5 text-xs font-semibold text-red-200 hover:bg-red-500/10 disabled:opacity-50">Delete</button>
                       </div>
                     </div>

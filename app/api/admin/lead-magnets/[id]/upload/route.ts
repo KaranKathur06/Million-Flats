@@ -5,6 +5,8 @@ import { hasMinRole, normalizeRole } from '@/lib/rbac'
 import { prisma } from '@/lib/prisma'
 import { deleteFromS3 } from '@/lib/s3'
 import { uploadFile, UploadServiceError } from '@/services/uploadService'
+import { validateLeadMagnetFile } from '@/lib/leadMagnets/fileValidation'
+import { LEAD_MAGNET_ALLOWED_MIME_TYPES, LEAD_MAGNET_MAX_FILE_SIZE_BYTES } from '@/lib/leadMagnets/fileTypes'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -34,6 +36,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return NextResponse.json({ success: false, message: 'Invalid id' }, { status: 400 })
   }
 
+  let uploadedFileKey: string | null = null
+
   try {
     const existing = await (prisma as any).leadMagnet.findUnique({
       where: { id },
@@ -47,18 +51,20 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const formData = await req.formData()
     const file = formData.get('file')
     if (!(file instanceof File)) {
-      return NextResponse.json({ success: false, message: 'PDF file is required' }, { status: 400 })
+      return NextResponse.json({ success: false, message: 'PDF, PNG, JPG/JPEG, or WebP file is required' }, { status: 400 })
     }
 
+    const validatedFile = await validateLeadMagnetFile(file)
     const uploaded = await uploadFile({
-      file,
+      file: validatedFile,
       visibility: 'private',
       module: 'lead-magnets',
       subModule: 'faq',
       entityId: String(existing.slug),
-      allowedMimeTypes: ['application/pdf'],
-      maxSizeBytes: 10 * 1024 * 1024,
+      allowedMimeTypes: [...LEAD_MAGNET_ALLOWED_MIME_TYPES],
+      maxSizeBytes: LEAD_MAGNET_MAX_FILE_SIZE_BYTES,
     })
+    uploadedFileKey = uploaded.key
 
     const status = determineLeadMagnetStatus({
       fileS3Key: uploaded.key,
@@ -87,6 +93,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       file_s3_key: uploaded.key,
     })
   } catch (error) {
+    if (uploadedFileKey) {
+      await deleteFromS3(uploadedFileKey).catch((cleanupError) => {
+        console.error('[POST /api/admin/lead-magnets/[id]/upload] new file cleanup failed:', cleanupError)
+      })
+    }
     if (error instanceof UploadServiceError) {
       return NextResponse.json({ success: false, message: error.message }, { status: error.status })
     }

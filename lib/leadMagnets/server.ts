@@ -3,6 +3,7 @@ import { s3ObjectExists } from '@/lib/s3'
 import { generateSignedUrl, ASSET_TTL } from '@/lib/cloudfront'
 import { trackAssetAccess } from '@/lib/assetTracking'
 import { DEFAULT_FAQ_LEAD_MAGNET_SLUG } from './constants'
+import { buildLegacyRecoveryCandidates } from './recovery'
 
 export type PublicLeadMagnet = {
   id: string
@@ -21,15 +22,6 @@ function toInt(value: unknown, fallback: number, min: number, max: number) {
   const num = Number.parseInt(String(value ?? ''), 10)
   if (!Number.isFinite(num)) return fallback
   return Math.max(min, Math.min(max, num))
-}
-
-function sanitizeSlugSegment(input: string) {
-  return String(input || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/(^-|-$)/g, '')
 }
 
 export function getFaqLeadMagnetSlug() {
@@ -108,23 +100,6 @@ type ResolveLeadMagnet = {
   slug: string
   fileS3Key: string
   title: string
-}
-
-function buildLegacyRecoveryCandidates(params: { slug: string; key: string }) {
-  const safeSlug = sanitizeSlugSegment(params.slug)
-  if (!safeSlug) return [] as string[]
-
-  const cleanKey = String(params.key || '').trim().replace(/^\/+/, '')
-  const fileName = cleanKey.split('/').pop() || 'guide.pdf'
-
-  const candidates = [
-    `private/lead-magnets/${safeSlug}/guide.pdf`,
-    `private/lead-magnets/${safeSlug}/${fileName}`,
-    `private/lead-magnets/faq/${safeSlug}/guide.pdf`,
-    `private/lead-magnets/faq/${safeSlug}/${fileName}`,
-  ]
-
-  return Array.from(new Set(candidates.filter(Boolean)))
 }
 
 async function resolveExistingDownloadKey(params: { slug: string; fileS3Key: string }) {
