@@ -942,67 +942,6 @@
 
     </div>
 
-    <!-- Explanatory Content & Documentation Section -->
-    <div class="doc-section">
-      <h2>How the MVP Calculates the Score</h2>
-      <p>
-        MillionFlatsIndex™ combines five weighted criteria to yield a balanced, explainable composite index score. Each pillar is assigned a fixed weight reflecting historical risk and yield drivers.
-      </p>
-
-      <table class="weights-table">
-        <thead>
-          <tr>
-            <th>Category</th>
-            <th>Weight</th>
-            <th>Evidence to Use in Production</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>Location & connectivity</strong></td>
-            <td>25%</td>
-            <td>Google Maps distances, transit hubs, schools, and local amenities</td>
-          </tr>
-          <tr>
-            <td><strong>Growth potential</strong></td>
-            <td>25%</td>
-            <td>Infrastructure pipeline, upcoming supply, historical price trajectory</td>
-          </tr>
-          <tr>
-            <td><strong>Rental potential</strong></td>
-            <td>20%</td>
-            <td>Comparable rental yields, historical occupancy rates, net cash-flow yield</td>
-          </tr>
-          <tr>
-            <td><strong>Developer credibility</strong></td>
-            <td>15%</td>
-            <td>Delivery track record, escrow compliance, regulatory disclosures</td>
-          </tr>
-          <tr>
-            <td><strong>Risk & value</strong></td>
-            <td>15%</td>
-            <td>Comparable sales deeds, title encumbrance check, liquidity indicators</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="formula-box">
-        <div class="formula-title">Scoring Mathematical Formula</div>
-        <div class="formula-code">
-          Index Score = (Location × 0.25) + (Growth × 0.25) + (Rental × 0.20) + (Developer × 0.15) + (Risk × 0.15)
-        </div>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0;">
-          <strong>Default Evaluation:</strong> (85 × 0.25) + (78 × 0.25) + (74 × 0.20) + (88 × 0.15) + (72 × 0.15) = <strong>21.25 + 19.50 + 14.80 + 13.20 + 10.80 = 80.0 / 100</strong>
-        </p>
-      </div>
-
-      <div style="background: var(--bg-card); border-radius: var(--radius-sm); padding: 20px; border: 1px solid var(--border);">
-        <h4 style="color: var(--gold); font-size: 1rem; margin-bottom: 8px;">Suggested Production Architecture</h4>
-        <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0;">
-          Integrate the Google Maps Platform for radius search and transit access, Walk Score where coverage and commercial licensing permit, institutional land records and rental benchmarks (e.g., Propstack, REIDIN, DLD) for financial metrics, and fine-tuned LLMs strictly for synthesizing multi-variable qualitative reasoning—never as the primary source of factual real-estate numbers.
-        </p>
-      </div>
-    </div>
   </main>
 
   <!-- Summary Modal Popup -->

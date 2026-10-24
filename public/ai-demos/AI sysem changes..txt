@@ -1,0 +1,10 @@
+* On main Menu => AI System: keep links of all AI System, its blank currently. create that page.
+* Keep Direct Demo links on all AI system nothing else.
+
+
+1. Index Demo: Remove How the MVP calculates the score, scoring mathematical formula and suggested production architecture.
+2. Pro Demo: Remove Recommended MVP Rollout Steps and Key Trust Principle.
+3. Shield Demo: Remove Valuation Engine & Strategic Framework, Recommended MVP, Trust starts with transparency, legal & compliance.
+4. Title Demo: Official sources, how to turn this demo, important legal distinction
+5. View Demo: Honest by design, recommended MVP.
+
