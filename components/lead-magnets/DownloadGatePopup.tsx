@@ -200,11 +200,11 @@ export default function DownloadGatePopup() {
       onClick={() => void closePopup('outside_click')}
     >
       <section
-        className="relative z-[9999] w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl pointer-events-auto"
+        className="relative z-[9999] flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl pointer-events-auto sm:max-h-[calc(100dvh-3rem)]"
         onClick={(event) => event.stopPropagation()}
       >
-          <div className="relative overflow-hidden border-b border-gray-100 p-5 sm:p-6">
-            <div className="absolute right-2 top-2 z-[10001] p-2">
+          <div className="relative shrink-0 overflow-y-auto border-b border-gray-100 p-4 sm:p-5">
+            <div className="absolute right-2 top-2 z-[10001]">
               <button
                 type="button"
                 onClick={(event) => {
@@ -212,7 +212,7 @@ export default function DownloadGatePopup() {
                   void closePopup('close_button')
                 }}
                 onPointerDown={(event) => event.stopPropagation()}
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-transparent text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 active:scale-95 cursor-pointer touch-manipulation"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-gray-600 shadow-sm ring-1 ring-gray-200 transition hover:bg-gray-100 hover:text-gray-900 active:scale-95 cursor-pointer touch-manipulation"
                 aria-label="Close"
               >
                 <span className="pointer-events-none text-2xl leading-none">&times;</span>
@@ -220,28 +220,29 @@ export default function DownloadGatePopup() {
             </div>
 
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-dark-blue/10 via-transparent to-transparent" />
-            <div className="relative pr-12">
+            <div className="relative">
               {magnet.previewImageUrl ? (
-                <div className="relative mb-5 h-40 overflow-hidden rounded-xl bg-slate-100 sm:h-48">
+                <div className="relative -mx-4 -mt-4 mb-3 overflow-hidden bg-slate-50 sm:-mx-5 sm:-mt-5 sm:mb-4">
                   <Image
                     src={magnet.previewImageUrl}
                     alt=""
-                    fill
-                    sizes="(max-width: 640px) 90vw, 448px"
+                    width={1600}
+                    height={900}
+                    sizes="(max-width: 640px) 100vw, 512px"
                     unoptimized
-                    className="object-cover"
+                    className="h-auto max-h-[min(42dvh,22rem)] w-full object-contain"
                   />
                 </div>
               ) : null}
               <p className="text-xs font-semibold uppercase tracking-wide text-primary-700">{magnet.badgeText || 'Exclusive Guide'}</p>
-              <h3 className="mt-2 text-2xl font-bold tracking-tight text-dark-blue">{magnet.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-gray-600">
+              <h3 className="mt-1.5 text-2xl font-bold tracking-tight text-dark-blue">{magnet.title}</h3>
+              <p className="mt-1.5 text-sm leading-6 text-gray-600">
                 {magnet.subtitle || 'Avoid costly mistakes in Dubai real estate. Get insider insights used by top investors.'}
               </p>
             </div>
           </div>
 
-          <div className="p-5 sm:p-6 sm:pt-5">
+          <div className="shrink-0 overflow-y-auto p-4 sm:p-5 sm:pt-4">
             <button
               type="button"
               disabled={loading}
@@ -261,7 +262,7 @@ export default function DownloadGatePopup() {
             <button
               type="button"
               onClick={() => void closePopup('maybe_later')}
-              className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl border border-gray-200 px-5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 hover:text-gray-800 active:scale-[0.98] cursor-pointer touch-manipulation"
+              className="mt-2.5 inline-flex h-11 w-full items-center justify-center rounded-xl border border-gray-200 px-5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 hover:text-gray-800 active:scale-[0.98] cursor-pointer touch-manipulation"
             >
               Maybe Later
             </button>
