@@ -11,6 +11,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useAdminAction } from '@/components/admin/AdminActionProvider'
+import AiLoginPolicyCard from './AiLoginPolicyCard'
 
 interface AuthSettingsData {
   activeMode: string
@@ -265,6 +266,8 @@ export default function AuthSettingsClient({ initialSettings, recentAuditLogs }:
           )}
         </div>
       </div>
+
+      <AiLoginPolicyCard />
 
       {/* ─── Feature Toggles ──────────────────────────────────────────── */}
       <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">

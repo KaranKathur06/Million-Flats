@@ -176,6 +176,14 @@ the last known persisted state with a clear error if the update fails. On HTTP
 409, it reloads the current policy and version, explains that another admin
 changed the setting, and requires a fresh confirmation before retrying. On
 success, it adopts the returned policy, version, and audit metadata.
+In the Authentication Settings page, the policy card appears immediately after
+Authentication Mode and before the Danger Zone.
+
+The PATCH same-origin check compares the browser Origin to the externally
+visible host and protocol when the application is behind a reverse proxy,
+falling back to the Host header and request URL protocol when forwarded
+headers are absent. It continues to reject missing, malformed, and genuinely
+cross-origin requests.
 
 ### Security boundaries
 
@@ -221,6 +229,9 @@ Add focused tests for:
   access retains existing behavior.
 - `SUPERADMIN` can update; all other roles and unauthenticated callers cannot.
 - Invalid and extra request properties are rejected.
+- A same-origin update succeeds when the reverse proxy's public origin differs
+  from the internal application URL, while a genuinely cross-origin update is
+  rejected.
 - Concurrent stale updates conflict rather than silently overwrite, including
   competing first-time creates when the singleton row is absent.
 - Existing `AuthSettings` rows receive the secure migration defaults, and an

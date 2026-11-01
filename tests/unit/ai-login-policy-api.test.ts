@@ -116,6 +116,36 @@ describe('AI login policy update API', () => {
     expect(mockTransaction).not.toHaveBeenCalled()
   })
 
+  it('accepts same-origin updates behind a reverse proxy', async () => {
+    mockFindUnique
+      .mockResolvedValueOnce({
+        aiInformationLoginRequired: true,
+        aiInformationPolicyVersion: 1,
+      })
+      .mockResolvedValueOnce({
+        aiInformationLoginRequired: false,
+        aiInformationPolicyVersion: 2,
+      })
+    const request = new Request(
+      'http://internal-service:3000/api/admin/settings/ai-login-policy',
+      {
+        method: 'PATCH',
+        headers: {
+          origin: 'https://admin.example.com',
+          host: 'internal-service:3000',
+          'x-forwarded-host': 'admin.example.com',
+          'x-forwarded-proto': 'https',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ loginRequired: false, expectedVersion: 1 }),
+      },
+    )
+
+    const response = await PATCH(request)
+
+    expect(response.status).toBe(200)
+  })
+
   it('rejects malformed, non-boolean, or unexpected request fields', async () => {
     const malformed = await PATCH(makeRequest('{'))
     const nonBoolean = await PATCH(makeRequest(JSON.stringify({
