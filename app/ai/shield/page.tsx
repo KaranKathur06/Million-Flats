@@ -2,8 +2,12 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import AIShieldDashboard from '@/components/aishield/AIShieldDashboard'
 import { buildSocialMetadata } from '@/lib/socialMetadata'
+import {
+  requireAiInformationPageAccess,
+  type AiInformationSearchParams,
+} from '@/lib/auth/ai-login-policy'
 
-export const revalidate = 900
+export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: 'AIShield™ AI Property Valuation Dubai & UAE | MillionFlats',
@@ -74,7 +78,13 @@ const analysisJsonLd = {
   },
 }
 
-export default function AIShieldPage() {
+export default async function AIShieldPage({
+  searchParams,
+}: {
+  searchParams?: AiInformationSearchParams
+}) {
+  await requireAiInformationPageAccess('/ai/shield', searchParams)
+
   return (
     <>
       <script

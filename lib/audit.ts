@@ -13,6 +13,7 @@ export type AuditEntityType =
   | 'TEAM_MEMBER'
   | 'TEAM_ACCESS'
   | 'LEAD'
+  | 'SYSTEM_SETTING'
 
 export type AuditAction =
   | 'DRAFT_DELETED'
@@ -86,6 +87,7 @@ export type AuditAction =
   | 'LEAD_ARCHIVED'
   | 'LEAD_RESTORED'
   | 'LEAD_PERMANENTLY_DELETED'
+  | 'AI_LOGIN_POLICY_UPDATED'
 
 
 export async function writeAuditLog(input: {

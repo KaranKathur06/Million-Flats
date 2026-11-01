@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import AuthSettingsClient from './AuthSettingsClient'
+import AiLoginPolicyCard from './AiLoginPolicyCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,9 +34,14 @@ export default async function AuthenticationSettingsPage() {
   }
 
   return (
-    <AuthSettingsClient
-      initialSettings={settings ? JSON.parse(JSON.stringify(settings)) : null}
-      recentAuditLogs={recentAuditLogs.map((l: any) => JSON.parse(JSON.stringify(l)))}
-    />
+    <>
+      <AuthSettingsClient
+        initialSettings={settings ? JSON.parse(JSON.stringify(settings)) : null}
+        recentAuditLogs={recentAuditLogs.map((l: any) => JSON.parse(JSON.stringify(l)))}
+      />
+      <div className="pb-8">
+        <AiLoginPolicyCard />
+      </div>
+    </>
   )
 }

@@ -1,3 +1,7 @@
+import { requireAiInformationPageAccess } from '@/lib/auth/ai-login-policy'
+
+export const dynamic = 'force-dynamic'
+
 const demoLinks = [
   { name: 'AI Index', href: '/ai/index/demo' },
   { name: 'AI Pro', href: '/ai/pro/demo' },
@@ -6,7 +10,9 @@ const demoLinks = [
   { name: 'AI View', href: '/ai/view/demo' },
 ]
 
-export default function AISystemPage() {
+export default async function AISystemPage() {
+  await requireAiInformationPageAccess('/ai-system')
+
   return (
     <div className="min-h-screen bg-slate-100 py-12">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">

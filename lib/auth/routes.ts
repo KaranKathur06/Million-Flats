@@ -1,4 +1,3 @@
-import { AI_PUBLIC_PAGE_PREFIXES } from '@/lib/ai-public-routes'
 
 const DEFAULT_PUBLIC_PREFIXES = [
   '/auth/login',
@@ -71,8 +70,6 @@ const PUBLIC_ROUTE_PREFIXES = [
   '/developers',
   '/agencies',
   '/team',
-  // AI System™ public informational pages — canonical paths from shared allowlist
-  ...AI_PUBLIC_PAGE_PREFIXES,
 ]
 
 function normalizePath(pathname: string) {

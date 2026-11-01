@@ -1,4 +1,7 @@
 import type { Metadata } from 'next'
+import { requireAiInformationPageAccess } from '@/lib/auth/ai-login-policy'
+
+export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: 'How AIShield Works | MillionFlats',
@@ -30,7 +33,9 @@ const FEATURES = [
   },
 ]
 
-export default function AIShieldAboutPage() {
+export default async function AIShieldAboutPage() {
+  await requireAiInformationPageAccess('/ai/shield/about')
+
   return (
     <div className="min-h-screen bg-[#fafaf8] py-16">
       <div className="container mx-auto max-w-3xl px-4 sm:px-6">

@@ -23,14 +23,14 @@ describe('auth architecture helpers', () => {
     expect(isProtectedRoutePath('/about')).toBe(false)
   })
 
-  it('leaves AI pages and API handlers to their own access controls', () => {
+  it('leaves AI pages to their runtime policy guard and API handlers to their own controls', () => {
     expect(isProtectedRoutePath('/api/ai/investment')).toBe(false)
     expect(isProtectedRoutePath('/api/ai/vision')).toBe(false)
     expect(isProtectedRoutePath('/AI/pro')).toBe(false)
     expect(isProtectedRoutePath('/ai/index')).toBe(false)
     expect(isProtectedRoutePath('/ai/shield/about')).toBe(false)
-    expect(isPublicRoutePath('/ai/index')).toBe(true)
-    expect(isPublicRoutePath('/ai/shield/about')).toBe(true)
+    expect(isPublicRoutePath('/ai/index')).toBe(false)
+    expect(isPublicRoutePath('/ai/shield/about')).toBe(false)
   })
 
   it('builds absolute URLs from the centralized environment helper', () => {

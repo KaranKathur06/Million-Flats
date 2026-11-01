@@ -639,6 +639,8 @@ model AuthSettings {
   allowMultipleSessions Boolean  @default(true)  @map("allow_multiple_sessions")
   requireMfa            Boolean  @default(false) @map("require_mfa")
   maintenanceMessage    String?  @db.Text @map("maintenance_message")
+  aiInformationLoginRequired Boolean @default(true) @map("ai_information_login_required")
+  aiInformationPolicyVersion Int @default(0) @map("ai_information_policy_version")
   updatedAt             DateTime @updatedAt @map("updated_at")
   updatedByUserId       String?  @map("updated_by_user_id")
 
@@ -1232,6 +1234,7 @@ enum AuditEntityType {
   TEAM_MEMBER
   TEAM_ACCESS
   LEAD
+  SYSTEM_SETTING
 }
 
 enum AuditAction {
@@ -1320,6 +1323,7 @@ enum AuditAction {
   LEAD_ARCHIVED
   LEAD_RESTORED
   LEAD_PERMANENTLY_DELETED
+  AI_LOGIN_POLICY_UPDATED
 }
 
 enum StorageCleanupStatus {
