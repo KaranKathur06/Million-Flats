@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import type { PartnerGalleryItem, PartnerPortfolioItem } from './types'
 
 type PartnerPortfolioProps = {
@@ -67,10 +68,13 @@ export default function PartnerPortfolio({
                     onClick={() => setLightbox({ images, index: 0 })}
                     className="relative block aspect-[16/10] w-full overflow-hidden bg-slate-100"
                   >
-                    <img
+                    <Image
                       src={project.coverImage}
                       alt={project.projectName}
-                      className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.02]"
+                      fill
+                      sizes="(max-width: 640px) 100vw, 50vw"
+                      unoptimized
+                      className="object-cover transition-transform duration-500 hover:scale-[1.02]"
                       loading="lazy"
                     />
                   </button>
@@ -114,10 +118,13 @@ export default function PartnerPortfolio({
                 onClick={() => setLightbox({ images: [image.imageUrl], index: 0 })}
                 className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-slate-200 bg-slate-100"
               >
-                <img
+                <Image
                   src={image.imageUrl}
                   alt={image.caption || `${partnerName} portfolio`}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  fill
+                  sizes="(max-width: 640px) 50vw, 33vw"
+                  unoptimized
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
                   loading="lazy"
                 />
                 {image.caption && (
@@ -143,9 +150,13 @@ export default function PartnerPortfolio({
           role="dialog"
           tabIndex={-1}
         >
-          <img
+          <Image
             src={lightbox.images[lightbox.index]}
             alt="Portfolio"
+            width={1600}
+            height={1200}
+            sizes="90vw"
+            unoptimized
             className="max-h-[90vh] max-w-[90vw] object-contain"
             onClick={(e) => e.stopPropagation()}
           />

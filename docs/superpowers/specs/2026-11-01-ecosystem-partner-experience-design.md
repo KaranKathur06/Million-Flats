@@ -73,6 +73,14 @@ The repository is read-only at this stage. `git status` and recent-commit inspec
 
 Preserve the current differentiated category experiences and their stable URLs. Existing special tools remain explicit category components selected by slug; categories created later use a generic configured category template. A category cannot be permanently deleted while partner or lead records reference it; administrators deactivate it instead. Slug collisions are rejected.
 
+### 3.1.2 Partner profile presentation
+
+The authenticated `/partners/[categorySlug]/[partnerSlug]` route uses one shared, responsive profile shell for all 12 categories. The HTML files in `public/ecosystem pages` are product/design references, not runtime pages or sources of partner facts. The live profile is composed from the existing partner, category-field registry, service, location, portfolio/gallery, review, FAQ, and CRM inquiry data.
+
+The profile shell follows the reference information hierarchy: partner identity and verified status; available partner metrics; section navigation; category-aware details and services; portfolio/gallery; partner-provided trust/process/review/FAQ content; and a consultation form alongside the profile on wide screens. Styling uses MillionFlats navy, white, and gold tokens, with responsive layouts and no duplicated site navigation.
+
+Only persisted partner facts may be presented as rates, regulatory credentials, response SLAs, offers, or service guarantees. Missing optional profile content is omitted or represented by a neutral visual placeholder; it must not be filled with unrelated category copy, fictional reviews, platform branding as the partner logo, or demo calculator values. Until partner-specific quote inputs and formulas are governed by persisted data, category interactions collect service intent and route it through the existing consent-based CRM inquiry flow rather than returning a fabricated estimate.
+
 ### 3.2 Partner identity and membership
 
 Add a partner-scoped membership model linked to the existing `EcosystemPartner` and `User` records. It supports multiple people in an organization without changing global authentication roles or misusing global `TeamAccess`.

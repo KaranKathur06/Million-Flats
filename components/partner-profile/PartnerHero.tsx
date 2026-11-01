@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import type { PartnerProfileData } from './types'
 
 type PartnerHeroProps = {
@@ -27,11 +28,14 @@ export default function PartnerHero({ partner }: PartnerHeroProps) {
       <div className="relative h-32 overflow-hidden bg-[radial-gradient(circle_at_85%_20%,rgba(251,191,36,0.35),transparent_30%),linear-gradient(115deg,#1e3a5f,#16304f_65%,#10253f)] sm:h-40">
         {partner.coverImage && (
           <>
-            <img
+            <Image
               src={partner.coverImage}
               alt=""
               aria-hidden="true"
-              className="absolute inset-0 h-full w-full object-cover"
+              fill
+              sizes="100vw"
+              unoptimized
+              className="object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-[#10253f]/85 via-[#1e3a5f]/65 to-[#1e3a5f]/30" />
           </>
@@ -45,9 +49,12 @@ export default function PartnerHero({ partner }: PartnerHeroProps) {
         <div className="-mt-9 flex flex-col gap-5 sm:-mt-11 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end">
             {partner.logo ? (
-              <img
+              <Image
                 src={partner.logo}
                 alt={`${partner.name} logo`}
+                width={88}
+                height={88}
+                unoptimized
                 className="h-[76px] w-[76px] shrink-0 rounded-2xl border border-slate-200 bg-white object-contain p-2 shadow-md sm:h-[88px] sm:w-[88px]"
               />
             ) : (
