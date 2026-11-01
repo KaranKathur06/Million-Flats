@@ -154,93 +154,93 @@ export default function EcosystemPartnerDashboard({
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Unable to update lead.')
     }
+  }
 
-    const stageSensitiveChange = async (event: React.FormEvent) => {
-      event.preventDefault()
-      setError('')
-      setNotice('')
-      const changes = Object.fromEntries(Object.entries(sensitive).filter(([, value]) => value.trim()))
-      if (!Object.keys(changes).length) {
-        setError('Enter at least one sensitive profile update.')
-        return
-      }
-      try {
-        const response = await fetch(`/api/ecosystem-partners/${encodeURIComponent(partnerId)}/profile-changes`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(changes),
-        })
-        const payload = await response.json()
-        if (!response.ok || !payload.success) throw new Error(payload.message || 'Unable to submit profile changes.')
-        setNotice('Sensitive profile changes were submitted for administrator review.')
-        setSensitive({ name: '', contactEmail: '', contactPhone: '', website: '', pricingRange: '' })
-      } catch (reason) {
-        setError(reason instanceof Error ? reason.message : 'Unable to submit profile changes.')
-      }
+  const stageSensitiveChange = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setError('')
+    setNotice('')
+    const changes = Object.fromEntries(Object.entries(sensitive).filter(([, value]) => value.trim()))
+    if (!Object.keys(changes).length) {
+      setError('Enter at least one sensitive profile update.')
+      return
     }
-
-    const uploadMedia = async (type: 'LOGO' | 'COVER', file?: File) => {
-      if (!file) return
-      setUploadingMedia(type)
-      setError('')
-      setNotice('')
-      try {
-        const formData = new FormData()
-        formData.set('type', type)
-        formData.set('file', file)
-        const response = await fetch(`/api/ecosystem-partners/${encodeURIComponent(partnerId)}/media`, { method: 'POST', body: formData })
-        const payload = await response.json()
-        if (!response.ok || !payload.success) throw new Error(payload.message || 'Unable to upload image.')
-        setNotice(`${type === 'LOGO' ? 'Logo' : 'Cover image'} submitted for administrator review.`)
-      } catch (reason) {
-        setError(reason instanceof Error ? reason.message : 'Unable to upload image.')
-      } finally {
-        setUploadingMedia('')
-      }
-    }
-
-    const saveOfferings = async (event: React.FormEvent) => {
-      event.preventDefault()
-      setError('')
-      setNotice('')
-      const services = servicesText.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
-        const [name, ...description] = line.split('|')
-        return { name: name.trim(), description: description.join('|').trim() || null }
+    try {
+      const response = await fetch(`/api/ecosystem-partners/${encodeURIComponent(partnerId)}/profile-changes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(changes),
       })
-      const locations = locationsText.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
-        const [city, region = '', primary = ''] = line.split('|').map((part) => part.trim())
-        return { city, region: region || null, isPrimary: primary.toLowerCase() === 'primary' }
-      })
-      try {
-        const response = await fetch(`/api/ecosystem-partners/${encodeURIComponent(partnerId)}/offerings`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ services, locations }),
-        })
-        const payload = await response.json()
-        if (!response.ok || !payload.success) throw new Error(payload.message || 'Unable to save services.')
-        setNotice('Services and service locations updated.')
-        await load()
-      } catch (reason) {
-        setError(reason instanceof Error ? reason.message : 'Unable to save services.')
-      }
+      const payload = await response.json()
+      if (!response.ok || !payload.success) throw new Error(payload.message || 'Unable to submit profile changes.')
+      setNotice('Sensitive profile changes were submitted for administrator review.')
+      setSensitive({ name: '', contactEmail: '', contactPhone: '', website: '', pricingRange: '' })
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Unable to submit profile changes.')
     }
+  }
 
-    const updateMember = async (membershipId: string, role?: 'ADMIN' | 'MEMBER') => {
-      try {
-        const response = await fetch(`/api/ecosystem-partners/${encodeURIComponent(partnerId)}/members/${encodeURIComponent(membershipId)}`, {
-          method: role ? 'PATCH' : 'DELETE',
-          headers: role ? { 'Content-Type': 'application/json' } : undefined,
-          body: role ? JSON.stringify({ role }) : undefined,
-        })
-        const payload = await response.json()
-        if (!response.ok || !payload.success) throw new Error(payload.message || 'Unable to update member.')
-        setMembers((current) => current.map((member) => member.id === membershipId
-          ? role ? { ...member, role } : { ...member, status: 'REVOKED' }
-          : member))
-      } catch (reason) {
-        setError(reason instanceof Error ? reason.message : 'Unable to update member.')
-      }
+  const uploadMedia = async (type: 'LOGO' | 'COVER', file?: File) => {
+    if (!file) return
+    setUploadingMedia(type)
+    setError('')
+    setNotice('')
+    try {
+      const formData = new FormData()
+      formData.set('type', type)
+      formData.set('file', file)
+      const response = await fetch(`/api/ecosystem-partners/${encodeURIComponent(partnerId)}/media`, { method: 'POST', body: formData })
+      const payload = await response.json()
+      if (!response.ok || !payload.success) throw new Error(payload.message || 'Unable to upload image.')
+      setNotice(`${type === 'LOGO' ? 'Logo' : 'Cover image'} submitted for administrator review.`)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Unable to upload image.')
+    } finally {
+      setUploadingMedia('')
+    }
+  }
+
+  const saveOfferings = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setError('')
+    setNotice('')
+    const services = servicesText.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
+      const [name, ...description] = line.split('|')
+      return { name: name.trim(), description: description.join('|').trim() || null }
+    })
+    const locations = locationsText.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
+      const [city, region = '', primary = ''] = line.split('|').map((part) => part.trim())
+      return { city, region: region || null, isPrimary: primary.toLowerCase() === 'primary' }
+    })
+    try {
+      const response = await fetch(`/api/ecosystem-partners/${encodeURIComponent(partnerId)}/offerings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ services, locations }),
+      })
+      const payload = await response.json()
+      if (!response.ok || !payload.success) throw new Error(payload.message || 'Unable to save services.')
+      setNotice('Services and service locations updated.')
+      await load()
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Unable to save services.')
+    }
+  }
+
+  const updateMember = async (membershipId: string, role?: 'ADMIN' | 'MEMBER') => {
+    try {
+      const response = await fetch(`/api/ecosystem-partners/${encodeURIComponent(partnerId)}/members/${encodeURIComponent(membershipId)}`, {
+        method: role ? 'PATCH' : 'DELETE',
+        headers: role ? { 'Content-Type': 'application/json' } : undefined,
+        body: role ? JSON.stringify({ role }) : undefined,
+      })
+      const payload = await response.json()
+      if (!response.ok || !payload.success) throw new Error(payload.message || 'Unable to update member.')
+      setMembers((current) => current.map((member) => member.id === membershipId
+        ? role ? { ...member, role } : { ...member, status: 'REVOKED' }
+        : member))
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Unable to update member.')
     }
   }
 
