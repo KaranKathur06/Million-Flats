@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { getPartnerProfile, partnerProfileUrl } from '@/lib/ecosystem/partnerProfile'
+import { getAuthenticatedEcosystemUser } from '@/lib/ecosystem/auth'
 import { buildSocialMetadata } from '@/lib/socialMetadata'
 import {
   PartnerHero,
@@ -31,6 +33,9 @@ function getMetadataBase() {
 }
 
 export async function generateMetadata({ params }: PartnerPageProps): Promise<Metadata> {
+  const user = await getAuthenticatedEcosystemUser()
+  if (!user) return { title: 'Ecosystem Services | MillionFlats', robots: { index: false, follow: false } }
+
   const partner = await getPartnerProfile(params.slug, params.partnerSlug)
   if (!partner) return { title: 'Partner Not Found | MillionFlats' }
 
@@ -44,6 +49,7 @@ export async function generateMetadata({ params }: PartnerPageProps): Promise<Me
 
   return {
     title,
+    robots: { index: false, follow: false },
     description:
       partner.shortDescription ||
       `Explore ${partner.name} portfolio, services, and client reviews. Request a consultation through MillionFlats.`,
@@ -59,6 +65,12 @@ export async function generateMetadata({ params }: PartnerPageProps): Promise<Me
 }
 
 export default async function PartnerProfilePage({ params }: PartnerPageProps) {
+  const user = await getAuthenticatedEcosystemUser()
+  if (!user) {
+    const callbackUrl = partnerProfileUrl(params.slug, params.partnerSlug)
+    redirect(`/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`)
+  }
+
   const partner = await getPartnerProfile(params.slug, params.partnerSlug)
   if (!partner) notFound()
 
@@ -150,7 +162,7 @@ export default async function PartnerProfilePage({ params }: PartnerPageProps) {
         partnerName={partner.name}
       />
       <PartnerFaqs faqs={partner.faqs} partnerName={partner.name} />
-      <PartnerCTA partner={partner} />
+      <PartnerCTA partner={partner} authenticatedEmail={user.email} />
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />

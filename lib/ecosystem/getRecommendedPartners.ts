@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { getEcosystemCategoryConfig } from '@/lib/ecosystem/categoryConfig'
 import { buildPublicPartnerWhere } from '@/lib/ecosystem/partnerVisibility'
+import { getAuthenticatedEcosystemUser } from '@/lib/ecosystem/auth'
 import type { EcosystemCategorySlug } from '@/lib/ecosystemPartners'
 
 export type RecommendedPartner = {
@@ -90,6 +91,9 @@ export async function getRecommendedPartners(
   categorySlug: string,
   options?: { limit?: number; city?: string }
 ): Promise<RecommendedPartner[]> {
+  const user = await getAuthenticatedEcosystemUser()
+  if (!user) return []
+
   const limit = options?.limit ?? 1
   const city = options?.city?.trim()
 

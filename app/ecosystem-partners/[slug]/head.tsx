@@ -1,6 +1,6 @@
-import { getEcosystemCategoryConfig } from '@/lib/ecosystem/categoryConfig'
 import { prisma } from '@/lib/prisma'
 import { buildCanonicalUrl, buildPrevNext, normalizePage } from '@/lib/ecosystem/paginationSeo'
+import { getAuthenticatedEcosystemUser } from '@/lib/ecosystem/auth'
 
 export default async function Head({
   params,
@@ -9,16 +9,21 @@ export default async function Head({
   params: { slug: string }
   searchParams?: { page?: string }
 }) {
-  const cfg = getEcosystemCategoryConfig(params.slug)
-  if (!cfg) return null
-
   const page = normalizePage(searchParams?.page)
   const take = 12
 
-  const category = await (prisma as any).ecosystemCategory.findUnique({ where: { slug: cfg.slug }, select: { id: true } })
+  const category = await (prisma as any).ecosystemCategory.findFirst({
+    where: { slug: params.slug, isActive: true },
+    select: { id: true },
+  })
   if (!category) return null
 
-  const total = await (prisma as any).ecosystemPartner.count({ where: { categoryId: category.id, isActive: true } }).catch(() => 0)
+  const user = await getAuthenticatedEcosystemUser()
+  const total = user
+    ? await (prisma as any).ecosystemPartner.count({
+        where: { categoryId: category.id, status: 'APPROVED', isActive: true },
+      })
+    : 0
   const totalPages = Math.max(1, Math.ceil(total / take))
 
   const canonical = buildCanonicalUrl({ slug: params.slug, page })

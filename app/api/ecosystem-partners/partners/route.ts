@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { fetchPublicPartners } from '@/lib/ecosystem/fetchPublicPartners'
 import { ECOSYSTEM_PARTNERS_CACHE_TAG } from '@/lib/ecosystem/revalidatePartner'
+import { getAuthenticatedEcosystemUser } from '@/lib/ecosystem/auth'
 
 export const runtime = 'nodejs'
 export const revalidate = 0
@@ -24,6 +25,9 @@ function bad(message: string, status = 400) {
 /** Legacy path — delegates to shared CMS query. Prefer GET /api/ecosystem/partners */
 export async function GET(req: Request) {
   try {
+    const user = await getAuthenticatedEcosystemUser()
+    if (!user) return bad('Authentication required', 401)
+
     const { searchParams } = new URL(req.url)
     const parsed = QuerySchema.parse({
       slug: searchParams.get('slug'),

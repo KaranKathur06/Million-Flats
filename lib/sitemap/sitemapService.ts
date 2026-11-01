@@ -20,7 +20,6 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { PUBLIC_PARTNER_VISIBILITY } from '@/lib/ecosystem/partnerVisibility'
 import fs from 'fs'
 import path from 'path'
 import { getBaseUrl } from '@/lib/auth/routes'
@@ -86,7 +85,8 @@ const CACHE_DIR = path.join(process.cwd(), '.sitemap-cache')
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
 const MAX_URLS_PER_SITEMAP = 50_000 // Google's hard limit
 const PROPERTY_PAGE_SIZE = 5_000 // Cursor-pagination batch size
-const SITEMAP_INDEX_VERSION = '2026-10-06-2' // Bump when index structure changes
+const SITEMAP_INDEX_VERSION = '2026-11-01-1' // Bump when index structure changes
+const ECOSYSTEM_SITEMAP_VERSION = '2026-11-01-1'
 
 // ─── Cache Helpers ──────────────────────────────────────────────────────────
 function ensureCacheDir(): void {
@@ -113,6 +113,10 @@ function isCacheValid(key: string): boolean {
     if (key === 'index') {
       const cached = fs.readFileSync(cachePath, 'utf-8')
       return cached.includes(`sitemap-index-version:${SITEMAP_INDEX_VERSION}`)
+    }
+    if (key === 'ecosystem-partners') {
+      const cached = fs.readFileSync(cachePath, 'utf-8')
+      return cached.includes(`ecosystem-sitemap-version:${ECOSYSTEM_SITEMAP_VERSION}`)
     }
     return true
   } catch {
@@ -243,7 +247,14 @@ function writeChunkedSitemap(
     // For types that naturally chunk (buy, rent, projects), always use numbered key
     const cacheKey = chunkCount === 1 ? logicalType : `${logicalType}-${chunkNumber}`
     const publicPath = `/sitemap-${cacheKey}.xml`
-    const xml = generateUrlsetXml(chunk)
+    const baseXml = generateUrlsetXml(chunk)
+    const xml =
+      logicalType === 'ecosystem-partners'
+        ? baseXml.replace(
+            '</urlset>',
+            `<!-- ecosystem-sitemap-version:${ECOSYSTEM_SITEMAP_VERSION} -->\n</urlset>`
+          )
+        : baseXml
     writeCache(cacheKey, xml)
     descriptors.push({ cacheKey, publicPath, urlCount: chunk.length })
     console.log(
@@ -326,44 +337,21 @@ async function fetchBlogUrls(): Promise<SitemapUrl[]> {
 
 async function fetchEcosystemPartnerUrls(): Promise<SitemapUrl[]> {
   try {
-    const partners = await (prisma as any).ecosystemPartner.findMany({
-      where: {
-        ...PUBLIC_PARTNER_VISIBILITY,
-        slug: { not: null },
-      },
-      select: {
-        slug: true,
-        updatedAt: true,
-        category: { select: { slug: true } },
-      },
-      orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+    const categories = await (prisma as any).ecosystemCategory.findMany({
+      where: { isActive: true },
+      select: { slug: true, updatedAt: true },
+      orderBy: [{ priorityOrder: 'asc' }, { slug: 'asc' }],
     })
-
-    const categoryUrls: SitemapUrl[] = []
-    const seenCategories = new Set<string>()
-    const today = new Date().toISOString().split('T')[0]
-
-    const partnerUrls = partners
-      .filter((p: any) => p.slug && p.category?.slug)
-      .map((p: any) => {
-        if (!seenCategories.has(p.category.slug)) {
-          seenCategories.add(p.category.slug)
-          categoryUrls.push({
-            loc: `/ecosystem-partners/${p.category.slug}`,
-            lastmod: today,
-            changefreq: 'weekly' as const,
-            priority: 0.65,
-          })
-        }
-        return {
-          loc: `/partners/${p.category.slug}/${p.slug}`,
-          lastmod: p.updatedAt ? new Date(p.updatedAt).toISOString().split('T')[0] : today,
-          changefreq: 'weekly' as const,
-          priority: 0.6,
-        }
-      })
-
-    return [...categoryUrls, ...partnerUrls]
+    return categories
+      .filter((category: any) => typeof category.slug === 'string' && category.slug.trim())
+      .map((category: any) => ({
+        loc: `/ecosystem-partners/${category.slug}`,
+        lastmod: category.updatedAt
+          ? new Date(category.updatedAt).toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0],
+        changefreq: 'weekly' as const,
+        priority: 0.65,
+      }))
   } catch (err) {
     console.error('[Sitemap] Error fetching ecosystem partner URLs:', err)
     return []

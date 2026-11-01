@@ -2,10 +2,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { fetchPublicPartners } from '@/lib/ecosystem/fetchPublicPartners'
 import { partnerProfileUrl } from '@/lib/ecosystem/partnerProfile'
-import type { EcosystemCategorySlug } from '@/lib/ecosystemPartners'
 
 type Props = {
-  categorySlug: EcosystemCategorySlug
+  categorySlug: string
   limit?: number
   badge?: string
   title?: string
@@ -64,7 +63,7 @@ function FeaturedGrid({
   exploreHref,
 }: {
   partners: Awaited<ReturnType<typeof fetchPublicPartners>>['items']
-  categorySlug: EcosystemCategorySlug
+  categorySlug: string
   badge: string
   title: string
   exploreHref: string

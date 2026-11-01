@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
-import { isPrismaConnectionError } from '@/lib/prisma/errors'
 import { buildPublicPartnerWhere } from '@/lib/ecosystem/partnerVisibility'
+import { getAuthenticatedEcosystemUser } from '@/lib/ecosystem/auth'
 
 export type PublicPartnerListItem = {
   id: string
@@ -67,6 +67,8 @@ export async function fetchPublicPartners(params: FetchPublicPartnersParams): Pr
   const page = Math.max(1, params.page ?? 1)
   const take = Math.min(48, Math.max(1, params.take ?? 12))
   const skip = (page - 1) * take
+  const user = await getAuthenticatedEcosystemUser()
+  if (!user) return EMPTY_RESULT(page, take)
 
   const where: Record<string, unknown> = buildPublicPartnerWhere({
     category: { slug: params.categorySlug, isActive: true },
@@ -89,26 +91,18 @@ export async function fetchPublicPartners(params: FetchPublicPartnersParams): Pr
     where.pricingRange = { contains: params.budget.trim(), mode: 'insensitive' }
   }
 
-  try {
-    const [items, total] = await Promise.all([
-      (prisma as any).ecosystemPartner.findMany({
-        where,
-        orderBy: [{ isFeatured: 'desc' }, { priorityOrder: 'asc' }, { createdAt: 'desc' }],
-        take,
-        skip,
-        select: PARTNER_SELECT,
-      }),
-      (prisma as any).ecosystemPartner.count({ where }),
-    ])
+  const [items, total] = await Promise.all([
+    (prisma as any).ecosystemPartner.findMany({
+      where,
+      orderBy: [{ isFeatured: 'desc' }, { priorityOrder: 'asc' }, { createdAt: 'desc' }],
+      take,
+      skip,
+      select: PARTNER_SELECT,
+    }),
+    (prisma as any).ecosystemPartner.count({ where }),
+  ])
 
-    const hasMore = skip + items.length < total
+  const hasMore = skip + items.length < total
 
-    return { items: items as PublicPartnerListItem[], total, page, take, hasMore }
-  } catch (error) {
-    if (isPrismaConnectionError(error)) {
-      console.error('[fetchPublicPartners] Database unavailable:', error)
-      return EMPTY_RESULT(page, take, true)
-    }
-    throw error
-  }
+  return { items: items as PublicPartnerListItem[], total, page, take, hasMore }
 }

@@ -287,6 +287,8 @@ const navEntries: NavEntry[] = [
     children: [
       { href: "/admin/ecosystem-partners/manage", label: "All Partners" },
       { href: "/admin/ecosystem-partners/manage/new", label: "Add Partner" },
+      { href: "/admin/ecosystem-partners/categories", label: "Categories" },
+      { href: "/admin/ecosystem-partners/change-requests", label: "Profile change review" },
       { href: "/admin/leads?leadType=ECOSYSTEM", label: "Partner Leads" },
       { href: "/admin/ecosystem-partners/banners", label: "Banners" },
     ],

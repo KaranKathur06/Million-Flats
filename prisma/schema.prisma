@@ -51,6 +51,24 @@ enum UserStatus {
   BANNED
 }
 
+enum EcosystemPartnerMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum EcosystemPartnerMemberStatus {
+  INVITED
+  ACTIVE
+  REVOKED
+}
+
+enum EcosystemPartnerChangeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum AgentStatus {
   REGISTERED
   EMAIL_VERIFIED
@@ -300,6 +318,10 @@ model User {
   brochureDownloads BrochureDownload[]
   packagePurchases PackagePurchase[]
   packageEntitlements PackageEntitlement[]
+  ecosystemPartnerMemberships EcosystemPartnerMembership[] @relation("EcosystemPartnerMemberUser")
+  ecosystemPartnerInvitationsSent EcosystemPartnerMembership[] @relation("EcosystemPartnerInvitedBy")
+  ecosystemPartnerChangeSubmissions EcosystemPartnerChangeRequest[] @relation("EcosystemChangeSubmittedBy")
+  ecosystemPartnerChangeReviews EcosystemPartnerChangeRequest[] @relation("EcosystemChangeReviewedBy")
   manualPropertyVerificationUploads ManualPropertyVerificationDocument[] @relation("ManualPropertyVerificationUploader")
   manualPropertyVerificationReviews ManualPropertyVerificationDocument[] @relation("ManualPropertyVerificationReviewer")
 
@@ -462,6 +484,9 @@ enum InquiryStatus {
    USER
    ECOSYSTEM_PARTNER
    ECOSYSTEM_PARTNER_APPLICATION
+   ECOSYSTEM_PARTNER_MEMBERSHIP
+   ECOSYSTEM_PARTNER_CHANGE_REQUEST
+   ECOSYSTEM_CATEGORY
  }
 
  enum ModerationCaseStatus {
@@ -1324,6 +1349,10 @@ enum AuditAction {
   LEAD_RESTORED
   LEAD_PERMANENTLY_DELETED
   AI_LOGIN_POLICY_UPDATED
+  ECOSYSTEM_PARTNER_MEMBER_CHANGED
+  ECOSYSTEM_PARTNER_CHANGE_REVIEWED
+  ADMIN_ECOSYSTEM_CATEGORY_UPDATED
+  ECOSYSTEM_PARTNER_PROFILE_EDITED
 }
 
 enum StorageCleanupStatus {
@@ -1847,6 +1876,8 @@ model EcosystemPartner {
   reviews    EcosystemPartnerReview[]
   faqs       EcosystemPartnerFaq[]
   media      EcosystemPartnerMedia[]
+  memberships EcosystemPartnerMembership[]
+  changeRequests EcosystemPartnerChangeRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1861,6 +1892,54 @@ model EcosystemPartner {
   @@index([isActive])
   @@unique([categoryId, contactEmail])
   @@unique([categoryId, slug])
+}
+
+model EcosystemPartnerMembership {
+  id                    String                         @id @default(cuid())
+  partnerId             String
+  userId                String?                        @map("user_id")
+  inviteEmail           String                         @map("invite_email")
+  role                  EcosystemPartnerMemberRole     @default(MEMBER)
+  status                EcosystemPartnerMemberStatus   @default(INVITED)
+  invitationTokenHash   String?                        @unique @map("invitation_token_hash")
+  invitationExpiresAt   DateTime?                      @map("invitation_expires_at")
+  invitedByUserId       String?                        @map("invited_by_user_id")
+  acceptedAt            DateTime?                      @map("accepted_at")
+  revokedAt             DateTime?                      @map("revoked_at")
+  createdAt             DateTime                       @default(now()) @map("created_at")
+  updatedAt             DateTime                       @updatedAt @map("updated_at")
+
+  partner EcosystemPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  user User? @relation("EcosystemPartnerMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy User? @relation("EcosystemPartnerInvitedBy", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([partnerId, userId])
+  @@unique([partnerId, inviteEmail])
+  @@index([userId, status])
+  @@index([partnerId, status, role])
+  @@index([status, invitationExpiresAt])
+  @@map("ecosystem_partner_memberships")
+}
+
+model EcosystemPartnerChangeRequest {
+  id                String                        @id @default(cuid())
+  partnerId         String                        @map("partner_id")
+  submittedByUserId String                        @map("submitted_by_user_id")
+  requestedChanges  Json                          @map("requested_changes")
+  status            EcosystemPartnerChangeStatus  @default(PENDING)
+  reviewedByUserId  String?                       @map("reviewed_by_user_id")
+  reviewReason      String?                       @map("review_reason") @db.Text
+  reviewedAt        DateTime?                     @map("reviewed_at")
+  createdAt         DateTime                      @default(now()) @map("created_at")
+  updatedAt         DateTime                      @updatedAt @map("updated_at")
+
+  partner EcosystemPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  submittedBy User @relation("EcosystemChangeSubmittedBy", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  reviewedBy User? @relation("EcosystemChangeReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([partnerId, status, createdAt])
+  @@index([submittedByUserId])
+  @@map("ecosystem_partner_change_requests")
 }
 
 enum EcosystemPartnerMediaType {
@@ -2118,6 +2197,10 @@ model Lead {
   ecosystemPartnerId String?   @map("ecosystem_partner_id")
   legacyTable      String?     @map("legacy_table")
   legacyId         String?     @map("legacy_id")
+  requestKey       String?     @unique @map("request_key")
+  requestPayloadHash String?   @map("request_payload_hash")
+  consentToShare   Boolean?    @map("consent_to_share")
+  consentRecordedAt DateTime?  @map("consent_recorded_at")
 
   userId             String?   @map("user_id")
   propertyType       String?   @map("property_type")

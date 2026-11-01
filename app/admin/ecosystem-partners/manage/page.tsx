@@ -304,6 +304,12 @@ export default function AdminEcosystemPartnersManagePage() {
                       >
                         Edit
                       </Link>
+                      <Link
+                        href={`/admin/ecosystem-partners/members/${p.id}`}
+                        className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold hover:bg-white/5"
+                      >
+                        Members
+                      </Link>
                       {p.slug && (
                         <a
                           href={partnerProfileUrl(p.category.slug, p.slug)}

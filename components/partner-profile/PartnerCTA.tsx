@@ -1,24 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import GlobalDropdown from '@/components/ui/GlobalDropdown'
 import { singleDropdownValue } from '@/components/ui/dropdownUtils'
 import type { PartnerProfileData } from './types'
 
 type PartnerCTAProps = {
   partner: PartnerProfileData
+  authenticatedEmail: string
 }
 
-export default function PartnerCTA({ partner }: PartnerCTAProps) {
+export default function PartnerCTA({ partner, authenticatedEmail }: PartnerCTAProps) {
+  const idempotencyKey = useRef<string | null>(null)
   const [form, setForm] = useState({
     name: '',
-    email: '',
+    email: authenticatedEmail,
     phone: '',
     city: '',
     propertyType: '',
     budget: '',
     requirement: '',
     message: '',
+    consentToShare: false,
   })
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -29,27 +32,36 @@ export default function PartnerCTA({ partner }: PartnerCTAProps) {
     setError('')
   }
 
-  const setField = (name: keyof typeof form, value: string) => {
+  const setField = (name: Exclude<keyof typeof form, 'consentToShare'>, value: string) => {
     setForm((prev) => ({ ...prev, [name]: value }))
     setError('')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.name.trim() || !form.email.trim() || !form.phone.trim()) {
-      setError('Name, email, and phone are required.')
+    if (!form.name.trim() || !form.email.trim() || !form.phone.trim() || !form.message.trim()) {
+      setError('Name, verified email, phone, and a message are required.')
+      return
+    }
+    if (!form.consentToShare) {
+      setError('Consent is required to share your inquiry with this partner.')
       return
     }
 
     setSubmitting(true)
     setError('')
+    const requestKey = idempotencyKey.current || crypto.randomUUID()
+    idempotencyKey.current = requestKey
 
     try {
       const res = await fetch(
         `/api/partners/${partner.categorySlug}/${partner.slug}/inquiry`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': requestKey,
+          },
           body: JSON.stringify(form),
         }
       )
@@ -129,10 +141,9 @@ export default function PartnerCTA({ partner }: PartnerCTAProps) {
                   type="email"
                   name="email"
                   value={form.email}
-                  onChange={handleChange}
-                  placeholder="Email *"
-                  required
-                  className="mt-3 h-11 w-full rounded-xl border border-gray-200 px-3.5 text-sm outline-none focus:border-dark-blue focus:ring-2 focus:ring-dark-blue/20"
+                  readOnly
+                  aria-label="Verified account email"
+                  className="mt-3 h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 text-sm outline-none"
                 />
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <input
@@ -192,10 +203,26 @@ export default function PartnerCTA({ partner }: PartnerCTAProps) {
                   name="message"
                   value={form.message}
                   onChange={handleChange}
-                  placeholder="Additional details (optional)"
+                  placeholder="Tell us what you need *"
                   rows={3}
+                  required
                   className="mt-3 w-full resize-none rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-dark-blue"
                 />
+                <label className="mt-4 flex items-start gap-3 text-xs leading-5 text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={form.consentToShare}
+                    onChange={(event) => {
+                      setForm((previous) => ({ ...previous, consentToShare: event.target.checked }))
+                      setError('')
+                    }}
+                    required
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-dark-blue focus:ring-dark-blue"
+                  />
+                  <span>
+                    I consent to MillionFlats sharing the details in this request with this partner so they can respond to my inquiry.
+                  </span>
+                </label>
                 {error && <p className="mt-2 text-xs font-medium text-red-600">{error}</p>}
                 <button
                   type="submit"

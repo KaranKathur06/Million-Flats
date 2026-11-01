@@ -10,10 +10,16 @@ import EcosystemToolSection from '@/components/ecosystem/EcosystemToolSection'
 import EcosystemFAQ, { buildFaqSchema } from '@/components/ecosystem/EcosystemFAQ'
 import FinalCTA from '@/app/ecosystem-partners/_components/FinalCTA'
 import MillionFlatsButton from '@/components/ui/MillionFlatsButton'
-import { getEcosystemCategoryConfig, type EcosystemSectionItem } from '@/lib/ecosystem/categoryConfig'
+import {
+  getEcosystemCategoryConfig,
+  type EcosystemCategoryConfig,
+  type EcosystemSectionItem,
+} from '@/lib/ecosystem/categoryConfig'
 import { fetchPublicPartners } from '@/lib/ecosystem/fetchPublicPartners'
-import { categoryHref, type EcosystemCategorySlug } from '@/lib/ecosystemPartners'
+import { getAuthenticatedEcosystemUser } from '@/lib/ecosystem/auth'
+import type { EcosystemCategorySlug } from '@/lib/ecosystemPartners'
 import { prisma } from '@/lib/prisma'
+import Link from 'next/link'
 
 type Theme = {
   accent: string
@@ -268,7 +274,7 @@ function resolveUsableBannerImage(src: string | null | undefined) {
   }
 }
 
-async function getCategoryBannerImage(slug: EcosystemCategorySlug, fallback: string) {
+async function getCategoryBannerImage(slug: string, fallback: string) {
   try {
     const category = await (prisma as any).ecosystemCategory.findUnique({
       where: { slug },
@@ -286,21 +292,62 @@ type EcosystemCategoryPageProps = {
 }
 
 export default async function EcosystemCategoryPage({ slug, page }: EcosystemCategoryPageProps) {
-  const cfg = getEcosystemCategoryConfig(slug)
-  if (!cfg) return notFound()
+  const category = await (prisma as any).ecosystemCategory.findFirst({
+    where: { slug, isActive: true },
+    select: { slug: true, title: true, description: true, heroImage: true, metaTitle: true, metaDescription: true },
+  })
+  if (!category) return notFound()
 
-  const theme = THEMES[cfg.slug] ?? THEMES['home-loans-finance']
+  const configured = getEcosystemCategoryConfig(slug)
+  const fallbackDescription = `Explore ${category.title} services from approved MillionFlats ecosystem partners.`
+  const cfg: EcosystemCategoryConfig = configured
+    ? {
+        ...configured,
+        title: category.title || configured.title,
+        subtitle: category.description?.trim() || configured.subtitle,
+        heroImage: category.heroImage?.trim()
+          ? { ...configured.heroImage, src: category.heroImage }
+          : configured.heroImage,
+        meta: {
+          ...configured.meta,
+          title: category.metaTitle?.trim() || configured.meta.title,
+          description: category.metaDescription?.trim() || configured.meta.description,
+        },
+      }
+    : {
+        slug: category.slug,
+        title: category.title,
+        subtitle: category.description?.trim() || fallbackDescription,
+        heroImage: { src: category.heroImage?.trim() || '/images/ecosystem/technology.jpg', alt: category.title },
+        meta: {
+          title: category.metaTitle?.trim() || `${category.title} | Ecosystem Partners | MillionFlats`,
+          description: category.metaDescription?.trim() || category.description?.trim() || fallbackDescription,
+        },
+        primaryCta: { label: 'Request Consultation' },
+        secondaryCta: { label: 'Explore Partners' },
+        benefits: [
+          { title: 'Approved Partners', description: `Browse active ${category.title} service providers approved by MillionFlats.` },
+          { title: 'Compare Services', description: 'Review partner profiles, services and coverage in one place.' },
+          { title: 'Managed Inquiries', description: 'Send a request through MillionFlats and receive guided follow-up.' },
+        ],
+        faqs: [
+          { question: `How do I find ${category.title.toLowerCase()} support?`, answer: 'Browse approved partner profiles and submit a request to connect through MillionFlats.' },
+        ],
+        tool: null,
+      }
+
+  const user = await getAuthenticatedEcosystemUser()
+  const theme = THEMES[cfg.slug as EcosystemCategorySlug] ?? THEMES['home-loans-finance']
   const bannerImage = await getCategoryBannerImage(cfg.slug, cfg.heroImage.src)
   const take = 12
   const pageSafe = Number.isFinite(page as number) && (page as number) > 0 ? Math.floor(page as number) : 1
-  const baseUrl = `https://millionflats.com${categoryHref(cfg.slug)}`
+  const baseUrl = `https://millionflats.com/ecosystem-partners/${cfg.slug}`
   const url = pageSafe > 1 ? `${baseUrl}?page=${pageSafe}` : baseUrl
 
-  const {
-    items: partnersRaw,
-    total: totalPartners,
-    hasMore: hasMorePartners,
-  } = await fetchPublicPartners({ categorySlug: cfg.slug, page: pageSafe, take })
+  const directory = user
+    ? await fetchPublicPartners({ categorySlug: cfg.slug, page: pageSafe, take })
+    : { items: [], total: 0, hasMore: false }
+  const { items: partnersRaw, total: totalPartners, hasMore: hasMorePartners } = directory
 
   const partners: EcosystemPartnerCard[] = partnersRaw.map((p) => ({
     id: String(p.id),
@@ -348,7 +395,7 @@ export default async function EcosystemCategoryPage({ slug, page }: EcosystemCat
     : cfg.benefits.slice(0, 3).map((item, index) => ({
       title: `${item.title} guide`,
       description: item.description,
-      href: `${categoryHref(cfg.slug)}#partners${index}`,
+      href: `${baseUrl}#partners${index}`,
     }))
 
   return (
@@ -465,7 +512,7 @@ export default async function EcosystemCategoryPage({ slug, page }: EcosystemCat
         </div>
       </section>
 
-      {cfg.featuredSection ? (
+      {cfg.featuredSection && user ? (
         <section className="bg-[#f7f9fb] py-20">
           <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
             <EcosystemFeaturedPartnersSection
@@ -518,15 +565,41 @@ export default async function EcosystemCategoryPage({ slug, page }: EcosystemCat
 
       {cfg.tool ? <EcosystemToolSection tool={cfg.tool} /> : null}
 
-      <EcosystemPartnerDirectoryClient
-        partners={partners}
-        slug={cfg.slug}
-        categoryTitle={cfg.title}
-        initialPage={pageSafe}
-        take={take}
-        total={totalPartners}
-        hasMore={hasMorePartners}
-      />
+      {user ? (
+        <EcosystemPartnerDirectoryClient
+          partners={partners}
+          slug={cfg.slug}
+          categoryTitle={cfg.title}
+          initialPage={pageSafe}
+          take={take}
+          total={totalPartners}
+          hasMore={hasMorePartners}
+        />
+      ) : (
+        <section id="partners" className="bg-[#f7f9fb] px-4 py-20 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-[900px] rounded-[28px] border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-12">
+            <SectionBadge theme={theme}>Verified partner directory</SectionBadge>
+            <h2 className="mt-6 text-3xl font-extrabold text-slate-950">Sign in to explore {cfg.title} partners</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-600">
+              Category information is open to everyone. Create an account or sign in to browse approved partner profiles and request a consultation.
+            </p>
+            <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link
+                href={`/auth/login?callbackUrl=${encodeURIComponent(`/ecosystem-partners/${cfg.slug}#partners`)}`}
+                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#0d1f38] px-6 py-3 text-sm font-semibold text-white hover:bg-[#17365d]"
+              >
+                Sign in to browse
+              </Link>
+              <Link
+                href={`/auth/register?callbackUrl=${encodeURIComponent(`/ecosystem-partners/${cfg.slug}#partners`)}`}
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+              >
+                Create an account
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section id="lead" className="bg-[#f7f9fb] px-4 pb-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-[1400px]">

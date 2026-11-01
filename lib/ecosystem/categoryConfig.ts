@@ -31,7 +31,7 @@ export type EcosystemFeaturedSection = {
 }
 
 export type EcosystemCategoryConfig = {
-  slug: EcosystemCategorySlug
+  slug: string
   title: string
   subtitle: string
   heroImage: { src: string; alt: string }
