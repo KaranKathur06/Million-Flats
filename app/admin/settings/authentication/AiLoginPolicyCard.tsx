@@ -21,6 +21,7 @@ interface PolicyResponse {
   success?: boolean
   data?: PolicyData
   error?: string
+  requestId?: string
 }
 
 function formatUpdatedAt(value: string | null): string {
@@ -30,6 +31,16 @@ function formatUpdatedAt(value: string | null): string {
   return Number.isNaN(date.getTime())
     ? 'Timestamp unavailable'
     : date.toLocaleString()
+}
+
+async function readPolicyResponse(response: Response): Promise<PolicyResponse> {
+  try {
+    return (await response.json()) as PolicyResponse
+  } catch {
+    throw new Error(
+      `The server returned an unreadable response (HTTP ${response.status}). Please retry or contact support.`,
+    )
+  }
 }
 
 export default function AiLoginPolicyCard() {
@@ -55,7 +66,7 @@ export default function AiLoginPolicyCard() {
       const response = await fetch('/api/admin/settings/ai-login-policy', {
         cache: 'no-store',
       })
-      const result = (await response.json()) as PolicyResponse
+      const result = await readPolicyResponse(response)
 
       if (!response.ok || !result.data) {
         throw new Error(result.error || 'Unable to load the AI login policy.')
@@ -96,7 +107,7 @@ export default function AiLoginPolicyCard() {
           expectedVersion: policy.version,
         }),
       })
-      const result = (await response.json()) as PolicyResponse
+      const result = await readPolicyResponse(response)
 
       if (response.status === 409) {
         setConfirmationValue(null)
@@ -108,7 +119,10 @@ export default function AiLoginPolicyCard() {
       }
 
       if (!response.ok || !result.data) {
-        throw new Error(result.error || 'Unable to save the AI login policy.')
+        const message = result.error || `Unable to save the AI login policy (HTTP ${response.status}).`
+        throw new Error(
+          result.requestId ? `${message} Reference: ${result.requestId}` : message,
+        )
       }
 
       setPolicy(result.data)

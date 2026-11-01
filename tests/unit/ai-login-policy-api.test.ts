@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals'
 
 const mockGetServerSession = jest.fn()
+const mockUserFindUnique = jest.fn()
 const mockFindUnique = jest.fn()
 const mockUpdateMany = jest.fn()
 const mockCreate = jest.fn()
@@ -21,6 +22,7 @@ jest.mock('@/lib/auth', () => ({ authOptions: {} }))
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     $transaction: mockTransaction,
+    user: { findUnique: mockUserFindUnique },
     authSettings: { findUnique: mockFindUnique },
   },
 }))
@@ -31,6 +33,7 @@ function makeRequest(
   body: string,
   headers: Record<string, string> = {
     origin: 'http://localhost',
+    host: 'localhost',
     'content-type': 'application/json',
   },
 ) {
@@ -46,6 +49,10 @@ describe('AI login policy update API', () => {
     jest.clearAllMocks()
     mockGetServerSession.mockResolvedValue({
       user: { id: 'super-admin-id', role: 'SUPERADMIN' },
+    })
+    mockUserFindUnique.mockResolvedValue({
+      id: 'super-admin-id',
+      role: 'SUPERADMIN',
     })
     mockFindUnique.mockResolvedValue({
       aiInformationLoginRequired: true,
@@ -96,6 +103,33 @@ describe('AI login policy update API', () => {
   it('rejects non-SUPERADMIN updates', async () => {
     mockGetServerSession.mockResolvedValue({
       user: { id: 'admin-id', role: 'ADMIN' },
+    })
+    const response = await PATCH(makeRequest(JSON.stringify({
+      loginRequired: false,
+      expectedVersion: 1,
+    })))
+
+    expect(response.status).toBe(403)
+    expect(mockTransaction).not.toHaveBeenCalled()
+  })
+
+  it('rejects stale admin sessions before attempting to write', async () => {
+    mockUserFindUnique.mockResolvedValue(null)
+    const response = await PATCH(makeRequest(JSON.stringify({
+      loginRequired: false,
+      expectedVersion: 1,
+    })))
+    const result = await response.json()
+
+    expect(response.status).toBe(401)
+    expect(result.error).toMatch(/session is out of date/i)
+    expect(mockTransaction).not.toHaveBeenCalled()
+  })
+
+  it('uses the administrator role currently stored in the database', async () => {
+    mockUserFindUnique.mockResolvedValue({
+      id: 'super-admin-id',
+      role: 'ADMIN',
     })
     const response = await PATCH(makeRequest(JSON.stringify({
       loginRequired: false,
@@ -236,6 +270,21 @@ describe('AI login policy update API', () => {
 
     expect(response.status).toBe(500)
     expect(consoleError).toHaveBeenCalled()
+    consoleError.mockRestore()
+  })
+
+  it('returns an actionable migration message for a missing policy column', async () => {
+    mockTransaction.mockRejectedValue({ code: 'P2022' })
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const response = await PATCH(makeRequest(JSON.stringify({
+      loginRequired: false,
+      expectedVersion: 1,
+    })))
+    const result = await response.json()
+
+    expect(response.status).toBe(500)
+    expect(result.error).toMatch(/migration is missing/i)
+    expect(result.requestId).toBeTruthy()
     consoleError.mockRestore()
   })
 })

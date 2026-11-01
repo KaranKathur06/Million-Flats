@@ -185,6 +185,14 @@ falling back to the Host header and request URL protocol when forwarded
 headers are absent. It continues to reject missing, malformed, and genuinely
 cross-origin requests.
 
+Before writing, PATCH verifies that the session's administrator ID still maps
+to a database user whose current role is `SUPERADMIN`, so a stale JWT cannot
+cause an audit foreign-key failure or retain revoked privileges. Unexpected
+database failures are logged with a server-generated reference ID and return
+safe, actionable messages for missing schema, stale actor references, and
+database constraint failures. The UI shows that reference ID for support and
+reports non-JSON server responses with their HTTP status.
+
 ### Security boundaries
 
 The setting controls page rendering for the six registered roots and their

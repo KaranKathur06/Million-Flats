@@ -1,4 +1,5 @@
 import { isIP } from 'node:net'
+import { randomUUID } from 'node:crypto'
 import { Prisma } from '@prisma/client'
 import { NextResponse } from 'next/server'
 import { getServerSession, type Session } from 'next-auth'
@@ -25,6 +26,25 @@ function isPrismaConflict(error: unknown): boolean {
   if (!error || typeof error !== 'object' || !('code' in error)) return false
   const code = error.code
   return code === 'P2002' || code === 'P2034'
+}
+
+function getPrismaErrorCode(error: unknown): string | null {
+  if (!error || typeof error !== 'object' || !('code' in error)) return null
+  return typeof error.code === 'string' ? error.code : null
+}
+
+function getSaveErrorMessage(error: unknown): string {
+  switch (getPrismaErrorCode(error)) {
+    case 'P2021':
+    case 'P2022':
+      return 'The AI login policy database migration is missing. Apply the latest Prisma migrations and try again.'
+    case 'P2003':
+      return 'Your admin session could not be linked to the audit record. Sign out, sign back in, and try again.'
+    case 'P2004':
+      return 'The database rejected the policy audit entry. Verify the AI login policy migration is applied.'
+    default:
+      return 'Unable to save the AI login policy. Check the server log using the reference ID.'
+  }
 }
 
 function isAdminRole(role: string): boolean {
@@ -185,6 +205,8 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  const requestId = randomUUID()
+
   try {
     const auth = await getAdminSession()
     if ('response' in auth) return auth.response
@@ -248,6 +270,26 @@ export async function PATCH(request: Request) {
     }
 
     const { loginRequired, expectedVersion } = parsed.data
+    const actorRecord = await prisma.user.findUnique({
+      where: { id: auth.actor.id },
+      select: { id: true, role: true },
+    })
+    if (!actorRecord) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Your admin session is out of date. Sign out and sign back in before changing this policy.',
+        },
+        { status: 401 },
+      )
+    }
+    if (actorRecord.role !== 'SUPERADMIN') {
+      return NextResponse.json(
+        { success: false, error: 'Only Super Admins can update this policy.' },
+        { status: 403 },
+      )
+    }
+
     const clientIp = getClientIp(request)
     const correlationId = getCorrelationId(request)
 
@@ -349,9 +391,16 @@ export async function PATCH(request: Request) {
       )
     }
 
-    console.error('[admin/ai-login-policy] PATCH failed:', error)
+    console.error(`[admin/ai-login-policy] PATCH failed (reference ${requestId}):`, {
+      code: getPrismaErrorCode(error),
+      error,
+    })
     return NextResponse.json(
-      { success: false, error: 'Unable to save the AI login policy.' },
+      {
+        success: false,
+        error: getSaveErrorMessage(error),
+        requestId,
+      },
       { status: 500 },
     )
   }
