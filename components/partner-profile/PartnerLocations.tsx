@@ -20,35 +20,37 @@ export default function PartnerLocations({ locations, locationCoverage, partnerN
   if (cities.length === 0) return null
 
   return (
-    <section className="py-12 sm:py-14 lg:py-16">
-      <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 sm:mb-10">
-          <h2 className="text-2xl font-bold tracking-tight text-dark-blue sm:text-3xl">Service Locations</h2>
-          <p className="mt-2 text-sm text-gray-600 sm:text-base">Where {partnerName} operates.</p>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {cities.map((loc) => (
-            <div
-              key={loc.id}
-              className={`rounded-2xl border p-4 text-center ${
-                loc.isPrimary
-                  ? 'border-dark-blue bg-dark-blue text-white'
-                  : 'border-gray-200 bg-white text-dark-blue'
-              }`}
+    <section id="partner-locations" className="scroll-mt-28 py-7">
+      <div className="mb-5">
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9a6b00]">Coverage</p>
+        <h2 className="mt-1 text-xl font-bold tracking-tight text-[#1e3a5f] sm:text-2xl">
+          Service locations
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">Areas served by {partnerName}.</p>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {cities.map((location) => (
+          <div
+            key={location.id}
+            className={`rounded-2xl border p-4 ${
+              location.isPrimary
+                ? 'border-[#1e3a5f] bg-[#1e3a5f] text-white'
+                : 'border-slate-200 bg-white text-[#1e3a5f]'
+            }`}
+          >
+            <svg
+              className={`mb-2 h-5 w-5 ${location.isPrimary ? 'text-[#fbbf24]' : 'text-slate-400'}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
             >
-              <svg
-                className={`mx-auto mb-2 h-5 w-5 ${loc.isPrimary ? 'text-accent-yellow' : 'text-gray-400'}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              </svg>
-              <div className="font-semibold">{loc.city}</div>
-              {loc.region && <div className="mt-1 text-xs opacity-70">{loc.region}</div>}
-            </div>
-          ))}
-        </div>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            </svg>
+            <div className="font-semibold">{location.city}</div>
+            {location.region && <div className="mt-1 text-xs opacity-70">{location.region}</div>}
+          </div>
+        ))}
       </div>
     </section>
   )

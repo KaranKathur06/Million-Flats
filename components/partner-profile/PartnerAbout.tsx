@@ -5,21 +5,28 @@ type PartnerAboutProps = {
 }
 
 export default function PartnerAbout({ partner }: PartnerAboutProps) {
+  if (!partner.description && !partner.pricingRange) return null
+
   return (
-    <section className="py-12 sm:py-14 lg:py-16">
-      <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 sm:mb-10">
-          <h2 className="text-2xl font-bold tracking-tight text-dark-blue sm:text-3xl">About {partner.name}</h2>
-          <p className="mt-2 text-sm text-gray-600 sm:text-base">Trusted ecosystem partner on MillionFlats.</p>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-          <p className="whitespace-pre-line text-sm leading-7 text-gray-700 sm:text-base">{partner.description}</p>
-          {partner.pricingRange && (
-            <p className="mt-4 text-sm font-semibold text-dark-blue">
-              Typical Budget Range: <span className="font-normal text-gray-600">{partner.pricingRange}</span>
-            </p>
-          )}
-        </div>
+    <section id="partner-overview" className="scroll-mt-28 py-7">
+      <div className="mb-4">
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9a6b00]">Partner overview</p>
+        <h2 className="mt-1 text-xl font-bold tracking-tight text-[#1e3a5f] sm:text-2xl">
+          About {partner.name}
+        </h2>
+      </div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        {partner.description && (
+          <p className="whitespace-pre-line text-sm leading-7 text-slate-700 sm:text-base">
+            {partner.description}
+          </p>
+        )}
+        {partner.pricingRange && (
+          <p className={`text-sm text-slate-700 ${partner.description ? 'mt-4 border-t border-slate-100 pt-4' : ''}`}>
+            <span className="font-semibold text-[#1e3a5f]">Typical budget range:</span>{' '}
+            {partner.pricingRange}
+          </p>
+        )}
       </div>
     </section>
   )

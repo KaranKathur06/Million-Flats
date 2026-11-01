@@ -64,10 +64,10 @@ export type PartnerProfileData = {
   slug: string
   categorySlug: string
   categoryTitle: string
-  logo: string
-  coverImage: string
+  logo: string | null
+  coverImage: string | null
   tagline: string
-  description: string
+  description: string | null
   shortDescription: string | null
   verified: boolean
   partnerSince: number | null

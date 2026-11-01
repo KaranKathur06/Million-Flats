@@ -1,8 +1,6 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import GlobalDropdown from '@/components/ui/GlobalDropdown'
-import { singleDropdownValue } from '@/components/ui/dropdownUtils'
 import type { PartnerProfileData } from './types'
 
 type PartnerCTAProps = {
@@ -27,18 +25,21 @@ export default function PartnerCTA({ partner, authenticatedEmail }: PartnerCTAPr
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = event.target
+    setForm((previous) => ({ ...previous, [name]: value }))
+    idempotencyKey.current = null
     setError('')
   }
 
-  const setField = (name: Exclude<keyof typeof form, 'consentToShare'>, value: string) => {
-    setForm((prev) => ({ ...prev, [name]: value }))
+  const selectService = (serviceName: string) => {
+    setForm((previous) => ({ ...previous, requirement: serviceName }))
+    idempotencyKey.current = null
     setError('')
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
     if (!form.name.trim() || !form.email.trim() || !form.phone.trim() || !form.message.trim()) {
       setError('Name, verified email, phone, and a message are required.')
       return
@@ -54,7 +55,7 @@ export default function PartnerCTA({ partner, authenticatedEmail }: PartnerCTAPr
     idempotencyKey.current = requestKey
 
     try {
-      const res = await fetch(
+      const response = await fetch(
         `/api/partners/${partner.categorySlug}/${partner.slug}/inquiry`,
         {
           method: 'POST',
@@ -65,11 +66,11 @@ export default function PartnerCTA({ partner, authenticatedEmail }: PartnerCTAPr
           body: JSON.stringify(form),
         }
       )
-      const data = await res.json()
+      const data = await response.json()
       if (data.success) {
         setSubmitted(true)
       } else {
-        setError(data.message || 'Something went wrong. Please try again.')
+        setError(data.message || 'Unable to submit your request. Please try again.')
       }
     } catch {
       setError('Network error. Please try again.')
@@ -79,162 +80,220 @@ export default function PartnerCTA({ partner, authenticatedEmail }: PartnerCTAPr
   }
 
   return (
-    <section id="partner-contact" className="py-12 sm:py-14 lg:py-16">
-      <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-8">
-        <div className="rounded-2xl bg-gradient-to-br from-dark-blue via-dark-blue to-primary-900 p-6 text-white shadow-xl sm:p-8 lg:p-10">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
+    <section id="partner-contact" className="scroll-mt-24">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="bg-[#1e3a5f] px-5 py-5 text-white">
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#fbbf24]">
+            MillionFlats partner desk
+          </p>
+          <h2 className="mt-1 text-lg font-bold leading-snug">
+            Request a consultation
+          </h2>
+          <p className="mt-1 text-sm leading-5 text-white/75">
+            Tell us what you need from {partner.name}. Your request will be routed through MillionFlats.
+          </p>
+        </div>
+
+        {submitted ? (
+          <div className="p-6 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="mt-3 font-bold text-[#1e3a5f]">Request submitted</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Your consultation request for {partner.name} has been received.
+            </p>
+          </div>
+        ) : (
+          <form className="space-y-3 p-4 sm:p-5" onSubmit={handleSubmit} noValidate>
             <div>
-              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                Request a Consultation with {partner.name}
-              </h2>
-              <p className="mt-3 text-sm leading-relaxed text-white/80 sm:text-base">
-                Submit your requirements through MillionFlats. Our team will review and connect you with the right specialist — no direct contact details shared publicly.
-              </p>
-              <ul className="mt-6 space-y-3 text-sm text-white/70">
-                <li className="flex items-center gap-3">
-                  <span className="text-accent-yellow">✓</span> Verified partner network
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="text-accent-yellow">✓</span> Transparent lead routing via MillionFlats CRM
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="text-accent-yellow">✓</span> Response within 24 hours
-                </li>
-              </ul>
+              <label htmlFor="partner-inquiry-name" className="mb-1 block text-xs font-semibold text-slate-700">
+                Full name <span className="text-rose-600">*</span>
+              </label>
+              <input
+                id="partner-inquiry-name"
+                type="text"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                autoComplete="name"
+                required
+                className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none focus:border-[#1e3a5f] focus:ring-2 focus:ring-[#1e3a5f]/15"
+              />
             </div>
 
-            {submitted ? (
-              <div className="flex flex-col items-center justify-center rounded-xl bg-white p-8 text-center">
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
-                  <svg className="h-7 w-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-bold text-gray-900">Consultation Request Submitted</h3>
-                <p className="mt-2 text-sm text-gray-600">
-                  Our team will review your request and follow up shortly regarding {partner.name}.
-                </p>
-              </div>
-            ) : (
-              <form className="rounded-xl bg-white p-5 text-gray-800 sm:p-6" onSubmit={handleSubmit} noValidate>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <input
-                    type="text"
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    placeholder="Full Name *"
-                    required
-                    className="h-11 rounded-xl border border-gray-200 px-3.5 text-sm outline-none focus:border-dark-blue focus:ring-2 focus:ring-dark-blue/20"
-                  />
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={form.phone}
-                    onChange={handleChange}
-                    placeholder="Phone *"
-                    required
-                    className="h-11 rounded-xl border border-gray-200 px-3.5 text-sm outline-none focus:border-dark-blue focus:ring-2 focus:ring-dark-blue/20"
-                  />
-                </div>
-                <input
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  readOnly
-                  aria-label="Verified account email"
-                  className="mt-3 h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 text-sm outline-none"
-                />
-                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <input
-                    type="text"
-                    name="city"
-                    value={form.city}
-                    onChange={handleChange}
-                    placeholder="City"
-                    className="h-11 rounded-xl border border-gray-200 px-3.5 text-sm outline-none focus:border-dark-blue"
-                  />
-                  <GlobalDropdown
-                    name="propertyType"
-                    label="Property Type"
-                    showLabel={false}
-                    value={form.propertyType}
-                    onChange={(v) => setField('propertyType', singleDropdownValue(v))}
-                    placeholder="Property Type"
-                    options={[
-                      { value: '', label: 'Property Type' },
-                      { value: 'Apartment', label: 'Apartment' },
-                      { value: 'Villa', label: 'Villa' },
-                      { value: 'Penthouse', label: 'Penthouse' },
-                      { value: 'Commercial', label: 'Commercial' },
-                      { value: 'Office', label: 'Office' },
-                    ]}
-                    appearance="admin-light"
-                    dense
-                  />
-                </div>
-                <GlobalDropdown
-                  name="budget"
-                  label="Budget"
-                  showLabel={false}
-                  value={form.budget}
-                  onChange={(v) => setField('budget', singleDropdownValue(v))}
-                  placeholder="Budget Range"
-                  options={[
-                    { value: '', label: 'Budget Range' },
-                    { value: '₹5L - ₹15L', label: '₹5L - ₹15L' },
-                    { value: '₹15L - ₹50L', label: '₹15L - ₹50L' },
-                    { value: '₹50L - ₹1Cr', label: '₹50L - ₹1Cr' },
-                    { value: '₹1Cr+', label: '₹1Cr+ (Luxury)' },
-                  ]}
-                  appearance="admin-light"
-                  dense
-                  className="mt-3"
-                />
-                <input
-                  type="text"
-                  name="requirement"
-                  value={form.requirement}
-                  onChange={handleChange}
-                  placeholder="Requirement (e.g. Full home interiors)"
-                  className="mt-3 h-11 w-full rounded-xl border border-gray-200 px-3.5 text-sm outline-none focus:border-dark-blue"
-                />
-                <textarea
-                  name="message"
-                  value={form.message}
-                  onChange={handleChange}
-                  placeholder="Tell us what you need *"
-                  rows={3}
-                  required
-                  className="mt-3 w-full resize-none rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-dark-blue"
-                />
-                <label className="mt-4 flex items-start gap-3 text-xs leading-5 text-gray-600">
-                  <input
-                    type="checkbox"
-                    checked={form.consentToShare}
-                    onChange={(event) => {
-                      setForm((previous) => ({ ...previous, consentToShare: event.target.checked }))
-                      setError('')
-                    }}
-                    required
-                    className="mt-1 h-4 w-4 rounded border-gray-300 text-dark-blue focus:ring-dark-blue"
-                  />
-                  <span>
-                    I consent to MillionFlats sharing the details in this request with this partner so they can respond to my inquiry.
-                  </span>
+            <div>
+              <label htmlFor="partner-inquiry-email" className="mb-1 block text-xs font-semibold text-slate-700">
+                Verified account email
+              </label>
+              <input
+                id="partner-inquiry-email"
+                type="email"
+                name="email"
+                value={form.email}
+                readOnly
+                autoComplete="email"
+                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="partner-inquiry-phone" className="mb-1 block text-xs font-semibold text-slate-700">
+                Phone <span className="text-rose-600">*</span>
+              </label>
+              <input
+                id="partner-inquiry-phone"
+                type="tel"
+                name="phone"
+                value={form.phone}
+                onChange={handleChange}
+                autoComplete="tel"
+                required
+                className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none focus:border-[#1e3a5f] focus:ring-2 focus:ring-[#1e3a5f]/15"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <div>
+                <label htmlFor="partner-inquiry-city" className="mb-1 block text-xs font-semibold text-slate-700">
+                  City
                 </label>
-                {error && <p className="mt-2 text-xs font-medium text-red-600">{error}</p>}
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl bg-dark-blue text-sm font-semibold text-white hover:bg-dark-blue/90 disabled:opacity-60"
-                >
-                  {submitting ? 'Submitting...' : 'Request Consultation'}
-                </button>
-              </form>
+                <input
+                  id="partner-inquiry-city"
+                  type="text"
+                  name="city"
+                  value={form.city}
+                  onChange={handleChange}
+                  autoComplete="address-level2"
+                  className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none focus:border-[#1e3a5f] focus:ring-2 focus:ring-[#1e3a5f]/15"
+                />
+              </div>
+              <div>
+                <label htmlFor="partner-inquiry-context" className="mb-1 block text-xs font-semibold text-slate-700">
+                  Property or service context
+                </label>
+                <input
+                  id="partner-inquiry-context"
+                  type="text"
+                  name="propertyType"
+                  value={form.propertyType}
+                  onChange={handleChange}
+                  maxLength={80}
+                  className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none focus:border-[#1e3a5f] focus:ring-2 focus:ring-[#1e3a5f]/15"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="partner-inquiry-budget" className="mb-1 block text-xs font-semibold text-slate-700">
+                Budget or project range <span className="font-normal text-slate-500">(optional)</span>
+              </label>
+              <input
+                id="partner-inquiry-budget"
+                type="text"
+                name="budget"
+                value={form.budget}
+                onChange={handleChange}
+                maxLength={100}
+                className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none focus:border-[#1e3a5f] focus:ring-2 focus:ring-[#1e3a5f]/15"
+              />
+            </div>
+
+            <div>
+              {partner.services.length > 0 && (
+                <div className="mb-3">
+                  <p className="mb-2 text-xs font-semibold text-slate-700">
+                    Choose a listed service to start
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {partner.services.slice(0, 6).map((service) => (
+                      <button
+                        key={service.id}
+                        type="button"
+                        aria-pressed={form.requirement === service.name}
+                        onClick={() => selectService(service.name)}
+                        className={`rounded-full border px-3 py-1.5 text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#fbbf24] focus-visible:ring-offset-1 ${
+                          form.requirement === service.name
+                            ? 'border-[#1e3a5f] bg-[#1e3a5f] text-white'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-[#1e3a5f]/40'
+                        }`}
+                      >
+                        {service.name}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[11px] leading-5 text-slate-500">
+                    Selection is included with your consultation request, not a price quote.
+                  </p>
+                </div>
+              )}
+              <label htmlFor="partner-inquiry-requirement" className="mb-1 block text-xs font-semibold text-slate-700">
+                Service of interest
+              </label>
+              <input
+                id="partner-inquiry-requirement"
+                type="text"
+                name="requirement"
+                value={form.requirement}
+                onChange={handleChange}
+                maxLength={500}
+                placeholder={`For example, ${partner.categoryTitle.toLowerCase()} support`}
+                className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none focus:border-[#1e3a5f] focus:ring-2 focus:ring-[#1e3a5f]/15"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="partner-inquiry-message" className="mb-1 block text-xs font-semibold text-slate-700">
+                How can the partner help? <span className="text-rose-600">*</span>
+              </label>
+              <textarea
+                id="partner-inquiry-message"
+                name="message"
+                value={form.message}
+                onChange={handleChange}
+                rows={4}
+                maxLength={5000}
+                required
+                className="w-full resize-y rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#1e3a5f] focus:ring-2 focus:ring-[#1e3a5f]/15"
+              />
+            </div>
+
+            <label className="flex items-start gap-2 text-xs leading-5 text-slate-600">
+              <input
+                type="checkbox"
+                checked={form.consentToShare}
+                onChange={(event) => {
+                  setForm((previous) => ({ ...previous, consentToShare: event.target.checked }))
+                  idempotencyKey.current = null
+                  setError('')
+                }}
+                required
+                className="mt-1 h-4 w-4 rounded border-slate-300 text-[#1e3a5f] focus:ring-[#1e3a5f]"
+              />
+              <span>
+                I consent to MillionFlats sharing the details in this request with this partner so they can respond.
+              </span>
+            </label>
+
+            {error && (
+              <p role="alert" className="text-xs font-medium text-rose-700">
+                {error}
+              </p>
             )}
-          </div>
-        </div>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#1e3a5f] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#17304f] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#fbbf24] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {submitting ? 'Submitting...' : 'Request consultation'}
+            </button>
+            <p className="text-center text-[11px] leading-5 text-slate-500">
+              Your request is protected by MillionFlats&apos; consent-based inquiry process.
+            </p>
+          </form>
+        )}
       </div>
     </section>
   )

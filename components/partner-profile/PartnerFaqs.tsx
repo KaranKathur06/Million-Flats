@@ -14,34 +14,36 @@ export default function PartnerFaqs({ faqs, partnerName }: PartnerFaqsProps) {
   if (faqs.length === 0) return null
 
   return (
-    <section className="bg-gray-50 py-12 sm:py-14 lg:py-16">
-      <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 sm:mb-10">
-          <h2 className="text-2xl font-bold tracking-tight text-dark-blue sm:text-3xl">Frequently Asked Questions</h2>
-          <p className="mt-2 text-sm text-gray-600 sm:text-base">Common questions about working with {partnerName}.</p>
-        </div>
-        <div className="space-y-3">
-          {faqs.map((faq) => {
-            const open = openId === faq.id
-            return (
-              <div key={faq.id} className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
-                <button
-                  type="button"
-                  onClick={() => setOpenId(open ? null : faq.id)}
-                  className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
-                >
-                  <span className="text-sm font-semibold text-dark-blue sm:text-base">{faq.question}</span>
-                  <span className="text-xl text-gray-400">{open ? '−' : '+'}</span>
-                </button>
-                {open && (
-                  <div className="border-t border-gray-100 px-5 py-4 text-sm leading-7 text-gray-600">
-                    {faq.answer}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
+    <section id="partner-faqs" className="scroll-mt-28 py-7">
+      <div className="mb-5">
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9a6b00]">More information</p>
+        <h2 className="mt-1 text-xl font-bold tracking-tight text-[#1e3a5f] sm:text-2xl">
+          Frequently asked questions
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">Answers provided by {partnerName}.</p>
+      </div>
+      <div className="space-y-3">
+        {faqs.map((faq) => {
+          const open = openId === faq.id
+          return (
+            <div key={faq.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              <button
+                type="button"
+                aria-expanded={open}
+                onClick={() => setOpenId(open ? null : faq.id)}
+                className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+              >
+                <span className="text-sm font-semibold text-[#1e3a5f] sm:text-base">{faq.question}</span>
+                <span aria-hidden="true" className="text-xl text-slate-400">{open ? '−' : '+'}</span>
+              </button>
+              {open && (
+                <div className="border-t border-slate-100 px-5 py-4 text-sm leading-7 text-slate-600">
+                  {faq.answer}
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </section>
   )

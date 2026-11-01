@@ -9,28 +9,33 @@ export default function PartnerStats({ partner }: PartnerStatsProps) {
 
   const items = [
     stats.projectsCompleted != null
-      ? { label: 'Projects Completed', value: `${stats.projectsCompleted}+` }
+      ? { label: 'Projects completed', value: stats.projectsCompleted.toLocaleString() }
       : null,
     stats.experience != null
-      ? { label: 'Years Experience', value: `${stats.experience}+` }
+      ? { label: 'Years of experience', value: `${stats.experience} years` }
       : null,
     stats.rating != null
-      ? { label: 'Client Rating', value: stats.rating.toFixed(1) }
+      ? { label: 'Partner rating', value: stats.rating.toFixed(1) }
       : null,
     stats.teamSize != null
-      ? { label: 'Team Members', value: `${stats.teamSize}+` }
+      ? { label: 'Team size', value: stats.teamSize.toLocaleString() }
       : null,
-  ].filter(Boolean) as { label: string; value: string }[]
+  ].filter((item): item is { label: string; value: string } => item !== null)
 
   if (items.length === 0) return null
 
   return (
-    <section className="border-b border-gray-200 bg-white py-8">
-      <div className="mx-auto grid w-full max-w-[1200px] grid-cols-2 gap-4 px-4 sm:grid-cols-4 sm:px-6 lg:px-8">
+    <section aria-label="Partner profile metrics" className="py-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {items.map((item) => (
-          <div key={item.label} className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-5 text-center">
-            <div className="text-2xl font-bold text-dark-blue sm:text-3xl">{item.value}</div>
-            <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-gray-500">{item.label}</div>
+          <div
+            key={item.label}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:px-5"
+          >
+            <div className="text-xl font-bold tracking-tight text-[#1e3a5f] sm:text-2xl">{item.value}</div>
+            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              {item.label}
+            </div>
           </div>
         ))}
       </div>
