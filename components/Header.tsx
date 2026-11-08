@@ -219,7 +219,7 @@ export default function Header() {
 
           {/* Navigation */}
           {navLinks.length > 0 ? (
-            <nav className="hidden md:flex items-center space-x-8">
+            <nav className="hidden xl:flex items-center space-x-8">
               {navLinks.map((item) => (
                 <Link
                   key={item.href}
@@ -309,7 +309,7 @@ export default function Header() {
           )}
 
           {/* Auth Buttons — Dynamic based on AuthSettings */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden xl:flex items-center space-x-4">
             <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5" aria-label="Display currency">
               {(["AED", "INR"] as const).map((option) => (
                 <button
@@ -395,7 +395,7 @@ export default function Header() {
 
           <button
             type="button"
-            className="md:hidden inline-flex items-center justify-center h-11 w-11 rounded-xl border border-gray-200 text-dark-blue"
+            className="xl:hidden inline-flex items-center justify-center h-11 w-11 rounded-xl border border-gray-200 text-dark-blue"
             aria-label="Open menu"
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen(true)}
@@ -422,6 +422,7 @@ export default function Header() {
         onClose={() => setMobileOpen(false)}
         side="right"
         zIndex={60}
+        visibilityClassName="xl:hidden"
         panelClassName="!bg-white !max-w-sm"
         header={
           <div className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 pt-[env(safe-area-inset-top)]">

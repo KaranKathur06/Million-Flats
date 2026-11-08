@@ -13,6 +13,7 @@ type MobileOffCanvasPanelProps = {
   children: React.ReactNode
   className?: string
   panelClassName?: string
+  visibilityClassName?: string
   zIndex?: number
 }
 
@@ -28,6 +29,7 @@ export function MobileOffCanvasPanel({
   children,
   className,
   panelClassName,
+  visibilityClassName = 'md:hidden',
   zIndex = 80,
 }: MobileOffCanvasPanelProps) {
   useBodyScrollLock(open)
@@ -48,7 +50,7 @@ export function MobileOffCanvasPanel({
 
   return (
     <div
-      className={cn('fixed inset-0 md:hidden', open ? '' : 'pointer-events-none', className)}
+      className={cn('fixed inset-0', visibilityClassName, open ? '' : 'pointer-events-none', className)}
       style={{ zIndex }}
       aria-hidden={!open}
     >
