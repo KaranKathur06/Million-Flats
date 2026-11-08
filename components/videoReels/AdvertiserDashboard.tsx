@@ -3,6 +3,7 @@
 import Script from 'next/script'
 import { useCallback, useEffect, useState } from 'react'
 import { ArrowUpRight, CheckCircle2, CircleAlert, Film, LoaderCircle, UploadCloud } from 'lucide-react'
+import type { RazorpayCheckoutInstance } from '@/lib/razorpayCheckoutTypes'
 
 type Reel = {
   id: string
@@ -40,27 +41,6 @@ type Campaign = {
 }
 
 type ApiResult<T> = T & { error?: string }
-type RazorpayPaymentResponse = { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }
-type RazorpayOptions = {
-  key: string
-  amount: number
-  currency: string
-  name: string
-  description: string
-  order_id: string
-  handler: (response: RazorpayPaymentResponse) => void | Promise<void>
-  modal?: { ondismiss?: () => void }
-}
-
-declare global {
-  interface Window {
-    Razorpay?: new (options: RazorpayOptions) => {
-      open: () => void
-      on: (event: string, callback: (response: { error?: { description?: string } }) => void) => void
-    }
-  }
-}
-
 async function readJson<T>(response: Response) {
   const data = await response.json() as ApiResult<T>
   if (!response.ok) throw new Error(data.error || 'The request could not be completed.')
@@ -202,7 +182,7 @@ export default function AdvertiserDashboard() {
       throw new Error('Checkout order details were incomplete. Contact support if payment was already attempted.')
     }
 
-    const checkout = new window.Razorpay({
+    const checkout: RazorpayCheckoutInstance = new window.Razorpay({
       key: order.keyId,
       amount: order.amount,
       currency: order.currency,

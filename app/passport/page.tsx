@@ -1,68 +1,97 @@
+import type { Metadata } from 'next'
 import { getServerSession } from 'next-auth'
-import Link from 'next/link'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import {
+  PASSPORT_PRICE_INR,
+  PASSPORT_PRICE_LABEL,
+} from '@/lib/passport'
 import PassportMembershipPanel from '@/components/passport/PassportMembershipPanel'
 
 export const dynamic = 'force-dynamic'
 
+export const metadata: Metadata = {
+  title: 'MillionFlats Passport | One Digital Membership',
+  description: `Choose your MillionFlats Passport category. One digital membership, one fixed price of ${PASSPORT_PRICE_LABEL}.`,
+  alternates: { canonical: '/passport' },
+  openGraph: {
+    title: 'MillionFlats Passport | One Digital Membership',
+    description: `One digital MillionFlats membership at a fixed price of ${PASSPORT_PRICE_LABEL}.`,
+    url: 'https://www.millionflats.com/passport',
+    siteName: 'MillionFlats',
+    type: 'website',
+    images: [{
+      url: '/meta.jpeg',
+      width: 1200,
+      height: 630,
+      alt: 'MillionFlats Passport digital membership',
+    }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'MillionFlats Passport | One Digital Membership',
+    description: `One digital MillionFlats membership at a fixed price of ${PASSPORT_PRICE_LABEL}.`,
+    images: ['https://www.millionflats.com/meta.jpeg'],
+  },
+}
+
+const passportProductJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: 'MillionFlats Passport',
+  description: 'A digital MillionFlats membership linked to one account and one selected category.',
+  brand: { '@type': 'Brand', name: 'MillionFlats' },
+  offers: {
+    '@type': 'Offer',
+    url: 'https://www.millionflats.com/passport',
+    priceCurrency: 'INR',
+    price: PASSPORT_PRICE_INR,
+    availability: 'https://schema.org/InStock',
+  },
+}
+
 export default async function PassportPage() {
   const session = await getServerSession(authOptions)
-  const sessionUser = session?.user as { id?: string; email?: string | null; name?: string | null } | undefined
+  const sessionUser = session?.user as { email?: string | null; name?: string | null } | undefined
   const email = String(sessionUser?.email || '').trim().toLowerCase()
+  const user = email
+    ? await prisma.user.findUnique({
+        where: { email },
+        select: { id: true, name: true, email: true },
+      })
+    : null
 
-  let membership: null | {
-    id: string
-    category: string
-    membershipNumber: string
-    status: string
-    issueDate: string
-    qrCodeValue: string
-    paymentReference: string | null
-  } = null
-
-  if (email) {
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true, name: true, email: true },
-    })
-
-    const current = user ? await prisma.passportMembership.findUnique({ where: { userId: user.id } }) : null
-    if (current) {
-      membership = {
-        id: current.id,
-        category: current.category,
-        membershipNumber: current.membershipNumber,
-        status: current.status,
-        issueDate: current.issueDate.toISOString(),
-        qrCodeValue: current.qrCodeValue,
-        paymentReference: current.paymentReference,
-      }
-    }
-  }
+  const [membership, pendingOrder] = user
+    ? await Promise.all([
+        prisma.passportMembership.findUnique({ where: { userId: user.id } }),
+        prisma.passportOrder.findUnique({
+          where: { userId: user.id },
+          select: { category: true, status: true },
+        }),
+      ])
+    : [null, null]
 
   return (
-    <main className="min-h-screen bg-slate-100">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-700">Member access</p>
-            <h1 className="mt-2 text-4xl font-serif font-bold text-slate-900">MillionFlats Passport</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link href="/" className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400">
-              Back to home
-            </Link>
-          </div>
-        </div>
-
-        <PassportMembershipPanel
-          userName={sessionUser?.name || null}
-          userEmail={sessionUser?.email || null}
-          initialMembership={membership}
-          dashboard={false}
-        />
-      </div>
+    <main className="min-h-screen bg-white text-slate-900">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(passportProductJsonLd) }}
+      />
+      <PassportMembershipPanel
+        userName={user?.name || sessionUser?.name || null}
+        userEmail={user?.email || sessionUser?.email || null}
+        isAuthenticated={Boolean(user)}
+        initialMembership={membership ? {
+          id: membership.id,
+          category: membership.category,
+          membershipNumber: membership.membershipNumber,
+          status: membership.status,
+          issueDate: membership.issueDate.toISOString(),
+          qrCodeValue: membership.qrCodeValue,
+          paymentReference: membership.paymentReference,
+        } : null}
+        pendingCategory={pendingOrder?.status === 'PENDING' ? pendingOrder.category : null}
+      />
     </main>
   )
 }

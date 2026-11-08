@@ -58,6 +58,7 @@ export default function Header() {
     { href: "/rent", label: "Rent" },
     { href: "/projects", label: "Projects" },
     { href: "/agents", label: "Find an Agent" },
+    { href: "/passport", label: "Passport" },
     ...(showVerfix
       ? [
           {
@@ -78,6 +79,7 @@ export default function Header() {
     { href: "/rent", label: "Rent" },
     { href: "/projects", label: "Projects" },
     { href: "/agents", label: "Find an Agent" },
+    { href: "/passport", label: "Passport" },
     ...(showVerfix
       ? [
           {
@@ -98,6 +100,7 @@ export default function Header() {
   const agentLinks: NavItem[] = [
     { href: "/agent/dashboard", label: "Agent Dashboard" },
     { href: "/agent/profile", label: "Profile" },
+    { href: "/passport", label: "Passport" },
   ];
 
   const navLinks = !isAuthed
@@ -223,7 +226,9 @@ export default function Header() {
                   href={item.href}
                   className={`text-sm font-medium transition-colors ${
                     isActive(item.href)
-                      ? "text-dark-blue"
+                      ? item.href === "/passport"
+                        ? "text-dark-blue underline decoration-amber-400 decoration-2 underline-offset-8"
+                        : "text-dark-blue"
                       : "text-gray-600 hover:text-dark-blue"
                   }`}
                 >
@@ -452,8 +457,10 @@ export default function Header() {
                 href={item.href}
                 className={`block px-4 py-3 rounded-xl text-sm font-medium ${
                   isActive(item.href)
-                    ? "bg-gray-100 text-dark-blue"
-                    : "text-gray-700"
+                  ? item.href === "/passport"
+                    ? "border-l-2 border-amber-400 bg-gray-100 text-dark-blue"
+                    : "bg-gray-100 text-dark-blue"
+                  : "text-gray-700"
                 }`}
                 onClick={() => setMobileOpen(false)}
               >

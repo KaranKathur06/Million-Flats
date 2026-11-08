@@ -319,6 +319,7 @@ model User {
   packagePurchases                  PackagePurchase[]
   packageEntitlements               PackageEntitlement[]
   passportMembership                PassportMembership?
+  passportOrder                     PassportOrder?
   videoReels                        VideoReel[]                          @relation("VideoReelOwner")
   reviewedVideoReels                VideoReel[]                          @relation("VideoReelReviewer")
   videoCampaigns                    VideoCampaign[]                      @relation("VideoCampaignOwner")
@@ -2919,6 +2920,12 @@ enum PassportMembershipStatus {
   EXPIRED
 }
 
+enum PassportOrderStatus {
+  PENDING
+  PAID
+  REFUNDED
+}
+
 model PackagePurchase {
   id                String                @id @default(uuid())
   packageId         String                @map("package_id")
@@ -2986,7 +2993,7 @@ model PassportMembership {
   issueDate        DateTime                  @default(now()) @map("issue_date")
   activatedAt     DateTime?                 @map("activated_at")
   paymentReference String?                   @map("payment_reference")
-  qrCodeValue      String                    @map("qr_code_value")
+  qrCodeValue      String                    @unique @map("qr_code_value")
   notes            Json?
   createdAt        DateTime                  @default(now()) @map("created_at")
   updatedAt        DateTime                  @updatedAt @map("updated_at")
@@ -2996,6 +3003,34 @@ model PassportMembership {
   @@index([status, category])
   @@index([issueDate])
   @@map("passport_memberships")
+}
+
+model PassportOrder {
+  id                String              @id @default(uuid())
+  userId            String              @unique @map("user_id")
+  category          PassportMembershipCategory
+  status            PassportOrderStatus @default(PENDING)
+  idempotencyKey    String              @unique @map("idempotency_key")
+  providerReceipt   String              @unique @map("provider_receipt")
+  amount            Int
+  currency          String              @default("INR")
+  razorpayOrderId   String?             @unique @map("razorpay_order_id")
+  razorpayPaymentId String?             @unique @map("razorpay_payment_id")
+  razorpaySignature String?             @map("razorpay_signature")
+  orderLeaseUntil   DateTime?           @map("order_lease_until")
+  amountRefunded    Int                 @default(0) @map("amount_refunded")
+  paidAt            DateTime?           @map("paid_at")
+  refundedAt        DateTime?           @map("refunded_at")
+  failureReason     String?             @map("failure_reason")
+  notes             Json?
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  webhooks PaymentWebhook[]
+
+  @@index([status, createdAt])
+  @@map("passport_orders")
 }
 
 model SubscriptionPlanPrice {
@@ -3070,6 +3105,7 @@ model PaymentWebhook {
   paymentId            String? @map("payment_id")
   packagePurchaseId    String? @map("package_purchase_id")
   videoCampaignOrderId String? @map("video_campaign_order_id")
+  passportOrderId      String? @map("passport_order_id")
 
   // Webhook data
   razorpayEventId String? @unique @map("razorpay_event_id")
@@ -3092,6 +3128,7 @@ model PaymentWebhook {
   payment            Payment?            @relation(fields: [paymentId], references: [id], onDelete: SetNull)
   packagePurchase    PackagePurchase?    @relation(fields: [packagePurchaseId], references: [id], onDelete: SetNull)
   videoCampaignOrder VideoCampaignOrder? @relation(fields: [videoCampaignOrderId], references: [id], onDelete: SetNull)
+  passportOrder      PassportOrder?      @relation(fields: [passportOrderId], references: [id], onDelete: SetNull)
 
   @@index([eventType])
   @@index([processed])

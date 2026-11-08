@@ -22,7 +22,13 @@ export default async function DashboardPassportPage() {
     redirect('/auth/login?next=%2Fdashboard%2Fpassport')
   }
 
-  const membership = await prisma.passportMembership.findUnique({ where: { userId: user.id } })
+  const [membership, pendingOrder] = await Promise.all([
+    prisma.passportMembership.findUnique({ where: { userId: user.id } }),
+    prisma.passportOrder.findUnique({
+      where: { userId: user.id },
+      select: { category: true, status: true },
+    }),
+  ])
 
   return (
     <main className="min-h-screen bg-slate-100 py-10">
@@ -40,6 +46,8 @@ export default async function DashboardPassportPage() {
         <PassportMembershipPanel
           userName={user.name || sessionUser.name || null}
           userEmail={user.email || sessionUser.email || null}
+          isAuthenticated
+          pendingCategory={pendingOrder?.status === 'PENDING' ? pendingOrder.category : null}
           initialMembership={membership ? {
             id: membership.id,
             category: membership.category,

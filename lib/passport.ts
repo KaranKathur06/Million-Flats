@@ -1,39 +1,36 @@
+export const PASSPORT_PRICE_INR = 4999
+export const PASSPORT_PRICE_PAISE = PASSPORT_PRICE_INR * 100
+export const PASSPORT_CURRENCY = 'INR' as const
+export const PASSPORT_PRICE_LABEL = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: PASSPORT_CURRENCY,
+  maximumFractionDigits: 0,
+}).format(PASSPORT_PRICE_INR)
+
 export const PASSPORT_CATEGORY_META = {
   PROPERTY_BUYERS: {
     label: 'Property Buyers',
-    description: 'Priority access to investment intelligence, vetted listings, and buyer support for your next acquisition.',
-    price: '₹2,499',
-    benefits: ['Priority buying alerts', 'Legal & financing guidance', 'Investor-only events'],
+    description: 'For people buying or exploring a property purchase.',
   },
   TENANTS_AND_RENTAL_OWNERS: {
     label: 'Tenants & Rental Owners',
-    description: 'Tenant-friendly resources, move-in support, and trusted rental management for a smoother rental journey.',
-    price: '₹1,999',
-    benefits: ['Rental support', 'Move-in assistance', 'Owner communications'],
+    description: 'For tenants and owners involved in residential rentals.',
   },
   REAL_ESTATE_AGENTS: {
     label: 'Real Estate Agents',
-    description: 'A sales-first membership for agents who need visibility, lead quality, and faster completion workflows.',
-    price: '₹3,499',
-    benefits: ['Qualified leads', 'Market visibility', 'Agent tools'],
+    description: 'For independent real estate professionals.',
   },
   REAL_ESTATE_AGENCIES: {
     label: 'Real Estate Agencies',
-    description: 'Scale your agency through stronger discovery, partner access, and local trust signals for active growth.',
-    price: '₹5,999',
-    benefits: ['Agency visibility', 'Growth partnerships', 'CRM support'],
+    description: 'For registered real estate businesses and teams.',
   },
   REAL_ESTATE_DEVELOPERS: {
     label: 'Real Estate Developers',
-    description: 'Build a stronger pipeline with community access, project campaigns, and investor relationship support.',
-    price: '₹7,999',
-    benefits: ['Project reach', 'Investor access', 'Launch enablement'],
+    description: 'For businesses developing property projects.',
   },
   ECOSYSTEM_PARTNERS: {
     label: 'Ecosystem Partners',
-    description: 'For trusted service providers who want a dependable gateway to real-estate clients and strategic referral networks.',
-    price: '₹4,499',
-    benefits: ['Partner network', 'Client referrals', 'Preferred visibility'],
+    description: 'For businesses providing services across the property ecosystem.',
   },
 } as const
 
@@ -43,10 +40,9 @@ export const PASSPORT_CATEGORIES = Object.entries(PASSPORT_CATEGORY_META).map(([
   value: value as PassportCategoryKey,
   label: config.label,
   description: config.description,
-  price: config.price,
-  benefits: config.benefits,
 }))
 
 export function getPassportCategoryMeta(category: string) {
-  return PASSPORT_CATEGORY_META[category as PassportCategoryKey] ?? null
+  if (!Object.prototype.hasOwnProperty.call(PASSPORT_CATEGORY_META, category)) return null
+  return PASSPORT_CATEGORY_META[category as PassportCategoryKey]
 }
