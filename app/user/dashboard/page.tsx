@@ -76,6 +76,12 @@ export default function UserDashboardPage() {
                   Browse Properties
                 </Link>
                 <Link
+                  href="/dashboard/passport"
+                  className="block w-full bg-cyan-700 text-white py-2 px-4 rounded-lg text-center font-medium hover:bg-cyan-800 transition-colors"
+                >
+                  My Passport
+                </Link>
+                <Link
                   href="/contact"
                   className="block w-full bg-transparent border-2 border-dark-blue text-dark-blue py-2 px-4 rounded-lg text-center font-medium hover:bg-dark-blue hover:text-white transition-colors"
                 >

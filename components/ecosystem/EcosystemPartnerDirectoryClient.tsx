@@ -1,9 +1,9 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import GlobalDropdown from '@/components/ui/GlobalDropdown'
 import MillionFlatsButton from '@/components/ui/MillionFlatsButton'
 import { trackEvent } from '@/lib/tracking'
@@ -50,7 +50,6 @@ export default function EcosystemPartnerDirectoryClient({
   hasMore: boolean
 }) {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [search, setSearch] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
   const [budgetFilter, setBudgetFilter] = useState('')
@@ -60,19 +59,21 @@ export default function EcosystemPartnerDirectoryClient({
   const [items, setItems] = useState<EcosystemPartnerCard[]>(partners)
   const [page, setPage] = useState(initialPage)
   const [busy, setBusy] = useState(false)
+  const requestSequence = useRef(0)
+  const skipInitialFilterFetch = useRef(true)
   const [hasMoreState, setHasMoreState] = useState(hasMore)
   const [totalState, setTotalState] = useState(total)
 
-  const updateUrlPage = (nextPage: number) => {
-    const sp = new URLSearchParams(searchParams?.toString() || '')
+  const updateUrlPage = useCallback((nextPage: number) => {
+    const sp = new URLSearchParams(window.location.search)
     if (nextPage <= 1) sp.delete('page')
     else sp.set('page', String(nextPage))
     const qs = sp.toString()
     router.replace(qs ? `?${qs}#partners` : `#partners`)
-  }
+  }, [router])
 
-  const fetchPage = async (nextPage: number, mode: 'replace' | 'append') => {
-    if (busy) return
+  const fetchPage = useCallback(async (nextPage: number, mode: 'replace' | 'append') => {
+    const requestId = ++requestSequence.current
     setBusy(true)
     try {
       const u = new URL('/api/ecosystem/partners', window.location.origin)
@@ -88,6 +89,7 @@ export default function EcosystemPartnerDirectoryClient({
       const res = await fetch(u.toString(), { method: 'GET' })
       const json = (await res.json().catch(() => null)) as any
       if (!res.ok || !json?.success) throw new Error(String(json?.message || 'Request failed'))
+      if (requestId !== requestSequence.current) return
 
       const newItems = (Array.isArray(json.items) ? json.items : []) as EcosystemPartnerCard[]
       setItems((prev) => (mode === 'append' ? [...prev, ...newItems] : newItems))
@@ -96,12 +98,25 @@ export default function EcosystemPartnerDirectoryClient({
       setTotalState(Number(json.total) || 0)
       updateUrlPage(nextPage)
     } catch (e) {
+      if (requestId !== requestSequence.current) return
       const msg = e instanceof Error ? e.message : 'Request failed'
       trackEvent('ecosystem_partner_load_more_error', { slug, message: msg })
     } finally {
-      setBusy(false)
+      if (requestId === requestSequence.current) setBusy(false)
     }
-  }
+  }, [slug, take, featuredOnly, minRating, search, locationFilter, budgetFilter, updateUrlPage])
+
+  useEffect(() => {
+    if (skipInitialFilterFetch.current) {
+      skipInitialFilterFetch.current = false
+      return
+    }
+
+    const timeout = window.setTimeout(() => {
+      void fetchPage(1, 'replace')
+    }, 250)
+    return () => window.clearTimeout(timeout)
+  }, [fetchPage])
 
   const locationOptions = useMemo(() => {
     const set = new Set<string>()
@@ -200,7 +215,6 @@ export default function EcosystemPartnerDirectoryClient({
               onClick={() => {
                 const next = !featuredOnly
                 setFeaturedOnly(next)
-                fetchPage(1, 'replace')
               }}
               className={`h-12 rounded-xl border text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 ${
                 featuredOnly

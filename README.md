@@ -191,6 +191,8 @@ For production, set these environment variables:
 
 - `JWT_SECRET` - Secret key for JWT tokens
 - `NEXT_PUBLIC_BASE_URL` - Base URL of your application
+- `ECOSYSTEM_PUBLIC_INQUIRIES_ENABLED` - Set to `true` only after verifying production Redis availability, proxy-only origin access, edge replacement of `x-real-ip`, and anonymous inquiry retention/deletion coverage. Unset or any value other than `true` leaves public inquiry writes disabled.
+- `NEXTAUTH_URL` - Canonical-origin fallback for inquiry origin validation when `NEXT_PUBLIC_BASE_URL` is unset.
 - `PACKAGE_GST_RATE_BPS` - Required for package checkout; finance-approved GST rate in basis points (for example, `1800` = 18%). If missing or invalid, package checkout remains disabled. Set this in the local and deployment environments after confirming the applicable rate.
 - Database connection strings (when implementing real database)
 
@@ -205,4 +207,3 @@ For production, set these environment variables:
 ## Support
 
 For questions or issues, please contact support@millionflats.com 
-

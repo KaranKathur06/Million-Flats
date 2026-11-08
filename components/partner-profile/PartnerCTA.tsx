@@ -5,14 +5,13 @@ import type { PartnerProfileData } from './types'
 
 type PartnerCTAProps = {
   partner: PartnerProfileData
-  authenticatedEmail: string
 }
 
-export default function PartnerCTA({ partner, authenticatedEmail }: PartnerCTAProps) {
+export default function PartnerCTA({ partner }: PartnerCTAProps) {
   const idempotencyKey = useRef<string | null>(null)
   const [form, setForm] = useState({
     name: '',
-    email: authenticatedEmail,
+    email: '',
     phone: '',
     city: '',
     propertyType: '',
@@ -20,6 +19,7 @@ export default function PartnerCTA({ partner, authenticatedEmail }: PartnerCTAPr
     requirement: '',
     message: '',
     consentToShare: false,
+    websiteConfirm: '',
   })
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -41,7 +41,7 @@ export default function PartnerCTA({ partner, authenticatedEmail }: PartnerCTAPr
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!form.name.trim() || !form.email.trim() || !form.phone.trim() || !form.message.trim()) {
-      setError('Name, verified email, phone, and a message are required.')
+      setError('Name, email, phone, and a message are required.')
       return
     }
     if (!form.consentToShare) {
@@ -67,10 +67,10 @@ export default function PartnerCTA({ partner, authenticatedEmail }: PartnerCTAPr
         }
       )
       const data = await response.json()
-      if (data.success) {
+      if (response.ok && data.success) {
         setSubmitted(true)
       } else {
-        setError(data.message || 'Unable to submit your request. Please try again.')
+        setError(data.error?.message || 'Unable to submit your request. Please try again.')
       }
     } catch {
       setError('Network error. Please try again.')
@@ -108,6 +108,18 @@ export default function PartnerCTA({ partner, authenticatedEmail }: PartnerCTAPr
           </div>
         ) : (
           <form className="space-y-3 p-4 sm:p-5" onSubmit={handleSubmit} noValidate>
+            <div aria-hidden="true" className="absolute left-[-10000px] h-px w-px overflow-hidden">
+              <label htmlFor="partner-inquiry-website-confirm">Leave this field empty</label>
+              <input
+                id="partner-inquiry-website-confirm"
+                type="text"
+                name="websiteConfirm"
+                value={form.websiteConfirm}
+                onChange={handleChange}
+                tabIndex={-1}
+                autoComplete="off"
+              />
+            </div>
             <div>
               <label htmlFor="partner-inquiry-name" className="mb-1 block text-xs font-semibold text-slate-700">
                 Full name <span className="text-rose-600">*</span>
@@ -126,15 +138,16 @@ export default function PartnerCTA({ partner, authenticatedEmail }: PartnerCTAPr
 
             <div>
               <label htmlFor="partner-inquiry-email" className="mb-1 block text-xs font-semibold text-slate-700">
-                Verified account email
+                Email
               </label>
               <input
                 id="partner-inquiry-email"
                 type="email"
                 name="email"
                 value={form.email}
-                readOnly
                 autoComplete="email"
+                required
+                onChange={handleChange}
                 className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600"
               />
             </div>
@@ -273,7 +286,7 @@ export default function PartnerCTA({ partner, authenticatedEmail }: PartnerCTAPr
                 className="mt-1 h-4 w-4 rounded border-slate-300 text-[#1e3a5f] focus:ring-[#1e3a5f]"
               />
               <span>
-                I consent to MillionFlats sharing the details in this request with this partner so they can respond.
+                I agree to be contacted by MillionFlats about this inquiry. If I request a specific partner or MillionFlats matches me with one, I consent to sharing the details provided with that partner for this purpose.
               </span>
             </label>
 

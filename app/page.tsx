@@ -9,6 +9,7 @@ import { authOptions } from '@/lib/auth'
 import { isAdminPanelRole } from '@/lib/roleHomeRoute'
 import MetaDologyVideoSection from '@/components/MetaDologyVideoSection'
 import AssociatedCompanies from '@/components/AssociatedCompanies'
+import HomeVideoReelsSection from '@/components/videoReels/HomeVideoReelsSection'
 import { getBaseUrl } from '@/lib/auth/routes'
 import { buildSocialMetadata } from '@/lib/socialMetadata'
 
@@ -21,6 +22,7 @@ const FeaturedDevelopers = dynamicImport(() => import('@/components/FeaturedDeve
 type HomeSectionType =
   | 'trust-stats'
   | 'meta-dology-video'
+  | 'video-reels'
   | 'featured-projects'
   | 'featured-properties'
   | 'featured-developers'
@@ -30,6 +32,7 @@ type HomeSectionType =
 const HOME_SECTIONS: ReadonlyArray<{ type: HomeSectionType; enabled: boolean }> = [
   { type: 'trust-stats', enabled: true },
   { type: 'meta-dology-video', enabled: true },
+  { type: 'video-reels', enabled: true },
   { type: 'featured-projects', enabled: true },
   { type: 'featured-properties', enabled: false },
   { type: 'featured-developers', enabled: true },
@@ -154,6 +157,9 @@ export default async function Home() {
       {isHomeSectionEnabled('trust-stats') ? <TrustStats /> : null}
       <AssociatedCompanies />
       {isHomeSectionEnabled('meta-dology-video') ? <MetaDologyVideoSection /> : null}
+      {isHomeSectionEnabled('video-reels') && String(process.env.VIDEO_REELS_ENABLED || '').toLowerCase() === 'true'
+        ? <HomeVideoReelsSection />
+        : null}
 
       {isHomeSectionEnabled('featured-projects') ? (
         <>

@@ -11,11 +11,14 @@ const RATE_WINDOW_SECONDS = 15 * 60
 const RATE_LIMIT_SCRIPT = `
 local accountCount = tonumber(redis.call('GET', KEYS[1]) or '0')
 local ipCount = tonumber(redis.call('GET', KEYS[2]) or '0')
-if accountCount >= tonumber(ARGV[1]) or ipCount >= tonumber(ARGV[2]) then
+local hasAccount = ARGV[4] == '1'
+if (hasAccount and accountCount >= tonumber(ARGV[1])) or ipCount >= tonumber(ARGV[2]) then
   return 0
 end
-accountCount = redis.call('INCR', KEYS[1])
-if accountCount == 1 then redis.call('EXPIRE', KEYS[1], tonumber(ARGV[3])) end
+if hasAccount then
+  accountCount = redis.call('INCR', KEYS[1])
+  if accountCount == 1 then redis.call('EXPIRE', KEYS[1], tonumber(ARGV[3])) end
+end
 ipCount = redis.call('INCR', KEYS[2])
 if ipCount == 1 then redis.call('EXPIRE', KEYS[2], tonumber(ARGV[3])) end
 return 1
@@ -34,10 +37,10 @@ export type EcosystemInquiryInput = {
   requirement?: string | null
   message: string
   consentToShare: true
-  sourcePage: string
+  consentVersion: string
   idempotencyKey: string
-  userId: string
-  sourceIp: string
+  userId: string | null
+  sourceIp: string | null
 }
 
 export class EcosystemInquiryError extends Error {
@@ -59,21 +62,33 @@ function isUniqueConstraintError(error: unknown): boolean {
   )
 }
 
-function payloadHash(input: EcosystemInquiryInput, partnerId: string | null): string {
+function normalizedOptionalText(value: string | null | undefined): string | null {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : null
+}
+
+export function buildEcosystemInquiryPayloadHash(
+  input: EcosystemInquiryInput,
+  categorySlug: string,
+  partnerId: string | null,
+  sourcePage: string
+): string {
   const canonical = JSON.stringify({
-    categorySlug: input.categorySlug,
-    partnerId,
-    userId: input.userId,
     name: input.name.trim(),
     email: input.email.trim().toLowerCase(),
     phone: input.phone.trim(),
-    city: input.city?.trim() || null,
-    propertyType: input.propertyType?.trim() || null,
-    budget: input.budget?.trim() || null,
-    requirement: input.requirement?.trim() || null,
     message: input.message.trim(),
     consentToShare: input.consentToShare,
-    sourcePage: input.sourcePage,
+    consentVersion: input.consentVersion,
+    categorySlug,
+    partnerId,
+    city: normalizedOptionalText(input.city),
+    propertyType: normalizedOptionalText(input.propertyType),
+    budget: normalizedOptionalText(input.budget),
+    requirement: normalizedOptionalText(input.requirement),
+    sourceType: 'ECOSYSTEM_PARTNER_INQUIRY',
+    sourcePage,
+    userId: input.userId,
   })
   return createHash('sha256').update(canonical).digest('hex')
 }
@@ -90,13 +105,10 @@ async function findExistingInquiry(idempotencyKey: string, database: any = prism
   })
 }
 
-async function consumeInquiryLimit(userId: string, sourceIp: string): Promise<void> {
+async function consumeInquiryLimit(userId: string | null, sourceIp: string): Promise<void> {
   const redis = getRedis()
   if (!redis) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new EcosystemInquiryError('Inquiry submission is temporarily unavailable.', 503)
-    }
-    return
+    throw new EcosystemInquiryError('Inquiry submission is temporarily unavailable.', 503)
   }
 
   const ipHash = createHash('sha256').update(sourceIp).digest('hex')
@@ -105,14 +117,15 @@ async function consumeInquiryLimit(userId: string, sourceIp: string): Promise<vo
     allowed = Number(await redis.eval(
       RATE_LIMIT_SCRIPT,
       2,
-      `ecosystem-inquiry:user:${userId}`,
+      userId ? `ecosystem-inquiry:user:${userId}` : 'ecosystem-inquiry:anonymous',
       `ecosystem-inquiry:ip:${ipHash}`,
       '5',
       '30',
-      String(RATE_WINDOW_SECONDS)
+      String(RATE_WINDOW_SECONDS),
+      userId ? '1' : '0'
     ))
-  } catch (error) {
-    console.error('[ecosystem-inquiry] Redis rate-limit operation failed', error)
+  } catch {
+    console.error('[ecosystem-inquiry] Redis rate-limit operation failed')
     throw new EcosystemInquiryError('Inquiry submission is temporarily unavailable.', 503)
   }
 
@@ -192,6 +205,9 @@ export async function submitEcosystemInquiry(input: EcosystemInquiryInput) {
   if (!category || !category.isActive) {
     throw new EcosystemInquiryError('This ecosystem category is unavailable.', 404)
   }
+  if (category.slug !== input.categorySlug) {
+    throw new EcosystemInquiryError('This ecosystem category is unavailable.', 404)
+  }
 
   let partner: any = null
   if (input.partnerSlug) {
@@ -205,6 +221,9 @@ export async function submitEcosystemInquiry(input: EcosystemInquiryInput) {
       select: { id: true, name: true, slug: true, contactEmail: true },
     })
     if (!partner) throw new EcosystemInquiryError('Partner not found.', 404)
+    if (input.partnerId && input.partnerId !== partner.id) {
+      throw new EcosystemInquiryError('Inquiry target does not match.', 400)
+    }
   } else if (input.partnerId) {
     partner = await (prisma as any).ecosystemPartner.findFirst({
       where: {
@@ -218,17 +237,25 @@ export async function submitEcosystemInquiry(input: EcosystemInquiryInput) {
   }
 
   const selectedPartnerId: string | null = partner?.id || null
-  const hash = payloadHash(input, selectedPartnerId)
+  const sourceIp = input.sourceIp
+  if (!sourceIp) {
+    throw new EcosystemInquiryError('Inquiry submission is temporarily unavailable.', 503)
+  }
+  const sourcePage = partner
+    ? `/partners/${category.slug}/${partner.slug}`
+    : `/ecosystem-partners/${category.slug}`
+  const hash = buildEcosystemInquiryPayloadHash(input, category.slug, selectedPartnerId, sourcePage)
   const metadata = {
     ecosystemCategorySlug: category.slug,
     ecosystemCategoryTitle: category.title,
     partnerId: selectedPartnerId,
     partnerName: partner?.name || null,
-    city: input.city?.trim() || null,
-    requirement: input.requirement?.trim() || null,
+    city: normalizedOptionalText(input.city),
+    requirement: normalizedOptionalText(input.requirement),
     consentToShare: true,
     consentRecordedAt: new Date().toISOString(),
-    sourcePage: input.sourcePage,
+    consentVersion: input.consentVersion,
+    sourcePage,
     idempotencyPayloadHash: hash,
     notificationStatus: 'PENDING',
     leadSource: 'Ecosystem Partner Lead',
@@ -255,7 +282,7 @@ export async function submitEcosystemInquiry(input: EcosystemInquiryInput) {
         }
       }
 
-      await consumeInquiryLimit(input.userId, input.sourceIp)
+      await consumeInquiryLimit(input.userId, sourceIp)
       const created = await tx.lead.create({
         data: {
           leadType: 'ECOSYSTEM',
@@ -271,15 +298,15 @@ export async function submitEcosystemInquiry(input: EcosystemInquiryInput) {
           ]
             .filter(Boolean)
             .join('\n\n'),
-          propertyType: input.propertyType?.trim() || null,
-          budgetRange: input.budget?.trim() || null,
+          propertyType: normalizedOptionalText(input.propertyType),
+          budgetRange: normalizedOptionalText(input.budget),
           country: 'INDIA',
           status: 'NEW',
           ecosystemPartnerId: selectedPartnerId,
           userId: input.userId,
           sourceType: 'ECOSYSTEM_PARTNER_INQUIRY',
-          sourceUrl: input.sourcePage,
-          landingUrl: input.sourcePage,
+          sourceUrl: sourcePage,
+          landingUrl: sourcePage,
           requestKey: input.idempotencyKey,
           requestPayloadHash: hash,
           consentToShare: true,
@@ -377,8 +404,8 @@ export async function retryEcosystemInquiryNotifications(leadId: string) {
       city: typeof metadata?.city === 'string' ? metadata.city : null,
       budget: lead.budgetRange,
     })
-  } catch (error) {
-    console.error('[ecosystem-inquiry] Notification delivery failed', { leadId: lead.id, error })
+  } catch {
+    console.error('[ecosystem-inquiry] Notification delivery failed', { leadId: lead.id })
   }
   const notificationStatus = sent ? 'SENT' : 'PENDING'
   await (prisma as any).lead.update({

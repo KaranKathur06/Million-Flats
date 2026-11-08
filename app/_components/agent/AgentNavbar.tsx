@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { Film } from 'lucide-react'
 import { AgentStatus, agentModuleAccessMap } from '@/lib/agentLifecycle'
 import { AGENT_NAV_ITEMS, checkAgentAccess, NavItemKey } from '@/lib/agentRouteGuard'
 import AccessGuardModal from './AccessGuardModal'
@@ -186,6 +187,15 @@ export default function AgentNavbar({
                   </Link>
                 )
               })}
+              <Link
+                href="/agent/video-campaigns"
+                className={`relative text-[15px] font-medium transition-colors ${
+                  pathname?.startsWith('/agent/video-campaigns') ? 'text-blue-600' : 'text-slate-700 hover:text-black'
+                }`}
+              >
+                Video campaigns
+                {pathname?.startsWith('/agent/video-campaigns') ? <span className="absolute left-0 right-0 -bottom-2 h-0.5 rounded-full bg-blue-600" /> : null}
+              </Link>
             </div>
 
             {/* Right side */}
@@ -300,6 +310,14 @@ export default function AgentNavbar({
                   </Link>
                 )
               })}
+              <Link
+                href="/agent/video-campaigns"
+                className={`flex items-center justify-between rounded-lg px-4 py-3 ${
+                  pathname?.startsWith('/agent/video-campaigns') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center gap-3"><Film className="h-5 w-5" /><span className="font-medium">Video campaigns</span></div>
+              </Link>
             </div>
 
             {/* Mobile Profile Completion */}

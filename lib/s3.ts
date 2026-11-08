@@ -477,6 +477,23 @@ export async function s3ObjectExists(params: { key: string }) {
   }
 }
 
+export async function getS3ObjectMetadata(params: { key: string }) {
+  const { bucket } = requireS3Env()
+  const client = getS3Client()
+  const result = await client.send(
+    new HeadObjectCommand({
+      Bucket: bucket,
+      Key: requireCanonicalPrefix(params.key),
+    })
+  )
+
+  return {
+    sizeBytes: Number(result.ContentLength || 0),
+    contentType: String(result.ContentType || '').toLowerCase(),
+    etag: result.ETag || null,
+  }
+}
+
 export async function createSignedPutUrl(params: {
   folder: string
   filename: string
@@ -508,6 +525,7 @@ export async function createSignedPutUrl(params: {
 export async function createSignedPutUrlForKey(params: {
   key: string
   contentType: string
+  cacheControl?: string
   expiresInSeconds?: number
 }) {
   const { region, bucket } = requireS3Env()
@@ -522,7 +540,7 @@ export async function createSignedPutUrlForKey(params: {
       Bucket: bucket,
       Key: key,
       ContentType: params.contentType || 'application/octet-stream',
-      CacheControl: 'public, max-age=31536000, immutable',
+      CacheControl: params.cacheControl || 'public, max-age=31536000, immutable',
     }),
     { expiresIn }
   )

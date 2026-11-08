@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { fetchPublicPartners } from '@/lib/ecosystem/fetchPublicPartners'
 import { ECOSYSTEM_PARTNERS_CACHE_TAG } from '@/lib/ecosystem/revalidatePartner'
-import { getAuthenticatedEcosystemUser } from '@/lib/ecosystem/auth'
 
 export const runtime = 'nodejs'
 export const revalidate = 0
@@ -26,9 +25,6 @@ function bad(message: string, status = 400) {
 /** Canonical public partner directory API — CMS single source of truth. */
 export async function GET(req: Request) {
   try {
-    const user = await getAuthenticatedEcosystemUser()
-    if (!user) return bad('Authentication required', 401)
-
     const { searchParams } = new URL(req.url)
     const parsed = QuerySchema.parse({
       slug: searchParams.get('slug') ?? undefined,
@@ -74,7 +70,8 @@ export async function GET(req: Request) {
       }
     )
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Request failed'
-    return bad(msg || 'Internal server error', 500)
+    if (e instanceof z.ZodError) return bad('Invalid query', 400)
+    console.error('[ecosystem-partners] Public directory query failed')
+    return bad('Unable to load partners right now.', 500)
   }
 }

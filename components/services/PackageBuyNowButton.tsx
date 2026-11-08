@@ -24,16 +24,10 @@ type RazorpayInstance = {
   on: (event: string, handler: (event: any) => void) => void
 }
 
-declare global {
-  interface Window {
-    Razorpay?: new (options: Record<string, any>) => RazorpayInstance
-  }
-}
-
 let checkoutScript: Promise<void> | null = null
 
 function loadCheckoutScript() {
-  if (window.Razorpay) return Promise.resolve()
+  if ((window as any).Razorpay) return Promise.resolve()
   if (!checkoutScript) {
     checkoutScript = new Promise<void>((resolve, reject) => {
       const script = document.createElement('script')
@@ -111,10 +105,11 @@ export function PackageBuyNowButton({ packageId, packageName, audience, quote, d
       }
 
       await loadCheckoutScript()
-      if (!window.Razorpay) throw new Error('Secure checkout could not be loaded. Please try again.')
+      const RazorpayCtor = (window as any).Razorpay
+      if (!RazorpayCtor) throw new Error('Secure checkout could not be loaded. Please try again.')
       setStatus('checkout')
 
-      const checkout = new window.Razorpay({
+      const checkout = new RazorpayCtor({
         key: orderData.keyId,
         amount: orderData.amount,
         currency: orderData.currency,

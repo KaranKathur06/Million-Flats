@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma'
 import { buildCanonicalUrl, buildPrevNext, normalizePage } from '@/lib/ecosystem/paginationSeo'
-import { getAuthenticatedEcosystemUser } from '@/lib/ecosystem/auth'
 
 export default async function Head({
   params,
@@ -18,12 +17,9 @@ export default async function Head({
   })
   if (!category) return null
 
-  const user = await getAuthenticatedEcosystemUser()
-  const total = user
-    ? await (prisma as any).ecosystemPartner.count({
-        where: { categoryId: category.id, status: 'APPROVED', isActive: true },
-      })
-    : 0
+  const total = await (prisma as any).ecosystemPartner.count({
+    where: { categoryId: category.id, status: 'APPROVED', isActive: true },
+  })
   const totalPages = Math.max(1, Math.ceil(total / take))
 
   const canonical = buildCanonicalUrl({ slug: params.slug, page })

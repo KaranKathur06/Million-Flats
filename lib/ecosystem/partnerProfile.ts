@@ -11,6 +11,98 @@ import type {
   PartnerServiceItem,
   PartnerWhyChooseItem,
 } from '@/components/partner-profile/types'
+import { getCategorySchema } from '@/lib/ecosystem/admin/categoryFieldRegistry'
+import type { EcosystemCategorySlug } from '@/lib/ecosystemPartners'
+
+const PUBLIC_CATEGORY_DATA_FIELDS: Partial<Record<EcosystemCategorySlug, readonly string[]>> = {
+  'home-loans-finance': ['loanTypes', 'interestRateMin', 'interestRateMax', 'rbiRegistration'],
+  'legal-documentation': [
+    'licenseNumber',
+    'courtRegistration',
+    'specialization',
+    'dueDiligence',
+    'agreementDrafting',
+    'registration',
+    'rera',
+    'litigationSupport',
+  ],
+  'property-insurance': ['products', 'irdaiRegistrationNumber'],
+  'interior-design-renovation': ['portfolioLinks'],
+  'packers-movers': ['serviceTypes', 'fleetDetails'],
+  'property-management': ['unitsManagedDisplay'],
+  'vastu-feng-shui': ['consultationModes', 'philosophy'],
+  'tiles-surface-finishing': ['materials', 'supportedBrands'],
+  'hardware-architectural-fittings': ['productCategories', 'supportedBrands'],
+  'cement-structural': ['materials', 'deliveryCapability'],
+  'smart-home-automation': ['supportedBrands', 'amcAvailable'],
+  'technology-partners': ['solutions', 'integrationType'],
+}
+
+function isPublicHttpsUrl(value: string): string | null {
+  try {
+    const url = new URL(value)
+    if (url.protocol !== 'https:' || url.username || url.password) return null
+    return url.toString()
+  } catch {
+    return null
+  }
+}
+
+function projectPublicCategoryData(categorySlug: string, value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+
+  const allowedFields = PUBLIC_CATEGORY_DATA_FIELDS[categorySlug as EcosystemCategorySlug]
+  const schema = getCategorySchema(categorySlug)
+  if (!allowedFields || !schema) return {}
+
+  const source = value as Record<string, unknown>
+  const result: Record<string, unknown> = {}
+  for (const field of schema.fields) {
+    if (!allowedFields.includes(field.name) || field.type === 'email' || field.type === 'tel') continue
+    const raw = source[field.name]
+    if (field.name === 'portfolioLinks') {
+      if (Array.isArray(raw)) {
+        const urls = raw
+          .filter((item): item is string => typeof item === 'string')
+          .map(isPublicHttpsUrl)
+          .filter((item): item is string => item !== null)
+          .slice(0, 20)
+        if (urls.length) result[field.name] = urls
+      }
+      continue
+    }
+
+    if (field.type === 'number') {
+      const number = typeof raw === 'number' ? raw : Number.NaN
+      if (
+        Number.isFinite(number) &&
+        (field.validation?.min === undefined || number >= field.validation.min) &&
+        (field.validation?.max === undefined || number <= field.validation.max)
+      ) {
+        result[field.name] = number
+      }
+      continue
+    }
+
+    if (Array.isArray(raw)) {
+      const items = raw
+        .filter((item): item is string => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0 && item.length <= 200)
+        .slice(0, 50)
+      if (items.length) result[field.name] = items
+      continue
+    }
+
+    if (typeof raw === 'string') {
+      const text = raw.trim()
+      if (text && text.length <= 500) result[field.name] = text
+    } else if (typeof raw === 'boolean') {
+      result[field.name] = raw
+    }
+  }
+  return result
+}
 
 function parseJsonArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : []
@@ -139,7 +231,7 @@ export async function getPartnerProfile(
     reviews,
     faqs,
     gallery,
-    categorySpecificData: (partner.categoryData && typeof partner.categoryData === 'object') ? partner.categoryData as Record<string, unknown> : {},
+    categorySpecificData: projectPublicCategoryData(partner.category.slug, partner.categoryData),
     experienceDisplay: partner.experienceDisplay || null,
   }
 }

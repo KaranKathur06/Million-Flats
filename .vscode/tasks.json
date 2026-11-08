@@ -114,6 +114,42 @@
 			"problemMatcher": [
 				"$tsc"
 			]
+		},
+		{
+			"label": "Run ecosystem public access tests",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"test",
+				"--",
+				"--runInBand",
+				"--runTestsByPath",
+				"tests/unit/ecosystem-inquiry-auth.test.ts",
+				"tests/unit/ecosystem-inquiries-idempotency.test.ts",
+				"tests/unit/ecosystem-public-directory.test.ts",
+				"tests/unit/ecosystem-public-partners-loader.test.ts",
+				"tests/unit/ecosystem-partner-profile.test.ts"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Rerun ecosystem public access tests",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"test",
+				"--",
+				"--runInBand",
+				"--runTestsByPath",
+				"tests/unit/ecosystem-inquiry-auth.test.ts",
+				"tests/unit/ecosystem-inquiries-idempotency.test.ts",
+				"tests/unit/ecosystem-public-directory.test.ts",
+				"tests/unit/ecosystem-public-partners-loader.test.ts",
+				"tests/unit/ecosystem-partner-profile.test.ts"
+			],
+			"isBackground": false,
+			"problemMatcher": []
 		}
 	]
 }

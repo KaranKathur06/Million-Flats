@@ -65,4 +65,42 @@ describe('ecosystem partner profile projection', () => {
       tagline: 'Explore Home Loans & Finance services from Example Finance.',
     })
   })
+
+  it('projects only explicitly public registered category fields', async () => {
+    findPartner.mockResolvedValue({
+      id: 'partner-1',
+      name: 'Example Finance',
+      slug: 'example-finance',
+      tagline: null,
+      shortDescription: null,
+      description: null,
+      logo: null,
+      coverImage: null,
+      isVerified: false,
+      partnerSince: null,
+      category: { slug: 'home-loans-finance', title: 'Home Loans & Finance' },
+      services: [],
+      locations: [],
+      gallery: [],
+      portfolios: [],
+      reviews: [],
+      faqs: [],
+      whyChoose: null,
+      workProcess: null,
+      categoryData: {
+        loanTypes: ['Home Loan'],
+        interestRateMin: 8.25,
+        processingFee: '1% of the loan amount',
+        contactEmail: 'private@example.com',
+        unregisteredField: 'do not expose',
+      },
+    } as never)
+
+    const profile = await getPartnerProfile('home-loans-finance', 'example-finance')
+
+    expect(profile?.categorySpecificData).toEqual({
+      loanTypes: ['Home Loan'],
+      interestRateMin: 8.25,
+    })
+  })
 })

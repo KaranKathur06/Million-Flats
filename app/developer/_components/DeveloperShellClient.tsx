@@ -32,6 +32,7 @@ export default function DeveloperShellClient({ session, children }: { session: S
     { label: 'Documents', href: '/developer/documents', icon: 'documents' },
     { label: 'Verification', href: '/developer/verification', icon: 'verification' },
     { label: 'Billing', href: '/developer/subscription', icon: 'billing' },
+    { label: 'Video campaigns', href: '/developer/video-campaigns', icon: 'analytics' },
     { label: 'Settings', href: '/developer/settings', icon: 'settings' },
   ]
 

@@ -16,10 +16,8 @@ import {
   type EcosystemSectionItem,
 } from '@/lib/ecosystem/categoryConfig'
 import { fetchPublicPartners } from '@/lib/ecosystem/fetchPublicPartners'
-import { getAuthenticatedEcosystemUser } from '@/lib/ecosystem/auth'
 import type { EcosystemCategorySlug } from '@/lib/ecosystemPartners'
 import { prisma } from '@/lib/prisma'
-import Link from 'next/link'
 
 type Theme = {
   accent: string
@@ -336,7 +334,6 @@ export default async function EcosystemCategoryPage({ slug, page }: EcosystemCat
         tool: null,
       }
 
-  const user = await getAuthenticatedEcosystemUser()
   const theme = THEMES[cfg.slug as EcosystemCategorySlug] ?? THEMES['home-loans-finance']
   const bannerImage = await getCategoryBannerImage(cfg.slug, cfg.heroImage.src)
   const take = 12
@@ -344,9 +341,7 @@ export default async function EcosystemCategoryPage({ slug, page }: EcosystemCat
   const baseUrl = `https://millionflats.com/ecosystem-partners/${cfg.slug}`
   const url = pageSafe > 1 ? `${baseUrl}?page=${pageSafe}` : baseUrl
 
-  const directory = user
-    ? await fetchPublicPartners({ categorySlug: cfg.slug, page: pageSafe, take })
-    : { items: [], total: 0, hasMore: false }
+  const directory = await fetchPublicPartners({ categorySlug: cfg.slug, page: pageSafe, take })
   const { items: partnersRaw, total: totalPartners, hasMore: hasMorePartners } = directory
 
   const partners: EcosystemPartnerCard[] = partnersRaw.map((p) => ({
@@ -512,7 +507,7 @@ export default async function EcosystemCategoryPage({ slug, page }: EcosystemCat
         </div>
       </section>
 
-      {cfg.featuredSection && user ? (
+      {cfg.featuredSection ? (
         <section className="bg-[#f7f9fb] py-20">
           <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
             <EcosystemFeaturedPartnersSection
@@ -565,41 +560,15 @@ export default async function EcosystemCategoryPage({ slug, page }: EcosystemCat
 
       {cfg.tool ? <EcosystemToolSection tool={cfg.tool} /> : null}
 
-      {user ? (
-        <EcosystemPartnerDirectoryClient
-          partners={partners}
-          slug={cfg.slug}
-          categoryTitle={cfg.title}
-          initialPage={pageSafe}
-          take={take}
-          total={totalPartners}
-          hasMore={hasMorePartners}
-        />
-      ) : (
-        <section id="partners" className="bg-[#f7f9fb] px-4 py-20 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-[900px] rounded-[28px] border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-12">
-            <SectionBadge theme={theme}>Verified partner directory</SectionBadge>
-            <h2 className="mt-6 text-3xl font-extrabold text-slate-950">Sign in to explore {cfg.title} partners</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-600">
-              Category information is open to everyone. Create an account or sign in to browse approved partner profiles and request a consultation.
-            </p>
-            <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-              <Link
-                href={`/auth/login?callbackUrl=${encodeURIComponent(`/ecosystem-partners/${cfg.slug}#partners`)}`}
-                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#0d1f38] px-6 py-3 text-sm font-semibold text-white hover:bg-[#17365d]"
-              >
-                Sign in to browse
-              </Link>
-              <Link
-                href={`/auth/register?callbackUrl=${encodeURIComponent(`/ecosystem-partners/${cfg.slug}#partners`)}`}
-                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50"
-              >
-                Create an account
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
+      <EcosystemPartnerDirectoryClient
+        partners={partners}
+        slug={cfg.slug}
+        categoryTitle={cfg.title}
+        initialPage={pageSafe}
+        take={take}
+        total={totalPartners}
+        hasMore={hasMorePartners}
+      />
 
       <section id="lead" className="bg-[#f7f9fb] px-4 pb-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-[1400px]">

@@ -37,6 +37,7 @@ export default function AgencyShellClient({
     { label: 'Documents', href: '/agency/documents', icon: 'documents' },
     { label: 'Verification', href: '/agency/verification', icon: 'verification' },
     { label: 'Billing', href: '/agency/subscription', icon: 'billing' },
+    { label: 'Video campaigns', href: '/agency/video-campaigns', icon: 'analytics' },
     { label: 'Settings', href: '/agency/settings', icon: 'settings' },
   ]
 

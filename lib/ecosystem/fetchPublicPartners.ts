@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma'
 import { buildPublicPartnerWhere } from '@/lib/ecosystem/partnerVisibility'
-import { getAuthenticatedEcosystemUser } from '@/lib/ecosystem/auth'
 
 export type PublicPartnerListItem = {
   id: string
@@ -43,15 +42,6 @@ const PARTNER_SELECT = {
   isVerified: true,
 } as const
 
-const EMPTY_RESULT = (page: number, take: number, dbUnavailable = false): FetchPublicPartnersResult => ({
-  items: [],
-  total: 0,
-  page,
-  take,
-  hasMore: false,
-  ...(dbUnavailable ? { dbUnavailable: true } : {}),
-})
-
 export type FetchPublicPartnersParams = {
   categorySlug: string
   page?: number
@@ -67,8 +57,6 @@ export async function fetchPublicPartners(params: FetchPublicPartnersParams): Pr
   const page = Math.max(1, params.page ?? 1)
   const take = Math.min(48, Math.max(1, params.take ?? 12))
   const skip = (page - 1) * take
-  const user = await getAuthenticatedEcosystemUser()
-  if (!user) return EMPTY_RESULT(page, take)
 
   const where: Record<string, unknown> = buildPublicPartnerWhere({
     category: { slug: params.categorySlug, isActive: true },

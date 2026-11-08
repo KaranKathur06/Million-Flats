@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { hasMinRole, normalizeRole } from '@/lib/rbac'
 import { processStorageCleanupJobs } from '@/lib/storageCleanup'
+import { processVideoReelMaintenance } from '@/lib/videoReels/maintenance'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -21,8 +22,11 @@ async function run(req: NextRequest) {
   }
 
   try {
-    const result = await processStorageCleanupJobs(50)
-    return NextResponse.json({ success: true, ...result })
+    const [result, videoReels] = await Promise.all([
+      processStorageCleanupJobs(50),
+      processVideoReelMaintenance(25),
+    ])
+    return NextResponse.json({ success: true, ...result, videoReels })
   } catch (error) {
     console.error('[storage cleanup] worker failed', error)
     return NextResponse.json({ success: false, message: 'Storage cleanup failed' }, { status: 500 })

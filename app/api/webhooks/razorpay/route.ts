@@ -3,6 +3,11 @@ import { prisma } from '@/lib/prisma'
 import { verifyWebhookSignature } from '@/lib/razorpay'
 import { PLAN_LIMITS } from '@/lib/subscriptionPlans'
 import { activatePackagePurchase } from '@/lib/packagePurchaseActivation'
+import {
+  captureVideoCampaignOrder,
+  recordVideoCampaignPaymentFailure,
+  refundVideoCampaignOrder,
+} from '@/lib/videoReels/payments'
 
 export const runtime = 'nodejs'
 
@@ -66,13 +71,25 @@ interface WebhookEvent {
   created_at: number
 }
 
-type PaymentProcessingResult = { paymentId: string | null; packagePurchaseId: string | null }
+type PaymentProcessingResult = {
+  paymentId: string | null
+  packagePurchaseId: string | null
+  videoCampaignOrderId: string | null
+}
+
+const emptyProcessingResult: PaymentProcessingResult = {
+  paymentId: null,
+  packagePurchaseId: null,
+  videoCampaignOrderId: null,
+}
 
 /**
  * Generate idempotency key from event
  */
-function generateIdempotencyKey(event: WebhookEvent): string {
-  return `razorpay_${event.event}_${event.payload.payment?.entity.id || event.payload.order?.entity.id}`
+function generateIdempotencyKey(event: WebhookEvent, providerEventId: string | null): string {
+  return providerEventId
+    ? `razorpay_event_${providerEventId}`
+    : `razorpay_${event.event}_${event.payload.payment?.entity.id || event.payload.order?.entity.id}`
 }
 
 /**
@@ -112,22 +129,25 @@ export async function POST(req: Request) {
 
     // Parse event
     const event: WebhookEvent = JSON.parse(rawBody)
+    const providerEventId = req.headers.get('x-razorpay-event-id')
     console.log(`Webhook received: ${event.event}`, {
-      eventId: event.account_id,
+      eventId: providerEventId,
       paymentId: event.payload.payment?.entity.id,
       orderId: event.payload.order?.entity.id,
     })
 
     // Generate idempotency key
-    const idempotencyKey = generateIdempotencyKey(event)
+    const normalizedProviderEventId = providerEventId ?? null
+    const normalizedSignature = signature ?? null
+    const idempotencyKey = generateIdempotencyKey(event, normalizedProviderEventId)
 
     const webhookRecord = await (prisma as any).paymentWebhook.upsert({
       where: { idempotencyKey },
       create: {
-        razorpayEventId: idempotencyKey,
+        razorpayEventId: normalizedProviderEventId ?? idempotencyKey,
         eventType: event.event,
         payload: event.payload as any,
-        signature,
+        signature: normalizedSignature,
         idempotencyKey,
         processed: false,
       },
@@ -142,23 +162,24 @@ export async function POST(req: Request) {
     let processingError: string | null = null
     let paymentId: string | null = null
     let packagePurchaseId: string | null = null
+    let videoCampaignOrderId: string | null = null
 
     try {
       switch (event.event) {
         case 'payment.captured':
-          ({ paymentId, packagePurchaseId } = await handlePaymentCaptured(event, webhookRecord.id))
+          ({ paymentId, packagePurchaseId, videoCampaignOrderId } = await handlePaymentCaptured(event, webhookRecord.id))
           break
 
         case 'payment.failed':
-          ({ paymentId, packagePurchaseId } = await handlePaymentFailed(event, webhookRecord.id))
+          ({ paymentId, packagePurchaseId, videoCampaignOrderId } = await handlePaymentFailed(event, webhookRecord.id))
           break
 
         case 'payment.refunded':
-          paymentId = await handlePaymentRefunded(event, webhookRecord.id)
+          ({ paymentId, packagePurchaseId, videoCampaignOrderId } = await handlePaymentRefunded(event, webhookRecord.id))
           break
 
         case 'order.paid':
-          ({ paymentId, packagePurchaseId } = await handleOrderPaid(event, webhookRecord.id))
+          ({ paymentId, packagePurchaseId, videoCampaignOrderId } = await handleOrderPaid(event, webhookRecord.id))
           break
 
         default:
@@ -173,11 +194,12 @@ export async function POST(req: Request) {
           processedAt: new Date(),
           paymentId,
           packagePurchaseId,
+          videoCampaignOrderId,
         },
       })
     } catch (error) {
-      processingError = error instanceof Error ? error.message : 'Processing failed'
-      console.error(`Webhook processing error: ${event.event}`, error)
+      processingError = 'PROCESSING_FAILED'
+      console.error(`Webhook processing error: ${event.event}`, error instanceof Error ? error.name : 'UnknownError')
 
       // Update webhook with error
       await (prisma as any).paymentWebhook.update({
@@ -197,11 +219,17 @@ export async function POST(req: Request) {
       paymentId,
     })
 
+    if (processingError) {
+      return NextResponse.json(
+        { success: false, message: 'Webhook processing failed; retry is required' },
+        { status: 503 }
+      )
+    }
+
     return NextResponse.json({
       success: true,
       event: event.event,
-      processed: !processingError,
-      error: processingError,
+      processed: true,
     })
   } catch (error) {
     console.error('Webhook handler error:', error)
@@ -217,7 +245,19 @@ export async function POST(req: Request) {
  */
 async function handlePaymentCaptured(event: WebhookEvent, webhookId: string): Promise<PaymentProcessingResult> {
   const payment = event.payload.payment?.entity
-  if (!payment) return { paymentId: null, packagePurchaseId: null }
+  if (!payment) return { ...emptyProcessingResult }
+
+  const campaignOrder = await prisma.videoCampaignOrder.findUnique({
+    where: { razorpayOrderId: payment.order_id },
+    select: { id: true },
+  })
+  if (campaignOrder) {
+    const capturedOrder = await captureVideoCampaignOrder({
+      razorpayOrderId: payment.order_id,
+      payment,
+    })
+    return { paymentId: null, packagePurchaseId: null, videoCampaignOrderId: capturedOrder?.id || campaignOrder.id }
+  }
 
   // Find payment record
   const paymentRecord = await (prisma as any).payment.findFirst({
@@ -231,7 +271,7 @@ async function handlePaymentCaptured(event: WebhookEvent, webhookId: string): Pr
     })
     if (!packagePurchase) {
       console.error(`Payment record not found for order: ${payment.order_id}`)
-      return { paymentId: null, packagePurchaseId: null }
+      return { ...emptyProcessingResult }
     }
     if (payment.amount !== packagePurchase.totalAmount || payment.currency !== packagePurchase.currency) {
       throw new Error('Captured package payment does not match the stored amount and currency')
@@ -245,12 +285,12 @@ async function handlePaymentCaptured(event: WebhookEvent, webhookId: string): Pr
       paymentId: payment.id,
       paidAt: new Date(payment.created_at * 1000),
     })
-    return { paymentId: null, packagePurchaseId: packagePurchase.id }
+    return { paymentId: null, packagePurchaseId: packagePurchase.id, videoCampaignOrderId: null }
   }
 
   // Skip if already captured
   if (paymentRecord.status === 'CAPTURED') {
-    return { paymentId: paymentRecord.id, packagePurchaseId: null }
+    return { paymentId: paymentRecord.id, packagePurchaseId: null, videoCampaignOrderId: null }
   }
 
   const now = new Date()
@@ -333,7 +373,7 @@ async function handlePaymentCaptured(event: WebhookEvent, webhookId: string): Pr
     return updatedPayment.id
   })
 
-  return { paymentId: result, packagePurchaseId: null }
+  return { paymentId: result, packagePurchaseId: null, videoCampaignOrderId: null }
 }
 
 /**
@@ -341,7 +381,16 @@ async function handlePaymentCaptured(event: WebhookEvent, webhookId: string): Pr
  */
 async function handlePaymentFailed(event: WebhookEvent, webhookId: string): Promise<PaymentProcessingResult> {
   const payment = event.payload.payment?.entity
-  if (!payment) return { paymentId: null, packagePurchaseId: null }
+  if (!payment) return { ...emptyProcessingResult }
+
+  const campaignOrder = await prisma.videoCampaignOrder.findUnique({
+    where: { razorpayOrderId: payment.order_id },
+    select: { id: true },
+  })
+  if (campaignOrder) {
+    await recordVideoCampaignPaymentFailure(payment.order_id)
+    return { paymentId: null, packagePurchaseId: null, videoCampaignOrderId: campaignOrder.id }
+  }
 
   const paymentRecord = await (prisma as any).payment.findFirst({
     where: { razorpayOrderId: payment.order_id },
@@ -349,12 +398,12 @@ async function handlePaymentFailed(event: WebhookEvent, webhookId: string): Prom
 
   if (!paymentRecord) {
     const packagePurchase = await (prisma as any).packagePurchase.findUnique({ where: { razorpayOrderId: payment.order_id } })
-    if (!packagePurchase) return { paymentId: null, packagePurchaseId: null }
+    if (!packagePurchase) return { ...emptyProcessingResult }
     await (prisma as any).packagePurchase.update({
       where: { id: packagePurchase.id },
       data: { notes: { ...(packagePurchase.notes || {}), last_failure_reason: payment.error_description, last_failure_code: payment.error_code } },
     })
-    return { paymentId: null, packagePurchaseId: packagePurchase.id }
+    return { paymentId: null, packagePurchaseId: packagePurchase.id, videoCampaignOrderId: null }
   }
 
   await (prisma as any).payment.update({
@@ -372,21 +421,30 @@ async function handlePaymentFailed(event: WebhookEvent, webhookId: string): Prom
     },
   })
 
-  return { paymentId: paymentRecord.id, packagePurchaseId: null }
+  return { paymentId: paymentRecord.id, packagePurchaseId: null, videoCampaignOrderId: null }
 }
 
 /**
  * Handle payment.refunded event
  */
-async function handlePaymentRefunded(event: WebhookEvent, webhookId: string): Promise<string | null> {
+async function handlePaymentRefunded(event: WebhookEvent, webhookId: string): Promise<PaymentProcessingResult> {
   const payment = event.payload.payment?.entity
-  if (!payment) return null
+  if (!payment) return { ...emptyProcessingResult }
+
+  const campaignOrder = await prisma.videoCampaignOrder.findUnique({
+    where: { razorpayPaymentId: payment.id },
+    select: { id: true },
+  })
+  if (campaignOrder) {
+    const refunded = await refundVideoCampaignOrder(payment.id)
+    return { paymentId: null, packagePurchaseId: null, videoCampaignOrderId: refunded?.id || campaignOrder.id }
+  }
 
   const paymentRecord = await (prisma as any).payment.findFirst({
     where: { razorpayPaymentId: payment.id },
   })
 
-  if (!paymentRecord) return null
+  if (!paymentRecord) return { ...emptyProcessingResult }
 
   await (prisma as any).payment.update({
     where: { id: paymentRecord.id },
@@ -402,7 +460,7 @@ async function handlePaymentRefunded(event: WebhookEvent, webhookId: string): Pr
     },
   })
 
-  return paymentRecord.id
+  return { paymentId: paymentRecord.id, packagePurchaseId: null, videoCampaignOrderId: null }
 }
 
 /**
@@ -410,10 +468,10 @@ async function handlePaymentRefunded(event: WebhookEvent, webhookId: string): Pr
  */
 async function handleOrderPaid(event: WebhookEvent, webhookId: string): Promise<PaymentProcessingResult> {
   const order = event.payload.order?.entity
-  if (!order) return { paymentId: null, packagePurchaseId: null }
+  if (!order) return { ...emptyProcessingResult }
 
   const payment = event.payload.payment?.entity
-  if (!payment) return { paymentId: null, packagePurchaseId: null }
+  if (!payment) return { ...emptyProcessingResult }
 
   // Treat same as payment.captured
   return handlePaymentCaptured({
