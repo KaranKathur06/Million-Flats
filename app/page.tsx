@@ -62,8 +62,8 @@ export async function generateMetadata({
       description:
         'Safely invest in premium ₹3Cr+ villas, penthouses, and off-plan projects across India and Dubai. Fully backed by institutional compliance, secure LRS/FEMA routing, and 3D digital twins.',
       url: '/',
-      image: '/HOMEPAGE.webp',
-      imageAlt: 'Luxury Dubai Property',
+      image: '/meta.jpeg',
+      imageAlt: 'MillionFlats Global Luxury Real Estate Marketplace',
     }),
   }
 }

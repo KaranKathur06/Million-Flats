@@ -20,10 +20,12 @@ import {
 } from 'lucide-react'
 import {
   PASSPORT_CATEGORIES,
+  PASSPORT_CATEGORY_BENEFITS,
   PASSPORT_CURRENCY,
   PASSPORT_PRICE_INR,
   PASSPORT_PRICE_LABEL,
   getPassportCategoryMeta,
+  isPassportCategoryKey,
   type PassportCategoryKey,
 } from '@/lib/passport'
 import { trackEvent } from '@/lib/tracking'
@@ -44,6 +46,7 @@ type Props = {
   userEmail?: string | null
   isAuthenticated: boolean
   initialMembership?: Membership | null
+  initialCategory?: string | null
   pendingCategory?: string | null
   dashboard?: boolean
 }
@@ -97,16 +100,20 @@ export default function PassportMembershipPanel({
   userEmail,
   isAuthenticated,
   initialMembership,
+  initialCategory,
   pendingCategory,
   dashboard = false,
 }: Props) {
   const router = useRouter()
   const checkoutSettling = useRef(false)
   const trackedPageView = useRef(false)
+  const [checkoutCategory, setCheckoutCategory] = useState<PassportCategoryKey | null>(
+    isPassportCategoryKey(pendingCategory) ? pendingCategory : null,
+  )
   const [selectedCategory, setSelectedCategory] = useState<PassportCategoryKey | null>(
-    pendingCategory && PASSPORT_CATEGORIES.some((item) => item.value === pendingCategory)
-      ? pendingCategory as PassportCategoryKey
-      : null,
+    isPassportCategoryKey(pendingCategory)
+      ? pendingCategory
+      : isPassportCategoryKey(initialCategory) ? initialCategory : null,
   )
   const [status, setStatus] = useState<'idle' | 'creating' | 'checkout' | 'verifying' | 'failed' | 'cancelled' | 'paid'>('idle')
   const [message, setMessage] = useState('')
@@ -119,13 +126,25 @@ export default function PassportMembershipPanel({
     trackEvent(dashboard ? 'passport_dashboard_view' : 'passport_page_view')
   }, [dashboard])
 
+  useEffect(() => {
+    if (!isPassportCategoryKey(pendingCategory)) return
+    setCheckoutCategory(pendingCategory)
+    setSelectedCategory(pendingCategory)
+  }, [pendingCategory])
+
   const existingCategory = initialMembership
     ? getPassportCategoryMeta(initialMembership.category)
     : null
-  const hasPendingCategory = Boolean(
-    pendingCategory && PASSPORT_CATEGORIES.some((item) => item.value === pendingCategory),
-  )
+  const activeCheckoutCategory = checkoutCategory
+    || (isPassportCategoryKey(pendingCategory) ? pendingCategory : null)
+  const benefitCategory = selectedCategory
+    || activeCheckoutCategory
+  const benefitCategoryMeta = benefitCategory
+    ? getPassportCategoryMeta(benefitCategory)
+    : null
+  const hasPendingCategory = Boolean(activeCheckoutCategory)
   const busy = status === 'creating' || status === 'checkout' || status === 'verifying'
+  const categorySelectionLocked = busy || Boolean(verificationPayment)
 
   const beginVerification = async (payment: RazorpayCheckoutPayment, passportOrderId: string) => {
     setVerificationPayment(payment)
@@ -162,7 +181,8 @@ export default function PassportMembershipPanel({
 
     trackEvent('passport_cta_click', { category: selectedCategory, location: dashboard ? 'dashboard' : 'passport_page' })
     if (!isAuthenticated) {
-      router.push('/auth/login?next=%2Fpassport')
+      const returnPath = `/passport?category=${encodeURIComponent(selectedCategory)}`
+      router.push(`/auth/login?next=${encodeURIComponent(returnPath)}`)
       return
     }
 
@@ -184,10 +204,19 @@ export default function PassportMembershipPanel({
       })
       const orderData = await orderResponse.json().catch(() => null)
       if (!orderResponse.ok || !orderData?.success) {
+        router.refresh()
         throw new Error(orderData?.message || 'Could not start secure checkout. Please try again.')
       }
       if (!orderData.orderId || !orderData.passportOrderId) {
         throw new Error('Secure checkout did not return a valid order. Please try again.')
+      }
+      if (!isPassportCategoryKey(orderData.category)) {
+        throw new Error('Secure checkout returned an invalid Passport category. Please retry.')
+      }
+      setCheckoutCategory(orderData.category)
+      setSelectedCategory(orderData.category)
+      if (orderData.category !== selectedCategory) {
+        throw new Error('An existing checkout is locked to a different Passport category. Please continue with that category.')
       }
 
       await loadCheckoutScript()
@@ -426,70 +455,150 @@ export default function PassportMembershipPanel({
       </section>
 
       <section id="choose-category" className="scroll-mt-24 bg-[#f5f6f7] py-14 sm:py-18 lg:py-20">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_0.82fr] lg:px-8">
+        <div className="mx-auto grid max-w-[1440px] gap-8 px-4 sm:px-6 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:gap-6 lg:px-8 xl:grid-cols-[minmax(18rem,0.78fr)_minmax(0,1.42fr)_minmax(18rem,0.8fr)] xl:gap-8">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-700">Select one membership category</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-dark-blue sm:text-4xl">Which describes you?</h2>
             <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600">
-              Every category is the same MillionFlats Passport at the same fixed price. One category can be assigned to each account.
+              Choose a role to see its benefits alongside your selection. Every category has the same fixed price, with one category per account.
             </p>
 
             {hasPendingCategory ? (
               <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
-                You have a pending checkout. Continue with {getPassportCategoryMeta(pendingCategory || '')?.label || 'your selected category'} to complete it.
+                You have a pending checkout. Continue with {getPassportCategoryMeta(activeCheckoutCategory || '')?.label || 'your selected category'} to complete it.
               </div>
             ) : null}
 
-            <fieldset className="mt-6 grid gap-3 sm:grid-cols-2">
-              <legend className="sr-only">Passport membership category</legend>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-1" role="group" aria-label="Choose your Passport category">
               {PASSPORT_CATEGORIES.map((category) => {
                 const Icon = categoryIcons[category.value]
                 const isSelected = selectedCategory === category.value
-                const isLocked = hasPendingCategory && pendingCategory !== category.value
+                const isLocked = hasPendingCategory && activeCheckoutCategory !== category.value
 
                 return (
-                  <label
+                  <button
                     key={category.value}
-                    className={`relative flex min-h-[112px] cursor-pointer items-start gap-3 rounded-2xl border bg-white p-4 transition duration-150 focus-within:ring-2 focus-within:ring-dark-blue/30 ${
-                      isSelected ? 'border-dark-blue ring-1 ring-dark-blue/20 shadow-sm' : 'border-slate-200 hover:border-slate-400'
-                    } ${isLocked ? 'cursor-not-allowed opacity-45' : ''}`}
+                    type="button"
+                    aria-pressed={isSelected}
+                    aria-expanded={isSelected}
+                    aria-controls="passport-category-benefits"
+                    aria-label={`${category.label}: view ${PASSPORT_CATEGORY_BENEFITS[category.value].length} membership benefits`}
+                    disabled={isLocked || categorySelectionLocked}
+                    onClick={() => {
+                      setSelectedCategory(category.value)
+                      setMessage('')
+                      if (status === 'failed' || status === 'cancelled') setStatus('idle')
+                    }}
+                    className={`group relative flex min-h-[112px] w-full items-start gap-3 rounded-2xl border p-4 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dark-blue focus-visible:ring-offset-2 ${
+                      isSelected
+                        ? 'border-dark-blue bg-dark-blue text-white shadow-[0_12px_30px_rgba(13,31,56,0.16)]'
+                        : 'border-slate-200 bg-white text-slate-900 hover:border-slate-400 hover:shadow-[0_8px_24px_rgba(13,31,56,0.06)]'
+                    } ${(isLocked || categorySelectionLocked) ? 'cursor-not-allowed opacity-45' : ''}`}
                   >
-                    <input
-                      type="radio"
-                      name="passport-category"
-                      value={category.value}
-                      checked={isSelected}
-                      disabled={isLocked}
-                      onChange={() => setSelectedCategory(category.value)}
-                      className="sr-only"
-                    />
-                    <span className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl ${
-                      isSelected ? 'bg-dark-blue text-white' : 'bg-slate-100 text-slate-600'
+                    <span className={`mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl transition-colors ${
+                      isSelected ? 'bg-white/10 text-amber-200' : 'bg-slate-100 text-slate-600 group-hover:bg-amber-50 group-hover:text-amber-800'
                     }`}>
                       <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold leading-5 text-slate-900">{category.label}</span>
-                      <span className="mt-1 block text-xs leading-5 text-slate-500">{category.description}</span>
+                      <span className={`block text-sm font-semibold leading-5 ${isSelected ? 'text-white' : 'text-slate-900'}`}>{category.label}</span>
+                      <span className={`mt-1 block text-xs leading-5 ${isSelected ? 'text-white/70' : 'text-slate-500'}`}>{category.description}</span>
+                      <span className={`mt-2 block text-[11px] font-semibold tracking-wide ${isSelected ? 'text-amber-200' : 'text-slate-400'}`}>
+                        {PASSPORT_CATEGORY_BENEFITS[category.value].length} BENEFITS
+                      </span>
                     </span>
-                    <span className={`mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-full border ${
-                      isSelected ? 'border-dark-blue bg-dark-blue text-white' : 'border-slate-300 text-transparent'
+                    <span className={`mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-full border transition-colors ${
+                      isSelected ? 'border-amber-200 bg-amber-200 text-dark-blue' : 'border-slate-300 text-transparent'
                     }`}>
                       <Check size={12} strokeWidth={3} aria-hidden="true" />
                     </span>
-                  </label>
+                  </button>
                 )
               })}
-            </fieldset>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-2" aria-label="Passport fees">
+              {[
+                `${PASSPORT_PRICE_LABEL} one-time`,
+                '₹0 annual fee',
+                '₹0 maintenance fee',
+              ].map((term) => (
+                <span key={term} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600">
+                  {term}
+                </span>
+              ))}
+            </div>
           </div>
 
-          <aside className="h-fit rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_20px_55px_rgba(13,31,56,0.08)] sm:p-8 lg:sticky lg:top-28">
+          <div className="min-w-0">
+            {benefitCategory && benefitCategoryMeta ? (
+              <section
+                id="passport-category-benefits"
+                className="scroll-mt-24 rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_48px_rgba(13,31,56,0.07)] sm:p-7"
+                aria-labelledby="passport-category-benefits-heading"
+                aria-live="polite"
+              >
+                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">Included for this category</p>
+                    <h3 id="passport-category-benefits-heading" className="mt-2 text-2xl font-semibold tracking-tight text-dark-blue">
+                      {benefitCategoryMeta.label} benefits
+                    </h3>
+                  </div>
+                  <span className="text-xs font-medium text-slate-500">
+                    {PASSPORT_CATEGORY_BENEFITS[benefitCategory].length} member benefits
+                  </span>
+                </div>
+                <div className="mt-5 grid gap-3 md:grid-cols-2">
+                  {PASSPORT_CATEGORY_BENEFITS[benefitCategory].map((benefit, index) => (
+                    <article
+                      key={benefit.title}
+                      className="group rounded-2xl border border-slate-200 bg-[#fcfcfb] p-4 transition duration-200 hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-[0_12px_30px_rgba(13,31,56,0.07)] motion-reduce:transform-none motion-reduce:transition-none sm:p-5"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#f7f3e9] text-xs font-bold text-amber-800">
+                          {String(index + 1).padStart(2, '0')}
+                        </span>
+                        <div>
+                          <h4 className="text-sm font-semibold leading-5 text-dark-blue">{benefit.title}</h4>
+                          <p className="mt-1.5 text-sm leading-6 text-slate-600">{benefit.description}</p>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+                <p className="mt-4 text-xs leading-5 text-slate-500">
+                  Benefits are subject to partner terms, location, and availability. Physical metal-card issuance and metal-card-dependent features, including tap-to-share and lead/referral locks, are not active in the current digital Passport release.
+                </p>
+              </section>
+            ) : (
+              <div
+                id="passport-category-benefits"
+                className="flex min-h-72 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white/80 px-6 py-10 text-center sm:px-10"
+                aria-live="polite"
+              >
+                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#f7f3e9] text-dark-blue">
+                  <Fingerprint size={22} strokeWidth={1.7} aria-hidden="true" />
+                </span>
+                <h3 className="mt-4 text-lg font-semibold text-dark-blue">Your benefits will appear here</h3>
+                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
+                  Select one of the six categories to explore the complete benefits for your role.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <aside className="h-fit rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_20px_55px_rgba(13,31,56,0.08)] lg:col-span-2 lg:p-8 xl:sticky xl:top-28 xl:col-span-1 xl:p-6">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">One Passport · One price</p>
             <h3 className="mt-3 text-xl font-semibold text-dark-blue">MillionFlats Passport</h3>
             <p className="mt-2 text-sm text-slate-600">Single fixed price for every customer and category.</p>
             <div className="mt-6 border-y border-slate-200 py-5">
               <p className="text-4xl font-semibold tracking-tight text-dark-blue">{PASSPORT_PRICE_LABEL}</p>
               <p className="mt-1 text-xs text-slate-500">INR · one-time payment</p>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs font-medium text-slate-500">
+              <span>₹0 annual fee</span>
+              <span>₹0 maintenance fee</span>
             </div>
             <div className="mt-5 space-y-3 text-sm text-slate-600">
               <p className="flex items-start gap-2.5">
@@ -509,14 +618,16 @@ export default function PassportMembershipPanel({
             <button
               type="button"
               onClick={() => void startCheckout()}
-              disabled={!selectedCategory || busy || hasPendingCategory && selectedCategory !== pendingCategory}
+              disabled={!selectedCategory || busy || hasPendingCategory && selectedCategory !== activeCheckoutCategory}
               className="mt-7 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-dark-blue px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#18385e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dark-blue focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
             >
               {status === 'creating' ? 'Preparing secure checkout…' :
                 status === 'checkout' ? 'Complete payment in checkout…' :
                   status === 'verifying' ? 'Confirming payment…' :
-                    isAuthenticated ? 'Continue to secure payment' : 'Sign in to continue'}
-              {status !== 'creating' && status !== 'verifying' ? <ArrowRight size={16} aria-hidden="true" /> : null}
+                    selectedCategory
+                      ? isAuthenticated ? 'Continue to secure payment' : 'Sign in to continue'
+                      : 'Choose a category above'}
+              {selectedCategory && status !== 'creating' && status !== 'verifying' ? <ArrowRight size={16} aria-hidden="true" /> : null}
             </button>
             <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-500">
               <CreditCard size={14} aria-hidden="true" /> Secure payment processed by Razorpay

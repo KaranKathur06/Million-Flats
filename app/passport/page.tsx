@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import {
+  isPassportCategoryKey,
   PASSPORT_PRICE_INR,
   PASSPORT_PRICE_LABEL,
 } from '@/lib/passport'
@@ -50,7 +51,11 @@ const passportProductJsonLd = {
   },
 }
 
-export default async function PassportPage() {
+export default async function PassportPage({
+  searchParams,
+}: {
+  searchParams?: { category?: string | string[] }
+}) {
   const session = await getServerSession(authOptions)
   const sessionUser = session?.user as { email?: string | null; name?: string | null } | undefined
   const email = String(sessionUser?.email || '').trim().toLowerCase()
@@ -70,6 +75,10 @@ export default async function PassportPage() {
         }),
       ])
     : [null, null]
+  const initialCategory = typeof searchParams?.category === 'string'
+    && isPassportCategoryKey(searchParams.category)
+    ? searchParams.category
+    : null
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
@@ -91,6 +100,7 @@ export default async function PassportPage() {
           paymentReference: membership.paymentReference,
         } : null}
         pendingCategory={pendingOrder?.status === 'PENDING' ? pendingOrder.category : null}
+        initialCategory={initialCategory}
       />
     </main>
   )
