@@ -6,6 +6,7 @@ import Image from "next/image";
 import GatedActionLink from "@/components/GatedActionLink";
 import FooterTrust from "@/components/analytics/FooterTrust";
 import { socialLinks } from "@/config/socialLinks";
+import { ECOSYSTEM_CATEGORIES, categoryHref } from "@/lib/ecosystemPartners";
 
 /* ── Mobile-only accordion section ── */
 function AccordionSection({
@@ -106,62 +107,13 @@ export default function Footer() {
               Ecosystem Partners
             </h3>
             <ul className="space-y-2">
-              {[
-                {
-                  href: "/ecosystem-partners/home-loans-finance",
-                  label: "Home Loans & Finance",
-                },
-                {
-                  href: "/ecosystem-partners/legal-documentation",
-                  label: "Legal & Documentation",
-                },
-                {
-                  href: "/ecosystem-partners/property-insurance",
-                  label: "Property Insurance",
-                },
-                {
-                  href: "/ecosystem-partners/interior-design-renovation",
-                  label: "Interior Design & Renovation",
-                },
-                {
-                  href: "/ecosystem-partners/packers-movers",
-                  label: "Packers & Movers",
-                },
-                {
-                  href: "/ecosystem-partners/property-management",
-                  label: "Property Management",
-                },
-                {
-                  href: "/ecosystem-partners/vastu-feng-shui",
-                  label: "Vastu / Feng Shui",
-                },
-                {
-                  href: "/ecosystem-partners/tiles-surface-finishing",
-                  label: "Tiles & Surface Finishing",
-                },
-                {
-                  href: "/ecosystem-partners/hardware-architectural-fittings",
-                  label: "Hardware & Architectural Fittings",
-                },
-                {
-                  href: "/ecosystem-partners/cement-structural",
-                  label: "Cement & Structural",
-                },
-                {
-                  href: "/ecosystem-partners/smart-home-automation",
-                  label: "Smart Home & Automation",
-                },
-                {
-                  href: "/ecosystem-partners/technology-partners",
-                  label: "Technology Partners",
-                },
-              ].map(({ href, label }) => (
-                <li key={href}>
+              {ECOSYSTEM_CATEGORIES.map(({ slug, name }) => (
+                <li key={slug}>
                   <Link
-                    href={href}
-                    className="text-gray-600 hover:text-dark-blue text-sm transition-colors whitespace-nowrap"
+                    href={categoryHref(slug)}
+                    className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                   >
-                    {label}
+                    {name}
                   </Link>
                 </li>
               ))}
@@ -352,38 +304,13 @@ export default function Footer() {
           </AccordionSection>
 
           <AccordionSection title="Ecosystem Partners">
-            {[
-              {
-                href: "/ecosystem-partners/home-loans-finance",
-                label: "Home Loans & Finance",
-              },
-              {
-                href: "/ecosystem-partners/legal-documentation",
-                label: "Legal & Documentation",
-              },
-              {
-                href: "/ecosystem-partners/property-insurance",
-                label: "Property Insurance",
-              },
-              {
-                href: "/ecosystem-partners/interior-design-renovation",
-                label: "Interior Design & Renovation",
-              },
-              {
-                href: "/ecosystem-partners/packers-movers",
-                label: "Packers & Movers",
-              },
-              {
-                href: "/ecosystem-partners/property-management",
-                label: "Property Management",
-              },
-            ].map(({ href, label }) => (
-              <li key={href}>
+            {ECOSYSTEM_CATEGORIES.map(({ slug, name }) => (
+              <li key={slug}>
                 <Link
-                  href={href}
+                  href={categoryHref(slug)}
                   className="text-gray-600 hover:text-dark-blue text-sm transition-colors"
                 >
-                  {label}
+                  {name}
                 </Link>
               </li>
             ))}
