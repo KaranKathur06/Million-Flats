@@ -96,6 +96,69 @@ function buildProjectDiscoveryJsonLd() {
   }
 }
 
+function VerifiedBrokerShowcase() {
+  return (
+    <section className="relative py-4 sm:py-6 lg:py-8">
+      <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
+        <div className="relative overflow-hidden rounded-[22px] border border-[#cfc5b9] bg-[#f3efe7] p-4 shadow-[0_18px_34px_rgba(15,23,42,0.06)] sm:p-6 lg:p-8">
+          <div className="grid items-center gap-5 lg:grid-cols-[1fr_230px]">
+            <div className="flex min-h-[150px] items-center">
+              <p className="text-[clamp(2rem,3vw,3.2rem)] leading-[1.05] font-serif text-[#0e1d2d]">
+                Millionflats Pvt. Ltd., Gujarat is a
+                <span className="mt-2 block font-black tracking-[-0.04em] text-[#0e1d2d]">
+                  NexTech Verified Broker
+                </span>
+              </p>
+            </div>
+
+            <div className="relative flex items-center justify-center">
+              <div className="relative h-[180px] w-[180px] sm:h-[210px] sm:w-[210px]">
+                <svg viewBox="0 0 220 220" className="h-full w-full drop-shadow-[0_8px_18px_rgba(14,30,52,0.18)]">
+                  <defs>
+                    <path id="brokerArc" d="M 20 110 A 90 90 0 1 1 200 110" />
+                  </defs>
+
+                  <circle cx="110" cy="110" r="98" fill="#082d52" />
+                  <circle cx="110" cy="110" r="92" fill="#f6f6f4" stroke="#0a2f58" strokeWidth="8" />
+
+                  <g opacity="0.9">
+                    <path d="M34 110c9-14 23-18 37-26c-4 18-10 31-26 44c-5-4-9-8-11-18z" fill="#0c2f56" />
+                    <path d="M186 110c-9-14-23-18-37-26c4 18 10 31 26 44c5-4 9-8 11-18z" fill="#0c2f56" />
+                  </g>
+
+                  <text fill="#0c2f56" fontSize="10.5" fontWeight="700" letterSpacing="1.8">
+                    <textPath href="#brokerArc" startOffset="50%" textAnchor="middle">VERIFIED BROKER</textPath>
+                  </text>
+
+                  <g transform="translate(0 4)">
+                    <rect x="52" y="72" width="116" height="60" rx="12" fill="#f7f8fa" />
+                    <rect x="52" y="72" width="116" height="60" rx="12" fill="none" stroke="#d5d9df" />
+                    <text x="110" y="96" textAnchor="middle" fontSize="18" fontWeight="800" fill="#0f172a" letterSpacing="-1.5">
+                      NEX
+                      <tspan fill="#0c92f2">TECH</tspan>
+                    </text>
+                    <line x1="64" y1="107" x2="156" y2="107" stroke="#0e2a47" strokeWidth="2" opacity="0.7" />
+                    <text x="110" y="120" textAnchor="middle" fontSize="10" letterSpacing="1.5" fill="#0e2a47" fontWeight="700">
+                      GLOBAL LTD.
+                    </text>
+                  </g>
+
+                  <g transform="translate(0 0)">
+                    <path d="M110 136l14 14 18-28c-10 4-18 5-32 14z" fill="#0d4d8b" opacity="0.3" />
+                    <path d="M88 128h44a18 18 0 0 1 18 18v22a18 18 0 0 1-18 18h-44a18 18 0 0 1-18-18v-22a18 18 0 0 1 18-18z" fill="#0d4d8b" />
+                    <path d="M92 141l18 18 32-38 0 0-10 0-22 26-8-8-10 2z" fill="#f3f5f7" opacity="0.98" />
+                    <path d="M110 133l17 16 18-31-10 0-8 14-17-18-18 19 18 20z" fill="#f3f5f7" opacity="0.95" />
+                  </g>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default async function Home() {
   const session = await getServerSession(authOptions)
   const role = String((session?.user as any)?.role || '').toUpperCase()
@@ -154,6 +217,7 @@ export default async function Home() {
         <HeroSearch />
       </section>
 
+      <VerifiedBrokerShowcase />
       {isHomeSectionEnabled('trust-stats') ? <TrustStats /> : null}
       <AssociatedCompanies />
       {isHomeSectionEnabled('meta-dology-video') ? <MetaDologyVideoSection /> : null}
