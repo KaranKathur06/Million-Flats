@@ -181,7 +181,6 @@ export default async function Home() {
         <HeroSearch />
       </section>
 
-      <VerifiedBrokerShowcase />
       {isHomeSectionEnabled('trust-stats') ? <TrustStats /> : null}
       <AssociatedCompanies />
       {isHomeSectionEnabled('meta-dology-video') ? <MetaDologyVideoSection /> : null}
@@ -230,6 +229,8 @@ export default async function Home() {
           </div>
         </section>
       ) : null}
+
+      <VerifiedBrokerShowcase />
     </div>
   )
 }
