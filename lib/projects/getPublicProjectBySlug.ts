@@ -15,6 +15,7 @@ export const publicProjectDetailSelect = {
   highlights: true,
   completionYear: true,
   startingPrice: true,
+  startingPriceCurrency: true,
   paymentPlan: true,
   goldenVisa: true,
   coverImage: true,

@@ -6,6 +6,7 @@ import {
   DEFAULT_DISPLAY_CURRENCY,
   formatDisplayCurrency,
   isDisplayCurrency,
+  resolveProjectSourceCurrency,
 } from '@/lib/currency'
 
 function CurrencyProbe() {
@@ -34,6 +35,12 @@ describe('display currency conversion', () => {
   it('rejects unsupported persisted currency values', () => {
     expect(isDisplayCurrency('USD')).toBe(false)
     expect(isDisplayCurrency('INR')).toBe(true)
+  })
+
+  it('uses persisted project currency before country fallback', () => {
+    expect(resolveProjectSourceCurrency('INR', 'AE')).toBe('INR')
+    expect(resolveProjectSourceCurrency(null, 'IN')).toBe('INR')
+    expect(resolveProjectSourceCurrency(null, 'AE')).toBe('AED')
   })
 
   it('keeps the provider usable when browser storage access throws', async () => {

@@ -56,6 +56,7 @@ export async function GET(req: Request) {
                     description: true,
                     completionYear: true,
                     startingPrice: true,
+                    startingPriceCurrency: true,
                     goldenVisa: true,
                     coverImage: true,
                     isFeatured: true,

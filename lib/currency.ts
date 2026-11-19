@@ -28,3 +28,12 @@ export function formatDisplayCurrency(
     convertCurrencyAmount(amount, sourceCurrency, displayCurrency),
   );
 }
+
+export function resolveProjectSourceCurrency(
+  startingPriceCurrency?: unknown,
+  countryIso2?: unknown,
+): DisplayCurrency {
+  const configured = String(startingPriceCurrency || '').trim().toUpperCase()
+  if (configured === 'INR' || configured === 'AED') return configured
+  return String(countryIso2 || '').trim().toUpperCase() === 'IN' ? 'INR' : 'AED'
+}

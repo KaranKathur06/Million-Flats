@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import PremiumDropdown from '@/components/PremiumDropdown'
 import CurrencyPrice from '@/components/CurrencyPrice'
+import { resolveProjectSourceCurrency } from '@/lib/currency'
 import { PROPERTY_PROJECT_PLACEHOLDER, resolvePropertyImage } from '@/lib/propertyImages'
 import HeroBannerBackdrop from '@/components/HeroBannerBackdrop'
 import type { ResolvedHeroBanner } from '@/lib/heroBanners'
@@ -22,6 +23,7 @@ interface ProjectItem {
     description: string | null
     completionYear: number | null
     startingPrice: number | null
+    startingPriceCurrency?: 'AED' | 'INR' | null
     goldenVisa: boolean
     coverImage: string | null
     isFeatured: boolean
@@ -40,9 +42,9 @@ function normalizeCountryParam(value: string, resolvedIso2?: string | null) {
 }
 
 /* ─── Helpers ─── */
-function formatPrice(price: number | null | undefined) {
+function formatPrice(price: number | null | undefined, sourceCurrency: 'AED' | 'INR' = 'AED') {
     if (!price) return null
-    return <CurrencyPrice amount={price} sourceCurrency="AED" />
+    return <CurrencyPrice amount={price} sourceCurrency={sourceCurrency} />
 }
 
 /* ─── Icons ─── */
@@ -622,7 +624,10 @@ function ProjectCard({ project }: { project: ProjectItem }) {
     const fallbackImage = PROPERTY_PROJECT_PLACEHOLDER
     const [imgSrc, setImgSrc] = useState(resolvePropertyImage(project.coverImage))
 
-    const price = formatPrice(project.startingPrice)
+    const price = formatPrice(
+        project.startingPrice,
+        resolveProjectSourceCurrency(project.startingPriceCurrency, project.countryIso2),
+    )
     const location = [project.community, project.city].filter(Boolean).join(' • ')
 
     // Track click

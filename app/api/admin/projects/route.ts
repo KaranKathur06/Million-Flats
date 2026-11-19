@@ -308,6 +308,7 @@ export async function POST(req: Request) {
                 overview: data.overview || null,
                 completionYear: data.completionYear ?? null,
                 startingPrice: normalizedStartingPrice ?? derivedStartingPrice,
+                startingPriceCurrency: data.countryIso2 === 'AE' ? 'AED' : data.countryIso2 === 'IN' ? 'INR' : 'AED',
                 paymentPlan: data.paymentPlan ?? undefined,
                 goldenVisa: data.goldenVisa || false,
                 isFeatured: data.isFeatured || false,

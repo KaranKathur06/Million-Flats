@@ -424,6 +424,7 @@ export function buildCanonicalProjectCreatePayload(payload: unknown): any[] {
         overview: project.overview || project.description || null,
         completionYear: project.completionYear ?? null,
         startingPrice: project.startingPrice ?? null,
+        startingPriceCurrency: project.countryIso2 === 'AE' ? 'AED' : 'INR',
         goldenVisa: Boolean(project.goldenVisa),
         isFeatured: Boolean(project.featured),
         featuredOrder: project.featured ? 0 : null,

@@ -53,6 +53,7 @@ interface ProjectData {
     highlights: string[]
     completionYear: number | null
     startingPrice: number | null
+    startingPriceCurrency: 'AED' | 'INR' | null
     paymentPlan?: unknown
     goldenVisa: boolean
     coverImage: string | null
@@ -99,7 +100,7 @@ interface ProjectData {
     videos: { id: string; videoUrl: string; title: string | null; thumbnail: string | null; sortOrder: number | null }[]
     location: { id: string; latitude: number | null; longitude: number | null; address: string | null; mapUrl: string | null } | null
     nearbyPlaces: { id: string; name: string; category: string | null; distance: string | null; sortOrder: number | null }[]
-    similarProjects: { id: string; name: string; slug: string; city: string | null; community: string | null; startingPrice: number | null; goldenVisa: boolean; coverImage: string | null; developer: { name: string } | null }[]
+    similarProjects: { id: string; name: string; slug: string; city: string | null; community: string | null; startingPrice: number | null; startingPriceCurrency: 'AED' | 'INR' | null; goldenVisa: boolean; coverImage: string | null; developer: { name: string } | null }[]
 }
 
 function uniqueStrings(list: (string | undefined | null)[]) {
@@ -198,7 +199,9 @@ export default function ProjectDetailClient({
         videos: privateData?.videos || [],
         similarProjects: privateData?.similarProjects || []
     } as ProjectData
-    const projectCurrency = project.countryIso2 === 'IN' ? 'INR' : 'AED'
+    const projectCurrency = project.startingPriceCurrency === 'INR' || project.startingPriceCurrency === 'AED'
+        ? project.startingPriceCurrency
+        : project.countryIso2 === 'IN' ? 'INR' : 'AED'
 
     const searchParams = useSearchParams()
     const fallbackImage = PROPERTY_PROJECT_PLACEHOLDER
@@ -1340,7 +1343,7 @@ export default function ProjectDetailClient({
                                                     <h4 className="font-semibold text-gray-900 group-hover:text-amber-600 transition-colors">{sp.name}</h4>
                                                     <p className="text-xs text-gray-500 mt-1">{sp.developer?.name} • {sp.city}{sp.community ? `, ${sp.community}` : ''}</p>
                                                     {sp.startingPrice && (
-                                                        <p className="text-sm font-bold text-amber-600 mt-2">From {formatPrice(sp.startingPrice)}</p>
+                                                        <p className="text-sm font-bold text-amber-600 mt-2">From {formatPrice(sp.startingPrice, sp.startingPriceCurrency || 'AED')}</p>
                                                     )}
                                                 </div>
                                             </Link>

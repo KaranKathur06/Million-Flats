@@ -15,6 +15,7 @@ interface CanonicalProject {
   overview?: string | null
   completionYear?: number | null
   startingPrice?: number | null
+  startingPriceCurrency?: 'AED' | 'INR' | null
   goldenVisa?: boolean
   coverImage?: string | null
   unitTypes?: any[]
@@ -55,12 +56,12 @@ export const projectImportAdapter: ImportAdapter<CanonicalProject> = {
     const community = text(read(raw, ['community', 'locality', 'neighborhood'])) || (locationFullName ? locationFullName.split(',').slice(1).join(',').trim() || null : null)
     const countryResolution = resolveLocationCountry({ country: countryInput, city, community, currency: currencyInput, address: locationFullName })
     const countryIso2 = countryResolution.countryIso2
-    const normalized = { ...raw, name, slug: text(read(raw, ['slug'])) || (name ? slugify(name) : null), developerId: text(read(raw, ['developerId', 'developer_id'])), developerName: developer && typeof developer === 'object' ? text((developer as any).name) : text(developer), countryIso2, city, community, description: text(read(raw, ['description'])), overview: text(read(raw, ['overview'])), completionYear: Number(read(raw, ['completionYear', 'completion_year'])) || null, startingPrice: price.amount, startingPriceDisplay: price.display, startingPriceUnresolved: price.unresolved, goldenVisa: Boolean(read(raw, ['goldenVisa', 'golden_visa'])), coverImage: text(read(raw, ['coverImage', 'cover_image'])) }
+    const normalized = { ...raw, name, slug: text(read(raw, ['slug'])) || (name ? slugify(name) : null), developerId: text(read(raw, ['developerId', 'developer_id'])), developerName: developer && typeof developer === 'object' ? text((developer as any).name) : text(developer), countryIso2, city, community, description: text(read(raw, ['description'])), overview: text(read(raw, ['overview'])), completionYear: Number(read(raw, ['completionYear', 'completion_year'])) || null, startingPrice: price.amount, startingPriceCurrency: price.currency === 'INR' || price.currency === 'AED' ? price.currency : countryResolution.countryIso2 === 'IN' ? 'INR' : 'AED', startingPriceDisplay: price.display, startingPriceUnresolved: price.unresolved, goldenVisa: Boolean(read(raw, ['goldenVisa', 'golden_visa'])), coverImage: text(read(raw, ['coverImage', 'cover_image'])) }
     return { normalized, warnings: [price.unresolved ? 'Starting price could not be normalized.' : '', countryResolution.needsReview ? countryResolution.reason : ''].filter(Boolean), errors: [] }
   },
   mapCanonical(input: { raw: unknown; normalized: unknown; mappings: MappingSuggestion[] }): CanonicalPayloadResult<CanonicalProject> {
     const value = (input.normalized || {}) as Record<string, unknown>
-    const canonical: CanonicalProject = { name: text(value.name) || '', slug: text(value.slug), developerId: text(value.developerId), developerName: text(value.developerName), countryIso2: text(value.countryIso2), city: text(value.city), community: text(value.community), description: text(value.description), overview: text(value.overview), completionYear: Number(value.completionYear) || null, startingPrice: typeof value.startingPrice === 'number' ? value.startingPrice : null, goldenVisa: Boolean(value.goldenVisa), coverImage: text(value.coverImage) }
+    const canonical: CanonicalProject = { name: text(value.name) || '', slug: text(value.slug), developerId: text(value.developerId), developerName: text(value.developerName), countryIso2: text(value.countryIso2), city: text(value.city), community: text(value.community), description: text(value.description), overview: text(value.overview), completionYear: Number(value.completionYear) || null, startingPrice: typeof value.startingPrice === 'number' ? value.startingPrice : null, startingPriceCurrency: value.startingPriceCurrency === 'INR' || value.startingPriceCurrency === 'AED' ? value.startingPriceCurrency : null, goldenVisa: Boolean(value.goldenVisa), coverImage: text(value.coverImage) }
     return { ok: Boolean(canonical.name), canonical, warnings: [], errors: canonical.name ? [] : ['Project name is required.'], fieldConfidence: Object.fromEntries(input.mappings.filter((mapping) => mapping.canonicalField).map((mapping) => [mapping.canonicalField, mapping.confidence])) }
   },
   validate(input: ValidationInput<CanonicalProject>): ValidationResult { const errors = input.canonical.name ? [] : ['Project name is required.']; const warnings = input.canonical.developerId || input.canonical.developerName ? [] : ['Developer relationship requires review.']; return { ready: errors.length === 0, errors, warnings } },
@@ -147,6 +148,7 @@ export const projectImportAdapter: ImportAdapter<CanonicalProject> = {
       overview: value.overview || null,
       completionYear: value.completionYear ?? null,
       startingPrice: value.startingPrice ?? null,
+      startingPriceCurrency: value.startingPriceCurrency === 'INR' || value.startingPriceCurrency === 'AED' ? value.startingPriceCurrency : (value.countryIso2 === 'IN' ? 'INR' : 'AED'),
       goldenVisa: Boolean(value.goldenVisa),
       coverImage: value.coverImage || null,
       status: 'DRAFT',

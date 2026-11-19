@@ -328,6 +328,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         if (data.overview !== undefined) updateData.overview = data.overview
         if (data.completionYear !== undefined) updateData.completionYear = data.completionYear
         if (data.startingPrice !== undefined) updateData.startingPrice = normalizedStartingPrice
+        if (data.countryIso2 !== undefined) updateData.startingPriceCurrency = data.countryIso2 === 'IN' ? 'INR' : 'AED'
         if (data.goldenVisa !== undefined) updateData.goldenVisa = data.goldenVisa
         if (data.isFeatured !== undefined) updateData.isFeatured = data.isFeatured
         if (data.featuredOrder !== undefined) updateData.featuredOrder = data.featuredOrder

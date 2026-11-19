@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { CountryCode } from "@/lib/country";
 import CurrencyPrice from "@/components/CurrencyPrice";
+import { resolveProjectSourceCurrency } from "@/lib/currency";
 
 /* ─────────────────────────────────────────────
    Types
@@ -17,6 +18,7 @@ interface ProjectItem {
   city: string | null;
   community: string | null;
   startingPrice: number | null;
+  startingPriceCurrency?: "AED" | "INR" | null;
   coverImage: string | null;
   developer: { id: string; name: string } | null;
 }
@@ -169,7 +171,7 @@ export default function FeaturedProjects({
                       <div className="mt-auto">
                         <p className="text-xl font-bold text-dark-blue">
                           {project.startingPrice && project.startingPrice > 0
-                            ? <>From <CurrencyPrice amount={project.startingPrice} sourceCurrency="AED" /></>
+                            ? <>From <CurrencyPrice amount={project.startingPrice} sourceCurrency={resolveProjectSourceCurrency(project.startingPriceCurrency)} /></>
                             : "Price on request"}
                         </p>
                       </div>
