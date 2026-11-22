@@ -1,6 +1,6 @@
 import crypto from 'crypto'
 import { buildS3Key as buildStructuredS3Key, buildS3KeyFromFolder } from '@/utils/s3PathBuilder'
-import { buildCdnUrl, isCloudFrontEnabled } from '@/lib/cloudfront'
+import { buildCdnUrl } from '@/lib/cloudfront'
 import { extractRelativeKey } from '@/lib/assetUrl'
 import { getStorageProvider } from '@/lib/storage'
 import { getGcsStorageConfig } from '@/lib/storage/storage.config'
@@ -71,19 +71,9 @@ export function buildCanonicalKey(params: {
   })
 }
 
-/**
- * @deprecated Use buildCdnAssetUrl() for read access. This function exposes raw S3 URLs.
- * Kept for backward compatibility with upload flows that need the S3 object URL.
- */
+/** @deprecated Use buildCdnAssetUrl() directly. */
 export function buildS3ObjectUrl(params: { key: string }) {
   const key = normalizePrefix(params.key)
-  if (key.startsWith('public/')) {
-    try {
-      return getStorageProvider().getPublicUrl(key)
-    } catch {
-      // Fall through to the configured CDN compatibility layer.
-    }
-  }
   return buildCdnAssetUrl({ key })
 }
 
@@ -96,16 +86,13 @@ export function buildPublicAssetUrl(params: { key: string }) {
 }
 
 /**
- * Build a CDN URL for read access to an S3 asset.
- * Uses CloudFront domain when configured, falls back to S3 public URL.
+ * Build a CDN URL for read access to a storage asset.
+ * The configured CDN is required because the GCS bucket is private.
  * This is the PRIMARY function to use for all asset read URLs.
  */
 export function buildCdnAssetUrl(params: { key: string }): string {
   const key = normalizePrefix(params.key)
-  if (isCloudFrontEnabled()) {
-    return buildCdnUrl(key)
-  }
-  return buildPublicAssetUrl({ key })
+  return buildCdnUrl(key)
 }
 
 export function buildS3Key(folder: string, filename: string) {
