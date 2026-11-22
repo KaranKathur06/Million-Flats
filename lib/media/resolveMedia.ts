@@ -1,6 +1,4 @@
 import { buildAssetUrl } from '@/lib/assetUrl'
-import { extractRelativeKey } from '@/lib/assetUrl'
-import { generateSignedUrl } from '@/lib/cloudfront'
 import { PROJECT_IMAGE_FALLBACK } from '@/lib/media/fallbacks'
 
 /** Platform-wide media fallbacks — single source of truth */
@@ -94,22 +92,6 @@ export function resolveDeveloperBanner(
 /** Generic asset resolver */
 export function resolveAssetUrl(path?: string | null, fallback?: string): string {
   return buildAssetUrl(path) || fallback || MEDIA_FALLBACKS.placeholder
-}
-
-/** Resolve project media for browser reads, including protected CDN assets. */
-export async function resolveProjectMediaUrl(path?: string | null): Promise<string | null> {
-  const directUrl = buildAssetUrl(path)
-  if (!directUrl) return null
-
-  const key = extractRelativeKey(path)
-  if (!key) return directUrl
-
-  try {
-    const signed = await generateSignedUrl({ s3Key: key, ttlSeconds: 3600 })
-    return signed.url
-  } catch {
-    return directUrl
-  }
 }
 
 /** Validate stored path looks like a real reference (not empty / broken placeholder) */

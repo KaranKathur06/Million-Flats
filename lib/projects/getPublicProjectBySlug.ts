@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { buildAssetUrl } from '@/lib/assetUrl'
-import { resolveDeveloperLogo, resolveProjectImage, resolveProjectMediaUrl } from '@/lib/media/resolveMedia'
+import { resolveDeveloperLogo, resolveProjectImage } from '@/lib/media/resolveMedia'
+import { resolveProjectMediaUrl } from '@/lib/media/resolveMediaServer'
 import { calculateProjectPricingSummary } from '@/lib/projectPricing'
 
 /** Shared select shape — matches GET /api/projects/[slug] (production-verified). */

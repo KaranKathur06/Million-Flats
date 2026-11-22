@@ -11,8 +11,8 @@ import {
   isValidMediaReference,
   resolveDeveloperBanner,
   resolveProjectImage,
-  resolveProjectMediaUrl,
 } from '@/lib/media/resolveMedia'
+import { resolveProjectMediaUrl } from '@/lib/media/resolveMediaServer'
 
 export type HeroBannerCategory = 'BUY' | 'RENT' | 'PROJECTS'
 export type HeroBannerSource = 'CITY_CATEGORY' | 'CITY' | 'COUNTRY_CATEGORY' | 'GLOBAL_DEFAULT'

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { MEDIA_FALLBACKS, resolveProjectImage, resolveProjectMediaUrl } from '@/lib/media/resolveMedia'
+import { MEDIA_FALLBACKS, resolveProjectImage } from '@/lib/media/resolveMedia'
+import { resolveProjectMediaUrl } from '@/lib/media/resolveMediaServer'
 import { buildProjectCityFilter, resolveCitySearchScope } from '@/lib/citySearch'
 
 export const dynamic = 'force-dynamic'

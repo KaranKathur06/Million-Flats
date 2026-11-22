@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { buildProjectMediaTypeKey, normalizeProjectImageFilename, uploadToS3Key } from '@/lib/s3'
 import { buildAssetUrl } from '@/lib/assetUrl'
-import { resolveProjectMediaUrl } from '@/lib/media/resolveMedia'
+import { resolveProjectMediaUrl } from '@/lib/media/resolveMediaServer'
 import { PROJECT_MEDIA_CATEGORY_VALUES, projectMediaCategoryToEnum } from '@/lib/projectMediaTaxonomy'
 
 const CATEGORY_VALUES = PROJECT_MEDIA_CATEGORY_VALUES
