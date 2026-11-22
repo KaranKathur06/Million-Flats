@@ -94,11 +94,7 @@ export function rewriteToCdn(url: string | null | undefined): string {
     if (cdnDomain) {
       return `https://${cdnDomain}/${encodeURIComponent(trimmed).replace(/%2F/g, '/')}`
     }
-    // Fallback: build S3 URL
-    const s3Base = String(process.env.NEXT_PUBLIC_S3_PUBLIC_BASE_URL || '').trim().replace(/\/$/, '')
-    if (s3Base) {
-      return `${s3Base}/${encodeURIComponent(trimmed).replace(/%2F/g, '/')}`
-    }
+    // Fallback: keep the relative key until GCS/CDN configuration is available
     return trimmed
   }
 

@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminSession } from '@/lib/adminAuth'
-import { buildProjectMediaTypeKey } from '@/lib/s3'
-import { PutObjectCommand } from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import { buildProjectMediaTypeKey, createSignedPutUrlForKey } from '@/lib/s3'
 import { prisma } from '@/lib/prisma'
 import { PROJECT_MEDIA_CATEGORY_VALUES } from '@/lib/projectMediaTaxonomy'
-import { getS3Client } from '@/lib/s3'
 
 export const runtime = 'nodejs'
 
@@ -166,23 +163,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       mediaType: category.toLowerCase(),
     })
 
-    // Create S3 client and generate presigned URL
-    const command = new PutObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET!,
-      Key: s3Key,
-      ContentType: contentType,
-      ContentLength: fileSizeBytes,
-      Metadata: {
-        'uploaded-by': auth.userId || 'admin',
-        'project-id': params.id,
-        'upload-id': uploadId,
-        'original-name': fileName,
-        'media-category': category.toLowerCase(),
-        ...(String(category).toLowerCase() === 'floor_plan' ? { 'unit-type-id': String(unitTypeId || '') } : {}),
-      },
+    const signed = await createSignedPutUrlForKey({
+      key: s3Key,
+      contentType,
+      cacheControl: 'public, max-age=31536000, immutable',
+      expiresInSeconds: 600,
     })
-
-    const uploadUrl = await getSignedUrl(getS3Client(), command, { expiresIn: 600 })
+    const uploadUrl = signed.uploadUrl
 
     return NextResponse.json({
       success: true,

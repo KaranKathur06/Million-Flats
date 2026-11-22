@@ -1,7 +1,7 @@
 import crypto from 'crypto'
-import { GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
 import { prisma } from '@/lib/prisma'
-import { buildCdnAssetUrl, getS3Client, sanitizeFilename } from '@/lib/s3'
+import { buildCdnAssetUrl, sanitizeFilename } from '@/lib/s3'
+import { getStorageProvider } from '@/lib/storage'
 import { revalidatePath, revalidateTag } from 'next/cache'
 
 export const ECOSYSTEM_BANNER_MAX_BYTES = Number(process.env.ECOSYSTEM_BANNER_MAX_BYTES) || 15 * 1024 * 1024
@@ -96,16 +96,21 @@ export function detectImageDimensions(buffer: Buffer, mimeType: string): BannerD
 }
 
 export async function verifyStoredBanner(key: string, declaredType: string, declaredSize: number) {
-  const bucket = String(process.env.AWS_S3_BUCKET || '').trim()
-  if (!bucket) throw new Error('Missing AWS_S3_BUCKET')
-  const s3 = getS3Client()
-  const head = await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }))
-  const fileSize = Number(head.ContentLength || declaredSize)
-  const mimeType = normalizeBannerContentType(head.ContentType || declaredType)
+  const provider = getStorageProvider()
+  const head = await provider.getFileMetadata(key)
+  const fileSize = Number(head.sizeBytes || declaredSize)
+  const mimeType = normalizeBannerContentType(head.contentType || declaredType)
   const metadata = validateBannerMetadata({ fileSize, mimeType })
   if (!metadata.ok) throw new Error(metadata.message)
-  const object = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key, Range: 'bytes=0-65535' }))
-  const bytes = object.Body && 'transformToByteArray' in object.Body ? await object.Body.transformToByteArray() : null
+  const fs = await import('node:fs/promises')
+  const os = await import('node:os')
+  const path = await import('node:path')
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'millionflats-banner-'))
+  const tempFile = path.join(directory, 'object')
+  await provider.downloadFile(key, tempFile)
+  const downloaded = await fs.readFile(tempFile)
+  await fs.rm(directory, { recursive: true, force: true }).catch(() => undefined)
+  const bytes = downloaded.subarray(0, 65536)
   const dimensions = bytes ? detectImageDimensions(Buffer.from(bytes), mimeType) : null
   if (!dimensions) throw new Error('The uploaded file is not a valid supported image.')
   const dimensionalValidation = validateBannerMetadata({ fileSize, mimeType, ...dimensions })

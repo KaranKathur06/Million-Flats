@@ -1,13 +1,10 @@
 import { execFile } from 'node:child_process'
-import { createWriteStream } from 'node:fs'
 import { mkdtemp, open, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { Readable } from 'node:stream'
-import { pipeline } from 'node:stream/promises'
 import { promisify } from 'node:util'
-import { GetObjectCommand } from '@aws-sdk/client-s3'
-import { getS3Client, getS3StorageConfig, getS3ObjectMetadata } from '@/lib/s3'
+import { getS3ObjectMetadata } from '@/lib/s3'
+import { getStorageProvider } from '@/lib/storage'
 import { parseBoundedPositiveInt } from '@/lib/videoReels/config'
 
 const execFileAsync = promisify(execFile)
@@ -23,10 +20,6 @@ export class VideoMediaError extends Error {
     super(message)
     this.name = 'VideoMediaError'
   }
-}
-
-function isReadable(value: unknown): value is Readable {
-  return value instanceof Readable
 }
 
 function getAllowedUploadSize() {
@@ -63,17 +56,11 @@ export async function inspectVideoObject(params: {
     throw new VideoMediaError('Uploaded media metadata does not match the declared upload', 'INVALID_MEDIA')
   }
 
-  const { bucket } = getS3StorageConfig()
   const tempDirectory = await mkdtemp(join(tmpdir(), 'millionflats-video-'))
   const filePath = join(tempDirectory, 'uploaded-media')
 
   try {
-    const response = await getS3Client().send(new GetObjectCommand({ Bucket: bucket, Key: params.key }))
-    if (!isReadable(response.Body)) {
-      throw new VideoMediaError('Uploaded media could not be read for inspection', 'MEDIA_STORAGE_UNAVAILABLE')
-    }
-
-    await pipeline(response.Body, createWriteStream(filePath, { flags: 'wx' }))
+    await getStorageProvider().downloadFile(params.key, filePath)
     const file = await open(filePath, 'r')
     const header = Buffer.alloc(16)
     try {

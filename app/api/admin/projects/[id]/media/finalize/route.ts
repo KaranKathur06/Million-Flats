@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { HeadObjectCommand } from '@aws-sdk/client-s3'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { prisma } from '@/lib/prisma'
-import { buildCdnAssetUrl, getS3Client } from '@/lib/s3'
+import { buildCdnAssetUrl } from '@/lib/s3'
+import { getStorageProvider } from '@/lib/storage'
 import { PROJECT_MEDIA_CATEGORY_VALUES, projectMediaCategoryToEnum } from '@/lib/projectMediaTaxonomy'
 import { revalidatePath } from 'next/cache'
 import { validateStoredMediaSignature } from '@/lib/media/validateMedia'
@@ -107,17 +107,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
     let storedObject
     try {
-      storedObject = await getS3Client().send(new HeadObjectCommand({
-        Bucket: process.env.AWS_S3_BUCKET,
-        Key: s3Key,
-      }))
+      storedObject = await getStorageProvider().getFileMetadata(s3Key)
     } catch {
       return NextResponse.json({ success: false, message: 'Uploaded storage object was not found. Please upload again.' }, { status: 404 })
     }
-    if (storedObject.Metadata?.['project-id'] !== params.id || storedObject.Metadata?.['upload-id'] !== uploadId) {
-      return NextResponse.json({ success: false, message: 'Storage object does not match this upload session' }, { status: 403 })
-    }
-    if (Number(storedObject.ContentLength) !== fileSizeBytes) {
+    if (storedObject.sizeBytes !== fileSizeBytes) {
       return NextResponse.json({ success: false, message: 'Uploaded file size does not match the authorized file size' }, { status: 400 })
     }
     const signature = await validateStoredMediaSignature(s3Key, String(contentType || '').toLowerCase())

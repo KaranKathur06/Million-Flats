@@ -1,9 +1,9 @@
-import { DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import crypto from 'crypto'
 import { buildS3Key as buildStructuredS3Key, buildS3KeyFromFolder } from '@/utils/s3PathBuilder'
 import { buildCdnUrl, isCloudFrontEnabled } from '@/lib/cloudfront'
 import { extractRelativeKey } from '@/lib/assetUrl'
+import { getStorageProvider } from '@/lib/storage'
+import { getGcsStorageConfig } from '@/lib/storage/storage.config'
 
 type S3Env = {
   region: string
@@ -11,51 +11,22 @@ type S3Env = {
 }
 
 function requireS3Env(): S3Env {
-  const region = String(process.env.AWS_REGION || '').trim()
-  const bucket = String(process.env.AWS_S3_BUCKET || '').trim()
-
-  if (!region) throw new Error('Missing AWS_REGION')
-  if (!bucket) throw new Error('Missing AWS_S3_BUCKET')
-
-  return { region, bucket }
+  const config = getGcsStorageConfig()
+  return { region: 'gcs', bucket: config.bucket }
 }
 
 export function getS3StorageConfig() {
-  const { region, bucket } = requireS3Env()
+  const config = getGcsStorageConfig()
   return {
-    region,
-    bucket,
-    endpoint: String(process.env.AWS_S3_ENDPOINT || '').trim() || undefined,
-    forcePathStyle: String(process.env.AWS_S3_FORCE_PATH_STYLE || '').trim().toLowerCase() === 'true',
+    region: 'gcs',
+    bucket: config.bucket,
+    projectId: config.projectId,
   }
 }
 
-let cachedClient: S3Client | null = null
-
-export function getS3Client() {
-  if (cachedClient) return cachedClient
-
-  const accessKeyId = String(process.env.AWS_ACCESS_KEY_ID || '').trim()
-  const secretAccessKey = String(process.env.AWS_SECRET_ACCESS_KEY || '').trim()
-  const region = String(process.env.AWS_REGION || '').trim()
-
-  if (!accessKeyId) throw new Error('Missing AWS_ACCESS_KEY_ID')
-  if (!secretAccessKey) throw new Error('Missing AWS_SECRET_ACCESS_KEY')
-  if (!region) throw new Error('Missing AWS_REGION')
-
-  const endpoint = String(process.env.AWS_S3_ENDPOINT || '').trim()
-
-  cachedClient = new S3Client({
-    region,
-    endpoint: endpoint || undefined,
-    forcePathStyle: String(process.env.AWS_S3_FORCE_PATH_STYLE || '').trim().toLowerCase() === 'true',
-    credentials: {
-      accessKeyId,
-      secretAccessKey,
-    },
-  })
-
-  return cachedClient
+/** @deprecated Direct provider access is removed. Use getStorageProvider(). */
+export function getS3Client(): never {
+  throw new Error('Direct S3 client access is disabled. Use getStorageProvider().')
 }
 
 export function sanitizeFilename(name: string) {
@@ -76,6 +47,10 @@ export function isPublicKey(key: string) {
 
 export function isPrivateKey(key: string) {
   return normalizePrefix(key).startsWith('private/')
+}
+
+export function isProtectedKey(key: string) {
+  return normalizePrefix(key).startsWith('protected/')
 }
 
 export function buildCanonicalKey(params: {
@@ -101,9 +76,15 @@ export function buildCanonicalKey(params: {
  * Kept for backward compatibility with upload flows that need the S3 object URL.
  */
 export function buildS3ObjectUrl(params: { key: string }) {
-  const { region, bucket } = requireS3Env()
   const key = normalizePrefix(params.key)
-  return `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key).replace(/%2F/g, '/')}`
+  if (key.startsWith('public/')) {
+    try {
+      return getStorageProvider().getPublicUrl(key)
+    } catch {
+      // Fall through to the configured CDN compatibility layer.
+    }
+  }
+  return buildCdnAssetUrl({ key })
 }
 
 /**
@@ -111,11 +92,7 @@ export function buildS3ObjectUrl(params: { key: string }) {
  */
 export function buildPublicAssetUrl(params: { key: string }) {
   const key = normalizePrefix(params.key)
-  const base = String(process.env.NEXT_PUBLIC_S3_PUBLIC_BASE_URL || '').trim().replace(/\/$/, '')
-  if (base) {
-    return `${base}/${encodeURIComponent(key).replace(/%2F/g, '/')}`
-  }
-  return buildS3ObjectUrl({ key })
+  return buildCdnAssetUrl({ key })
 }
 
 /**
@@ -141,8 +118,8 @@ export function buildS3Key(folder: string, filename: string) {
 
 function requireCanonicalPrefix(key: string) {
   const k = normalizePrefix(key)
-  if (!k.startsWith('public/') && !k.startsWith('private/')) {
-    throw new Error('Invalid S3 key: must begin with public/ or private/')
+  if (!k.startsWith('public/') && !k.startsWith('private/') && !k.startsWith('protected/')) {
+    throw new Error('Invalid storage key: must begin with public/, private/, or protected/')
   }
   return k
 }
@@ -336,22 +313,13 @@ export async function uploadToS3(params: {
   filename: string
   contentType: string
 }) {
-  const { region, bucket } = requireS3Env()
-  const client = getS3Client()
-
+  const { bucket } = requireS3Env()
   const key = requireCanonicalPrefix(buildS3Key(params.folder, params.filename))
-
-  await client.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: params.buffer,
-      ContentType: params.contentType,
-    })
-  )
-
-  const objectUrl = `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key).replace(/%2F/g, '/')}`
-
+  await getStorageProvider().uploadBuffer(params.buffer, {
+    key,
+    contentType: params.contentType,
+  })
+  const objectUrl = buildCdnAssetUrl({ key })
   return { bucket, key, objectUrl }
 }
 
@@ -360,137 +328,44 @@ export async function uploadToS3Key(params: {
   key: string
   contentType: string
 }) {
-  const { region, bucket } = requireS3Env()
-  const client = getS3Client()
-
+  const { bucket } = requireS3Env()
   const key = requireCanonicalPrefix(params.key)
-
-  await client.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: params.buffer,
-      ContentType: params.contentType,
-    })
-  )
-
-  const objectUrl = `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key).replace(/%2F/g, '/')}`
-
+  await getStorageProvider().uploadBuffer(params.buffer, {
+    key,
+    contentType: params.contentType,
+  })
+  const objectUrl = buildCdnAssetUrl({ key })
   return { bucket, key, objectUrl }
 }
 
 export async function deleteFromS3(key: string) {
-  const { bucket } = requireS3Env()
-  const client = getS3Client()
-
-  const normalized = key.replace(/^\/+/, '')
-
-  await client.send(
-    new DeleteObjectCommand({
-      Bucket: bucket,
-      Key: normalized,
-    })
-  )
-
+  await getStorageProvider().deleteFile(requireCanonicalPrefix(key))
   return { success: true as const }
 }
 
 export async function deleteFolderFromS3(prefix: string) {
-  const { bucket } = requireS3Env()
-  const client = getS3Client()
   const normalizedPrefix = prefix.replace(/^\/+/, '').replace(/\/+$/, '') + '/'
-
-  let continuationToken: string | undefined
-  let deletedCount = 0
-
-  while (true) {
-    const listed = await client.send(
-      new ListObjectsV2Command({
-        Bucket: bucket,
-        Prefix: normalizedPrefix,
-        ContinuationToken: continuationToken,
-        MaxKeys: 1000,
-      })
-    )
-
-    const keys = (listed.Contents || [])
-      .map((item) => item.Key)
-      .filter((k): k is string => Boolean(k))
-
-    if (keys.length > 0) {
-      await client.send(
-        new DeleteObjectsCommand({
-          Bucket: bucket,
-          Delete: {
-            Objects: keys.map((Key) => ({ Key })),
-            Quiet: true,
-          },
-        })
-      )
-      deletedCount += keys.length
-    }
-
-    if (!listed.IsTruncated || !listed.NextContinuationToken) break
-    continuationToken = listed.NextContinuationToken
-  }
-
+  const deletedCount = await getStorageProvider().deleteFolder(normalizedPrefix)
   return { success: true as const, deletedCount, prefix: normalizedPrefix }
 }
 
 export async function createSignedGetUrl(params: { key: string; expiresInSeconds?: number }) {
-  const { region, bucket } = requireS3Env()
-  const client = getS3Client()
-
+  const { bucket } = requireS3Env()
   const expiresIn = Math.min(60 * 60, Math.max(30, params.expiresInSeconds ?? 900))
-
-  const url = await getSignedUrl(
-    client,
-    new GetObjectCommand({
-      Bucket: bucket,
-      Key: requireCanonicalPrefix(params.key),
-    }),
-    { expiresIn }
-  )
-
-  return { region, bucket, url, expiresIn }
+  const result = await getStorageProvider().getSignedReadUrl(requireCanonicalPrefix(params.key), expiresIn)
+  return { region: 'gcs', bucket, url: result.url, expiresIn: result.expiresInSeconds }
 }
 
 export async function s3ObjectExists(params: { key: string }) {
-  const { bucket } = requireS3Env()
-  const client = getS3Client()
-
-  try {
-    await client.send(
-      new HeadObjectCommand({
-        Bucket: bucket,
-        Key: requireCanonicalPrefix(params.key),
-      })
-    )
-    return true
-  } catch (error: any) {
-    const statusCode = Number(error?.$metadata?.httpStatusCode || 0)
-    const code = String(error?.Code || error?.code || error?.name || '').toLowerCase()
-    if (statusCode === 404 || code.includes('notfound') || code.includes('nosuchkey')) {
-      return false
-    }
-    throw error
-  }
+  return getStorageProvider().fileExists(requireCanonicalPrefix(params.key))
 }
 
 export async function getS3ObjectMetadata(params: { key: string }) {
-  const { bucket } = requireS3Env()
-  const client = getS3Client()
-  const result = await client.send(
-    new HeadObjectCommand({
-      Bucket: bucket,
-      Key: requireCanonicalPrefix(params.key),
-    })
-  )
-
+  const result = await getStorageProvider().getFileMetadata(requireCanonicalPrefix(params.key))
   return {
-    sizeBytes: Number(result.ContentLength || 0),
-    contentType: String(result.ContentType || '').toLowerCase(),
-    etag: result.ETag || null,
+    sizeBytes: result.sizeBytes,
+    contentType: result.contentType,
+    etag: result.etag,
   }
 }
 
@@ -500,26 +375,17 @@ export async function createSignedPutUrl(params: {
   contentType: string
   expiresInSeconds?: number
 }) {
-  const { region, bucket } = requireS3Env()
-  const client = getS3Client()
-
+  const { bucket } = requireS3Env()
   const key = requireCanonicalPrefix(buildS3Key(params.folder, params.filename))
   const expiresIn = Math.min(60 * 10, Math.max(30, params.expiresInSeconds ?? 600))
-
-  const uploadUrl = await getSignedUrl(
-    client,
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      ContentType: params.contentType || 'application/octet-stream',
-      CacheControl: 'public, max-age=31536000, immutable',
-    }),
-    { expiresIn }
+  const result = await getStorageProvider().getSignedUploadUrl(
+    key,
+    expiresIn,
+    params.contentType || 'application/octet-stream',
+    'public, max-age=31536000, immutable'
   )
-
-  const objectUrl = `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key).replace(/%2F/g, '/')}`
-
-  return { region, bucket, key, uploadUrl, objectUrl, expiresIn }
+  const objectUrl = buildCdnAssetUrl({ key })
+  return { region: 'gcs', bucket, key, uploadUrl: result.url, objectUrl, expiresIn: result.expiresInSeconds }
 }
 
 export async function createSignedPutUrlForKey(params: {
@@ -528,30 +394,20 @@ export async function createSignedPutUrlForKey(params: {
   cacheControl?: string
   expiresInSeconds?: number
 }) {
-  const { region, bucket } = requireS3Env()
-  const client = getS3Client()
-
+  const { bucket } = requireS3Env()
   const key = requireCanonicalPrefix(params.key)
   const expiresIn = Math.min(60 * 10, Math.max(30, params.expiresInSeconds ?? 600))
-
-  const uploadUrl = await getSignedUrl(
-    client,
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      ContentType: params.contentType || 'application/octet-stream',
-      CacheControl: params.cacheControl || 'public, max-age=31536000, immutable',
-    }),
-    { expiresIn }
+  const result = await getStorageProvider().getSignedUploadUrl(
+    key,
+    expiresIn,
+    params.contentType || 'application/octet-stream',
+    params.cacheControl || 'public, max-age=31536000, immutable'
   )
-
-  if (!uploadUrl || !uploadUrl.startsWith('http')) {
+  if (!result.url || !result.url.startsWith('http')) {
     throw new Error('Failed to generate signed upload URL')
   }
-
-  const objectUrl = `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key).replace(/%2F/g, '/')}`
-
-  return { region, bucket, key, uploadUrl, objectUrl, expiresIn }
+  const objectUrl = buildCdnAssetUrl({ key })
+  return { region: 'gcs', bucket, key, uploadUrl: result.url, objectUrl, expiresIn: result.expiresInSeconds }
 }
 
 export function extractS3KeyFromUrl(objectUrl: string) {

@@ -22,17 +22,8 @@ function isAllowedBlogImageUrl(value: string) {
     const cdnDomain = safeString(process.env.NEXT_PUBLIC_CDN_DOMAIN).replace(/^https?:\/\//, '').replace(/\/$/, '')
     if (cdnDomain && parsed.hostname === cdnDomain) return true
 
-    const configured = safeString(process.env.NEXT_PUBLIC_S3_PUBLIC_BASE_URL)
-    if (configured) {
-      const base = new URL(configured)
-      return parsed.hostname === base.hostname
-    }
-
-    const bucket = safeString(process.env.AWS_S3_BUCKET)
-    const region = safeString(process.env.AWS_REGION)
-    if (!bucket || !region) return true
-
-    return parsed.hostname === `${bucket}.s3.${region}.amazonaws.com`
+    if (parsed.hostname === 'storage.googleapis.com' || parsed.hostname.endsWith('.storage.googleapis.com')) return true
+    return parsed.hostname.includes('.amazonaws.com')
   } catch {
     return false
   }

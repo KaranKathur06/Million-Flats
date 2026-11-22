@@ -1,6 +1,8 @@
-import { GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
 import sharp from 'sharp'
-import { getS3Client } from '@/lib/s3'
+import { getStorageProvider } from '@/lib/storage'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { buildAssetUrl } from '@/lib/assetUrl'
 
 /** Verify uploaded object exists in S3 before persisting to database */
@@ -10,18 +12,8 @@ export async function validateStoredMediaKey(key: string): Promise<{ ok: boolean
     return { ok: false, url: null, error: 'Empty media key' }
   }
 
-  const bucket = String(process.env.AWS_S3_BUCKET || '').trim()
-  if (!bucket) {
-    return { ok: false, url: null, error: 'Missing AWS_S3_BUCKET' }
-  }
-
   try {
-    await getS3Client().send(
-      new HeadObjectCommand({
-        Bucket: bucket,
-        Key: trimmed,
-      })
-    )
+    await getStorageProvider().getFileMetadata(trimmed)
     return { ok: true, url: buildAssetUrl(trimmed) }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Storage verification failed'
@@ -34,19 +26,12 @@ export async function validateStoredMediaKey(key: string): Promise<{ ok: boolean
  * This closes the gap left by browser-provided MIME types and filename extensions.
  */
 export async function validateStoredMediaSignature(key: string, contentType: string): Promise<{ ok: boolean; error?: string }> {
-  const bucket = String(process.env.AWS_S3_BUCKET || '').trim()
-  if (!bucket) return { ok: false, error: 'Storage configuration is incomplete' }
-
+  const tempDirectory = await mkdtemp(join(tmpdir(), 'millionflats-media-'))
   try {
     const isPdf = String(contentType || '').toLowerCase() === 'application/pdf'
-    const result = await getS3Client().send(new GetObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      ...(isPdf ? { Range: 'bytes=0-511' } : {}),
-    }))
-    const bytes = result.Body && 'transformToByteArray' in result.Body
-      ? await (result.Body as any).transformToByteArray() as Uint8Array
-      : new Uint8Array()
+    await getStorageProvider().downloadFile(key, join(tempDirectory, 'object'))
+    const stored = await readFile(join(tempDirectory, 'object'))
+    const bytes = isPdf ? new Uint8Array(stored.subarray(0, 512)) : new Uint8Array(stored)
     if (bytes.length === 0) return { ok: false, error: 'Uploaded file is empty or unreadable' }
     const type = String(contentType || '').toLowerCase()
     const header = bytes.subarray(0, 65536)
@@ -86,5 +71,7 @@ export async function validateStoredMediaSignature(key: string, contentType: str
   } catch (error) {
     console.error('[media signature validation] failed', { key, contentType, error: error instanceof Error ? error.message : 'unknown' })
     return { ok: false, error: 'Unable to validate uploaded file content' }
+  } finally {
+    await rm(tempDirectory, { recursive: true, force: true }).catch(() => undefined)
   }
 }

@@ -1,6 +1,6 @@
 import crypto from 'crypto'
 
-type Visibility = 'public' | 'private'
+type Visibility = 'public' | 'private' | 'protected'
 
 type BuildS3KeyParams = {
   visibility: Visibility
@@ -56,7 +56,7 @@ export function buildS3Key(params: BuildS3KeyParams) {
   const prefix = includeTimestamp ? `${Date.now()}-${crypto.randomUUID()}-` : `${crypto.randomUUID()}-`
   const finalName = `${prefix}${fileName}`
 
-  if ((visibility !== 'public' && visibility !== 'private') || moduleParts.length === 0 || !fileName) {
+  if ((visibility !== 'public' && visibility !== 'private' && visibility !== 'protected') || moduleParts.length === 0 || !fileName) {
     throw new Error('Invalid S3 path params')
   }
 
@@ -71,8 +71,8 @@ export function buildS3KeyFromFolder(params: BuildS3KeyFromFolderParams) {
   const module = folderParts[1] || ''
   const remaining = folderParts.slice(2)
 
-  if (!visibility || (visibility !== 'public' && visibility !== 'private')) {
-    throw new Error('Invalid S3 folder: visibility must start with public/ or private/')
+  if (!visibility || (visibility !== 'public' && visibility !== 'private' && visibility !== 'protected')) {
+    throw new Error('Invalid storage folder: visibility must start with public/, private/, or protected/')
   }
   if (!module) {
     throw new Error('Invalid S3 folder: module segment is required')

@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { prisma } from '@/lib/prisma'
-import { getS3Client } from '@/lib/s3'
+import { deleteFromS3 } from '@/lib/s3'
 import { writeAuditLog } from '@/lib/audit'
 import { revalidateHeroBannerSurfaces } from '@/lib/heroBanners'
 
@@ -72,7 +71,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
       const oldKey = current[`${imageSlot}ImageKey`]
       if (oldKey) {
         try {
-          await getS3Client().send(new DeleteObjectCommand({ Bucket: process.env.AWS_S3_BUCKET, Key: oldKey }))
+          await deleteFromS3(oldKey)
         } catch (error) {
           console.error('[admin-hero-banners] old image delete failed', { bannerId: current.id, slot: imageSlot, error })
         }

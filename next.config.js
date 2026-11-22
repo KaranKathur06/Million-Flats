@@ -24,6 +24,10 @@ if (s3Bucket && awsRegion) {
   defaultDomains.push(s3Host)
 }
 
+// GCS direct public delivery host — use while validating GCS and before CDN cutover
+defaultRemotePatterns.push({ protocol: 'https', hostname: 'storage.googleapis.com', pathname: '/**' })
+defaultDomains.push('storage.googleapis.com')
+
 const nextConfig = {
   compress: true,
   poweredByHeader: false,

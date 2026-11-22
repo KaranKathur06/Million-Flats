@@ -107,7 +107,7 @@ export async function generateSignedUrl(params: {
   url: string
   expiresAt: Date
   expiresIn: number
-  source: 'cloudfront' | 's3-presigned'
+  source: 'cloudfront' | 'gcs-presigned'
 }> {
   const s3Key = normalizeKey(params.s3Key)
   const ttl = clampTTL(params.ttlSeconds ?? 900)
@@ -126,14 +126,14 @@ export async function generateSignedUrl(params: {
     return { url, expiresAt, expiresIn: ttl, source: 'cloudfront' }
   }
 
-  // Fallback: S3 presigned URL
+  // Fallback: GCS presigned URL
   const { createSignedGetUrl } = await import('@/lib/s3')
   const signed = await createSignedGetUrl({ key: s3Key, expiresInSeconds: ttl })
   return {
     url: signed.url,
     expiresAt,
     expiresIn: signed.expiresIn,
-    source: 's3-presigned',
+    source: 'gcs-presigned',
   }
 }
 

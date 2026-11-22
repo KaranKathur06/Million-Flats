@@ -65,6 +65,12 @@ const S3_PREFIXES = [
   /^https?:\/\/s3[.-][a-z0-9-]*\.amazonaws\.com\/[a-z0-9.-]+\//i,
 ]
 
+const GCS_PREFIXES = [
+  /^https?:\/\/storage\.googleapis\.com\/[a-z0-9._-]+\//i,
+  /^https?:\/\/[a-z0-9._-]+\.storage\.googleapis\.com\//i,
+  /^https?:\/\/storage\.cloud\.google\.com\/[a-z0-9._-]+\//i,
+]
+
 /**
  * Strip any S3 URL prefix from a path, returning just the key.
  * If the input is already a relative key, returns it unchanged.
@@ -73,6 +79,17 @@ function stripS3Prefix(input: string): string {
   const trimmed = input.trim().split(/[?#]/)[0] || ''
 
   for (const pattern of S3_PREFIXES) {
+    if (pattern.test(trimmed)) {
+      const key = trimmed.replace(pattern, '')
+      try {
+        return decodeURIComponent(key)
+      } catch {
+        return key
+      }
+    }
+  }
+
+  for (const pattern of GCS_PREFIXES) {
     if (pattern.test(trimmed)) {
       const key = trimmed.replace(pattern, '')
       try {
@@ -114,7 +131,7 @@ export function buildAssetUrl(path: string | null | undefined): string | null {
   if (cdnBase && trimmed.startsWith(cdnBase)) return trimmed
 
   // Full S3 URL — strip to key, then build CDN URL
-  if (trimmed.includes('.amazonaws.com')) {
+  if (trimmed.includes('.amazonaws.com') || trimmed.includes('storage.googleapis.com') || trimmed.includes('storage.cloud.google.com')) {
     const key = stripS3Prefix(trimmed)
     if (key && cdnBase) {
       return `${cdnBase}/${key}`

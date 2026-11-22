@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client')
-const { PutObjectCommand, S3Client } = require('@aws-sdk/client-s3')
+const { Storage } = require('@google-cloud/storage')
 
 const prisma = new PrismaClient()
 
@@ -17,10 +17,9 @@ function slugify(input) {
     .replace(/(^-|-$)/g, '') || 'blog'
 }
 
-function isCanonicalBlogS3Url(url, bucket, region) {
+function isCanonicalBlogUrl(url) {
   if (!url) return false
-  const expected = `https://${bucket}.s3.${region}.amazonaws.com/public/blogs/`
-  return String(url).startsWith(expected)
+  return String(url).includes('/public/blogs/')
 }
 
 async function readImageSource(url) {
@@ -48,9 +47,10 @@ async function readImageSource(url) {
 }
 
 async function main() {
-  const bucket = requireEnv('AWS_S3_BUCKET', 'millionflats-prod-assets')
-  const region = requireEnv('AWS_REGION', 'eu-north-1')
-  const s3 = new S3Client({ region })
+  const projectId = requireEnv('GCP_PROJECT_ID')
+  const bucketName = requireEnv('GCP_STORAGE_BUCKET')
+  const storage = new Storage({ projectId })
+  const bucket = storage.bucket(bucketName)
 
   const blogs = await prisma.blog.findMany({
     where: { featuredImageUrl: { not: null } },
@@ -68,7 +68,7 @@ async function main() {
       continue
     }
 
-    if (isCanonicalBlogS3Url(currentUrl, bucket, region)) {
+    if (isCanonicalBlogUrl(currentUrl)) {
       skipped++
       continue
     }
@@ -78,15 +78,18 @@ async function main() {
 
     try {
       const image = await readImageSource(currentUrl)
-      await s3.send(new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: image.body,
-        ContentType: image.contentType,
-        CacheControl: 'public, max-age=31536000, immutable',
-      }))
+      await bucket.file(key).save(image.body, {
+        resumable: false,
+        metadata: {
+          contentType: image.contentType,
+          cacheControl: 'public, max-age=31536000, immutable',
+        },
+      })
 
-      const nextUrl = `https://${bucket}.s3.${region}.amazonaws.com/${key}`
+      const cdnBase = String(process.env.CDN_BASE_URL || process.env.NEXT_PUBLIC_CDN_DOMAIN || '').trim().replace(/^https?:\/\//, '').replace(/\/+$/, '')
+      const nextUrl = cdnBase
+        ? `https://${cdnBase}/${key}`
+        : `https://storage.googleapis.com/${bucketName}/${key}`
       await prisma.blog.update({
         where: { id: blog.id },
         data: { featuredImageUrl: nextUrl },

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAdminSession } from '@/lib/adminAuth'
-import { createSignedGetUrl, extractS3KeyFromUrl } from '@/lib/s3'
+import { buildCdnAssetUrl, createSignedGetUrl, extractS3KeyFromUrl } from '@/lib/s3'
 import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
     // For public files, just return the URL directly
     return NextResponse.json({ 
       success: true, 
-      url: fileUrl || `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${finalKey}`,
+      url: fileUrl || buildCdnAssetUrl({ key: finalKey }),
       isPublic: true,
     })
   }

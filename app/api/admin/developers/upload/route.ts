@@ -3,11 +3,10 @@ import { requireAdminSession } from '@/lib/adminAuth'
 import {
   buildDeveloperLogoKey,
   sanitizeFilename,
-  getS3Client,
   buildCdnAssetUrl,
 } from '@/lib/s3'
+import { getStorageProvider } from '@/lib/storage'
 import { validateStoredMediaKey } from '@/lib/media/validateMedia'
-import { PutObjectCommand } from '@aws-sdk/client-s3'
 import crypto from 'crypto'
 
 export const runtime = 'nodejs'
@@ -68,18 +67,10 @@ export async function POST(req: Request) {
 
     const buffer = Buffer.from(await file.arrayBuffer())
 
-    const client = getS3Client()
-    const bucket = String(process.env.AWS_S3_BUCKET || '').trim()
-    if (!bucket) throw new Error('Missing AWS_S3_BUCKET')
-
-    await client.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: buffer,
-        ContentType: contentType,
-      })
-    )
+    await getStorageProvider().uploadBuffer(buffer, {
+      key,
+      contentType,
+    })
 
     const verified = await validateStoredMediaKey(key)
     if (!verified.ok) {

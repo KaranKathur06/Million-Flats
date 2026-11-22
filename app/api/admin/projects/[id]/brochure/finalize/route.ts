@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { prisma } from '@/lib/prisma'
 import { buildProjectBrochureKey, deleteFromS3, s3ObjectExists } from '@/lib/s3'
-import { HeadObjectCommand } from '@aws-sdk/client-s3'
-import { getS3Client } from '@/lib/s3'
+import { getStorageProvider } from '@/lib/storage'
 import { validateStoredMediaSignature } from '@/lib/media/validateMedia'
 
 export const runtime = 'nodejs'
@@ -79,8 +78,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!(await s3ObjectExists({ key: s3Key }))) {
       return NextResponse.json({ success: false, message: 'Uploaded brochure was not found in storage' }, { status: 400 })
     }
-    const object = await getS3Client().send(new HeadObjectCommand({ Bucket: process.env.AWS_S3_BUCKET, Key: s3Key }))
-    if (Number(object.ContentLength) !== fileSizeBytes) {
+    const object = await getStorageProvider().getFileMetadata(s3Key)
+    if (object.sizeBytes !== fileSizeBytes) {
       return NextResponse.json({ success: false, message: 'Uploaded brochure size does not match the selected file' }, { status: 400 })
     }
     const signature = await validateStoredMediaSignature(s3Key, 'application/pdf')
