@@ -3,7 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/adminAuth'
 import { z } from 'zod'
 import { parseAEDInput } from '@/lib/pricing'
-import { MEDIA_FALLBACKS, resolveProjectMediaUrl } from '@/lib/media/resolveMedia'
+import { MEDIA_FALLBACKS } from '@/lib/media/resolveMedia'
+import { resolveProjectMediaUrl } from '@/lib/media/resolveMediaServer'
 
 function safeString(v: unknown) {
     return typeof v === 'string' ? v.trim() : ''

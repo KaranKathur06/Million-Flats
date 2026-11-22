@@ -32,6 +32,7 @@ function sortedMedia(media: ProjectMediaRow[]) {
 
 function firstUrl(...candidates: (string | null | undefined)[]): string | null {
   for (const c of candidates) {
+    if (!c || ['null', 'undefined'].includes(String(c).trim().toLowerCase())) continue
     const url = buildAssetUrl(c)
     if (url) return url
   }
