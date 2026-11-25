@@ -2,8 +2,15 @@ import { extractRelativeKey, buildAssetUrl } from '@/lib/assetUrl'
 import { buildS3Key } from '@/utils/s3PathBuilder'
 
 describe('GCS storage compatibility', () => {
+  const originalGcsBucket = process.env.GCP_STORAGE_BUCKET
+
   beforeEach(() => {
     process.env.CDN_BASE_URL = 'https://cdn.millionflats.com'
+  })
+
+  afterEach(() => {
+    if (originalGcsBucket === undefined) delete process.env.GCP_STORAGE_BUCKET
+    else process.env.GCP_STORAGE_BUCKET = originalGcsBucket
   })
 
   it('extracts relative keys from legacy S3 URLs', () => {
@@ -21,6 +28,17 @@ describe('GCS storage compatibility', () => {
   it('rewrites legacy and relative public assets to CDN URLs', () => {
     expect(buildAssetUrl('public/projects/damac/media.JPG')).toBe(
       'https://cdn.millionflats.com/public/projects/damac/media.JPG'
+    )
+  })
+
+  it('uses direct GCS delivery for public keys when no CDN is configured', () => {
+    delete process.env.CDN_BASE_URL
+    delete process.env.CLOUDFRONT_DOMAIN
+    delete process.env.NEXT_PUBLIC_CDN_DOMAIN
+    process.env.GCP_STORAGE_BUCKET = 'millionflats-media'
+
+    expect(buildAssetUrl('public/projects/damac/media.JPG')).toBe(
+      'https://storage.googleapis.com/millionflats-media/public/projects/damac/media.JPG'
     )
   })
 

@@ -9,6 +9,10 @@ export async function resolveProjectMediaUrl(path?: string | null): Promise<stri
   const key = extractRelativeKey(path)
   if (!key) return directUrl
 
+  if (key.startsWith('public/')) {
+    return directUrl
+  }
+
   const signed = await generateSignedUrl({ s3Key: key, ttlSeconds: 3600 })
   return signed.url
 }

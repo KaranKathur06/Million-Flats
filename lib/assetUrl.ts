@@ -54,6 +54,12 @@ function getCdnBaseUrl(): string {
   return ''
 }
 
+function getGcsPublicBaseUrl(): string {
+  const bucket = String(process.env.GCP_STORAGE_BUCKET || '').trim()
+  if (!bucket) return ''
+  return `https://storage.googleapis.com/${encodeURIComponent(bucket)}`
+}
+
 // ─── S3 URL Stripping ───────────────────────────────────────────────────────
 
 /**
@@ -151,6 +157,11 @@ export function buildAssetUrl(path: string | null | undefined): string | null {
   // Relative S3 key — prepend CDN base
   if (cdnBase) {
     return `${cdnBase}/${trimmed}`
+  }
+
+  // Public GCS objects may be served directly when no CDN is configured.
+  if (trimmed.startsWith('public/') && getGcsPublicBaseUrl()) {
+    return `${getGcsPublicBaseUrl()}/${encodeURIComponent(trimmed).replace(/%2F/g, '/')}`
   }
 
   // Fallback: return key as-is
